@@ -12,6 +12,7 @@ import MaterialsPage from './pages/MaterialsPage';
 import SuppliersPage from './pages/SuppliersPage'; // MOI
 import SalesPage from './pages/SalesPage';
 import CrmPage from './pages/CrmPage';
+import CustomersPage from './pages/CustomersPage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -30,8 +31,9 @@ const items: MenuItem[] = [
     getItem(<Link to="/inventory">Nhập xuất kho</Link>, '4'),
   ]),
   getItem('Bán hàng (CRM)', 'sub2', <TeamOutlined />, [ 
-    getItem(<Link to="/sales">Đơn bán hàng (SO)</Link>, '5'), // <-- TRỎ VỀ /sales
-    getItem(<Link to="/customers">Khách hàng</Link>, 'cust'), // <-- Gợi ý: Tạo thêm trang CustomersPage sau
+    getItem(<Link to="/sales">Pipeline Bán Hàng</Link>, '5'), // Trang CrmPage
+    getItem(<Link to="/customers">Danh sách Khách hàng</Link>, 'cust'), // <-- Trang CustomersPage này
+  ]),
 ]),
 ];
 
@@ -57,6 +59,7 @@ const App: React.FC = () => {
                 <Route path="/materials" element={<MaterialsPage />} />
                 <Route path="/suppliers" element={<SuppliersPage />} />
                 <Route path="/sales" element={<CrmPage />} />
+                <Route path="/customers" element={<CustomersPage />} />
                 <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
               </Routes>
             </div>
