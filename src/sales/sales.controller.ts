@@ -3,20 +3,14 @@ import { SalesService } from './sales.service';
 
 @Controller('sales')
 export class SalesController {
-  constructor(private readonly salesService: SalesService) {}
+  constructor(private readonly s: SalesService) {}
 
-  @Post('create')
-  async createOrder(@Body() body: any) {
-    return this.salesService.createOrder(body);
-  }
+  @Post('create') create(@Body() b: any) { return this.s.createOrder(b); }
+  @Get() findAll() { return this.s.findAll(); }
+  @Get(':code') getOne(@Param('code') c: string) { return this.s.getOrder(c); }
 
-  @Get()
-  async findAll() {
-    return this.salesService.findAll();
-  }
-
-  @Get(':code')
-  async getOrder(@Param('code') code: string) {
-    return this.salesService.getOrder(code);
+  @Post(':id/convert')
+  convert(@Param('id') id: number, @Body('accepted') accepted: boolean) {
+      return this.s.convertQuoteToSo(id, accepted);
   }
 }
