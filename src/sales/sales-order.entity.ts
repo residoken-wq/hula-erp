@@ -1,5 +1,14 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { SalesOrderItem } from './sales-order-item.entity';
+import { Customer } from '../customers/customer.entity';
+
+export enum SalesOrderStatus {
+  DRAFT = 'DRAFT',           // Nháp
+  CONFIRMED = 'CONFIRMED',   // Đã chốt (Tính công nợ)
+  PLANNED = 'PLANNED',       // Đã vào Kế hoạch SX (KHÓA ĐƠN - Không sửa xóa)
+  COMPLETED = 'COMPLETED',   // Đã giao hàng xong
+  CANCELLED = 'CANCELLED'
+}
 
 @Entity('sales_orders')
 export class SalesOrder {
@@ -31,4 +40,21 @@ export class SalesOrder {
 
   @CreateDateColumn()
   order_date: Date;
+
+  @Column({
+    type: 'enum',
+    enum: SalesOrderStatus,
+    default: SalesOrderStatus.DRAFT
+  })
+  status: SalesOrderStatus;
+
+  // --- LIÊN KẾT CRM ---
+  @ManyToOne(() => Customer, (customer) => customer.orders)
+  @JoinColumn({ name: 'customer_id' })
+  customer: Customer;
+
+  @Column({ nullable: true })
+  customer_id: number;
+  // -------------------
+}
 }

@@ -176,4 +176,39 @@ export class UploadService {
     XLSX.utils.book_append_sheet(wb, ws, "Template");
     return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as any;
   }
+  // Thêm vào src/upload/upload.service.ts
+
+// ... imports cần thêm CustomerRepo ...
+
+// Trong class UploadService:
+async importCustomers(buffer: Buffer) {
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+    let count = 0; const errors = [];
+
+    for (const rawRow of data) {
+      const row = this.normalizeRow(rawRow);
+      try {
+        const code = row['code'] || row['ma'];
+        if (!code) continue;
+
+        const customerData = {
+           code: code.toString().trim(), 
+           name: row['name'] || row['ten'],
+           phone: row['phone'] || row['sdt'],
+           address: row['address'] || row['diachi'],
+           tax_code: row['tax'] || row['mst'],
+           credit_limit: Number(row['limit'] || row['hanmuc']) || 0,
+           current_debt: 0 // Mới tạo nợ bằng 0
+        };
+
+        // Logic upsert (Nếu có rồi thì update, chưa thì tạo mới)
+        const existing = await this.customerRepo.findOne({ where: { code: customerData.code } });
+        if (existing) { await this.customerRepo.update(existing.id, customerData); } 
+        else { await this.customerRepo.save(customerData); }
+        count++;
+      } catch (e) { errors.push({ code: row['code'], error: e.message }); }
+    }
+    return { message: 'Import Khách hàng xong', count, errors };
+}
 }
