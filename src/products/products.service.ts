@@ -71,7 +71,7 @@ export class ProductsService {
           throw error; // Nem loi ra de Controller bat duoc
       }
   }
-  // -------------------------------------------
+  // ---------------------------------------------
 
   async getRoutings(productId: number) { return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); }
   
