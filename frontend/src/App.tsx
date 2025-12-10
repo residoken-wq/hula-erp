@@ -1,0 +1,66 @@
+import React, { useState } from 'react';
+import { Layout, Menu, theme } from 'antd';
+import type { MenuProps } from 'antd';
+import {
+  DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, BankOutlined, CloudUploadOutlined, GiftOutlined
+} from '@ant-design/icons';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import ProductsPage from './pages/ProductsPage';
+import CombosPage from './pages/CombosPage';
+import UploadPage from './pages/UploadPage';
+import MaterialsPage from './pages/MaterialsPage';
+import SuppliersPage from './pages/SuppliersPage'; // MOI
+
+const { Header, Content, Footer, Sider } = Layout;
+type MenuItem = Required<MenuProps>['items'][number];
+function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem { return { key, icon, children, label } as MenuItem; }
+
+const items: MenuItem[] = [
+  getItem(<Link to="/">Tổng quan</Link>, '1', <PieChartOutlined />),
+  getItem('Quản lý sản phẩm', 'sub_prod', <ShopOutlined />, [
+    getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
+    getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page', <GiftOutlined />),
+  ]),
+  getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />),
+  getItem('Kho hàng & NCC', 'sub1', <DropboxOutlined />, [
+    getItem(<Link to="/materials">Nguyên liệu</Link>, '3'),
+    getItem(<Link to="/suppliers">Nhà cung cấp</Link>, 'supp', <TeamOutlined />), // MOI
+    getItem(<Link to="/inventory">Nhập xuất kho</Link>, '4'),
+  ]),
+  getItem('Bán hàng', 'sub2', <TeamOutlined />, [ getItem(<Link to="/sales">Đơn bán hàng</Link>, '5') ]),
+  getItem('Sản xuất', '9', <DesktopOutlined />),
+  getItem(<Link to="/finance">Tài chính</Link>, '10', <BankOutlined />),
+];
+
+const App: React.FC = () => {
+  const [collapsed, setCollapsed] = useState(false);
+  const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
+  return (
+    <Router>
+      <Layout style={{ minHeight: '100vh' }}>
+        <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
+          <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', textAlign: 'center', color: '#fff', lineHeight: '32px', fontWeight: 'bold' }}>HULA ERP</div>
+          <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={items} />
+        </Sider>
+        <Layout>
+          <Header style={{ padding: 0, background: colorBgContainer }} />
+          <Content style={{ margin: '0 16px' }}>
+            <div style={{ padding: 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG, marginTop: 16 }}>
+              <Routes>
+                <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
+                <Route path="/upload" element={<UploadPage />} /> 
+                <Route path="/products" element={<ProductsPage />} />
+                <Route path="/combos" element={<CombosPage />} /> 
+                <Route path="/materials" element={<MaterialsPage />} />
+                <Route path="/suppliers" element={<SuppliersPage />} />
+                <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
+              </Routes>
+            </div>
+          </Content>
+          <Footer style={{ textAlign: 'center' }}>Hula ERP ©2025 Created by AI</Footer>
+        </Layout>
+      </Layout>
+    </Router>
+  );
+};
+export default App;
