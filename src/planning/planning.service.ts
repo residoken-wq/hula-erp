@@ -15,20 +15,17 @@ export class PlanningService {
     private materialsService: MaterialsService,
   ) {}
 
-  // 1. Tạo Kế hoạch SX (Gom các đơn hàng)
   async createPlan(data: any) {
-    // data: { code, name, orderCodes: ['SO_01', 'SO_02'] }
-    
-    // Tìm các đơn hàng
     const orders = await this.orderRepo.find({ where: { order_code: In(data.orderCodes) } });
-    if (orders.length !== data.orderCodes.length) throw new NotFoundException('Một số đơn hàng không tìm thấy');
+    if (orders.length !== data.orderCodes.length) throw new NotFoundException('Mot so don hang khong tim thay');
 
-    // Validate: Đơn hàng phải ở trạng thái CONFIRMED và chưa vào Plan nào
+    // FIX: Chi cho phep gom don dang o trang thai SO_PENDING (Da chot don/bao gia accepted)
+    // Khong cho phep gom don Quotation hoac Draft
     for (const so of orders) {
-        if (so.status !== SalesOrderStatus.CONFIRMED && so.status !== SalesOrderStatus.DRAFT) {
-            throw new BadRequestException(`Đơn ${so.order_code} trạng thái không hợp lệ để lên KH`);
+        if (so.status !== SalesOrderStatus.SO_PENDING) {
+            throw new BadRequestException(`Don ${so.order_code} trang thai khong hop le (Phai la SO_PENDING)`);
         }
-        if (so.plan_id) throw new BadRequestException(`Đơn ${so.order_code} đã thuộc kế hoạch khác`);
+        if (so.plan_id) throw new BadRequestException(`Don ${so.order_code} da thuoc ke hoach khac`);
     }
 
     const plan = this.planRepo.create({
@@ -41,7 +38,7 @@ export class PlanningService {
     
     const savedPlan = await this.planRepo.save(plan);
 
-    // Cập nhật Sales Order: Gán vào Plan và KHÓA ĐƠN
+    // Update Sales Order -> PLANNED
     await this.orderRepo.update(
         { id: In(orders.map(o => o.id)) }, 
         { plan_id: savedPlan.id, status: SalesOrderStatus.PLANNED }
@@ -50,16 +47,14 @@ export class PlanningService {
     return savedPlan;
   }
 
-  // 2. Thuật toán MRP (Material Requirements Planning)
   async calculateMaterialNeeds(planId: number) {
     const plan = await this.planRepo.findOne({ 
         where: { id: planId }, 
         relations: ['sales_orders', 'sales_orders.items'] 
     });
-    if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
+    if (!plan) throw new NotFoundException('Ke hoach khong ton tai');
 
-    // BƯỚC 1: TỔNG HỢP NHU CẦU SẢN PHẨM (Gross Product Demand)
-    const productDemand = new Map<string, number>(); // SKU -> Qty
+    const productDemand = new Map<string, number>();
     
     for (const so of plan.sales_orders) {
         for (const item of so.items) {
@@ -68,41 +63,35 @@ export class PlanningService {
         }
     }
 
-    // BƯỚC 2: BUNG BOM (Explosion)
-    const materialDemand = new Map<number, number>(); // MaterialID -> Qty Needed
+    const materialDemand = new Map<number, number>();
     
     for (const [sku, qty] of productDemand.entries()) {
-        // Lấy BOM của sản phẩm
         const boms = await this.productsService.getBomByProductSku(sku);
-        
         for (const bomItem of boms) {
             if (bomItem.material_id) {
-                // Công thức: Nhu cầu = SL Sản Phẩm * Định mức * (1 + Hao hụt)
                 const waste = Number(bomItem.waste_percent) / 100;
                 const required = qty * Number(bomItem.quantity) * (1 + waste);
-                
                 const currentMatQty = materialDemand.get(bomItem.material_id) || 0;
                 materialDemand.set(bomItem.material_id, currentMatQty + required);
             }
         }
     }
 
-    // BƯỚC 3: CÂN ĐỐI TỒN KHO (Net Requirement Calculation)
     const result = [];
     for (const [matId, grossQty] of materialDemand.entries()) {
         const material = await this.materialsService.materialRepo.findOne({ where: { id: matId } });
         if (material) {
             const stock = Number(material.quantity_in_stock) || 0;
-            const netQty = grossQty - stock; // Nhu cầu ròng = Tổng cần - Tồn kho
+            const netQty = grossQty - stock;
             
             result.push({
                 material_id: matId,
                 material_code: material.code,
                 material_name: material.name,
                 unit: material.unit,
-                gross_requirement: Math.ceil(grossQty * 100)/100, // Làm tròn 2 số lẻ
+                gross_requirement: Math.ceil(grossQty * 100)/100,
                 available_stock: stock,
-                net_requirement: netQty > 0 ? Math.ceil(netQty * 100)/100 : 0, // Chỉ mua nếu thiếu
+                net_requirement: netQty > 0 ? Math.ceil(netQty * 100)/100 : 0,
                 purchase_unit: material.purchase_unit,
                 conversion_factor: material.conversion_factor,
                 suggested_purchase_qty: netQty > 0 ? Math.ceil(netQty / Number(material.conversion_factor || 1)) : 0
@@ -110,7 +99,6 @@ export class PlanningService {
         }
     }
 
-    // Cập nhật trạng thái Plan
     plan.status = PlanStatus.CALCULATED;
     await this.planRepo.save(plan);
 

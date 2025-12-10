@@ -10,23 +10,18 @@ import { CustomersService } from '../customers/customers.service';
 @Injectable()
 export class SalesService {
   constructor(
-    @InjectRepository(SalesOrder) private orderRepo: Repository<SalesOrder>,
+    @InjectRepository(SalesOrder) public orderRepo: Repository<SalesOrder>, // Public de Controller goi find
     private productsService: ProductsService,
     private inventoryService: InventoryService,
     private customersService: CustomersService,
   ) {}
 
   async createOrder(data: any) {
-    // data.isQuotation = true -> Tạo Báo giá
     const order = new SalesOrder();
     order.order_code = data.order_code;
     
     if(data.customer_id) {
         order.customer = { id: data.customer_id } as any;
-        // Check công nợ nếu là Đơn hàng thật (không phải báo giá)
-        if (!data.isQuotation) {
-            // Logic check công nợ ở đây (như cũ)
-        }
     }
     order.customer_name = data.customer_name;
     order.shipping_address = data.shipping_address;
@@ -48,10 +43,10 @@ export class SalesService {
         totalCost += (costInfo.new_cost_price || 0) * item.quantity;
       } catch (e) {}
 
-      // Nếu là ĐƠN HÀNG (SO_PENDING) mới trừ kho. BÁO GIÁ (QUOTATION) KHÔNG TRỪ KHO.
+      // Neu la DON HANG (khong phai Bao gia) -> Tru kho
       if (!data.isQuotation) {
           const product = await this.productsService.findOneBySku(item.sku);
-          if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, item.quantity, data.order_code, 'Bán hàng');
+          if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, item.quantity, data.order_code, 'Ban hang');
       }
       order.items.push(item);
     }
@@ -59,7 +54,7 @@ export class SalesService {
     order.total_amount = totalAmount;
     order.total_cost = totalCost;
     
-    // Status Logic
+    // Status Logic: QUOTATION hoac SO_PENDING
     order.status = data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING;
 
     return this.orderRepo.save(order);
@@ -73,28 +68,33 @@ export class SalesService {
       return this.orderRepo.findOne({ where: { order_code: code }, relations: ['items', 'customer'] });
   }
 
-  // --- API MỚI: CHUYỂN ĐỔI BÁO GIÁ THÀNH ĐƠN HÀNG ---
+  // --- API CRM: Convert Bao gia -> SO ---
   async convertQuoteToSo(id: number, accepted: boolean) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
-      if(!order) throw new NotFoundException('Không tìm thấy báo giá');
+      if(!order) throw new NotFoundException('Khong tim thay bao gia');
       
       if (!accepted) {
-          order.status = SalesOrderStatus.CANCELLED; // Khách từ chối
+          order.status = SalesOrderStatus.CANCELLED;
       } else {
-          // Khách đồng ý -> Chuyển thành SO -> TRỪ KHO NGAY LÚC NÀY
+          // Tru kho
           for (const item of order.items) {
               const product = await this.productsService.findOneBySku(item.sku);
               if (product) {
-                  await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, item.quantity, order.order_code, 'Chốt Báo Giá -> SO');
+                  await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, item.quantity, order.order_code, 'Chot Bao Gia -> SO');
               }
           }
           order.status = SalesOrderStatus.SO_PENDING;
-          
-          // Nâng cấp Lead -> Customer
-          if(order.customer_id) {
-              await this.customersService.convertToCustomer(order.customer_id);
-          }
+          if(order.customer_id) await this.customersService.convertToCustomer(order.customer_id);
       }
       return this.orderRepo.save(order);
+  }
+
+  // --- FIX: KHOI PHUC HAM NAY CHO FINANCE SERVICE GOI ---
+  async updatePayment(orderCode: string, amount: number) {
+    const order = await this.orderRepo.findOne({ where: { order_code: orderCode } });
+    if (!order) throw new NotFoundException('Khong tim thay don hang: ' + orderCode);
+    
+    order.paid_amount = Number(order.paid_amount || 0) + Number(amount);
+    return this.orderRepo.save(order);
   }
 }
