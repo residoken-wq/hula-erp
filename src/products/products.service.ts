@@ -31,20 +31,47 @@ export class ProductsService {
     return this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
   }
 
-  // --- MOI: API LUU BOM (NHAP TAY) ---
+  // --- FIX LOI LUU BOM (VERSION 2 - ROBUST) ---
   async saveBoms(productId: number, items: any[]) {
-      // items: [{ material_id, quantity, waste_percent }]
-      await this.bomRepo.delete({ product_id: productId }); // Xoa cu
+      console.log(`Dang luu BOM cho Product ID: ${productId}`);
+      console.log('Du lieu nhan duoc:', items);
+
+      if (!items || !Array.isArray(items)) {
+          console.log('Loi: Data khong phai la mang');
+          return [];
+      }
+
+      // 1. Xoa BOM cu
+      await this.bomRepo.delete({ product_id: productId }); 
       
-      const newItems = items.map(i => this.bomRepo.create({
-          product_id: productId,
-          material_id: i.material_id,
-          quantity: i.quantity,
-          waste_percent: i.waste_percent || 0
-      }));
-      return this.bomRepo.save(newItems as any);
+      // 2. Loc va Chuan hoa du lieu
+      const validItems = items
+        .filter(i => i.material_id) // Chi lay dong da chon NPL
+        .map(i => {
+            return this.bomRepo.create({
+                product_id: Number(productId), // Ep kieu so
+                material_id: Number(i.material_id), // Ep kieu so
+                quantity: Number(i.quantity) || 0,
+                waste_percent: Number(i.waste_percent) || 0
+            });
+        });
+
+      if (validItems.length === 0) {
+          console.log('Khong co dong BOM nao hop le de luu');
+          return [];
+      }
+
+      // 3. Luu vao DB
+      try {
+          const result = await this.bomRepo.save(validItems as any);
+          console.log('Luu thanh cong:', result.length, 'dong');
+          return result;
+      } catch (error) {
+          console.error('LOI KHI LUU BOM VAO DB:', error);
+          throw error; // Nem loi ra de Controller bat duoc
+      }
   }
-  // ----------------------------------
+  // -------------------------------------------
 
   async getRoutings(productId: number) { return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); }
   
