@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Tabs, Statistic, Divider, InputNumber, Popconfirm } from 'antd';
-import { UserOutlined, PhoneOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, CarOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Tabs, Statistic, Divider, InputNumber, Popconfirm, Tooltip } from 'antd';
+import { UserOutlined, PhoneOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -9,11 +9,12 @@ const CrmPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('LEAD');
   const [loading, setLoading] = useState(false);
   
-  // Data
-  const [leads, setLeads] = useState([]);
-  const [quotes, setQuotes] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [products, setProducts] = useState([]);
+  // Data State
+  const [allCustomers, setAllCustomers] = useState<any[]>([]); // Dữ liệu cho Dropdown chọn khách
+  const [leads, setLeads] = useState<any[]>([]);
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
 
   // UI State
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
@@ -29,18 +30,30 @@ const CrmPage: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+        // Load Customers
         const resCust = await axios.get(`${API_URL}/customers`);
-        const allCust = resCust.data;
-        setLeads(allCust.filter((c:any) => c.type === 'LEAD'));
+        const custData = Array.isArray(resCust.data) ? resCust.data : [];
+        setAllCustomers(custData); // Lưu toàn bộ để dùng cho Dropdown
+        setLeads(custData.filter((c:any) => c.type === 'LEAD'));
         
-        const resSales = await axios.get(`${API_URL}/sales`);
-        const allSales = resSales.data;
-        setQuotes(allSales.filter((s:any) => s.status === 'QUOTATION' || s.status === 'CANCELLED'));
-        setOrders(allSales.filter((s:any) => ['SO_PENDING', 'PLANNED', 'SHIPPING', 'COMPLETED'].includes(s.status)));
+        // Load Sales (Quotes + Orders)
+        try {
+            const resSales = await axios.get(`${API_URL}/sales`);
+            const salesData = Array.isArray(resSales.data) ? resSales.data : [];
+            setQuotes(salesData.filter((s:any) => s.status === 'QUOTATION' || s.status === 'CANCELLED'));
+            setOrders(salesData.filter((s:any) => ['SO_PENDING', 'PLANNED', 'SHIPPING', 'COMPLETED'].includes(s.status)));
+        } catch(e) { console.warn('Chưa có dữ liệu Sales'); }
 
+        // Load Products
         const resProd = await axios.get(`${API_URL}/products`);
-        setProducts(resProd.data.map((p:any) => ({label: p.name, value: p.sku, price: Number(p.base_price)})));
-    } catch(e) {}
+        if (Array.isArray(resProd.data)) {
+            setProducts(resProd.data.map((p:any) => ({
+                label: p.name, 
+                value: p.sku, 
+                price: Number(p.base_price) || 0
+            })));
+        }
+    } catch(e) { message.error('Lỗi kết nối dữ liệu'); }
     setLoading(false);
   };
 
@@ -50,7 +63,9 @@ const CrmPage: React.FC = () => {
   const handleSaveLead = async (values: any) => {
       try {
           await axios.post(`${API_URL}/customers`, { ...values, type: 'LEAD' });
-          message.success('Tạo Lead thành công'); setIsLeadModalOpen(false); fetchData();
+          message.success('Tạo Lead thành công'); 
+          setIsLeadModalOpen(false); 
+          fetchData();
       } catch(e) { message.error('Lỗi tạo Lead'); }
   };
 
@@ -58,12 +73,13 @@ const CrmPage: React.FC = () => {
       if(!followNote) return;
       try {
           await axios.post(`${API_URL}/customers/${currentCustomer.id}/follow`, { note: followNote });
-          message.success('Đã lưu lịch sử'); setFollowNote(''); 
-          // Reload current customer history
+          message.success('Đã lưu lịch sử'); 
+          setFollowNote(''); 
+          // Reload history
           const res = await axios.get(`${API_URL}/customers/${currentCustomer.id}`);
           setCurrentCustomer(res.data);
           fetchData();
-      } catch(e) { message.error('Lỗi'); }
+      } catch(e) { message.error('Lỗi lưu follow'); }
   };
 
   // 3. QUOTE ACTIONS
@@ -72,11 +88,18 @@ const CrmPage: React.FC = () => {
           const payload = {
               order_code: `QUOTE-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}`,
               customer_id: values.customer_id,
-              isQuotation: true, // Flag quan trọng báo backend đây là Báo giá
-              items: values.items.map((i:any) => ({ sku: i.sku, quantity: i.quantity, price: i.price }))
+              isQuotation: true, // Flag quan trọng
+              items: values.items.map((i:any) => ({ 
+                  sku: i.sku, 
+                  quantity: Number(i.quantity), 
+                  price: Number(i.price) 
+              }))
           };
           await axios.post(`${API_URL}/sales/create`, payload);
-          message.success('Tạo báo giá thành công'); setIsQuoteModalOpen(false); fetchData(); setActiveTab('QUOTE');
+          message.success('Tạo báo giá thành công'); 
+          setIsQuoteModalOpen(false); 
+          fetchData(); 
+          setActiveTab('QUOTE');
       } catch(e) { message.error('Lỗi tạo báo giá'); }
   };
 
@@ -88,21 +111,24 @@ const CrmPage: React.FC = () => {
       } catch(e) { message.error('Lỗi xử lý'); }
   };
 
-  // --- COLUMNS ---
+  // --- UI COMPONENTS ---
   const leadColumns = [
       { title: 'Mã', dataIndex: 'code', render: (t:any) => <b>{t}</b> },
-      { title: 'Tên Khách', dataIndex: 'name' },
+      { title: 'Tên Khách', dataIndex: 'name', render: (t:any, r:any) => <a onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}}>{t}</a> },
       { title: 'SĐT', dataIndex: 'phone' },
-      { title: 'Lần chăm sóc cuối', dataIndex: 'history', render: (h:any[]) => h && h.length ? dayjs(h[0].date).format('DD/MM HH:mm') : '-' },
+      { 
+          title: 'Lần chăm sóc cuối', dataIndex: 'history', 
+          render: (h:any[]) => h && h.length > 0 ? <Tag color="blue">{dayjs(h[0].date).format('DD/MM')}: {h[0].note}</Tag> : <span style={{color:'#ccc'}}>Chưa có</span> 
+      },
       { 
           title: '', key: 'act', align: 'right' as const,
-          render: (_:any, r:any) => <Button size="small" icon={<ClockCircleOutlined />} onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}}>Follow</Button>
+          render: (_:any, r:any) => <Button size="small" icon={<ClockCircleOutlined />} onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}}>Chăm sóc</Button>
       }
   ];
 
   const quoteColumns = [
       { title: 'Mã Báo Giá', dataIndex: 'order_code', render: (t:any) => <Tag color="orange">{t}</Tag> },
-      { title: 'Khách Hàng', dataIndex: 'customer', render: (c:any) => c?.name },
+      { title: 'Khách Hàng', dataIndex: 'customer', render: (c:any) => c?.name || 'N/A' },
       { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v:any) => Number(v).toLocaleString() },
       { title: 'Trạng Thái', dataIndex: 'status', render: (t:any) => t==='CANCELLED' ? <Tag color="red">Từ chối</Tag> : <Tag color="processing">Chờ KH</Tag> },
       {
@@ -123,32 +149,28 @@ const CrmPage: React.FC = () => {
   const orderColumns = [
       { title: 'Mã SO', dataIndex: 'order_code', render: (t:any) => <b style={{color:'#1890ff'}}>{t}</b> },
       { title: 'Khách Hàng', dataIndex: 'customer', render: (c:any) => c?.name },
-      { title: 'Vận Chuyển', dataIndex: 'shipping_status', render: (t:any) => <Tag color={t==='DELIVERED'?'green':'default'}>{t}</Tag> },
-      { title: 'Thanh Toán', dataIndex: 'paid_amount', align: 'right' as const, render: (v:any, r:any) => 
-        <div>
-            {Number(v).toLocaleString()} / {Number(r.total_amount).toLocaleString()}
-            {Number(v) >= Number(r.total_amount) && <CheckOutlined style={{color:'green', marginLeft:5}} />}
-        </div> 
-      },
-      { title: 'Trạng Thái', dataIndex: 'status', align: 'center' as const, render: (t:any) => <Tag>{t}</Tag> }
+      { title: 'Vận Chuyển', dataIndex: 'shipping_status', render: (t:any) => <Tag>{t}</Tag> },
+      { title: 'Thanh Toán', dataIndex: 'paid_amount', align: 'right' as const, render: (v:any, r:any) => `${Number(v).toLocaleString()} / ${Number(r.total_amount).toLocaleString()}` },
+      { title: 'Trạng Thái', dataIndex: 'status', align: 'center' as const, render: (t:any) => <Tag color="green">{t}</Tag> }
   ];
 
   return (
     <div style={{padding:0}}>
+      {/* KPI CARDS */}
       <Row gutter={16} style={{marginBottom: 16}}>
-          <Col span={8}><Card><Statistic title="Leads Tiềm Năng" value={leads.length} prefix={<UserOutlined />} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Báo Giá Đang Chờ" value={quotes.filter((q:any)=>q.status==='QUOTATION').length} prefix={<FileTextOutlined />} valueStyle={{color:'#faad14'}} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Đơn Hàng (SO)" value={orders.length} prefix={<DollarOutlined />} valueStyle={{color:'#52c41a'}} /></Card></Col>
+          <Col span={8}><Card bordered={false}><Statistic title="Leads Tiềm Năng" value={leads.length} prefix={<UserOutlined />} /></Card></Col>
+          <Col span={8}><Card bordered={false}><Statistic title="Báo Giá Đang Chờ" value={quotes.filter((q:any)=>q.status==='QUOTATION').length} prefix={<FileTextOutlined />} valueStyle={{color:'#faad14'}} /></Card></Col>
+          <Col span={8}><Card bordered={false}><Statistic title="Đơn Hàng (SO)" value={orders.length} prefix={<DollarOutlined />} valueStyle={{color:'#52c41a'}} /></Card></Col>
       </Row>
 
       <Card title="Quy Trình Bán Hàng (CRM Pipeline)" extra={<Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>}>
           <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
               {
-                  key: 'LEAD', label: '1. Khách Hàng Tiềm Năng (Leads)',
+                  key: 'LEAD', label: '1. Khách Hàng Tiềm Năng',
                   children: (
                       <>
                         <Button type="primary" icon={<PlusOutlined />} onClick={()=>{formLead.resetFields(); setIsLeadModalOpen(true)}} style={{marginBottom:10}}>Tạo Lead Mới</Button>
-                        <Table dataSource={leads} columns={leadColumns} rowKey="id" />
+                        <Table dataSource={leads} columns={leadColumns} rowKey="id" pagination={{pageSize: 5}} />
                       </>
                   )
               },
@@ -157,13 +179,13 @@ const CrmPage: React.FC = () => {
                   children: (
                       <>
                         <Button type="primary" icon={<PlusOutlined />} onClick={()=>{formQuote.resetFields(); setIsQuoteModalOpen(true)}} style={{marginBottom:10}}>Tạo Báo Giá</Button>
-                        <Table dataSource={quotes} columns={quoteColumns} rowKey="id" />
+                        <Table dataSource={quotes} columns={quoteColumns} rowKey="id" pagination={{pageSize: 5}} />
                       </>
                   )
               },
               {
                   key: 'SO', label: '3. Đơn Hàng & Vận Chuyển',
-                  children: <Table dataSource={orders} columns={orderColumns} rowKey="id" />
+                  children: <Table dataSource={orders} columns={orderColumns} rowKey="id" pagination={{pageSize: 5}} />
               }
           ]} />
       </Card>
@@ -184,40 +206,58 @@ const CrmPage: React.FC = () => {
               <Input.TextArea rows={3} placeholder="Ghi chú cuộc gọi/gặp mặt..." value={followNote} onChange={e=>setFollowNote(e.target.value)} />
               <Button type="primary" block style={{marginTop:10}} onClick={handleFollowLead} icon={<SendOutlined />}>Lưu Ghi Chú</Button>
           </div>
-          <Divider>Lịch sử chăm sóc</Divider>
+          <Divider>Lịch sử</Divider>
           <Timeline mode="left">
               {currentCustomer?.history?.map((h:any, idx:number) => (
                   <Timeline.Item key={idx} label={dayjs(h.date).format('DD/MM')}>
                       <p>{h.note}</p>
-                      <small style={{color:'#999'}}>{dayjs(h.date).format('HH:mm')} - by {h.user}</small>
+                      <small style={{color:'#999'}}>{dayjs(h.date).format('HH:mm')}</small>
                   </Timeline.Item>
               ))}
           </Timeline>
       </Drawer>
 
       {/* MODAL TẠO BÁO GIÁ */}
-      <Modal title="Tạo Báo Giá Mới" open={isQuoteModalOpen} onCancel={()=>setIsQuoteModalOpen(false)} onOk={()=>formQuote.submit()} width={800}>
+      <Modal title="Tạo Báo Giá Mới" open={isQuoteModalOpen} onCancel={()=>setIsQuoteModalOpen(false)} onOk={()=>formQuote.submit()} width={800} style={{top:20}}>
           <Form form={formQuote} layout="vertical" onFinish={handleCreateQuote} initialValues={{ items: [{}] }}>
-              <Form.Item name="customer_id" label="Khách Hàng (Lead hoặc Cũ)" rules={[{required:true}]}>
-                  <Select showSearch options={leads.concat(orders.map((o:any)=>o.customer)).filter((v,i,a)=>a.findIndex(t=>(t?.id===v?.id))===i).map((c:any)=>({label:c?.name, value:c?.id}))} placeholder="Chọn khách..." />
+              {/* --- FIX: DROPDOWN CHỌN KHÁCH AN TOÀN HƠN --- */}
+              <Form.Item name="customer_id" label="Chọn Khách Hàng (Lead hoặc Cũ)" rules={[{required:true}]}>
+                  <Select 
+                    showSearch 
+                    placeholder="Tìm khách..."
+                    optionFilterProp="label"
+                    options={allCustomers.map(c => ({
+                        label: `[${c.code}] ${c.name} (${c.type})`, 
+                        value: c.id
+                    }))} 
+                  />
               </Form.Item>
               
+              <Divider orientation="left">Sản phẩm</Divider>
               <Form.List name="items">
                 {(fields, { add, remove }) => (
                     <>
                         {fields.map(({ key, name, ...restField }) => (
                             <Row key={key} gutter={8} style={{marginBottom: 10}}>
-                                <Col span={10}><Form.Item {...restField} name={[name, 'sku']} style={{marginBottom:0}} rules={[{required:true}]}><Select options={products} placeholder="Sản phẩm" onChange={(v)=>{
-                                    const p = products.find((x:any)=>x.value===v);
-                                    if(p) {
-                                        const items = formQuote.getFieldValue('items');
-                                        items[name].price = p.price;
-                                        formQuote.setFieldsValue({items});
-                                    }
-                                }}/></Form.Item></Col>
+                                <Col span={10}>
+                                    <Form.Item {...restField} name={[name, 'sku']} style={{marginBottom:0}} rules={[{required:true}]}>
+                                        <Select 
+                                            placeholder="Sản phẩm" 
+                                            options={products} 
+                                            onChange={(v)=>{
+                                                const p = products.find((x:any)=>x.value===v);
+                                                if(p) {
+                                                    const items = formQuote.getFieldValue('items');
+                                                    items[name].price = p.price;
+                                                    formQuote.setFieldsValue({items});
+                                                }
+                                            }}
+                                        />
+                                    </Form.Item>
+                                </Col>
                                 <Col span={6}><Form.Item {...restField} name={[name, 'quantity']} style={{marginBottom:0}} rules={[{required:true}]}><InputNumber placeholder="SL" style={{width:'100%'}}/></Form.Item></Col>
                                 <Col span={6}><Form.Item {...restField} name={[name, 'price']} style={{marginBottom:0}} rules={[{required:true}]}><InputNumber placeholder="Giá" style={{width:'100%'}} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
-                                <Col span={2}><MinusCircleOutlined onClick={() => remove(name)} /></Col>
+                                <Col span={2}><Button type="text" danger icon={<CloseOutlined />} onClick={() => remove(name)} /></Col>
                             </Row>
                         ))}
                         <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm SP</Button>
