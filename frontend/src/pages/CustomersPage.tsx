@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Popconfirm, Space, Tag, Row, Col, Select, Tabs, Divider } from 'antd';
-import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined, AuditOutlined, MinusCircleOutlined, BranchesOutlined } from '@ant-design/icons';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Popconfirm, Space, Tag, Row, Col, Select, Tabs, Divider, DatePicker, Statistic } from 'antd';
+import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined, AuditOutlined, MinusCircleOutlined, BranchesOutlined, HistoryOutlined, DollarOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import dayjs from 'dayjs';
 import { API_URL } from '../config';
 
 const { Option } = Select;
@@ -16,6 +17,10 @@ const CustomersPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   
+  // State History Orders
+  const [historyOrders, setHistoryOrders] = useState<any[]>([]);
+  const [filterYear, setFilterYear] = useState<dayjs.Dayjs>(dayjs()); // Mặc định năm nay
+
   const [form] = Form.useForm();
 
   // Fetch Data
@@ -31,6 +36,14 @@ const CustomersPage: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
+  // Fetch Orders khi mở Modal Edit
+  const fetchOrders = async (customerId: number) => {
+      try {
+          const res = await axios.get(`${API_URL}/customers/${customerId}/orders`);
+          setHistoryOrders(res.data);
+      } catch (e) { setHistoryOrders([]); }
+  };
+
   // Search Logic
   useEffect(() => {
       const lower = searchText.toLowerCase();
@@ -41,6 +54,22 @@ const CustomersPage: React.FC = () => {
       );
       setFilteredData(filtered);
   }, [searchText, customers]);
+
+  // Logic Filter & Calculate Revenue theo Năm
+  const { filteredOrders, revenueStats } = useMemo(() => {
+      if (!filterYear) return { filteredOrders: historyOrders, revenueStats: { total: 0, paid: 0, debt: 0 } };
+      
+      const year = filterYear.year();
+      const list = historyOrders.filter(o => dayjs(o.order_date).year() === year);
+      
+      const stats = list.reduce((acc, curr) => ({
+          total: acc.total + Number(curr.total_amount),
+          paid: acc.paid + Number(curr.paid_amount),
+          debt: acc.debt + (Number(curr.total_amount) - Number(curr.paid_amount))
+      }), { total: 0, paid: 0, debt: 0 });
+
+      return { filteredOrders: list, revenueStats: stats };
+  }, [historyOrders, filterYear]);
 
   // Save
   const handleSave = async (values: any) => {
@@ -66,10 +95,7 @@ const CustomersPage: React.FC = () => {
   };
 
   const columns = [
-    { 
-        title: 'Mã KH', dataIndex: 'code', width: 100,
-        render: (t:any) => <b>{t}</b> 
-    },
+    { title: 'Mã KH', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
     { 
         title: 'Tên Khách Hàng', dataIndex: 'name',
         render: (t:any, r:any) => (
@@ -85,9 +111,8 @@ const CustomersPage: React.FC = () => {
         render: (t:any) => t === 'CUSTOMER' ? <Tag color="blue">Khách Hàng</Tag> : <Tag color="orange">Tiềm Năng</Tag>
     },
     { 
-        title: 'Liên Hệ (Chính)', key: 'contact', width: 200,
+        title: 'Liên Hệ', key: 'contact', width: 200,
         render: (_:any, r:any) => {
-            // Ưu tiên hiển thị Contact trong danh sách liên hệ, nếu không có thì lấy sđt công ty
             if (r.contacts && r.contacts.length > 0) {
                 return (
                     <div>
@@ -108,11 +133,24 @@ const CustomersPage: React.FC = () => {
       title: '', key: 'action', width: 80, align: 'right' as const,
       render: (_: any, r: any) => (
         <Space>
-          <Button icon={<EditOutlined />} size="small" onClick={() => { setEditingItem(r); form.setFieldsValue(r); setIsModalOpen(true); }} />
+          <Button icon={<EditOutlined />} size="small" onClick={() => { 
+              setEditingItem(r); 
+              form.setFieldsValue(r); 
+              setIsModalOpen(true); 
+              fetchOrders(r.id); // Load lịch sử mua hàng
+          }} />
           <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
         </Space>
       ),
     },
+  ];
+
+  const historyColumns = [
+      { title: 'Ngày Đơn', dataIndex: 'order_date', render: (t:any) => dayjs(t).format('DD/MM/YYYY') },
+      { title: 'Mã Đơn', dataIndex: 'order_code', render: (t:any) => <b>{t}</b> },
+      { title: 'Trạng Thái', dataIndex: 'status', render: (t:any) => <Tag>{t}</Tag> },
+      { title: 'Tổng Tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v:any) => <b>{Number(v).toLocaleString()}</b> },
+      { title: 'Đã Thanh Toán', dataIndex: 'paid_amount', align: 'right' as const, render: (v:any) => <span style={{color:'green'}}>{Number(v).toLocaleString()}</span> },
   ];
 
   return (
@@ -121,20 +159,13 @@ const CustomersPage: React.FC = () => {
         title="Danh Mục Khách Hàng & Đối Tác" 
         extra={
             <Space>
-                <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); }}>Thêm Mới</Button>
+                <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }}>Thêm Mới</Button>
                 <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
             </Space>
         }
       >
         <div style={{marginBottom: 16}}>
-            <Input 
-                placeholder="Tìm kiếm..." 
-                prefix={<SearchOutlined style={{color:'#ccc'}}/>} 
-                style={{width: 300}}
-                value={searchText}
-                onChange={e => setSearchText(e.target.value)}
-                allowClear
-            />
+            <Input placeholder="Tìm kiếm..." prefix={<SearchOutlined style={{color:'#ccc'}}/>} style={{width: 300}} value={searchText} onChange={e => setSearchText(e.target.value)} allowClear />
         </div>
         <Table columns={columns} dataSource={filteredData} rowKey="id" loading={loading} bordered pagination={{pageSize: 10}} />
       </Card>
@@ -144,7 +175,7 @@ const CustomersPage: React.FC = () => {
         open={isModalOpen} 
         onCancel={() => setIsModalOpen(false)} 
         onOk={() => form.submit()} 
-        width={700}
+        width={800}
         style={{top: 20}}
       >
         <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ type: 'LEAD', credit_limit: 0 }}>
@@ -155,68 +186,65 @@ const CustomersPage: React.FC = () => {
                       <>
                         <Row gutter={16}>
                             <Col span={8}><Form.Item name="code" label="Mã KH" rules={[{ required: true }]}><Input disabled={!!editingItem} /></Form.Item></Col>
-                            <Col span={16}><Form.Item name="name" label="Tên Công Ty / Khách Hàng" rules={[{ required: true }]}><Input /></Form.Item></Col>
+                            <Col span={16}><Form.Item name="name" label="Tên Khách Hàng" rules={[{ required: true }]}><Input /></Form.Item></Col>
                         </Row>
-                        <Row gutter={16}>
-                            <Col span={12}><Form.Item name="phone" label="SĐT Tổng đài"><Input /></Form.Item></Col>
-                            <Col span={12}><Form.Item name="email" label="Email chung"><Input /></Form.Item></Col>
-                        </Row>
+                        <Row gutter={16}><Col span={12}><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Col><Col span={12}><Form.Item name="email" label="Email"><Input /></Form.Item></Col></Row>
                         <Form.Item name="address" label="Địa Chỉ"><Input /></Form.Item>
-                        
-                        <Divider orientation="left">Thiết lập</Divider>
                         <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item name="parent_id" label="Thuộc công ty mẹ (Nếu có)">
-                                    <Select 
-                                        allowClear 
-                                        showSearch 
-                                        placeholder="Chọn công ty mẹ..."
-                                        optionFilterProp="children"
-                                        filterOption={(input, option:any) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
-                                        options={customers.filter(c => c.id !== editingItem?.id).map(c => ({label: c.name, value: c.id}))}
-                                    />
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item name="credit_limit" label="Hạn Mức Nợ (VNĐ)">
-                                    <InputNumber style={{width:'100%'}} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
-                                </Form.Item>
-                            </Col>
+                            <Col span={12}><Form.Item name="parent_id" label="Công ty mẹ"><Select allowClear showSearch optionFilterProp="children" options={customers.filter(c => c.id !== editingItem?.id).map(c => ({label: c.name, value: c.id}))} /></Form.Item></Col>
+                            <Col span={12}><Form.Item name="credit_limit" label="Hạn Mức Nợ"><InputNumber style={{width:'100%'}} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
                         </Row>
                         <Row gutter={16}>
-                            <Col span={12}><Form.Item name="tax_code" label="Mã Số Thuế"><Input prefix={<AuditOutlined />} /></Form.Item></Col>
-                            <Col span={12}>
-                                <Form.Item name="type" label="Phân Loại">
-                                    <Select>
-                                        <Option value="LEAD">Tiềm Năng (Lead)</Option>
-                                        <Option value="CUSTOMER">Khách Hàng (Customer)</Option>
-                                    </Select>
-                                </Form.Item>
-                            </Col>
+                            <Col span={12}><Form.Item name="tax_code" label="MST"><Input prefix={<AuditOutlined />} /></Form.Item></Col>
+                            <Col span={12}><Form.Item name="type" label="Phân Loại"><Select><Option value="LEAD">Tiềm Năng</Option><Option value="CUSTOMER">Khách Hàng</Option></Select></Form.Item></Col>
                         </Row>
                       </>
                   )
               },
               {
-                  key: '2', label: 'Người liên hệ (Contacts)',
+                  key: '2', label: 'Liên hệ',
                   children: (
                       <Form.List name="contacts">
                         {(fields, { add, remove }) => (
                             <>
                                 {fields.map(({ key, name, ...restField }) => (
                                     <Row key={key} gutter={8} align="middle" style={{marginBottom: 8, borderBottom:'1px dashed #eee', paddingBottom:5}}>
-                                        <Col span={8}><Form.Item {...restField} name={[name, 'full_name']} noStyle rules={[{required:true, message:'Nhập tên'}]}><Input placeholder="Họ Tên" prefix={<UserOutlined />} /></Form.Item></Col>
+                                        <Col span={8}><Form.Item {...restField} name={[name, 'full_name']} noStyle rules={[{required:true}]}><Input placeholder="Họ Tên" prefix={<UserOutlined />} /></Form.Item></Col>
                                         <Col span={6}><Form.Item {...restField} name={[name, 'job_title']} noStyle><Input placeholder="Chức danh" /></Form.Item></Col>
-                                        <Col span={8}>
-                                            <Form.Item {...restField} name={[name, 'phone']} noStyle><Input placeholder="Di động/Email" /></Form.Item>
-                                        </Col>
+                                        <Col span={8}><Form.Item {...restField} name={[name, 'phone']} noStyle><Input placeholder="SĐT/Email" /></Form.Item></Col>
                                         <Col span={2}><MinusCircleOutlined onClick={() => remove(name)} style={{color:'red'}} /></Col>
                                     </Row>
                                 ))}
-                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />} style={{marginTop:10}}>Thêm người liên hệ</Button>
+                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm liên hệ</Button>
                             </>
                         )}
                       </Form.List>
+                  )
+              },
+              {
+                  key: '3', label: <span style={{color: '#1890ff'}}><HistoryOutlined /> Lịch sử Mua Hàng</span>,
+                  disabled: !editingItem, // Chỉ hiện khi sửa
+                  children: (
+                      <div>
+                          <div style={{marginBottom: 16, background:'#f5f5f5', padding: 10, borderRadius: 8}}>
+                              <Space size={20} align="center">
+                                  <span>Lọc theo năm:</span>
+                                  <DatePicker picker="year" value={filterYear} onChange={setFilterYear} allowClear={false} />
+                                  <Divider type="vertical" />
+                                  <Statistic title="Doanh Thu" value={revenueStats.total} prefix={<DollarOutlined />} valueStyle={{fontSize: 16, color:'#1890ff'}} />
+                                  <Statistic title="Đã Thu" value={revenueStats.paid} valueStyle={{fontSize: 16, color:'green'}} />
+                                  <Statistic title="Công Nợ" value={revenueStats.debt} valueStyle={{fontSize: 16, color:'red'}} />
+                              </Space>
+                          </div>
+                          <Table 
+                            columns={historyColumns} 
+                            dataSource={filteredOrders} 
+                            rowKey="id" 
+                            size="small" 
+                            pagination={{pageSize: 5}} 
+                            scroll={{y: 200}}
+                          />
+                      </div>
                   )
               }
           ]} />
