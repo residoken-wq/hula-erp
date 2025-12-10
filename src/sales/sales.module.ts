@@ -6,15 +6,17 @@ import { SalesController } from './sales.controller';
 import { SalesService } from './sales.service';
 import { ProductsModule } from '../products/products.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { CustomersModule } from '../customers/customers.module'; // <-- IMPORT MODULE CUSTOMER
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([SalesOrder, SalesOrderItem]),
     ProductsModule,
     InventoryModule,
+    CustomersModule // <-- THÊM VÀO ĐÂY
   ],
   controllers: [SalesController],
   providers: [SalesService],
-  exports: [SalesService], // <--- Export de Finance goi duoc
+  exports: [SalesService],
 })
 export class SalesModule {}
