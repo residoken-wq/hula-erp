@@ -22,16 +22,22 @@ export class ProductsService {
   async findAll() { return this.productRepo.find({ order: { id: 'DESC' } }); }
   async findOneBySku(sku: string) { return this.productRepo.findOne({ where: { sku } }); }
 
-  // --- FIX LOI "Property color not found" ---
-  // Ham nay se loc bo cac truong khong phai cot DB (nhu color, size) truoc khi luu
+  // --- FIX LOI: LOC BO CAC TRUONG KHONG PHAI COT CUA PRODUCT ---
   private cleanData(data: any) {
-      const { color, size, fabric, ...clean } = data; 
-      // Neu co attributes rieng thi giu lai, neu khong thi tao moi tu color/size
+      // Tach rieng cac truong du lieu cua bang khac ra
+      const { 
+          boms, routings, logistics, components, // Cac mang quan he (Relation)
+          color, size, fabric, // Cac thuoc tinh phang
+          ...clean // Phan con lai chinh la cot cua Product
+      } = data; 
+      
+      // Gom attributes neu co
       if (!clean.attributes && (color || size || fabric)) {
           clean.attributes = { color, size, fabric };
       }
       return clean;
   }
+  // ------------------------------------------------------------
 
   async create(data: Partial<Product>) { 
       return this.productRepo.save(this.cleanData(data)); 
@@ -41,7 +47,6 @@ export class ProductsService {
       await this.productRepo.update(id, this.cleanData(data)); 
       return this.productRepo.findOne({ where: { id } }); 
   }
-  // ------------------------------------------
 
   async remove(id: number) { return this.productRepo.delete(id); }
 
@@ -51,17 +56,14 @@ export class ProductsService {
     return this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
   }
 
-  // --- FIX LOI "SP khong ton tai" trong SaveBoms ---
+  // --- SAVE BOM (FIX) ---
   async saveBoms(productId: number, items: any[]) {
+      if (!items || !Array.isArray(items)) return [];
       const pId = Number(productId);
       
-      // 1. Xoa BOM cu
       await this.bomRepo.delete({ product_id: pId });
       
-      if (!items || !Array.isArray(items) || items.length === 0) return [];
-
-      // 2. Tao BOM moi
-      const validItems = items
+      const newItems = items
         .filter(i => i.material_id)
         .map(i => this.bomRepo.create({
           product_id: pId,
@@ -70,49 +72,46 @@ export class ProductsService {
           waste_percent: Number(i.waste_percent) || 0
       }));
 
-      const saved = await this.bomRepo.save(validItems as any);
-
-      // 3. Tinh gia von (QUAN TRONG: Phai lay SKU tu ID truoc)
+      const saved = await this.bomRepo.save(newItems as any);
+      
+      // Tinh lai gia
       const product = await this.productRepo.findOne({ where: { id: pId } });
-      if (product) {
-          await this.calculateCostPrice(product.sku); // Goi ham tinh bang SKU
-      }
+      if(product) await this.calculateCostPrice(product.sku);
 
       return saved;
   }
-  // -----------------------------------------------
 
+  // Routing
   async getRoutings(productId: number) { return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); }
-  
   async saveRoutings(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
-      await this.routingRepo.delete({ product_id: productId }); 
+      const pId = Number(productId);
+      await this.routingRepo.delete({ product_id: pId }); 
       const newItems = items.map(i => this.routingRepo.create({ 
           ...i, 
-          product_id: productId,
+          product_id: pId,
           is_required: Boolean(i.is_required),
           cost: Number(i.cost) || 0
       }));
       const saved = await this.routingRepo.save(newItems as any);
       
-      // Tinh lai gia luon
-      const product = await this.productRepo.findOne({ where: { id: productId } });
-      if (product) await this.calculateCostPrice(product.sku);
+      const product = await this.productRepo.findOne({ where: { id: pId } });
+      if(product) await this.calculateCostPrice(product.sku);
       
       return saved;
   }
 
+  // Logistics
   async getLogistics(productId: number) { return this.logisticRepo.find({ where: { product_id: productId } }); }
-  
   async saveLogistics(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
-      await this.logisticRepo.delete({ product_id: productId });
-      const newItems = items.map(i => this.logisticRepo.create({ ...i, product_id: productId, cost: Number(i.cost) || 0 }));
+      const pId = Number(productId);
+      await this.logisticRepo.delete({ product_id: pId });
+      const newItems = items.map(i => this.logisticRepo.create({ ...i, product_id: pId, cost: Number(i.cost) || 0 }));
       const saved = await this.logisticRepo.save(newItems as any);
 
-      // Tinh lai gia luon
-      const product = await this.productRepo.findOne({ where: { id: productId } });
-      if (product) await this.calculateCostPrice(product.sku);
+      const product = await this.productRepo.findOne({ where: { id: pId } });
+      if(product) await this.calculateCostPrice(product.sku);
 
       return saved;
   }
@@ -147,7 +146,7 @@ export class ProductsService {
       return { message: `Đã đồng bộ cho ${targets.length} biến thể` };
   }
 
-  // --- TINH GIA VON ---
+  // Calculate Cost
   async calculateCostPrice(sku: string): Promise<any> {
     const product = await this.productRepo.findOne({ where: { sku } });
     if (!product) throw new NotFoundException('SP khong ton tai');
@@ -162,7 +161,7 @@ export class ProductsService {
         return { sku, new_cost_price: comboCost, type: 'COMBO' };
     }
 
-    // 1. Nguyen lieu (BOM)
+    // 1. BOM
     const boms = await this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
     let materialCost = 0;
     for (const item of boms) {
@@ -174,12 +173,12 @@ export class ProductsService {
       }
     }
 
-    // 2. Gia cong
+    // 2. Routing
     const routings = await this.routingRepo.find({ where: { product_id: product.id } });
     let laborCost = 0;
     routings.forEach(r => { if(r.is_required) laborCost += Number(r.cost); });
 
-    // 3. Van chuyen
+    // 3. Logistics
     const logistics = await this.logisticRepo.find({ where: { product_id: product.id } });
     let logisticsCost = 0;
     logistics.forEach(l => { logisticsCost += Number(l.cost); });
