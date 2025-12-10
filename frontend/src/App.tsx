@@ -11,6 +11,7 @@ import UploadPage from './pages/UploadPage';
 import MaterialsPage from './pages/MaterialsPage';
 import SuppliersPage from './pages/SuppliersPage'; // MOI
 import SalesPage from './pages/SalesPage';
+import CrmPage from './pages/CrmPage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -55,7 +56,7 @@ const App: React.FC = () => {
                 <Route path="/combos" element={<CombosPage />} /> 
                 <Route path="/materials" element={<MaterialsPage />} />
                 <Route path="/suppliers" element={<SuppliersPage />} />
-                <Route path="/sales" element={<SalesPage />} />
+                <Route path="/sales" element={<CrmPage />} />
                 <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
               </Routes>
             </div>
