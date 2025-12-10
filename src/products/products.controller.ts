@@ -16,27 +16,25 @@ export class ProductsController {
   @Get(':id/logistics') getLogistics(@Param('id') id: number) { return this.service.getLogistics(id); }
   @Post(':id/logistics') saveLogistics(@Param('id') id: number, @Body() b: any) { return this.service.saveLogistics(id, b); }
 
-  // --- MOI: API BOM ---
-  // ... cac doan khac giu nguyen ...
+  @Get(':sku/boms') getBoms(@Param('sku') sku: string) { return this.service.getBomByProductSku(sku); }
+  @Post(':id/boms') saveBoms(@Param('id') id: number, @Body() b: any) { return this.service.saveBoms(Number(id), b); }
   
-  // API BOM
-  @Get(':sku/boms') 
-  getBoms(@Param('sku') sku: string) { 
-      return this.service.getBomByProductSku(sku); 
+  @Post(':id/sync-variants') syncVariants(@Param('id') id: number) { return this.service.syncToVariants(id); }
+
+  // --- API COMBO (FIXED) ---
+  @Get('combo/:sku') 
+  getCombo(@Param('sku') sku: string) { return this.service.getComboComponents(sku); }
+
+  @Post('combo/add')
+  addComboItem(@Body() body: any) {
+      return this.service.addComponent(body.parentSku, body.childSku, Number(body.qty));
   }
 
-  @Post(':id/boms') 
-  saveBoms(@Param('id') id: number, @Body() b: any) { 
-      // Them Number(id) o day de chac chan ID la so
-      return this.service.saveBoms(Number(id), b); 
+  @Delete('combo/item/:id')
+  removeComboItem(@Param('id') id: number) {
+      return this.service.removeComponent(id);
   }
-  
-  // ...
-  
-  // --- MOI: API SYNC ---
-  @Post(':id/sync-variants') syncVariants(@Param('id') id: number) { return this.service.syncToVariants(id); }
-  // --------------------
+  // -------------------------
 
   @Get('calculate-cost/:sku') calculateCost(@Param('sku') sku: string) { return this.service.calculateCostPrice(sku); }
-  @Get('combo/:sku') getCombo(@Param('sku') sku: string) { return this.service.getComboComponents(sku); }
 }

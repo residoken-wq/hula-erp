@@ -22,22 +22,13 @@ export class ProductsService {
   async findAll() { return this.productRepo.find({ order: { id: 'DESC' } }); }
   async findOneBySku(sku: string) { return this.productRepo.findOne({ where: { sku } }); }
 
-  // --- FIX LOI: LOC BO CAC TRUONG KHONG PHAI COT CUA PRODUCT ---
   private cleanData(data: any) {
-      // Tach rieng cac truong du lieu cua bang khac ra
-      const { 
-          boms, routings, logistics, components, // Cac mang quan he (Relation)
-          color, size, fabric, // Cac thuoc tinh phang
-          ...clean // Phan con lai chinh la cot cua Product
-      } = data; 
-      
-      // Gom attributes neu co
+      const { boms, routings, logistics, components, color, size, fabric, ...clean } = data; 
       if (!clean.attributes && (color || size || fabric)) {
           clean.attributes = { color, size, fabric };
       }
       return clean;
   }
-  // ------------------------------------------------------------
 
   async create(data: Partial<Product>) { 
       return this.productRepo.save(this.cleanData(data)); 
@@ -56,52 +47,36 @@ export class ProductsService {
     return this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
   }
 
-  // --- SAVE BOM (FIX) ---
   async saveBoms(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
       const pId = Number(productId);
-      
       await this.bomRepo.delete({ product_id: pId });
-      
-      const newItems = items
-        .filter(i => i.material_id)
-        .map(i => this.bomRepo.create({
+      const newItems = items.filter(i => i.material_id).map(i => this.bomRepo.create({
           product_id: pId,
           material_id: Number(i.material_id),
           quantity: Number(i.quantity) || 0,
           waste_percent: Number(i.waste_percent) || 0
       }));
-
       const saved = await this.bomRepo.save(newItems as any);
-      
-      // Tinh lai gia
       const product = await this.productRepo.findOne({ where: { id: pId } });
       if(product) await this.calculateCostPrice(product.sku);
-
       return saved;
   }
 
-  // Routing
   async getRoutings(productId: number) { return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); }
   async saveRoutings(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
       const pId = Number(productId);
       await this.routingRepo.delete({ product_id: pId }); 
       const newItems = items.map(i => this.routingRepo.create({ 
-          ...i, 
-          product_id: pId,
-          is_required: Boolean(i.is_required),
-          cost: Number(i.cost) || 0
+          ...i, product_id: pId, is_required: Boolean(i.is_required), cost: Number(i.cost) || 0
       }));
       const saved = await this.routingRepo.save(newItems as any);
-      
       const product = await this.productRepo.findOne({ where: { id: pId } });
       if(product) await this.calculateCostPrice(product.sku);
-      
       return saved;
   }
 
-  // Logistics
   async getLogistics(productId: number) { return this.logisticRepo.find({ where: { product_id: productId } }); }
   async saveLogistics(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
@@ -109,18 +84,14 @@ export class ProductsService {
       await this.logisticRepo.delete({ product_id: pId });
       const newItems = items.map(i => this.logisticRepo.create({ ...i, product_id: pId, cost: Number(i.cost) || 0 }));
       const saved = await this.logisticRepo.save(newItems as any);
-
       const product = await this.productRepo.findOne({ where: { id: pId } });
       if(product) await this.calculateCostPrice(product.sku);
-
       return saved;
   }
 
-  // Sync Variants
   async syncToVariants(sourceProductId: number) {
       const source = await this.productRepo.findOne({ where: { id: sourceProductId } });
       if (!source) throw new NotFoundException('SP Goc khong ton tai');
-
       const variants = await this.productRepo.find({ where: { name: source.name, category: source.category } });
       const targets = variants.filter(v => v.id !== sourceProductId);
       
@@ -130,38 +101,32 @@ export class ProductsService {
 
       for (const target of targets) {
           await this.bomRepo.delete({ product_id: target.id });
-          const newBoms = sourceBoms.map(b => this.bomRepo.create({ ...b, id: undefined, product_id: target.id }));
-          if(newBoms.length) await this.bomRepo.save(newBoms as any);
+          if(sourceBoms.length) await this.bomRepo.save(sourceBoms.map(b => this.bomRepo.create({ ...b, id: undefined, product_id: target.id })) as any);
 
           await this.routingRepo.delete({ product_id: target.id });
-          const newRoutings = sourceRoutings.map(r => this.routingRepo.create({ ...r, id: undefined, product_id: target.id }));
-          if(newRoutings.length) await this.routingRepo.save(newRoutings as any);
+          if(sourceRoutings.length) await this.routingRepo.save(sourceRoutings.map(r => this.routingRepo.create({ ...r, id: undefined, product_id: target.id })) as any);
 
           await this.logisticRepo.delete({ product_id: target.id });
-          const newLogistics = sourceLogistics.map(l => this.logisticRepo.create({ ...l, id: undefined, product_id: target.id }));
-          if(newLogistics.length) await this.logisticRepo.save(newLogistics as any);
+          if(sourceLogistics.length) await this.logisticRepo.save(sourceLogistics.map(l => this.logisticRepo.create({ ...l, id: undefined, product_id: target.id })) as any);
           
           await this.calculateCostPrice(target.sku);
       }
       return { message: `Đã đồng bộ cho ${targets.length} biến thể` };
   }
 
-  // Calculate Cost
   async calculateCostPrice(sku: string): Promise<any> {
     const product = await this.productRepo.findOne({ where: { sku } });
     if (!product) throw new NotFoundException('SP khong ton tai');
 
-    // 0. Check Combo
     const components = await this.componentRepo.find({ where: { parent_product: { id: product.id } }, relations: ['child_product'] });
     if (components.length > 0) {
         let comboCost = 0;
-        for (const comp of components) comboCost += Number(comp.child_product.cost_price || 0) * Number(comp.quantity);
+        for (const comp of components) comboCost += Number(comp.child_product?.cost_price ?? 0) * Number(comp.quantity);
         product.cost_price = comboCost;
         await this.productRepo.save(product);
         return { sku, new_cost_price: comboCost, type: 'COMBO' };
     }
 
-    // 1. BOM
     const boms = await this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
     let materialCost = 0;
     for (const item of boms) {
@@ -173,12 +138,10 @@ export class ProductsService {
       }
     }
 
-    // 2. Routing
     const routings = await this.routingRepo.find({ where: { product_id: product.id } });
     let laborCost = 0;
     routings.forEach(r => { if(r.is_required) laborCost += Number(r.cost); });
 
-    // 3. Logistics
     const logistics = await this.logisticRepo.find({ where: { product_id: product.id } });
     let logisticsCost = 0;
     logistics.forEach(l => { logisticsCost += Number(l.cost); });
@@ -190,8 +153,51 @@ export class ProductsService {
     return { sku, new_cost_price: totalCost, breakdown: { material: materialCost, labor: laborCost, logistic: logisticsCost } };
   }
 
-  async getComboComponents(sku: string) { return []; } 
-  async addComponent(p:string, c:string, q:number) { return null; }
-  async removeComponent(id:number) { return null; }
+  // --- LOGIC COMBO (MỚI TRIỂN KHAI) ---
+  async getComboComponents(sku: string) {
+      const product = await this.productRepo.findOne({ where: { sku } });
+      if (!product) return [];
+      return this.componentRepo.find({ 
+          where: { parent_product: { id: product.id } },
+          relations: ['child_product']
+      });
+  }
+
+  async addComponent(parentSku: string, childSku: string, quantity: number) {
+      const parent = await this.productRepo.findOne({ where: { sku: parentSku } });
+      const child = await this.productRepo.findOne({ where: { sku: childSku } });
+      
+      if (!parent || !child) throw new NotFoundException('Không tìm thấy sản phẩm (Cha hoặc Con)');
+
+      let comp = await this.componentRepo.findOne({ 
+          where: { parent_product: { id: parent.id }, child_product: { id: child.id } } 
+      });
+
+      if (comp) {
+          comp.quantity = quantity;
+      } else {
+          comp = this.componentRepo.create({
+              parent_product: parent,
+              child_product: child,
+              quantity: quantity
+          });
+      }
+      
+      const saved = await this.componentRepo.save(comp);
+      // Tinh lai gia von cho Combo cha
+      await this.calculateCostPrice(parent.sku);
+      return saved;
+  }
+
+  async removeComponent(id: number) {
+      const comp = await this.componentRepo.findOne({ where: { id }, relations: ['parent_product'] });
+      if(comp) {
+          const parentSku = comp.parent_product.sku;
+          await this.componentRepo.delete(id);
+          await this.calculateCostPrice(parentSku);
+      }
+      return { message: 'Deleted' };
+  }
+  
   async importFromExcel(b:Buffer) { return 0; }
 }
