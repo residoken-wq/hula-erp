@@ -7,15 +7,16 @@ import { CustomerContact } from './customer-contact.entity';
 @Injectable()
 export class CustomersService {
   constructor(
-    @InjectRepository(Customer) private customerRepo: Repository<Customer>,
-    @InjectRepository(CustomerContact) private contactRepo: Repository<CustomerContact>,
+    @InjectRepository(Customer)
+    private customerRepo: Repository<Customer>,
+    @InjectRepository(CustomerContact)
+    private contactRepo: Repository<CustomerContact>,
   ) {}
 
   async create(data: any) {
     const existing = await this.customerRepo.findOne({ where: { code: data.code } });
-    if (existing) throw new BadRequestException('Mã khách hàng đã tồn tại');
+    if (existing) throw new BadRequestException('Mã khách hàng đã tồn tại: ' + data.code);
 
-    // Xu ly parent
     let parent = null;
     if (data.parent_id) {
         parent = await this.customerRepo.findOne({ where: { id: data.parent_id } });
@@ -36,14 +37,14 @@ export class CustomersService {
   async findAll() {
     return this.customerRepo.find({ 
         order: { id: 'DESC' },
-        relations: ['parent', 'contacts'] // Load them thong tin Cha va Contact
+        relations: ['parent', 'contacts'] 
     }); 
   }
   
   async findOne(id: number) { 
       return this.customerRepo.findOne({ 
           where: { id },
-          relations: ['parent', 'children', 'contacts'] // Load chi tiet
+          relations: ['parent', 'children', 'contacts'] 
       }); 
   }
 
@@ -51,10 +52,8 @@ export class CustomersService {
     const customer = await this.findOne(id);
     if(!customer) throw new NotFoundException();
 
-    // 1. Update thong tin co ban
     const { contacts, parent_id, ...info } = data;
     
-    // 2. Xu ly Parent
     if (parent_id) {
         if (parent_id === id) throw new BadRequestException('Khong the chon chinh minh lam cha');
         customer.parent = await this.customerRepo.findOne({ where: { id: parent_id } });
@@ -62,18 +61,20 @@ export class CustomersService {
         customer.parent = null;
     }
 
-    // 3. Xu ly Contacts (Xoa cu tao moi cho don gian, hoac update tung dong)
-    // O day dung chien thuat xoa het contact cu cua customer nay roi insert lai
     if (contacts && Array.isArray(contacts)) {
         await this.contactRepo.delete({ customer: { id } });
-        customer.contacts = contacts.map(c => this.contactRepo.create(c));
+        // --- FIX: Ép kiểu rõ ràng để tránh lỗi TS2322 ---
+        customer.contacts = contacts.map((c: any) => this.contactRepo.create(c) as CustomerContact);
     }
 
     Object.assign(customer, info);
     return this.customerRepo.save(customer);
   }
 
-  async remove(id: number) { return this.customerRepo.delete(id); }
+  async remove(id: number) { 
+      const customer = await this.findOne(id);
+      return this.customerRepo.remove(customer); 
+  }
 
   async addHistory(id: number, note: string) {
       const customer = await this.findOne(id);
