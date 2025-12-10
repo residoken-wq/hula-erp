@@ -21,7 +21,6 @@ export class SalesService {
 
     const order = new SalesOrder();
     order.order_code = data.order_code;
-    // Xu ly khach hang neu co
     if(data.customer_id) {
         order.customer = { id: data.customer_id } as any;
     }
@@ -59,13 +58,18 @@ export class SalesService {
 
     order.total_amount = totalAmount;
     order.total_cost = totalCost;
-    
-    // --- FIX: SU DUNG ENUM ---
-    order.status = SalesOrderStatus.CONFIRMED; 
-    // -------------------------
-
+    order.status = SalesOrderStatus.CONFIRMED;
     return this.orderRepo.save(order);
   }
+
+  // --- API MỚI: Lấy danh sách đơn hàng ---
+  async findAll() {
+    return this.orderRepo.find({ 
+        order: { order_date: 'DESC' },
+        relations: ['customer'] 
+    });
+  }
+  // ---------------------------------------
 
   async getOrder(orderCode: string) {
     const order = await this.orderRepo.findOne({ 
