@@ -1,18 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, message, Card, Modal, Form, Input, InputNumber, Select, Popconfirm, Space, Drawer, List, Row, Col, Statistic, Tabs, Checkbox, Typography, Divider } from 'antd';
-import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, AppstoreAddOutlined, SaveOutlined, CalculatorOutlined, CopyOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Table, Tag, Button, message, Card, Modal, Form, Input, InputNumber, Select, Space, Drawer, List, Row, Col, Statistic, Tabs, Checkbox, Typography, Divider } from 'antd';
+import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, CopyOutlined, MinusCircleOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
 const { Text } = Typography;
 
 const ProductsPage: React.FC = () => {
-  const [treeData, setTreeData] = useState<any[]>([]);
+  // --- STATE QUẢN LÝ DỮ LIỆU ---
+  const [rawList, setRawList] = useState<any[]>([]); // Lưu dữ liệu gốc từ API
+  const [treeData, setTreeData] = useState<any[]>([]); // Dữ liệu đã xử lý để hiển thị Tree
   const [loading, setLoading] = useState(false);
   
+  // --- STATE TÌM KIẾM & FILTER ---
+  const [searchText, setSearchText] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]); // Danh sách nhóm hàng để filter
+
+  // --- STATE MODAL & DRAWER ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  
   const [suppliers, setSuppliers] = useState([]);
   const [materials, setMaterials] = useState<any[]>([]); 
 
@@ -27,12 +34,20 @@ const ProductsPage: React.FC = () => {
   const routingValues = Form.useWatch('routings', form);
   const logisticValues = Form.useWatch('logistics', form);
 
+  // 1. LOAD DỮ LIỆU TỪ API
   const fetchData = async () => {
     setLoading(true);
     try { 
+      // Lấy Products
       const res = await axios.get(`${API_URL}/products`);
       const products = Array.isArray(res.data) ? res.data : [];
+      setRawList(products);
+
+      // Lấy danh sách Category duy nhất để tạo Filter
+      const uniqueCats = Array.from(new Set(products.map((p: any) => p.category).filter(Boolean))) as string[];
+      setCategories(uniqueCats);
       
+      // Lấy Suppliers & Materials cho Form
       const resSupp = await axios.get(`${API_URL}/suppliers`);
       setSuppliers(resSupp.data.map((s:any) => ({label: s.name, value: s.id, type: s.type})));
 
@@ -44,30 +59,70 @@ const ProductsPage: React.FC = () => {
           price: Number(m.cost_per_unit) || 0
       })));
 
-      const groups: any = {};
-      products.forEach((p: any) => {
-          const groupKey = `${p.name}-${p.category}`;
-          if (!groups[groupKey]) {
-              groups[groupKey] = { key: 'group_' + groupKey, isGroup: true, name: p.name, category: p.category, children: [], totalStock: 0, minPrice: Infinity, maxPrice: -Infinity };
-          }
-          const price = Number(p.base_price) || 0;
-          groups[groupKey].totalStock += (Number(p.quantity_in_stock) || 0);
-          if (price < groups[groupKey].minPrice) groups[groupKey].minPrice = price;
-          if (price > groups[groupKey].maxPrice) groups[groupKey].maxPrice = price;
-          groups[groupKey].children.push({ ...p, key: p.id });
-      });
-      const tree = Object.values(groups).map((g: any) => {
-          if (g.minPrice === Infinity) g.minPrice = 0;
-          if (g.maxPrice === -Infinity) g.maxPrice = 0;
-          return g;
-      });
-      setTreeData(tree);
     } catch (e) { message.error('Lỗi tải dữ liệu'); }
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
 
+  // 2. XỬ LÝ SEARCH & FILTER & GROUPING (Client-side)
+  useEffect(() => {
+      // B1: Lọc danh sách gốc dựa trên Search Text và Category
+      let filtered = rawList;
+
+      if (searchText) {
+          const lower = searchText.toLowerCase();
+          filtered = filtered.filter(p => 
+              (p.name && p.name.toLowerCase().includes(lower)) || 
+              (p.sku && p.sku.toLowerCase().includes(lower))
+          );
+      }
+
+      if (filterCategory) {
+          filtered = filtered.filter(p => p.category === filterCategory);
+      }
+
+      // B2: Gom nhóm (Grouping) để tạo TreeData
+      const groups: any = {};
+      filtered.forEach((p: any) => {
+          const catName = p.category || 'Khác';
+          // Key của nhóm là Tên + Category để gom các biến thể cùng loại
+          // Logic gom nhóm: Nếu muốn gom theo Tên SP (bỏ qua màu sắc), ta cần logic tách tên. 
+          // Ở đây tạm dùng logic: Gom theo Category + Tên
+          const groupKey = `${p.name}-${catName}`;
+          
+          if (!groups[groupKey]) {
+              groups[groupKey] = { 
+                  key: 'group_' + groupKey, 
+                  isGroup: true, 
+                  name: p.name, 
+                  category: catName, 
+                  children: [], 
+                  totalStock: 0, 
+                  minPrice: Infinity, 
+                  maxPrice: -Infinity 
+              };
+          }
+          
+          const price = Number(p.base_price) || 0;
+          groups[groupKey].totalStock += (Number(p.quantity_in_stock) || 0);
+          if (price < groups[groupKey].minPrice) groups[groupKey].minPrice = price;
+          if (price > groups[groupKey].maxPrice) groups[groupKey].maxPrice = price;
+          
+          groups[groupKey].children.push({ ...p, key: p.id });
+      });
+
+      const tree = Object.values(groups).map((g: any) => {
+          if (g.minPrice === Infinity) g.minPrice = 0;
+          if (g.maxPrice === -Infinity) g.maxPrice = 0;
+          return g;
+      });
+
+      setTreeData(tree);
+  }, [rawList, searchText, filterCategory]);
+
+
+  // --- LOGIC TÍNH TOÁN FORM ---
   const calcBomTotal = () => {
       if (!bomValues || !Array.isArray(bomValues)) return 0;
       return bomValues.reduce((sum, item) => {
@@ -88,6 +143,13 @@ const ProductsPage: React.FC = () => {
       return logisticValues.reduce((sum, l) => sum + (Number(l?.cost)||0), 0);
   };
 
+  // --- ACTIONS ---
+  const handleCreateNew = () => {
+      setEditingItem(null);
+      form.resetFields();
+      setIsModalOpen(true);
+  };
+
   const handleSaveProduct = async (values: any) => {
     try {
       const payload = {
@@ -99,7 +161,7 @@ const ProductsPage: React.FC = () => {
       if (editingItem) await axios.put(`${API_URL}/products/${editingItem.id}`, payload);
       else await axios.post(`${API_URL}/products`, payload);
       message.success('Lưu thành công'); setIsModalOpen(false); fetchData();
-    } catch (e) { message.error('Lỗi lưu'); }
+    } catch (e) { message.error('Lỗi lưu (Có thể trùng SKU)'); }
   };
 
   const handleSaveAll = async () => {
@@ -127,10 +189,6 @@ const ProductsPage: React.FC = () => {
               } catch(e) { message.error('Lỗi đồng bộ'); }
           }
       });
-  };
-
-  const handleDelete = async (id: number) => {
-    try { await axios.delete(`${API_URL}/products/${id}`); fetchData(); } catch (e) { message.error('Lỗi xóa'); }
   };
 
   const openComboConfig = (sku: string) => { setCurrentComboSku(sku); setComboDrawerOpen(true); loadComboItems(sku); };
@@ -174,9 +232,11 @@ const ProductsPage: React.FC = () => {
   };
 
   const columns = [
-    { title: 'Sản Phẩm', dataIndex: 'name', key: 'name', render: (text:string, r:any) => r.isGroup ? <b>{text} <Tag>{r.children.length}</Tag></b> : <Space>{r.attributes?.color && <Tag color="magenta">{r.attributes.color}</Tag>} {text}</Space> },
+    { title: 'Sản Phẩm', dataIndex: 'name', key: 'name', width: 250, render: (text:string, r:any) => r.isGroup ? <b style={{fontSize:15, color:'#1890ff'}}>{text} <Tag>{r.children.length}</Tag></b> : <Space>{r.attributes?.color && <Tag color="magenta">{r.attributes.color}</Tag>} {text}</Space> },
     { title: 'SKU', dataIndex: 'sku', width: 150, render: (t:any, r:any) => r.isGroup ? '' : <b>{t}</b> },
-    { title: 'Giá Bán', dataIndex: 'base_price', align: 'right' as const, width: 120, render: (v:any, r:any) => r.isGroup ? '' : Number(v).toLocaleString() },
+    { title: 'Nhóm', dataIndex: 'category', width: 100, render: (t:any, r:any) => r.isGroup ? <Tag>{t}</Tag> : t },
+    { title: 'Giá Bán', dataIndex: 'base_price', align: 'right' as const, width: 120, render: (v:any, r:any) => r.isGroup ? <small>{Number(r.minPrice).toLocaleString()} - {Number(r.maxPrice).toLocaleString()}</small> : Number(v).toLocaleString() },
+    { title: 'Tồn Kho', dataIndex: 'quantity_in_stock', align: 'right' as const, width: 100, render: (v:any, r:any) => r.isGroup ? <b>{v}</b> : <span style={{color: v>0?'green':'red'}}>{v}</span> },
     { title: 'Giá Vốn', dataIndex: 'cost_price', align: 'right' as const, width: 120, render: (v:any, r:any) => r.isGroup ? '' : <span style={{color:'red'}}>{Number(v).toLocaleString()}</span> },
     { title: '', key: 'action', width: 80, render: (_: any, r: any) => !r.isGroup && <Button icon={<EditOutlined />} onClick={() => openEditModal(r)} /> },
   ];
@@ -188,16 +248,22 @@ const ProductsPage: React.FC = () => {
               children: (
                   <>
                     <Row gutter={16}>
-                        <Col span={12}><Form.Item name="name" label="Tên SP"><Input /></Form.Item></Col>
-                        <Col span={12}><Form.Item name="sku" label="SKU"><Input disabled={!!editingItem} /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="name" label="Tên SP" rules={[{required:true}]}><Input /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="sku" label="SKU" rules={[{required:true}]}><Input disabled={!!editingItem} /></Form.Item></Col>
                     </Row>
-                    <Row gutter={16}><Col span={8}><Form.Item name="color" label="Màu"><Input /></Form.Item></Col><Col span={8}><Form.Item name="size" label="Size"><Input /></Form.Item></Col><Col span={8}><Form.Item name="base_price" label="Giá Bán"><InputNumber style={{width:'100%'}} /></Form.Item></Col></Row>
+                    <Row gutter={16}>
+                        <Col span={12}><Form.Item name="category" label="Nhóm hàng"><Input placeholder="VD: Áo Thun" /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="product_type" label="Loại"><Input placeholder="VD: Nam/Nữ" /></Form.Item></Col>
+                    </Row>
+                    <Divider orientation="left">Thuộc tính & Giá</Divider>
+                    <Row gutter={16}><Col span={8}><Form.Item name="color" label="Màu"><Input /></Form.Item></Col><Col span={8}><Form.Item name="size" label="Size"><Input /></Form.Item></Col><Col span={8}><Form.Item name="base_price" label="Giá Bán"><InputNumber style={{width:'100%'}} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col></Row>
                     <div style={{textAlign:'right'}}><Button type="primary" onClick={() => form.submit()} icon={<SaveOutlined />}>Lưu Thông Tin</Button></div>
                   </>
               )
           },
           {
               key: '2', label: 'BOM & Định Mức',
+              disabled: !editingItem,
               children: (
                   <>
                     <div style={{background:'#fafafa', padding: 8, borderBottom:'1px solid #eee', fontWeight:'bold', marginBottom:10}}>
@@ -205,7 +271,7 @@ const ProductsPage: React.FC = () => {
                             <Col span={8}>Nguyên Liệu</Col>
                             <Col span={4}>Định mức</Col>
                             <Col span={4}>% Hao hụt</Col>
-                            <Col span={8} style={{textAlign:'center'}}>ĐVT | Đơn Giá | Thành Tiền</Col>
+                            <Col span={8} style={{textAlign:'center'}}>Chi tiết</Col>
                         </Row>
                     </div>
                     <Form.List name="boms">
@@ -249,6 +315,7 @@ const ProductsPage: React.FC = () => {
           },
           {
               key: '3', label: 'Quy Trình & Vận Chuyển',
+              disabled: !editingItem,
               children: (
                   <div style={{maxHeight: 450, overflowY: 'auto'}}>
                     <Divider orientation="left">Các công đoạn gia công</Divider>
@@ -275,7 +342,7 @@ const ProductsPage: React.FC = () => {
                                 {fields.map(({ key, name, ...restField }) => (
                                     <Row key={key} gutter={8} style={{marginBottom: 8}}>
                                         <Col span={12}><Form.Item {...restField} name={[name, 'route_name']} noStyle><Input placeholder="Tên chặng..." /></Form.Item></Col>
-                                        <Col span={10}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Chi phí" style={{width:'100%'}} addonAfter="₫" /></Form.Item></Col>
+                                        <Col span={10}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Chi phí" style={{width:'100%'}} addonAfter="₫" formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
                                         <Col span={2}><DeleteOutlined onClick={() => remove(name)} style={{color:'red'}} /></Col>
                                     </Row>
                                 ))}
@@ -294,20 +361,69 @@ const ProductsPage: React.FC = () => {
 
   return (
     <div>
-      <Card title="Quản lý Sản Phẩm"><Table columns={columns} dataSource={treeData} rowKey="key" loading={loading} bordered pagination={{ pageSize: 10 }} expandable={{ defaultExpandAllRows: true }} /></Card>
-      <Modal title={editingItem ? `Chi tiết: ${editingItem.sku}` : "Thêm SP"} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={900} style={{top: 20}}>
+      <Card 
+        title="Quản lý Sản Phẩm (Lẻ)" 
+        extra={
+            <Space>
+                {/* --- UPDATE: NÚT THÊM MỚI Ở ĐÂY --- */}
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>Thêm Mới</Button>
+                <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+            </Space>
+        }
+      >
+        {/* --- UPDATE: THANH SEARCH & FILTER --- */}
+        <div style={{marginBottom: 16, background: '#f5f5f5', padding: 16, borderRadius: 8}}>
+            <Row gutter={16} align="middle">
+                <Col span={12}>
+                    <Input 
+                        placeholder="Tìm kiếm theo Tên SP hoặc SKU..." 
+                        prefix={<SearchOutlined style={{color:'#999'}} />} 
+                        value={searchText}
+                        onChange={e => setSearchText(e.target.value)}
+                        allowClear
+                    />
+                </Col>
+                <Col span={8}>
+                    <Select 
+                        placeholder="Lọc theo Nhóm hàng" 
+                        style={{width:'100%'}} 
+                        allowClear 
+                        onChange={setFilterCategory}
+                        options={categories.map(c => ({label: c, value: c}))}
+                        suffixIcon={<FilterOutlined />}
+                    />
+                </Col>
+                <Col span={4} style={{textAlign:'right'}}>
+                    <Text type="secondary">Tìm thấy: <b style={{color:'black'}}>{treeData.length}</b> nhóm</Text>
+                </Col>
+            </Row>
+        </div>
+
+        <Table 
+            columns={columns} 
+            dataSource={treeData} 
+            rowKey="key" 
+            loading={loading} 
+            bordered 
+            pagination={{ pageSize: 20 }} 
+            expandable={{ defaultExpandAllRows: true }} 
+            scroll={{ y: 600 }}
+        />
+      </Card>
+
+      <Modal title={editingItem ? `Chi tiết: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={900} style={{top: 20}}>
         <Form form={form} layout="vertical" onFinish={handleSaveProduct}>{modalContent}</Form>
         {editingItem && (
             <div style={{marginTop: 20, paddingTop: 15, borderTop: '2px solid #eee', background:'#fff', position:'sticky', bottom:0}}>
                 <Row align="middle" justify="space-between">
                     <Col>
                         <Space>
-                            <Button type="default" icon={<CopyOutlined />} onClick={handleSyncVariants}>Đồng bộ sang biến thể khác</Button>
-                            <Statistic title="Tổng Giá Vốn (Ước tính)" value={totalCostEstimate} valueStyle={{color: '#cf1322', fontSize: 18, fontWeight: 'bold'}} prefix="~" suffix="₫" />
+                            <Button type="default" icon={<CopyOutlined />} onClick={handleSyncVariants}>Đồng bộ biến thể</Button>
+                            <Statistic title="Giá Vốn (Ước tính)" value={totalCostEstimate} valueStyle={{color: '#cf1322', fontSize: 18, fontWeight: 'bold'}} prefix="~" suffix="₫" />
                         </Space>
                     </Col>
                     <Col>
-                        <Button type="primary" size="large" icon={<SaveOutlined />} onClick={handleSaveAll}>LƯU TẤT CẢ & CẬP NHẬT GIÁ</Button>
+                        <Button type="primary" size="large" icon={<SaveOutlined />} onClick={handleSaveAll}>LƯU & TÍNH GIÁ</Button>
                     </Col>
                 </Row>
             </div>
