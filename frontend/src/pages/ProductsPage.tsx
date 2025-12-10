@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, message, Card, Modal, Form, Input, InputNumber, Select, Popconfirm, Space, Drawer, List, Row, Col, Statistic, Tabs, Checkbox, Tooltip, Alert, Typography, Divider } from 'antd';
+import { Table, Tag, Button, message, Card, Modal, Form, Input, InputNumber, Select, Popconfirm, Space, Drawer, List, Row, Col, Statistic, Tabs, Checkbox, Typography, Divider } from 'antd';
 import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, AppstoreAddOutlined, SaveOutlined, CalculatorOutlined, CopyOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
@@ -27,19 +27,18 @@ const ProductsPage: React.FC = () => {
   const routingValues = Form.useWatch('routings', form);
   const logisticValues = Form.useWatch('logistics', form);
 
-  // --- LOAD DATA ---
   const fetchData = async () => {
     setLoading(true);
     try { 
-      const res = await axios.get(\`\${API_URL}/products\`);
+      const res = await axios.get(`${API_URL}/products`);
       const products = Array.isArray(res.data) ? res.data : [];
       
-      const resSupp = await axios.get(\`\${API_URL}/suppliers\`);
+      const resSupp = await axios.get(`${API_URL}/suppliers`);
       setSuppliers(resSupp.data.map((s:any) => ({label: s.name, value: s.id, type: s.type})));
 
-      const resMat = await axios.get(\`\${API_URL}/materials\`);
+      const resMat = await axios.get(`${API_URL}/materials`);
       setMaterials(resMat.data.map((m:any) => ({
-          label: \`\${m.name} (\${m.code})\`, 
+          label: `${m.name} (${m.code})`, 
           value: m.id, 
           unit: m.unit, 
           price: Number(m.cost_per_unit) || 0
@@ -47,7 +46,7 @@ const ProductsPage: React.FC = () => {
 
       const groups: any = {};
       products.forEach((p: any) => {
-          const groupKey = \`\${p.name}-\${p.category}\`;
+          const groupKey = `${p.name}-${p.category}`;
           if (!groups[groupKey]) {
               groups[groupKey] = { key: 'group_' + groupKey, isGroup: true, name: p.name, category: p.category, children: [], totalStock: 0, minPrice: Infinity, maxPrice: -Infinity };
           }
@@ -69,7 +68,6 @@ const ProductsPage: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // --- REALTIME CALCULATIONS ---
   const calcBomTotal = () => {
       if (!bomValues || !Array.isArray(bomValues)) return 0;
       return bomValues.reduce((sum, item) => {
@@ -90,7 +88,6 @@ const ProductsPage: React.FC = () => {
       return logisticValues.reduce((sum, l) => sum + (Number(l?.cost)||0), 0);
   };
 
-  // --- ACTIONS ---
   const handleSaveProduct = async (values: any) => {
     try {
       const payload = {
@@ -99,8 +96,8 @@ const ProductsPage: React.FC = () => {
           base_price: Number(values.base_price) || 0,
           quantity_in_stock: Number(values.quantity_in_stock) || 0
       };
-      if (editingItem) await axios.put(\`\${API_URL}/products/\${editingItem.id}\`, payload);
-      else await axios.post(\`\${API_URL}/products\`, payload);
+      if (editingItem) await axios.put(`${API_URL}/products/${editingItem.id}`, payload);
+      else await axios.post(`${API_URL}/products`, payload);
       message.success('Lưu thành công'); setIsModalOpen(false); fetchData();
     } catch (e) { message.error('Lỗi lưu'); }
   };
@@ -108,14 +105,12 @@ const ProductsPage: React.FC = () => {
   const handleSaveAll = async () => {
       if(!editingItem) return;
       try {
-          // Luu tung phan
-          await axios.post(\`\${API_URL}/products/\${editingItem.id}/boms\`, form.getFieldValue('boms'));
-          await axios.post(\`\${API_URL}/products/\${editingItem.id}/routings\`, form.getFieldValue('routings'));
-          await axios.post(\`\${API_URL}/products/\${editingItem.id}/logistics\`, form.getFieldValue('logistics'));
+          await axios.post(`${API_URL}/products/${editingItem.id}/boms`, form.getFieldValue('boms'));
+          await axios.post(`${API_URL}/products/${editingItem.id}/routings`, form.getFieldValue('routings'));
+          await axios.post(`${API_URL}/products/${editingItem.id}/logistics`, form.getFieldValue('logistics'));
           
-          // Tinh lai gia
-          const res = await axios.get(\`\${API_URL}/products/calculate-cost/\${editingItem.sku}\`);
-          message.success(\`Đã lưu & Cập nhật giá vốn: \${Number(res.data.new_cost_price).toLocaleString()} đ\`);
+          const res = await axios.get(`${API_URL}/products/calculate-cost/${editingItem.sku}`);
+          message.success(`Đã lưu & Cập nhật giá vốn: ${Number(res.data.new_cost_price).toLocaleString()} đ`);
           fetchData();
       } catch(e) { message.error('Có lỗi khi lưu chi tiết'); }
   };
@@ -124,10 +119,10 @@ const ProductsPage: React.FC = () => {
       if(!editingItem) return;
       Modal.confirm({
           title: 'Đồng bộ dữ liệu?',
-          content: \`Sao chép BOM & Quy trình từ "\${editingItem.sku}" sang tất cả các biến thể khác?\`,
+          content: `Sao chép BOM & Quy trình từ "${editingItem.sku}" sang tất cả các biến thể khác?`,
           onOk: async () => {
               try {
-                  const res = await axios.post(\`\${API_URL}/products/\${editingItem.id}/sync-variants\`);
+                  const res = await axios.post(`${API_URL}/products/${editingItem.id}/sync-variants`);
                   message.success(res.data.message);
               } catch(e) { message.error('Lỗi đồng bộ'); }
           }
@@ -135,23 +130,22 @@ const ProductsPage: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    try { await axios.delete(\`\${API_URL}/products/\${id}\`); fetchData(); } catch (e) { message.error('Lỗi xóa'); }
+    try { await axios.delete(`${API_URL}/products/${id}`); fetchData(); } catch (e) { message.error('Lỗi xóa'); }
   };
 
-  // Combo
   const openComboConfig = (sku: string) => { setCurrentComboSku(sku); setComboDrawerOpen(true); loadComboItems(sku); };
-  const loadComboItems = async (sku: string) => { try { const res = await axios.get(\`\${API_URL}/products/combo/\${sku}\`); setComboItems(Array.isArray(res.data) ? res.data : []); } catch (e) { setComboItems([]); } };
-  const addComboItem = async () => { try { await axios.post(\`\${API_URL}/products/combo/add`, { parentSku: currentComboSku, childSku, qty: childQty }); message.success('Đã thêm'); loadComboItems(currentComboSku); } catch(e) { message.error('Lỗi SKU'); } };
-  const removeComboItem = async (id: number) => { await axios.delete(\`\${API_URL}/products/combo/item/\${id}\`); loadComboItems(currentComboSku); };
+  const loadComboItems = async (sku: string) => { try { const res = await axios.get(`${API_URL}/products/combo/${sku}`); setComboItems(Array.isArray(res.data) ? res.data : []); } catch (e) { setComboItems([]); } };
+  const addComboItem = async () => { try { await axios.post(`${API_URL}/products/combo/add`, { parentSku: currentComboSku, childSku, qty: childQty }); message.success('Đã thêm'); loadComboItems(currentComboSku); } catch(e) { message.error('Lỗi SKU'); } };
+  const removeComboItem = async (id: number) => { await axios.delete(`${API_URL}/products/combo/item/${id}`); loadComboItems(currentComboSku); };
 
   const openEditModal = (r: any) => {
       setEditingItem(r);
       form.setFieldsValue({ ...r, color: r.attributes?.color, size: r.attributes?.size, fabric: r.attributes?.fabric });
       setTimeout(async () => {
           try {
-             const resBom = await axios.get(\`\${API_URL}/products/\${r.sku}/boms\`);
+             const resBom = await axios.get(`${API_URL}/products/${r.sku}/boms`);
              form.setFieldValue('boms', resBom.data);
-             const resRoute = await axios.get(\`\${API_URL}/products/\${r.id}/routings\`);
+             const resRoute = await axios.get(`${API_URL}/products/${r.id}/routings`);
              const defaultRouting = [
                 { step_name: '1. Nối vải', is_required: false, cost: 0 },
                 { step_name: '2. Chần gòn', is_required: true, cost: 0 },
@@ -159,14 +153,13 @@ const ProductsPage: React.FC = () => {
                 { step_name: '4. Đóng gói', is_required: true, cost: 0 }
              ];
              form.setFieldValue('routings', resRoute.data.length ? resRoute.data : defaultRouting);
-             const resLog = await axios.get(\`\${API_URL}/products/\${r.id}/logistics\`);
+             const resLog = await axios.get(`${API_URL}/products/${r.id}/logistics`);
              form.setFieldValue('logistics', resLog.data);
           } catch(e) {}
       }, 200);
       setIsModalOpen(true);
   };
 
-  // --- RENDERER ---
   const MaterialInfoRow = ({ matId, qty, waste }: any) => {
       const mat = materials.find(m => m.value === matId);
       if (!mat) return <div style={{color:'#ccc'}}>Chưa chọn</div>;
@@ -207,7 +200,6 @@ const ProductsPage: React.FC = () => {
               key: '2', label: 'BOM & Định Mức',
               children: (
                   <>
-                    {/* TABLE HEADER */}
                     <div style={{background:'#fafafa', padding: 8, borderBottom:'1px solid #eee', fontWeight:'bold', marginBottom:10}}>
                         <Row gutter={8}>
                             <Col span={8}>Nguyên Liệu</Col>
@@ -249,7 +241,7 @@ const ProductsPage: React.FC = () => {
                         )}
                     </Form.List>
                     <div style={{marginTop:15, textAlign:'right', padding:10, background:'#f6ffed', borderRadius:4}}>
-                        <Text strong>Tổng chi phí NPL: </Text>
+                        <Text type="secondary">Tổng chi phí NPL: </Text>
                         <Text style={{color:'#3f8600', fontSize:16, fontWeight:'bold'}}>{calcBomTotal().toLocaleString()} đ</Text>
                     </div>
                   </>
@@ -259,7 +251,7 @@ const ProductsPage: React.FC = () => {
               key: '3', label: 'Quy Trình & Vận Chuyển',
               children: (
                   <div style={{maxHeight: 450, overflowY: 'auto'}}>
-                    <Divider orientation="left"><ScissorOutlined /> Các công đoạn gia công</Divider>
+                    <Divider orientation="left">Các công đoạn gia công</Divider>
                     <Form.List name="routings">
                         {(fields) => (
                             <div>
@@ -268,7 +260,7 @@ const ProductsPage: React.FC = () => {
                                         <Col span={1}><Form.Item {...restField} name={[name, 'is_required']} valuePropName="checked" noStyle><Checkbox /></Form.Item></Col>
                                         <Col span={9}><Form.Item {...restField} name={[name, 'step_name']} noStyle><span style={{fontWeight:500}}>{form.getFieldValue(['routings', name, 'step_name'])}</span></Form.Item></Col>
                                         <Col span={8}><Form.Item {...restField} name={[name, 'supplier_id']} noStyle><Select placeholder="Nhà Gia Công..." options={suppliers.filter((s:any)=>s.type!=='MATERIAL')} allowClear style={{width:'100%'}} bordered={false} /></Form.Item></Col>
-                                        <Col span={6}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Chi phí" style={{width:'100%'}} addonAfter="₫" formatter={v => \`\${v}\`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} bordered={false} /></Form.Item></Col>
+                                        <Col span={6}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Chi phí" style={{width:'100%'}} addonAfter="₫" formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} bordered={false} /></Form.Item></Col>
                                     </Row>
                                 ))}
                             </div>
@@ -276,7 +268,7 @@ const ProductsPage: React.FC = () => {
                     </Form.List>
                     <div style={{textAlign:'right', marginBottom: 20}}><Text type="secondary">Tổng gia công: </Text><Text strong>{calcRoutingTotal().toLocaleString()} đ</Text></div>
 
-                    <Divider orientation="left"><CarOutlined /> Chi phí vận chuyển SX</Divider>
+                    <Divider orientation="left">Chi phí vận chuyển SX</Divider>
                     <Form.List name="logistics">
                         {(fields, { add, remove }) => (
                             <>
@@ -303,7 +295,7 @@ const ProductsPage: React.FC = () => {
   return (
     <div>
       <Card title="Quản lý Sản Phẩm"><Table columns={columns} dataSource={treeData} rowKey="key" loading={loading} bordered pagination={{ pageSize: 10 }} expandable={{ defaultExpandAllRows: true }} /></Card>
-      <Modal title={editingItem ? \`Chi tiết: \${editingItem.sku}\` : "Thêm SP"} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={900} style={{top: 20}}>
+      <Modal title={editingItem ? `Chi tiết: ${editingItem.sku}` : "Thêm SP"} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={900} style={{top: 20}}>
         <Form form={form} layout="vertical" onFinish={handleSaveProduct}>{modalContent}</Form>
         {editingItem && (
             <div style={{marginTop: 20, paddingTop: 15, borderTop: '2px solid #eee', background:'#fff', position:'sticky', bottom:0}}>
@@ -322,7 +314,7 @@ const ProductsPage: React.FC = () => {
         )}
       </Modal>
 
-      <Drawer title={\`Combo: \${currentComboSku}\`} placement="right" width={400} onClose={() => setComboDrawerOpen(false)} open={comboDrawerOpen}>
+      <Drawer title={`Combo: ${currentComboSku}`} placement="right" width={400} onClose={() => setComboDrawerOpen(false)} open={comboDrawerOpen}>
           <Space.Compact style={{ width: '100%', marginBottom: 16 }}>
             <Input placeholder="Mã SKU con" value={childSku} onChange={e => setChildSku(e.target.value)} />
             <InputNumber min={1} value={childQty} onChange={(v:any) => setChildQty(v)} />
