@@ -17,8 +17,21 @@ export class ProductsController {
   @Post(':id/logistics') saveLogistics(@Param('id') id: number, @Body() b: any) { return this.service.saveLogistics(id, b); }
 
   // --- MOI: API BOM ---
-  @Get(':sku/boms') getBoms(@Param('sku') sku: string) { return this.service.getBomByProductSku(sku); }
-  @Post(':id/boms') saveBoms(@Param('id') id: number, @Body() b: any) { return this.service.saveBoms(id, b); }
+  // ... cac doan khac giu nguyen ...
+  
+  // API BOM
+  @Get(':sku/boms') 
+  getBoms(@Param('sku') sku: string) { 
+      return this.service.getBomByProductSku(sku); 
+  }
+
+  @Post(':id/boms') 
+  saveBoms(@Param('id') id: number, @Body() b: any) { 
+      // Them Number(id) o day de chac chan ID la so
+      return this.service.saveBoms(Number(id), b); 
+  }
+  
+  // ...
   
   // --- MOI: API SYNC ---
   @Post(':id/sync-variants') syncVariants(@Param('id') id: number) { return this.service.syncToVariants(id); }
