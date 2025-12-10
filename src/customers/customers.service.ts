@@ -28,7 +28,6 @@ export class CustomersService {
         credit_limit: Number(data.credit_limit) || 0,
         current_debt: 0,
         parent: parent,
-        // Contacts se duoc luu tu dong nho cascade: true
         contacts: data.contacts?.map((c: any) => this.contactRepo.create(c) as unknown as CustomerContact) || []
     });
     return this.customerRepo.save(customer);
@@ -48,6 +47,21 @@ export class CustomersService {
       }); 
   }
 
+  // --- API MỚI: LẤY LỊCH SỬ MUA HÀNG ---
+  async getOrders(id: number) {
+      const customer = await this.customerRepo.findOne({ 
+          where: { id },
+          relations: ['orders'] // Load quan hệ SalesOrder
+      });
+      if (!customer) throw new NotFoundException('Khách hàng không tồn tại');
+      
+      // Sắp xếp đơn mới nhất lên đầu
+      return customer.orders.sort((a: any, b: any) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+  }
+  // --------------------------------------
+
   async update(id: number, data: any) {
     const customer = await this.findOne(id);
     if(!customer) throw new NotFoundException();
@@ -63,7 +77,6 @@ export class CustomersService {
 
     if (contacts && Array.isArray(contacts)) {
         await this.contactRepo.delete({ customer: { id } });
-        // --- FIX: Double Cast (as unknown as CustomerContact) ---
         customer.contacts = contacts.map((c: any) => this.contactRepo.create(c) as unknown as CustomerContact);
     }
 

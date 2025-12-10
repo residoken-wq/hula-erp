@@ -15,4 +15,9 @@ export class CustomersController {
   addHistory(@Param('id') id: number, @Body('note') note: string) {
       return this.s.addHistory(id, note);
   }
+
+  @Get(':id/orders')
+  getOrders(@Param('id') id: number) {
+      return this.s.getOrders(id);
+  }
 }
