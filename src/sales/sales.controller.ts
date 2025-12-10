@@ -14,4 +14,13 @@ export class SalesController {
   async getOrder(@Param('code') code: string) {
     return this.salesService.getOrder(code);
   }
+
+  @Get()
+  findAll() {
+    // Lấy danh sách, sort mới nhất trước, load quan hệ khách hàng
+    return this.salesService.orderRepo.find({ 
+        order: { order_date: 'DESC' },
+        relations: ['customer'] // Load thông tin khách hàng để hiển thị tên
+    });
+  }
 }

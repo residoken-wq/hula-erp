@@ -10,6 +10,7 @@ import CombosPage from './pages/CombosPage';
 import UploadPage from './pages/UploadPage';
 import MaterialsPage from './pages/MaterialsPage';
 import SuppliersPage from './pages/SuppliersPage'; // MOI
+import SalesPage from './pages/SalesPage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -27,9 +28,10 @@ const items: MenuItem[] = [
     getItem(<Link to="/suppliers">Nhà cung cấp</Link>, 'supp', <TeamOutlined />), // MOI
     getItem(<Link to="/inventory">Nhập xuất kho</Link>, '4'),
   ]),
-  getItem('Bán hàng', 'sub2', <TeamOutlined />, [ getItem(<Link to="/sales">Đơn bán hàng</Link>, '5') ]),
-  getItem('Sản xuất', '9', <DesktopOutlined />),
-  getItem(<Link to="/finance">Tài chính</Link>, '10', <BankOutlined />),
+  getItem('Bán hàng (CRM)', 'sub2', <TeamOutlined />, [ 
+    getItem(<Link to="/sales">Đơn bán hàng (SO)</Link>, '5'), // <-- TRỎ VỀ /sales
+    getItem(<Link to="/customers">Khách hàng</Link>, 'cust'), // <-- Gợi ý: Tạo thêm trang CustomersPage sau
+]),
 ];
 
 const App: React.FC = () => {
@@ -53,6 +55,7 @@ const App: React.FC = () => {
                 <Route path="/combos" element={<CombosPage />} /> 
                 <Route path="/materials" element={<MaterialsPage />} />
                 <Route path="/suppliers" element={<SuppliersPage />} />
+                <Route path="/sales" element={<SalesPage />} />
                 <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
               </Routes>
             </div>
