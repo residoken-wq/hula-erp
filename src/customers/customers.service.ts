@@ -29,7 +29,7 @@ export class CustomersService {
         current_debt: 0,
         parent: parent,
         // Contacts se duoc luu tu dong nho cascade: true
-        contacts: data.contacts?.map((c: any) => this.contactRepo.create(c)) || []
+        contacts: data.contacts?.map((c: any) => this.contactRepo.create(c) as unknown as CustomerContact) || []
     });
     return this.customerRepo.save(customer);
   }
@@ -63,8 +63,8 @@ export class CustomersService {
 
     if (contacts && Array.isArray(contacts)) {
         await this.contactRepo.delete({ customer: { id } });
-        // --- FIX: Ép kiểu rõ ràng để tránh lỗi TS2322 ---
-        customer.contacts = contacts.map((c: any) => this.contactRepo.create(c) as CustomerContact);
+        // --- FIX: Double Cast (as unknown as CustomerContact) ---
+        customer.contacts = contacts.map((c: any) => this.contactRepo.create(c) as unknown as CustomerContact);
     }
 
     Object.assign(customer, info);
