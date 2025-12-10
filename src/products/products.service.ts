@@ -31,47 +31,68 @@ export class ProductsService {
     return this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
   }
 
-  // --- FIX LOI LUU BOM (VERSION 2 - ROBUST) ---
+  // --- VERSION "SIÊU AN TOÀN" ---
   async saveBoms(productId: number, items: any[]) {
-      console.log(`Dang luu BOM cho Product ID: ${productId}`);
-      console.log('Du lieu nhan duoc:', items);
-
-      if (!items || !Array.isArray(items)) {
-          console.log('Loi: Data khong phai la mang');
-          return [];
+      // 1. Ép kiểu Product ID về số nguyên
+      const pId = Number(productId);
+      if (isNaN(pId)) {
+          console.error('Lỗi: Product ID không hợp lệ:', productId);
+          throw new Error('Invalid Product ID');
       }
 
-      // 1. Xoa BOM cu
-      await this.bomRepo.delete({ product_id: productId }); 
+      console.log(`Bắt đầu lưu BOM cho Product ${pId}. Số lượng item: ${items?.length}`);
+
+      // 2. Xóa BOM cũ (Dùng transaction để an toàn - nhưng ở đây dùng lệnh đơn giản trước)
+      await this.bomRepo.delete({ product_id: pId }); 
       
-      // 2. Loc va Chuan hoa du lieu
-      const validItems = items
-        .filter(i => i.material_id) // Chi lay dong da chon NPL
-        .map(i => {
-            return this.bomRepo.create({
-                product_id: Number(productId), // Ep kieu so
-                material_id: Number(i.material_id), // Ep kieu so
-                quantity: Number(i.quantity) || 0,
-                waste_percent: Number(i.waste_percent) || 0
-            });
-        });
-
-      if (validItems.length === 0) {
-          console.log('Khong co dong BOM nao hop le de luu');
-          return [];
+      if (!items || !Array.isArray(items) || items.length === 0) {
+          return { message: 'Đã xóa BOM cũ (Không có dữ liệu mới)' };
       }
 
-      // 3. Luu vao DB
+      // 3. Chuẩn hóa từng dòng dữ liệu
+      const entities = [];
+      for (const item of items) {
+          // Bỏ qua nếu không có material_id
+          if (!item.material_id) continue;
+
+          const mId = Number(item.material_id);
+          const qty = Number(item.quantity);
+          const waste = Number(item.waste_percent);
+
+          // Kiểm tra kỹ dữ liệu rác
+          if (isNaN(mId)) {
+              console.warn('Bỏ qua dòng có Material ID sai:', item);
+              continue;
+          }
+
+          // Tạo đối tượng BOM mới
+          const bom = new BOM();
+          bom.product_id = pId;
+          bom.material_id = mId;
+          bom.quantity = isNaN(qty) ? 0 : qty;
+          bom.waste_percent = isNaN(waste) ? 0 : waste;
+          
+          entities.push(bom);
+      }
+
+      if (entities.length === 0) {
+          return { message: 'Không có dòng BOM hợp lệ nào để lưu' };
+      }
+
+      // 4. Lưu vào DB
       try {
-          const result = await this.bomRepo.save(validItems as any);
-          console.log('Luu thanh cong:', result.length, 'dong');
-          return result;
+          const saved = await this.bomRepo.save(entities);
+          console.log(`Đã lưu thành công ${saved.length} dòng BOM.`);
+          
+          // 5. Tự động tính lại giá vốn ngay lập tức
+          await this.calculateCostPrice(String(pId)); // Gọi hàm tính giá (có thể cần sửa tham số này nếu hàm calculate nhận SKU)
+          
+          return saved;
       } catch (error) {
-          console.error('LOI KHI LUU BOM VAO DB:', error);
-          throw error; // Nem loi ra de Controller bat duoc
+          console.error('CRITICAL ERROR SAVE BOM:', error);
+          throw new Error('Lỗi Database khi lưu BOM: ' + error.message);
       }
   }
-  // ---------------------------------------------
 
   async getRoutings(productId: number) { return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); }
   
