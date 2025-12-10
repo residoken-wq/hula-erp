@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { SalesOrder } from './sales-order.entity';
+import { SalesOrder, SalesOrderStatus } from './sales-order.entity';
 import { SalesOrderItem } from './sales-order-item.entity';
 import { ProductsService } from '../products/products.service';
 import { InventoryService } from '../inventory/inventory.service';
@@ -21,6 +21,10 @@ export class SalesService {
 
     const order = new SalesOrder();
     order.order_code = data.order_code;
+    // Xu ly khach hang neu co
+    if(data.customer_id) {
+        order.customer = { id: data.customer_id } as any;
+    }
     order.customer_name = data.customer_name;
     order.items = [];
     
@@ -55,14 +59,18 @@ export class SalesService {
 
     order.total_amount = totalAmount;
     order.total_cost = totalCost;
-    order.status = 'CONFIRMED';
+    
+    // --- FIX: SU DUNG ENUM ---
+    order.status = SalesOrderStatus.CONFIRMED; 
+    // -------------------------
+
     return this.orderRepo.save(order);
   }
 
   async getOrder(orderCode: string) {
     const order = await this.orderRepo.findOne({ 
       where: { order_code: orderCode },
-      relations: ['items'] 
+      relations: ['items', 'customer'] 
     });
     if (!order) throw new NotFoundException('Khong tim thay don hang');
 
@@ -80,7 +88,6 @@ export class SalesService {
     };
   }
 
-  // --- MOI THEM ---
   async updatePayment(orderCode: string, amount: number) {
     const order = await this.orderRepo.findOne({ where: { order_code: orderCode } });
     if (!order) throw new NotFoundException('Khong tim thay don hang');

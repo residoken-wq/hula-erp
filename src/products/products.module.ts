@@ -13,7 +13,7 @@ import { Supplier } from '../suppliers/supplier.entity';
   imports: [
     TypeOrmModule.forFeature([
         Product, BOM, ProductComponent, 
-        ProductRouting, ProductLogistics, 
+        ProductRouting, ProductLogistics, // <--- QUAN TRONG
         Supplier
     ])
   ],
