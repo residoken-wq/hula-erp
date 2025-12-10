@@ -34,7 +34,6 @@ const items: MenuItem[] = [
     getItem(<Link to="/sales">Pipeline Bán Hàng</Link>, '5'), // Trang CrmPage
     getItem(<Link to="/customers">Danh sách Khách hàng</Link>, 'cust'), // <-- Trang CustomersPage này
   ]),
-]),
 ];
 
 const App: React.FC = () => {
