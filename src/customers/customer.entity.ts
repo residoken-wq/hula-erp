@@ -1,9 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { SalesOrder } from '../sales/sales-order.entity';
+import { CustomerContact } from './customer-contact.entity';
 
 export enum CustomerType {
-  LEAD = 'LEAD',         // Khách tiềm năng (Chưa chốt đơn)
-  CUSTOMER = 'CUSTOMER'  // Khách chính thức (Đã có đơn)
+  LEAD = 'LEAD',
+  CUSTOMER = 'CUSTOMER'
 }
 
 @Entity('customers')
@@ -24,11 +25,25 @@ export class Customer {
   })
   type: CustomerType;
 
-  // --- CRM: Lịch sử chăm sóc (Follow Lead) ---
-  // Lưu mảng JSON: [{ date: '...', note: 'Gọi điện lần 1', user: 'Admin' }]
+  // --- QUAN HỆ KHÁCH HÀNG (CHA - CON) ---
+  @ManyToOne(() => Customer, (customer) => customer.children, { nullable: true })
+  @JoinColumn({ name: 'parent_id' })
+  parent: Customer; // Công ty mẹ / Trụ sở chính
+
+  @Column({ nullable: true })
+  parent_id: number;
+
+  @OneToMany(() => Customer, (customer) => customer.parent)
+  children: Customer[]; // Các chi nhánh / Công ty con
+  // -------------------------------------
+
+  // --- DANH SÁCH LIÊN HỆ ---
+  @OneToMany(() => CustomerContact, (contact) => contact.customer, { cascade: true })
+  contacts: CustomerContact[];
+  // -------------------------
+
   @Column('jsonb', { nullable: true, default: [] })
   history: any;
-  // ------------------------------------------
 
   @Column({ nullable: true })
   tax_code: string;
