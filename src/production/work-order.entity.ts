@@ -1,10 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { WorkOrderStep } from './work-order-step.entity';
 
 export enum WorkOrderStatus {
-  PENDING = 'PENDING',       // Moi tao, chua lam
-  IN_PROGRESS = 'IN_PROGRESS', // Dang san xuat
-  COMPLETED = 'COMPLETED',   // Da xong (Da tru kho NL, cong kho SP)
-  CANCELLED = 'CANCELLED'    // Huy
+  PENDING = 'PENDING',       
+  IN_PROGRESS = 'IN_PROGRESS', 
+  COMPLETED = 'COMPLETED',   
+  CANCELLED = 'CANCELLED'    
 }
 
 @Entity('work_orders')
@@ -13,13 +14,13 @@ export class WorkOrder {
   id: number;
 
   @Column({ unique: true })
-  code: string; // Ma Lenh SX: WO_2025_001
+  code: string; 
 
   @Column()
-  product_sku: string; // San xuat san pham nao
+  product_sku: string; 
 
   @Column('int')
-  quantity: number; // So luong can san xuat
+  quantity: number; 
 
   @Column({
     type: 'enum',
@@ -27,6 +28,11 @@ export class WorkOrder {
     default: WorkOrderStatus.PENDING
   })
   status: WorkOrderStatus;
+
+  // --- QUẢN LÝ TIẾN ĐỘ CHI TIẾT ---
+  @OneToMany(() => WorkOrderStep, (step) => step.work_order, { cascade: true })
+  steps: WorkOrderStep[];
+  // -------------------------------
 
   @Column({ nullable: true })
   note: string;
