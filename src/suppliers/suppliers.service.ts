@@ -35,27 +35,46 @@ export class SuppliersService {
 
   async remove(id: number) { return this.supplierRepo.delete(id); }
 
-  // --- UPDATE: Get Price List ---
   async getPriceList(supplierId: number) {
     return this.priceRepo.find({ 
         where: { supplier_id: supplierId },
-        relations: ['material', 'process', 'product'], // Load them Product
+        relations: ['material', 'process', 'product'], 
         order: { updated_at: 'DESC' }
     });
   }
 
-  // --- UPDATE: Add Price ---
+  // --- API MỚI: TRA CỨU GIÁ ---
+  async checkPrice(dto: any) {
+      // dto: { supplierId, processId, productId }
+      // Logic: Ưu tiên giá có ProductId -> Nếu không có thì lấy giá Process chung
+      
+      const prices = await this.priceRepo.find({
+          where: { 
+              supplier_id: dto.supplierId, 
+              process_id: dto.processId 
+          },
+          order: { id: 'DESC' }
+      });
+
+      // 1. Tìm chính xác Product
+      const productMatch = prices.find(p => p.product_id == dto.productId);
+      if (productMatch) return { price: Number(productMatch.price) };
+
+      // 2. Tìm giá chung (Product = null)
+      const generalMatch = prices.find(p => !p.product_id);
+      if (generalMatch) return { price: Number(generalMatch.price) };
+
+      return { price: 0 };
+  }
+  // ---------------------------
+
   async addPrice(data: any) {
-    // data: { supplierId, itemId, itemType, productId, price ... }
-    
-    // Reset gia uu tien cu
     if (data.isPreferred) {
         let whereCond: any = { supplier_id: data.supplierId };
         if (data.itemType === 'MATERIAL') {
             whereCond.material_id = data.itemId;
         } else {
             whereCond.process_id = data.itemId;
-            // Neu la gia cong, phai xet cung Product thi moi reset
             if (data.productId) whereCond.product_id = data.productId;
         }
         await this.priceRepo.update(whereCond, { is_preferred: false });
@@ -65,7 +84,7 @@ export class SuppliersService {
         supplier_id: data.supplierId,
         material_id: data.itemType === 'MATERIAL' ? data.itemId : null,
         process_id: data.itemType === 'PROCESS' ? data.itemId : null,
-        product_id: data.itemType === 'PROCESS' ? data.productId : null, // Luu Product ID
+        product_id: data.itemType === 'PROCESS' ? data.productId : null,
         price: data.price,
         is_preferred: data.isPreferred || false,
         valid_from: data.validFrom,
@@ -82,7 +101,6 @@ export class SuppliersService {
             supplier_name: supplier ? supplier.name : ''
         });
     }
-
     return saved;
   }
 

@@ -26,7 +26,7 @@ export class ProductsService {
   async findAll() { 
       return this.productRepo.find({ 
           order: { id: 'DESC' },
-          relations: ['category_link'] // Load thêm thông tin danh mục
+          relations: ['category_link']
       }); 
   }
   
@@ -47,7 +47,6 @@ export class ProductsService {
   }
   async remove(id: number) { return this.productRepo.delete(id); }
 
-  // ... (Giữ nguyên các hàm getBom, saveBoms, getRouting...)
   async getBomByProductSku(sku: string): Promise<BOM[]> {
     const product = await this.productRepo.findOne({ where: { sku } });
     if (!product) return [];
@@ -71,16 +70,41 @@ export class ProductsService {
   }
 
   async getRoutings(productId: number) { return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); }
+  
+  // --- FIX: LOGIC SAVE ROUTING ---
   async saveRoutings(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
       const pId = Number(productId);
       await this.routingRepo.delete({ product_id: pId }); 
-      const newItems = items.map(i => this.routingRepo.create({ ...i, product_id: pId, is_required: Boolean(i.is_required), cost: Number(i.cost) || 0 }));
-      await this.routingRepo.save(newItems as any);
+      
+      const newItems = [];
+      for (const item of items) {
+          let cost = Number(item.cost) || 0;
+          
+          // Chỉ tự động tìm giá nếu User để trống (cost = 0) và có đủ thông tin
+          if (cost === 0 && item.supplier_id && item.process_id) {
+              const prices = await this.priceRepo.find({ where: { supplier_id: item.supplier_id, process_id: item.process_id } });
+              const productPrice = prices.find(p => p.product_id === pId);
+              const generalPrice = prices.find(p => p.product_id === null);
+              
+              if (productPrice) cost = Number(productPrice.price);
+              else if (generalPrice) cost = Number(generalPrice.price);
+          }
+
+          newItems.push(this.routingRepo.create({
+              product_id: pId,
+              step_name: item.step_name,
+              is_required: Boolean(item.is_required),
+              supplier_id: item.supplier_id || null,
+              cost: cost
+          }));
+      }
+      const saved = await this.routingRepo.save(newItems);
       const product = await this.productRepo.findOne({ where: { id: pId } });
       if(product) await this.calculateCostPrice(product.sku);
-      return { message: 'Saved' };
+      return saved;
   }
+  // ------------------------------
 
   async getLogistics(productId: number) { return this.logisticRepo.find({ where: { product_id: productId } }); }
   async saveLogistics(productId: number, items: any[]) {
@@ -97,19 +121,32 @@ export class ProductsService {
   async syncToVariants(sourceProductId: number) {
       const source = await this.productRepo.findOne({ where: { id: sourceProductId } });
       if (!source) throw new NotFoundException('SP Goc khong ton tai');
-      const variants = await this.productRepo.find({ where: { name: source.name, category: source.category } }); // Logic tìm biến thể tạm thời
-      // ... (Giữ nguyên logic sync cũ)
+      const variants = await this.productRepo.find({ where: { name: source.name, category: source.category } });
+      const targets = variants.filter(v => v.id !== sourceProductId);
+      
+      const sourceBoms = await this.bomRepo.find({ where: { product_id: sourceProductId } });
+      const sourceRoutings = await this.routingRepo.find({ where: { product_id: sourceProductId } });
+      const sourceLogistics = await this.logisticRepo.find({ where: { product_id: sourceProductId } });
+
+      for (const target of targets) {
+          await this.bomRepo.delete({ product_id: target.id });
+          if(sourceBoms.length) await this.bomRepo.save(sourceBoms.map(b => this.bomRepo.create({ ...b, id: undefined, product_id: target.id })) as any);
+
+          await this.routingRepo.delete({ product_id: target.id });
+          if(sourceRoutings.length) await this.routingRepo.save(sourceRoutings.map(r => this.routingRepo.create({ ...r, id: undefined, product_id: target.id })) as any);
+
+          await this.logisticRepo.delete({ product_id: target.id });
+          if(sourceLogistics.length) await this.logisticRepo.save(sourceLogistics.map(l => this.logisticRepo.create({ ...l, id: undefined, product_id: target.id })) as any);
+          
+          await this.calculateCostPrice(target.sku);
+      }
       return { message: 'Synced' };
   }
 
-  // --- CÔNG THỨC MỚI: MARGIN PRICING ---
   private calculateSellingPrice(cost: number, marginPercent: number): number {
-      // Công thức: Giá Bán = Giá Vốn / (1 - Margin%)
-      // Ví dụ: Vốn 100, Margin 30% -> Bán = 100 / 0.7 = 142.8
-      if (marginPercent >= 100 || marginPercent < 0) return cost; // Safe check
+      if (marginPercent >= 100 || marginPercent < 0) return cost;
       const marginDecimal = marginPercent / 100;
       const price = cost / (1 - marginDecimal);
-      // Làm tròn lên đến hàng nghìn
       return Math.ceil(price / 1000) * 1000;
   }
 
@@ -117,10 +154,8 @@ export class ProductsService {
     const product = await this.productRepo.findOne({ where: { sku }, relations: ['category_link'] });
     if (!product) throw new NotFoundException('SP khong ton tai');
 
-    // 1. Tính Giá Vốn (BOM + Routing + Logistics) - Giữ nguyên logic cũ
     let totalCost = 0;
     
-    // Check Combo
     const components = await this.componentRepo.find({ where: { parent_product: { id: product.id } }, relations: ['child_product'] });
     if (components.length > 0) {
         for (const comp of components) totalCost += Number(comp.child_product?.cost_price ?? 0) * Number(comp.quantity);
@@ -140,17 +175,14 @@ export class ProductsService {
 
     totalCost = Math.round(totalCost);
 
-    // 2. Tính Giá Bán (Margin Pricing)
-    // Ưu tiên Margin riêng của SP -> Nếu ko có thì lấy Margin của Danh mục
     let margin = Number(product.profit_margin); 
     if (!margin && product.category_link) {
         margin = Number(product.category_link.profit_margin);
     }
-    if (!margin) margin = 30; // Mặc định 30% nếu chưa set gì cả
+    if (!margin) margin = 30;
 
     const sellingPrice = this.calculateSellingPrice(totalCost, margin);
 
-    // 3. Update DB
     product.cost_price = totalCost;
     product.base_price = sellingPrice;
     await this.productRepo.save(product);
@@ -158,11 +190,9 @@ export class ProductsService {
     return { sku, new_cost_price: totalCost, new_base_price: sellingPrice, margin_used: margin };
   }
 
-  // --- API MỚI: UPDATE HÀNG LOẠT THEO DANH MỤC ---
   async updatePricesByCategory(categoryId: number, newMargin: number) {
       const products = await this.productRepo.find({ where: { category_id: categoryId } });
       for (const p of products) {
-          // Chỉ update những SP không có margin riêng (tức là đang dùng margin của danh mục)
           if (!p.profit_margin) { 
               const newPrice = this.calculateSellingPrice(Number(p.cost_price), newMargin);
               p.base_price = newPrice;
