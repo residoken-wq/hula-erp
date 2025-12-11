@@ -35,18 +35,27 @@ export class SalesService {
     
     const order = new SalesOrder();
     order.order_code = data.order_code;
+    
+    // Map thong tin co ban
     if(data.customer_id) order.customer = { id: data.customer_id } as any;
     order.customer_name = data.customer_name;
     order.shipping_address = data.shipping_address;
-    order.items = [];
     
+    // Map thong tin VAT & Logistics (Moi)
+    order.vat_company_name = data.vat_company_name;
+    order.vat_tax_code = data.vat_tax_code;
+    order.vat_address = data.vat_address;
+    order.receiver_name = data.receiver_name;
+    order.receiver_phone = data.receiver_phone;
+    order.payment_note = data.payment_note;
+
+    order.items = [];
     let totalAmount = 0; let totalCost = 0;
 
     for (const itemData of data.items) {
       const item = new SalesOrderItem();
       item.sku = itemData.sku; item.quantity = itemData.quantity; item.unit_price = itemData.price;
       item.subtotal = item.quantity * item.unit_price;
-      
       totalAmount += item.subtotal;
 
       try {
@@ -95,65 +104,65 @@ export class SalesService {
     return this.orderRepo.save(order);
   }
 
-  // --- API UPDATE QUOTE (CRUD) ---
+  // --- UPDATE QUOTE / SO (Full Edit) ---
   async updateQuote(id: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
-      if (!order) throw new NotFoundException('Không tìm thấy báo giá');
+      if (!order) throw new NotFoundException('Không tìm thấy đơn');
       
-      // RULE: Chỉ cho sửa khi đang là QUOTATION
-      if (order.status !== SalesOrderStatus.QUOTATION) {
-          throw new BadRequestException('Chỉ có thể sửa Báo giá khi chưa chốt đơn!');
+      // Cho phep sua thong tin Logistics/VAT ke ca khi da chot don
+      // Nhung chi cho sua Items khi con la QUOTATION
+      
+      // 1. Update Thong tin chung
+      if(data.customer_id) order.customer = { id: data.customer_id } as any;
+      if(data.customer_name) order.customer_name = data.customer_name;
+      
+      order.vat_company_name = data.vat_company_name;
+      order.vat_tax_code = data.vat_tax_code;
+      order.vat_address = data.vat_address;
+      
+      order.delivery_date = data.delivery_date;
+      order.shipping_address = data.shipping_address;
+      order.receiver_name = data.receiver_name;
+      order.receiver_phone = data.receiver_phone;
+      order.shipping_carrier = data.shipping_carrier;
+      order.tracking_code = data.tracking_code;
+      order.shipping_fee = data.shipping_fee;
+      order.payment_note = data.payment_note;
+
+      // 2. Update Items (Chi cho phep khi la Quotation)
+      if (data.items && order.status === SalesOrderStatus.QUOTATION) {
+          const newItems = [];
+          let totalAmount = 0; 
+          let totalCost = 0;
+
+          for (const itemData of data.items) {
+              const item = new SalesOrderItem();
+              item.sku = itemData.sku; 
+              item.quantity = itemData.quantity; 
+              item.unit_price = itemData.price;
+              item.subtotal = item.quantity * item.unit_price;
+              totalAmount += item.subtotal;
+
+              try {
+                const costInfo = await this.productsService.calculateCostPrice(item.sku);
+                totalCost += (costInfo.new_cost_price || 0) * item.quantity;
+              } catch (e) {}
+
+              newItems.push(item);
+          }
+          order.items = newItems;
+          order.total_amount = totalAmount;
+          order.total_cost = totalCost;
       }
-
-      // Cập nhật thông tin chung
-      if (data.customer_id) order.customer = { id: data.customer_id } as any;
-      
-      // Cập nhật Items: Xóa cũ -> Thêm mới (Cách đơn giản nhất để tránh diff phức tạp)
-      // Lưu ý: Do cascade: true trong Entity, ta chỉ cần gán mảng items mới, TypeORM sẽ tự xử lý (nhưng an toàn nhất là xóa items cũ trước)
-      // Tuy nhiên, để đơn giản trong TypeORM, ta sẽ tính toán lại và thay thế list items
-      
-      // Xóa items cũ thủ công để tránh rác (nếu cascade không cover hết case update)
-      // (Thực tế nên Inject SalesOrderItemRepo để delete, nhưng ở đây ta dùng save đè)
-      
-      const newItems = [];
-      let totalAmount = 0; 
-      let totalCost = 0;
-
-      for (const itemData of data.items) {
-          const item = new SalesOrderItem();
-          item.sku = itemData.sku; 
-          item.quantity = itemData.quantity; 
-          item.unit_price = itemData.price;
-          item.subtotal = item.quantity * item.unit_price;
-          totalAmount += item.subtotal;
-
-          try {
-            const costInfo = await this.productsService.calculateCostPrice(item.sku);
-            totalCost += (costInfo.new_cost_price || 0) * item.quantity;
-          } catch (e) {}
-
-          newItems.push(item);
-      }
-
-      // Gán lại dữ liệu mới
-      order.items = newItems;
-      order.total_amount = totalAmount;
-      order.total_cost = totalCost;
 
       return this.orderRepo.save(order);
   }
 
-  // --- API DELETE QUOTE (CRUD) ---
   async deleteQuote(id: number) {
       const order = await this.orderRepo.findOne({ where: { id } });
       if (!order) throw new NotFoundException('Không tìm thấy báo giá');
-
-      // RULE: Không được xóa nếu đã Chốt đơn (SO_PENDING), Đã lên KH (PLANNED), v.v.
       const allowedStatus = [SalesOrderStatus.QUOTATION, SalesOrderStatus.CANCELLED];
-      if (!allowedStatus.includes(order.status)) {
-          throw new BadRequestException('Không thể xóa Báo giá đã được duyệt/chốt đơn!');
-      }
-
+      if (!allowedStatus.includes(order.status)) throw new BadRequestException('Không thể xóa Báo giá đã được duyệt/chốt đơn!');
       return this.orderRepo.remove(order);
   }
 }
