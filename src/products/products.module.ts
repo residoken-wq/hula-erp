@@ -5,16 +5,17 @@ import { ProductsService } from './products.service';
 import { Product } from './product.entity';
 import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from './product-component.entity';
-import { ProductRouting } from './product-routing.entity'; // MOI
-import { ProductLogistics } from './product-logistics.entity'; // MOI
+import { ProductRouting } from './product-routing.entity';
+import { ProductLogistics } from './product-logistics.entity';
 import { Supplier } from '../suppliers/supplier.entity';
+import { SupplierMaterial } from '../suppliers/supplier-material.entity'; // MOI
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
         Product, BOM, ProductComponent, 
-        ProductRouting, ProductLogistics, // <--- QUAN TRONG
-        Supplier
+        ProductRouting, ProductLogistics, 
+        Supplier, SupplierMaterial // MOI
     ])
   ],
   controllers: [ProductsController],

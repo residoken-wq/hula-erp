@@ -7,6 +7,7 @@ import { ProductComponent } from './product-component.entity';
 import { ProductRouting } from './product-routing.entity';
 import { ProductLogistics } from './product-logistics.entity';
 import { Supplier } from '../suppliers/supplier.entity';
+import { SupplierMaterial } from '../suppliers/supplier-material.entity'; // MOI
 
 @Injectable()
 export class ProductsService {
@@ -17,6 +18,7 @@ export class ProductsService {
     @InjectRepository(ProductRouting) private routingRepo: Repository<ProductRouting>,
     @InjectRepository(ProductLogistics) private logisticRepo: Repository<ProductLogistics>,
     @InjectRepository(Supplier) private supplierRepo: Repository<Supplier>,
+    @InjectRepository(SupplierMaterial) private priceRepo: Repository<SupplierMaterial>, // MOI
   ) {}
 
   async findAll() { return this.productRepo.find({ order: { id: 'DESC' } }); }
@@ -63,15 +65,53 @@ export class ProductsService {
       return saved;
   }
 
-  async getRoutings(productId: number) { return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); }
+  async getRoutings(productId: number) { 
+      return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); 
+  }
+
+  // --- UPDATE: SAVE ROUTING ---
   async saveRoutings(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
       const pId = Number(productId);
       await this.routingRepo.delete({ product_id: pId }); 
-      const newItems = items.map(i => this.routingRepo.create({ 
-          ...i, product_id: pId, is_required: Boolean(i.is_required), cost: Number(i.cost) || 0
-      }));
-      const saved = await this.routingRepo.save(newItems as any);
+      
+      const newItems = [];
+      for (const item of items) {
+          let cost = Number(item.cost) || 0;
+          
+          // Logic tự động lấy giá từ Bảng giá NCC (nếu có chọn Process ID và Supplier ID)
+          if (item.supplier_id && item.process_id) {
+              const price = await this.priceRepo.findOne({
+                  where: {
+                      supplier_id: item.supplier_id,
+                      process_id: item.process_id,
+                      // Ưu tiên giá cho sản phẩm cụ thể, nếu không có thì lấy giá chung (product_id = null)
+                      // Tuy nhiên TypeORM cần query khéo léo hơn, ở đây ta lấy list rồi filter
+                  }
+              });
+              
+              // Để đơn giản, ta tìm giá khớp nhất
+              const prices = await this.priceRepo.find({
+                  where: { supplier_id: item.supplier_id, process_id: item.process_id }
+              });
+              
+              const productPrice = prices.find(p => p.product_id === pId);
+              const generalPrice = prices.find(p => p.product_id === null);
+              
+              if (productPrice) cost = Number(productPrice.price);
+              else if (generalPrice) cost = Number(generalPrice.price);
+          }
+
+          newItems.push(this.routingRepo.create({
+              product_id: pId,
+              step_name: item.step_name,
+              is_required: Boolean(item.is_required),
+              supplier_id: item.supplier_id || null,
+              cost: cost
+          }));
+      }
+
+      const saved = await this.routingRepo.save(newItems);
       const product = await this.productRepo.findOne({ where: { id: pId } });
       if(product) await this.calculateCostPrice(product.sku);
       return saved;
@@ -153,7 +193,6 @@ export class ProductsService {
     return { sku, new_cost_price: totalCost, breakdown: { material: materialCost, labor: laborCost, logistic: logisticsCost } };
   }
 
-  // --- LOGIC COMBO (MỚI TRIỂN KHAI) ---
   async getComboComponents(sku: string) {
       const product = await this.productRepo.findOne({ where: { sku } });
       if (!product) return [];
@@ -167,7 +206,7 @@ export class ProductsService {
       const parent = await this.productRepo.findOne({ where: { sku: parentSku } });
       const child = await this.productRepo.findOne({ where: { sku: childSku } });
       
-      if (!parent || !child) throw new NotFoundException('Không tìm thấy sản phẩm (Cha hoặc Con)');
+      if (!parent || !child) throw new NotFoundException('Không tìm thấy sản phẩm');
 
       let comp = await this.componentRepo.findOne({ 
           where: { parent_product: { id: parent.id }, child_product: { id: child.id } } 
@@ -184,7 +223,6 @@ export class ProductsService {
       }
       
       const saved = await this.componentRepo.save(comp);
-      // Tinh lai gia von cho Combo cha
       await this.calculateCostPrice(parent.sku);
       return saved;
   }
