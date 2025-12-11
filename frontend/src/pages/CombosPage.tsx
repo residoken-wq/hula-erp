@@ -2,13 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, message, Card, Modal, Form, Input, InputNumber, Select, Popconfirm, Space, Typography, Row, Col, Statistic, Divider, Spin } from 'antd';
 import { ReloadOutlined, PlusOutlined, DeleteOutlined, GiftOutlined, MinusCircleOutlined, EditOutlined, AppstoreOutlined } from '@ant-design/icons';
 import axios from 'axios';
-
 import { API_URL } from '../config'; 
-const API = `${API_URL}/products`;
 
+const API = `${API_URL}/products`;
 const { Text } = Typography;
 
-// --- COMPONENT CON: HIỂN THỊ CHI TIẾT COMBO KHI EXPAND ---
+// Component hiển thị chi tiết khi mở rộng hàng
 const ComboDetailList: React.FC<{ sku: string }> = ({ sku }) => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -24,6 +23,7 @@ const ComboDetailList: React.FC<{ sku: string }> = ({ sku }) => {
     }, [sku]);
 
     if (loading) return <Spin size="small" />;
+    if (items.length === 0) return <Text type="secondary" style={{fontStyle:'italic', padding:10}}>Chưa có sản phẩm con</Text>;
 
     const columns = [
         { title: 'SKU Con', render: (r:any) => <b>{r.child_product?.sku}</b> },
@@ -34,20 +34,12 @@ const ComboDetailList: React.FC<{ sku: string }> = ({ sku }) => {
     ];
 
     return (
-        <div style={{ margin: '10px 0', background: '#fafafa', padding: 10, borderRadius: 8, border: '1px solid #f0f0f0' }}>
+        <div style={{ margin: '10px 20px', background: '#fafafa', padding: 15, borderRadius: 8, border: '1px solid #f0f0f0' }}>
             <Text type="secondary" strong style={{marginBottom:10, display:'block'}}>Thành phần trong bộ:</Text>
-            <Table 
-                columns={columns} 
-                dataSource={items} 
-                rowKey="id" 
-                pagination={false} 
-                size="small" 
-                bordered={false}
-            />
+            <Table columns={columns} dataSource={items} rowKey="id" pagination={false} size="small" bordered={false} />
         </div>
     );
 };
-// ---------------------------------------------------------
 
 const CombosPage: React.FC = () => {
   const [combos, setCombos] = useState([]); 
@@ -56,7 +48,6 @@ const CombosPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null); 
   const [form] = Form.useForm();
-
   const [refPrice, setRefPrice] = useState(0);
 
   const fetchData = async () => {
@@ -70,7 +61,7 @@ const CombosPage: React.FC = () => {
       );
       setProducts(singleProducts.map((p:any) => ({ 
           label: `${p.sku} - ${p.name} (${Number(p.base_price).toLocaleString()}đ)`, 
-          value: p.sku,
+          value: p.sku, 
           price: Number(p.base_price) || 0 
       })));
 
@@ -78,7 +69,6 @@ const CombosPage: React.FC = () => {
         (p.category||'').toLowerCase().includes('combo') || (p.product_type||'').toLowerCase().includes('bộ')
       );
       setCombos(comboList);
-
     } catch (e) { message.error('Lỗi kết nối Server'); }
     setLoading(false);
   };
@@ -112,19 +102,34 @@ const CombosPage: React.FC = () => {
       };
 
       if (editingItem) {
+          // UPDATE
           await axios.put(`${API}/${editingItem.id}`, productPayload);
-          if (values.components) await axios.post(`${API}/${editingItem.id}/components`, values.components);
+          // Update Components
+          if (values.components) {
+              await axios.post(`${API}/${editingItem.id}/components`, values.components);
+          }
           message.success('Cập nhật thành công');
       } else {
-          await axios.post(API, productPayload);
+          // CREATE
+          // 1. Tao SP cha
+          const res = await axios.post(API, productPayload);
+          
+          // 2. Tao Components (Dung loop vi API create chua support batch comp)
+          // Quan trong: Lay ID hoac SKU cua SP vua tao de add comp
           if (values.components && values.components.length > 0) {
               for (const comp of values.components) {
-                  await axios.post(`${API}/combo/add`, { parentSku: values.sku, childSku: comp.sku, qty: comp.quantity });
+                  await axios.post(`${API}/combo/add`, { 
+                      parentSku: values.sku, 
+                      childSku: comp.sku, 
+                      qty: comp.quantity 
+                  });
               }
           }
           message.success('Tạo Combo thành công'); 
       }
-      setIsModalOpen(false); fetchData();
+      
+      setIsModalOpen(false); 
+      fetchData();
     } catch (e) { message.error('Lỗi lưu combo'); }
   };
 
@@ -134,13 +139,23 @@ const CombosPage: React.FC = () => {
 
   const handleEdit = async (record: any) => {
       setEditingItem(record);
-      form.setFieldsValue({ sku: record.sku, name: record.name, base_price: record.base_price });
+      form.setFieldsValue({
+          sku: record.sku,
+          name: record.name,
+          base_price: record.base_price
+      });
+      
+      // Load components va fill vao Form
       try {
           const res = await axios.get(`${API}/combo/${record.sku}`);
-          const comps = res.data.map((c:any) => ({ sku: c.child_product.sku, quantity: c.quantity }));
+          const comps = res.data.map((c:any) => ({
+              sku: c.child_product.sku,
+              quantity: c.quantity
+          }));
           form.setFieldValue('components', comps);
           handleFormChange(null, { components: comps });
       } catch(e) {}
+
       setIsModalOpen(true);
   };
 
@@ -153,7 +168,9 @@ const CombosPage: React.FC = () => {
       render: (_: any, record: any) => (
         <Space>
             <Button icon={<EditOutlined />} size="small" onClick={() => handleEdit(record)} />
-            <Popconfirm title="Xóa?" onConfirm={() => handleDelete(record.id)}><Button icon={<DeleteOutlined />} size="small" danger type="text" /></Popconfirm>
+            <Popconfirm title="Xóa combo này?" onConfirm={() => handleDelete(record.id)}>
+                <Button icon={<DeleteOutlined />} size="small" danger type="text" />
+            </Popconfirm>
         </Space>
       ),
     },
@@ -177,7 +194,7 @@ const CombosPage: React.FC = () => {
             rowKey="id" 
             loading={loading} 
             bordered 
-            // --- CẤU HÌNH EXPAND ĐỂ XEM CHI TIẾT ---
+            // EXPANDABLE
             expandable={{
                 expandedRowRender: (record) => <ComboDetailList sku={record.sku} />,
                 rowExpandable: (record) => true,
@@ -203,7 +220,11 @@ const CombosPage: React.FC = () => {
                         <Select showSearch placeholder="Chọn sản phẩm..." options={products} filterOption={(input, option:any) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())} />
                       </Form.Item>
                     </Col>
-                    <Col span={8}><Form.Item {...restField} name={[name, 'quantity']} rules={[{ required: true, message: 'Nhap SL' }]} style={{marginBottom:0}}><InputNumber min={1} placeholder="Số lượng" style={{width: '100%'}} addonAfter="Cái" /></Form.Item></Col>
+                    <Col span={8}>
+                      <Form.Item {...restField} name={[name, 'quantity']} rules={[{ required: true, message: 'Nhap SL' }]} style={{marginBottom:0}}>
+                        <InputNumber min={1} placeholder="Số lượng" style={{width: '100%'}} addonAfter="Cái" />
+                      </Form.Item>
+                    </Col>
                     <Col span={2}><MinusCircleOutlined onClick={() => remove(name)} style={{color:'red'}} /></Col>
                   </Row>
                 ))}
@@ -214,8 +235,12 @@ const CombosPage: React.FC = () => {
 
           <div style={{ background: '#f6ffed', padding: '15px', borderRadius: 8, border: '1px solid #b7eb8f' }}>
              <Row gutter={16}>
-                <Col span={12}><Form.Item name="ref_price_display" label="Giá Tham Khảo" tooltip="Tổng giá bán lẻ"><InputNumber style={{width:'100%', color: '#888'}} disabled formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
-                <Col span={12}><Form.Item name="base_price" label="Giá Bán Chính Thức" rules={[{ required: true }]}><InputNumber style={{width:'100%', fontWeight: 'bold', color: 'green'}} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
+                <Col span={12}>
+                    <Form.Item name="ref_price_display" label="Giá Tham Khảo" tooltip="Tổng giá bán lẻ"><InputNumber style={{width:'100%', color: '#888'}} disabled formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item>
+                </Col>
+                <Col span={12}>
+                    <Form.Item name="base_price" label="Giá Bán Chính Thức" rules={[{ required: true }]}><InputNumber style={{width:'100%', fontWeight: 'bold', color: 'green'}} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item>
+                </Col>
              </Row>
           </div>
         </Form>

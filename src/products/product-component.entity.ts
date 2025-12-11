@@ -6,16 +6,16 @@ export class ProductComponent {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // San pham Cha (Combo)
-  @ManyToOne(() => Product, (product) => product.id)
+  // Sửa: Bỏ tham số thứ 2 sai cú pháp
+  @ManyToOne(() => Product, { onDelete: 'CASCADE' }) 
   @JoinColumn({ name: 'parent_product_id' })
   parent_product: Product;
 
-  // San pham Con (Thanh phan)
-  @ManyToOne(() => Product, (product) => product.id)
+  // Sửa: Bỏ tham số thứ 2 sai cú pháp
+  @ManyToOne(() => Product, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'child_product_id' })
   child_product: Product;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  quantity: number; // So luong con trong 1 combo
+  quantity: number;
 }
