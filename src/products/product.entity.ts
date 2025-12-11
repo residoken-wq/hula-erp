@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Category } from '../categories/category.entity';
 
 @Entity('products')
 export class Product {
@@ -11,26 +12,37 @@ export class Product {
   @Column()
   name: string;
 
+  // --- LIÊN KẾT DANH MỤC (MỚI) ---
+  @ManyToOne(() => Category, (cat) => cat.products, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'category_id' })
+  category_link: Category;
+
   @Column({ nullable: true })
-  category: string; 
+  category_id: number;
+  // ------------------------------
+
+  @Column({ nullable: true })
+  category: string; // Giữ lại field cũ để backup text
 
   @Column({ nullable: true })
   product_type: string;
 
-  // --- QUAN LY BIEN THE (JSON) ---
-  // Luu: { "color": "Xanh", "size": "120x60", "fabric": "Cara" }
   @Column('jsonb', { nullable: true })
   attributes: any;
-  // ------------------------------
 
   @Column({ nullable: true })
   unit: string; 
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  base_price: number; 
+  base_price: number; // Giá bán
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  cost_price: number; 
+  cost_price: number; // Giá vốn
+
+  // --- OVERRIDE MARGIN (Nếu muốn SP này khác biệt với nhóm) ---
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  profit_margin: number; 
+  // ----------------------------------------------------------
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   quantity_in_stock: number;

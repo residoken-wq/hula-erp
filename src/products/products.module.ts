@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
@@ -8,15 +8,17 @@ import { ProductComponent } from './product-component.entity';
 import { ProductRouting } from './product-routing.entity';
 import { ProductLogistics } from './product-logistics.entity';
 import { Supplier } from '../suppliers/supplier.entity';
-import { SupplierMaterial } from '../suppliers/supplier-material.entity'; // MOI
+import { SupplierMaterial } from '../suppliers/supplier-material.entity';
+import { CategoriesModule } from '../categories/categories.module'; // Import
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
         Product, BOM, ProductComponent, 
         ProductRouting, ProductLogistics, 
-        Supplier, SupplierMaterial // MOI
-    ])
+        Supplier, SupplierMaterial
+    ]),
+    forwardRef(() => CategoriesModule) // Tránh vòng lặp
   ],
   controllers: [ProductsController],
   providers: [ProductsService],

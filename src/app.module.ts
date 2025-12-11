@@ -13,7 +13,8 @@ import { UploadModule } from './upload/upload.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { CustomersModule } from './customers/customers.module';
 import { PlanningModule } from './planning/planning.module';
-import { ProcessesModule } from './processes/processes.module'; // MOI
+import { ProcessesModule } from './processes/processes.module';
+import { CategoriesModule } from './categories/categories.module'; // MOI
 
 // Entities
 import { Product } from './products/product.entity';
@@ -37,7 +38,8 @@ import { SupplierContact } from './suppliers/supplier-contact.entity';
 import { Customer } from './customers/customer.entity';
 import { CustomerContact } from './customers/customer-contact.entity';
 import { ProductionPlan } from './planning/production-plan.entity';
-import { Process } from './processes/process.entity'; // MOI
+import { Process } from './processes/process.entity';
+import { Category } from './categories/category.entity'; // MOI
 
 @Module({
   imports: [
@@ -58,7 +60,8 @@ import { Process } from './processes/process.entity'; // MOI
         Supplier, SupplierMaterial, SupplierContact,
         Customer, CustomerContact,
         ProductionPlan,
-        Process // MOI
+        Process,
+        Category // MOI
       ], 
       synchronize: true, 
     }),
@@ -74,7 +77,8 @@ import { Process } from './processes/process.entity'; // MOI
     SuppliersModule,
     CustomersModule,
     PlanningModule,
-    ProcessesModule // MOI
+    ProcessesModule,
+    CategoriesModule // MOI
   ],
 })
 export class AppModule {}
