@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SalesOrder, SalesOrderStatus } from './sales-order.entity';
 import { SalesOrderItem } from './sales-order-item.entity';
+import { ProductSample } from './product-sample.entity'; // Import
 import { ProductsService } from '../products/products.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { CustomersService } from '../customers/customers.service';
@@ -11,6 +12,7 @@ import { CustomersService } from '../customers/customers.service';
 export class SalesService {
   constructor(
     @InjectRepository(SalesOrder) public orderRepo: Repository<SalesOrder>,
+    @InjectRepository(ProductSample) public sampleRepo: Repository<ProductSample>, // Public Repo nay
     private productsService: ProductsService,
     private inventoryService: InventoryService,
     private customersService: CustomersService,
