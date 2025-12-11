@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDa
 import { Supplier } from './supplier.entity';
 import { Material } from '../materials/material.entity';
 import { Process } from '../processes/process.entity';
+import { Product } from '../products/product.entity'; // MOI
 
 @Entity('supplier_materials')
 export class SupplierMaterial {
@@ -30,7 +31,15 @@ export class SupplierMaterial {
 
   @Column({ nullable: true })
   process_id: number;
-  // --------------------------
+
+  // --- MỚI: LIÊN KẾT SẢN PHẨM (Chỉ dùng cho Giá gia công) ---
+  @ManyToOne(() => Product, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'product_id' })
+  product: Product;
+
+  @Column({ nullable: true })
+  product_id: number;
+  // -------------------------------------------------------
 
   @Column('decimal', { precision: 15, scale: 2 })
   price: number;
