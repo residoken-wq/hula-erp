@@ -15,75 +15,71 @@ export class SuppliersService {
     private materialsService: MaterialsService,
   ) {}
 
-  // --- CRUD NCC (Bao gom ca Contacts) ---
+  // --- CRUD NCC ---
   async create(data: Partial<Supplier>) {
-    // TypeORM se tu dong luu contacts nho cascade: true
     return this.supplierRepo.save(data);
   }
 
   async findAll() {
     return this.supplierRepo.find({ 
-        relations: ['contacts'], // Lay luon danh sach lien he
+        relations: ['contacts'], 
         order: { id: 'DESC' } 
     });
   }
 
   async update(id: number, data: any) {
-    // Xu ly rieng cho viec update co relation
-    // 1. Luu thong tin co ban
     const { contacts, ...supplierData } = data;
     await this.supplierRepo.update(id, supplierData);
     
-    // 2. Xu ly contacts (Neu co gui len)
     if (contacts && Array.isArray(contacts)) {
         const supplier = await this.supplierRepo.findOne({where: {id}});
-        // Xoa cu tao moi (don gian nhat) hoac update tung cai
-        // O day ta se xu ly don gian: Xoa het contact cu cua NCC nay roi luu lai list moi
-        // (Luu y: Cach nay hoi "tho" nhung an toan cho logic don gian)
         await this.contactRepo.delete({ supplier: { id } });
-        
         for (const c of contacts) {
             const newContact = this.contactRepo.create({ ...c, supplier });
             await this.contactRepo.save(newContact);
         }
     }
-
     return this.supplierRepo.findOne({ where: { id }, relations: ['contacts'] });
   }
 
   async remove(id: number) { return this.supplierRepo.delete(id); }
 
-  // --- QUAN LY GIA (Co them Date) ---
+  // --- QUAN LY GIA (UPDATE) ---
   async getPriceList(supplierId: number) {
     return this.priceRepo.find({ 
         where: { supplier_id: supplierId },
-        relations: ['material'],
+        relations: ['material', 'process'], // Load ca Material va Process
         order: { updated_at: 'DESC' }
     });
   }
 
   async addPrice(data: any) {
-    // data: { supplierId, materialId, price, isPreferred, validFrom, validTo }
+    // data: { supplierId, itemId, itemType: 'MATERIAL' | 'PROCESS', price, ... }
     
+    // Reset cờ ưu tiên cũ
     if (data.isPreferred) {
-        await this.priceRepo.update({ material_id: data.materialId }, { is_preferred: false });
+        const whereCond = data.itemType === 'MATERIAL' 
+            ? { material_id: data.itemId } 
+            : { process_id: data.itemId };
+        await this.priceRepo.update(whereCond, { is_preferred: false });
     }
 
     const priceItem = this.priceRepo.create({
         supplier_id: data.supplierId,
-        material_id: data.materialId,
+        material_id: data.itemType === 'MATERIAL' ? data.itemId : null,
+        process_id: data.itemType === 'PROCESS' ? data.itemId : null, // MỚI
         price: data.price,
         is_preferred: data.isPreferred || false,
-        valid_from: data.validFrom, // Luu ngay bat dau
-        valid_to: data.validTo      // Luu ngay ket thuc
+        valid_from: data.validFrom,
+        valid_to: data.validTo
     });
     
     const saved = await this.priceRepo.save(priceItem);
 
-    if (saved.is_preferred) {
-        // Cap nhat lai gia vao Material Master
+    // Nếu là Material và là giá ưu tiên -> Cập nhật giá vốn Material gốc
+    if (saved.is_preferred && data.itemType === 'MATERIAL') {
         const supplier = await this.supplierRepo.findOne({where:{id: data.supplierId}});
-        await this.materialsService.materialRepo.update(data.materialId, {
+        await this.materialsService.materialRepo.update(data.itemId, {
             cost_per_unit: data.price,
             supplier_name: supplier.name
         });

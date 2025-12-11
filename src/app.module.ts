@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
 // Modules
 import { ProductsModule } from './products/products.module';
 import { MaterialsModule } from './materials/materials.module';
@@ -14,6 +13,7 @@ import { UploadModule } from './upload/upload.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { CustomersModule } from './customers/customers.module';
 import { PlanningModule } from './planning/planning.module';
+import { ProcessesModule } from './processes/processes.module'; // MOI
 
 // Entities
 import { Product } from './products/product.entity';
@@ -37,6 +37,7 @@ import { SupplierContact } from './suppliers/supplier-contact.entity';
 import { Customer } from './customers/customer.entity';
 import { CustomerContact } from './customers/customer-contact.entity';
 import { ProductionPlan } from './planning/production-plan.entity';
+import { Process } from './processes/process.entity'; // MOI
 
 @Module({
   imports: [
@@ -56,7 +57,8 @@ import { ProductionPlan } from './planning/production-plan.entity';
         Transaction,
         Supplier, SupplierMaterial, SupplierContact,
         Customer, CustomerContact,
-        ProductionPlan
+        ProductionPlan,
+        Process // MOI
       ], 
       synchronize: true, 
     }),
@@ -71,7 +73,8 @@ import { ProductionPlan } from './planning/production-plan.entity';
     UploadModule,
     SuppliersModule,
     CustomersModule,
-    PlanningModule
+    PlanningModule,
+    ProcessesModule // MOI
   ],
 })
 export class AppModule {}

@@ -1,60 +1,52 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, UpdateDateColumn } from 'typeorm';
-import { SupplierMaterial } from './supplier-material.entity';
-import { SupplierContact } from './supplier-contact.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import { Supplier } from './supplier.entity';
+import { Material } from '../materials/material.entity';
+import { Process } from '../processes/process.entity';
 
-export enum SupplierType {
-  MATERIAL = 'MATERIAL',       // Chi ban NPL
-  PROCESSING = 'PROCESSING',   // Chi gia cong (Cat, May, Chan)
-  MIX = 'MIX'                  // Ca hai
-}
-
-@Entity('suppliers')
-export class Supplier {
+@Entity('supplier_materials')
+export class SupplierMaterial {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
-  code: string;
+  @ManyToOne(() => Supplier, (s) => s.price_list, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'supplier_id' })
+  supplier: Supplier;
 
   @Column()
-  name: string;
+  supplier_id: number;
 
-  // --- MOI THEM: PHAN LOAI NCC ---
-  @Column({
-    type: 'enum',
-    enum: SupplierType,
-    default: SupplierType.MATERIAL
-  })
-  type: SupplierType;
-  // ------------------------------
+  // --- LOẠI 1: GIÁ NPL ---
+  @ManyToOne(() => Material, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'material_id' })
+  material: Material;
 
   @Column({ nullable: true })
-  tax_code: string;
+  material_id: number;
+
+  // --- LOẠI 2: GIÁ GIA CÔNG (MỚI) ---
+  @ManyToOne(() => Process, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'process_id' })
+  process: Process;
 
   @Column({ nullable: true })
-  legal_name: string;
+  process_id: number;
+  // ----------------------------------
 
-  @Column({ nullable: true })
-  vat_address: string;
+  @Column('decimal', { precision: 15, scale: 2 })
+  price: number;
 
-  @Column({ nullable: true })
-  phone: string;
+  @Column({ default: 'VND' })
+  currency: string;
 
-  @Column({ nullable: true })
-  email: string;
+  @Column({ default: false })
+  is_preferred: boolean;
 
-  @Column({ nullable: true })
-  address: string;
+  @Column({ type: 'date', nullable: true })
+  valid_from: Date;
 
-  @OneToMany(() => SupplierContact, (c) => c.supplier, { cascade: true })
-  contacts: SupplierContact[];
-
-  @OneToMany(() => SupplierMaterial, (sm) => sm.supplier)
-  price_list: SupplierMaterial[];
+  @Column({ type: 'date', nullable: true })
+  valid_to: Date;
 
   @CreateDateColumn()
-  created_at: Date;
-
-  @UpdateDateColumn()
   updated_at: Date;
 }
