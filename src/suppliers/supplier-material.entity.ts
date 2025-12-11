@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { Supplier } from './supplier.entity';
 import { Material } from '../materials/material.entity';
+import { Process } from '../processes/process.entity';
 
 @Entity('supplier_materials')
 export class SupplierMaterial {
@@ -14,12 +15,22 @@ export class SupplierMaterial {
   @Column()
   supplier_id: number;
 
-  @ManyToOne(() => Material, { onDelete: 'CASCADE' })
+  // --- LOẠI 1: GIÁ NPL ---
+  @ManyToOne(() => Material, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'material_id' })
   material: Material;
 
-  @Column()
+  @Column({ nullable: true })
   material_id: number;
+
+  // --- LOẠI 2: GIÁ GIA CÔNG ---
+  @ManyToOne(() => Process, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'process_id' })
+  process: Process;
+
+  @Column({ nullable: true })
+  process_id: number;
+  // --------------------------
 
   @Column('decimal', { precision: 15, scale: 2 })
   price: number;
@@ -30,13 +41,11 @@ export class SupplierMaterial {
   @Column({ default: false })
   is_preferred: boolean;
 
-  // --- THOI HAN BANG GIA ---
   @Column({ type: 'date', nullable: true })
   valid_from: Date;
 
   @Column({ type: 'date', nullable: true })
   valid_to: Date;
-  // -----------------------
 
   @CreateDateColumn()
   updated_at: Date;

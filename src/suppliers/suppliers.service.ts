@@ -44,44 +44,45 @@ export class SuppliersService {
 
   async remove(id: number) { return this.supplierRepo.delete(id); }
 
-  // --- QUAN LY GIA (UPDATE) ---
+  // --- QUAN LY GIA ---
   async getPriceList(supplierId: number) {
     return this.priceRepo.find({ 
         where: { supplier_id: supplierId },
-        relations: ['material', 'process'], // Load ca Material va Process
+        relations: ['material', 'process'], 
         order: { updated_at: 'DESC' }
     });
   }
 
   async addPrice(data: any) {
-    // data: { supplierId, itemId, itemType: 'MATERIAL' | 'PROCESS', price, ... }
-    
     // Reset cờ ưu tiên cũ
     if (data.isPreferred) {
         const whereCond = data.itemType === 'MATERIAL' 
-            ? { material_id: data.itemId } 
-            : { process_id: data.itemId };
+            ? { material_id: data.itemId, supplier_id: data.supplierId } 
+            : { process_id: data.itemId, supplier_id: data.supplierId };
         await this.priceRepo.update(whereCond, { is_preferred: false });
     }
 
-    const priceItem = this.priceRepo.create({
+    // --- FIX: Tạo object thủ công hoặc ép kiểu để tránh lỗi TS2769 ---
+    const newPriceData = {
         supplier_id: data.supplierId,
         material_id: data.itemType === 'MATERIAL' ? data.itemId : null,
-        process_id: data.itemType === 'PROCESS' ? data.itemId : null, // MỚI
+        process_id: data.itemType === 'PROCESS' ? data.itemId : null,
         price: data.price,
         is_preferred: data.isPreferred || false,
         valid_from: data.validFrom,
         valid_to: data.validTo
-    });
-    
-    const saved = await this.priceRepo.save(priceItem);
+    };
 
-    // Nếu là Material và là giá ưu tiên -> Cập nhật giá vốn Material gốc
+    const priceItem = this.priceRepo.create(newPriceData as unknown as SupplierMaterial);
+    
+    // --- FIX: Ép kiểu kết quả save về object đơn ---
+    const saved = await this.priceRepo.save(priceItem) as SupplierMaterial;
+
     if (saved.is_preferred && data.itemType === 'MATERIAL') {
         const supplier = await this.supplierRepo.findOne({where:{id: data.supplierId}});
         await this.materialsService.materialRepo.update(data.itemId, {
             cost_per_unit: data.price,
-            supplier_name: supplier.name
+            supplier_name: supplier ? supplier.name : ''
         });
     }
 
