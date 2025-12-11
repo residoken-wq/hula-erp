@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, message, Card, Modal, Form, Input, InputNumber, Select, Space, Drawer, List, Row, Col, Statistic, Tabs, Checkbox, Typography, Divider, Tooltip } from 'antd';
-import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, CopyOutlined, MinusCircleOutlined, SearchOutlined, FilterOutlined, AppstoreAddOutlined, BuildOutlined } from '@ant-design/icons';
+import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, CopyOutlined, MinusCircleOutlined, SearchOutlined, FilterOutlined, AppstoreAddOutlined, BuildOutlined, ExperimentOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -19,6 +19,7 @@ const ProductsPage: React.FC = () => {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [suppliers, setSuppliers] = useState([]);
   const [materials, setMaterials] = useState<any[]>([]); 
+  const [processes, setProcesses] = useState<any[]>([]); // Danh mục công đoạn
 
   const [comboDrawerOpen, setComboDrawerOpen] = useState(false);
   const [currentComboSku, setCurrentComboSku] = useState('');
@@ -42,7 +43,7 @@ const ProductsPage: React.FC = () => {
       setCategories(uniqueCats);
       
       const resSupp = await axios.get(`${API_URL}/suppliers`);
-      setSuppliers(resSupp.data.map((s:any) => ({label: s.name, value: s.id, type: s.type})));
+      setSuppliers(resSupp.data.filter((s:any) => s.type !== 'MATERIAL').map((s:any) => ({label: s.name, value: s.id})));
 
       const resMat = await axios.get(`${API_URL}/materials`);
       setMaterials(resMat.data.map((m:any) => ({
@@ -51,6 +52,12 @@ const ProductsPage: React.FC = () => {
           unit: m.unit, 
           price: Number(m.cost_per_unit) || 0
       })));
+
+      // Load Processes
+      try {
+          const resProc = await axios.get(`${API_URL}/processes`);
+          setProcesses(resProc.data.map((p:any) => ({label: p.name, value: p.code, id: p.id, cost: p.standard_cost})));
+      } catch(e) {}
 
     } catch (e) { message.error('Lỗi tải dữ liệu'); }
     setLoading(false);
@@ -79,8 +86,8 @@ const ProductsPage: React.FC = () => {
                   isGroup: true, 
                   name: p.name, 
                   category: catName,
-                  product_type: p.product_type, // Lưu loại để pre-fill
-                  base_price: p.base_price,     // Lưu giá để pre-fill
+                  product_type: p.product_type,
+                  base_price: p.base_price,
                   children: [], 
                   totalStock: 0, minPrice: Infinity, maxPrice: -Infinity 
               };
@@ -130,11 +137,9 @@ const ProductsPage: React.FC = () => {
       setIsModalOpen(true);
   };
 
-  // --- NEW: TẠO BIẾN THỂ TỪ GROUP ---
   const handleAddVariant = (group: any) => {
       setEditingItem(null);
       form.resetFields();
-      // Pre-fill thông tin chung
       form.setFieldsValue({
           name: group.name,
           category: group.category,
@@ -155,7 +160,7 @@ const ProductsPage: React.FC = () => {
       if (editingItem) await axios.put(`${API_URL}/products/${editingItem.id}`, payload);
       else await axios.post(`${API_URL}/products`, payload);
       message.success('Lưu thành công'); setIsModalOpen(false); fetchData();
-    } catch (e) { message.error('Lỗi lưu (Có thể trùng SKU)'); }
+    } catch (e) { message.error('Lỗi lưu'); }
   };
 
   const handleSaveAll = async () => {
@@ -172,13 +177,11 @@ const ProductsPage: React.FC = () => {
   };
 
   const handleSyncVariants = async (item: any) => {
-      // Nếu gọi từ Modal (editingItem) hoặc từ nút ngoài bảng
       const targetItem = item || editingItem;
       if(!targetItem) return;
-
       Modal.confirm({
           title: 'Đồng bộ dữ liệu?',
-          content: `Sao chép BOM & Quy trình từ "${targetItem.sku}" sang tất cả các biến thể khác của "${targetItem.name}"?`,
+          content: `Sao chép BOM & Quy trình từ "${targetItem.sku}" sang tất cả các biến thể khác?`,
           onOk: async () => {
               try {
                   const res = await axios.post(`${API_URL}/products/${targetItem.id}/sync-variants`);
@@ -204,14 +207,20 @@ const ProductsPage: React.FC = () => {
           try {
              const resBom = await axios.get(`${API_URL}/products/${r.sku}/boms`);
              form.setFieldValue('boms', resBom.data);
+             
+             // Load Routing & Map Process
              const resRoute = await axios.get(`${API_URL}/products/${r.id}/routings`);
-             const defaultRouting = [
-                { step_name: '1. Nối vải', is_required: false, cost: 0 },
-                { step_name: '2. Chần gòn', is_required: true, cost: 0 },
-                { step_name: '3. May thành phẩm', is_required: true, cost: 0 },
-                { step_name: '4. Đóng gói', is_required: true, cost: 0 }
-             ];
-             form.setFieldValue('routings', resRoute.data.length ? resRoute.data : defaultRouting);
+             let routeData = resRoute.data;
+             if(!routeData || routeData.length === 0) {
+                 // Nếu chưa có, gợi ý từ danh mục
+                 routeData = [
+                     { step_name: 'Cắt', is_required: true, cost: 0 },
+                     { step_name: 'May', is_required: true, cost: 0 },
+                     { step_name: 'Ủi/Đóng gói', is_required: true, cost: 0 }
+                 ];
+             }
+             form.setFieldValue('routings', routeData);
+             
              const resLog = await axios.get(`${API_URL}/products/${r.id}/logistics`);
              form.setFieldValue('logistics', resLog.data);
           } catch(e) {}
@@ -238,13 +247,11 @@ const ProductsPage: React.FC = () => {
         render: (text:string, r:any) => r.isGroup ? 
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                 <b style={{fontSize:15, color:'#1890ff'}}>{text} <Tag>{r.children.length}</Tag></b>
-                {/* BUTTON THÊM BIẾN THỂ */}
                 <Button size="small" type="dashed" icon={<AppstoreAddOutlined />} onClick={(e) => { e.stopPropagation(); handleAddVariant(r); }}>Thêm Biến Thể</Button>
             </div> 
             : <Space>{r.attributes?.color && <Tag color="magenta">{r.attributes.color}</Tag>} {text}</Space> 
     },
     { title: 'SKU', dataIndex: 'sku', width: 150, render: (t:any, r:any) => r.isGroup ? '' : <b>{t}</b> },
-    { title: 'Nhóm', dataIndex: 'category', width: 100, render: (t:any, r:any) => r.isGroup ? <Tag>{t}</Tag> : t },
     { title: 'Giá Bán', dataIndex: 'base_price', align: 'right' as const, width: 120, render: (v:any, r:any) => r.isGroup ? <small>{Number(r.minPrice).toLocaleString()} - {Number(r.maxPrice).toLocaleString()}</small> : Number(v).toLocaleString() },
     { title: 'Tồn Kho', dataIndex: 'quantity_in_stock', align: 'right' as const, width: 100, render: (v:any, r:any) => r.isGroup ? <b>{v}</b> : <span style={{color: v>0?'green':'red'}}>{v}</span> },
     { title: 'Giá Vốn', dataIndex: 'cost_price', align: 'right' as const, width: 120, render: (v:any, r:any) => r.isGroup ? '' : <span style={{color:'red'}}>{Number(v).toLocaleString()}</span> },
@@ -253,7 +260,7 @@ const ProductsPage: React.FC = () => {
         render: (_: any, r: any) => !r.isGroup && (
             <Space>
                 <Tooltip title="Chỉnh sửa & BOM"><Button icon={<EditOutlined />} onClick={() => openEditModal(r)} /></Tooltip>
-                <Tooltip title="Copy BOM sang biến thể khác"><Button icon={<CopyOutlined />} onClick={() => handleSyncVariants(r)} /></Tooltip>
+                <Tooltip title="Copy BOM"><Button icon={<CopyOutlined />} onClick={() => handleSyncVariants(r)} /></Tooltip>
             </Space>
         ) 
     },
@@ -270,8 +277,8 @@ const ProductsPage: React.FC = () => {
                         <Col span={12}><Form.Item name="sku" label="SKU" rules={[{required:true}]}><Input disabled={!!editingItem} /></Form.Item></Col>
                     </Row>
                     <Row gutter={16}>
-                        <Col span={12}><Form.Item name="category" label="Nhóm hàng"><Input placeholder="VD: Áo Thun" /></Form.Item></Col>
-                        <Col span={12}><Form.Item name="product_type" label="Loại"><Input placeholder="VD: Nam/Nữ" /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="category" label="Nhóm hàng"><Input /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="product_type" label="Loại"><Input /></Form.Item></Col>
                     </Row>
                     <Divider orientation="left">Thuộc tính & Giá</Divider>
                     <Row gutter={16}><Col span={8}><Form.Item name="color" label="Màu"><Input /></Form.Item></Col><Col span={8}><Form.Item name="size" label="Size"><Input /></Form.Item></Col><Col span={8}><Form.Item name="base_price" label="Giá Bán"><InputNumber style={{width:'100%'}} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col></Row>
@@ -283,52 +290,23 @@ const ProductsPage: React.FC = () => {
               key: '2', label: 'BOM & Định Mức',
               disabled: !editingItem,
               children: (
-                  <>
-                    <div style={{background:'#fafafa', padding: 8, borderBottom:'1px solid #eee', fontWeight:'bold', marginBottom:10}}>
-                        <Row gutter={8}>
-                            <Col span={8}>Nguyên Liệu</Col>
-                            <Col span={4}>Định mức</Col>
-                            <Col span={4}>% Hao hụt</Col>
-                            <Col span={8} style={{textAlign:'center'}}>Chi tiết</Col>
-                        </Row>
-                    </div>
-                    <Form.List name="boms">
+                  <Form.List name="boms">
                         {(fields, { add, remove }) => (
                             <div style={{maxHeight: 350, overflowY: 'auto'}}>
                                 {fields.map(({ key, name, ...restField }) => (
-                                    <div key={key} style={{marginBottom: 8, borderBottom:'1px dashed #f0f0f0', paddingBottom: 5}}>
-                                        <Row gutter={8} align="top">
-                                            <Col span={8}>
-                                                <Form.Item {...restField} name={[name, 'material_id']} noStyle rules={[{ required: true }]}>
-                                                    <Select placeholder="Chọn NPL..." showSearch optionFilterProp="label" options={materials} style={{width:'100%'}} />
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={4}><Form.Item {...restField} name={[name, 'quantity']} noStyle><InputNumber placeholder="SL" style={{width:'100%'}} min={0} /></Form.Item></Col>
-                                            <Col span={4}><Form.Item {...restField} name={[name, 'waste_percent']} noStyle><InputNumber placeholder="%" style={{width:'100%'}} min={0} /></Form.Item></Col>
-                                            <Col span={7}>
-                                                <Form.Item shouldUpdate>
-                                                    {() => (
-                                                        <MaterialInfoRow 
-                                                            matId={form.getFieldValue(['boms', name, 'material_id'])}
-                                                            qty={form.getFieldValue(['boms', name, 'quantity'])}
-                                                            waste={form.getFieldValue(['boms', name, 'waste_percent'])}
-                                                        />
-                                                    )}
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={1}><MinusCircleOutlined onClick={() => remove(name)} style={{color:'red', marginTop:5}} /></Col>
-                                        </Row>
-                                    </div>
+                                    <Row key={key} gutter={8} align="top" style={{marginBottom: 8, borderBottom:'1px dashed #f0f0f0'}}>
+                                        <Col span={8}><Form.Item {...restField} name={[name, 'material_id']} noStyle rules={[{ required: true }]}><Select placeholder="NPL..." showSearch optionFilterProp="label" options={materials} /></Form.Item></Col>
+                                        <Col span={4}><Form.Item {...restField} name={[name, 'quantity']} noStyle><InputNumber placeholder="SL" style={{width:'100%'}} /></Form.Item></Col>
+                                        <Col span={4}><Form.Item {...restField} name={[name, 'waste_percent']} noStyle><InputNumber placeholder="%" style={{width:'100%'}} /></Form.Item></Col>
+                                        <Col span={7}><Form.Item shouldUpdate>{()=><MaterialInfoRow matId={form.getFieldValue(['boms', name, 'material_id'])} qty={form.getFieldValue(['boms', name, 'quantity'])} waste={form.getFieldValue(['boms', name, 'waste_percent'])} />}</Form.Item></Col>
+                                        <Col span={1}><MinusCircleOutlined onClick={() => remove(name)} style={{color:'red'}} /></Col>
+                                    </Row>
                                 ))}
                                 <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm nguyên liệu</Button>
+                                <div style={{textAlign:'right', marginTop:10}}>Tổng NPL: <b>{calcBomTotal().toLocaleString()} đ</b></div>
                             </div>
                         )}
                     </Form.List>
-                    <div style={{marginTop:15, textAlign:'right', padding:10, background:'#f6ffed', borderRadius:4}}>
-                        <Text type="secondary">Tổng chi phí NPL: </Text>
-                        <Text style={{color:'#3f8600', fontSize:16, fontWeight:'bold'}}>{calcBomTotal().toLocaleString()} đ</Text>
-                    </div>
-                  </>
               )
           },
           {
@@ -336,39 +314,54 @@ const ProductsPage: React.FC = () => {
               disabled: !editingItem,
               children: (
                   <div style={{maxHeight: 450, overflowY: 'auto'}}>
-                    <Divider orientation="left">Các công đoạn gia công</Divider>
+                    <Divider orientation="left">Quy trình sản xuất (Routing)</Divider>
                     <Form.List name="routings">
-                        {(fields) => (
+                        {(fields, { add, remove }) => (
                             <div>
                                 {fields.map(({ key, name, ...restField }) => (
                                     <Row key={key} gutter={8} align="middle" style={{marginBottom: 8, background:'#f9f9f9', padding: 8, borderRadius: 4}}>
                                         <Col span={1}><Form.Item {...restField} name={[name, 'is_required']} valuePropName="checked" noStyle><Checkbox /></Form.Item></Col>
-                                        <Col span={9}><Form.Item {...restField} name={[name, 'step_name']} noStyle><span style={{fontWeight:500}}>{form.getFieldValue(['routings', name, 'step_name'])}</span></Form.Item></Col>
-                                        <Col span={8}><Form.Item {...restField} name={[name, 'supplier_id']} noStyle><Select placeholder="Nhà Gia Công..." options={suppliers.filter((s:any)=>s.type!=='MATERIAL')} allowClear style={{width:'100%'}} bordered={false} /></Form.Item></Col>
-                                        <Col span={6}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Chi phí" style={{width:'100%'}} addonAfter="₫" formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} bordered={false} /></Form.Item></Col>
+                                        
+                                        {/* --- DROPDOWN CHỌN CÔNG ĐOẠN --- */}
+                                        <Col span={9}>
+                                            <Form.Item {...restField} name={[name, 'step_name']} noStyle rules={[{required:true}]}>
+                                                <Select placeholder="Công đoạn..." showSearch optionFilterProp="label" options={processes.map(p=>({label: p.label, value: p.label, id: p.id}))} 
+                                                    onChange={(val, option:any) => {
+                                                        // Khi chọn công đoạn, lưu process_id vào hidden field (nếu cần) hoặc xử lý logic lấy giá
+                                                        // Ở đây ta dùng tên làm key, backend sẽ map lại giá
+                                                    }}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        
+                                        <Col span={8}><Form.Item {...restField} name={[name, 'supplier_id']} noStyle><Select placeholder="Nhà Gia Công..." options={suppliers} allowClear /></Form.Item></Col>
+                                        
+                                        <Col span={6}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Giá" style={{width:'100%'}} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
+                                        <Col span={2}><MinusCircleOutlined onClick={() => remove(name)} style={{color:'red'}} /></Col>
                                     </Row>
                                 ))}
+                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm công đoạn</Button>
                             </div>
                         )}
                     </Form.List>
-                    <div style={{textAlign:'right', marginBottom: 20}}><Text type="secondary">Tổng gia công: </Text><Text strong>{calcRoutingTotal().toLocaleString()} đ</Text></div>
+                    <div style={{textAlign:'right', marginBottom: 20}}>Tổng gia công: <b>{calcRoutingTotal().toLocaleString()} đ</b></div>
 
-                    <Divider orientation="left">Chi phí vận chuyển SX</Divider>
+                    <Divider orientation="left">Vận chuyển</Divider>
                     <Form.List name="logistics">
                         {(fields, { add, remove }) => (
                             <>
                                 {fields.map(({ key, name, ...restField }) => (
                                     <Row key={key} gutter={8} style={{marginBottom: 8}}>
                                         <Col span={12}><Form.Item {...restField} name={[name, 'route_name']} noStyle><Input placeholder="Tên chặng..." /></Form.Item></Col>
-                                        <Col span={10}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Chi phí" style={{width:'100%'}} addonAfter="₫" /></Form.Item></Col>
+                                        <Col span={10}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Chi phí" style={{width:'100%'}} /></Form.Item></Col>
                                         <Col span={2}><DeleteOutlined onClick={() => remove(name)} style={{color:'red'}} /></Col>
                                     </Row>
                                 ))}
-                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm chặng vận chuyển</Button>
+                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm chặng</Button>
                             </>
                         )}
                     </Form.List>
-                    <div style={{textAlign:'right', marginTop:10}}><Text type="secondary">Tổng vận chuyển: </Text><Text strong>{calcLogisticTotal().toLocaleString()} đ</Text></div>
+                    <div style={{textAlign:'right', marginTop:10}}>Tổng vận chuyển: <b>{calcLogisticTotal().toLocaleString()} đ</b></div>
                   </div>
               )
           }
@@ -383,48 +376,24 @@ const ProductsPage: React.FC = () => {
         title="Quản lý Sản Phẩm (Lẻ)" 
         extra={
             <Space>
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>Thêm Sản Phẩm Mới</Button>
-                <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>Thêm Mới</Button>
+                <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
             </Space>
         }
       >
         <div style={{marginBottom: 16, background: '#f5f5f5', padding: 16, borderRadius: 8}}>
             <Row gutter={16} align="middle">
                 <Col span={12}>
-                    <Input 
-                        placeholder="Tìm kiếm theo Tên SP hoặc SKU..." 
-                        prefix={<SearchOutlined style={{color:'#999'}} />} 
-                        value={searchText}
-                        onChange={e => setSearchText(e.target.value)}
-                        allowClear
-                    />
+                    <Input placeholder="Tìm kiếm..." prefix={<SearchOutlined style={{color:'#999'}} />} value={searchText} onChange={e => setSearchText(e.target.value)} allowClear />
                 </Col>
                 <Col span={8}>
-                    <Select 
-                        placeholder="Lọc theo Nhóm hàng" 
-                        style={{width:'100%'}} 
-                        allowClear 
-                        onChange={setFilterCategory}
-                        options={categories.map(c => ({label: c, value: c}))}
-                        suffixIcon={<FilterOutlined />}
-                    />
+                    <Select placeholder="Lọc nhóm hàng" style={{width:'100%'}} allowClear onChange={setFilterCategory} options={categories.map(c => ({label: c, value: c}))} suffixIcon={<FilterOutlined />} />
                 </Col>
-                <Col span={4} style={{textAlign:'right'}}>
-                    <Text type="secondary">Tìm thấy: <b style={{color:'black'}}>{treeData.length}</b> nhóm</Text>
-                </Col>
+                <Col span={4} style={{textAlign:'right'}}><Text type="secondary">Tổng: <b style={{color:'black'}}>{treeData.length}</b> nhóm</Text></Col>
             </Row>
         </div>
 
-        <Table 
-            columns={columns} 
-            dataSource={treeData} 
-            rowKey="key" 
-            loading={loading} 
-            bordered 
-            pagination={{ pageSize: 20 }} 
-            expandable={{ defaultExpandAllRows: true }} 
-            scroll={{ y: 600 }}
-        />
+        <Table columns={columns} dataSource={treeData} rowKey="key" loading={loading} bordered pagination={{ pageSize: 20 }} expandable={{ defaultExpandAllRows: true }} scroll={{ y: 600 }} />
       </Card>
 
       <Modal title={editingItem ? `Chi tiết: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} open={isModalOpen} onCancel={() => setIsModalOpen(false)} footer={null} width={900} style={{top: 20}}>
@@ -438,9 +407,7 @@ const ProductsPage: React.FC = () => {
                             <Statistic title="Giá Vốn (Ước tính)" value={totalCostEstimate} valueStyle={{color: '#cf1322', fontSize: 18, fontWeight: 'bold'}} prefix="~" suffix="₫" />
                         </Space>
                     </Col>
-                    <Col>
-                        <Button type="primary" size="large" icon={<SaveOutlined />} onClick={handleSaveAll}>LƯU & TÍNH GIÁ</Button>
-                    </Col>
+                    <Col><Button type="primary" size="large" icon={<SaveOutlined />} onClick={handleSaveAll}>LƯU & TÍNH GIÁ</Button></Col>
                 </Row>
             </div>
         )}
