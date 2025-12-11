@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Tabs, Drawer, List, DatePicker, InputNumber, Typography } from 'antd';
-import { PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, ScissorOutlined, BankOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, ScissorOutlined, BankOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, TagsOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -22,11 +22,13 @@ const ManufacturersPage: React.FC = () => {
   // Data for Pricing
   const [priceList, setPriceList] = useState([]);
   const [materials, setMaterials] = useState<any[]>([]); 
-  const [processes, setProcesses] = useState<any[]>([]); // Danh mục công đoạn
+  const [processes, setProcesses] = useState<any[]>([]); 
+  const [products, setProducts] = useState<any[]>([]); // MOI: List San Pham
   
   // Form Pricing
-  const [activePriceTab, setActivePriceTab] = useState('PROCESS'); // PROCESS or MATERIAL
+  const [activePriceTab, setActivePriceTab] = useState('PROCESS');
   const [selItemId, setSelItemId] = useState(null);
+  const [selProductId, setSelProductId] = useState(null); // MOI: Selected Product
   const [inputPrice, setInputPrice] = useState(0);
   const [dateRange, setDateRange] = useState<any>([]);
 
@@ -42,14 +44,15 @@ const ManufacturersPage: React.FC = () => {
             : [];
         setData(manufacturers);
 
-        // Load NPL
         const resMat = await axios.get(`${API_URL}/materials`);
         if(Array.isArray(resMat.data)) setMaterials(resMat.data.map((m:any) => ({label: `${m.code} - ${m.name}`, value: m.id})));
 
-        // Load Processes (Công đoạn)
+        // Load Products cho Dropdown
+        const resProd = await axios.get(`${API_URL}/products`);
+        if(Array.isArray(resProd.data)) setProducts(resProd.data.map((p:any) => ({label: `${p.sku} - ${p.name}`, value: p.id})));
+
         try {
             const resProc = await axios.get(`${API_URL}/processes`);
-            // Nếu chưa có data, gọi seed
             if (!resProc.data || resProc.data.length === 0) {
                 await axios.post(`${API_URL}/processes/seed`);
                 const resProc2 = await axios.get(`${API_URL}/processes`);
@@ -82,7 +85,6 @@ const ManufacturersPage: React.FC = () => {
   // 3. Price List Logic
   const openPriceList = async (manu: any) => {
       setCurrentManu(manu);
-      // Mặc định tab: Nếu là MIX thì hiện PROCESS trước, PROCESSING thì chắc chắn là PROCESS
       setActivePriceTab('PROCESS');
       setPriceDrawerOpen(true);
       loadPrices(manu.id);
@@ -93,12 +95,16 @@ const ManufacturersPage: React.FC = () => {
   };
 
   const handleAddPrice = async () => {
-      if(!selItemId) return message.warning('Chọn mục');
+      if(!selItemId) return message.warning('Chọn hạng mục');
+      // Validate: Nếu là PROCESS thì bắt buộc chọn Product
+      if(activePriceTab === 'PROCESS' && !selProductId) return message.warning('Vui lòng chọn Sản phẩm áp dụng giá');
+
       try {
           await axios.post(`${API_URL}/suppliers/price`, {
               supplierId: currentManu.id,
               itemId: selItemId,
-              itemType: activePriceTab, // MATERIAL hoặc PROCESS
+              itemType: activePriceTab,
+              productId: activePriceTab === 'PROCESS' ? selProductId : null, // Gui Product ID len
               price: inputPrice,
               isPreferred: true,
               validFrom: dateRange && dateRange[0] ? dateRange[0].toISOString() : null,
@@ -106,7 +112,9 @@ const ManufacturersPage: React.FC = () => {
           });
           message.success('Đã lưu giá');
           loadPrices(currentManu.id);
-          setSelItemId(null); setInputPrice(0); setDateRange([]);
+          // Reset
+          setInputPrice(0); setDateRange([]);
+          // Khong reset itemId/productId de user nhap tiep cho tien
       } catch(e) { message.error('Lỗi thêm giá'); }
   };
 
@@ -128,7 +136,10 @@ const ManufacturersPage: React.FC = () => {
                   title={
                       type === 'MATERIAL' 
                         ? <span><AppstoreOutlined /> {item.material?.name} ({item.material?.code})</span> 
-                        : <span><ExperimentOutlined /> {item.process?.name} ({item.process?.unit})</span>
+                        : <div>
+                            <ExperimentOutlined /> <span style={{fontWeight:'bold'}}>{item.process?.name}</span>
+                            <div style={{color:'#666', fontSize:12}}><TagsOutlined/> Áp dụng: {item.product ? item.product.sku : 'Tất cả SP'}</div>
+                          </div>
                   }
                   description={item.valid_from ? <Tag color="blue">{dayjs(item.valid_from).format('DD/MM')} - {item.valid_to ? dayjs(item.valid_to).format('DD/MM') : '...'}</Tag> : <span style={{fontSize:12,color:'#ccc'}}>Không thời hạn</span>}
                 />
@@ -175,15 +186,26 @@ const ManufacturersPage: React.FC = () => {
 
         {/* DRAWER PRICE LIST */}
         <Drawer title={`Bảng Giá: ${currentManu?.name}`} width={600} open={priceDrawerOpen} onClose={()=>setPriceDrawerOpen(false)}>
-            {/* Nếu là MIX thì hiện Tabs, nếu không chỉ hiện Process */}
             <Tabs activeKey={activePriceTab} onChange={setActivePriceTab} items={[
                 { 
                     key: 'PROCESS', label: 'Giá Gia Công', icon: <ExperimentOutlined />,
                     children: (
                         <div>
                             <div style={{background: '#f6ffed', padding: 10, marginBottom: 15, borderRadius: 6}}>
-                                <Select showSearch placeholder="Chọn công đoạn..." style={{width:'100%', marginBottom:8}} options={processes} value={selItemId} onChange={setSelItemId} />
-                                <Row gutter={8}><Col span={12}><InputNumber style={{width:'100%'}} placeholder="Giá" value={inputPrice} onChange={(v:any)=>setInputPrice(v)} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Col><Col span={12}><Button type="primary" block onClick={handleAddPrice}>Lưu</Button></Col></Row>
+                                {/* CHỌN CÔNG ĐOẠN */}
+                                <Select showSearch placeholder="1. Chọn công đoạn (May, Ủi...)" style={{width:'100%', marginBottom:8}} options={processes} value={selItemId} onChange={setSelItemId} />
+                                
+                                {/* CHỌN SẢN PHẨM (MỚI) */}
+                                <Select 
+                                    showSearch 
+                                    placeholder="2. Chọn Sản phẩm áp dụng (SKU)" 
+                                    style={{width:'100%', marginBottom:8}} 
+                                    options={products} 
+                                    value={selProductId} onChange={setSelProductId}
+                                    filterOption={(input, option:any) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+                                />
+
+                                <Row gutter={8}><Col span={12}><InputNumber style={{width:'100%'}} placeholder="Giá" value={inputPrice} onChange={(v:any)=>setInputPrice(v)} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Col><Col span={12}><Button type="primary" block onClick={handleAddPrice}>Lưu Giá</Button></Col></Row>
                             </div>
                             {renderPriceTable('PROCESS')}
                         </div>
