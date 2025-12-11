@@ -4,11 +4,10 @@ import { MaterialsService } from '../materials/materials.service';
 import { ProductsService } from '../products/products.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-// Entities
 import { Product } from '../products/product.entity';
 import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from '../products/product-component.entity';
-import { Customer } from '../customers/customer.entity'; // --- FIX: IMPORT
+import { Customer, CustomerType } from '../customers/customer.entity';
 
 @Injectable()
 export class UploadService {
@@ -18,7 +17,7 @@ export class UploadService {
     @InjectRepository(Product) private productRepo: Repository<Product>,
     @InjectRepository(BOM) private bomRepo: Repository<BOM>,
     @InjectRepository(ProductComponent) private componentRepo: Repository<ProductComponent>,
-    @InjectRepository(Customer) private customerRepo: Repository<Customer>, // --- FIX: INJECT REPO
+    @InjectRepository(Customer) private customerRepo: Repository<Customer>,
   ) {}
 
   private normalizeRow(row: any) {
@@ -160,13 +159,20 @@ export class UploadService {
         const code = row['code'] || row['ma'];
         if (!code) continue;
 
+        // Chuan hoa Type: LEAD hoac CUSTOMER
+        let type = CustomerType.LEAD;
+        const rawType = (row['type'] || row['loai'] || '').toString().toUpperCase();
+        if (rawType.includes('CUST') || rawType.includes('KHACH')) type = CustomerType.CUSTOMER;
+
         const customerData = {
            code: code.toString().trim(), 
            name: row['name'] || row['ten'],
            phone: row['phone'] || row['sdt'],
+           email: row['email'] || '',
            address: row['address'] || row['diachi'],
            tax_code: row['tax'] || row['mst'],
            credit_limit: Number(row['limit'] || row['hanmuc']) || 0,
+           type: type,
            current_debt: 0
         };
 
@@ -176,10 +182,10 @@ export class UploadService {
         count++;
       } catch (e) { errors.push({ code: row['code'], error: e.message }); }
     }
-    return { message: 'Done', count, errors };
+    return { message: 'Import Khách hàng thành công', count, errors };
   }
 
-  // 6. TEMPLATE
+  // 6. TEMPLATE (UPDATE)
   getTemplate(type: string): Buffer {
     let headers = [];
     let sampleData = [];
@@ -197,8 +203,12 @@ export class UploadService {
         headers = ['ParentSKU', 'ChildSKU', 'Quantity'];
         sampleData = [{ ParentSKU: 'BO_NEM_GOI', ChildSKU: 'NMN_XANH', Quantity: 1 }];
     } else if (type === 'customers') {
-        headers = ['Code', 'Name', 'Phone', 'Address', 'Tax', 'Limit'];
-        sampleData = [{ Code: 'KH001', Name: 'Công ty ABC', Phone: '0909...', Address: 'HCM', Tax: '030...', Limit: 50000000 }];
+        // --- TEMPLATE KHACH HANG ---
+        headers = ['Code', 'Name', 'Type', 'Phone', 'Email', 'Address', 'Tax', 'Limit'];
+        sampleData = [
+            { Code: 'KH001', Name: 'Công ty ABC', Type: 'CUSTOMER', Phone: '0909123456', Email: 'abc@gmail.com', Address: 'HCM', Tax: '030123456', Limit: 50000000 },
+            { Code: 'LEAD01', Name: 'Chị Lan', Type: 'LEAD', Phone: '0918...', Email: '', Address: '', Tax: '', Limit: 0 }
+        ];
     } else {
         throw new BadRequestException('Loai template khong hop le');
     }

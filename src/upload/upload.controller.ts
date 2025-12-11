@@ -28,12 +28,19 @@ export class UploadController {
     return this.uploadService.importBoms(file.buffer);
   }
 
-  // --- MOI THEM: API IMPORT COMBO ---
   @Post('combos')
   @UseInterceptors(FileInterceptor('file'))
   async uploadCombos(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Chua chon file!');
     return this.uploadService.importCombos(file.buffer);
+  }
+
+  // --- API IMPORT CUSTOMERS (MOI) ---
+  @Post('customers')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadCustomers(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Chua chon file!');
+    return this.uploadService.importCustomers(file.buffer);
   }
   // ----------------------------------
 

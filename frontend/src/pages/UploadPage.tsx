@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Upload, Button, message, Card, Typography, Alert, Space } from 'antd';
-import { FileExcelOutlined, CloudUploadOutlined, DownloadOutlined, AppstoreAddOutlined } from '@ant-design/icons';
+import { FileExcelOutlined, CloudUploadOutlined, DownloadOutlined, AppstoreAddOutlined, TeamOutlined } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
 import axios from 'axios';
-import { API_URL } from '../config'; // IMPORT BIEN MOI
+import { API_URL } from '../config';
 
 const { Title, Paragraph } = Typography;
 
@@ -15,7 +15,6 @@ const UploadPage: React.FC = () => {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      // DUNG BIEN API_URL
       const res = await axios.post(`${API_URL}/upload/${endpoint}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -53,6 +52,9 @@ const UploadPage: React.FC = () => {
         {uploadCard('2. Sản Phẩm', 'products', 'DS Mã SP lẻ & Mã Combo', '#52c41a', <AppstoreAddOutlined style={{ fontSize: 40, color: '#52c41a', marginBottom: 16 }} />)}
         {uploadCard('3. Công Thức (BOM)', 'boms', 'Định mức SX cho SP lẻ', '#fa8c16', <FileExcelOutlined style={{ fontSize: 40, color: '#fa8c16', marginBottom: 16 }} />)}
         {uploadCard('4. Combo / Bộ', 'combos', 'Định nghĩa thành phần bộ', '#722ed1', <AppstoreAddOutlined style={{ fontSize: 40, color: '#722ed1', marginBottom: 16 }} />)}
+        
+        {/* --- CARD MỚI CHO KHÁCH HÀNG --- */}
+        {uploadCard('5. Khách Hàng (CRM)', 'customers', 'Import Lead & Customer', '#eb2f96', <TeamOutlined style={{ fontSize: 40, color: '#eb2f96', marginBottom: 16 }} />)}
       </div>
     </div>
   );
