@@ -16,6 +16,7 @@ import CustomersPage from './pages/CustomersPage';
 import PlanningPage from './pages/PlanningPage';
 import ManufacturersPage from './pages/ManufacturersPage';
 import ProductionRoutePage from './pages/ProductionRoutePage';
+import ProcessesPage from './pages/ProcessesPage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -40,7 +41,8 @@ const items: MenuItem[] = [
   ]),
   getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
     getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
-    getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'), // MOI
+    getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
+    getItem(<Link to="/processes">DM Công Đoạn</Link>, 'proc_list'), // MOI: Thêm dòng này
   ]),
 ];
 
@@ -70,6 +72,7 @@ const App: React.FC = () => {
                 <Route path="/planning" element={<PlanningPage />} />
                 <Route path="/manufacturers" element={<ManufacturersPage />} />
                 <Route path="/routes" element={<ProductionRoutePage />} />
+                <Route path="/processes" element={<ProcessesPage />} />
                 <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
               </Routes>
             </div>
