@@ -17,6 +17,7 @@ import PlanningPage from './pages/PlanningPage';
 import ManufacturersPage from './pages/ManufacturersPage';
 import ProductionRoutePage from './pages/ProductionRoutePage';
 import ProcessesPage from './pages/ProcessesPage';
+import CategoriesPage from './pages/CategoriesPage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -25,8 +26,9 @@ function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode,
 const items: MenuItem[] = [
   getItem(<Link to="/">Tổng quan</Link>, '1', <PieChartOutlined />),
   getItem('Quản lý sản phẩm', 'sub_prod', <ShopOutlined />, [
+    getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'), // MOI
     getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
-    getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page', <GiftOutlined />),
+    getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page'),
   ]),
   getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />),
   getItem('Kho hàng & NCC', 'sub1', <DropboxOutlined />, [
@@ -73,6 +75,7 @@ const App: React.FC = () => {
                 <Route path="/manufacturers" element={<ManufacturersPage />} />
                 <Route path="/routes" element={<ProductionRoutePage />} />
                 <Route path="/processes" element={<ProcessesPage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
               </Routes>
             </div>

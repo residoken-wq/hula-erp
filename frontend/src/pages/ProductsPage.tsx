@@ -39,8 +39,10 @@ const ProductsPage: React.FC = () => {
       const products = Array.isArray(res.data) ? res.data : [];
       setRawList(products);
 
-      const uniqueCats = Array.from(new Set(products.map((p: any) => p.category).filter(Boolean))) as string[];
-      setCategories(uniqueCats);
+      try {
+        const resCat = await axios.get(`${API_URL}/categories`);
+        setCategories(resCat.data.map((c:any) => ({ label: `${c.name} (${c.profit_margin}%)`, value: c.id })));
+        } catch(e) {}
       
       const resSupp = await axios.get(`${API_URL}/suppliers`);
       setSuppliers(resSupp.data.filter((s:any) => s.type !== 'MATERIAL').map((s:any) => ({label: s.name, value: s.id})));
@@ -442,6 +444,9 @@ const ProductsPage: React.FC = () => {
                 </Row>
             </div>
         )}
+        <Form.Item name="category_id" label="Danh Mục (Quyết định % Lãi)" rules={[{required:true}]}>
+            <Select options={categories} />
+        </Form.Item>
       </Modal>
 
       <Drawer title={`Combo: ${currentComboSku}`} placement="right" width={400} onClose={() => setComboDrawerOpen(false)} open={comboDrawerOpen}>
