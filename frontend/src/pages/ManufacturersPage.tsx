@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Tabs, Drawer, List, DatePicker, InputNumber, Typography } from 'antd';
-import { PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, ScissorOutlined, BankOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, TagsOutlined, CalendarOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, ScissorOutlined, BankOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, TagsOutlined, CalendarOutlined, WarningOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -30,7 +30,7 @@ const ManufacturersPage: React.FC = () => {
   const [selItemId, setSelItemId] = useState(null);
   const [selProductId, setSelProductId] = useState(null);
   const [inputPrice, setInputPrice] = useState(0);
-  const [dateRange, setDateRange] = useState<any>([]); // State lưu thời hạn
+  const [dateRange, setDateRange] = useState<any>([]);
 
   const [form] = Form.useForm();
 
@@ -44,12 +44,15 @@ const ManufacturersPage: React.FC = () => {
             : [];
         setData(manufacturers);
 
+        // Load NPL
         const resMat = await axios.get(`${API_URL}/materials`);
         if(Array.isArray(resMat.data)) setMaterials(resMat.data.map((m:any) => ({label: `${m.code} - ${m.name}`, value: m.id})));
 
+        // Load Products
         const resProd = await axios.get(`${API_URL}/products`);
         if(Array.isArray(resProd.data)) setProducts(resProd.data.map((p:any) => ({label: `${p.sku} - ${p.name}`, value: p.id})));
 
+        // Load Processes
         try {
             const resProc = await axios.get(`${API_URL}/processes`);
             if (!resProc.data || resProc.data.length === 0) {
@@ -84,9 +87,12 @@ const ManufacturersPage: React.FC = () => {
   // 3. Price List Logic
   const openPriceList = async (manu: any) => {
       setCurrentManu(manu);
-      setActivePriceTab('PROCESS');
+      // Logic chọn Tab mặc định thông minh hơn
+      if (manu.type === 'MIX') setActivePriceTab('PROCESS'); // Hoặc MATERIAL tùy ưu tiên
+      else setActivePriceTab('PROCESS');
+      
       setPriceDrawerOpen(true);
-      setDateRange([]); // Reset date
+      setDateRange([]); 
       loadPrices(manu.id);
   };
 
@@ -106,14 +112,13 @@ const ManufacturersPage: React.FC = () => {
               productId: activePriceTab === 'PROCESS' ? selProductId : null,
               price: inputPrice,
               isPreferred: true,
-              // Gửi thời hạn lên server
               validFrom: dateRange && dateRange[0] ? dateRange[0].toISOString() : null,
               validTo: dateRange && dateRange[1] ? dateRange[1].toISOString() : null
           });
           message.success('Đã lưu giá');
           loadPrices(currentManu.id);
-          setSelItemId(null); setInputPrice(0); 
-          // Giữ lại ProductId và DateRange để nhập tiếp cho nhanh (UX)
+          // Giữ lại một số field để nhập tiếp cho nhanh
+          setSelItemId(null); setInputPrice(0);
       } catch(e) { message.error('Lỗi thêm giá'); }
   };
 
@@ -122,38 +127,62 @@ const ManufacturersPage: React.FC = () => {
       loadPrices(currentManu.id);
   };
 
+  // --- FIX: RENDER TABLE AN TOÀN HƠN ---
   const renderPriceTable = (type: string) => {
+      // Lọc dữ liệu theo tab
       const data = priceList.filter((p:any) => type === 'MATERIAL' ? p.material_id : p.process_id);
+      
       return (
           <List
             bordered
             dataSource={data}
-            renderItem={(item: any) => (
-              <List.Item actions={[<Popconfirm title="Xóa?" onConfirm={()=>handleRemovePrice(item.id)}><a style={{color:'red'}}>Xóa</a></Popconfirm>]}>
-                <List.Item.Meta
-                  title={
-                      type === 'MATERIAL' 
-                        ? <span><AppstoreOutlined /> {item.material?.name} ({item.material?.code})</span> 
-                        : <div>
-                            <ExperimentOutlined /> <span style={{fontWeight:'bold'}}>{item.process?.name}</span>
-                            <div style={{color:'#666', fontSize:12}}><TagsOutlined/> Áp dụng: {item.product ? item.product.sku : 'Tất cả SP'}</div>
+            renderItem={(item: any) => {
+                // Logic hiển thị tiêu đề an toàn (Safe Title)
+                let titleNode;
+                if (type === 'MATERIAL') {
+                    if (item.material) {
+                        titleNode = <span><AppstoreOutlined /> {item.material.name} ({item.material.code})</span>;
+                    } else {
+                        titleNode = <span style={{color:'red'}}><WarningOutlined/> Dữ liệu lỗi (ID: {item.material_id})</span>;
+                    }
+                } else {
+                    // PROCESS
+                    if (item.process) {
+                        titleNode = (
+                            <div>
+                                <ExperimentOutlined /> <span style={{fontWeight:'bold'}}>{item.process.name}</span>
+                                <div style={{color:'#666', fontSize:12}}>
+                                    <TagsOutlined/> Áp dụng: {item.product ? item.product.sku : <span style={{color:'orange'}}>Chung (Tất cả SP)</span>}
+                                </div>
+                            </div>
+                        );
+                    } else {
+                        titleNode = <span style={{color:'red'}}><WarningOutlined/> Dữ liệu lỗi (ID: {item.process_id})</span>;
+                    }
+                }
+
+                return (
+                  <List.Item actions={[<Popconfirm title="Xóa?" onConfirm={()=>handleRemovePrice(item.id)}><a style={{color:'red'}}>Xóa</a></Popconfirm>]}>
+                    <List.Item.Meta
+                      title={titleNode}
+                      description={
+                          <div>
+                              {item.valid_from ? 
+                                <Tag icon={<CalendarOutlined />} color="blue">
+                                    {dayjs(item.valid_from).format('DD/MM/YY')} - {item.valid_to ? dayjs(item.valid_to).format('DD/MM/YY') : '∞'}
+                                </Tag> 
+                                : <span style={{fontSize:12,color:'#ccc'}}>Không thời hạn</span>
+                              }
+                              {item.is_preferred && <Tag color="green">Hiện tại</Tag>}
                           </div>
-                  }
-                  description={
-                      <div>
-                          {item.valid_from ? 
-                            <Tag icon={<CalendarOutlined />} color="blue">
-                                {dayjs(item.valid_from).format('DD/MM/YY')} - {item.valid_to ? dayjs(item.valid_to).format('DD/MM/YY') : '∞'}
-                            </Tag> 
-                            : <span style={{fontSize:12,color:'#ccc'}}>Không thời hạn</span>
-                          }
-                          {item.is_preferred && <Tag color="green">Hiện tại</Tag>}
-                      </div>
-                  }
-                />
-                <div style={{fontWeight: 'bold', color: '#1890ff'}}>{Number(item.price).toLocaleString()} ₫</div>
-              </List.Item>
-            )}
+                      }
+                    />
+                    <div style={{fontWeight: 'bold', color: '#1890ff', fontSize: 16}}>
+                        {Number(item.price).toLocaleString()} ₫
+                    </div>
+                  </List.Item>
+                );
+            }}
           />
       );
   };
@@ -181,6 +210,7 @@ const ManufacturersPage: React.FC = () => {
             <Table dataSource={data} columns={columns} rowKey="id" loading={loading} />
         </Card>
 
+        {/* MODAL EDIT */}
         <Modal title={editingItem ? "Sửa" : "Thêm"} open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>form.submit()} width={700}>
             <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ type: 'PROCESSING' }}>
                 <Row gutter={16}><Col span={8}><Form.Item name="code" label="Mã" rules={[{required:true}]}><Input /></Form.Item></Col><Col span={16}><Form.Item name="name" label="Tên" rules={[{required:true}]}><Input /></Form.Item></Col></Row>
@@ -201,13 +231,7 @@ const ManufacturersPage: React.FC = () => {
                             <div style={{background: '#f6ffed', padding: 10, marginBottom: 15, borderRadius: 6}}>
                                 <Select showSearch placeholder="1. Chọn công đoạn (May, Ủi...)" style={{width:'100%', marginBottom:8}} options={processes} value={selItemId} onChange={setSelItemId} />
                                 <Select showSearch placeholder="2. Chọn Sản phẩm áp dụng (SKU)" style={{width:'100%', marginBottom:8}} options={products} value={selProductId} onChange={setSelProductId} filterOption={(input, option:any) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())} />
-                                
-                                {/* --- ADD: RANGE PICKER --- */}
-                                <div style={{marginBottom: 8}}>
-                                    <span style={{fontSize:12, color:'#666'}}>Thời hạn áp dụng (Tùy chọn):</span>
-                                    <RangePicker style={{width:'100%'}} value={dateRange} onChange={setDateRange} />
-                                </div>
-
+                                <div style={{marginBottom: 8}}><span style={{fontSize:12, color:'#666'}}>Thời hạn (Tùy chọn):</span> <RangePicker style={{width:'100%'}} value={dateRange} onChange={setDateRange} /></div>
                                 <Row gutter={8}><Col span={12}><InputNumber style={{width:'100%'}} placeholder="Giá" value={inputPrice} onChange={(v:any)=>setInputPrice(v)} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} addonAfter="₫" /></Col><Col span={12}><Button type="primary" block onClick={handleAddPrice}>Lưu Giá</Button></Col></Row>
                             </div>
                             {renderPriceTable('PROCESS')}
@@ -220,13 +244,7 @@ const ManufacturersPage: React.FC = () => {
                         <div>
                             <div style={{background: '#e6f7ff', padding: 10, marginBottom: 15, borderRadius: 6}}>
                                 <Select showSearch placeholder="Chọn NPL..." style={{width:'100%', marginBottom:8}} options={materials} value={selItemId} onChange={setSelItemId} />
-                                
-                                {/* --- ADD: RANGE PICKER --- */}
-                                <div style={{marginBottom: 8}}>
-                                    <span style={{fontSize:12, color:'#666'}}>Thời hạn áp dụng (Tùy chọn):</span>
-                                    <RangePicker style={{width:'100%'}} value={dateRange} onChange={setDateRange} />
-                                </div>
-
+                                <div style={{marginBottom: 8}}><span style={{fontSize:12, color:'#666'}}>Thời hạn (Tùy chọn):</span> <RangePicker style={{width:'100%'}} value={dateRange} onChange={setDateRange} /></div>
                                 <Row gutter={8}><Col span={12}><InputNumber style={{width:'100%'}} placeholder="Giá" value={inputPrice} onChange={(v:any)=>setInputPrice(v)} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Col><Col span={12}><Button type="primary" block onClick={handleAddPrice}>Lưu</Button></Col></Row>
                             </div>
                             {renderPriceTable('MATERIAL')}
