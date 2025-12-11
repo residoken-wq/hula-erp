@@ -288,7 +288,6 @@ const ProductsPage: React.FC = () => {
               children: (
                   <>
                     <div style={{background:'#fafafa', padding: 8, borderBottom:'1px solid #eee', fontWeight:'bold', marginBottom:10}}>
-                        {/* --- UI FIX: TĂNG CHIỀU RỘNG CỘT TÊN --- */}
                         <Row gutter={8}>
                             <Col span={10}>Nguyên Liệu (Tên / Mã)</Col>
                             <Col span={4}>SL</Col>
@@ -303,7 +302,6 @@ const ProductsPage: React.FC = () => {
                                 {fields.map(({ key, name, ...restField }) => (
                                     <div key={key} style={{marginBottom: 8, borderBottom:'1px dashed #f0f0f0', paddingBottom: 5}}>
                                         <Row gutter={8} align="top">
-                                            {/* --- COL 10 --- */}
                                             <Col span={10}>
                                                 <Form.Item {...restField} name={[name, 'material_id']} noStyle rules={[{ required: true }]}>
                                                     <Select placeholder="Chọn NPL..." showSearch optionFilterProp="label" options={materials} style={{width:'100%'}} />
@@ -343,11 +341,13 @@ const ProductsPage: React.FC = () => {
               children: (
                   <div style={{maxHeight: 450, overflowY: 'auto'}}>
                     <div style={{background:'#fafafa', padding: 8, borderBottom:'1px solid #eee', fontWeight:'bold', marginBottom:10}}>
+                        {/* --- UI FIX: HEADER CỘT --- */}
                         <Row gutter={8}>
                             <Col span={1}></Col>
-                            <Col span={10}>Công Đoạn (Quy trình)</Col>
-                            <Col span={8}>Nhà Gia Công</Col>
-                            <Col span={5}>Đơn Giá</Col>
+                            <Col span={11}>Công Đoạn (Quy trình)</Col>
+                            <Col span={7}>Nhà Gia Công</Col>
+                            <Col span={4}>Đơn Giá</Col>
+                            <Col span={1}></Col>
                         </Row>
                     </div>
                     <Form.List name="routings">
@@ -356,13 +356,17 @@ const ProductsPage: React.FC = () => {
                                 {fields.map(({ key, name, ...restField }) => (
                                     <Row key={key} gutter={8} align="middle" style={{marginBottom: 8, background:'#f9f9f9', padding: 8, borderRadius: 4}}>
                                         <Col span={1}><Form.Item {...restField} name={[name, 'is_required']} valuePropName="checked" noStyle><Checkbox /></Form.Item></Col>
-                                        {/* --- UI FIX: TĂNG WIDTH CỘT CÔNG ĐOẠN --- */}
-                                        <Col span={10}>
+                                        
+                                        {/* --- UI FIX: TĂNG SPAN CÔNG ĐOẠN (11) --- */}
+                                        <Col span={11}>
                                             <Form.Item {...restField} name={[name, 'step_name']} noStyle rules={[{required:true}]}>
                                                 <Select placeholder="Công đoạn..." showSearch optionFilterProp="label" options={processes.map(p=>({label: p.label, value: p.label, id: p.id}))} />
                                             </Form.Item>
                                         </Col>
-                                        <Col span={8}><Form.Item {...restField} name={[name, 'supplier_id']} noStyle><Select placeholder="Nhà Gia Công..." options={suppliers} allowClear /></Form.Item></Col>
+                                        
+                                        {/* --- UI FIX: GIẢM SPAN NCC (7) --- */}
+                                        <Col span={7}><Form.Item {...restField} name={[name, 'supplier_id']} noStyle><Select placeholder="Nhà Gia Công..." options={suppliers} allowClear /></Form.Item></Col>
+                                        
                                         <Col span={4}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Giá" style={{width:'100%'}} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
                                         <Col span={1}><DeleteOutlined onClick={() => remove(name)} style={{color:'red', cursor:'pointer'}} /></Col>
                                     </Row>
@@ -403,7 +407,7 @@ const ProductsPage: React.FC = () => {
         title="Quản lý Sản Phẩm (Lẻ)" 
         extra={
             <Space>
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>Thêm Sản Phẩm Mới</Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>Thêm Mới</Button>
                 <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
             </Space>
         }
