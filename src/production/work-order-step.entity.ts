@@ -22,5 +22,3 @@ export class WorkOrderStep {
   @Column({ nullable: true })
   assigned_to: string; // Tên tổ đội / Nhà gia công
 }
-
-

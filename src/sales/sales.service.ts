@@ -10,13 +10,37 @@ import { CustomersService } from '../customers/customers.service';
 @Injectable()
 export class SalesService {
   constructor(
-    @InjectRepository(SalesOrder) public orderRepo: Repository<SalesOrder>, // Public de Controller goi find
+    @InjectRepository(SalesOrder) public orderRepo: Repository<SalesOrder>,
     private productsService: ProductsService,
     private inventoryService: InventoryService,
     private customersService: CustomersService,
   ) {}
 
+  // --- HÀM KIỂM TRA LOGIC NGHIỆP VỤ ---
+  private async validateItemsForSO(items: any[]) {
+      for (const item of items) {
+          const product = await this.productsService.findOneBySku(item.sku);
+          if (!product) throw new NotFoundException(`Sản phẩm ${item.sku} không tồn tại`);
+
+          // Logic: Bắt buộc phải là Biến thể (Có màu sắc) hoặc Combo
+          // Giả định: Trong attributes phải có 'color' hoặc category là 'Combo'
+          const hasColor = product.attributes && product.attributes.color;
+          const isCombo = (product.category || '').toLowerCase().includes('combo');
+
+          if (!hasColor && !isCombo) {
+              throw new BadRequestException(
+                  `Lỗi dòng hàng "${product.name}": Để tạo Đơn hàng/Nhận cọc, bắt buộc phải chọn sản phẩm cụ thể (Biến thể có Màu sắc) hoặc Combo. Vui lòng chọn lại SKU biến thể.`
+              );
+          }
+      }
+  }
+
   async createOrder(data: any) {
+    // Nếu là Đơn hàng (Không phải báo giá), phải validate kỹ
+    if (!data.isQuotation) {
+        await this.validateItemsForSO(data.items);
+    }
+
     const order = new SalesOrder();
     order.order_code = data.order_code;
     
@@ -43,18 +67,16 @@ export class SalesService {
         totalCost += (costInfo.new_cost_price || 0) * item.quantity;
       } catch (e) {}
 
-      // Neu la DON HANG (khong phai Bao gia) -> Tru kho
+      // Tru kho
       if (!data.isQuotation) {
           const product = await this.productsService.findOneBySku(item.sku);
-          if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, item.quantity, data.order_code, 'Ban hang');
+          if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, item.quantity, data.order_code, 'Bán hàng');
       }
       order.items.push(item);
     }
 
     order.total_amount = totalAmount;
     order.total_cost = totalCost;
-    
-    // Status Logic: QUOTATION hoac SO_PENDING
     order.status = data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING;
 
     return this.orderRepo.save(order);
@@ -68,19 +90,21 @@ export class SalesService {
       return this.orderRepo.findOne({ where: { order_code: code }, relations: ['items', 'customer'] });
   }
 
-  // --- API CRM: Convert Bao gia -> SO ---
   async convertQuoteToSo(id: number, accepted: boolean) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
-      if(!order) throw new NotFoundException('Khong tim thay bao gia');
+      if(!order) throw new NotFoundException('Không tìm thấy báo giá');
       
       if (!accepted) {
           order.status = SalesOrderStatus.CANCELLED;
       } else {
-          // Tru kho
+          // --- VALIDATE TRƯỚC KHI CHUYỂN ĐỔI ---
+          await this.validateItemsForSO(order.items);
+          // -------------------------------------
+
           for (const item of order.items) {
               const product = await this.productsService.findOneBySku(item.sku);
               if (product) {
-                  await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, item.quantity, order.order_code, 'Chot Bao Gia -> SO');
+                  await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, item.quantity, order.order_code, 'Chốt Báo Giá -> SO');
               }
           }
           order.status = SalesOrderStatus.SO_PENDING;
@@ -89,10 +113,9 @@ export class SalesService {
       return this.orderRepo.save(order);
   }
 
-  // --- FIX: KHOI PHUC HAM NAY CHO FINANCE SERVICE GOI ---
   async updatePayment(orderCode: string, amount: number) {
     const order = await this.orderRepo.findOne({ where: { order_code: orderCode } });
-    if (!order) throw new NotFoundException('Khong tim thay don hang: ' + orderCode);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng: ' + orderCode);
     
     order.paid_amount = Number(order.paid_amount || 0) + Number(amount);
     return this.orderRepo.save(order);
