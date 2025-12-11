@@ -1,57 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SalesOrder } from './sales-order.entity';
-import { SalesOrderItem } from './sales-order-item.entity';
-import { ProductSample } from './product-sample.entity'; // MOI
-import { SalesController } from './sales.controller';
-import { SalesService } from './sales.service';
-import { ProductsModule } from '../products/products.module';
-import { InventoryModule } from '../inventory/inventory.module';
-import { CustomersModule } from '../customers/customers.module';
 
-@Module({
-  imports: [
-    TypeOrmModule.forFeature([SalesOrder, SalesOrderItem, ProductSample]), // MOI
-    ProductsModule,
-    InventoryModule,
-    CustomersModule
-  ],
-  controllers: [SalesController],
-  providers: [SalesService],
-  exports: [SalesService],
-})
-export class SalesModule {}
-EOF
-
-# Update ProductionModule (Khai báo WorkOrderStep)
-cat << 'EOF' > src/production/production.module.ts
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { WorkOrder } from './work-order.entity';
-import { WorkOrderStep } from './work-order-step.entity'; // MOI
-import { ProductionController } from './production.controller';
-import { ProductionService } from './production.service';
-import { ProductsModule } from '../products/products.module';
-import { InventoryModule } from '../inventory/inventory.module';
-import { BomModule } from '../bom/bom.module';
-
-@Module({
-  imports: [
-    TypeOrmModule.forFeature([WorkOrder, WorkOrderStep]), // MOI
-    ProductsModule,
-    InventoryModule,
-    BomModule
-  ],
-  controllers: [ProductionController],
-  providers: [ProductionService],
-})
-export class ProductionModule {}
-EOF
-
-# Update AppModule (Full)
-cat << 'EOF' > src/app.module.ts
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 // Modules
 import { ProductsModule } from './products/products.module';
 import { MaterialsModule } from './materials/materials.module';
@@ -71,6 +20,8 @@ import { Product } from './products/product.entity';
 import { Material } from './materials/material.entity';
 import { BOM } from './bom/bom.entity';
 import { ProductComponent } from './products/product-component.entity';
+import { ProductRouting } from './products/product-routing.entity';
+import { ProductLogistics } from './products/product-logistics.entity';
 import { SalesOrder } from './sales/sales-order.entity';
 import { SalesOrderItem } from './sales/sales-order-item.entity';
 import { ProductSample } from './sales/product-sample.entity';
@@ -97,7 +48,7 @@ import { ProductionPlan } from './planning/production-plan.entity';
       password: 'hula_password',
       database: 'hula_db',
       entities: [
-        Product, Material, BOM, ProductComponent,
+        Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics,
         SalesOrder, SalesOrderItem, ProductSample,
         StockHistory, 
         WorkOrder, WorkOrderStep,

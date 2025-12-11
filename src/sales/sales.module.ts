@@ -2,18 +2,19 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SalesOrder } from './sales-order.entity';
 import { SalesOrderItem } from './sales-order-item.entity';
+import { ProductSample } from './product-sample.entity';
 import { SalesController } from './sales.controller';
 import { SalesService } from './sales.service';
 import { ProductsModule } from '../products/products.module';
 import { InventoryModule } from '../inventory/inventory.module';
-import { CustomersModule } from '../customers/customers.module'; // <-- IMPORT MODULE CUSTOMER
+import { CustomersModule } from '../customers/customers.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SalesOrder, SalesOrderItem]),
+    TypeOrmModule.forFeature([SalesOrder, SalesOrderItem, ProductSample]),
     ProductsModule,
     InventoryModule,
-    CustomersModule // <-- THÊM VÀO ĐÂY
+    CustomersModule
   ],
   controllers: [SalesController],
   providers: [SalesService],
