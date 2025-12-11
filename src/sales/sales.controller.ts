@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param } from '@nestjs/common';
 import { SalesService } from './sales.service';
 
 @Controller('sales')
@@ -14,11 +14,19 @@ export class SalesController {
       return this.s.convertQuoteToSo(id, accepted);
   }
 
-  // --- API MỚI: LẤY DANH SÁCH MẪU ---
   @Get('samples/all')
   getAllSamples() {
-      // Gọi service lấy toàn bộ mẫu (Cần bổ sung hàm này trong service nếu chưa có, 
-      // hoặc dùng repo trực tiếp nếu public. Ở đây ta giả định service đã có repo)
       return this.s.sampleRepo.find({ order: { created_at: 'DESC' } });
+  }
+
+  // --- API CRUD MỚI ---
+  @Put('quote/:id')
+  updateQuote(@Param('id') id: number, @Body() body: any) {
+      return this.s.updateQuote(id, body);
+  }
+
+  @Delete('quote/:id')
+  deleteQuote(@Param('id') id: number) {
+      return this.s.deleteQuote(id);
   }
 }
