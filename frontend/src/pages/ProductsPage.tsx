@@ -1,23 +1,20 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Tag, Button, message, Card, Modal, Form, Input, InputNumber, Select, Space, Drawer, List, Row, Col, Statistic, Tabs, Checkbox, Typography, Divider } from 'antd';
-import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, CopyOutlined, MinusCircleOutlined, SearchOutlined, FilterOutlined } from '@ant-design/icons';
+import React, { useEffect, useState } from 'react';
+import { Table, Tag, Button, message, Card, Modal, Form, Input, InputNumber, Select, Space, Drawer, List, Row, Col, Statistic, Tabs, Checkbox, Typography, Divider, Tooltip } from 'antd';
+import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, CopyOutlined, MinusCircleOutlined, SearchOutlined, FilterOutlined, AppstoreAddOutlined, BuildOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
 const { Text } = Typography;
 
 const ProductsPage: React.FC = () => {
-  // --- STATE QUẢN LÝ DỮ LIỆU ---
-  const [rawList, setRawList] = useState<any[]>([]); // Lưu dữ liệu gốc từ API
-  const [treeData, setTreeData] = useState<any[]>([]); // Dữ liệu đã xử lý để hiển thị Tree
+  const [rawList, setRawList] = useState<any[]>([]);
+  const [treeData, setTreeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   
-  // --- STATE TÌM KIẾM & FILTER ---
   const [searchText, setSearchText] = useState('');
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
-  const [categories, setCategories] = useState<string[]>([]); // Danh sách nhóm hàng để filter
+  const [categories, setCategories] = useState<string[]>([]);
 
-  // --- STATE MODAL & DRAWER ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [suppliers, setSuppliers] = useState([]);
@@ -34,20 +31,16 @@ const ProductsPage: React.FC = () => {
   const routingValues = Form.useWatch('routings', form);
   const logisticValues = Form.useWatch('logistics', form);
 
-  // 1. LOAD DỮ LIỆU TỪ API
   const fetchData = async () => {
     setLoading(true);
     try { 
-      // Lấy Products
       const res = await axios.get(`${API_URL}/products`);
       const products = Array.isArray(res.data) ? res.data : [];
       setRawList(products);
 
-      // Lấy danh sách Category duy nhất để tạo Filter
       const uniqueCats = Array.from(new Set(products.map((p: any) => p.category).filter(Boolean))) as string[];
       setCategories(uniqueCats);
       
-      // Lấy Suppliers & Materials cho Form
       const resSupp = await axios.get(`${API_URL}/suppliers`);
       setSuppliers(resSupp.data.map((s:any) => ({label: s.name, value: s.id, type: s.type})));
 
@@ -65,30 +58,19 @@ const ProductsPage: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // 2. XỬ LÝ SEARCH & FILTER & GROUPING (Client-side)
   useEffect(() => {
-      // B1: Lọc danh sách gốc dựa trên Search Text và Category
       let filtered = rawList;
-
       if (searchText) {
           const lower = searchText.toLowerCase();
-          filtered = filtered.filter(p => 
-              (p.name && p.name.toLowerCase().includes(lower)) || 
-              (p.sku && p.sku.toLowerCase().includes(lower))
-          );
+          filtered = filtered.filter(p => (p.name && p.name.toLowerCase().includes(lower)) || (p.sku && p.sku.toLowerCase().includes(lower)));
       }
-
       if (filterCategory) {
           filtered = filtered.filter(p => p.category === filterCategory);
       }
 
-      // B2: Gom nhóm (Grouping) để tạo TreeData
       const groups: any = {};
       filtered.forEach((p: any) => {
           const catName = p.category || 'Khác';
-          // Key của nhóm là Tên + Category để gom các biến thể cùng loại
-          // Logic gom nhóm: Nếu muốn gom theo Tên SP (bỏ qua màu sắc), ta cần logic tách tên. 
-          // Ở đây tạm dùng logic: Gom theo Category + Tên
           const groupKey = `${p.name}-${catName}`;
           
           if (!groups[groupKey]) {
@@ -96,11 +78,11 @@ const ProductsPage: React.FC = () => {
                   key: 'group_' + groupKey, 
                   isGroup: true, 
                   name: p.name, 
-                  category: catName, 
+                  category: catName,
+                  product_type: p.product_type, // Lưu loại để pre-fill
+                  base_price: p.base_price,     // Lưu giá để pre-fill
                   children: [], 
-                  totalStock: 0, 
-                  minPrice: Infinity, 
-                  maxPrice: -Infinity 
+                  totalStock: 0, minPrice: Infinity, maxPrice: -Infinity 
               };
           }
           
@@ -121,8 +103,6 @@ const ProductsPage: React.FC = () => {
       setTreeData(tree);
   }, [rawList, searchText, filterCategory]);
 
-
-  // --- LOGIC TÍNH TOÁN FORM ---
   const calcBomTotal = () => {
       if (!bomValues || !Array.isArray(bomValues)) return 0;
       return bomValues.reduce((sum, item) => {
@@ -147,6 +127,20 @@ const ProductsPage: React.FC = () => {
   const handleCreateNew = () => {
       setEditingItem(null);
       form.resetFields();
+      setIsModalOpen(true);
+  };
+
+  // --- NEW: TẠO BIẾN THỂ TỪ GROUP ---
+  const handleAddVariant = (group: any) => {
+      setEditingItem(null);
+      form.resetFields();
+      // Pre-fill thông tin chung
+      form.setFieldsValue({
+          name: group.name,
+          category: group.category,
+          product_type: group.product_type,
+          base_price: group.base_price
+      });
       setIsModalOpen(true);
   };
 
@@ -177,18 +171,25 @@ const ProductsPage: React.FC = () => {
       } catch(e) { message.error('Có lỗi khi lưu chi tiết'); }
   };
 
-  const handleSyncVariants = async () => {
-      if(!editingItem) return;
+  const handleSyncVariants = async (item: any) => {
+      // Nếu gọi từ Modal (editingItem) hoặc từ nút ngoài bảng
+      const targetItem = item || editingItem;
+      if(!targetItem) return;
+
       Modal.confirm({
           title: 'Đồng bộ dữ liệu?',
-          content: `Sao chép BOM & Quy trình từ "${editingItem.sku}" sang tất cả các biến thể khác?`,
+          content: `Sao chép BOM & Quy trình từ "${targetItem.sku}" sang tất cả các biến thể khác của "${targetItem.name}"?`,
           onOk: async () => {
               try {
-                  const res = await axios.post(`${API_URL}/products/${editingItem.id}/sync-variants`);
+                  const res = await axios.post(`${API_URL}/products/${targetItem.id}/sync-variants`);
                   message.success(res.data.message);
               } catch(e) { message.error('Lỗi đồng bộ'); }
           }
       });
+  };
+
+  const handleDelete = async (id: number) => {
+    try { await axios.delete(`${API_URL}/products/${id}`); fetchData(); } catch (e) { message.error('Lỗi xóa'); }
   };
 
   const openComboConfig = (sku: string) => { setCurrentComboSku(sku); setComboDrawerOpen(true); loadComboItems(sku); };
@@ -232,13 +233,30 @@ const ProductsPage: React.FC = () => {
   };
 
   const columns = [
-    { title: 'Sản Phẩm', dataIndex: 'name', key: 'name', width: 250, render: (text:string, r:any) => r.isGroup ? <b style={{fontSize:15, color:'#1890ff'}}>{text} <Tag>{r.children.length}</Tag></b> : <Space>{r.attributes?.color && <Tag color="magenta">{r.attributes.color}</Tag>} {text}</Space> },
+    { 
+        title: 'Sản Phẩm', dataIndex: 'name', key: 'name', width: 250, 
+        render: (text:string, r:any) => r.isGroup ? 
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                <b style={{fontSize:15, color:'#1890ff'}}>{text} <Tag>{r.children.length}</Tag></b>
+                {/* BUTTON THÊM BIẾN THỂ */}
+                <Button size="small" type="dashed" icon={<AppstoreAddOutlined />} onClick={(e) => { e.stopPropagation(); handleAddVariant(r); }}>Thêm Biến Thể</Button>
+            </div> 
+            : <Space>{r.attributes?.color && <Tag color="magenta">{r.attributes.color}</Tag>} {text}</Space> 
+    },
     { title: 'SKU', dataIndex: 'sku', width: 150, render: (t:any, r:any) => r.isGroup ? '' : <b>{t}</b> },
     { title: 'Nhóm', dataIndex: 'category', width: 100, render: (t:any, r:any) => r.isGroup ? <Tag>{t}</Tag> : t },
     { title: 'Giá Bán', dataIndex: 'base_price', align: 'right' as const, width: 120, render: (v:any, r:any) => r.isGroup ? <small>{Number(r.minPrice).toLocaleString()} - {Number(r.maxPrice).toLocaleString()}</small> : Number(v).toLocaleString() },
     { title: 'Tồn Kho', dataIndex: 'quantity_in_stock', align: 'right' as const, width: 100, render: (v:any, r:any) => r.isGroup ? <b>{v}</b> : <span style={{color: v>0?'green':'red'}}>{v}</span> },
     { title: 'Giá Vốn', dataIndex: 'cost_price', align: 'right' as const, width: 120, render: (v:any, r:any) => r.isGroup ? '' : <span style={{color:'red'}}>{Number(v).toLocaleString()}</span> },
-    { title: '', key: 'action', width: 80, render: (_: any, r: any) => !r.isGroup && <Button icon={<EditOutlined />} onClick={() => openEditModal(r)} /> },
+    { 
+        title: '', key: 'action', width: 100, 
+        render: (_: any, r: any) => !r.isGroup && (
+            <Space>
+                <Tooltip title="Chỉnh sửa & BOM"><Button icon={<EditOutlined />} onClick={() => openEditModal(r)} /></Tooltip>
+                <Tooltip title="Copy BOM sang biến thể khác"><Button icon={<CopyOutlined />} onClick={() => handleSyncVariants(r)} /></Tooltip>
+            </Space>
+        ) 
+    },
   ];
 
   const modalContent = (
@@ -342,7 +360,7 @@ const ProductsPage: React.FC = () => {
                                 {fields.map(({ key, name, ...restField }) => (
                                     <Row key={key} gutter={8} style={{marginBottom: 8}}>
                                         <Col span={12}><Form.Item {...restField} name={[name, 'route_name']} noStyle><Input placeholder="Tên chặng..." /></Form.Item></Col>
-                                        <Col span={10}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Chi phí" style={{width:'100%'}} addonAfter="₫" formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
+                                        <Col span={10}><Form.Item {...restField} name={[name, 'cost']} noStyle><InputNumber placeholder="Chi phí" style={{width:'100%'}} addonAfter="₫" /></Form.Item></Col>
                                         <Col span={2}><DeleteOutlined onClick={() => remove(name)} style={{color:'red'}} /></Col>
                                     </Row>
                                 ))}
@@ -365,13 +383,11 @@ const ProductsPage: React.FC = () => {
         title="Quản lý Sản Phẩm (Lẻ)" 
         extra={
             <Space>
-                {/* --- UPDATE: NÚT THÊM MỚI Ở ĐÂY --- */}
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>Thêm Mới</Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>Thêm Sản Phẩm Mới</Button>
                 <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
             </Space>
         }
       >
-        {/* --- UPDATE: THANH SEARCH & FILTER --- */}
         <div style={{marginBottom: 16, background: '#f5f5f5', padding: 16, borderRadius: 8}}>
             <Row gutter={16} align="middle">
                 <Col span={12}>
@@ -418,7 +434,7 @@ const ProductsPage: React.FC = () => {
                 <Row align="middle" justify="space-between">
                     <Col>
                         <Space>
-                            <Button type="default" icon={<CopyOutlined />} onClick={handleSyncVariants}>Đồng bộ biến thể</Button>
+                            <Button type="default" icon={<CopyOutlined />} onClick={() => handleSyncVariants(editingItem)}>Đồng bộ biến thể</Button>
                             <Statistic title="Giá Vốn (Ước tính)" value={totalCostEstimate} valueStyle={{color: '#cf1322', fontSize: 18, fontWeight: 'bold'}} prefix="~" suffix="₫" />
                         </Space>
                     </Col>
