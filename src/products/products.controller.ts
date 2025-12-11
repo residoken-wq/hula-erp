@@ -21,20 +21,17 @@ export class ProductsController {
   
   @Post(':id/sync-variants') syncVariants(@Param('id') id: number) { return this.service.syncToVariants(id); }
 
-  // --- API COMBO (FIXED) ---
-  @Get('combo/:sku') 
-  getCombo(@Param('sku') sku: string) { return this.service.getComboComponents(sku); }
-
-  @Post('combo/add')
-  addComboItem(@Body() body: any) {
-      return this.service.addComponent(body.parentSku, body.childSku, Number(body.qty));
+  // --- API COMBO ---
+  @Get('combo/:sku') getCombo(@Param('sku') sku: string) { return this.service.getComboComponents(sku); }
+  @Post('combo/add') addComboItem(@Body() body: any) { return this.service.addComponent(body.parentSku, body.childSku, Number(body.qty)); }
+  @Delete('combo/item/:id') removeComboItem(@Param('id') id: number) { return this.service.removeComponent(id); }
+  
+  // MOI: Save list components (cho viec edit combo)
+  @Post(':id/components') 
+  saveComponents(@Param('id') id: number, @Body() items: any[]) { 
+      return this.service.saveComponents(id, items); 
   }
-
-  @Delete('combo/item/:id')
-  removeComboItem(@Param('id') id: number) {
-      return this.service.removeComponent(id);
-  }
-  // -------------------------
+  // ----------------
 
   @Get('calculate-cost/:sku') calculateCost(@Param('sku') sku: string) { return this.service.calculateCostPrice(sku); }
 }

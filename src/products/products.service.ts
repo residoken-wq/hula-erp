@@ -7,7 +7,7 @@ import { ProductComponent } from './product-component.entity';
 import { ProductRouting } from './product-routing.entity';
 import { ProductLogistics } from './product-logistics.entity';
 import { Supplier } from '../suppliers/supplier.entity';
-import { SupplierMaterial } from '../suppliers/supplier-material.entity'; // MOI
+import { SupplierMaterial } from '../suppliers/supplier-material.entity';
 
 @Injectable()
 export class ProductsService {
@@ -18,7 +18,7 @@ export class ProductsService {
     @InjectRepository(ProductRouting) private routingRepo: Repository<ProductRouting>,
     @InjectRepository(ProductLogistics) private logisticRepo: Repository<ProductLogistics>,
     @InjectRepository(Supplier) private supplierRepo: Repository<Supplier>,
-    @InjectRepository(SupplierMaterial) private priceRepo: Repository<SupplierMaterial>, // MOI
+    @InjectRepository(SupplierMaterial) private priceRepo: Repository<SupplierMaterial>,
   ) {}
 
   async findAll() { return this.productRepo.find({ order: { id: 'DESC' } }); }
@@ -65,11 +65,7 @@ export class ProductsService {
       return saved;
   }
 
-  async getRoutings(productId: number) { 
-      return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); 
-  }
-
-  // --- UPDATE: SAVE ROUTING ---
+  async getRoutings(productId: number) { return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); }
   async saveRoutings(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
       const pId = Number(productId);
@@ -78,30 +74,13 @@ export class ProductsService {
       const newItems = [];
       for (const item of items) {
           let cost = Number(item.cost) || 0;
-          
-          // Logic tự động lấy giá từ Bảng giá NCC (nếu có chọn Process ID và Supplier ID)
           if (item.supplier_id && item.process_id) {
-              const price = await this.priceRepo.findOne({
-                  where: {
-                      supplier_id: item.supplier_id,
-                      process_id: item.process_id,
-                      // Ưu tiên giá cho sản phẩm cụ thể, nếu không có thì lấy giá chung (product_id = null)
-                      // Tuy nhiên TypeORM cần query khéo léo hơn, ở đây ta lấy list rồi filter
-                  }
-              });
-              
-              // Để đơn giản, ta tìm giá khớp nhất
-              const prices = await this.priceRepo.find({
-                  where: { supplier_id: item.supplier_id, process_id: item.process_id }
-              });
-              
+              const prices = await this.priceRepo.find({ where: { supplier_id: item.supplier_id, process_id: item.process_id } });
               const productPrice = prices.find(p => p.product_id === pId);
               const generalPrice = prices.find(p => p.product_id === null);
-              
               if (productPrice) cost = Number(productPrice.price);
               else if (generalPrice) cost = Number(generalPrice.price);
           }
-
           newItems.push(this.routingRepo.create({
               product_id: pId,
               step_name: item.step_name,
@@ -193,6 +172,7 @@ export class ProductsService {
     return { sku, new_cost_price: totalCost, breakdown: { material: materialCost, labor: laborCost, logistic: logisticsCost } };
   }
 
+  // --- LOGIC COMBO (DA UPDATE) ---
   async getComboComponents(sku: string) {
       const product = await this.productRepo.findOne({ where: { sku } });
       if (!product) return [];
@@ -235,6 +215,33 @@ export class ProductsService {
           await this.calculateCostPrice(parentSku);
       }
       return { message: 'Deleted' };
+  }
+
+  // --- API MOI: SAVE ALL COMPONENTS (UPDATE COMBO) ---
+  async saveComponents(productId: number, items: any[]) {
+      if (!items || !Array.isArray(items)) return [];
+      const pId = Number(productId);
+      
+      // Xoa het cu
+      await this.componentRepo.delete({ parent_product: { id: pId } });
+
+      // Them moi
+      for (const item of items) {
+          const child = await this.productRepo.findOne({ where: { sku: item.sku } });
+          if(child) {
+              await this.componentRepo.save(this.componentRepo.create({
+                  parent_product: { id: pId },
+                  child_product: child,
+                  quantity: Number(item.quantity)
+              }));
+          }
+      }
+
+      // Tinh lai gia
+      const parent = await this.productRepo.findOne({ where: { id: pId } });
+      if(parent) await this.calculateCostPrice(parent.sku);
+      
+      return { message: 'Updated Components' };
   }
   
   async importFromExcel(b:Buffer) { return 0; }
