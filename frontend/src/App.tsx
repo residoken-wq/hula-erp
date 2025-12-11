@@ -14,6 +14,8 @@ import SalesPage from './pages/SalesPage';
 import CrmPage from './pages/CrmPage';
 import CustomersPage from './pages/CustomersPage';
 import PlanningPage from './pages/PlanningPage';
+import ManufacturersPage from './pages/ManufacturersPage';
+import ProductionRoutePage from './pages/ProductionRoutePage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -28,7 +30,8 @@ const items: MenuItem[] = [
   getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />),
   getItem('Kho hàng & NCC', 'sub1', <DropboxOutlined />, [
     getItem(<Link to="/materials">Nguyên liệu</Link>, '3'),
-    getItem(<Link to="/suppliers">Nhà cung cấp</Link>, 'supp', <TeamOutlined />), // MOI
+    getItem(<Link to="/suppliers">Nhà cung cấp (NPL)</Link>, 'supp'),
+    getItem(<Link to="/manufacturers">Nhà gia công</Link>, 'manu'), // MO
     getItem(<Link to="/inventory">Nhập xuất kho</Link>, '4'),
   ]),
   getItem('Bán hàng (CRM)', 'sub2', <TeamOutlined />, [ 
@@ -36,7 +39,8 @@ const items: MenuItem[] = [
     getItem(<Link to="/customers">Danh sách Khách hàng</Link>, 'cust'), // <-- Trang CustomersPage này
   ]),
   getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
-    getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'), // MOI
+    getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
+    getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'), // MOI
   ]),
 ];
 
@@ -64,6 +68,8 @@ const App: React.FC = () => {
                 <Route path="/sales" element={<CrmPage />} />
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/planning" element={<PlanningPage />} />
+                <Route path="/manufacturers" element={<ManufacturersPage />} />
+                <Route path="/routes" element={<ProductionRoutePage />} />
                 <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
               </Routes>
             </div>
