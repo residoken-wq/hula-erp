@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Tabs, Statistic, Divider, Popconfirm, Tooltip, Progress, Typography } from 'antd';
-import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined } from '@ant-design/icons';
+import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -143,6 +143,43 @@ const CrmPage: React.FC = () => {
       setDetailModalOpen(true);
   };
 
+  // --- HÀM COPY LINK AN TOÀN ---
+  const handleCopyLink = (uuid: string) => {
+      if (!uuid) {
+          message.error('Báo giá này chưa có Link Portal (Cũ). Vui lòng lưu lại để tạo link.');
+          return;
+      }
+      const link = `${window.location.protocol}//${window.location.host}/portal/quote/${uuid}`;
+      
+      // Thu copy tu dong
+      if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(link).then(() => {
+              message.success('Đã copy link vào bộ nhớ tạm!');
+          }).catch(() => {
+              // Fallback neu that bai
+              Modal.info({
+                  title: 'Copy Link Thủ Công',
+                  content: <Input value={link} suffix={<CopyOutlined onClick={()=>{
+                      const el = document.querySelector('.ant-modal-body input') as HTMLInputElement;
+                      if(el) { el.select(); document.execCommand('copy'); message.success('Copied'); }
+                  }} />} />
+              });
+          });
+      } else {
+          // Fallback cho moi truong http thuong
+          Modal.info({
+              title: 'Copy Link Portal',
+              content: (
+                  <div>
+                      <p>Trình duyệt chặn copy tự động. Bạn hãy copy link dưới đây:</p>
+                      <Input.TextArea value={link} autoSize={{ minRows: 2, maxRows: 6 }} readOnly />
+                  </div>
+              ),
+              okText: 'Đóng'
+          });
+      }
+  };
+
   // COLUMNS
   const leadColumns = [
       { title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
@@ -167,15 +204,11 @@ const CrmPage: React.FC = () => {
           title: 'Thao tác', key: 'act', align: 'center' as const, width: 200,
           render: (_:any, r:any) => r.status === 'QUOTATION' ? (
               <Space size={2}>
-                  {/* --- NÚT LINK PORTAL --- */}
-                  <Tooltip title="Copy Link cho Khách">
-                      <Button icon={<LinkOutlined />} size="small" onClick={()=>{
-                           const link = `${window.location.origin}/portal/quote/${r.uuid}`;
-                           navigator.clipboard.writeText(link);
-                           message.success('Đã copy link báo giá!');
-                      }} />
+                  {/* --- NÚT LINK PORTAL (FIXED) --- */}
+                  <Tooltip title="Lấy Link Portal">
+                      <Button icon={<LinkOutlined />} size="small" onClick={()=>handleCopyLink(r.uuid)} />
                   </Tooltip>
-                  {/* ----------------------- */}
+                  {/* ------------------------------- */}
                   
                   <Tooltip title="Xem & In"><Button icon={<PrinterOutlined />} size="small" onClick={()=>{openDetailModal(r); setTimeout(()=>setIsPreviewOpen(true), 500)}} /></Tooltip>
                   <Tooltip title="Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, true)} /></Tooltip>
