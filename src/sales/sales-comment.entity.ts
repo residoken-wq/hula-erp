@@ -20,7 +20,7 @@ export class SalesComment {
   content: string;
 
   @Column({ default: true })
-  is_visible: boolean; // Sale có thể ẩn comment nếu muốn
+  is_visible: boolean;
 
   @CreateDateColumn()
   created_at: Date;

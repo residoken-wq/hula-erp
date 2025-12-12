@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, Ma
 import { SalesOrderItem } from './sales-order-item.entity';
 import { Customer } from '../customers/customer.entity';
 import { ProductionPlan } from '../planning/production-plan.entity';
-import { SalesComment } from './sales-comment.entity'; // Import mới
+import { SalesComment } from './sales-comment.entity';
 
 export enum SalesOrderStatus {
   QUOTATION = 'QUOTATION',   
@@ -77,7 +77,7 @@ export class SalesOrder {
   @OneToMany(() => SalesOrderItem, (item) => item.order, { cascade: true })
   items: SalesOrderItem[];
 
-  // --- QUAN HỆ MỚI ---
+  // --- QUAN HỆ VỚI COMMENT ---
   @OneToMany(() => SalesComment, (comment) => comment.order, { cascade: true })
   comments: SalesComment[];
 
