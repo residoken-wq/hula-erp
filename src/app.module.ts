@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
+
 // Modules
 import { ProductsModule } from './products/products.module';
 import { MaterialsModule } from './materials/materials.module';
@@ -23,6 +25,7 @@ import { BOM } from './bom/bom.entity';
 import { ProductComponent } from './products/product-component.entity';
 import { ProductRouting } from './products/product-routing.entity';
 import { ProductLogistics } from './products/product-logistics.entity';
+import { SalesComment } from './sales/sales-comment.entity';
 import { SalesOrder } from './sales/sales-order.entity';
 import { SalesOrderItem } from './sales/sales-order-item.entity';
 import { ProductSample } from './sales/product-sample.entity';
@@ -55,7 +58,7 @@ import { Category } from './categories/category.entity';
       database: 'hula_db',
       entities: [
         Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics,
-        SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem,
+        SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
         PurchaseOrder, PurchaseOrderItem, PurchaseDelivery, // FIX: Đảm bảo có PurchaseDelivery
         StockHistory, 
         WorkOrder, WorkOrderStep,

@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+// Dùng import type để tránh vòng lặp lúc runtime (Optional nhưng tốt)
 import { SalesOrder } from './sales-order.entity';
 
 @Entity('sales_comments')
@@ -6,6 +7,7 @@ export class SalesComment {
   @PrimaryGeneratedColumn()
   id: number;
 
+  // Quan trọng: onDelete CASCADE để xóa đơn thì xóa luôn comment
   @ManyToOne(() => SalesOrder, (order) => order.comments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'order_id' })
   order: SalesOrder;
