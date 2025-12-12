@@ -26,6 +26,7 @@ const CrmPage: React.FC = () => {
   const [followDrawerOpen, setFollowDrawerOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
+  // State cho Component SalesOrderDetail
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [isQuotationMode, setIsQuotationMode] = useState(false);
@@ -72,24 +73,12 @@ const CrmPage: React.FC = () => {
   const calculateProgress = (lead: any) => {
     const leadId = lead.id;
     const myOrders = orders.filter((o:any) => o.customer?.id === leadId);
-    
-    // 100% Hoan tat
     if (myOrders.some((o:any) => o.status === 'COMPLETED')) return { percent: 100, status: 'success', text: 'Hoàn tất' };
-    
-    // 95% Giao hang
     if (myOrders.some((o:any) => o.status === 'DELIVERED' || o.status === 'PARTIAL_DELIVERY')) return { percent: 95, status: 'active', text: 'Đang giao hàng' };
-
-    // 90% SX / Cọc
     if (myOrders.some((o:any) => o.status === 'DEPOSITED' || o.status === 'PLANNED')) return { percent: 90, status: 'active', text: 'Đang SX' };
-
-    // 75% Chờ cọc / Duyệt mẫu
     if (myOrders.some((o:any) => o.status === 'SO_PENDING')) return { percent: 75, status: 'active', text: 'Duyệt Mẫu/HĐ' };
-
-    // 50% Bao gia
     const myQuotes = quotes.filter((q:any) => q.customer?.id === leadId);
     if (myQuotes.length > 0) return { percent: 50, status: 'active', text: 'Đã báo giá' };
-
-    // 5% Lead
     return { percent: 5, status: 'normal', text: 'Mới tạo' };
   };
 
@@ -131,28 +120,56 @@ const CrmPage: React.FC = () => {
       } else {
           setEditingOrder(null);
       }
-      // Nếu là tạo mới -> set theo tham số isQuote
-      // Nếu là edit -> check status hiện tại của record
       const isQuoteMode = record ? (record.status === 'QUOTATION') : isQuote;
       setIsQuotationMode(isQuoteMode);
       setDetailModalOpen(true);
   };
 
-  // --- FIX: BUTTON TẠO BÁO GIÁ TỪ DRAWER ---
   const handleCreateQuoteFromFollow = () => {
       setFollowDrawerOpen(false);
-      setEditingOrder({ customer_id: currentCustomer.id }); // Pre-fill Customer ID
+      setEditingOrder({ customer_id: currentCustomer.id }); 
       setIsQuotationMode(true);
       setDetailModalOpen(true);
   };
 
+  // --- FIX: LOGIC COPY LINK AN TOÀN ---
   const handleCopyLink = (uuid: string) => {
-      if (!uuid) return message.error('Lỗi link');
+      if (!uuid) {
+          message.warning('Báo giá chưa có Link Portal. Vui lòng mở chi tiết và lưu lại để tạo link.');
+          return;
+      }
       const link = `${window.location.protocol}//${window.location.host}/portal/quote/${uuid}`;
-      navigator.clipboard.writeText(link).then(()=>message.success('Copied')).catch(()=>Modal.info({title:'Link', content:<Input value={link}/>}));
+      
+      // Kiểm tra trình duyệt có hỗ trợ Clipboard API an toàn không
+      if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(link)
+              .then(() => message.success('Đã copy link!'))
+              .catch(() => showManualCopy(link)); // Nếu lỗi thì hiện popup
+      } else {
+          // Fallback cho HTTP thường
+          showManualCopy(link);
+      }
   };
 
-  // COLUMNS
+  const showManualCopy = (url: string) => {
+      Modal.info({
+          title: 'Link Portal Khách Hàng',
+          content: (
+              <div>
+                  <p>Trình duyệt chặn copy tự động. Bạn hãy copy link dưới đây:</p>
+                  <Input value={url} readOnly addonAfter={<CopyOutlined onClick={()=>{
+                      // Hack copy thủ công nếu cần
+                      const input = document.querySelector('.ant-modal-body input') as HTMLInputElement;
+                      if(input) { input.select(); document.execCommand('copy'); message.success('Đã copy'); }
+                  }}/>} />
+              </div>
+          ),
+          maskClosable: true,
+          okText: 'Đóng'
+      });
+  };
+  // ------------------------------------
+
   const leadColumns = [
       { title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
       { title: 'Tên Khách', dataIndex: 'name', render: (t:any, r:any) => <a onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}}>{t}</a> },
@@ -165,7 +182,6 @@ const CrmPage: React.FC = () => {
           }
       },
       { 
-          // --- FIX: HIỂN THỊ NGÀY GIỜ CHĂM SÓC ---
           title: 'Lần chăm sóc cuối', dataIndex: 'history', width: 150,
           render: (h:any[]) => h && h.length > 0 ? <Tag>{dayjs(h[0].date || h[0].created_at).format('DD/MM HH:mm')}</Tag> : '-' 
       },
@@ -204,7 +220,6 @@ const CrmPage: React.FC = () => {
           title: 'Thao tác', key: 'act', align: 'right' as const,
           render: (_:any, r:any) => (
               <Space>
-                  {/* Link cho khach xem tien do SO */}
                   <Tooltip title="Link Portal"><Button icon={<LinkOutlined />} size="small" onClick={()=>handleCopyLink(r.uuid)} /></Tooltip>
                   <Tooltip title="Chi tiết & Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, false)} /></Tooltip>
               </Space>
@@ -245,7 +260,6 @@ const CrmPage: React.FC = () => {
 
       <Modal title="Tạo Lead" open={isLeadModalOpen} onCancel={()=>setIsLeadModalOpen(false)} onOk={()=>formLead.submit()}><Form form={formLead} layout="vertical" onFinish={handleSaveLead}><Form.Item name="code" label="Mã"><Input disabled /></Form.Item><Form.Item name="name" label="Tên" rules={[{required:true}]}><Input /></Form.Item><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Form></Modal>
       
-      {/* DRAWER FIX */}
       <Drawer title={`Chăm sóc: ${currentCustomer?.name}`} open={followDrawerOpen} onClose={()=>setFollowDrawerOpen(false)} footer={<Button type="primary" block onClick={handleCreateQuoteFromFollow}>Tạo Báo Giá Ngay</Button>}>
           <div style={{marginBottom:20}}><Input.TextArea rows={3} value={followNote} onChange={e=>setFollowNote(e.target.value)} placeholder="Ghi chú..." /><Button block type="primary" style={{marginTop:10}} onClick={handleFollowLead}>Lưu</Button></div>
           <Divider>Lịch sử</Divider>
