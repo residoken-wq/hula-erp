@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Tag, Table } from 'antd'; 
+// FIX: Thêm Space, Divider vào import
+import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Tag, Table, Space, Divider } from 'antd'; 
 import { CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined } from '@ant-design/icons';
 import QuotationTemplate from '../components/QuotationTemplate';
 import { API_URL } from '../config';
@@ -46,12 +47,10 @@ const PortalQuotePage: React.FC = () => {
   if (loading) return <div style={{textAlign:'center', marginTop:100}}><Spin size="large" /></div>;
   if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy đơn hàng" />;
 
-  // Logic Status Steps
   const statusList = ['QUOTATION','SO_PENDING','SAMPLE_APPROVED','DEPOSITED','PARTIAL_DELIVERY','DELIVERED','COMPLETED'];
   let currentStep = statusList.indexOf(data.status);
-  // Nếu status không có trong list (VD: PLANNED, CANCELLED), xử lý riêng
   if(data.status === 'PLANNED') currentStep = 3; 
-  if(data.status === 'COMPLETED') currentStep = 6; // Đảm bảo step cuối sáng
+  if(data.status === 'COMPLETED') currentStep = 6;
 
   const visibleComments = (data.comments || []).filter((c:any) => c.sender_type === 'CUSTOMER' || c.is_visible);
 
@@ -79,7 +78,7 @@ const PortalQuotePage: React.FC = () => {
            </div>
        </div>
 
-       {/* ACTION BAR (NẾU CÒN Ở BƯỚC BÁO GIÁ) */}
+       {/* ACTION BAR */}
        {data.status === 'QUOTATION' && (
            <div style={{ background: '#001529', color: '#fff', padding: 15, textAlign: 'center' }}>
                <Space size="large">
@@ -92,7 +91,7 @@ const PortalQuotePage: React.FC = () => {
 
        <div style={{ padding: '20px 40px', maxWidth: 1400, margin: '0 auto' }}>
            <Row gutter={24}>
-               {/* --- LEFT COLUMN: THÔNG TIN & COMMENT --- */}
+               {/* --- LEFT COLUMN --- */}
                <Col span={8} xs={24} md={8}>
                    <Card title={<span><UserOutlined /> Thông tin Khách hàng</span>} style={{marginBottom: 20}}>
                        <Descriptions column={1} size="small" bordered>
@@ -144,10 +143,9 @@ const PortalQuotePage: React.FC = () => {
                    </Card>
                </Col>
 
-               {/* --- RIGHT COLUMN: CHI TIẾT ĐƠN HÀNG --- */}
+               {/* --- RIGHT COLUMN --- */}
                <Col span={16} xs={24} md={16}>
                    <Card title="📄 Chi Tiết Đơn Hàng" style={{marginBottom: 20}}>
-                        {/* Reuse QuotationTemplate but hide its header inside the card if needed, or just use it as content */}
                         <div className="quotation-wrapper">
                             <QuotationTemplate data={data} />
                         </div>
