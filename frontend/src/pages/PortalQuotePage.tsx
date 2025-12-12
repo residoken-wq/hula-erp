@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Spin, Result, Button, message, Modal, Steps, Tag } from 'antd'; // Import Steps
-import { CheckCircleOutlined, CloseCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined } from '@ant-design/icons';
+import { Spin, Result, Button, message, Modal, Steps, Tag } from 'antd';
+// FIX: Thêm DollarOutlined vào danh sách import
+import { CheckCircleOutlined, CloseCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined } from '@ant-design/icons';
 import QuotationTemplate from '../components/QuotationTemplate';
 import { API_URL } from '../config';
 
@@ -16,7 +17,7 @@ const PortalQuotePage: React.FC = () => {
   useEffect(() => {
     axios.get(`${API_URL}/sales/portal/${uuid}`)
       .then(res => setData(res.data))
-      .catch(() => setError('Không tìm thấy báo giá'))
+      .catch(() => setError('Không tìm thấy báo giá hoặc đường dẫn không hợp lệ.'))
       .finally(() => setLoading(false));
   }, [uuid]);
 
@@ -57,7 +58,7 @@ const PortalQuotePage: React.FC = () => {
                <Steps current={currentStep} size="small" items={[
                    { title: 'Báo Giá', icon: <SolutionOutlined /> },
                    { title: 'Duyệt Mẫu & HĐ', description: 'Chốt màu/size', icon: <FileDoneOutlined /> },
-                   { title: 'Đặt Cọc & SX', icon: <DollarOutlined /> },
+                   { title: 'Đặt Cọc & SX', icon: <DollarOutlined /> }, // Icon này đã được import
                    { title: 'Giao Hàng', icon: <CarOutlined /> },
                    { title: 'Hoàn Tất', icon: <CheckCircleOutlined /> },
                ]} />
