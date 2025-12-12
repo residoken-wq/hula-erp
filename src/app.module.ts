@@ -24,10 +24,10 @@ import { ProductComponent } from './products/product-component.entity';
 import { ProductRouting } from './products/product-routing.entity';
 import { ProductLogistics } from './products/product-logistics.entity';
 import { SalesOrder } from './sales/sales-order.entity';
-import { SalesOrderItem } from './sales-order-item.entity';
+import { SalesOrderItem } from './sales/sales-order-item.entity'; // --- FIX: ĐÚNG ĐƯỜNG DẪN
 import { ProductSample } from './sales/product-sample.entity';
-import { SalesDelivery } from './sales/sales-delivery.entity'; // MOI
-import { SalesDeliveryItem } from './sales/sales-delivery-item.entity'; // MOI
+import { SalesDelivery } from './sales/sales-delivery.entity'; 
+import { SalesDeliveryItem } from './sales/sales-delivery-item.entity';
 import { StockHistory } from './inventory/stock-history.entity';
 import { WorkOrder } from './production/work-order.entity';
 import { WorkOrderStep } from './production/work-order-step.entity';
@@ -54,7 +54,7 @@ import { Category } from './categories/category.entity';
       database: 'hula_db',
       entities: [
         Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics,
-        SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, // MOI
+        SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem,
         StockHistory, 
         WorkOrder, WorkOrderStep,
         PurchaseOrder, PurchaseOrderItem,
