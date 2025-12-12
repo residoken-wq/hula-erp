@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, DatePicker, Row, Col, Tabs, Progress, Tooltip, Space } from 'antd'; // ADD Tooltip
+import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, DatePicker, Row, Col, Tabs, Progress, Tooltip, Space } from 'antd';
 import { PlusOutlined, ReloadOutlined, DollarOutlined, InfoCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -7,7 +7,10 @@ import { API_URL } from '../config';
 
 const SalesPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('ALL');
-  const [data, setData] = useState([]);
+  
+  // FIX: Thêm <any[]> để tránh lỗi never[]
+  const [data, setData] = useState<any[]>([]);
+  
   const [loading, setLoading] = useState(false);
 
   const fetchData = async () => {

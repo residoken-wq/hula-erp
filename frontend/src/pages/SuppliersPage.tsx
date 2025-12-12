@@ -5,7 +5,9 @@ import axios from 'axios';
 import { API_URL } from '../config';
 
 const SuppliersPage: React.FC = () => {
-  const [data, setData] = useState([]);
+  // FIX: Thêm <any[]>
+  const [data, setData] = useState<any[]>([]);
+  
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -66,7 +68,6 @@ const SuppliersPage: React.FC = () => {
             <Form form={form} layout="vertical" onFinish={handleSave}>
                 <Form.Item name="name" label="Tên Nhà Cung Cấp" rules={[{required:true}]}><Input /></Form.Item>
                 <Form.Item name="code" label="Mã NCC (Viết tắt)" rules={[{required:true}]}><Input /></Form.Item>
-                {/* FIX: Use options prop instead of Option children */}
                 <Form.Item name="type" label="Loại Cung Cấp" rules={[{required:true}]}>
                     <Select options={[
                         { label: 'Cung cấp Nguyên Liệu', value: 'MATERIAL' },
