@@ -5,6 +5,8 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 
+const { RangePicker } = DatePicker; // Import RangePicker
+
 const SuppliersPage: React.FC = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -20,7 +22,9 @@ const SuppliersPage: React.FC = () => {
   // State Input
   const [selectedMatId, setSelectedMatId] = useState<number | null>(null);
   const [inputPrice, setInputPrice] = useState<number>(0);
-  const [validDate, setValidDate] = useState<any>(dayjs());
+  
+  // --- MỚI: State cho khoảng thời gian ---
+  const [validRange, setValidRange] = useState<any>([dayjs(), dayjs().add(1, 'year')]); // Mặc định 1 năm
   const [isDefault, setIsDefault] = useState(false);
 
   const [form] = Form.useForm();
@@ -70,7 +74,7 @@ const SuppliersPage: React.FC = () => {
       
       setSelectedMatId(null); 
       setInputPrice(0);
-      setValidDate(dayjs());
+      setValidRange([dayjs(), dayjs().add(1, 'year')]); // Reset date
       setIsDefault(false);
       
       setIsModalOpen(true);
@@ -85,12 +89,13 @@ const SuppliersPage: React.FC = () => {
           await axios.post(`${API_URL}/suppliers/${editingItem.id}/material-price`, { 
               material_id: selectedMatId, 
               price: inputPrice,
-              valid_from: validDate, 
+              // Gửi cả From và To
+              valid_from: validRange ? validRange[0] : null, 
+              valid_to: validRange ? validRange[1] : null,
               is_preferred: isDefault
           });
           message.success(isDefault ? 'Đã lưu và cập nhật giá tính BOM' : 'Đã thêm giá');
           
-          // Reset
           setSelectedMatId(null);
           setInputPrice(0);
           setIsDefault(false);
@@ -105,7 +110,7 @@ const SuppliersPage: React.FC = () => {
         <div style={{marginBottom: 16, maxWidth: 400}}><Input placeholder="Tìm kiếm..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} /></div>
         <Table dataSource={filteredData} columns={[{ title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> }, { title: 'Tên Nhà Cung Cấp', dataIndex: 'name' }, { title: 'Loại', dataIndex: 'type', width: 120, align: 'center', render: (t:any) => t==='MATERIAL'?<Tag color="blue">NPL</Tag>:t==='PROCESSING'?<Tag color="orange">Gia Công</Tag>:<Tag color="purple">MIX</Tag> }, { title: 'SĐT', dataIndex: 'phone', width: 120 }, { title: 'Ghi chú', dataIndex: 'note', ellipsis: true }, { title: '', key: 'action', width: 100, align: 'center', render: (_:any, r:any) => (<><Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)} style={{marginRight:5}} /><Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm></>) }]} rowKey="id" loading={loading} size="small" />
         
-        <Modal title={editingItem ? `Cập nhật: ${editingItem.name}` : "Thêm Đối Tác Mới"} open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>{ if(activeTab==='1') form.submit(); else setIsModalOpen(false); }} width={900} okText={activeTab==='1' ? "Lưu Thông Tin" : "Đóng"}>
+        <Modal title={editingItem ? `Cập nhật: ${editingItem.name}` : "Thêm Đối Tác Mới"} open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>{ if(activeTab==='1') form.submit(); else setIsModalOpen(false); }} width={950} okText={activeTab==='1' ? "Lưu Thông Tin" : "Đóng"}>
             <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                 {
                     key: '1', label: <span><UserOutlined /> Thông Tin Chung</span>,
@@ -125,7 +130,7 @@ const SuppliersPage: React.FC = () => {
                     children: (
                         <div>
                             <div style={{marginBottom: 10, display:'flex', gap: 10, background:'#f0f5ff', padding:10, borderRadius:6, alignItems:'flex-end'}}>
-                                <div style={{flex:1}}>
+                                <div style={{flex:1.5}}>
                                     <div style={{fontSize:12, marginBottom:4, color:'#666'}}>Nguyên liệu:</div>
                                     <Select showSearch placeholder="Chọn Nguyên Liệu..." style={{width:'100%'}} optionFilterProp="label" 
                                         options={materials.map(m => ({label: `${m.code} - ${m.name} (${m.unit})`, value: m.id}))} 
@@ -136,12 +141,13 @@ const SuppliersPage: React.FC = () => {
                                     <div style={{fontSize:12, marginBottom:4, color:'#666'}}>Giá nhập:</div>
                                     <InputNumber style={{width: '100%'}} addonAfter="₫" value={inputPrice} onChange={(v) => setInputPrice(Number(v))} />
                                 </div>
-                                <div style={{width: 130}}>
-                                    <div style={{fontSize:12, marginBottom:4, color:'#666'}}>Ngày áp dụng:</div>
-                                    <DatePicker style={{width: '100%'}} value={validDate} onChange={(d) => setValidDate(d)} format="DD/MM/YYYY" />
+                                <div style={{width: 220}}>
+                                    <div style={{fontSize:12, marginBottom:4, color:'#666'}}>Hiệu lực (Từ - Đến):</div>
+                                    {/* MỚI: RangePicker */}
+                                    <RangePicker style={{width:'100%'}} value={validRange} onChange={(d) => setValidRange(d)} format="DD/MM/YYYY" placeholder={['Từ ngày', 'Đến ngày']} />
                                 </div>
                                 <div style={{marginBottom: 5}}>
-                                    <Checkbox checked={isDefault} onChange={e=>setIsDefault(e.target.checked)}>Giá tính BOM</Checkbox>
+                                    <Checkbox checked={isDefault} onChange={e=>setIsDefault(e.target.checked)}>Giá chuẩn</Checkbox>
                                 </div>
                                 <Button type="primary" onClick={handleAddPrice} icon={<PlusOutlined />}>Thêm</Button>
                             </div>
@@ -153,8 +159,9 @@ const SuppliersPage: React.FC = () => {
                                     { title: 'Tên Nguyên Liệu', render: (r:any) => r.material?.name },
                                     { title: 'ĐVT', width: 70, align:'center', render: (r:any) => <Tag>{r.material?.unit || '-'}</Tag> },
                                     { title: 'Đơn giá', dataIndex: 'price', align: 'right', render: (v:any) => <span style={{color:'green', fontWeight:'bold'}}>{Number(v).toLocaleString()} ₫</span> },
-                                    { title: 'Ngày áp dụng', width: 120, align:'center', render: (r:any) => r.valid_from ? dayjs(r.valid_from).format('DD/MM/YYYY') : '-' },
-                                    { title: 'Cập nhật', width: 100, align:'center', render: (r:any) => <small style={{color:'#999'}}>{dayjs(r.updated_at).format('DD/MM')}</small> }
+                                    // Hiển thị Range ngày
+                                    { title: 'Hiệu lực', width: 150, align:'center', render: (r:any) => <small style={{color:'#666'}}>{r.valid_from ? dayjs(r.valid_from).format('DD/MM/YY') : '...'} - {r.valid_to ? dayjs(r.valid_to).format('DD/MM/YY') : '...'}</small> },
+                                    { title: 'Cập nhật', width: 80, align:'center', render: (r:any) => <small style={{color:'#999'}}>{dayjs(r.updated_at).format('DD/MM')}</small> }
                                 ]} 
                             />
                         </div>
