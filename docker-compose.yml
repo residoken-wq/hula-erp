@@ -42,8 +42,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ./frontend      # <--- SỬA DÒNG NÀY: Trỏ vào thư mục frontend
+      dockerfile: Dockerfile   # <--- SỬA DÒNG NÀY: Tên file là Dockerfile (không phải Dockerfile.frontend)
     container_name: hula_frontend
     restart: always
     ports:
