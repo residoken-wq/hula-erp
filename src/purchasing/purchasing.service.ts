@@ -1,92 +1,119 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { PurchaseOrder, POStatus } from './purchase-order.entity';
+import { PurchaseOrder, POStatus, POType } from './purchase-order.entity';
 import { PurchaseOrderItem } from './purchase-order-item.entity';
-import { MaterialsService } from '../materials/materials.service';
+import { PurchaseDelivery } from './purchase-delivery.entity';
 import { InventoryService } from '../inventory/inventory.service';
+import { SuppliersService } from '../suppliers/suppliers.service';
 
 @Injectable()
 export class PurchasingService {
   constructor(
     @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
-    private materialsService: MaterialsService,
+    @InjectRepository(PurchaseOrderItem) private itemRepo: Repository<PurchaseOrderItem>,
+    @InjectRepository(PurchaseDelivery) private deliveryRepo: Repository<PurchaseDelivery>,
     private inventoryService: InventoryService,
+    private suppliersService: SuppliersService,
   ) {}
 
-  async createPO(data: any) {
-    const po = new PurchaseOrder();
-    po.code = data.code;
-    po.supplier_name = data.supplier_name;
-    po.items = [];
-    let total = 0;
-
-    for (const itemData of data.items) {
-      const item = new PurchaseOrderItem();
-      item.material_code = itemData.material_code;
-      item.quantity = itemData.quantity; // So luong nay la theo DON VI MUA (VD: 10 Tam)
-      item.unit_price = itemData.unit_price; // Gia nay la gia cua DON VI MUA (VD: 240k/Tam)
-      item.subtotal = item.quantity * item.unit_price;
+  async create(data: any) {
+      const po = this.poRepo.create({
+          po_code: data.po_code,
+          supplier_id: data.supplier_id,
+          type: data.type || POType.MATERIAL,
+          plan_id: data.plan_id || null,
+          expected_delivery_date: data.expected_delivery_date,
+          payment_term: data.payment_term,
+          delivery_address: data.delivery_address,
+          vat_rate: data.vat_rate || 0,
+          shipping_fee: data.shipping_fee || 0,
+          note: data.note,
+          status: POStatus.DRAFT
+      });
       
-      const material = await this.materialsService.findOneByCode(item.material_code);
-      if (!material) throw new NotFoundException('Khong tim thay nguyen lieu: ' + item.material_code);
+      let itemsTotal = 0;
+      po.items = data.items.map((i:any) => {
+          const sub = Number(i.quantity) * Number(i.price);
+          itemsTotal += sub;
+          return this.itemRepo.create({
+              material_id: i.material_id || null, // Neu la NPL
+              product_id: i.product_id || null,   // Neu la Gia cong
+              description: i.description,
+              quantity: i.quantity,
+              unit_price: i.price,
+              subtotal: sub
+          });
+      });
 
-      total += item.subtotal;
-      po.items.push(item);
-    }
-
-    po.total_amount = total;
-    po.status = POStatus.ORDERED;
-    return this.poRepo.save(po);
+      po.total_amount = itemsTotal * (1 + po.vat_rate/100) + Number(po.shipping_fee);
+      return this.poRepo.save(po);
   }
 
-  // --- LOGIC NHAP KHO & QUY DOI ---
-  async receiveGoods(code: string) {
-    const po = await this.poRepo.findOne({ where: { code }, relations: ['items'] });
-    if (!po) throw new NotFoundException('Khong tim thay PO');
-    if (po.status === POStatus.RECEIVED) throw new BadRequestException('Don nay da nhap kho roi');
+  async findAll() { 
+      return this.poRepo.find({ 
+          order: { id: 'DESC' }, 
+          relations: ['supplier', 'production_plan'] 
+      }); 
+  }
+  
+  async findOne(id: number) { 
+      return this.poRepo.findOne({ where: { id }, relations: ['items', 'supplier', 'items.material', 'items.product'] }); 
+  }
 
-    for (const item of po.items) {
-      const material = await this.materialsService.findOneByCode(item.material_code);
-      if (material) {
-        // 1. Xu ly quy doi
-        const factor = Number(material.conversion_factor) || 1;
-        
-        // So luong thuc nhap vao kho (Base Unit)
-        // VD: Mua 10 Tam, Factor 2.4 -> Nhap 24m
-        const qtyToStock = Number(item.quantity) * factor;
-        
-        // Gia von thuc te cua 1 don vi co ban
-        // VD: Gia mua 240k/Tam -> Gia von = 240k / 2.4 = 100k/m
-        const pricePerBaseUnit = Number(item.unit_price) / factor;
+  async update(id: number, data: any) {
+      const po = await this.findOne(id);
+      if(!po) throw new NotFoundException();
+      // Logic update tuong tu create... (Rut gon cho demo)
+      Object.assign(po, { ...data, items: undefined }); // Update info
+      return this.poRepo.save(po);
+  }
 
-        // 2. Tinh gia binh quan gia quyen (MAP)
-        const oldStock = Number(material.quantity_in_stock || 0);
-        const oldPrice = Number(material.cost_per_unit || 0);
-        
-        const totalValue = (oldStock * oldPrice) + (qtyToStock * pricePerBaseUnit);
-        const totalQty = oldStock + qtyToStock;
-        const avgPrice = totalQty > 0 ? totalValue / totalQty : pricePerBaseUnit;
+  // --- PORTAL API ---
+  async getByUuid(uuid: string) {
+      const po = await this.poRepo.findOne({ where: { uuid }, relations: ['items', 'supplier', 'items.material', 'items.product'] });
+      if(!po) throw new NotFoundException('PO Not Found');
+      return po;
+  }
 
-        // 3. Cap nhat Material
-        await this.materialsService.updatePriceAndStock(material.id, avgPrice);
+  async supplierAction(uuid: string, action: 'CONFIRM' | 'REJECT', note?: string) {
+      const po = await this.getByUuid(uuid);
+      if (po.status !== POStatus.SENT) throw new BadRequestException('Trạng thái không hợp lệ');
+      po.status = action === 'CONFIRM' ? POStatus.CONFIRMED : POStatus.DRAFT; // Reject -> Draft de sua lai
+      po.note = (po.note || '') + `\n[NCC ${action}]: ${note || ''}`;
+      return this.poRepo.save(po);
+  }
 
-        // 4. Tang kho
-        await this.inventoryService.adjustStock(
-            'IMPORT', 'MATERIAL', material.id, qtyToStock, po.code, 
-            `Nhap tu PO (Quy doi: 1 ${material.purchase_unit || material.unit} = ${factor} ${material.unit})`
-        );
+  // --- RECEIVE GOODS (NHAP KHO) ---
+  async receiveGoods(id: number, data: any) {
+      const po = await this.findOne(id);
+      if(!po) throw new NotFoundException();
+
+      // 1. Log Delivery
+      const delivery = this.deliveryRepo.create({
+          po_id: id,
+          receipt_code: data.code,
+          delivery_date: data.date,
+          items: data.items // [{id, quantity}]
+      });
+      await this.deliveryRepo.save(delivery);
+
+      // 2. Adjust Stock
+      for(const item of data.items) {
+          const poItem = po.items.find(i => i.id === item.id);
+          if (poItem) {
+              if (po.type === POType.MATERIAL && poItem.material_id) {
+                  await this.inventoryService.adjustStock('IMPORT', 'MATERIAL', poItem.material_id, item.quantity, data.code, 'Nhập từ PO ' + po.po_code);
+              }
+              // Neu la OUTSOURCING -> Nhap kho Product (Thanh pham tu NGC)
+              if (po.type === POType.OUTSOURCING && poItem.product_id) {
+                  await this.inventoryService.adjustStock('IMPORT', 'PRODUCT', poItem.product_id, item.quantity, data.code, 'Nhập hàng gia công ' + po.po_code);
+              }
+          }
       }
-    }
-    po.status = POStatus.RECEIVED;
-    return this.poRepo.save(po);
-  }
-  // --------------------------------
 
-  async updatePayment(code: string, amount: number) {
-    const po = await this.poRepo.findOne({ where: { code } });
-    if (!po) throw new NotFoundException('Khong tim thay PO');
-    po.paid_amount = Number(po.paid_amount) + Number(amount);
-    return this.poRepo.save(po);
+      // 3. Update Status
+      po.status = POStatus.RECEIVED; // Simplified logic
+      return this.poRepo.save(po);
   }
 }

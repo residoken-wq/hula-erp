@@ -1,22 +1,20 @@
-import { Controller, Post, Get, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import { PlanningService } from './planning.service';
 
 @Controller('planning')
 export class PlanningController {
-  constructor(private readonly planningService: PlanningService) {}
+  constructor(private readonly s: PlanningService) {}
 
-  @Post('create')
-  create(@Body() body: any) {
-    return this.planningService.createPlan(body);
-  }
-
-  @Post('mrp/:id')
-  runMrp(@Param('id') id: number) {
-    return this.planningService.calculateMaterialNeeds(id);
-  }
+  @Get('suggestion') getSuggestion() { return this.s.getSuggestion(); }
+  @Post('create') create(@Body() b: any) { return this.s.createPlan(b); }
+  @Get() findAll() { return this.s.findAll(); }
   
-  @Get()
-  findAll() {
-      return this.planningService.findAll();
+  @Post('mrp/:id') runMrp(@Param('id') id: number) { return this.s.calculateMaterialNeeds(id); }
+  
+  // New: Generate POs
+  @Post(':id/generate-pos') 
+  generatePos(@Param('id') id: number, @Body() body: any) { 
+      // body.mrpData truyen tu frontend xuong
+      return this.s.generatePos(id, body.mrpData); 
   }
 }
