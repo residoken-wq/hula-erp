@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Spin, Result, Button, message, Modal, Input, Layout } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Spin, Result, Button, message, Modal, Steps, Tag } from 'antd'; // Import Steps
+import { CheckCircleOutlined, CloseCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined } from '@ant-design/icons';
 import QuotationTemplate from '../components/QuotationTemplate';
 import { API_URL } from '../config';
 
@@ -14,38 +14,24 @@ const PortalQuotePage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    const fetchQuote = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/sales/portal/${uuid}`);
-        setData(res.data);
-      } catch (e) {
-        setError('Báo giá không tồn tại hoặc đường dẫn sai.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchQuote();
+    axios.get(`${API_URL}/sales/portal/${uuid}`)
+      .then(res => setData(res.data))
+      .catch(() => setError('Không tìm thấy báo giá'))
+      .finally(() => setLoading(false));
   }, [uuid]);
 
   const handleAction = async (action: 'ACCEPT' | 'REJECT') => {
-      if (action === 'REJECT') {
-          // TODO: Có thể thêm popup hỏi lý do
-      }
-      
       Modal.confirm({
-          title: action === 'ACCEPT' ? 'Xác nhận đặt hàng?' : 'Từ chối báo giá?',
-          content: action === 'ACCEPT' ? 'Hệ thống sẽ ghi nhận đơn hàng và nhân viên sẽ liên hệ lại.' : 'Bạn chắc chắn muốn từ chối báo giá này?',
+          title: action === 'ACCEPT' ? 'Xác nhận Báo giá?' : 'Từ chối?',
+          content: action === 'ACCEPT' ? 'Sau khi xác nhận, nhân viên sẽ liên hệ để Duyệt Mẫu và Ký Hợp Đồng.' : '',
           onOk: async () => {
               setActionLoading(true);
               try {
                   await axios.post(`${API_URL}/sales/portal/${uuid}/action`, { action });
-                  message.success('Đã gửi phản hồi thành công!');
-                  window.location.reload(); // Reload để cập nhật trạng thái
-              } catch (e: any) {
-                  message.error(e.response?.data?.message || 'Có lỗi xảy ra');
-              } finally {
-                  setActionLoading(false);
-              }
+                  message.success('Đã gửi phản hồi!');
+                  window.location.reload();
+              } catch (e: any) { message.error(e.response?.data?.message || 'Lỗi'); }
+              finally { setActionLoading(false); }
           }
       });
   };
@@ -53,28 +39,44 @@ const PortalQuotePage: React.FC = () => {
   if (loading) return <div style={{textAlign:'center', marginTop:100}}><Spin size="large" /></div>;
   if (error) return <Result status="404" title="404" subTitle={error} />;
 
-  // Nếu đã xử lý rồi
-  if (data.status !== 'QUOTATION') {
-       return (
-           <Result
-            status="success"
-            title="Báo giá này đã được xử lý"
-            subTitle={`Trạng thái hiện tại: ${data.status}`}
-           />
-       );
-  }
+  // --- LOGIC HIỂN THỊ TIẾN ĐỘ ---
+  let currentStep = 0;
+  if (data.status === 'QUOTATION') currentStep = 0;
+  else if (data.status === 'SO_PENDING') currentStep = 1; // Đang duyệt mẫu
+  else if (['DEPOSITED', 'PLANNED'].includes(data.status)) currentStep = 2; // Đã cọc/SX
+  else if (['SHIPPING', 'PARTIAL_DELIVERY', 'DELIVERED'].includes(data.status)) currentStep = 3;
+  else if (data.status === 'COMPLETED') currentStep = 4;
+  else if (data.status === 'CANCELLED') currentStep = -1;
 
   return (
     <div style={{ background: '#f0f2f5', minHeight: '100vh', padding: '20px 0' }}>
        <div style={{ maxWidth: '210mm', margin: '0 auto', background: '#fff', boxShadow: '0 0 10px rgba(0,0,0,0.1)' }}>
-           {/* HEADER ACTIONS FOR CUSTOMER */}
-           <div style={{ padding: 15, background: '#001529', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-               <div style={{fontWeight:'bold'}}>HULA PORTAL</div>
-               <div style={{display:'flex', gap: 10}}>
-                   <Button type="primary" danger icon={<CloseCircleOutlined/>} loading={actionLoading} onClick={()=>handleAction('REJECT')}>Từ chối</Button>
-                   <Button type="primary" style={{background: '#52c41a', borderColor: '#52c41a'}} icon={<CheckCircleOutlined/>} loading={actionLoading} onClick={()=>handleAction('ACCEPT')}>Xác nhận Đặt hàng</Button>
-               </div>
+           
+           {/* HEADER STATUS */}
+           <div style={{padding: '20px 40px', background:'#fff', borderBottom:'1px solid #eee'}}>
+               <Steps current={currentStep} size="small" items={[
+                   { title: 'Báo Giá', icon: <SolutionOutlined /> },
+                   { title: 'Duyệt Mẫu & HĐ', description: 'Chốt màu/size', icon: <FileDoneOutlined /> },
+                   { title: 'Đặt Cọc & SX', icon: <DollarOutlined /> },
+                   { title: 'Giao Hàng', icon: <CarOutlined /> },
+                   { title: 'Hoàn Tất', icon: <CheckCircleOutlined /> },
+               ]} />
            </div>
+
+           {/* ACTION BAR (Chỉ hiện khi đang là QUOTATION) */}
+           {data.status === 'QUOTATION' && (
+               <div style={{ padding: 15, background: '#001529', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <div>Vui lòng phản hồi báo giá này:</div>
+                   <div style={{display:'flex', gap: 10}}>
+                       <Button type="primary" danger icon={<CloseCircleOutlined/>} loading={actionLoading} onClick={()=>handleAction('REJECT')}>Từ chối</Button>
+                       <Button type="primary" style={{background: '#52c41a', borderColor: '#52c41a'}} icon={<CheckCircleOutlined/>} loading={actionLoading} onClick={()=>handleAction('ACCEPT')}>Xác nhận Báo Giá</Button>
+                   </div>
+               </div>
+           )}
+
+           {/* ALERTS */}
+           {data.status === 'SO_PENDING' && <div style={{padding:15, background:'#fffbe6', textAlign:'center', border:'1px solid #ffe58f'}}>🎉 Cảm ơn Quý khách đã xác nhận! Nhân viên kinh doanh sẽ liên hệ để tiến hành <b>Duyệt Mẫu</b>.</div>}
+           {data.status === 'CANCELLED' && <div style={{padding:15, background:'#fff1f0', textAlign:'center', color:'red'}}>Báo giá này đã bị hủy.</div>}
            
            <QuotationTemplate data={data} />
        </div>

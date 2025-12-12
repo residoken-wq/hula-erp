@@ -26,7 +26,6 @@ const CrmPage: React.FC = () => {
   const [followDrawerOpen, setFollowDrawerOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
-  // State cho Component SalesOrderDetail
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [isQuotationMode, setIsQuotationMode] = useState(false);
@@ -47,7 +46,7 @@ const CrmPage: React.FC = () => {
             const resSales = await axios.get(`${API_URL}/sales`);
             const salesData = Array.isArray(resSales.data) ? resSales.data : [];
             setQuotes(salesData.filter((s:any) => s.status === 'QUOTATION' || s.status === 'CANCELLED'));
-            setOrders(salesData.filter((s:any) => ['SO_PENDING', 'PLANNED', 'SHIPPING', 'COMPLETED', 'DEPOSITED', 'PARTIAL_DELIVERY', 'DELIVERED'].includes(s.status)));
+            setOrders(salesData.filter((s:any) => !['QUOTATION', 'CANCELLED'].includes(s.status)));
         } catch(e) {}
 
         try { const resSamples = await axios.get(`${API_URL}/sales/samples/all`); setSamples(resSamples.data || []); } catch (e) {}
@@ -73,25 +72,25 @@ const CrmPage: React.FC = () => {
   const calculateProgress = (lead: any) => {
     const leadId = lead.id;
     const myOrders = orders.filter((o:any) => o.customer?.id === leadId);
-    const fullyPaid = myOrders.find((o:any) => Number(o.paid_amount) >= Number(o.total_amount));
-    if (fullyPaid) return { percent: 100, status: 'success', text: 'Đã thanh toán', link: null };
+    
+    // 100% Hoan tat
+    if (myOrders.some((o:any) => o.status === 'COMPLETED')) return { percent: 100, status: 'success', text: 'Hoàn tất' };
+    
+    // 95% Giao hang
+    if (myOrders.some((o:any) => o.status === 'DELIVERED' || o.status === 'PARTIAL_DELIVERY')) return { percent: 95, status: 'active', text: 'Đang giao hàng' };
 
-    const deposited = myOrders.find((o:any) => Number(o.paid_amount) > 0);
-    if (deposited) return { percent: 95, status: 'active', text: 'Đã cọc', link: null };
+    // 90% SX / Cọc
+    if (myOrders.some((o:any) => o.status === 'DEPOSITED' || o.status === 'PLANNED')) return { percent: 90, status: 'active', text: 'Đang SX' };
 
-    if (myOrders.length > 0) return { percent: 90, status: 'active', text: 'Đã đặt hàng', link: myOrders[0].order_code };
+    // 75% Chờ cọc / Duyệt mẫu
+    if (myOrders.some((o:any) => o.status === 'SO_PENDING')) return { percent: 75, status: 'active', text: 'Duyệt Mẫu/HĐ' };
 
-    const mySamples = samples.filter((s:any) => s.customer?.id === leadId);
-    if (mySamples.some((s:any) => s.status === 'APPROVED')) return { percent: 75, status: 'active', text: 'Đã duyệt mẫu', link: null };
-
+    // 50% Bao gia
     const myQuotes = quotes.filter((q:any) => q.customer?.id === leadId);
-    if (myQuotes.length > 0) return { percent: 50, status: 'active', text: 'Đã báo giá', link: myQuotes[0].order_code };
+    if (myQuotes.length > 0) return { percent: 50, status: 'active', text: 'Đã báo giá' };
 
-    if (mySamples.length > 0) return { percent: 20, status: 'normal', text: 'Đang xem mẫu', link: null };
-
-    if (lead.history && lead.history.length > 0) return { percent: 5, status: 'normal', text: 'Đang chăm sóc', link: null };
-
-    return { percent: 0, status: 'normal', text: 'Mới tạo', link: null };
+    // 5% Lead
+    return { percent: 5, status: 'normal', text: 'Mới tạo' };
   };
 
   const handleSaveLead = async (values: any) => {
@@ -114,7 +113,7 @@ const CrmPage: React.FC = () => {
   const handleConvertQuote = async (id: number, accepted: boolean) => {
       try {
           await axios.post(`${API_URL}/sales/${id}/convert`, { accepted });
-          message.success(accepted ? 'Đã chốt đơn!' : 'Đã hủy'); fetchData();
+          message.success(accepted ? 'Đã xác nhận báo giá! Chuyển sang duyệt mẫu.' : 'Đã hủy'); fetchData();
       } catch(e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message }); }
   };
   
@@ -132,52 +131,25 @@ const CrmPage: React.FC = () => {
       } else {
           setEditingOrder(null);
       }
-      setIsQuotationMode(isQuote || (record && record.status === 'QUOTATION'));
+      // Nếu là tạo mới -> set theo tham số isQuote
+      // Nếu là edit -> check status hiện tại của record
+      const isQuoteMode = record ? (record.status === 'QUOTATION') : isQuote;
+      setIsQuotationMode(isQuoteMode);
       setDetailModalOpen(true);
   };
 
+  // --- FIX: BUTTON TẠO BÁO GIÁ TỪ DRAWER ---
   const handleCreateQuoteFromFollow = () => {
       setFollowDrawerOpen(false);
-      setEditingOrder({ customer_id: currentCustomer.id }); // Pre-fill
+      setEditingOrder({ customer_id: currentCustomer.id }); // Pre-fill Customer ID
       setIsQuotationMode(true);
       setDetailModalOpen(true);
   };
 
-  // --- HÀM COPY LINK AN TOÀN ---
   const handleCopyLink = (uuid: string) => {
-      if (!uuid) {
-          message.error('Báo giá này chưa có Link Portal (Cũ). Vui lòng lưu lại để tạo link.');
-          return;
-      }
+      if (!uuid) return message.error('Lỗi link');
       const link = `${window.location.protocol}//${window.location.host}/portal/quote/${uuid}`;
-      
-      // Thu copy tu dong
-      if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(link).then(() => {
-              message.success('Đã copy link vào bộ nhớ tạm!');
-          }).catch(() => {
-              // Fallback neu that bai
-              Modal.info({
-                  title: 'Copy Link Thủ Công',
-                  content: <Input value={link} suffix={<CopyOutlined onClick={()=>{
-                      const el = document.querySelector('.ant-modal-body input') as HTMLInputElement;
-                      if(el) { el.select(); document.execCommand('copy'); message.success('Copied'); }
-                  }} />} />
-              });
-          });
-      } else {
-          // Fallback cho moi truong http thuong
-          Modal.info({
-              title: 'Copy Link Portal',
-              content: (
-                  <div>
-                      <p>Trình duyệt chặn copy tự động. Bạn hãy copy link dưới đây:</p>
-                      <Input.TextArea value={link} autoSize={{ minRows: 2, maxRows: 6 }} readOnly />
-                  </div>
-              ),
-              okText: 'Đóng'
-          });
-      }
+      navigator.clipboard.writeText(link).then(()=>message.success('Copied')).catch(()=>Modal.info({title:'Link', content:<Input value={link}/>}));
   };
 
   // COLUMNS
@@ -192,6 +164,11 @@ const CrmPage: React.FC = () => {
               return <Tooltip title={prog.text}><Progress percent={prog.percent} size="small" status={prog.status as any} showInfo={false} /></Tooltip>
           }
       },
+      { 
+          // --- FIX: HIỂN THỊ NGÀY GIỜ CHĂM SÓC ---
+          title: 'Lần chăm sóc cuối', dataIndex: 'history', width: 150,
+          render: (h:any[]) => h && h.length > 0 ? <Tag>{dayjs(h[0].date || h[0].created_at).format('DD/MM HH:mm')}</Tag> : '-' 
+      },
       { title: '', key: 'act', render: (_:any, r:any) => <Button size="small" icon={<ClockCircleOutlined />} onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}} /> }
   ];
 
@@ -199,24 +176,19 @@ const CrmPage: React.FC = () => {
       { title: 'Mã', dataIndex: 'order_code', render: (t:any) => <Tag color="orange">{t}</Tag> },
       { title: 'Khách', dataIndex: 'customer', render: (c:any) => c?.name || 'N/A' },
       { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v:any) => Number(v).toLocaleString() },
-      { title: 'TT', dataIndex: 'status', render: (t:any) => t==='CANCELLED' ? <Tag color="red">Hủy</Tag> : <Tag color="processing">Chờ</Tag> },
+      { title: 'TT', dataIndex: 'status', render: (t:any) => t==='CANCELLED' ? <Tag color="red">Hủy</Tag> : <Tag color="processing">Chờ KH</Tag> },
       {
           title: 'Thao tác', key: 'act', align: 'center' as const, width: 200,
           render: (_:any, r:any) => r.status === 'QUOTATION' ? (
               <Space size={2}>
-                  {/* --- NÚT LINK PORTAL (FIXED) --- */}
-                  <Tooltip title="Lấy Link Portal">
-                      <Button icon={<LinkOutlined />} size="small" onClick={()=>handleCopyLink(r.uuid)} />
-                  </Tooltip>
-                  {/* ------------------------------- */}
-                  
+                  <Tooltip title="Lấy Link Portal"><Button icon={<LinkOutlined />} size="small" onClick={()=>handleCopyLink(r.uuid)} /></Tooltip>
                   <Tooltip title="Xem & In"><Button icon={<PrinterOutlined />} size="small" onClick={()=>{openDetailModal(r); setTimeout(()=>setIsPreviewOpen(true), 500)}} /></Tooltip>
                   <Tooltip title="Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, true)} /></Tooltip>
                   <Popconfirm title="Xóa?" onConfirm={()=>handleDeleteQuote(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
                   <Divider type="vertical" />
-                  <Popconfirm title="Chốt đơn?" onConfirm={()=>handleConvertQuote(r.id, true)}><Button type="primary" size="small" icon={<CheckOutlined />} /></Popconfirm>
+                  <Popconfirm title="Xác nhận?" onConfirm={()=>handleConvertQuote(r.id, true)}><Button type="primary" size="small" icon={<CheckOutlined />} /></Popconfirm>
               </Space>
-          ) : <span style={{color:'#ccc'}}>Đã khóa</span>
+          ) : <span style={{color:'#ccc'}}>Đã chuyển</span>
       }
   ];
 
@@ -224,16 +196,28 @@ const CrmPage: React.FC = () => {
       { title: 'Mã SO', dataIndex: 'order_code', render: (t:any) => <b>{t}</b> },
       { title: 'Khách', dataIndex: 'customer', render: (c:any) => c?.name },
       { title: 'Ngày giao', dataIndex: 'delivery_date', render: (t:any) => t ? dayjs(t).format('DD/MM') : '-' },
-      { title: 'TT', dataIndex: 'status', render: (t:any) => <Tag color="green">{t}</Tag> },
-      { title: '', key: 'act', render: (_:any, r:any) => <Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, false)} /> }
+      { 
+          title: 'TT', dataIndex: 'status', align: 'center' as const,
+          render: (t:any) => t === 'SO_PENDING' ? <Tag color="warning">Chờ Duyệt Mẫu</Tag> : <Tag color="green">{t}</Tag> 
+      },
+      { 
+          title: 'Thao tác', key: 'act', align: 'right' as const,
+          render: (_:any, r:any) => (
+              <Space>
+                  {/* Link cho khach xem tien do SO */}
+                  <Tooltip title="Link Portal"><Button icon={<LinkOutlined />} size="small" onClick={()=>handleCopyLink(r.uuid)} /></Tooltip>
+                  <Tooltip title="Chi tiết & Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, false)} /></Tooltip>
+              </Space>
+          )
+      }
   ];
 
   return (
     <div>
       <Row gutter={16} style={{marginBottom: 16}}>
           <Col span={8}><Card><Statistic title="Leads" value={leads.length} prefix={<UserOutlined />} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Báo Giá" value={quotes.filter((q:any)=>q.status==='QUOTATION').length} prefix={<FileTextOutlined />} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Đơn Hàng" value={orders.length} prefix={<DollarOutlined />} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Báo Giá" value={quotes.length} prefix={<FileTextOutlined />} /></Card></Col>
+          <Col span={8}><Card><Statistic title="Đơn Hàng (SO)" value={orders.length} prefix={<DollarOutlined />} /></Card></Col>
       </Row>
 
       <Card title="Quản Lý Kinh Doanh (CRM)" extra={<Button icon={<ReloadOutlined />} onClick={fetchData} />}>
@@ -254,13 +238,19 @@ const CrmPage: React.FC = () => {
         products={products}
       />
 
-      <Modal title="Xem Trước Báo Giá" open={isPreviewOpen} onCancel={()=>setIsPreviewOpen(false)} footer={null} width={900}>
+      <Modal title="Xem Trước" open={isPreviewOpen} onCancel={()=>setIsPreviewOpen(false)} footer={null} width={900}>
           <div id="printableArea"><QuotationTemplate data={editingOrder} /></div>
           <div style={{textAlign:'center', marginTop:20}}><Button type="primary" onClick={()=>{ const c = document.getElementById('printableArea'); const w = window.open(); if(w && c) { w.document.write(c.innerHTML); w.print(); } }}>In Ngay</Button></div>
       </Modal>
 
       <Modal title="Tạo Lead" open={isLeadModalOpen} onCancel={()=>setIsLeadModalOpen(false)} onOk={()=>formLead.submit()}><Form form={formLead} layout="vertical" onFinish={handleSaveLead}><Form.Item name="code" label="Mã"><Input disabled /></Form.Item><Form.Item name="name" label="Tên" rules={[{required:true}]}><Input /></Form.Item><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Form></Modal>
-      <Drawer title="Chăm sóc" open={followDrawerOpen} onClose={()=>setFollowDrawerOpen(false)} footer={<Button type="primary" block onClick={handleCreateQuoteFromFollow}>Tạo Báo Giá</Button>}><Input.TextArea rows={3} value={followNote} onChange={e=>setFollowNote(e.target.value)} /><Button block style={{marginTop:10}} onClick={handleFollowLead}>Lưu</Button><Divider /><Timeline>{currentCustomer?.history?.map((h:any,i:number)=><Timeline.Item key={i}>{h.note}</Timeline.Item>)}</Timeline></Drawer>
+      
+      {/* DRAWER FIX */}
+      <Drawer title={`Chăm sóc: ${currentCustomer?.name}`} open={followDrawerOpen} onClose={()=>setFollowDrawerOpen(false)} footer={<Button type="primary" block onClick={handleCreateQuoteFromFollow}>Tạo Báo Giá Ngay</Button>}>
+          <div style={{marginBottom:20}}><Input.TextArea rows={3} value={followNote} onChange={e=>setFollowNote(e.target.value)} placeholder="Ghi chú..." /><Button block type="primary" style={{marginTop:10}} onClick={handleFollowLead}>Lưu</Button></div>
+          <Divider>Lịch sử</Divider>
+          <Timeline mode="left">{currentCustomer?.history?.map((h:any,i:number)=><Timeline.Item key={i} label={<span style={{fontSize:11}}>{dayjs(h.date).format('DD/MM HH:mm')}</span>}>{h.note}</Timeline.Item>)}</Timeline>
+      </Drawer>
     </div>
   );
 };
