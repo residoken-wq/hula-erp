@@ -1,202 +1,179 @@
 import React from 'react';
-import { Row, Col, Divider, Typography, Table, Image } from 'antd';
+import { Row, Col, Typography, Table, Divider, Tag, Image } from 'antd';
+import { FileImageOutlined, CheckCircleFilled } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
-interface Props {
-    data: any; // Dữ liệu Sales Order đầy đủ
-}
+const QuotationTemplate: React.FC<{ data: any }> = ({ data }) => {
+  if (!data) return null;
 
-const QuotationTemplate: React.FC<Props> = ({ data }) => {
-    if (!data) return null;
+  // 1. LOGIC ĐỔI TIÊU ĐỀ
+  // Nếu đã cọc hoặc trạng thái đã qua bước duyệt mẫu -> Là Đơn Hàng
+  const isOrder = ['DEPOSITED', 'PLANNED', 'PARTIAL_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(data.status) || Number(data.paid_amount) > 0;
+  const docTitle = isOrder ? "ĐƠN ĐẶT HÀNG" : "BẢNG BÁO GIÁ";
+  const docIdPrefix = isOrder ? "SO" : "QUOTE";
 
-    // --- MAPPING DATA ĐỂ KHỚP VỚI PDF ---
-    const sellerInfo = {
-        name: 'CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH',
-        address: '74/21/2A Nguyễn Khuyến, P. 12, Q. Bình Thạnh, TP. HCM',
-        phone: '0983.882210 - 0983.796654',
-        email: 'nemmamnonhula@gmail.com',
-        taxCode: '0311.874.522',
-        bankAccount: '141847859',
-        bankName: 'NH Thương mại Cổ phần Á Châu (ACB)'
-    };
+  // Tính toán tiền
+  const paidAmount = Number(data.paid_amount) || 0;
+  const remainingAmount = Number(data.total_amount) - paidAmount;
 
-    const columns = [
-        { 
-            title: 'STT', 
-            width: 50, 
-            align: 'center' as const,
-            render: (_:any, __:any, index:number) => index + 1 
-        },
-        { 
-            title: 'Tên Sản phẩm', 
-            dataIndex: 'sku', 
-            render: (t:any) => <b>{t}</b> 
-        },
-        { 
-            title: 'Chất liệu / Mô tả', 
-            width: 200,
-            render: () => (
-                <div style={{fontSize: 12}}>
-                    - Vải cotton CARA/Dù<br/>
-                    - Chần gòn 300gr<br/>
-                    - Viền vải dù, chống trượt
-                </div>
-            ) 
-        },
-        { 
-            title: 'Kích thước', 
-            dataIndex: 'sku',
-            align: 'center' as const,
-            render: (t: string) => {
-                // Giả lập bóc tách kích thước từ SKU hoặc attributes nếu có
-                // VD: NMN_120x60 -> 120 x 60 cm
-                return t.includes('_') ? t.split('_').find(s => s.includes('x')) || '-' : '-';
-            } 
-        },
-        { 
-            title: 'SL', 
-            dataIndex: 'quantity', 
-            align: 'center' as const,
-            render: (v:any) => <b>{Number(v)}</b>
-        },
-        { 
-            title: 'Đơn giá', 
-            dataIndex: 'unit_price', 
-            align: 'right' as const, 
-            render: (v:any) => Number(v).toLocaleString() 
-        },
-        { 
-            title: 'Thành tiền', 
-            dataIndex: 'subtotal', 
-            align: 'right' as const, 
-            render: (v:any) => <b>{Number(v).toLocaleString()}</b> 
-        },
-        // { 
-        //     title: 'Ảnh', 
-        //     width: 80,
-        //     render: () => <div style={{width:50, height:50, background:'#eee', margin:'0 auto'}}></div> 
-        // }
-    ];
+  return (
+    <div style={{ padding: 40, background: '#fff', fontSize: 14, fontFamily: 'Times New Roman, serif' }}>
+      
+      {/* HEADER */}
+      <Row justify="space-between" align="middle" style={{borderBottom: '2px solid #1890ff', paddingBottom: 20, marginBottom: 30}}>
+          <Col span={12}>
+              <div style={{border: '2px solid #1890ff', padding: '10px 20px', display: 'inline-block', textAlign:'center', minWidth: 200}}>
+                  <Title level={4} style={{margin: 0, color: '#1890ff', textTransform: 'uppercase'}}>HULA</Title>
+                  <Text type="secondary">NỆM MẦM NON</Text>
+              </div>
+          </Col>
+          <Col span={12} style={{textAlign: 'right'}}>
+              <Title level={2} style={{margin: 0, color: '#1890ff', textTransform: 'uppercase'}}>{docTitle}</Title>
+              <div>Số: <b>{data.order_code}</b></div>
+              <div>TP. HCM, ngày {dayjs(data.order_date).format('DD')} tháng {dayjs(data.order_date).format('MM')} năm {dayjs(data.order_date).format('YYYY')}</div>
+          </Col>
+      </Row>
 
-    return (
-        <div className="quotation-paper" style={{ padding: '40px', background: '#fff', width: '100%', maxWidth: '210mm', minHeight: '297mm', margin: '0 auto', fontFamily: 'Times New Roman, serif', color: '#000' }}>
-            
-            {/* --- HEADER --- */}
-            <Row gutter={24} align="middle">
-                <Col span={8}>
-                    {/* LOGO GIẢ LẬP */}
-                    <div style={{border:'2px solid #0050b3', color:'#0050b3', padding: 10, textAlign:'center', fontWeight:'bold', fontSize: 24}}>
-                        HULA <br/><span style={{fontSize:12}}>NỆM MẦM NON</span>
+      {/* INFO */}
+      <Row gutter={40} style={{marginBottom: 30}}>
+          <Col span={12}>
+              <div style={{background: '#f5f7fa', padding: 15, borderRadius: 8, height: '100%'}}>
+                  <h4 style={{marginTop:0, color:'#1890ff', borderBottom:'1px solid #ddd', paddingBottom:5}}>BÊN BÁN (PARTY A)</h4>
+                  <p><b>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</b></p>
+                  <p>📍 74/21/2A Nguyễn Khuyến, P. 12, Q. Bình Thạnh, TP. HCM</p>
+                  <p>📞 0983.882210 - 0983.796654</p>
+                  <p>✉️ nemmamnonhula@gmail.com</p>
+                  <p><b>MST:</b> 0311.874.522</p>
+              </div>
+          </Col>
+          <Col span={12}>
+              <div style={{background: '#fff', border:'1px solid #eee', padding: 15, borderRadius: 8, height: '100%'}}>
+                  <h4 style={{marginTop:0, color:'#1890ff', borderBottom:'1px solid #ddd', paddingBottom:5}}>BÊN MUA (PARTY B)</h4>
+                  <p><b>{data.customer_name || data.receiver_name}</b></p>
+                  <p>📍 {data.vat_address || data.shipping_address || '...'}</p>
+                  <p>📞 {data.receiver_phone || '...'}</p>
+                  <p><b>MST:</b> {data.vat_tax_code || '...'}</p>
+              </div>
+          </Col>
+      </Row>
+
+      <p>Kính gửi Quý khách hàng bảng chi tiết các sản phẩm như sau:</p>
+
+      {/* TABLE */}
+      <Table
+        dataSource={data.items}
+        pagination={false}
+        rowKey="id"
+        bordered
+        size="small"
+        columns={[
+            { title: 'STT', width: 50, align: 'center', render: (_:any, __:any, index:number) => index + 1 },
+            { 
+                title: 'Tên Sản phẩm', 
+                render: (r:any) => (
+                    <div>
+                        <div style={{fontWeight:500}}>{r.sku}</div>
+                        {/* 2. HIỂN THỊ LINK MẪU ĐÃ DUYỆT */}
+                        {r.is_sample_approved && (
+                            <div style={{marginTop: 5, fontSize: 12}}>
+                                <Tag color="success" icon={<CheckCircleFilled />}>Mẫu đã duyệt</Tag>
+                                {r.sample_image && (
+                                    <a href={r.sample_image} target="_blank" rel="noreferrer" style={{color: '#1890ff'}}>
+                                        <FileImageOutlined /> Xem hình ảnh
+                                    </a>
+                                )}
+                            </div>
+                        )}
+                        {/* Biến thể màu */}
+                        {r.variant_color && <div style={{fontSize:12, color:'#666'}}>Màu: {r.variant_color}</div>}
                     </div>
-                </Col>
-                <Col span={16} style={{textAlign:'right'}}>
-                    <h1 style={{color: '#0050b3', margin: 0, fontSize: 28}}>BẢNG BÁO GIÁ</h1>
-                    <div style={{fontSize: 14}}>
-                        <b>Số BG:</b> {data.order_code}<br/>
-                        <i>TP. HCM, ngày {dayjs(data.order_date).format('DD')} tháng {dayjs(data.order_date).format('MM')} năm {dayjs(data.order_date).format('YYYY')}</i>
+                ) 
+            },
+            { 
+                title: 'Chi tiết / Mô tả', 
+                render: (r:any) => (
+                    <div style={{fontSize: 12, color: '#666'}}>
+                        {r.variant_color && <div>- Màu: {r.variant_color}</div>}
+                        {r.sample_note && <div style={{fontStyle:'italic'}}>- Note: {r.sample_note}</div>}
                     </div>
-                </Col>
-            </Row>
+                ) 
+            },
+            { title: 'SL', dataIndex: 'quantity', align: 'center', width: 60 },
+            { title: 'ĐVT', width: 60, align: 'center', render: () => 'Cái' },
+            { title: 'Đơn giá', dataIndex: 'unit_price', align: 'right', render: (v:any) => Number(v).toLocaleString() },
+            { title: 'Thành tiền', dataIndex: 'subtotal', align: 'right', render: (v:any) => <b>{Number(v).toLocaleString()}</b> }
+        ]}
+        summary={() => {
+            return (
+                <>
+                    <Table.Summary.Row>
+                        <Table.Summary.Cell index={0} colSpan={6} align="right">Cộng tiền hàng:</Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} align="right"><b>{(Number(data.total_amount) - data.shipping_fee - (data.total_amount * data.vat_rate / (100 + data.vat_rate))).toLocaleString()}</b></Table.Summary.Cell>
+                    </Table.Summary.Row>
+                    <Table.Summary.Row>
+                        <Table.Summary.Cell index={0} colSpan={6} align="right">Thuế GTGT ({data.vat_rate}%):</Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} align="right">{((data.total_amount - data.shipping_fee) * data.vat_rate / (100 + data.vat_rate)).toLocaleString()}</Table.Summary.Cell>
+                    </Table.Summary.Row>
+                    <Table.Summary.Row>
+                        <Table.Summary.Cell index={0} colSpan={6} align="right">Phí vận chuyển:</Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee).toLocaleString()}</Table.Summary.Cell>
+                    </Table.Summary.Row>
+                    <Table.Summary.Row>
+                        <Table.Summary.Cell index={0} colSpan={6} align="right"><b style={{fontSize: 16}}>TỔNG CỘNG:</b></Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} align="right"><b style={{fontSize: 16, color: '#cf1322'}}>{Number(data.total_amount).toLocaleString()} ₫</b></Table.Summary.Cell>
+                    </Table.Summary.Row>
 
-            <Divider style={{borderColor: '#0050b3', borderWidth: 2, margin: '20px 0'}} />
-
-            {/* --- INFO SECTION --- */}
-            <Row gutter={48}>
-                {/* BÊN BÁN */}
-                <Col span={12}>
-                    <div style={{background:'#f0f5ff', padding: 15, borderRadius: 8, height: '100%'}}>
-                        <h4 style={{marginTop:0, color:'#0050b3', borderBottom:'1px solid #ccc', paddingBottom:5}}>BÊN BÁN (PARTY A)</h4>
-                        <div style={{fontSize: 13, lineHeight: '1.6'}}>
-                            <b>{sellerInfo.name}</b><br/>
-                            📍 {sellerInfo.address}<br/>
-                            📞 {sellerInfo.phone}<br/>
-                            ✉️ {sellerInfo.email}<br/>
-                            <b>MST:</b> {sellerInfo.taxCode}<br/>
-                            <b>TK:</b> {sellerInfo.bankAccount} - {sellerInfo.bankName}
-                        </div>
-                    </div>
-                </Col>
-
-                {/* BÊN MUA */}
-                <Col span={12}>
-                    <div style={{border:'1px solid #ddd', padding: 15, borderRadius: 8, height: '100%'}}>
-                        <h4 style={{marginTop:0, color:'#0050b3', borderBottom:'1px solid #ccc', paddingBottom:5}}>BÊN MUA (PARTY B)</h4>
-                        <div style={{fontSize: 13, lineHeight: '1.6'}}>
-                            <b>{data.vat_company_name || data.customer_name}</b><br/>
-                            📍 {data.vat_address || data.shipping_address || '...'}<br/>
-                            📞 {data.receiver_phone || data.customer?.phone || '...'}<br/>
-                            <b>Người liên hệ:</b> {data.receiver_name || data.customer_name}<br/>
-                            <b>MST:</b> {data.vat_tax_code || '...'}<br/>
-                        </div>
-                    </div>
-                </Col>
-            </Row>
-
-            <br/>
-            <p>Kính gửi Quý khách hàng bảng báo giá chi tiết các sản phẩm như sau:</p>
-
-            {/* --- TABLE --- */}
-            <Table 
-                dataSource={data.items} 
-                columns={columns} 
-                pagination={false} 
-                bordered 
-                size="small"
-                summary={(pageData) => {
-                    let total = 0;
-                    pageData.forEach(({ subtotal }) => { total += Number(subtotal); });
-                    return (
+                    {/* 3. HIỂN THỊ THÔNG TIN THANH TOÁN (NẾU CÓ) */}
+                    {paidAmount > 0 && (
                         <>
+                            <Table.Summary.Row style={{background: '#f6ffed'}}>
+                                <Table.Summary.Cell index={0} colSpan={6} align="right"><b style={{color: 'green'}}>ĐÃ THANH TOÁN / ĐẶT CỌC:</b></Table.Summary.Cell>
+                                <Table.Summary.Cell index={1} align="right"><b style={{color: 'green'}}>{paidAmount.toLocaleString()} ₫</b></Table.Summary.Cell>
+                            </Table.Summary.Row>
                             <Table.Summary.Row>
-                                <Table.Summary.Cell index={0} colSpan={6} align="right"><b>TỔNG CỘNG</b></Table.Summary.Cell>
-                                <Table.Summary.Cell index={1} align="right"><b style={{fontSize: 16, color:'#cf1322'}}>{total.toLocaleString()} ₫</b></Table.Summary.Cell>
+                                <Table.Summary.Cell index={0} colSpan={6} align="right"><b style={{color: '#faad14'}}>SỐ TIỀN CÒN LẠI:</b></Table.Summary.Cell>
+                                <Table.Summary.Cell index={1} align="right"><b style={{color: '#faad14'}}>{remainingAmount.toLocaleString()} ₫</b></Table.Summary.Cell>
                             </Table.Summary.Row>
                         </>
-                    );
-                }}
-            />
-            
-            <div style={{textAlign:'right', fontStyle:'italic', marginTop: 5}}>
-                (Bằng chữ: ........................................................................)
-            </div>
+                    )}
+                </>
+            );
+        }}
+      />
 
-            {/* --- TERMS & CONDITIONS --- */}
-            <div style={{marginTop: 30, fontSize: 13}}>
-                <h4 style={{borderBottom:'1px solid #000', display:'inline-block'}}>GHI CHÚ & ĐIỀU KHOẢN:</h4>
-                <ul style={{paddingLeft: 20, lineHeight: '1.8'}}>
-                    <li>Giá trên <b>chưa bao gồm</b> thuế GTGT (VAT) và Phí giao hàng (nếu có).</li>
-                    <li><b>Thời gian giao hàng:</b> {data.delivery_date ? dayjs(data.delivery_date).format('DD/MM/YYYY') : '3-5 ngày đối với hàng có sẵn'}.</li>
-                    <li><b>Hiệu lực báo giá:</b> 07 ngày kể từ ngày phát hành.</li>
-                    <li><b>Thanh toán:</b> {data.payment_note || 'Tạm ứng 50% ngay khi xác nhận đơn, 50% còn lại trước khi giao hàng.'}</li>
-                    <li><b>Thông tin chuyển khoản:</b>
-                        <ul style={{listStyleType: 'none', paddingLeft: 0, fontWeight:'bold', color: '#0050b3'}}>
-                            <li>CTK: {sellerInfo.name}</li>
-                            <li>STK: {sellerInfo.bankAccount} - {sellerInfo.bankName}</li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
+      <div style={{marginTop: 20}}>
+          <p><i>(Bằng chữ: .........................................................................................................................)</i></p>
+      </div>
 
-            {/* --- SIGNATURE --- */}
-            <Row style={{marginTop: 60}}>
-                <Col span={12} style={{textAlign:'center'}}>
-                    <b>ĐẠI DIỆN KHÁCH HÀNG</b><br/>
-                    <i>(Ký, ghi rõ họ tên)</i>
-                </Col>
-                <Col span={12} style={{textAlign:'center'}}>
-                    <b>ĐẠI DIỆN CÔNG TY TƯỜNG LINH</b><br/>
-                    <i>(Ký, đóng dấu)</i>
-                    <div style={{marginTop: 80}}>
-                        <b>Phạm Thu Hằng</b><br/>
-                        <i style={{fontSize:12}}>Giám Đốc</i>
-                    </div>
-                </Col>
-            </Row>
+      <div style={{marginTop: 30}}>
+          <b>GHI CHÚ & ĐIỀU KHOẢN:</b>
+          <ul style={{fontSize: 13, paddingLeft: 20, marginTop: 5}}>
+              <li>Báo giá có hiệu lực trong vòng 07 ngày.</li>
+              <li>Thời gian giao hàng: {dayjs(data.delivery_date).isValid() ? dayjs(data.delivery_date).format('DD/MM/YYYY') : '3-5 ngày'} (hoặc theo thỏa thuận).</li>
+              <li><b>Thanh toán:</b> Tạm ứng 50% ngay khi xác nhận đơn, 50% còn lại trước khi giao hàng.</li>
+              <li><b>Thông tin chuyển khoản:</b></li>
+              <div style={{color: '#1890ff', fontWeight: 500, marginLeft: 10}}>
+                  CTK: CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH<br/>
+                  STK: 141847859 - NH Thương mại Cổ phần Á Châu (ACB)
+              </div>
+          </ul>
+      </div>
 
-        </div>
-    );
+      <Row style={{marginTop: 50, textAlign: 'center'}}>
+          <Col span={12}>
+              <b>ĐẠI DIỆN KHÁCH HÀNG</b><br/>
+              <i>(Ký, ghi rõ họ tên)</i>
+          </Col>
+          <Col span={12}>
+              <b>ĐẠI DIỆN CÔNG TY TƯỜNG LINH</b><br/>
+              <i>(Ký, đóng dấu)</i>
+              <div style={{height: 80}}></div>
+          </Col>
+      </Row>
+    </div>
+  );
 };
 
 export default QuotationTemplate;
