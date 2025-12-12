@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, message, Card, Modal, Form, Input, InputNumber, Select, Space, Drawer, List, Row, Col, Statistic, Tabs, Checkbox, Typography, Divider, Tooltip } from 'antd';
-import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SaveOutlined, CopyOutlined, MinusCircleOutlined, SearchOutlined, FilterOutlined, AppstoreAddOutlined, ArrowRightOutlined, CalculatorOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Select, Space, Drawer, List, Row, Col, Statistic, Tabs, Checkbox, Typography, Divider, Tooltip, Tag } from 'antd';
+import { ReloadOutlined, PlusOutlined, EditOutlined, CopyOutlined, MinusCircleOutlined, SearchOutlined, FilterOutlined, AppstoreAddOutlined, ArrowRightOutlined, CalculatorOutlined, SaveOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -22,7 +22,10 @@ const ProductsPage: React.FC = () => {
 
   const [comboDrawerOpen, setComboDrawerOpen] = useState(false);
   const [currentComboSku, setCurrentComboSku] = useState('');
-  const [comboItems, setComboItems] = useState([]);
+  
+  // FIX: Thêm <any[]> để tránh lỗi never[]
+  const [comboItems, setComboItems] = useState<any[]>([]);
+  
   const [childSku, setChildSku] = useState('');
   const [childQty, setChildQty] = useState(1);
 
@@ -55,7 +58,7 @@ const ProductsPage: React.FC = () => {
           setProcesses(resProc.data.map((p:any) => ({label: p.name, value: p.code, id: p.id, cost: p.standard_cost})));
       } catch(e) {}
 
-    } catch (e) { message.error('Lỗi tải dữ liệu'); }
+    } catch (e) { }
     setLoading(false);
   };
 
@@ -94,7 +97,6 @@ const ProductsPage: React.FC = () => {
       }));
   }, [rawList, searchText, filterCategory]);
 
-  // Calculations
   const calcBomTotal = () => (bomValues || []).reduce((sum:number, item:any) => {
       if (!item?.material_id) return sum;
       const mat = materials.find(m => m.value === item.material_id);
@@ -103,7 +105,6 @@ const ProductsPage: React.FC = () => {
   const calcRoutingTotal = () => (routingValues || []).reduce((sum:number, r:any) => r?.is_required ? sum + (Number(r.cost)||0) : sum, 0);
   const calcLogisticTotal = () => (logisticValues || []).reduce((sum:number, l:any) => sum + (Number(l?.cost)||0), 0);
 
-  // Actions
   const handleCreateNew = () => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); };
   const handleAddVariant = (group: any) => {
       setEditingItem(null); form.resetFields();
@@ -145,7 +146,6 @@ const ProductsPage: React.FC = () => {
           onOk: async () => { try { await axios.post(`${API_URL}/products/${targetItem.id}/sync-variants`); message.success('Đồng bộ xong'); } catch(e) { message.error('Lỗi'); } }
       });
   };
-  const handleDelete = async (id: number) => { try { await axios.delete(`${API_URL}/products/${id}`); fetchData(); } catch (e) { message.error('Lỗi xóa'); } };
   
   // Combo Actions
   const openComboConfig = (sku: string) => { setCurrentComboSku(sku); setComboDrawerOpen(true); loadComboItems(sku); };
@@ -201,7 +201,7 @@ const ProductsPage: React.FC = () => {
   const columns = [
     { title: 'Sản Phẩm', dataIndex: 'name', key: 'name', width: 250, render: (text:string, r:any) => r.isGroup ? <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}><b style={{fontSize:15, color:'#1890ff'}}>{text} <Tag>{r.children.length}</Tag></b><Button size="small" type="dashed" icon={<AppstoreAddOutlined />} onClick={(e) => { e.stopPropagation(); handleAddVariant(r); }}>Thêm Biến Thể</Button></div> : <Space>{r.attributes?.color && <Tag color="magenta">{r.attributes.color}</Tag>} {text}</Space> },
     { title: 'SKU', dataIndex: 'sku', width: 150, render: (t:any, r:any) => r.isGroup ? '' : <b>{t}</b> },
-    { title: 'ĐVT', dataIndex: 'unit', width: 80, align: 'center' as const, render: (t:any, r:any) => r.isGroup ? '' : <Tag>{t || '-'}</Tag> }, // HIEN THI DVT
+    { title: 'ĐVT', dataIndex: 'unit', width: 80, align: 'center' as const, render: (t:any, r:any) => r.isGroup ? '' : <Tag>{t || '-'}</Tag> },
     { title: 'Giá Bán', dataIndex: 'base_price', align: 'right' as const, width: 120, render: (v:any, r:any) => r.isGroup ? <small>{Number(r.minPrice).toLocaleString()} - {Number(r.maxPrice).toLocaleString()}</small> : Number(v).toLocaleString() },
     { title: 'Tồn Kho', dataIndex: 'quantity_in_stock', align: 'right' as const, width: 100, render: (v:any, r:any) => r.isGroup ? <b>{v}</b> : <span style={{color: v>0?'green':'red'}}>{v}</span> },
     { title: '', key: 'action', width: 100, render: (_: any, r: any) => !r.isGroup && (<Space><Tooltip title="Chỉnh sửa"><Button icon={<EditOutlined />} onClick={() => openEditModal(r)} /></Tooltip><Tooltip title="Copy BOM"><Button icon={<CopyOutlined />} onClick={() => handleSyncVariants(r)} /></Tooltip></Space>) },
@@ -233,10 +233,7 @@ const ProductsPage: React.FC = () => {
                         <Row gutter={16}><Col span={12}><Form.Item name="name" label="Tên SP" rules={[{required:true}]}><Input /></Form.Item></Col><Col span={12}><Form.Item name="sku" label="SKU" rules={[{required:true}]}><Input disabled={!!editingItem} /></Form.Item></Col></Row>
                         <Row gutter={16}>
                             <Col span={12}><Form.Item name="category_id" label="Danh Mục (Margin)" rules={[{required:true}]}><Select options={categories} /></Form.Item></Col>
-                            <Col span={12}>
-                                {/* --- FIX: THÊM TRƯỜNG ĐVT --- */}
-                                <Form.Item name="unit" label="Đơn vị tính" rules={[{required:true}]}><Input placeholder="Cái, Bộ, Mét..." /></Form.Item>
-                            </Col>
+                            <Col span={12}><Form.Item name="unit" label="Đơn vị tính" rules={[{required:true}]}><Input placeholder="Cái, Bộ, Mét..." /></Form.Item></Col>
                         </Row>
                         <Divider orientation="left">Thuộc tính</Divider>
                         <Row gutter={16}><Col span={8}><Form.Item name="color" label="Màu"><Input /></Form.Item></Col><Col span={8}><Form.Item name="size" label="Size"><Input /></Form.Item></Col><Col span={8}><Form.Item name="fabric" label="Chất liệu"><Input /></Form.Item></Col></Row>
