@@ -87,7 +87,6 @@ export class SalesService {
       if(data.customer_id) order.customer = { id: data.customer_id } as any;
 
       let itemsTotal = 0;
-      // Allow update if QUOTATION, SO_PENDING or SAMPLE_APPROVED (to fix details before deposit)
       if (data.items && (order.status === SalesOrderStatus.QUOTATION || order.status === SalesOrderStatus.SO_PENDING || order.status === SalesOrderStatus.SAMPLE_APPROVED)) {
           await this.orderRepo.createQueryBuilder().relation(SalesOrder, "items").of(order).remove(order.items);
           
@@ -119,18 +118,11 @@ export class SalesService {
       return this.orderRepo.save(order);
   }
 
-  // --- FIX: Cập nhật trạng thái Order thành SAMPLE_APPROVED ---
   async approveAllSamples(id: number) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();
-      
-      // Update Items
       for(const item of order.items) { item.is_sample_approved = true; await this.orderRepo.manager.save(item); }
-      
-      // Update Order Status
-      if (order.status === SalesOrderStatus.SO_PENDING) {
-          order.status = SalesOrderStatus.SAMPLE_APPROVED;
-      }
+      if (order.status === SalesOrderStatus.SO_PENDING) order.status = SalesOrderStatus.SAMPLE_APPROVED;
       return this.orderRepo.save(order);
   }
 
@@ -139,7 +131,6 @@ export class SalesService {
     if (!order) throw new NotFoundException();
     order.paid_amount = Number(order.paid_amount || 0) + Number(amount);
     
-    // Logic tự động chuyển trạng thái khi có tiền
     if (order.paid_amount > 0 && (order.status === SalesOrderStatus.SO_PENDING || order.status === SalesOrderStatus.SAMPLE_APPROVED)) {
         order.status = SalesOrderStatus.DEPOSITED;
     }
@@ -161,17 +152,36 @@ export class SalesService {
       return this.convertQuoteToSo(order.id, action === 'ACCEPT');
   }
   async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
+  
+  // --- FIX: createDelivery ---
   async createDelivery(orderId: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id: orderId } });
       if (!order) throw new NotFoundException('Not found');
-      const delivery = this.deliveryRepo.create({ code: data.code, delivery_date: data.date, note: data.note, sales_order: order, items: data.items.map((i:any) => ({ sku: i.sku, quantity: i.quantity })) });
+      
+      const delivery = this.deliveryRepo.create({
+          code: data.code,
+          delivery_date: data.date,
+          note: data.note,
+          sales_order: order,
+          // FIX: Ép kiểu Integer (Math.floor/round) để tránh lỗi "30.00"
+          items: data.items.map((i:any) => ({ 
+              sku: i.sku, 
+              quantity: Math.floor(Number(i.quantity)) 
+          }))
+      });
+
+      // Trừ kho cũng cần số nguyên
       for (const item of data.items) {
            const product = await this.productsService.findOneBySku(item.sku);
-           if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, item.quantity, delivery.code, `Giao hang ${order.order_code}`);
+           if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, Math.floor(Number(item.quantity)), delivery.code, `Giao hang ${order.order_code}`);
       }
       await this.deliveryRepo.save(delivery);
+      
+      // Update Status
       order.status = SalesOrderStatus.PARTIAL_DELIVERY; 
+      // Kiem tra xem giao het chua (Logic phuc tap hon, tam thoi set Partial)
       return this.orderRepo.save(order);
   }
+
   async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
 }
