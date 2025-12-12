@@ -5,7 +5,7 @@ import { SalesOrderItem } from './sales-order-item.entity';
 import { ProductSample } from './product-sample.entity';
 import { SalesDelivery } from './sales-delivery.entity';
 import { SalesDeliveryItem } from './sales-delivery-item.entity';
-import { SalesComment } from './sales-comment.entity'; // <-- BẮT BUỘC
+import { SalesComment } from './sales-comment.entity'; // <--- 1. IMPORT
 import { Transaction } from '../finance/transaction.entity';
 
 import { SalesController } from './sales.controller';
@@ -23,7 +23,7 @@ import { FinanceModule } from '../finance/finance.module';
         ProductSample, 
         SalesDelivery, 
         SalesDeliveryItem,
-        SalesComment, // <-- QUAN TRỌNG NHẤT: Đăng ký Entity này
+        SalesComment, // <--- 2. BẮT BUỘC PHẢI CÓ Ở ĐÂY
         Transaction
     ]),
     ProductsModule,
