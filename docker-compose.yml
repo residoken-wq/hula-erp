@@ -1,9 +1,10 @@
 version: '3.8'
 
 services:
-  # 1. DATABASE
   db:
-    image: postgres:13
+    image: postgres:15
+    container_name: hula_db
+    restart: always
     environment:
       POSTGRES_USER: hula_user
       POSTGRES_PASSWORD: hula_password
@@ -11,34 +12,43 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
+    # --- THÊM PHẦN NÀY: Kiểm tra sức khỏe DB ---
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hula_user -d hula_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # -------------------------------------------
 
-  # 2. BACKEND
   app:
     build: .
+    container_name: hula_app
+    restart: always
     ports:
       - "3000:3000"
-    depends_on:
-      - db
-    volumes:
-      - ./src:/app/src
     environment:
       DB_HOST: db
       DB_PORT: 5432
       DB_USERNAME: hula_user
       DB_PASSWORD: hula_password
       DB_DATABASE: hula_db
-
-  # 3. FRONTEND (Sua lai volume)
-  frontend:
-    build: ./frontend
-    ports:
-      - "80:5173"
+    # --- THÊM PHẦN NÀY: Chờ DB khỏe mới chạy ---
+    depends_on:
+      db:
+        condition: service_healthy
+    # -------------------------------------------
     volumes:
-      - ./frontend:/app
-      - /app/node_modules # <--- DONG QUAN TRONG: GIU LAI THU VIEN
-    environment:
-      - VITE_API_URL=http://35.235.245.130:3000
+      - ./src:/app/src  # Hot reload
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: hula_frontend
+    restart: always
+    ports:
+      - "80:80"
     depends_on:
       - app
 
