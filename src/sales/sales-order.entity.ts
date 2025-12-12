@@ -2,15 +2,23 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, Ma
 import { SalesOrderItem } from './sales-order-item.entity';
 import { Customer } from '../customers/customer.entity';
 import { ProductionPlan } from '../planning/production-plan.entity';
+import { Transaction } from '../finance/transaction.entity'; // De link history
 
 export enum SalesOrderStatus {
   QUOTATION = 'QUOTATION',   
   SO_PENDING = 'SO_PENDING', 
   DEPOSITED = 'DEPOSITED',   
-  PLANNED = 'PLANNED',       
-  SHIPPING = 'SHIPPING',     
-  COMPLETED = 'COMPLETED',   
+  PLANNED = 'PLANNED',
+  PARTIAL_DELIVERY = 'PARTIAL_DELIVERY', // Mới: Giao 1 phần
+  DELIVERED = 'DELIVERED',   // Mới: Giao xong
+  COMPLETED = 'COMPLETED',   // Hoàn tất (Giao xong + Trả đủ tiền)
   CANCELLED = 'CANCELLED'    
+}
+
+export enum PaymentStatus {
+  UNPAID = 'UNPAID',
+  PARTIAL_PAID = 'PARTIAL_PAID',
+  PAID = 'PAID'
 }
 
 @Entity('sales_orders')
@@ -21,7 +29,6 @@ export class SalesOrder {
   @Column({ unique: true })
   order_code: string; 
 
-  // --- KHACH HANG ---
   @ManyToOne(() => Customer, { nullable: true })
   @JoinColumn({ name: 'customer_id' })
   customer: Customer;
@@ -30,50 +37,47 @@ export class SalesOrder {
   customer_id: number;
 
   @Column({ nullable: true })
-  customer_name: string; // Tên hiển thị (Người mua)
+  customer_name: string;
 
-  // --- THONG TIN PHAP NHAN VAT (HOA DON) ---
+  // --- VAT & LOGISTICS ---
   @Column({ nullable: true })
-  vat_company_name: string; // Tên đơn vị mua hàng (trên hóa đơn)
-
+  vat_company_name: string;
   @Column({ nullable: true })
-  vat_tax_code: string; // MST
-
+  vat_tax_code: string; 
   @Column({ nullable: true })
-  vat_address: string; // Địa chỉ ĐKKD
-  // ----------------------------------------
-
-  // --- QUAN LY GIAO HANG (LOGISTICS) ---
+  vat_address: string;
+  
   @Column({ type: 'date', nullable: true })
-  delivery_date: Date; // Ngày giao dự kiến
-
+  delivery_date: Date; // DEADLINE CHO SAN XUAT
+  
   @Column({ nullable: true })
-  shipping_address: string; // Địa chỉ nhận hàng
-
+  shipping_address: string;
   @Column({ nullable: true })
-  receiver_name: string; // Người nhận
-
+  receiver_name: string;
   @Column({ nullable: true })
-  receiver_phone: string; // SĐT nhận
-
+  receiver_phone: string;
   @Column({ nullable: true })
-  shipping_carrier: string; // Đơn vị vận chuyển (GHTK, Viettel...)
-
+  shipping_carrier: string;
   @Column({ nullable: true })
-  tracking_code: string; // Mã vận đơn
-
+  tracking_code: string;
   @Column('decimal', { default: 0 })
-  shipping_fee: number; // Phí ship
-  // -------------------------------------
+  shipping_fee: number;
 
-  // --- THANH TOAN ---
+  // --- PAYMENT ---
   @Column('text', { nullable: true })
-  payment_note: string; // Ghi chú thanh toán (VD: CK 50% trước...)
+  payment_note: string;
   
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  paid_amount: number; // Đã thanh toán
-  // ------------------
+  paid_amount: number;
 
+  @Column({
+      type: 'enum',
+      enum: PaymentStatus,
+      default: PaymentStatus.UNPAID
+  })
+  payment_status: PaymentStatus;
+
+  // --- PRODUCTION LINK ---
   @ManyToOne(() => ProductionPlan, (plan) => plan.sales_orders, { nullable: true })
   @JoinColumn({ name: 'plan_id' })
   production_plan: ProductionPlan;
