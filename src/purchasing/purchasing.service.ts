@@ -38,7 +38,6 @@ export class PurchasingService {
           const sub = Number(i.quantity) * Number(i.price);
           itemsTotal += sub;
           return this.itemRepo.create({
-              // FIX: Ép kiểu as any để tránh lỗi TS2769 nếu strict mode
               material_id: i.material_id || null, 
               product_id: i.product_id || null,   
               description: i.description,
@@ -115,7 +114,8 @@ export class PurchasingService {
   // --- FIX: THEM HAM UPDATE PAYMENT ---
   async updatePayment(poCode: string, amount: number) {
       const po = await this.poRepo.findOne({ where: { po_code: poCode } });
-      if (!po) throw new NotFoundException('PO Not Found'); // Hoặc return null để FinanceService biết đây là SO
+      if (!po) return null; // Trả về null nếu không tìm thấy, để FinanceService không lỗi
+      
       po.paid_amount = Number(po.paid_amount || 0) + Number(amount);
       if (po.paid_amount >= po.total_amount && po.status === POStatus.RECEIVED) {
           po.status = POStatus.COMPLETED;

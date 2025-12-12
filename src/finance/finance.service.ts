@@ -18,12 +18,23 @@ export class FinanceService {
     const transaction = this.transactionRepo.create(data);
     const saved = await this.transactionRepo.save(transaction);
 
-    // Tu dong cap nhat status don hang
+    // Tu dong cap nhat status don hang (SO hoac PO)
     if (data.refCode) {
         if (data.type === 'INCOME') {
-            try { await this.salesService.updatePayment(data.refCode, data.amount); } catch(e) {}
+            // Thu tiền -> Cập nhật SO
+            try { 
+                await this.salesService.updatePayment(data.refCode, data.amount); 
+            } catch(e) {
+                // SalesService throw NotFound nếu không tìm thấy -> Ignore hoặc log warning
+                console.warn(`Không tìm thấy SO với mã ${data.refCode} để cập nhật thanh toán`);
+            }
         } else if (data.type === 'EXPENSE') {
-            try { await this.purchasingService.updatePayment(data.refCode, data.amount); } catch(e) {}
+            // Chi tiền -> Cập nhật PO
+            try { 
+                await this.purchasingService.updatePayment(data.refCode, data.amount); 
+            } catch(e) {
+                console.warn(`Không tìm thấy PO với mã ${data.refCode} để cập nhật thanh toán`);
+            }
         }
     }
     return saved;
