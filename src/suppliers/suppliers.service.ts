@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Supplier } from './supplier.entity';
 import { SupplierMaterial } from './supplier-material.entity';
 import { ProductRouting } from '../products/product-routing.entity';
-import { Material } from '../materials/material.entity'; // <-- Import
+import { Material } from '../materials/material.entity';
 
 @Injectable()
 export class SuppliersService {
@@ -19,7 +19,7 @@ export class SuppliersService {
     private routingRepo: Repository<ProductRouting>,
 
     @InjectRepository(Material)
-    private materialRepo: Repository<Material>, // <-- Inject
+    private materialRepo: Repository<Material>,
   ) {}
 
   async create(data: any) {
@@ -50,11 +50,10 @@ export class SuppliersService {
     return { deleted: true };
   }
 
-  // --- FIX: LOGIC THÊM GIÁ + NGÀY HIỆU LỰC + GIÁ MẶC ĐỊNH ---
   async addMaterialPrice(supplierId: number, data: any) {
       const { material_id, price, valid_from, is_preferred } = data;
 
-      // 1. Tìm xem đã có giá của NPL này với NCC này chưa
+      // 1. Upsert: Tìm xem đã có chưa
       let record = await this.supplierMaterialRepo.findOne({
           where: {
               supplier: { id: supplierId },
@@ -63,12 +62,10 @@ export class SuppliersService {
       });
 
       if (record) {
-          // Cập nhật
           record.price = price;
           record.valid_from = valid_from;
           record.is_preferred = is_preferred;
       } else {
-          // Tạo mới
           record = this.supplierMaterialRepo.create({
               supplier: { id: supplierId },
               material: { id: material_id },
@@ -80,15 +77,9 @@ export class SuppliersService {
       
       const saved = await this.supplierMaterialRepo.save(record);
 
-      // 2. LOGIC QUAN TRỌNG: Nếu chọn là giá mặc định (is_preferred = true)
-      // Thì cập nhật giá này vào bảng Material gốc để tính BOM
+      // 2. Nếu là giá mặc định -> Update vào bảng Material gốc
       if (is_preferred) {
-          await this.materialRepo.update(material_id, { 
-              cost_price: price 
-          });
-          
-          // (Tùy chọn) Bỏ tick mặc định của các NCC khác cho cùng NPL này (để chỉ có 1 giá chuẩn)
-          // await this.supplierMaterialRepo.update({ material_id, is_preferred: true, id: Not(saved.id) }, { is_preferred: false });
+          await this.materialRepo.update(material_id, { cost_price: price });
       }
 
       return saved;

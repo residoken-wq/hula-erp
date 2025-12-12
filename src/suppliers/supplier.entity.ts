@@ -1,7 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, UpdateDateColumn } from 'typeorm';
 import { SupplierMaterial } from './supplier-material.entity';
 import { SupplierContact } from './supplier-contact.entity';
-// QUAN TRỌNG: Import Entity ProductRouting
 import { ProductRouting } from '../products/product-routing.entity';
 
 export enum SupplierType {
@@ -55,7 +54,6 @@ export class Supplier {
   @OneToMany(() => SupplierMaterial, (sm) => sm.supplier)
   price_list: SupplierMaterial[];
 
-  // --- FIX: THÊM QUAN HỆ ROUTINGS (Để sửa lỗi crash API) ---
   @OneToMany(() => ProductRouting, (routing) => routing.supplier)
   routings: ProductRouting[];
 

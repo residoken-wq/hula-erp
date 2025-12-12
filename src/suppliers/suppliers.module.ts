@@ -6,7 +6,7 @@ import { SupplierMaterial } from './supplier-material.entity';
 import { SuppliersService } from './suppliers.service';
 import { SuppliersController } from './suppliers.controller';
 import { ProductRouting } from '../products/product-routing.entity';
-import { Material } from '../materials/material.entity'; // <-- THÊM
+import { Material } from '../materials/material.entity';
 
 @Module({
   imports: [
@@ -15,7 +15,7 @@ import { Material } from '../materials/material.entity'; // <-- THÊM
         SupplierContact, 
         SupplierMaterial, 
         ProductRouting,
-        Material // <-- THÊM VÀO ĐÂY
+        Material 
     ])
   ],
   controllers: [SuppliersController],

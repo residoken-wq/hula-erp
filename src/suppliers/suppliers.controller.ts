@@ -11,7 +11,6 @@ export class SuppliersController {
   @Put(':id') update(@Param('id') id: number, @Body() b: any) { return this.s.update(id, b); }
   @Delete(':id') remove(@Param('id') id: number) { return this.s.remove(id); }
 
-  // API Thêm giá NPL
   @Post(':id/material-price') 
   addPrice(@Param('id') id: number, @Body() b: any) { 
       return this.s.addMaterialPrice(id, b); 

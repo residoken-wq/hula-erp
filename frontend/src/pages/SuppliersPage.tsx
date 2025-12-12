@@ -17,12 +17,11 @@ const SuppliersPage: React.FC = () => {
   const [routings, setRoutings] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]); 
   
-  // State thêm giá
+  // State Input
   const [selectedMatId, setSelectedMatId] = useState<number | null>(null);
   const [inputPrice, setInputPrice] = useState<number>(0);
-  // --- MỚI ---
-  const [validDate, setValidDate] = useState<any>(dayjs()); // Ngày hiệu lực
-  const [isDefault, setIsDefault] = useState(false); // Giá mặc định
+  const [validDate, setValidDate] = useState<any>(dayjs());
+  const [isDefault, setIsDefault] = useState(false);
 
   const [form] = Form.useForm();
   const [searchText, setSearchText] = useState('');
@@ -68,7 +67,7 @@ const SuppliersPage: React.FC = () => {
       setEditingItem(item);
       form.setFieldsValue(item);
       setActiveTab('1');
-      // Reset inputs
+      
       setSelectedMatId(null); 
       setInputPrice(0);
       setValidDate(dayjs());
@@ -86,11 +85,12 @@ const SuppliersPage: React.FC = () => {
           await axios.post(`${API_URL}/suppliers/${editingItem.id}/material-price`, { 
               material_id: selectedMatId, 
               price: inputPrice,
-              valid_from: validDate, // Gửi ngày
-              is_preferred: isDefault // Gửi cờ mặc định
+              valid_from: validDate, 
+              is_preferred: isDefault
           });
           message.success(isDefault ? 'Đã lưu và cập nhật giá tính BOM' : 'Đã thêm giá');
           
+          // Reset
           setSelectedMatId(null);
           setInputPrice(0);
           setIsDefault(false);
