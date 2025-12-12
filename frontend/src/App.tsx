@@ -88,8 +88,7 @@ const App: React.FC = () => {
                   </div>
                 </Content>
               <Footer style={{ textAlign: 'center' }}>Hula ERP ©2025 Created by AI</Footer>
-          </Layout>
-        </Layout>        
+          </Layout>     
       </Routes>     
     </Router>
   );
