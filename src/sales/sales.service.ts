@@ -6,6 +6,7 @@ import { SalesOrderItem } from './sales-order-item.entity';
 import { ProductSample } from './product-sample.entity';
 import { SalesDelivery } from './sales-delivery.entity';
 import { SalesDeliveryItem } from './sales-delivery-item.entity';
+import { SalesComment } from './sales-comment.entity'; // Import
 import { Transaction } from '../finance/transaction.entity';
 import { ProductsService } from '../products/products.service';
 import { InventoryService } from '../inventory/inventory.service';
@@ -15,14 +16,17 @@ import { CustomersService } from '../customers/customers.service';
 export class SalesService {
   constructor(
     @InjectRepository(SalesOrder) public orderRepo: Repository<SalesOrder>,
+    @InjectRepository(SalesOrderItem) public itemRepo: Repository<SalesOrderItem>,
     @InjectRepository(ProductSample) public sampleRepo: Repository<ProductSample>,
     @InjectRepository(SalesDelivery) private deliveryRepo: Repository<SalesDelivery>,
+    @InjectRepository(SalesComment) private commentRepo: Repository<SalesComment>,
     @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
     private productsService: ProductsService,
     private inventoryService: InventoryService,
     private customersService: CustomersService,
   ) {}
 
+  // ... (Giữ nguyên các hàm validateItemsForSO, createOrder, findAll)
   private async validateItemsForSO(items: any[]) {
       if(!items) return;
       for (const item of items) {
@@ -72,7 +76,7 @@ export class SalesService {
   }
 
   async findAll() { return this.orderRepo.find({ order: { order_date: 'DESC' }, relations: ['customer'] }); }
-  async getOrder(code: string) { return this.orderRepo.findOne({ where: { order_code: code }, relations: ['items', 'customer'] }); }
+  async getOrder(code: string) { return this.orderRepo.findOne({ where: { order_code: code }, relations: ['items', 'customer', 'comments'] }); }
 
   async updateQuote(id: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
@@ -89,35 +93,56 @@ export class SalesService {
       let itemsTotal = 0;
       if (data.items && (order.status === SalesOrderStatus.QUOTATION || order.status === SalesOrderStatus.SO_PENDING || order.status === SalesOrderStatus.SAMPLE_APPROVED)) {
           await this.orderRepo.createQueryBuilder().relation(SalesOrder, "items").of(order).remove(order.items);
-          
           const validItems = data.items.filter((i:any) => i.sku);
           order.items = validItems.map((i:any) => {
               const qty = Number(i.quantity) || 0;
               const price = Number(i.price) || 0;
               const sub = qty * price;
               itemsTotal += sub;
-              
-              return this.orderRepo.manager.create(SalesOrderItem, { 
-                  sku: i.sku, quantity: qty, unit_price: price, subtotal: sub,
-                  variant_color: i.variant_color, is_sample_approved: i.is_sample_approved,
-                  sample_image: i.sample_image, sample_note: i.sample_note
-              });
+              return this.orderRepo.manager.create(SalesOrderItem, { sku: i.sku, quantity: qty, unit_price: price, subtotal: sub, variant_color: i.variant_color, is_sample_approved: i.is_sample_approved, sample_image: i.sample_image, sample_note: i.sample_note });
           });
       } else {
           itemsTotal = order.items.reduce((s, i) => s + Number(i.subtotal), 0);
       }
-
       order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
       return this.orderRepo.save(order);
   }
 
+  // --- NEW: Force Complete ---
+  async completeOrder(id: number) {
+      const order = await this.orderRepo.findOne({ where: { id } });
+      if (!order) throw new NotFoundException();
+      order.status = SalesOrderStatus.COMPLETED;
+      return this.orderRepo.save(order);
+  }
+
+  // --- NEW: Comment Logic ---
+  async addComment(orderId: number, content: string, sender: 'STAFF'|'CUSTOMER', name?: string) {
+      const order = await this.orderRepo.findOne({ where: { id: orderId } });
+      if (!order) throw new NotFoundException();
+      const comment = this.commentRepo.create({ order, content, sender_type: sender, sender_name: name });
+      return this.commentRepo.save(comment);
+  }
+  
+  async getComments(orderId: number) {
+      return this.commentRepo.find({ where: { order: { id: orderId } }, order: { created_at: 'ASC' } });
+  }
+
+  async toggleCommentVisibility(id: number) {
+      const comment = await this.commentRepo.findOne({ where: { id } });
+      if (comment) {
+          comment.is_visible = !comment.is_visible;
+          return this.commentRepo.save(comment);
+      }
+  }
+
+  // --- EXISTING METHODS (No change) ---
   async convertQuoteToSo(id: number, accepted: boolean) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();
       order.status = accepted ? SalesOrderStatus.SO_PENDING : SalesOrderStatus.CANCELLED;
       return this.orderRepo.save(order);
   }
-
   async approveAllSamples(id: number) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();
@@ -125,88 +150,67 @@ export class SalesService {
       if (order.status === SalesOrderStatus.SO_PENDING) order.status = SalesOrderStatus.SAMPLE_APPROVED;
       return this.orderRepo.save(order);
   }
-
   async updatePayment(orderCode: string, amount: number) {
     const order = await this.orderRepo.findOne({ where: { order_code: orderCode } });
     if (!order) throw new NotFoundException();
     order.paid_amount = Number(order.paid_amount || 0) + Number(amount);
-    
     if (order.paid_amount > 0 && (order.status === SalesOrderStatus.SO_PENDING || order.status === SalesOrderStatus.SAMPLE_APPROVED)) {
         order.status = SalesOrderStatus.DEPOSITED;
     }
-    
     if (order.paid_amount >= order.total_amount) order.payment_status = PaymentStatus.PAID;
     else if (order.paid_amount > 0) order.payment_status = PaymentStatus.PARTIAL_PAID;
-    
-    // Nếu đã trả đủ và đã giao đủ -> Hoàn tất
-    if (order.payment_status === PaymentStatus.PAID && order.status === SalesOrderStatus.DELIVERED) {
-        order.status = SalesOrderStatus.COMPLETED;
-    }
-
+    if (order.payment_status === PaymentStatus.PAID && order.status === SalesOrderStatus.DELIVERED) order.status = SalesOrderStatus.COMPLETED;
     return this.orderRepo.save(order);
   }
-  
   async deleteQuote(id: number) {
        const order = await this.orderRepo.findOne({ where: { id } });
        if (order && (order.status === 'QUOTATION' || order.status === 'CANCELLED')) return this.orderRepo.remove(order);
        throw new BadRequestException('Khong the xoa');
   }
-  async getQuoteByUuid(uuid: string) { return this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer'] }); }
+  
+  // --- UPDATED: Get Portal Data (Include Customer & Deliveries) ---
+  async getQuoteByUuid(uuid: string) { 
+      const order = await this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer', 'comments'] });
+      if(!order) throw new NotFoundException('Not found');
+      
+      // Load delivery history for Portal
+      const deliveries = await this.deliveryRepo.find({ where: { order_id: order.id }, relations: ['items'], order: { created_at: 'DESC' } });
+      const payments = await this.transRepo.find({ where: { reference_code: order.order_code }, order: { created_at: 'DESC' } });
+      
+      return { ...order, deliveries, payments };
+  }
+
   async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT') {
       const order = await this.getQuoteByUuid(uuid);
       if (order.status !== SalesOrderStatus.QUOTATION) throw new BadRequestException('Da xu ly roi');
       return this.convertQuoteToSo(order.id, action === 'ACCEPT');
   }
   async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
-  
-  // --- FIX LOGIC GIAO HÀNG ---
   async createDelivery(orderId: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
       if (!order) throw new NotFoundException('Not found');
-      
-      const delivery = this.deliveryRepo.create({
-          code: data.code,
-          delivery_date: data.date,
-          note: data.note,
-          sales_order: order,
-          items: data.items.map((i:any) => ({ sku: i.sku, quantity: Math.floor(Number(i.quantity)) }))
-      });
-
-      // 1. Lưu & Trừ kho
+      const delivery = this.deliveryRepo.create({ code: data.code, delivery_date: data.date, note: data.note, sales_order: order, items: data.items.map((i:any) => ({ sku: i.sku, quantity: Math.floor(Number(i.quantity)) })) });
       for (const item of data.items) {
            const product = await this.productsService.findOneBySku(item.sku);
            if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, Math.floor(Number(item.quantity)), delivery.code, `Giao hang ${order.order_code}`);
       }
       await this.deliveryRepo.save(delivery);
       
-      // 2. Tính toán lại trạng thái: Đã giao đủ chưa?
+      // Recalc status
       const allDeliveries = await this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'] });
-      
       let isFullyDelivered = true;
       for (const orderItem of order.items) {
           let deliveredQty = 0;
-          // Tổng hợp số lượng đã giao của SKU này
-          allDeliveries.forEach(d => {
-              const dItem = d.items.find(i => i.sku === orderItem.sku);
-              if (dItem) deliveredQty += Number(dItem.quantity);
-          });
-          
-          if (deliveredQty < Number(orderItem.quantity)) {
-              isFullyDelivered = false;
-              break;
-          }
+          allDeliveries.forEach(d => { const dItem = d.items.find(i => i.sku === orderItem.sku); if (dItem) deliveredQty += Number(dItem.quantity); });
+          if (deliveredQty < Number(orderItem.quantity)) { isFullyDelivered = false; break; }
       }
-
-      // 3. Cập nhật trạng thái
       if (isFullyDelivered) {
           order.status = SalesOrderStatus.DELIVERED;
           if (order.payment_status === PaymentStatus.PAID) order.status = SalesOrderStatus.COMPLETED;
       } else {
           order.status = SalesOrderStatus.PARTIAL_DELIVERY;
       }
-
       return this.orderRepo.save(order);
   }
-
   async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
 }

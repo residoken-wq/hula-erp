@@ -17,8 +17,11 @@ export class SalesController {
   @Get(':code/payments') getPayments(@Param('code') code: string) { return this.s.getPaymentHistory(code); }
   @Get('portal/:uuid') getPortal(@Param('uuid') uuid: string) { return this.s.getQuoteByUuid(uuid); }
   @Post('portal/:uuid/action') customerAction(@Param('uuid') uuid: string, @Body() body: any) { return this.s.customerAction(uuid, body.action); }
+  @Post(':id/approve-samples') approveSamples(@Param('id') id: number) { return this.s.approveAllSamples(id); }
 
-  // API MOI
-  @Post(':id/approve-samples') 
-  approveSamples(@Param('id') id: number) { return this.s.approveAllSamples(id); }
+  // --- API MOI ---
+  @Post(':id/complete') complete(@Param('id') id: number) { return this.s.completeOrder(id); }
+  @Post(':id/comment') addComment(@Param('id') id: number, @Body() b: any) { return this.s.addComment(id, b.content, b.sender, b.name); }
+  @Get(':id/comments') getComments(@Param('id') id: number) { return this.s.getComments(id); }
+  @Post('comment/:id/toggle') toggleComment(@Param('id') id: number) { return this.s.toggleCommentVisibility(id); }
 }

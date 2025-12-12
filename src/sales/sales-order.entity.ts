@@ -2,12 +2,13 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, Ma
 import { SalesOrderItem } from './sales-order-item.entity';
 import { Customer } from '../customers/customer.entity';
 import { ProductionPlan } from '../planning/production-plan.entity';
+import { SalesComment } from './sales-comment.entity'; // Import mới
 
 export enum SalesOrderStatus {
   QUOTATION = 'QUOTATION',   
-  SO_PENDING = 'SO_PENDING',      // Đang duyệt mẫu
-  SAMPLE_APPROVED = 'SAMPLE_APPROVED', // MỚI: Đã duyệt mẫu (Chờ cọc)
-  DEPOSITED = 'DEPOSITED',        // Đã cọc & SX
+  SO_PENDING = 'SO_PENDING',
+  SAMPLE_APPROVED = 'SAMPLE_APPROVED',
+  DEPOSITED = 'DEPOSITED',
   PLANNED = 'PLANNED',       
   PARTIAL_DELIVERY = 'PARTIAL_DELIVERY',
   DELIVERED = 'DELIVERED',   
@@ -75,6 +76,10 @@ export class SalesOrder {
 
   @OneToMany(() => SalesOrderItem, (item) => item.order, { cascade: true })
   items: SalesOrderItem[];
+
+  // --- QUAN HỆ MỚI ---
+  @OneToMany(() => SalesComment, (comment) => comment.order, { cascade: true })
+  comments: SalesComment[];
 
   @CreateDateColumn() order_date: Date;
   @UpdateDateColumn() updated_at: Date;

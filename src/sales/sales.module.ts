@@ -5,6 +5,7 @@ import { SalesOrderItem } from './sales-order-item.entity';
 import { ProductSample } from './product-sample.entity';
 import { SalesDelivery } from './sales-delivery.entity';
 import { SalesDeliveryItem } from './sales-delivery-item.entity';
+import { SalesComment } from './sales-comment.entity'; // Import mới
 import { Transaction } from '../finance/transaction.entity';
 
 import { SalesController } from './sales.controller';
@@ -12,19 +13,19 @@ import { SalesService } from './sales.service';
 import { ProductsModule } from '../products/products.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { CustomersModule } from '../customers/customers.module';
-import { FinanceModule } from '../finance/finance.module'; // Import Finance
+import { FinanceModule } from '../finance/finance.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
         SalesOrder, SalesOrderItem, ProductSample, 
-        SalesDelivery, SalesDeliveryItem,
+        SalesDelivery, SalesDeliveryItem, SalesComment, // Đăng ký
         Transaction
     ]),
     ProductsModule,
     InventoryModule,
     CustomersModule,
-    forwardRef(() => FinanceModule) // Them Finance
+    forwardRef(() => FinanceModule)
   ],
   controllers: [SalesController],
   providers: [SalesService],
