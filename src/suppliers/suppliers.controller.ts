@@ -8,50 +8,50 @@ export class SuppliersController {
   // --- CRUD NHÀ CUNG CẤP ---
   
   @Post() 
-  async create(@Body() b: any) { // FIX: Thêm async
-    return this.s.create(b); 
+  async create(@Body() b: any) {
+    return await this.s.create(b); // Dùng await
   }
 
   @Get() 
-  async findAll() { // FIX: Thêm async
-    return this.s.findAll(); 
+  async findAll() {
+    return await this.s.findAll(); // Dùng await
   }
 
   @Get(':id') 
-  async findOne(@Param('id') id: number) { // FIX: Thêm async
-    return this.s.findOne(id); 
+  async findOne(@Param('id') id: number) {
+    return await this.s.findOne(id); // Dùng await
   }
 
   @Put(':id') 
-  async update(@Param('id') id: number, @Body() b: any) { // FIX: Thêm async
-    return this.s.update(id, b); 
+  async update(@Param('id') id: number, @Body() b: any) {
+    return await this.s.update(id, b); // Dùng await
   }
 
   @Delete(':id') 
-  async remove(@Param('id') id: number) { // FIX: Thêm async
-    return this.s.remove(id); 
+  async remove(@Param('id') id: number) {
+    return await this.s.remove(id); // Dùng await
   }
 
   // --- QUẢN LÝ BẢNG GIÁ NPL ---
 
   @Post(':id/material-price') 
-  async addPrice(@Param('id') id: number, @Body() b: any) { // FIX: Thêm async
-      return this.s.addMaterialPrice(id, b); 
+  async addPrice(@Param('id') id: number, @Body() b: any) {
+      return await this.s.addMaterialPrice(id, b); // Dùng await
   }
 
   @Delete('material-price/:id')
-  async removePrice(@Param('id') id: number) { // FIX: Thêm async
-      return this.s.deleteMaterialPrice(id);
+  async removePrice(@Param('id') id: number) {
+      return await this.s.deleteMaterialPrice(id); // Dùng await
   }
 
   // --- QUẢN LÝ BẢNG GIÁ CHUNG (ManufacturersPage.tsx) ---
   @Post('price')
-  async addSupplierPrice(@Body() b: any) { // FIX: Thêm async
-      return this.s.addSupplierPrice(b);
+  async addSupplierPrice(@Body() b: any) {
+      return await this.s.addSupplierPrice(b); // Dùng await
   }
 
   @Post('check-price')
-  async checkPrice(@Body() b: any) { // FIX: Thêm async
-      return this.s.checkPrice(b.supplierId, b.processId);
+  async checkPrice(@Body() b: any) {
+      return await this.s.checkPrice(b.supplierId, b.processId); // Dùng await
   }
 }
