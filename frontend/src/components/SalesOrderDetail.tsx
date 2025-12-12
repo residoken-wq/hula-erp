@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker, Table, Statistic, Tooltip } from 'antd';
+import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker, Table, Statistic, Tooltip, Radio } from 'antd';
 import { PlusOutlined, CarOutlined, BankOutlined, DeleteOutlined, DollarOutlined, ExperimentOutlined, FileImageOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -21,14 +21,18 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const [form] = Form.useForm();
     const [activeTab, setActiveTab] = useState('1');
     
-    // FIX: Thêm <any[]> vào các useState mảng
     const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
     const [deliveryHistory, setDeliveryHistory] = useState<any[]>([]);
     const [shipItems, setShipItems] = useState<any[]>([]);
 
+    // --- STATE THANH TOÁN MỚI ---
     const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+    const [payAmount, setPayAmount] = useState<number>(0);
+    const [payType, setPayType] = useState('DEPOSIT'); // DEPOSIT | PAYMENT | FINAL
+    const [payNote, setPayNote] = useState('');
+    // ----------------------------
+
     const [isShipModalOpen, setIsShipModalOpen] = useState(false);
-    const [payAmount, setPayAmount] = useState(0);
     const [shipNote, setShipNote] = useState('');
     
     const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
@@ -172,12 +176,36 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         });
     };
 
+    // --- XỬ LÝ THANH TOÁN (CẬP NHẬT) ---
+    const openPaymentModal = () => {
+        setPayType('DEPOSIT');
+        setPayAmount(remain > 0 ? remain : 0); // Gợi ý số tiền còn lại
+        setPayNote('');
+        setIsPayModalOpen(true);
+    };
+
     const handleAddPayment = async () => {
-        if(payAmount <= 0) return message.warning('Nhập số tiền');
+        if (payAmount <= 0) return message.warning('Vui lòng nhập số tiền hợp lệ');
+        
+        let prefix = '';
+        if (payType === 'DEPOSIT') prefix = '[ĐẶT CỌC]';
+        else if (payType === 'FINAL') prefix = '[TẤT TOÁN]';
+        else prefix = '[THANH TOÁN]';
+
         try {
-            await axios.post(`${API_URL}/finance/payment`, { type: 'INCOME', amount: payAmount, refCode: initialData.order_code, note: `TT đơn ${initialData.order_code}` });
-            message.success('Đã thanh toán'); setIsPayModalOpen(false); loadHistory(initialData); onSuccess();
-        } catch(e) { message.error('Lỗi'); }
+            await axios.post(`${API_URL}/finance/payment`, {
+                type: 'INCOME',
+                amount: payAmount,
+                refCode: initialData.order_code,
+                note: `${prefix} ${payNote || ''}`.trim()
+            });
+            message.success('Đã ghi nhận thanh toán!');
+            setIsPayModalOpen(false);
+            loadHistory(initialData);
+            onSuccess(); // Refresh list bên ngoài
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi hệ thống');
+        }
     };
     
     const prepareShipment = () => { setShipItems(initialData.items.map((i:any)=>({sku:i.sku, max:i.quantity, quantity:i.quantity}))); setIsShipModalOpen(true); };
@@ -234,13 +262,32 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             </Row>
                         )
                     },
-                    !isQuotation && { key: '2', label: '2. Thanh toán', children: (<div><Row gutter={16}><Col span={8}><Statistic title="Tổng giá trị" value={totalAmount} suffix="đ" /></Col><Col span={8}><Statistic title="Đã thanh toán" value={totalPaid} valueStyle={{color:'green'}} suffix="đ" /></Col><Col span={8}><Statistic title="Còn lại" value={remain} valueStyle={{color:'red'}} suffix="đ" /></Col></Row><Divider /><div style={{display:'flex', justifyContent:'space-between', marginBottom:10}}><b>Lịch sử thanh toán:</b><Button type="primary" icon={<DollarOutlined />} onClick={()=>setIsPayModalOpen(true)}>Thêm đợt thanh toán</Button></div><Table dataSource={paymentHistory} rowKey="id" pagination={false} size="small" bordered columns={[{ title: 'Ngày', dataIndex: 'created_at', render: (t:any)=>dayjs(t).format('DD/MM/YYYY HH:mm') }, { title: 'Số tiền', dataIndex: 'amount', align:'right', render: (v:any)=><b style={{color:'green'}}>{Number(v).toLocaleString()}</b> }, { title: 'Nội dung', dataIndex: 'description' }]} /></div>) },
+                    !isQuotation && { key: '2', label: '2. Thanh toán', children: (<div><Row gutter={16}><Col span={8}><Statistic title="Tổng giá trị" value={totalAmount} suffix="đ" /></Col><Col span={8}><Statistic title="Đã thanh toán" value={totalPaid} valueStyle={{color:'green'}} suffix="đ" /></Col><Col span={8}><Statistic title="Còn lại" value={remain} valueStyle={{color:'red'}} suffix="đ" /></Col></Row><Divider /><div style={{display:'flex', justifyContent:'space-between', marginBottom:10}}><b>Lịch sử thanh toán:</b><Button type="primary" icon={<DollarOutlined />} onClick={openPaymentModal}>Thêm đợt thanh toán</Button></div><Table dataSource={paymentHistory} rowKey="id" pagination={false} size="small" bordered columns={[{ title: 'Ngày', dataIndex: 'created_at', render: (t:any)=>dayjs(t).format('DD/MM/YYYY HH:mm') }, { title: 'Số tiền', dataIndex: 'amount', align:'right', render: (v:any)=><b style={{color:'green'}}>{Number(v).toLocaleString()}</b> }, { title: 'Nội dung', dataIndex: 'description' }]} /></div>) },
                     !isQuotation && { key: '3', label: '3. Giao hàng & Xuất kho', children: (<div><div style={{display:'flex', justifyContent:'space-between', marginBottom:10}}><b>Lịch sử giao hàng:</b><Button type="primary" icon={<CarOutlined />} onClick={prepareShipment}>Tạo Phiếu Giao Hàng</Button></div><Table dataSource={deliveryHistory} rowKey="id" pagination={false} size="small" bordered columns={[{ title: 'Mã phiếu', dataIndex: 'code', render: (t:any)=><b>{t}</b> }, { title: 'Ngày giao', dataIndex: 'delivery_date', render: (t:any)=>dayjs(t).format('DD/MM/YYYY') }, { title: 'SL Hàng', align:'center', render: (r:any) => r.items?.reduce((s:number,i:any)=>s+i.quantity,0) }, { title: 'Ghi chú', dataIndex: 'note' }]} expandable={{ expandedRowRender: (rec) => (<ul style={{margin:0, paddingLeft:20}}>{rec.items.map((i:any) => <li key={i.id}>{i.sku} - SL: {i.quantity}</li>)}</ul>)}} /></div>) }
                 ].filter(Boolean) as any} />
             </Form>
 
             <Modal title="Chi tiết Duyệt Mẫu Sản Phẩm" open={isSampleModalOpen} onCancel={()=>setIsSampleModalOpen(false)} onOk={saveItemSample}><Form form={sampleForm} layout="vertical"><Form.Item name="sample_image" label="Link Ảnh Mẫu (Đã duyệt)"><Input prefix={<FileImageOutlined/>} placeholder="https://..." /></Form.Item><Form.Item name="sample_note" label="Ghi chú kỹ thuật"><Input.TextArea rows={3} /></Form.Item><Form.Item name="is_sample_approved" valuePropName="checked"><div style={{display:'flex', alignItems:'center', gap:10}}><input type="checkbox"/> <span style={{fontWeight:'bold', color:'green'}}>ĐÃ DUYỆT MẪU NÀY</span></div></Form.Item></Form></Modal>
-            <Modal title="Thêm Đợt Thanh Toán" open={isPayModalOpen} onCancel={()=>setIsPayModalOpen(false)} onOk={handleAddPayment}><p>Số tiền khách thanh toán:</p><InputNumber style={{width:'100%'}} value={payAmount} onChange={(v:any)=>setPayAmount(v)} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} addonAfter="₫" /></Modal>
+            
+            {/* --- MODAL THANH TOÁN (ĐÃ NÂNG CẤP) --- */}
+            <Modal title="Thêm Đợt Thanh Toán" open={isPayModalOpen} onCancel={()=>setIsPayModalOpen(false)} onOk={handleAddPayment}>
+                <Form layout="vertical">
+                    <Form.Item label="Số tiền khách trả">
+                        <InputNumber style={{width:'100%', fontWeight:'bold'}} size="large" value={payAmount} onChange={(v:any)=>setPayAmount(v)} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} addonAfter="₫" />
+                    </Form.Item>
+                    <Form.Item label="Phân loại">
+                        <Radio.Group value={payType} onChange={e=>setPayType(e.target.value)}>
+                            <Radio.Button value="DEPOSIT">Đặt Cọc</Radio.Button>
+                            <Radio.Button value="PAYMENT">Thanh Toán Đợt</Radio.Button>
+                            <Radio.Button value="FINAL">Tất Toán</Radio.Button>
+                        </Radio.Group>
+                    </Form.Item>
+                    <Form.Item label="Nội dung / Ghi chú">
+                        <Input.TextArea rows={2} value={payNote} onChange={e=>setPayNote(e.target.value)} placeholder="VD: Khách chuyển khoản VCB..." />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
             <Modal title="Tạo Phiếu Xuất Kho / Giao Hàng" open={isShipModalOpen} onCancel={()=>setIsShipModalOpen(false)} onOk={handleConfirmShip} width={600}><Input placeholder="Ghi chú giao hàng..." value={shipNote} onChange={e=>setShipNote(e.target.value)} style={{marginBottom:10}} /><Table dataSource={shipItems} rowKey="sku" pagination={false} size="small" columns={[{ title: 'SKU', dataIndex: 'sku' }, { title: 'SL Đặt', dataIndex: 'max' }, { title: 'Giao lần này', render: (_:any, r:any, idx:number) => (<InputNumber max={r.max} min={0} value={r.quantity} onChange={(v:any)=>{ const newItems = [...shipItems]; newItems[idx].quantity = v; setShipItems(newItems); }} />) }]} /></Modal>
         </Modal>
     );
