@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag } from 'antd';
+import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker } from 'antd'; // FIX: Thêm DatePicker
 import { PlusOutlined, MinusCircleOutlined, CarOutlined, BankOutlined, SaveOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -26,10 +26,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const shippingFee = Form.useWatch('shipping_fee', form) || 0;
 
     // --- LOGIC QUYỀN CHỈNH SỬA ---
-    // Cho phép sửa item nếu:
-    // 1. Tạo mới (không có data cũ)
-    // 2. Là Báo giá (QUOTATION)
-    // 3. Là Đơn hàng đang chờ duyệt mẫu (SO_PENDING) -> NEW REQUIREMENT
     const canEditItems = !initialData || 
                          isQuotation || 
                          initialData.status === 'QUOTATION' || 
@@ -82,12 +78,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             };
 
             if (initialData && initialData.id) {
-                // Update
-                // Backend đã được update để chấp nhận sửa items khi status = SO_PENDING
                 await axios.put(`${API_URL}/sales/quote/${initialData.id}`, payload);
                 message.success('Cập nhật thành công');
             } else {
-                // Create
                 await axios.post(`${API_URL}/sales/create`, payload);
                 message.success('Tạo mới thành công');
             }
@@ -98,13 +91,11 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     };
 
-    // Tự động điền giá và ĐVT khi chọn SP
     const handleProductChange = (val: string, index: number) => {
         const p = products.find((x: any) => x.value === val);
         if (p) {
             const currentItems = form.getFieldValue('items');
             currentItems[index].price = p.price;
-            // Lưu ý: ĐVT chỉ để hiển thị UI qua biến products, form không cần lưu unit vào DB item
             form.setFieldsValue({ items: [...currentItems] });
         }
     };
@@ -150,7 +141,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         <Col span={12}><Form.Item name="order_code" label="Mã Đơn"><Input disabled style={{ fontWeight: 'bold', color: '#1890ff' }} /></Form.Item></Col>
                                     </Row>
                                     
-                                    {/* --- BẢNG SẢN PHẨM --- */}
                                     <div style={{background: '#fafafa', padding: 10, borderRadius: 6, border: '1px solid #eee'}}>
                                         <Row gutter={8} style={{marginBottom: 5, fontWeight: 600, color: '#666', fontSize: 13, borderBottom:'1px solid #ddd', paddingBottom:5}}>
                                             <Col span={9}>Tên sản phẩm</Col>
@@ -213,7 +203,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
                                         <Divider style={{margin: '15px 0'}} />
                                         
-                                        {/* --- TOTALS SECTION --- */}
                                         <Row justify="end" style={{textAlign: 'right', lineHeight: '2.2em'}}>
                                             <Col span={12}>
                                                 <Row>
@@ -245,7 +234,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                             </Col>
                                         </Row>
                                     </div>
-                                    {/* --------------------------------- */}
                                 </Col>
 
                                 <Col span={9}>
