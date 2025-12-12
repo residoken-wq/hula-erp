@@ -36,7 +36,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./src:/app/src
+      - ./src:/app/src  # Backend cần map src để dev
 
   frontend:
     build:
@@ -48,7 +48,7 @@ services:
       - "80:80"
     depends_on:
       - app
-    # LƯU Ý: Đã xóa phần volumes và command để đảm bảo dùng bản Build Nginx
+    # TUYỆT ĐỐI KHÔNG DÙNG VOLUMES Ở ĐÂY để tránh map nhầm code
 
 volumes:
   postgres_data:
