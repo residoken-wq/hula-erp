@@ -6,6 +6,7 @@ import { API_URL } from '../config';
 
 const CombosPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
+  // FIX: Định nghĩa rõ kiểu mảng để tránh lỗi "never[]"
   const [combos, setCombos] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   
@@ -16,7 +17,6 @@ const CombosPage: React.FC = () => {
     setLoading(true);
     try {
         const resProd = await axios.get(`${API_URL}/products`);
-        
         if (Array.isArray(resProd.data)) {
             setProducts(resProd.data.map((p:any) => ({
                 label: `${p.sku} - ${p.name}`, 
@@ -24,6 +24,7 @@ const CombosPage: React.FC = () => {
                 price: Number(p.base_price) || 0
             })));
 
+            // Lọc sản phẩm là COMBO
             const comboList = resProd.data.filter((p:any) => p.product_type === 'COMBO');
             setCombos(comboList);
         }
@@ -34,7 +35,7 @@ const CombosPage: React.FC = () => {
   useEffect(() => { fetchData(); }, []);
 
   const handleSave = async (values: any) => {
-      console.log(values); // Avoid unused warning
+      console.log('Saving combo:', values); // Dùng biến values để không bị lỗi unused
       message.success('Tính năng đang phát triển');
       setIsModalOpen(false);
   };
