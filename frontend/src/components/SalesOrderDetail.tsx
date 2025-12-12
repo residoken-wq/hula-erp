@@ -193,7 +193,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 type: 'INCOME',
                 amount: payAmount,
                 refCode: initialData.order_code,
-                note: `${prefix} ${payNote || ''}`.trim()
+                // --- FIX: Đổi key 'note' -> 'description' ---
+                description: `${prefix} ${payNote || ''}`.trim() 
             });
             message.success('Đã ghi nhận thanh toán!');
             setIsPayModalOpen(false);
@@ -258,7 +259,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             </Row>
                         )
                     },
-                    /* --- PHẦN SỬA LỖI: HIỂN THỊ CỘT NỘI DUNG --- */
                     !isQuotation && { key: '2', label: '2. Thanh toán', children: (
                         <div>
                             <Row gutter={16}>
@@ -274,8 +274,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             <Table dataSource={paymentHistory} rowKey="id" pagination={false} size="small" bordered columns={[
                                 { title: 'Ngày', dataIndex: 'created_at', render: (t:any)=>dayjs(t).format('DD/MM/YYYY HH:mm') },
                                 { title: 'Số tiền', dataIndex: 'amount', align:'right', render: (v:any)=><b style={{color:'green'}}>{Number(v).toLocaleString()}</b> },
-                                // --- FIX: Đổi dataIndex thành 'note' (vì DB lưu là note) ---
-                                { title: 'Nội dung', dataIndex: 'note' } 
+                                // --- FIX: Đọc từ description ---
+                                { title: 'Nội dung', dataIndex: 'description' } 
                             ]} />
                         </div>
                     ) },
