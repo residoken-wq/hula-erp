@@ -1,5 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { PurchaseOrder } from './purchase-order.entity';
+import { Material } from '../materials/material.entity'; // Import
+import { Product } from '../products/product.entity';   // Import
 
 @Entity('purchase_order_items')
 export class PurchaseOrderItem {
@@ -8,16 +10,34 @@ export class PurchaseOrderItem {
 
   @ManyToOne(() => PurchaseOrder, (po) => po.items, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'po_id' })
-  purchaseOrder: PurchaseOrder;
+  po: PurchaseOrder;
+
+  // --- QUAN HỆ VỚI NGUYÊN LIỆU (NẾU PO LÀ MATERIAL) ---
+  @ManyToOne(() => Material, { nullable: true })
+  @JoinColumn({ name: 'material_id' })
+  material: Material;
+
+  @Column({ nullable: true })
+  material_id: number;
+  // ----------------------------------------------------
+
+  // --- QUAN HỆ VỚI SẢN PHẨM (NẾU PO LÀ OUTSOURCING) ---
+  @ManyToOne(() => Product, { nullable: true })
+  @JoinColumn({ name: 'product_id' })
+  product: Product;
+
+  @Column({ nullable: true })
+  product_id: number;
+  // ----------------------------------------------------
 
   @Column()
-  material_code: string; // Ma nguyen lieu (Link voi bang Materials)
+  description: string; // Tên hiển thị (phòng khi xóa master data)
 
-  @Column('decimal', { precision: 15, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2 })
   quantity: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  unit_price: number; // Gia nhap tai thoi diem mua
+  unit_price: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
   subtotal: number;

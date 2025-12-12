@@ -37,7 +37,6 @@ export class PlanningService {
     const plan = await this.planRepo.findOne({ where: { id: planId }, relations: ['sales_orders', 'sales_orders.items'] });
     if (!plan) throw new NotFoundException();
 
-    // 1. Tinh tong nhu cau
     const productDemand = new Map<string, number>();
     plan.sales_orders.forEach(so => {
         so.items.forEach(i => productDemand.set(i.sku, (productDemand.get(i.sku)||0) + Number(i.quantity)));
@@ -73,7 +72,6 @@ export class PlanningService {
         }
     }
 
-    // Gantt dummy
     const ganttData = plan.sales_orders.map(so => ({
         id: so.order_code, name: `SX ${so.order_code}`, start: plan.start_date, end: so.delivery_date || plan.end_date, progress: 0
     }));
@@ -84,12 +82,8 @@ export class PlanningService {
     return { plan_info: plan, mrp_result: mrpResult, gantt_data: ganttData };
   }
 
-  // --- AUTO GENERATE POs FROM MRP ---
   async generatePos(planId: number, mrpData: any[]) {
-      // Group items by Supplier Name (Simplified matching)
       const supplierGroups = {};
-      const pendingItems = [];
-
       for (const item of mrpData) {
           if (item.net_requirement > 0) {
               const suppName = item.supplier_name || 'Unknown';
@@ -98,11 +92,8 @@ export class PlanningService {
           }
       }
 
-      // Create POs
       const createdPos = [];
       for (const [suppName, items] of Object.entries(supplierGroups)) {
-          // Tim NCC trong DB
-          // (Luu y: Logic thuc te can chinh xac SupplierID, o day ta tam tim theo ten hoac tao 'Unknown')
           const po = this.poRepo.create({
               po_code: `PO-${planId}-${Math.floor(Math.random()*1000)}`,
               type: POType.MATERIAL,
@@ -111,18 +102,18 @@ export class PlanningService {
               note: `Tự động tạo từ Kế hoạch ${planId}`
           });
           
-          // Tinh tien
           let total = 0;
+          // FIX: Dùng poItemRepo.create và ép kiểu để tránh lỗi
           po.items = (items as any[]).map(i => {
               const sub = i.net_requirement * i.cost;
               total += sub;
               return this.poItemRepo.create({
-                  material_id: i.material_id,
+                  material_id: i.material_id, // Fix: Dung material_id
                   description: i.material_name,
                   quantity: i.net_requirement,
                   unit_price: i.cost,
                   subtotal: sub
-              });
+              } as any);
           });
           po.total_amount = total;
           

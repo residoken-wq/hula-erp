@@ -5,17 +5,17 @@ import { ProductionPlan } from '../planning/production-plan.entity';
 
 export enum POStatus {
   DRAFT = 'DRAFT',
-  SENT = 'SENT',             // Đã gửi NCC
-  CONFIRMED = 'CONFIRMED',   // NCC xác nhận
+  SENT = 'SENT',
+  CONFIRMED = 'CONFIRMED',
   PARTIAL_RECEIVED = 'PARTIAL_RECEIVED',
-  RECEIVED = 'RECEIVED',     // Đã nhập kho đủ
-  COMPLETED = 'COMPLETED',   // Đã thanh toán xong
+  RECEIVED = 'RECEIVED',
+  COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED'
 }
 
 export enum POType {
-  MATERIAL = 'MATERIAL',       // Mua nguyên liệu
-  OUTSOURCING = 'OUTSOURCING'  // Thuê gia công
+  MATERIAL = 'MATERIAL',
+  OUTSOURCING = 'OUTSOURCING'
 }
 
 @Entity('purchase_orders')
@@ -25,7 +25,7 @@ export class PurchaseOrder {
 
   @Column()
   @Generated("uuid")
-  uuid: string; // Link Portal
+  uuid: string;
 
   @Column({ unique: true })
   po_code: string; 
@@ -44,7 +44,6 @@ export class PurchaseOrder {
   })
   type: POType;
 
-  // --- LINK PLANNING ---
   @ManyToOne(() => ProductionPlan, { nullable: true })
   @JoinColumn({ name: 'plan_id' })
   production_plan: ProductionPlan;
@@ -52,20 +51,20 @@ export class PurchaseOrder {
   @Column({ nullable: true })
   plan_id: number;
 
-  // --- FINANCIALS & LOGISTICS ---
   @Column('decimal', { precision: 15, scale: 2, default: 0 }) total_amount: number;
   @Column('decimal', { precision: 15, scale: 2, default: 0 }) paid_amount: number;
   @Column('decimal', { default: 0 }) shipping_fee: number;
-  @Column('int', { default: 0 }) vat_rate: number; // %
+  @Column('int', { default: 0 }) vat_rate: number;
 
   @Column({ type: 'date', nullable: true }) expected_delivery_date: Date;
   @Column({ nullable: true }) delivery_address: string;
-  @Column({ nullable: true }) payment_term: string; // VD: Cong no 30 ngay
+  @Column({ nullable: true }) payment_term: string;
   @Column('text', { nullable: true }) note: string;
 
   @Column({ type: 'enum', enum: POStatus, default: POStatus.DRAFT })
   status: POStatus;
 
+  // --- QUAN TRỌNG: property 'po' phải khớp với property bên Item ---
   @OneToMany(() => PurchaseOrderItem, (item) => item.po, { cascade: true })
   items: PurchaseOrderItem[];
 

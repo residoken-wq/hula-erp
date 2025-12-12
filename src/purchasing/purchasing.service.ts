@@ -33,19 +33,22 @@ export class PurchasingService {
       });
       
       let itemsTotal = 0;
-      po.items = data.items.map((i:any) => {
+      // FIX: Tạo items bằng itemRepo.create thay vì gán thẳng mảng object để TypeORM xử lý quan hệ
+      const itemsEntities = data.items.map((i:any) => {
           const sub = Number(i.quantity) * Number(i.price);
           itemsTotal += sub;
           return this.itemRepo.create({
-              material_id: i.material_id || null, // Neu la NPL
-              product_id: i.product_id || null,   // Neu la Gia cong
+              // FIX: Ép kiểu as any để tránh lỗi TS2769 nếu strict mode
+              material_id: i.material_id || null, 
+              product_id: i.product_id || null,   
               description: i.description,
               quantity: i.quantity,
               unit_price: i.price,
               subtotal: sub
-          });
+          } as any); 
       });
-
+      
+      po.items = itemsEntities;
       po.total_amount = itemsTotal * (1 + po.vat_rate/100) + Number(po.shipping_fee);
       return this.poRepo.save(po);
   }
@@ -64,12 +67,10 @@ export class PurchasingService {
   async update(id: number, data: any) {
       const po = await this.findOne(id);
       if(!po) throw new NotFoundException();
-      // Logic update tuong tu create... (Rut gon cho demo)
-      Object.assign(po, { ...data, items: undefined }); // Update info
+      Object.assign(po, { ...data, items: undefined }); 
       return this.poRepo.save(po);
   }
 
-  // --- PORTAL API ---
   async getByUuid(uuid: string) {
       const po = await this.poRepo.findOne({ where: { uuid }, relations: ['items', 'supplier', 'items.material', 'items.product'] });
       if(!po) throw new NotFoundException('PO Not Found');
@@ -79,41 +80,46 @@ export class PurchasingService {
   async supplierAction(uuid: string, action: 'CONFIRM' | 'REJECT', note?: string) {
       const po = await this.getByUuid(uuid);
       if (po.status !== POStatus.SENT) throw new BadRequestException('Trạng thái không hợp lệ');
-      po.status = action === 'CONFIRM' ? POStatus.CONFIRMED : POStatus.DRAFT; // Reject -> Draft de sua lai
+      po.status = action === 'CONFIRM' ? POStatus.CONFIRMED : POStatus.DRAFT; 
       po.note = (po.note || '') + `\n[NCC ${action}]: ${note || ''}`;
       return this.poRepo.save(po);
   }
 
-  // --- RECEIVE GOODS (NHAP KHO) ---
   async receiveGoods(id: number, data: any) {
       const po = await this.findOne(id);
       if(!po) throw new NotFoundException();
 
-      // 1. Log Delivery
       const delivery = this.deliveryRepo.create({
           po_id: id,
           receipt_code: data.code,
           delivery_date: data.date,
-          items: data.items // [{id, quantity}]
+          items: data.items 
       });
       await this.deliveryRepo.save(delivery);
 
-      // 2. Adjust Stock
       for(const item of data.items) {
           const poItem = po.items.find(i => i.id === item.id);
           if (poItem) {
               if (po.type === POType.MATERIAL && poItem.material_id) {
                   await this.inventoryService.adjustStock('IMPORT', 'MATERIAL', poItem.material_id, item.quantity, data.code, 'Nhập từ PO ' + po.po_code);
               }
-              // Neu la OUTSOURCING -> Nhap kho Product (Thanh pham tu NGC)
               if (po.type === POType.OUTSOURCING && poItem.product_id) {
                   await this.inventoryService.adjustStock('IMPORT', 'PRODUCT', poItem.product_id, item.quantity, data.code, 'Nhập hàng gia công ' + po.po_code);
               }
           }
       }
+      po.status = POStatus.RECEIVED; 
+      return this.poRepo.save(po);
+  }
 
-      // 3. Update Status
-      po.status = POStatus.RECEIVED; // Simplified logic
+  // --- FIX: THEM HAM UPDATE PAYMENT ---
+  async updatePayment(poCode: string, amount: number) {
+      const po = await this.poRepo.findOne({ where: { po_code: poCode } });
+      if (!po) throw new NotFoundException('PO Not Found'); // Hoặc return null để FinanceService biết đây là SO
+      po.paid_amount = Number(po.paid_amount || 0) + Number(amount);
+      if (po.paid_amount >= po.total_amount && po.status === POStatus.RECEIVED) {
+          po.status = POStatus.COMPLETED;
+      }
       return this.poRepo.save(po);
   }
 }

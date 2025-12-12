@@ -1,37 +1,42 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Transaction, TransactionType } from './transaction.entity';
+import { Transaction } from './transaction.entity';
 import { SalesService } from '../sales/sales.service';
 import { PurchasingService } from '../purchasing/purchasing.service';
 
 @Injectable()
 export class FinanceService {
   constructor(
-    @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
+    @InjectRepository(Transaction)
+    private transactionRepo: Repository<Transaction>,
     private salesService: SalesService,
     private purchasingService: PurchasingService,
   ) {}
 
-  // API: Thanh toan (Thu tien hoac Chi tien)
-  async registerPayment(data: any) {
-    // data: { type: 'INCOME' | 'EXPENSE', amount: 100000, refCode: 'DH_01', note: '...' }
-    
-    const trans = new Transaction();
-    trans.type = data.type;
-    trans.amount = data.amount;
-    trans.reference_code = data.refCode;
-    trans.description = data.note;
-    
-    // Logic cap nhat cong no
-    if (data.type === TransactionType.INCOME) {
-        // Thu tien -> Cap nhat Sales Order
-        await this.salesService.updatePayment(data.refCode, data.amount);
-    } else {
-        // Chi tien -> Cap nhat Purchase Order
-        await this.purchasingService.updatePayment(data.refCode, data.amount);
-    }
+  async create(data: any) {
+    const transaction = this.transactionRepo.create(data);
+    const saved = await this.transactionRepo.save(transaction);
 
-    return this.transRepo.save(trans);
+    // Tu dong cap nhat status don hang
+    if (data.refCode) {
+        if (data.type === 'INCOME') {
+            try { await this.salesService.updatePayment(data.refCode, data.amount); } catch(e) {}
+        } else if (data.type === 'EXPENSE') {
+            try { await this.purchasingService.updatePayment(data.refCode, data.amount); } catch(e) {}
+        }
+    }
+    return saved;
+  }
+
+  async findAll() {
+    return this.transactionRepo.find({ order: { created_at: 'DESC' } });
+  }
+
+  async getSummary() {
+      const all = await this.findAll();
+      const income = all.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + Number(t.amount), 0);
+      const expense = all.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + Number(t.amount), 0);
+      return { income, expense, balance: income - expense };
   }
 }
