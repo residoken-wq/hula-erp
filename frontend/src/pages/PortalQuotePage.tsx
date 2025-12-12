@@ -6,6 +6,7 @@ import { Spin, Result, Button, message, Modal, Steps, Tag } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined } from '@ant-design/icons';
 import QuotationTemplate from '../components/QuotationTemplate';
 import { API_URL } from '../config';
+import { Checkbox } from 'antd'; // Import Checkbox
 
 const PortalQuotePage: React.FC = () => {
   const { uuid } = useParams();
@@ -74,6 +75,20 @@ const PortalQuotePage: React.FC = () => {
                    </div>
                </div>
            )}
+
+            {/* STATUS CHECKBOXES FOR CUSTOMER */}
+            {!['QUOTATION','CANCELLED'].includes(data.status) && (
+            <div style={{padding: '20px 40px', background:'#f6ffed', borderBottom:'1px solid #b7eb8f', display:'flex', gap: 30, justifyContent:'center'}}>
+                <Checkbox checked={['DEPOSITED','PLANNED','PARTIAL_DELIVERY','DELIVERED','COMPLETED'].includes(data.status)} style={{fontWeight:'bold', fontSize:16}}>ĐÃ ĐẶT CỌC</Checkbox>
+                
+                <Checkbox checked={['PARTIAL_DELIVERY','DELIVERED','COMPLETED'].includes(data.status)} style={{fontWeight:'bold', fontSize:16}}>
+                    ĐANG GIAO HÀNG 
+                    {data.status === 'PARTIAL_DELIVERY' && <span style={{fontSize:12, fontWeight:'normal', color:'#666'}}> (Giao 1 phần)</span>}
+                </Checkbox>
+                
+                <Checkbox checked={data.status === 'COMPLETED'} style={{fontWeight:'bold', fontSize:16}}>HOÀN TẤT ĐƠN HÀNG</Checkbox>
+            </div>
+            )}
 
            {/* ALERTS */}
            {data.status === 'SO_PENDING' && <div style={{padding:15, background:'#fffbe6', textAlign:'center', border:'1px solid #ffe58f'}}>🎉 Cảm ơn Quý khách đã xác nhận! Nhân viên kinh doanh sẽ liên hệ để tiến hành <b>Duyệt Mẫu</b>.</div>}
