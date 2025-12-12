@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker, Table, Statistic, Tooltip } from 'antd';
-import { PlusOutlined, MinusCircleOutlined, CarOutlined, BankOutlined, SaveOutlined, DeleteOutlined, DollarOutlined, ExperimentOutlined, FileImageOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, CarOutlined, BankOutlined, DeleteOutlined, DollarOutlined, ExperimentOutlined, FileImageOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -20,16 +20,17 @@ interface Props {
 const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, isQuotation, customers, products }) => {
     const [form] = Form.useForm();
     const [activeTab, setActiveTab] = useState('1');
-    // ... (States cũ giữ nguyên)
-    const [paymentHistory, setPaymentHistory] = useState([]);
-    const [deliveryHistory, setDeliveryHistory] = useState([]);
+    
+    // FIX: Thêm <any[]> vào các useState mảng
+    const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+    const [deliveryHistory, setDeliveryHistory] = useState<any[]>([]);
+    const [shipItems, setShipItems] = useState<any[]>([]);
+
     const [isPayModalOpen, setIsPayModalOpen] = useState(false);
     const [isShipModalOpen, setIsShipModalOpen] = useState(false);
     const [payAmount, setPayAmount] = useState(0);
     const [shipNote, setShipNote] = useState('');
-    const [shipItems, setShipItems] = useState<any[]>([]);
     
-    // Sample Modal
     const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
     const [currentSampleItemIndex, setCurrentSampleItemIndex] = useState<number | null>(null);
     const [sampleForm] = Form.useForm();
@@ -84,17 +85,18 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const loadHistory = async (order: any) => {
         try {
             const resPay = await axios.get(`${API_URL}/sales/${order.order_code}/payments`);
-            setPaymentHistory(resPay.data);
+            setPaymentHistory(Array.isArray(resPay.data) ? resPay.data : []);
             const resShip = await axios.get(`${API_URL}/sales/${order.id}/deliveries`);
-            setDeliveryHistory(resShip.data);
-        } catch(e) {}
+            setDeliveryHistory(Array.isArray(resShip.data) ? resShip.data : []);
+        } catch(e) {
+            setPaymentHistory([]);
+            setDeliveryHistory([]);
+        }
     };
 
     const handleSave = async (values: any) => {
         try {
-            // --- FIX: Filter empty items ---
-            const validItems = (values.items || []).filter((i:any) => i && i.sku); // Chỉ lấy dòng có SKU
-            
+            const validItems = (values.items || []).filter((i:any) => i && i.sku);
             const payload = {
                 ...values,
                 isQuotation: isQuotation,
@@ -170,7 +172,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         });
     };
 
-    // Payment & Ship Actions (Shortened for brevity but kept functional)
     const handleAddPayment = async () => {
         if(payAmount <= 0) return message.warning('Nhập số tiền');
         try {
@@ -178,7 +179,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             message.success('Đã thanh toán'); setIsPayModalOpen(false); loadHistory(initialData); onSuccess();
         } catch(e) { message.error('Lỗi'); }
     };
+    
     const prepareShipment = () => { setShipItems(initialData.items.map((i:any)=>({sku:i.sku, max:i.quantity, quantity:i.quantity}))); setIsShipModalOpen(true); };
+    
     const handleConfirmShip = async () => {
         try {
             await axios.post(`${API_URL}/sales/${initialData.id}/delivery`, { code: `DO-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*100)}`, date: new Date(), note: shipNote, items: shipItems });
