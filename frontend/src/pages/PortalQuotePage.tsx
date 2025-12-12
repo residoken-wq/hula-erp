@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Spin, Result, Button, message, Modal, Steps, Checkbox, Typography, List, Input, Divider, Avatar, Row, Col, Table } from 'antd'; 
-import { CheckCircleOutlined, CloseCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined } from '@ant-design/icons';
+import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Tag, Table } from 'antd'; 
+import { CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined } from '@ant-design/icons';
 import QuotationTemplate from '../components/QuotationTemplate';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const PortalQuotePage: React.FC = () => {
   const { uuid } = useParams();
@@ -44,17 +44,32 @@ const PortalQuotePage: React.FC = () => {
   };
 
   if (loading) return <div style={{textAlign:'center', marginTop:100}}><Spin size="large" /></div>;
-  if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy báo giá" />;
+  if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy đơn hàng" />;
 
-  const currentStep = ['QUOTATION','SO_PENDING','SAMPLE_APPROVED','DEPOSITED','PLANNED','PARTIAL_DELIVERY','DELIVERED','COMPLETED','CANCELLED'].indexOf(data.status);
+  // Logic Status Steps
+  const statusList = ['QUOTATION','SO_PENDING','SAMPLE_APPROVED','DEPOSITED','PARTIAL_DELIVERY','DELIVERED','COMPLETED'];
+  let currentStep = statusList.indexOf(data.status);
+  // Nếu status không có trong list (VD: PLANNED, CANCELLED), xử lý riêng
+  if(data.status === 'PLANNED') currentStep = 3; 
+  if(data.status === 'COMPLETED') currentStep = 6; // Đảm bảo step cuối sáng
+
   const visibleComments = (data.comments || []).filter((c:any) => c.sender_type === 'CUSTOMER' || c.is_visible);
 
   return (
-    <div style={{ background: '#f0f2f5', minHeight: '100vh', padding: '20px 0' }}>
-       <div style={{ maxWidth: '210mm', margin: '0 auto', background: '#fff', boxShadow: '0 0 10px rgba(0,0,0,0.1)' }}>
-           
-           <div style={{padding: '20px 40px', background:'#fff', borderBottom:'1px solid #eee'}}>
-               <Steps current={currentStep > 4 ? 3 : currentStep} size="small" items={[
+    <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 40 }}>
+       {/* HEADER BAR */}
+       <div style={{background:'#fff', padding: '15px 40px', boxShadow: '0 2px 8px #f0f1f2', position:'sticky', top:0, zIndex:100}}>
+           <Row justify="space-between" align="middle">
+               <Col>
+                   <Title level={4} style={{margin:0, color:'#1890ff'}}>HULA ERP PORTAL</Title>
+                   <Text type="secondary">Mã đơn: <b>{data.order_code}</b></Text>
+               </Col>
+               <Col>
+                   <Button icon={<PrinterOutlined />} onClick={() => window.print()}>In Đơn Hàng</Button>
+               </Col>
+           </Row>
+           <div style={{marginTop: 20, maxWidth: 900, margin: '20px auto 0'}}>
+                <Steps current={currentStep} size="small" items={[
                    { title: 'Báo Giá', icon: <SolutionOutlined /> },
                    { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> },
                    { title: 'Đặt Cọc', icon: <DollarOutlined /> }, 
@@ -62,55 +77,94 @@ const PortalQuotePage: React.FC = () => {
                    { title: 'Hoàn Tất', icon: <CheckCircleOutlined /> },
                ]} />
            </div>
+       </div>
 
-           {!['QUOTATION','CANCELLED'].includes(data.status) && (
-             <div style={{padding: '15px', background:'#f6ffed', borderBottom:'1px solid #b7eb8f', textAlign:'center', fontWeight:'bold', color:'green'}}>
-                 TRẠNG THÁI HIỆN TẠI: {data.status}
-             </div>
-           )}
-
-           {data.status === 'QUOTATION' && (
-               <div style={{ padding: 15, background: '#001529', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <div>Vui lòng phản hồi báo giá:</div>
-                   <div style={{display:'flex', gap: 10}}>
-                       <Button type="primary" danger onClick={()=>handleAction('REJECT')}>Từ chối</Button>
-                       <Button type="primary" style={{background: '#52c41a', borderColor: '#52c41a'}} onClick={()=>handleAction('ACCEPT')}>Xác nhận Báo Giá</Button>
-                   </div>
-               </div>
-           )}
-           
-           <QuotationTemplate data={data} />
-
-           {/* --- DELIVERY INFO --- */}
-           {data.deliveries && data.deliveries.length > 0 && (
-               <div style={{padding: 40, borderTop: '5px solid #f0f2f5'}}>
-                   <Title level={4}>📦 Lịch Sử Giao Hàng</Title>
-                   <Table dataSource={data.deliveries} rowKey="id" pagination={false} size="small" columns={[
-                       { title: 'Ngày giao', render: (r:any)=>dayjs(r.delivery_date).format('DD/MM/YYYY') },
-                       { title: 'Mã phiếu', dataIndex: 'code' },
-                       { title: 'Ghi chú', dataIndex: 'note' },
-                       { title: 'Chi tiết', render: (r:any)=>r.items.map((i:any)=>`${i.sku} (x${i.quantity})`).join(', ') }
-                   ]} />
-               </div>
-           )}
-
-           {/* --- COMMENTS --- */}
-           <div style={{padding: 40, borderTop: '5px solid #f0f2f5', background:'#fafafa'}}>
-               <Title level={4}>💬 Trao Đổi / Ghi Chú</Title>
-               <List dataSource={visibleComments} renderItem={(item:any) => (
-                   <List.Item>
-                       <List.Item.Meta 
-                           avatar={<Avatar icon={<UserOutlined />} style={{backgroundColor: item.sender_type === 'CUSTOMER' ? '#87d068' : '#1890ff'}} />}
-                           title={<span>{item.sender_name} <small style={{color:'#999'}}>{dayjs(item.created_at).format('DD/MM HH:mm')}</small></span>}
-                           description={item.content}
-                       />
-                   </List.Item>
-               )} />
-               <div style={{display:'flex', gap:10, marginTop:10}}>
-                   <Input value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder="Nhập nội dung trao đổi với nhân viên..." onPressEnter={handleSendComment}/>
-                   <Button type="primary" icon={<SendOutlined/>} onClick={handleSendComment}>Gửi</Button>
-               </div>
+       {/* ACTION BAR (NẾU CÒN Ở BƯỚC BÁO GIÁ) */}
+       {data.status === 'QUOTATION' && (
+           <div style={{ background: '#001529', color: '#fff', padding: 15, textAlign: 'center' }}>
+               <Space size="large">
+                   <span>Vui lòng phản hồi báo giá này:</span>
+                   <Button type="primary" danger onClick={()=>handleAction('REJECT')}>Từ chối</Button>
+                   <Button type="primary" style={{background: '#52c41a', borderColor: '#52c41a'}} onClick={()=>handleAction('ACCEPT')}>Xác nhận Đồng ý</Button>
+               </Space>
            </div>
+       )}
+
+       <div style={{ padding: '20px 40px', maxWidth: 1400, margin: '0 auto' }}>
+           <Row gutter={24}>
+               {/* --- LEFT COLUMN: THÔNG TIN & COMMENT --- */}
+               <Col span={8} xs={24} md={8}>
+                   <Card title={<span><UserOutlined /> Thông tin Khách hàng</span>} style={{marginBottom: 20}}>
+                       <Descriptions column={1} size="small" bordered>
+                           <Descriptions.Item label="Tên đơn vị"><b>{data.customer_name || data.customer?.name || 'Khách lẻ'}</b></Descriptions.Item>
+                           <Descriptions.Item label="Người nhận">{data.receiver_name}</Descriptions.Item>
+                           <Descriptions.Item label="SĐT">{data.receiver_phone}</Descriptions.Item>
+                           <Descriptions.Item label="Địa chỉ giao">{data.shipping_address}</Descriptions.Item>
+                       </Descriptions>
+                   </Card>
+
+                   <Card title={<span><ShopOutlined /> Thông tin Xuất Hóa Đơn (VAT)</span>} style={{marginBottom: 20}}>
+                       <Descriptions column={1} size="small" bordered>
+                           <Descriptions.Item label="Công ty">{data.vat_company_name || '-'}</Descriptions.Item>
+                           <Descriptions.Item label="MST">{data.vat_tax_code || '-'}</Descriptions.Item>
+                           <Descriptions.Item label="Địa chỉ">{data.vat_address || '-'}</Descriptions.Item>
+                       </Descriptions>
+                   </Card>
+
+                   <Card title={<span><DollarOutlined /> Thông tin Thanh toán</span>} style={{marginBottom: 20}}>
+                       <div style={{background:'#f6ffed', padding:10, borderRadius:4, border:'1px solid #b7eb8f', textAlign:'center', marginBottom:10}}>
+                           <div style={{color:'#666'}}>Số tiền còn lại phải thanh toán:</div>
+                           <div style={{fontSize:20, fontWeight:'bold', color:'#cf1322'}}>
+                               {(Number(data.total_amount) - Number(data.paid_amount)).toLocaleString()} ₫
+                           </div>
+                       </div>
+                       <p><b>Ngân hàng:</b> ACB - Chi nhánh TP.HCM</p>
+                       <p><b>Số TK:</b> 141847859</p>
+                       <p><b>Chủ TK:</b> CTY TNHH TM DV TƯỜNG LINH</p>
+                       <p><b>Nội dung:</b> {data.order_code}</p>
+                   </Card>
+
+                   <Card title="💬 Trao đổi / Ghi chú" className="comment-widget">
+                        <div style={{maxHeight: 400, overflowY:'auto', paddingRight:5}}>
+                            <List dataSource={visibleComments} renderItem={(item:any) => (
+                                <List.Item style={{padding:'10px 0'}}>
+                                    <List.Item.Meta 
+                                        avatar={<Avatar style={{backgroundColor: item.sender_type === 'CUSTOMER' ? '#87d068' : '#1890ff'}} icon={item.sender_type === 'CUSTOMER' ? <UserOutlined/> : <SolutionOutlined/>} />}
+                                        title={<div style={{fontSize:12, color:'#999'}}>{item.sender_name} - {dayjs(item.created_at).format('DD/MM HH:mm')}</div>}
+                                        description={<div style={{color:'#333', background:'#f5f5f5', padding:8, borderRadius:6}}>{item.content}</div>}
+                                    />
+                                </List.Item>
+                            )} />
+                        </div>
+                        <Divider style={{margin:'10px 0'}} />
+                        <div style={{display:'flex', gap:5}}>
+                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder="Nhập tin nhắn..." onPressEnter={(e)=>{if(!e.shiftKey) {e.preventDefault(); handleSendComment()}}}/>
+                            <Button type="primary" icon={<SendOutlined/>} onClick={handleSendComment} />
+                        </div>
+                   </Card>
+               </Col>
+
+               {/* --- RIGHT COLUMN: CHI TIẾT ĐƠN HÀNG --- */}
+               <Col span={16} xs={24} md={16}>
+                   <Card title="📄 Chi Tiết Đơn Hàng" style={{marginBottom: 20}}>
+                        {/* Reuse QuotationTemplate but hide its header inside the card if needed, or just use it as content */}
+                        <div className="quotation-wrapper">
+                            <QuotationTemplate data={data} />
+                        </div>
+                   </Card>
+
+                   {data.deliveries && data.deliveries.length > 0 && (
+                       <Card title="📦 Lịch Sử Giao Hàng">
+                           <Table dataSource={data.deliveries} rowKey="id" pagination={false} size="small" columns={[
+                               { title: 'Ngày giao', render: (r:any)=>dayjs(r.delivery_date).format('DD/MM/YYYY') },
+                               { title: 'Mã phiếu', dataIndex: 'code' },
+                               { title: 'Ghi chú', dataIndex: 'note' },
+                               { title: 'Chi tiết', render: (r:any)=>r.items.map((i:any)=>`${i.sku} (x${i.quantity})`).join(', ') }
+                           ]} />
+                       </Card>
+                   )}
+               </Col>
+           </Row>
        </div>
     </div>
   );

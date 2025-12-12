@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker, Tooltip } from 'antd';
-import { PlusOutlined, DeleteOutlined, ExperimentOutlined, FileImageOutlined, CheckCircleOutlined, BankOutlined, CarOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, ExperimentOutlined, FileImageOutlined, CheckCircleOutlined, BankOutlined, CarOutlined, PrinterOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -28,7 +28,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const subTotal = items.reduce((sum: number, item: any) => sum + (Number(item?.quantity || 0) * Number(item?.price || 0)), 0);
     const totalAmount = subTotal * (1 + vatRate / 100) + Number(shippingFee);
     
-    // FIX: Kiểm tra kỹ initialData để tránh lỗi null
     const canEdit = !initialData || isQuotation || initialData.status === 'QUOTATION' || initialData.status === 'SO_PENDING';
     const hasData = initialData && initialData.id; 
 
@@ -78,6 +77,15 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         });
     };
 
+    // Hàm mở trang in (Portal)
+    const handlePrint = () => {
+        if(initialData?.uuid) {
+            window.open(`/portal/quote/${initialData.uuid}`, '_blank');
+        } else {
+            message.warning('Vui lòng lưu đơn hàng trước khi in');
+        }
+    };
+
     const handleSampleAction = (idx: number) => { setCurrentSampleIdx(idx); sampleForm.setFieldsValue(form.getFieldValue(['items', idx])); setIsSampleModalOpen(true); };
     const saveSampleInfo = () => {
         const items = form.getFieldValue('items');
@@ -90,7 +98,17 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     return (
         <Modal
-            title={<div style={{display:'flex', gap:10}}>{isQuotation?"Báo Giá":"Đơn Hàng (SO)"}{!canEdit && <Tag color="orange">Khóa</Tag>}{initialData?.status==='COMPLETED'&&<Tag color="green">HOÀN TẤT</Tag>}</div>}
+            title={
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginRight: 30}}>
+                    <div style={{display:'flex', gap:10, alignItems:'center'}}>
+                        {isQuotation?"Báo Giá":"Đơn Hàng (SO)"}
+                        {!canEdit && <Tag color="orange">Khóa</Tag>}
+                        {initialData?.status==='COMPLETED'&&<Tag color="green">HOÀN TẤT</Tag>}
+                    </div>
+                    {/* NÚT IN / XUẤT PDF */}
+                    {hasData && <Button icon={<PrinterOutlined />} onClick={handlePrint}>In Đơn Hàng</Button>}
+                </div>
+            }
             open={open} onCancel={onClose} onOk={() => form.submit()} width={1200} style={{ top: 10 }} okText="Lưu Thông Tin"
         >
             <div style={{textAlign:'right', marginBottom:10}}>
@@ -126,7 +144,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             </Row>
                         )
                     },
-                    /* FIX: CHỈ RENDER NẾU HAS DATA ĐỂ TRÁNH LỖI NULL */
                     !isQuotation && { key: '2', label: '2. Thanh toán', children: hasData ? <SalesPayments orderId={initialData.id} orderCode={initialData.order_code} totalAmount={totalAmount} paidAmount={Number(initialData.paid_amount)} onSuccess={onSuccess} /> : <div>Đang tải dữ liệu...</div> },
                     !isQuotation && { key: '3', label: '3. Giao hàng', children: hasData ? <SalesDeliveries orderId={initialData.id} orderItems={items} onSuccess={onSuccess} /> : <div>Đang tải dữ liệu...</div> },
                     !isQuotation && { key: '4', label: '4. Trao đổi', children: hasData ? <SalesComments orderId={initialData.id} /> : <div>Đang tải dữ liệu...</div> }
