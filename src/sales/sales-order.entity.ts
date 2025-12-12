@@ -5,8 +5,9 @@ import { ProductionPlan } from '../planning/production-plan.entity';
 
 export enum SalesOrderStatus {
   QUOTATION = 'QUOTATION',   
-  SO_PENDING = 'SO_PENDING', // Chờ duyệt mẫu
-  DEPOSITED = 'DEPOSITED',   // Đã cọc (Duyệt mẫu xong)
+  SO_PENDING = 'SO_PENDING',      // Đang duyệt mẫu
+  SAMPLE_APPROVED = 'SAMPLE_APPROVED', // MỚI: Đã duyệt mẫu (Chờ cọc)
+  DEPOSITED = 'DEPOSITED',        // Đã cọc & SX
   PLANNED = 'PLANNED',       
   PARTIAL_DELIVERY = 'PARTIAL_DELIVERY',
   DELIVERED = 'DELIVERED',   
@@ -42,13 +43,11 @@ export class SalesOrder {
   @Column({ nullable: true })
   customer_name: string;
 
-  // --- VAT INFO ---
   @Column({ nullable: true }) vat_company_name: string;
   @Column({ nullable: true }) vat_tax_code: string; 
   @Column({ nullable: true }) vat_address: string;
   @Column('int', { default: 0 }) vat_rate: number;
 
-  // --- LOGISTICS ---
   @Column({ type: 'date', nullable: true }) delivery_date: Date;
   @Column({ nullable: true }) shipping_address: string;
   @Column({ nullable: true }) receiver_name: string;
@@ -57,15 +56,12 @@ export class SalesOrder {
   @Column({ nullable: true }) tracking_code: string;
   @Column('decimal', { default: 0 }) shipping_fee: number;
 
-  // --- PAYMENT ---
   @Column('text', { nullable: true }) payment_note: string;
   @Column('decimal', { precision: 15, scale: 2, default: 0 }) paid_amount: number;
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.UNPAID }) payment_status: PaymentStatus;
 
-  // --- SAMPLE APPROVAL (DUYỆT MẪU) - MỚI ---
-  @Column('text', { nullable: true }) sample_image_url: string; // Link ảnh mẫu
-  @Column('text', { nullable: true }) sample_note: string;      // Ghi chú mẫu
-  // ----------------------------------------
+  @Column('text', { nullable: true }) sample_image_url: string;
+  @Column('text', { nullable: true }) sample_note: string;
 
   @ManyToOne(() => ProductionPlan, (plan) => plan.sales_orders, { nullable: true })
   @JoinColumn({ name: 'plan_id' })

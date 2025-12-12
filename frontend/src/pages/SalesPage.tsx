@@ -35,6 +35,8 @@ const SalesPage: React.FC = () => {
               let color = 'default';
               if(t==='QUOTATION') color = 'orange';
               if(t==='SO_PENDING') color = 'blue';
+              if(t==='SAMPLE_APPROVED') color = 'cyan'; // Màu mới
+              if(t==='DEPOSITED') color = 'purple';
               if(t==='COMPLETED') color = 'green';
               return <Tag color={color}>{t}</Tag>
           } 
@@ -55,8 +57,9 @@ const SalesPage: React.FC = () => {
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
             { key: 'ALL', label: 'Tất cả' },
             { key: 'QUOTATION', label: 'Báo Giá' },
-            { key: 'SO_PENDING', label: 'Chốt Đơn (SO)' },
-            { key: 'DEPOSITED', label: 'Đã Cọc' },
+            { key: 'SO_PENDING', label: 'Chờ Duyệt Mẫu' },
+            { key: 'SAMPLE_APPROVED', label: 'Đã Duyệt Mẫu' }, // Tab mới
+            { key: 'DEPOSITED', label: 'Đã Cọc/SX' },
             { key: 'DELIVERED', label: 'Đã Giao' },
         ]} />
         <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} />

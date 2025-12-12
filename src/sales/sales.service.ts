@@ -26,7 +26,7 @@ export class SalesService {
   private async validateItemsForSO(items: any[]) {
       if(!items) return;
       for (const item of items) {
-          if (!item.sku) continue; // Skip empty rows
+          if (!item.sku) continue;
           const product = await this.productsService.findOneBySku(item.sku);
           if (!product) throw new NotFoundException(`SP ${item.sku} k tim thay`);
       }
@@ -34,7 +34,6 @@ export class SalesService {
 
   async createOrder(data: any) {
     if (!data.isQuotation) await this.validateItemsForSO(data.items);
-    
     const order = this.orderRepo.create({
         order_code: data.order_code,
         customer: data.customer_id ? { id: data.customer_id } : null,
@@ -45,14 +44,12 @@ export class SalesService {
         status: data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING
     });
     
-    // --- FIX: Filter empty items & Default 0 ---
     const validItems = (data.items || []).filter((i:any) => i.sku); 
-    
     let itemsTotal = 0; let totalCost = 0;
     
     order.items = validItems.map((itemData:any) => {
-        const qty = Number(itemData.quantity) || 0; // FIX NULL
-        const price = Number(itemData.price) || 0;  // FIX NULL
+        const qty = Number(itemData.quantity) || 0;
+        const price = Number(itemData.price) || 0;
         const sub = qty * price;
         itemsTotal += sub;
         
@@ -90,27 +87,21 @@ export class SalesService {
       if(data.customer_id) order.customer = { id: data.customer_id } as any;
 
       let itemsTotal = 0;
-      if (data.items && (order.status === SalesOrderStatus.QUOTATION || order.status === SalesOrderStatus.SO_PENDING)) {
+      // Allow update if QUOTATION, SO_PENDING or SAMPLE_APPROVED (to fix details before deposit)
+      if (data.items && (order.status === SalesOrderStatus.QUOTATION || order.status === SalesOrderStatus.SO_PENDING || order.status === SalesOrderStatus.SAMPLE_APPROVED)) {
           await this.orderRepo.createQueryBuilder().relation(SalesOrder, "items").of(order).remove(order.items);
           
-          // --- FIX: Filter & Default 0 ---
           const validItems = data.items.filter((i:any) => i.sku);
-
           order.items = validItems.map((i:any) => {
-              const qty = Number(i.quantity) || 0; // FIX NULL
-              const price = Number(i.price) || 0;  // FIX NULL
+              const qty = Number(i.quantity) || 0;
+              const price = Number(i.price) || 0;
               const sub = qty * price;
               itemsTotal += sub;
               
               return this.orderRepo.manager.create(SalesOrderItem, { 
-                  sku: i.sku, 
-                  quantity: qty, 
-                  unit_price: price, 
-                  subtotal: sub,
-                  variant_color: i.variant_color,
-                  is_sample_approved: i.is_sample_approved,
-                  sample_image: i.sample_image,
-                  sample_note: i.sample_note
+                  sku: i.sku, quantity: qty, unit_price: price, subtotal: sub,
+                  variant_color: i.variant_color, is_sample_approved: i.is_sample_approved,
+                  sample_image: i.sample_image, sample_note: i.sample_note
               });
           });
       } else {
@@ -121,28 +112,43 @@ export class SalesService {
       return this.orderRepo.save(order);
   }
 
-  // ... (Giu nguyen cac ham khac: convertQuoteToSo, updatePayment, deleteQuote, getQuoteByUuid, customerAction, createDelivery, getDeliveryHistory, getPaymentHistory)
   async convertQuoteToSo(id: number, accepted: boolean) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();
       order.status = accepted ? SalesOrderStatus.SO_PENDING : SalesOrderStatus.CANCELLED;
       return this.orderRepo.save(order);
   }
+
+  // --- FIX: Cập nhật trạng thái Order thành SAMPLE_APPROVED ---
   async approveAllSamples(id: number) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();
+      
+      // Update Items
       for(const item of order.items) { item.is_sample_approved = true; await this.orderRepo.manager.save(item); }
+      
+      // Update Order Status
+      if (order.status === SalesOrderStatus.SO_PENDING) {
+          order.status = SalesOrderStatus.SAMPLE_APPROVED;
+      }
       return this.orderRepo.save(order);
   }
+
   async updatePayment(orderCode: string, amount: number) {
     const order = await this.orderRepo.findOne({ where: { order_code: orderCode } });
     if (!order) throw new NotFoundException();
     order.paid_amount = Number(order.paid_amount || 0) + Number(amount);
-    if (order.paid_amount > 0 && order.status === SalesOrderStatus.SO_PENDING) order.status = SalesOrderStatus.DEPOSITED;
+    
+    // Logic tự động chuyển trạng thái khi có tiền
+    if (order.paid_amount > 0 && (order.status === SalesOrderStatus.SO_PENDING || order.status === SalesOrderStatus.SAMPLE_APPROVED)) {
+        order.status = SalesOrderStatus.DEPOSITED;
+    }
+    
     if (order.paid_amount >= order.total_amount) order.payment_status = PaymentStatus.PAID;
     else if (order.paid_amount > 0) order.payment_status = PaymentStatus.PARTIAL_PAID;
     return this.orderRepo.save(order);
   }
+  
   async deleteQuote(id: number) {
        const order = await this.orderRepo.findOne({ where: { id } });
        if (order && (order.status === 'QUOTATION' || order.status === 'CANCELLED')) return this.orderRepo.remove(order);
