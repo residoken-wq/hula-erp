@@ -19,45 +19,37 @@ export class FinanceService {
   ) {}
 
   async create(data: any) {
-    // --- FIX TOÀN DIỆN MAPPING DỮ LIỆU ---
-    // 1. refCode (Frontend) -> reference_code (DB)
-    // 2. note (Frontend) -> description (DB)
-    const transactionPayload = {
-        ...data,
-        reference_code: data.refCode || data.reference_code,
-        description: data.note || data.description
+    // --- FIX: Mapping dữ liệu thủ công để đảm bảo không bao giờ bị NULL ---
+    const payload = {
+        type: data.type,
+        amount: data.amount,
+        payment_method: data.payment_method || 'CASH',
+        // Mapping quan trọng:
+        reference_code: data.refCode || data.reference_code || null, 
+        description: data.note || data.description || ''
     };
 
-    // Tạo transaction với dữ liệu đã map chuẩn
-    const transaction = this.transactionRepo.create(transactionPayload);
+    if (!payload.reference_code) {
+        console.error('MISSING REFERENCE CODE:', data);
+        // Tùy chọn: throw new BadRequestException('Thiếu mã tham chiếu');
+    }
+
+    const transaction = this.transactionRepo.create(payload);
     const saved = await this.transactionRepo.save(transaction);
 
-    // Logic cập nhật trạng thái đơn hàng (SO/PO) nếu có mã tham chiếu
-    if (transactionPayload.reference_code) {
-        const amount = Number(data.amount);
-        
-        if (data.type === 'INCOME') {
-            try { 
-                // Cập nhật thanh toán bên Bán Hàng (SO)
-                await this.salesService.updatePayment(transactionPayload.reference_code, amount); 
-            } catch(e) {
-                console.warn(`Sales update payment error: ${e}`);
-            }
-        } else if (data.type === 'EXPENSE') {
-            try { 
-                // Cập nhật thanh toán bên Mua Hàng (PO)
-                await this.purchasingService.updatePayment(transactionPayload.reference_code, amount); 
-            } catch(e) {
-                console.warn(`Purchasing update payment error: ${e}`);
-            }
+    // Logic cập nhật trạng thái đơn
+    if (payload.reference_code) {
+        const amt = Number(payload.amount);
+        if (payload.type === 'INCOME') {
+            try { await this.salesService.updatePayment(payload.reference_code, amt); } catch(e) { console.warn(e); }
+        } else if (payload.type === 'EXPENSE') {
+            try { await this.purchasingService.updatePayment(payload.reference_code, amt); } catch(e) { console.warn(e); }
         }
     }
     return saved;
   }
 
-  async findAll() {
-    return this.transactionRepo.find({ order: { created_at: 'DESC' } });
-  }
+  async findAll() { return this.transactionRepo.find({ order: { created_at: 'DESC' } }); }
 
   async getSummary() {
       const all = await this.findAll();

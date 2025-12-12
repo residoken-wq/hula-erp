@@ -3,21 +3,12 @@ import { Table, Button, Statistic, Row, Col, Divider, Modal, Form, InputNumber, 
 import { DollarOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-// FIX: Đường dẫn import config
 import { API_URL } from '../../config';
 
-interface Props {
-    orderId: number;
-    orderCode: string;
-    totalAmount: number;
-    paidAmount: number;
-    onSuccess: () => void;
-}
+interface Props { orderId: number; orderCode: string; totalAmount: number; paidAmount: number; onSuccess: () => void; }
 
 const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidAmount, onSuccess }) => {
-    // FIX: Thêm <any[]>
     const [history, setHistory] = useState<any[]>([]);
-    
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [amount, setAmount] = useState<number>(0);
     const [type, setType] = useState('DEPOSIT');
@@ -36,12 +27,12 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
         if (amount <= 0) return message.warning('Nhập số tiền');
         const prefix = type === 'DEPOSIT' ? '[ĐẶT CỌC]' : type === 'FINAL' ? '[TẤT TOÁN]' : '[THANH TOÁN]';
         try {
+            // Gửi 'note' lên để Backend map vào 'description'
             await axios.post(`${API_URL}/finance/payment`, {
                 type: 'INCOME', amount, refCode: orderCode,
-                description: `${prefix} ${note}`.trim()
+                note: `${prefix} ${note}`.trim()
             });
-            message.success('Đã lưu');
-            setIsModalOpen(false); fetchHistory(); onSuccess();
+            message.success('Đã lưu'); setIsModalOpen(false); fetchHistory(); onSuccess();
         } catch (e) { message.error('Lỗi lưu thanh toán'); }
     };
 
@@ -59,16 +50,13 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                 <Col span={8}><Statistic title="Còn lại" value={totalAmount - paidAmount} valueStyle={{ color: 'red' }} suffix="đ" /></Col>
             </Row>
             <Divider />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                <b>Lịch sử thanh toán:</b>
-                <Button type="primary" icon={<DollarOutlined />} onClick={openModal}>Thêm thanh toán</Button>
-            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}><b>Lịch sử thanh toán:</b><Button type="primary" icon={<DollarOutlined />} onClick={openModal}>Thêm thanh toán</Button></div>
             <Table dataSource={history} rowKey="id" pagination={false} size="small" bordered columns={[
                 { title: 'Ngày', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY HH:mm') },
                 { title: 'Số tiền', dataIndex: 'amount', align: 'right', render: (v: any) => <b style={{ color: 'green' }}>{Number(v).toLocaleString()}</b> },
-                { title: 'Nội dung', dataIndex: 'description' }
+                // --- FIX: Hiển thị cột description từ DB ---
+                { title: 'Nội dung', dataIndex: 'description' } 
             ]} />
-
             <Modal title="Thêm Đợt Thanh Toán" open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={handlePayment}>
                 <Form layout="vertical">
                     <Form.Item label="Số tiền"><InputNumber style={{ width: '100%' }} value={amount} onChange={(v:any) => setAmount(v)} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item>
