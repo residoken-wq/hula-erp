@@ -26,6 +26,7 @@ export class SalesService {
   private async validateItemsForSO(items: any[]) {
       if(!items) return;
       for (const item of items) {
+          if (!item.sku) continue; // Skip empty rows
           const product = await this.productsService.findOneBySku(item.sku);
           if (!product) throw new NotFoundException(`SP ${item.sku} k tim thay`);
       }
@@ -33,6 +34,7 @@ export class SalesService {
 
   async createOrder(data: any) {
     if (!data.isQuotation) await this.validateItemsForSO(data.items);
+    
     const order = this.orderRepo.create({
         order_code: data.order_code,
         customer: data.customer_id ? { id: data.customer_id } : null,
@@ -43,15 +45,21 @@ export class SalesService {
         status: data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING
     });
     
+    // --- FIX: Filter empty items & Default 0 ---
+    const validItems = (data.items || []).filter((i:any) => i.sku); 
+    
     let itemsTotal = 0; let totalCost = 0;
-    // Map items voi cac truong moi
-    order.items = (data.items || []).map((itemData:any) => {
-        const sub = Number(itemData.quantity) * Number(itemData.price);
+    
+    order.items = validItems.map((itemData:any) => {
+        const qty = Number(itemData.quantity) || 0; // FIX NULL
+        const price = Number(itemData.price) || 0;  // FIX NULL
+        const sub = qty * price;
         itemsTotal += sub;
+        
         return this.orderRepo.manager.create(SalesOrderItem, {
             sku: itemData.sku,
-            quantity: itemData.quantity,
-            unit_price: itemData.price,
+            quantity: qty,
+            unit_price: price,
             subtotal: sub,
             variant_color: itemData.variant_color,
             is_sample_approved: itemData.is_sample_approved || false,
@@ -77,21 +85,27 @@ export class SalesService {
           vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate)||0,
           delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone,
           shipping_fee: Number(data.shipping_fee)||0, payment_note: data.payment_note,
-          sample_image_url: data.sample_image_url, sample_note: data.sample_note // Cap nhat ca cap Order (neu can)
+          sample_image_url: data.sample_image_url, sample_note: data.sample_note
       });
       if(data.customer_id) order.customer = { id: data.customer_id } as any;
 
       let itemsTotal = 0;
       if (data.items && (order.status === SalesOrderStatus.QUOTATION || order.status === SalesOrderStatus.SO_PENDING)) {
           await this.orderRepo.createQueryBuilder().relation(SalesOrder, "items").of(order).remove(order.items);
-          order.items = data.items.map((i:any) => {
-              const sub = Number(i.quantity) * Number(i.price);
+          
+          // --- FIX: Filter & Default 0 ---
+          const validItems = data.items.filter((i:any) => i.sku);
+
+          order.items = validItems.map((i:any) => {
+              const qty = Number(i.quantity) || 0; // FIX NULL
+              const price = Number(i.price) || 0;  // FIX NULL
+              const sub = qty * price;
               itemsTotal += sub;
-              // Map cac truong chi tiet item
+              
               return this.orderRepo.manager.create(SalesOrderItem, { 
                   sku: i.sku, 
-                  quantity: i.quantity, 
-                  unit_price: i.price, 
+                  quantity: qty, 
+                  unit_price: price, 
                   subtotal: sub,
                   variant_color: i.variant_color,
                   is_sample_approved: i.is_sample_approved,
@@ -107,29 +121,19 @@ export class SalesService {
       return this.orderRepo.save(order);
   }
 
+  // ... (Giu nguyen cac ham khac: convertQuoteToSo, updatePayment, deleteQuote, getQuoteByUuid, customerAction, createDelivery, getDeliveryHistory, getPaymentHistory)
   async convertQuoteToSo(id: number, accepted: boolean) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();
       order.status = accepted ? SalesOrderStatus.SO_PENDING : SalesOrderStatus.CANCELLED;
       return this.orderRepo.save(order);
   }
-
-  // --- API MOI: XAC NHAN DUYET MAU TOAN BO ---
   async approveAllSamples(id: number) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();
-      
-      // Update tat ca items thanh approved
-      for(const item of order.items) {
-          item.is_sample_approved = true;
-          await this.orderRepo.manager.save(item);
-      }
-      
-      // Co the chuyen trang thai sang DEPOSITED (neu logic nghiep vu yeu cau) hoac giu nguyen SO_PENDING
-      // O day ta giu nguyen de cho khach coc
+      for(const item of order.items) { item.is_sample_approved = true; await this.orderRepo.manager.save(item); }
       return this.orderRepo.save(order);
   }
-
   async updatePayment(orderCode: string, amount: number) {
     const order = await this.orderRepo.findOne({ where: { order_code: orderCode } });
     if (!order) throw new NotFoundException();
@@ -139,24 +143,21 @@ export class SalesService {
     else if (order.paid_amount > 0) order.payment_status = PaymentStatus.PARTIAL_PAID;
     return this.orderRepo.save(order);
   }
-  
   async deleteQuote(id: number) {
        const order = await this.orderRepo.findOne({ where: { id } });
        if (order && (order.status === 'QUOTATION' || order.status === 'CANCELLED')) return this.orderRepo.remove(order);
        throw new BadRequestException('Khong the xoa');
   }
-
   async getQuoteByUuid(uuid: string) { return this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer'] }); }
   async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT') {
       const order = await this.getQuoteByUuid(uuid);
       if (order.status !== SalesOrderStatus.QUOTATION) throw new BadRequestException('Da xu ly roi');
       return this.convertQuoteToSo(order.id, action === 'ACCEPT');
   }
-
   async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
   async createDelivery(orderId: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id: orderId } });
-      if (!order) throw new NotFoundException();
+      if (!order) throw new NotFoundException('Not found');
       const delivery = this.deliveryRepo.create({ code: data.code, delivery_date: data.date, note: data.note, sales_order: order, items: data.items.map((i:any) => ({ sku: i.sku, quantity: i.quantity })) });
       for (const item of data.items) {
            const product = await this.productsService.findOneBySku(item.sku);
