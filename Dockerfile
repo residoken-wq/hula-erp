@@ -1,20 +1,16 @@
-FROM node:18-alpine
-
+# Stage 1: Build
+FROM node:18-alpine as build
 WORKDIR /app
-
-# Copy file cau hinh
 COPY package*.json ./
-
-# Cai dat dependencies (bao gom ca Nest CLI)
 RUN npm install
-# Cai dat them CLI toan cuc de chac chan lenh 'nest' ton tai
-RUN npm install -g @nestjs/cli
-
-# Copy source code
 COPY . .
-
-# Build code
+# Sửa lỗi build bộ nhớ nếu cần
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
-# Chay ung dung
-CMD ["npm", "run", "start:prod"]
+# Stage 2: Nginx
+FROM nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

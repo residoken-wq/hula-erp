@@ -13,14 +13,12 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    
-    # --- CẬP NHẬT HEALTHCHECK: Tăng thời gian chờ ---
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hula_user -d hula_db"]
-      interval: 10s  # Kiểm tra mỗi 10 giây (Thay vì 5s)
+      interval: 10s
       timeout: 5s
-      retries: 10    # Thử lại 10 lần (Tổng cộng chờ ~100 giây)
-    # ------------------------------------------------
+      retries: 10
+      start_period: 10s
 
   app:
     build: .
@@ -42,14 +40,15 @@ services:
 
   frontend:
     build:
-      context: ./frontend      # <--- SỬA DÒNG NÀY: Trỏ vào thư mục frontend
-      dockerfile: Dockerfile   # <--- SỬA DÒNG NÀY: Tên file là Dockerfile (không phải Dockerfile.frontend)
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: hula_frontend
     restart: always
     ports:
       - "80:80"
     depends_on:
       - app
+    # LƯU Ý: Đã xóa phần volumes và command để đảm bảo dùng bản Build Nginx
 
 volumes:
   postgres_data:
