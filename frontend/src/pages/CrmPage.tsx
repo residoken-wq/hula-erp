@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import QuotationTemplate from '../components/QuotationTemplate';
 import SalesOrderDetail from '../components/SalesOrderDetail'; // IMPORT MOI
+import { LinkOutlined } from '@ant-design/icons'; // Import icon moi
 
 const CrmPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('LEAD');
@@ -167,6 +168,15 @@ const CrmPage: React.FC = () => {
       {
           title: 'Thao tác', key: 'act', align: 'center' as const, width: 180,
           render: (_:any, r:any) => r.status === 'QUOTATION' ? (
+              <Space size={2}>
+                {/* NÚT COPY LINK PORTAL */}
+                <Tooltip title="Copy Link cho Khách">
+                    <Button icon={<LinkOutlined />} size="small" onClick={()=>{
+                        const link = `${window.location.origin}/portal/quote/${r.uuid}`;
+                        navigator.clipboard.writeText(link);
+                        message.success('Đã copy link báo giá!');
+                    }} />
+                </Tooltip>
               <Space size={2}>
                   <Tooltip title="Xem & In"><Button icon={<PrinterOutlined />} size="small" onClick={()=>{openDetailModal(r); setTimeout(()=>setIsPreviewOpen(true), 500)}} /></Tooltip>
                   <Tooltip title="Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, true)} /></Tooltip>

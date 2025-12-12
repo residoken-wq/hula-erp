@@ -18,6 +18,7 @@ import ManufacturersPage from './pages/ManufacturersPage';
 import ProductionRoutePage from './pages/ProductionRoutePage';
 import ProcessesPage from './pages/ProcessesPage';
 import CategoriesPage from './pages/CategoriesPage';
+import PortalQuotePage from './pages/PortalQuotePage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -53,36 +54,43 @@ const App: React.FC = () => {
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
   return (
     <Router>
-      <Layout style={{ minHeight: '100vh' }}>
-        <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
-          <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', textAlign: 'center', color: '#fff', lineHeight: '32px', fontWeight: 'bold' }}>HULA ERP</div>
-          <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={items} />
-        </Sider>
-        <Layout>
-          <Header style={{ padding: 0, background: colorBgContainer }} />
-          <Content style={{ margin: '0 16px' }}>
-            <div style={{ padding: 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG, marginTop: 16 }}>
-              <Routes>
-                <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
-                <Route path="/upload" element={<UploadPage />} /> 
-                <Route path="/products" element={<ProductsPage />} />
-                <Route path="/combos" element={<CombosPage />} /> 
-                <Route path="/materials" element={<MaterialsPage />} />
-                <Route path="/suppliers" element={<SuppliersPage />} />
-                <Route path="/sales" element={<CrmPage />} />
-                <Route path="/customers" element={<CustomersPage />} />
-                <Route path="/planning" element={<PlanningPage />} />
-                <Route path="/manufacturers" element={<ManufacturersPage />} />
-                <Route path="/routes" element={<ProductionRoutePage />} />
-                <Route path="/processes" element={<ProcessesPage />} />
-                <Route path="/categories" element={<CategoriesPage />} />
-                <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
-              </Routes>
-            </div>
-          </Content>
-          <Footer style={{ textAlign: 'center' }}>Hula ERP ©2025 Created by AI</Footer>
-        </Layout>
-      </Layout>
+      <Routes>
+        {/* --- ROUTE PORTAL (KHONG CO LAYOUT) --- */}
+        <Route path="/portal/quote/:uuid" element={<PortalQuotePage />} />
+
+        {/* --- MAIN LAYOUT --- */}
+        <Route path="*" element={
+          <Layout style={{ minHeight: '100vh' }}>
+            <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
+              <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', textAlign: 'center', color: '#fff', lineHeight: '32px', fontWeight: 'bold' }}>HULA ERP</div>
+              <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={items} />
+            </Sider>
+          <Layout>
+              <Header style={{ padding: 0, background: colorBgContainer }} />
+                <Content style={{ margin: '0 16px' }}>
+                  <div style={{ padding: 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG, marginTop: 16 }}></div>
+                    <Routes>
+                      <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
+                      <Route path="/upload" element={<UploadPage />} /> 
+                      <Route path="/products" element={<ProductsPage />} />
+                      <Route path="/combos" element={<CombosPage />} /> 
+                      <Route path="/materials" element={<MaterialsPage />} />
+                      <Route path="/suppliers" element={<SuppliersPage />} />
+                      <Route path="/sales" element={<CrmPage />} />
+                      <Route path="/customers" element={<CustomersPage />} />
+                      <Route path="/planning" element={<PlanningPage />} />
+                      <Route path="/manufacturers" element={<ManufacturersPage />} />
+                      <Route path="/routes" element={<ProductionRoutePage />} />
+                      <Route path="/processes" element={<ProcessesPage />} />
+                      <Route path="/categories" element={<CategoriesPage />} />
+                      <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
+                    </Routes>
+                  </div>
+                </Content>
+              <Footer style={{ textAlign: 'center' }}>Hula ERP ©2025 Created by AI</Footer>
+          </Layout>
+        </Layout>        
+      </Routes>     
     </Router>
   );
 };
