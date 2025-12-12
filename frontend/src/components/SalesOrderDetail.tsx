@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker, Tooltip } from 'antd';
-import { PlusOutlined, DeleteOutlined, ExperimentOutlined, FileImageOutlined, CheckCircleOutlined, BankOutlined, CarOutlined, PrinterOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker, Tooltip, Card } from 'antd';
+import { PlusOutlined, DeleteOutlined, ExperimentOutlined, FileImageOutlined, CheckCircleOutlined, BankOutlined, CarOutlined, PrinterOutlined, FileTextOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -29,7 +29,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const shippingFee = Form.useWatch('shipping_fee', form) || 0;
 
     const subTotal = items.reduce((sum: number, item: any) => sum + (Number(item?.quantity || 0) * Number(item?.price || 0)), 0);
-    const totalAmount = subTotal * (1 + vatRate / 100) + Number(shippingFee);
+    const vatAmount = subTotal * (vatRate / 100);
+    const totalAmount = subTotal + vatAmount + Number(shippingFee);
     
     const canEdit = !initialData || isQuotation || initialData.status === 'QUOTATION' || initialData.status === 'SO_PENDING';
     const hasData = initialData && initialData.id; 
@@ -41,7 +42,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 customer_id: initialData.customer?.id || initialData.customer_id,
                 delivery_date: initialData.delivery_date ? dayjs(initialData.delivery_date) : null,
                 items: (initialData.items || []).map((i: any) => ({ ...i, quantity: Number(i.quantity), price: Number(i.unit_price) })),
-                // LOAD TERMS
                 terms_content: initialData.terms_content || DEFAULT_TERMS
             });
         } else if (open) {
@@ -136,17 +136,69 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                             </Row>
                                         ))}{canEdit && <Button type="dashed" onClick={()=>add()} block icon={<PlusOutlined/>}>Thêm dòng</Button>}</div>)}</Form.List>
                                         <Divider style={{margin:'10px 0'}}/>
-                                        <Row justify="space-between"><Col>{!isQuotation && <Button type="primary" ghost icon={<CheckCircleOutlined/>} onClick={approveAllSamples}>Duyệt Mẫu (All)</Button>}</Col><Col><div style={{textAlign:'right', minWidth:200}}><Row><Col span={12}>Tổng:</Col><Col span={12}><b>{subTotal.toLocaleString()}</b></Col></Row><Row><Col span={12}>VAT:</Col><Col span={12}><Space><Form.Item name="vat_rate" noStyle><Select size="small" options={[{label:'0%',value:0},{label:'8%',value:8},{label:'10%',value:10}]} /></Form.Item><span>{(subTotal*vatRate/100).toLocaleString()}</span></Space></Col></Row><Row><Col span={12}>Phí VC:</Col><Col span={12}><Form.Item name="shipping_fee" noStyle><InputNumber size="small" style={{width:80}}/></Form.Item></Col></Row><Divider style={{margin:'5px 0'}}/><Row style={{fontSize:16, color:'red'}}><Col span={12}>TỔNG:</Col><Col span={12}><b>{totalAmount.toLocaleString()}</b></Col></Row></div></Col></Row>
+                                        
+                                        {/* --- 2. GIAO DIỆN TỔNG TIỀN CHUYÊN NGHIỆP --- */}
+                                        <Row justify="space-between" align="bottom">
+                                            <Col span={10}>
+                                                {!isQuotation && <Button type="primary" ghost icon={<CheckCircleOutlined/>} onClick={approveAllSamples}>Duyệt Mẫu (All)</Button>}
+                                            </Col>
+                                            <Col span={14}>
+                                                <div style={{background: '#fff', padding: '15px', borderRadius: 8, border: '1px solid #f0f0f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'}}>
+                                                    <div style={{display:'flex', justifyContent:'space-between', marginBottom: 8}}>
+                                                        <span style={{color: '#666'}}>Cộng tiền hàng:</span>
+                                                        <span style={{fontWeight: 600, fontSize: 15}}>{subTotal.toLocaleString()}</span>
+                                                    </div>
+                                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8}}>
+                                                        <span style={{color: '#666'}}>Thuế VAT:</span>
+                                                        <Space>
+                                                            <Form.Item name="vat_rate" noStyle><Select size="small" style={{width: 70}} options={[{label:'0%',value:0},{label:'8%',value:8},{label:'10%',value:10}]} /></Form.Item>
+                                                            <span style={{minWidth: 80, textAlign:'right'}}>{vatAmount.toLocaleString()}</span>
+                                                        </Space>
+                                                    </div>
+                                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 12}}>
+                                                        <span style={{color: '#666'}}>Phí vận chuyển:</span>
+                                                        <Form.Item name="shipping_fee" noStyle><InputNumber size="small" style={{width: 100, textAlign: 'right'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Form.Item>
+                                                    </div>
+                                                    <Divider style={{margin: '10px 0'}} />
+                                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                                                        <span style={{fontWeight: 'bold', fontSize: 16, color: '#333'}}>TỔNG CỘNG:</span>
+                                                        <span style={{fontWeight: 'bold', fontSize: 22, color: '#cf1322'}}>{totalAmount.toLocaleString()} ₫</span>
+                                                    </div>
+                                                </div>
+                                            </Col>
+                                        </Row>
                                     </div>
                                 </Col>
                                 <Col span={8}>
-                                    <div style={{background:'#f9f9f9', padding:15, borderRadius:8, marginBottom: 10}}><Divider orientation="left" style={{marginTop:0}}><BankOutlined/> Hóa Đơn & Giao Nhận</Divider><Form.Item name="vat_company_name" label="Tên Đơn vị"><Input/></Form.Item><Row gutter={8}><Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input/></Form.Item></Col><Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input/></Form.Item></Col></Row><Divider orientation="left"><CarOutlined/> Giao nhận</Divider><Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}}/></Form.Item><Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2}/></Form.Item><Row gutter={8}><Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input/></Form.Item></Col><Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input/></Form.Item></Col></Row></div>
+                                    <div style={{background:'#f9f9f9', padding:15, borderRadius:8, marginBottom: 10, border: '1px solid #f0f0f0'}}>
+                                        <Divider orientation="left" style={{marginTop:0}}><BankOutlined/> Hóa Đơn & Giao Nhận</Divider>
+                                        <Form.Item name="vat_company_name" label="Tên Đơn vị"><Input/></Form.Item>
+                                        <Row gutter={8}>
+                                            <Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input/></Form.Item></Col>
+                                            <Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input/></Form.Item></Col>
+                                        </Row>
+                                        <Divider orientation="left"><CarOutlined/> Giao nhận</Divider>
+                                        <Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}}/></Form.Item>
+                                        <Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2}/></Form.Item>
+                                        <Row gutter={8}>
+                                            <Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input/></Form.Item></Col>
+                                            <Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input/></Form.Item></Col>
+                                        </Row>
+                                    </div>
                                     
-                                    {/* --- Ô NHẬP ĐIỀU KHOẢN --- */}
+                                    {/* --- 1. GHI CHÚ & ĐIỀU KHOẢN (VỊ TRÍ MỚI DỄ THẤY) --- */}
                                     <div style={{background:'#fffbe6', padding:15, borderRadius:8, border:'1px solid #ffe58f'}}>
-                                        <Divider orientation="left" style={{marginTop:0, color:'#d48806'}}><FileImageOutlined/> Điều khoản & Ghi chú</Divider>
-                                        <Form.Item name="terms_content" noStyle><Input.TextArea rows={6} placeholder="Nhập điều khoản..." /></Form.Item>
-                                        <div style={{textAlign:'right', marginTop:5}}><Button size="small" type="link" onClick={() => form.setFieldValue('terms_content', DEFAULT_TERMS)}>Load Mặc định</Button></div>
+                                        <div style={{fontWeight: 'bold', color:'#d48806', marginBottom: 10, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                                            <span><FileTextOutlined/> Điều khoản & Ghi chú</span>
+                                            <Button size="small" type="link" onClick={() => form.setFieldValue('terms_content', DEFAULT_TERMS)}>Mặc định</Button>
+                                        </div>
+                                        <Form.Item name="terms_content" noStyle>
+                                            <Input.TextArea 
+                                                rows={5} 
+                                                placeholder="Nhập điều khoản báo giá..." 
+                                                style={{fontSize: 12, lineHeight: 1.5, background: '#fff'}}
+                                            />
+                                        </Form.Item>
                                     </div>
                                 </Col>
                             </Row>
