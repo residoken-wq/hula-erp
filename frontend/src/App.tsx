@@ -17,6 +17,7 @@ import ProductionRoutePage from './pages/ProductionRoutePage';
 import ProcessesPage from './pages/ProcessesPage';
 import CategoriesPage from './pages/CategoriesPage';
 import PortalQuotePage from './pages/PortalQuotePage';
+import PortalPurchasePage from './pages/PortalPurchasePage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -78,6 +79,7 @@ const App: React.FC = () => {
                     <Route path="/routes" element={<ProductionRoutePage />} />
                     <Route path="/processes" element={<ProcessesPage />} />
                     <Route path="/categories" element={<CategoriesPage />} />
+                    <Route path="/portal/po/:uuid" element={<PortalPurchasePage />} />
                     <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
                   </Routes>
                 </div>
