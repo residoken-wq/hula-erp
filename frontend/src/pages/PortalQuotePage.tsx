@@ -1,170 +1,185 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import axios from 'axios';
-// FIX: Thêm Space, Divider vào import
-import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Tag, Table, Space, Divider } from 'antd'; 
-import { CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined } from '@ant-design/icons';
-import QuotationTemplate from '../components/QuotationTemplate';
-import { API_URL } from '../config';
+import React from 'react';
+import { Row, Col, Typography, Table, Divider, Tag, Image } from 'antd';
+import { FileImageOutlined, CheckCircleFilled } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
-const PortalQuotePage: React.FC = () => {
-  const { uuid } = useParams();
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [commentText, setCommentText] = useState('');
+const QuotationTemplate: React.FC<{ data: any }> = ({ data }) => {
+  if (!data) return null;
 
-  const fetchQuote = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/sales/portal/${uuid}`);
-        setData(res.data);
-      } catch (e) { } 
-      finally { setLoading(false); }
-  };
+  // --- LOGIC XỬ LÝ DỮ LIỆU THÔNG MINH ---
+  const isOrder = ['DEPOSITED', 'PLANNED', 'PARTIAL_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(data.status) || Number(data.paid_amount) > 0;
+  const docTitle = isOrder ? "ĐƠN ĐẶT HÀNG" : "BẢNG BÁO GIÁ";
+  
+  // Tính toán tiền
+  const paidAmount = Number(data.paid_amount) || 0;
+  const remainingAmount = Number(data.total_amount) - paidAmount;
 
-  useEffect(() => { fetchQuote(); }, [uuid]);
-
-  const handleAction = async (action: 'ACCEPT' | 'REJECT') => {
-      Modal.confirm({
-          title: action === 'ACCEPT' ? 'Xác nhận Báo giá?' : 'Từ chối?',
-          onOk: async () => {
-              await axios.post(`${API_URL}/sales/portal/${uuid}/action`, { action });
-              message.success('Thành công!'); window.location.reload();
-          }
-      });
-  };
-
-  const handleSendComment = async () => {
-      if(!commentText) return;
-      try {
-          await axios.post(`${API_URL}/sales/${data.id}/comment`, { content: commentText, sender: 'CUSTOMER', name: data.customer_name || 'Khách hàng' });
-          setCommentText(''); fetchQuote(); message.success('Đã gửi tin nhắn');
-      } catch(e) {}
-  };
-
-  if (loading) return <div style={{textAlign:'center', marginTop:100}}><Spin size="large" /></div>;
-  if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy đơn hàng" />;
-
-  const statusList = ['QUOTATION','SO_PENDING','SAMPLE_APPROVED','DEPOSITED','PARTIAL_DELIVERY','DELIVERED','COMPLETED'];
-  let currentStep = statusList.indexOf(data.status);
-  if(data.status === 'PLANNED') currentStep = 3; 
-  if(data.status === 'COMPLETED') currentStep = 6;
-
-  const visibleComments = (data.comments || []).filter((c:any) => c.sender_type === 'CUSTOMER' || c.is_visible);
+  // FIX: Lấy thông tin khách hàng từ object customer (nếu có) hoặc từ root
+  const customerName = data.customer?.name || data.customer_name || data.receiver_name || 'Khách lẻ';
+  const customerAddress = data.vat_address || data.customer?.address || data.shipping_address || '...';
+  const customerPhone = data.receiver_phone || data.customer?.phone || '...';
+  const customerTax = data.vat_tax_code || data.customer?.tax_code || '...';
 
   return (
-    <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 40 }}>
-       {/* HEADER BAR */}
-       <div style={{background:'#fff', padding: '15px 40px', boxShadow: '0 2px 8px #f0f1f2', position:'sticky', top:0, zIndex:100}}>
-           <Row justify="space-between" align="middle">
-               <Col>
-                   <Title level={4} style={{margin:0, color:'#1890ff'}}>HULA ERP PORTAL</Title>
-                   <Text type="secondary">Mã đơn: <b>{data.order_code}</b></Text>
-               </Col>
-               <Col>
-                   <Button icon={<PrinterOutlined />} onClick={() => window.print()}>In Đơn Hàng</Button>
-               </Col>
-           </Row>
-           <div style={{marginTop: 20, maxWidth: 900, margin: '20px auto 0'}}>
-                <Steps current={currentStep} size="small" items={[
-                   { title: 'Báo Giá', icon: <SolutionOutlined /> },
-                   { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> },
-                   { title: 'Đặt Cọc', icon: <DollarOutlined /> }, 
-                   { title: 'Giao Hàng', icon: <CarOutlined /> },
-                   { title: 'Hoàn Tất', icon: <CheckCircleOutlined /> },
-               ]} />
-           </div>
-       </div>
+    <div style={{ padding: 40, background: '#fff', fontSize: 14, fontFamily: 'Times New Roman, serif', color: '#000' }}>
+      
+      {/* HEADER */}
+      <Row justify="space-between" align="middle" style={{borderBottom: '2px solid #1890ff', paddingBottom: 20, marginBottom: 30}}>
+          <Col span={12}>
+              <div style={{border: '2px solid #1890ff', padding: '10px 20px', display: 'inline-block', textAlign:'center', minWidth: 200}}>
+                  <Title level={4} style={{margin: 0, color: '#1890ff', textTransform: 'uppercase'}}>HULA</Title>
+                  <Text type="secondary">NỆM MẦM NON</Text>
+              </div>
+          </Col>
+          <Col span={12} style={{textAlign: 'right'}}>
+              <Title level={2} style={{margin: 0, color: '#1890ff', textTransform: 'uppercase'}}>{docTitle}</Title>
+              <div>Số: <b>{data.order_code}</b></div>
+              <div>TP. HCM, ngày {dayjs(data.order_date).format('DD')} tháng {dayjs(data.order_date).format('MM')} năm {dayjs(data.order_date).format('YYYY')}</div>
+          </Col>
+      </Row>
 
-       {/* ACTION BAR */}
-       {data.status === 'QUOTATION' && (
-           <div style={{ background: '#001529', color: '#fff', padding: 15, textAlign: 'center' }}>
-               <Space size="large">
-                   <span>Vui lòng phản hồi báo giá này:</span>
-                   <Button type="primary" danger onClick={()=>handleAction('REJECT')}>Từ chối</Button>
-                   <Button type="primary" style={{background: '#52c41a', borderColor: '#52c41a'}} onClick={()=>handleAction('ACCEPT')}>Xác nhận Đồng ý</Button>
-               </Space>
-           </div>
-       )}
+      {/* INFO SECTIONS */}
+      <Row gutter={40} style={{marginBottom: 30}}>
+          {/* BÊN BÁN */}
+          <Col span={12}>
+              <div style={{background: '#f9f9f9', padding: 15, borderRadius: 8, height: '100%', border: '1px solid #eee'}}>
+                  <h4 style={{marginTop:0, color:'#1890ff', borderBottom:'1px solid #ddd', paddingBottom:5, textTransform:'uppercase'}}>BÊN BÁN (PARTY A)</h4>
+                  <p style={{marginBottom:5}}><b>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</b></p>
+                  <p style={{marginBottom:5}}>📍 74/21/2A Nguyễn Khuyến, P. 12, Q. Bình Thạnh, TP. HCM</p>
+                  <p style={{marginBottom:5}}>📞 0983.882210 - 0983.796654</p>
+                  <p style={{marginBottom:5}}>✉️ nemmamnonhula@gmail.com</p>
+                  <p style={{marginBottom:0}}><b>MST:</b> 0311.874.522</p>
+              </div>
+          </Col>
 
-       <div style={{ padding: '20px 40px', maxWidth: 1400, margin: '0 auto' }}>
-           <Row gutter={24}>
-               {/* --- LEFT COLUMN --- */}
-               <Col span={8} xs={24} md={8}>
-                   <Card title={<span><UserOutlined /> Thông tin Khách hàng</span>} style={{marginBottom: 20}}>
-                       <Descriptions column={1} size="small" bordered>
-                           <Descriptions.Item label="Tên đơn vị"><b>{data.customer_name || data.customer?.name || 'Khách lẻ'}</b></Descriptions.Item>
-                           <Descriptions.Item label="Người nhận">{data.receiver_name}</Descriptions.Item>
-                           <Descriptions.Item label="SĐT">{data.receiver_phone}</Descriptions.Item>
-                           <Descriptions.Item label="Địa chỉ giao">{data.shipping_address}</Descriptions.Item>
-                       </Descriptions>
-                   </Card>
+          {/* BÊN MUA - ĐÃ FIX HIỂN THỊ */}
+          <Col span={12}>
+              <div style={{background: '#fff', border:'1px solid #1890ff', padding: 15, borderRadius: 8, height: '100%'}}>
+                  <h4 style={{marginTop:0, color:'#1890ff', borderBottom:'1px solid #ddd', paddingBottom:5, textTransform:'uppercase'}}>BÊN MUA (PARTY B)</h4>
+                  <p style={{marginBottom:5, fontSize: 15}}><b>{customerName}</b></p>
+                  <p style={{marginBottom:5}}>📍 {customerAddress}</p>
+                  <p style={{marginBottom:5}}>📞 {customerPhone}</p>
+                  <p style={{marginBottom:0}}><b>MST:</b> {customerTax}</p>
+              </div>
+          </Col>
+      </Row>
 
-                   <Card title={<span><ShopOutlined /> Thông tin Xuất Hóa Đơn (VAT)</span>} style={{marginBottom: 20}}>
-                       <Descriptions column={1} size="small" bordered>
-                           <Descriptions.Item label="Công ty">{data.vat_company_name || '-'}</Descriptions.Item>
-                           <Descriptions.Item label="MST">{data.vat_tax_code || '-'}</Descriptions.Item>
-                           <Descriptions.Item label="Địa chỉ">{data.vat_address || '-'}</Descriptions.Item>
-                       </Descriptions>
-                   </Card>
+      <p>Kính gửi Quý khách hàng bảng chi tiết các sản phẩm như sau:</p>
 
-                   <Card title={<span><DollarOutlined /> Thông tin Thanh toán</span>} style={{marginBottom: 20}}>
-                       <div style={{background:'#f6ffed', padding:10, borderRadius:4, border:'1px solid #b7eb8f', textAlign:'center', marginBottom:10}}>
-                           <div style={{color:'#666'}}>Số tiền còn lại phải thanh toán:</div>
-                           <div style={{fontSize:20, fontWeight:'bold', color:'#cf1322'}}>
-                               {(Number(data.total_amount) - Number(data.paid_amount)).toLocaleString()} ₫
-                           </div>
-                       </div>
-                       <p><b>Ngân hàng:</b> ACB - Chi nhánh TP.HCM</p>
-                       <p><b>Số TK:</b> 141847859</p>
-                       <p><b>Chủ TK:</b> CTY TNHH TM DV TƯỜNG LINH</p>
-                       <p><b>Nội dung:</b> {data.order_code}</p>
-                   </Card>
+      {/* TABLE */}
+      <Table
+        dataSource={data.items}
+        pagination={false}
+        rowKey="id"
+        bordered
+        size="small"
+        columns={[
+            { title: 'STT', width: 50, align: 'center', render: (_:any, __:any, index:number) => index + 1 },
+            { 
+                title: 'Tên Sản phẩm', 
+                render: (r:any) => (
+                    <div>
+                        <div style={{fontWeight:600}}>{r.sku}</div>
+                        {r.is_sample_approved && (
+                            <div style={{marginTop: 5, fontSize: 12}}>
+                                <Tag color="success" icon={<CheckCircleFilled />}>Mẫu đã duyệt</Tag>
+                                {r.sample_image && (
+                                    <a href={r.sample_image} target="_blank" rel="noreferrer" style={{color: '#1890ff'}}>
+                                        <FileImageOutlined /> Xem hình ảnh
+                                    </a>
+                                )}
+                            </div>
+                        )}
+                        {r.variant_color && <div style={{fontSize:12, color:'#666'}}>Màu: {r.variant_color}</div>}
+                    </div>
+                ) 
+            },
+            { 
+                title: 'Chi tiết / Mô tả', 
+                render: (r:any) => (
+                    <div style={{fontSize: 12, color: '#555'}}>
+                        {r.variant_color && <div>- Màu: {r.variant_color}</div>}
+                        {r.sample_note && <div style={{fontStyle:'italic'}}>- Note: {r.sample_note}</div>}
+                    </div>
+                ) 
+            },
+            { title: 'SL', dataIndex: 'quantity', align: 'center', width: 60, render: (v:any) => Number(v).toLocaleString() },
+            { title: 'ĐVT', width: 60, align: 'center', render: () => 'Cái' },
+            { title: 'Đơn giá', dataIndex: 'unit_price', align: 'right', render: (v:any) => Number(v).toLocaleString() },
+            { title: 'Thành tiền', dataIndex: 'subtotal', align: 'right', render: (v:any) => <b>{Number(v).toLocaleString()}</b> }
+        ]}
+        summary={() => {
+            return (
+                <>
+                    <Table.Summary.Row>
+                        <Table.Summary.Cell index={0} colSpan={6} align="right">Cộng tiền hàng:</Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} align="right"><b>{(Number(data.total_amount) - data.shipping_fee - (data.total_amount * data.vat_rate / (100 + data.vat_rate))).toLocaleString()}</b></Table.Summary.Cell>
+                    </Table.Summary.Row>
+                    <Table.Summary.Row>
+                        <Table.Summary.Cell index={0} colSpan={6} align="right">Thuế GTGT ({data.vat_rate}%):</Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} align="right">{((data.total_amount - data.shipping_fee) * data.vat_rate / (100 + data.vat_rate)).toLocaleString()}</Table.Summary.Cell>
+                    </Table.Summary.Row>
+                    <Table.Summary.Row>
+                        <Table.Summary.Cell index={0} colSpan={6} align="right">Phí vận chuyển:</Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee).toLocaleString()}</Table.Summary.Cell>
+                    </Table.Summary.Row>
+                    <Table.Summary.Row>
+                        <Table.Summary.Cell index={0} colSpan={6} align="right"><b style={{fontSize: 16}}>TỔNG CỘNG:</b></Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} align="right"><b style={{fontSize: 16, color: '#cf1322'}}>{Number(data.total_amount).toLocaleString()} ₫</b></Table.Summary.Cell>
+                    </Table.Summary.Row>
 
-                   <Card title="💬 Trao đổi / Ghi chú" className="comment-widget">
-                        <div style={{maxHeight: 400, overflowY:'auto', paddingRight:5}}>
-                            <List dataSource={visibleComments} renderItem={(item:any) => (
-                                <List.Item style={{padding:'10px 0'}}>
-                                    <List.Item.Meta 
-                                        avatar={<Avatar style={{backgroundColor: item.sender_type === 'CUSTOMER' ? '#87d068' : '#1890ff'}} icon={item.sender_type === 'CUSTOMER' ? <UserOutlined/> : <SolutionOutlined/>} />}
-                                        title={<div style={{fontSize:12, color:'#999'}}>{item.sender_name} - {dayjs(item.created_at).format('DD/MM HH:mm')}</div>}
-                                        description={<div style={{color:'#333', background:'#f5f5f5', padding:8, borderRadius:6}}>{item.content}</div>}
-                                    />
-                                </List.Item>
-                            )} />
-                        </div>
-                        <Divider style={{margin:'10px 0'}} />
-                        <div style={{display:'flex', gap:5}}>
-                            <Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder="Nhập tin nhắn..." onPressEnter={(e)=>{if(!e.shiftKey) {e.preventDefault(); handleSendComment()}}}/>
-                            <Button type="primary" icon={<SendOutlined/>} onClick={handleSendComment} />
-                        </div>
-                   </Card>
-               </Col>
+                    {/* HIỂN THỊ THANH TOÁN */}
+                    {paidAmount > 0 && (
+                        <>
+                            <Table.Summary.Row style={{background: '#f6ffed'}}>
+                                <Table.Summary.Cell index={0} colSpan={6} align="right"><b style={{color: 'green'}}>ĐÃ THANH TOÁN / ĐẶT CỌC:</b></Table.Summary.Cell>
+                                <Table.Summary.Cell index={1} align="right"><b style={{color: 'green'}}>{paidAmount.toLocaleString()} ₫</b></Table.Summary.Cell>
+                            </Table.Summary.Row>
+                            <Table.Summary.Row>
+                                <Table.Summary.Cell index={0} colSpan={6} align="right"><b style={{color: '#faad14'}}>SỐ TIỀN CÒN LẠI:</b></Table.Summary.Cell>
+                                <Table.Summary.Cell index={1} align="right"><b style={{color: '#faad14'}}>{remainingAmount.toLocaleString()} ₫</b></Table.Summary.Cell>
+                            </Table.Summary.Row>
+                        </>
+                    )}
+                </>
+            );
+        }}
+      />
 
-               {/* --- RIGHT COLUMN --- */}
-               <Col span={16} xs={24} md={16}>
-                   <Card title="📄 Chi Tiết Đơn Hàng" style={{marginBottom: 20}}>
-                        <div className="quotation-wrapper">
-                            <QuotationTemplate data={data} />
-                        </div>
-                   </Card>
+      <div style={{marginTop: 20}}>
+          <p><i>(Bằng chữ: .........................................................................................................................)</i></p>
+      </div>
 
-                   {data.deliveries && data.deliveries.length > 0 && (
-                       <Card title="📦 Lịch Sử Giao Hàng">
-                           <Table dataSource={data.deliveries} rowKey="id" pagination={false} size="small" columns={[
-                               { title: 'Ngày giao', render: (r:any)=>dayjs(r.delivery_date).format('DD/MM/YYYY') },
-                               { title: 'Mã phiếu', dataIndex: 'code' },
-                               { title: 'Ghi chú', dataIndex: 'note' },
-                               { title: 'Chi tiết', render: (r:any)=>r.items.map((i:any)=>`${i.sku} (x${i.quantity})`).join(', ') }
-                           ]} />
-                       </Card>
-                   )}
-               </Col>
-           </Row>
-       </div>
+      <div style={{marginTop: 30}}>
+          <b style={{textDecoration:'underline'}}>GHI CHÚ & ĐIỀU KHOẢN:</b>
+          <ul style={{fontSize: 13, paddingLeft: 20, marginTop: 5, lineHeight: 1.6}}>
+              <li>Báo giá có hiệu lực trong vòng 07 ngày.</li>
+              <li>Thời gian giao hàng: <b>{dayjs(data.delivery_date).isValid() ? dayjs(data.delivery_date).format('DD/MM/YYYY') : '3-5 ngày'}</b> (hoặc theo thỏa thuận).</li>
+              <li>Hiệu lực báo giá: 07 ngày kể từ ngày phát hành.</li>
+              <li><b>Thanh toán:</b> Tạm ứng 50% ngay khi xác nhận đơn, 50% còn lại trước khi giao hàng.</li>
+              <li><b>Thông tin chuyển khoản:</b></li>
+              <div style={{color: '#1890ff', fontWeight: 600, marginLeft: 10, background: '#e6f7ff', padding: 10, borderRadius: 6, display: 'inline-block'}}>
+                  CTK: CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH<br/>
+                  STK: 141847859 - NH Thương mại Cổ phần Á Châu (ACB)
+              </div>
+          </ul>
+      </div>
+
+      <Row style={{marginTop: 50, textAlign: 'center'}}>
+          <Col span={12}>
+              <b>ĐẠI DIỆN KHÁCH HÀNG</b><br/>
+              <i>(Ký, ghi rõ họ tên)</i>
+          </Col>
+          <Col span={12}>
+              <b>ĐẠI DIỆN CÔNG TY TƯỜNG LINH</b><br/>
+              <i>(Ký, đóng dấu)</i>
+              <div style={{height: 80}}></div>
+          </Col>
+      </Row>
     </div>
   );
 };
-export default PortalQuotePage;
+
+export default QuotationTemplate;
