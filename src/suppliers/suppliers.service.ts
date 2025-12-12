@@ -27,10 +27,12 @@ export class SuppliersService {
     return this.supplierRepo.find({ order: { created_at: 'DESC' } });
   }
 
+  // Hàm này sẽ hoạt động OK sau khi Entity đã được sửa ở Bước 1
   async findOne(id: number) {
     const supplier = await this.supplierRepo.findOne({ 
         where: { id },
-        relations: ['price_list', 'price_list.material', 'routings', 'routings.product'] // Load chi tiết
+        // Load đầy đủ quan hệ để lấy ĐVT (material) và Giá GC (routings)
+        relations: ['price_list', 'price_list.material', 'routings', 'routings.product'] 
     });
     if (!supplier) throw new NotFoundException('Not found');
     return supplier;
@@ -46,11 +48,11 @@ export class SuppliersService {
     return { deleted: true };
   }
 
-  // --- FIX: LOGIC THÊM/CẬP NHẬT GIÁ NPL ---
+  // --- FIX LOGIC THÊM GIÁ (Tránh lỗi duplicate key) ---
   async addMaterialPrice(supplierId: number, data: any) {
       const { material_id, price } = data;
 
-      // 1. Kiểm tra xem đã có giá của NPL này chưa
+      // 1. Tìm xem đã có giá chưa
       const existing = await this.supplierMaterialRepo.findOne({
           where: {
               supplier: { id: supplierId },
@@ -59,11 +61,11 @@ export class SuppliersService {
       });
 
       if (existing) {
-          // 2. Nếu có rồi -> CẬP NHẬT GIÁ
+          // 2. Có rồi -> Cập nhật giá mới
           existing.price = price;
           return this.supplierMaterialRepo.save(existing);
       } else {
-          // 3. Nếu chưa có -> TẠO MỚI
+          // 3. Chưa có -> Tạo mới
           const newItem = this.supplierMaterialRepo.create({
               supplier: { id: supplierId },
               material: { id: material_id },
@@ -73,10 +75,7 @@ export class SuppliersService {
       }
   }
 
-  // --- LOGIC KIỂM TRA GIÁ GIA CÔNG (CHO SẢN PHẨM) ---
   async checkPrice(supplierId: number, processId: number) {
-      // Logic tạm: Tìm xem NCC này có làm công đoạn này không
-      // Trong thực tế có thể cần bảng giá gia công riêng
       return { price: 0 }; 
   }
 }

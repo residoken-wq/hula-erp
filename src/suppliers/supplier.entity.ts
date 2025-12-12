@@ -1,11 +1,13 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, UpdateDateColumn } from 'typeorm';
 import { SupplierMaterial } from './supplier-material.entity';
 import { SupplierContact } from './supplier-contact.entity';
+// QUAN TRỌNG: Import Entity ProductRouting
+import { ProductRouting } from '../products/product-routing.entity';
 
 export enum SupplierType {
-  MATERIAL = 'MATERIAL',       // Chi ban NPL
-  PROCESSING = 'PROCESSING',   // Chi gia cong (Cat, May, Chan)
-  MIX = 'MIX'                  // Ca hai
+  MATERIAL = 'MATERIAL',       
+  PROCESSING = 'PROCESSING',   
+  MIX = 'MIX'                  
 }
 
 @Entity('suppliers')
@@ -44,7 +46,6 @@ export class Supplier {
   @Column({ nullable: true })
   address: string;
 
-  // --- MỚI: BỔ SUNG CỘT GHI CHÚ ---
   @Column('text', { nullable: true })
   note: string;
 
@@ -53,6 +54,10 @@ export class Supplier {
 
   @OneToMany(() => SupplierMaterial, (sm) => sm.supplier)
   price_list: SupplierMaterial[];
+
+  // --- FIX: THÊM QUAN HỆ ROUTINGS (Để sửa lỗi crash API) ---
+  @OneToMany(() => ProductRouting, (routing) => routing.supplier)
+  routings: ProductRouting[];
 
   @CreateDateColumn()
   created_at: Date;
