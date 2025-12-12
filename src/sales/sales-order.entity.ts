@@ -7,9 +7,9 @@ export enum SalesOrderStatus {
   QUOTATION = 'QUOTATION',   
   SO_PENDING = 'SO_PENDING', 
   DEPOSITED = 'DEPOSITED',   
-  PLANNED = 'PLANNED',
+  PLANNED = 'PLANNED',       
   PARTIAL_DELIVERY = 'PARTIAL_DELIVERY',
-  DELIVERED = 'DELIVERED', 
+  DELIVERED = 'DELIVERED',   
   COMPLETED = 'COMPLETED',   
   CANCELLED = 'CANCELLED'    
 }
@@ -25,11 +25,9 @@ export class SalesOrder {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // --- LINK PORTAL (UUID) ---
   @Column()
   @Generated("uuid")
   uuid: string;
-  // -------------------------
 
   @Column({ unique: true })
   order_code: string; 
@@ -44,11 +42,16 @@ export class SalesOrder {
   @Column({ nullable: true })
   customer_name: string;
 
-  // --- VAT & LOGISTICS ---
+  // --- VAT INFO ---
   @Column({ nullable: true }) vat_company_name: string;
   @Column({ nullable: true }) vat_tax_code: string; 
   @Column({ nullable: true }) vat_address: string;
   
+  // MỚI: % VAT (0, 5, 8, 10...)
+  @Column('int', { default: 0 }) 
+  vat_rate: number;
+
+  // --- LOGISTICS ---
   @Column({ type: 'date', nullable: true }) delivery_date: Date;
   @Column({ nullable: true }) shipping_address: string;
   @Column({ nullable: true }) receiver_name: string;
@@ -66,7 +69,6 @@ export class SalesOrder {
   @ManyToOne(() => ProductionPlan, (plan) => plan.sales_orders, { nullable: true })
   @JoinColumn({ name: 'plan_id' })
   production_plan: ProductionPlan;
-
   @Column({ nullable: true }) plan_id: number;
 
   @Column({ type: 'enum', enum: SalesOrderStatus, default: SalesOrderStatus.QUOTATION }) status: SalesOrderStatus;

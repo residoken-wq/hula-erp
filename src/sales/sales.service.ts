@@ -23,7 +23,6 @@ export class SalesService {
     private customersService: CustomersService,
   ) {}
 
-  // ... (Cac ham validate, createOrder, findAll giu nguyen)
   private async validateItemsForSO(items: any[]) {
       for (const item of items) {
           const product = await this.productsService.findOneBySku(item.sku);
@@ -42,25 +41,32 @@ export class SalesService {
     order.order_code = data.order_code;
     if(data.customer_id) order.customer = { id: data.customer_id } as any;
     order.customer_name = data.customer_name;
-    // ... Map fields
+    
+    // Map fields
     order.vat_company_name = data.vat_company_name;
     order.vat_tax_code = data.vat_tax_code;
     order.vat_address = data.vat_address;
+    order.vat_rate = Number(data.vat_rate) || 0; // Luu VAT Rate
+    
     order.delivery_date = data.delivery_date;
     order.shipping_address = data.shipping_address;
     order.receiver_name = data.receiver_name;
     order.receiver_phone = data.receiver_phone;
     order.shipping_carrier = data.shipping_carrier;
     order.payment_note = data.payment_note;
+    order.shipping_fee = Number(data.shipping_fee) || 0;
 
     order.items = [];
-    let totalAmount = 0; let totalCost = 0;
+    let itemsTotal = 0; 
+    let totalCost = 0;
 
     for (const itemData of data.items) {
       const item = new SalesOrderItem();
-      item.sku = itemData.sku; item.quantity = itemData.quantity; item.unit_price = itemData.price;
+      item.sku = itemData.sku; 
+      item.quantity = itemData.quantity; 
+      item.unit_price = itemData.price;
       item.subtotal = item.quantity * item.unit_price;
-      totalAmount += item.subtotal;
+      itemsTotal += item.subtotal;
       try {
         const costInfo = await this.productsService.calculateCostPrice(item.sku);
         totalCost += (costInfo.new_cost_price || 0) * item.quantity;
@@ -71,7 +77,12 @@ export class SalesService {
       }
       order.items.push(item);
     }
-    order.total_amount = totalAmount; order.total_cost = totalCost;
+
+    // Tinh Tong Tien cuoi cung (Sau VAT + Ship)
+    const vatAmount = itemsTotal * (order.vat_rate / 100);
+    order.total_amount = itemsTotal + vatAmount + order.shipping_fee;
+    
+    order.total_cost = totalCost;
     order.status = data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING;
     return this.orderRepo.save(order);
   }
@@ -82,9 +93,8 @@ export class SalesService {
   async convertQuoteToSo(id: number, accepted: boolean) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException('Not found');
-      if (!accepted) { 
-          order.status = SalesOrderStatus.CANCELLED; 
-      } else {
+      if (!accepted) { order.status = SalesOrderStatus.CANCELLED; } 
+      else {
           await this.validateItemsForSO(order.items);
           order.status = SalesOrderStatus.SO_PENDING;
           if(order.customer_id) await this.customersService.convertToCustomer(order.customer_id);
@@ -108,23 +118,37 @@ export class SalesService {
       if (!order) throw new NotFoundException('Not Found');
       Object.assign(order, {
           vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address,
+          vat_rate: Number(data.vat_rate) || 0, // Update VAT Rate
           delivery_date: data.delivery_date, shipping_address: data.shipping_address,
           receiver_name: data.receiver_name, receiver_phone: data.receiver_phone,
-          shipping_carrier: data.shipping_carrier, tracking_code: data.tracking_code, shipping_fee: data.shipping_fee,
+          shipping_carrier: data.shipping_carrier, tracking_code: data.tracking_code, 
+          shipping_fee: Number(data.shipping_fee) || 0,
           payment_note: data.payment_note
       });
+      
+      let itemsTotal = 0;
+
+      // Update items if Quotation
       if (data.items && order.status === SalesOrderStatus.QUOTATION) {
-          const newItems = []; let totalAmount = 0; let totalCost = 0;
+          const newItems = []; let totalCost = 0;
           for (const itemData of data.items) {
               const item = new SalesOrderItem();
               item.sku = itemData.sku; item.quantity = itemData.quantity; item.unit_price = itemData.price;
               item.subtotal = item.quantity * item.unit_price;
-              totalAmount += item.subtotal;
+              itemsTotal += item.subtotal;
               try { const costInfo = await this.productsService.calculateCostPrice(item.sku); totalCost += (costInfo.new_cost_price || 0) * item.quantity; } catch (e) {}
               newItems.push(item);
           }
-          order.items = newItems; order.total_amount = totalAmount; order.total_cost = totalCost;
+          order.items = newItems; order.total_cost = totalCost;
+      } else {
+          // Neu khong sua item thi lay tong item cu
+          itemsTotal = order.items.reduce((sum, i) => sum + Number(i.subtotal), 0);
       }
+
+      // Tinh lai Total Amount
+      const vatAmount = itemsTotal * (order.vat_rate / 100);
+      order.total_amount = itemsTotal + vatAmount + order.shipping_fee;
+
       return this.orderRepo.save(order);
   }
 
@@ -134,21 +158,12 @@ export class SalesService {
        throw new BadRequestException('Khong the xoa');
   }
 
-  // --- PORTAL API ---
-  async getQuoteByUuid(uuid: string) {
-      const order = await this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer'] });
-      if (!order) throw new NotFoundException('Liên kết không tồn tại hoặc đã hết hạn');
-      return order;
-  }
-
-  async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT', note?: string) {
+  async getQuoteByUuid(uuid: string) { return this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer'] }); }
+  async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT') {
       const order = await this.getQuoteByUuid(uuid);
-      if (order.status !== SalesOrderStatus.QUOTATION) {
-          throw new BadRequestException('Báo giá này đã được xử lý rồi.');
-      }
+      if (order.status !== SalesOrderStatus.QUOTATION) throw new BadRequestException('Da xu ly roi');
       return this.convertQuoteToSo(order.id, action === 'ACCEPT');
   }
-  // ------------------
 
   async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
   async createDelivery(orderId: number, data: any) {
