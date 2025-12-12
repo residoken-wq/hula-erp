@@ -8,7 +8,6 @@ export class ProductRouting {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // FIX: Đã sửa trong product.entity.ts
   @ManyToOne(() => Product, (product) => product.routings, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'product_id' })
   product: Product;
@@ -40,7 +39,6 @@ export class ProductRouting {
   step_order: number;
   
   // --- FIX: BỔ SUNG CỘT IS_REQUIRED ---
-  // Cần có để Service tính toán giá vốn
   @Column({ default: false })
   is_required: boolean;
 }

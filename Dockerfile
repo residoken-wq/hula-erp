@@ -1,23 +1,34 @@
-# Sử dụng Node.js 18 trên nền Alpine Linux (nhẹ)
-FROM node:18-alpine
+# Đảm bảo bạn đang ở thư mục backend/Dockerfile
+# GHI ĐÈ FILE Dockerfile
 
-# Thiết lập thư mục làm việc
+# Stage 1: Build Stage
+FROM node:18-alpine AS build
+
+# Sử dụng Yarn nếu có (hoặc npm)
 WORKDIR /app
-
-# Copy file định nghĩa thư viện trước (để tận dụng cache của Docker)
 COPY package*.json ./
-
-# Cài đặt thư viện
+# Cài đặt dependency (sử dụng cache)
 RUN npm install
 
-# Copy toàn bộ mã nguồn vào container
+# Copy source code
 COPY . .
 
-# Build code TypeScript sang JavaScript (thư mục dist)
+# Chạy build TypeScript (tạo thư mục dist)
 RUN npm run build
 
-# Mở cổng 3000
-EXPOSE 3000
+# Stage 2: Production Stage (Nhỏ gọn hơn)
+FROM node:18-alpine
 
-# Lệnh chạy server
-CMD ["npm", "run", "start:prod"]
+WORKDIR /app
+# Chỉ copy những file cần thiết cho môi trường Production/Dev
+COPY package*.json ./
+
+# Copy node_modules từ stage build (Quan trọng)
+COPY --from=build /app/node_modules ./node_modules
+# Copy file build (JS code)
+COPY --from=build /app/dist ./dist
+
+# Thay đổi lệnh chạy: Chuyển sang chế độ Watch (Development)
+# Điều này giúp thay đổi code TS được nạp lại mà không cần rebuild Docker
+CMD ["npm", "run", "start:dev"] 
+# HOẶC nếu bạn muốn chạy Production chính thức, dùng: CMD ["npm", "run", "start:prod"]

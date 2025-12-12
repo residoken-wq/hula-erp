@@ -24,10 +24,7 @@ export class ProductsService {
   ) {}
 
   async findAll() { 
-      return this.productRepo.find({ 
-          order: { id: 'DESC' },
-          relations: ['category_link']
-      }); 
+      return this.productRepo.find({ order: { id: 'DESC' }, relations: ['category_link'] }); 
   }
   
   async findOneBySku(sku: string) { return this.productRepo.findOne({ where: { sku }, relations: ['category_link'] }); }
@@ -70,7 +67,6 @@ export class ProductsService {
   }
 
   async getRoutings(productId: number) { 
-      // FIX: Thêm relations process và supplier
       return this.routingRepo.find({ 
           where: { product_id: productId }, 
           relations: ['supplier', 'process'] 
@@ -87,7 +83,6 @@ export class ProductsService {
       for (const item of items) {
           let cost = Number(item.cost) || 0;
           
-          // Logic tìm giá từ NCC nếu giá Cost là 0 (Giữ nguyên logic của bạn)
           if (cost === 0 && item.supplier_id && item.process_id) {
               const prices = await this.priceRepo.find({ 
                   where: { supplier_id: item.supplier_id, process_id: item.process_id } 
@@ -98,14 +93,13 @@ export class ProductsService {
               else if (generalPrice) cost = Number(generalPrice.price);
           }
           
-          // FIX: Sử dụng DeepPartial và các trường ID/boolean đã được sửa trong Entity
           newItems.push({
               product_id: pId,
-              process_id: item.process_id || null, // FIX: Thêm process_id
+              process_id: item.process_id || null, 
               supplier_id: item.supplier_id || null,
               step_name: item.step_name,
               cost: cost,
-              is_required: Boolean(item.is_required) // FIX: Sử dụng trường is_required
+              is_required: Boolean(item.is_required) 
           } as DeepPartial<ProductRouting>);
       }
       
@@ -130,7 +124,6 @@ export class ProductsService {
   async syncToVariants(sourceProductId: number) {
       const source = await this.productRepo.findOne({ where: { id: sourceProductId } });
       if (!source) throw new NotFoundException('SP Goc khong ton tai');
-      // FIX: Dùng tên cột đã sửa trong entity (category)
       const variants = await this.productRepo.find({ where: { name: source.name, category: source.category } });
       const targets = variants.filter(v => v.id !== sourceProductId);
       
@@ -142,13 +135,12 @@ export class ProductsService {
           await this.bomRepo.delete({ product_id: target.id });
           if(sourceBoms.length) await this.bomRepo.save(sourceBoms.map(b => this.bomRepo.create({ ...b, id: undefined, product_id: target.id })) as any);
           await this.routingRepo.delete({ product_id: target.id });
-          // FIX: Clone và tạo đối tượng mới cho Routings (đảm bảo không bị lỗi TS)
           if(sourceRoutings.length) {
               const newRoutings = sourceRoutings.map(r => this.routingRepo.create({ 
                   ...r, 
                   id: undefined, 
                   product_id: target.id,
-                  product: { id: target.id } as Product // Cần object Product cho quan hệ ManyToOne
+                  product: { id: target.id } as Product 
               }));
               await this.routingRepo.save(newRoutings as any);
           }
@@ -188,7 +180,6 @@ export class ProductsService {
         for (const item of boms) {
             if(item.material) {
                 const waste = Number(item.waste_percent) / 100;
-                // FIX: Ưu tiên cost_price (Giá tự động từ NCC) hoặc dùng cost_per_unit
                 const materialCost = Number(item.material.cost_price || item.material.cost_per_unit);
                 totalCost += materialCost * Number(item.quantity) * (1 + waste);
             }
