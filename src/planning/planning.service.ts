@@ -103,20 +103,20 @@ export class PlanningService {
           });
           
           let total = 0;
-          // FIX: Dùng poItemRepo.create và ép kiểu để tránh lỗi
+          // --- FIX: Ép kiểu as PurchaseOrderItem để tránh lỗi TS2322 ---
           po.items = (items as any[]).map(i => {
               const sub = i.net_requirement * i.cost;
               total += sub;
               return this.poItemRepo.create({
-                  material_id: i.material_id, // Fix: Dung material_id
+                  material_id: i.material_id, 
                   description: i.material_name,
                   quantity: i.net_requirement,
                   unit_price: i.cost,
                   subtotal: sub
-              } as any);
+              } as any) as PurchaseOrderItem;
           });
-          po.total_amount = total;
           
+          po.total_amount = total;
           await this.poRepo.save(po);
           createdPos.push(po.po_code);
       }
