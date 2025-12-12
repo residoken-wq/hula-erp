@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Layout, Menu, theme } from 'antd';
 import type { MenuProps } from 'antd';
-import {
-  DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, BankOutlined, CloudUploadOutlined, GiftOutlined
-} from '@ant-design/icons';
+import { DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, BankOutlined, CloudUploadOutlined } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ProductsPage from './pages/ProductsPage';
 import CombosPage from './pages/CombosPage';
@@ -47,7 +45,6 @@ const items: MenuItem[] = [
     getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
     getItem(<Link to="/processes">DM Công Đoạn</Link>, 'proc_list'),
   ]),
-  getItem(<Link to="/finance">Tài chính</Link>, '10', <BankOutlined />),
 ];
 
 const App: React.FC = () => {
@@ -56,10 +53,7 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {/* --- ROUTE PORTAL (KHONG CO LAYOUT) --- */}
         <Route path="/portal/quote/:uuid" element={<PortalQuotePage />} />
-
-        {/* --- MAIN LAYOUT --- */}
         <Route path="*" element={
           <Layout style={{ minHeight: '100vh' }}>
             <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
