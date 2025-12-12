@@ -5,16 +5,48 @@ import { SuppliersService } from './suppliers.service';
 export class SuppliersController {
   constructor(private readonly s: SuppliersService) {}
 
-  @Post() create(@Body() b: any) { return this.s.create(b); }
-  @Get() findAll() { return this.s.findAll(); }
-  @Get(':id') findOne(@Param('id') id: number) { return this.s.findOne(id); }
-  @Put(':id') update(@Param('id') id: number, @Body() b: any) { return this.s.update(id, b); }
-  @Delete(':id') remove(@Param('id') id: number) { return this.s.remove(id); }
+  // --- CRUD NHÀ CUNG CẤP ---
 
+  @Post() 
+  create(@Body() b: any) { 
+    return this.s.create(b); 
+  }
+
+  @Get() 
+  findAll() { 
+    return this.s.findAll(); 
+  }
+
+  @Get(':id') 
+  findOne(@Param('id') id: number) { 
+    return this.s.findOne(id); 
+  }
+
+  @Put(':id') 
+  update(@Param('id') id: number, @Body() b: any) { 
+    return this.s.update(id, b); 
+  }
+
+  @Delete(':id') 
+  remove(@Param('id') id: number) { 
+    return this.s.remove(id); 
+  }
+
+  // --- QUẢN LÝ BẢNG GIÁ NPL ---
+
+  // Thêm / Cập nhật giá
   @Post(':id/material-price') 
   addPrice(@Param('id') id: number, @Body() b: any) { 
       return this.s.addMaterialPrice(id, b); 
   }
+
+  // MỚI: Xóa giá NPL
+  @Delete('material-price/:id')
+  removePrice(@Param('id') id: number) {
+      return this.s.deleteMaterialPrice(id);
+  }
+
+  // --- TIỆN ÍCH KHÁC ---
 
   @Post('check-price')
   checkPrice(@Body() b: any) {
