@@ -55,7 +55,10 @@ const CrmPage: React.FC = () => {
         const resProd = await axios.get(`${API_URL}/products`);
         if (Array.isArray(resProd.data)) {
             setProducts(resProd.data.map((p:any) => ({
-                label: p.name, value: p.sku, price: Number(p.base_price) || 0, unit: p.unit
+                label: p.name, 
+                value: p.sku, 
+                price: Number(p.base_price) || 0,
+                unit: p.unit || 'Cái' // LAY THEM DON VI TINH
             })));
         }
     } catch(e) { message.error('Lỗi kết nối dữ liệu'); }
