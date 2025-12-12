@@ -6,48 +6,31 @@ export class SuppliersController {
   constructor(private readonly s: SuppliersService) {}
 
   // --- CRUD NHÀ CUNG CẤP ---
+  @Post() create(@Body() b: any) { return this.s.create(b); }
+  @Get() findAll() { return this.s.findAll(); }
+  @Get(':id') findOne(@Param('id') id: number) { return this.s.findOne(id); }
+  @Put(':id') update(@Param('id') id: number, @Body() b: any) { return this.s.update(id, b); }
+  @Delete(':id') remove(@Param('id') id: number) { return this.s.remove(id); }
 
-  @Post() 
-  create(@Body() b: any) { 
-    return this.s.create(b); 
+  // --- QUẢN LÝ BẢNG GIÁ (Endpoint được gọi từ ManufacturersPage.tsx) ---
+  @Post('price')
+  addSupplierPrice(@Body() b: any) {
+      return this.s.addSupplierPrice(b);
   }
 
-  @Get() 
-  findAll() { 
-    return this.s.findAll(); 
-  }
-
-  @Get(':id') 
-  findOne(@Param('id') id: number) { 
-    return this.s.findOne(id); 
-  }
-
-  @Put(':id') 
-  update(@Param('id') id: number, @Body() b: any) { 
-    return this.s.update(id, b); 
-  }
-
-  @Delete(':id') 
-  remove(@Param('id') id: number) { 
-    return this.s.remove(id); 
-  }
-
-  // --- QUẢN LÝ BẢNG GIÁ NPL ---
-
-  // Thêm / Cập nhật giá
+  // Thêm / Cập nhật giá NPL (Endpoint cũ)
   @Post(':id/material-price') 
   addPrice(@Param('id') id: number, @Body() b: any) { 
       return this.s.addMaterialPrice(id, b); 
   }
 
-  // MỚI: Xóa giá NPL
+  // Xóa giá NPL
   @Delete('material-price/:id')
   removePrice(@Param('id') id: number) {
       return this.s.deleteMaterialPrice(id);
   }
 
   // --- TIỆN ÍCH KHÁC ---
-
   @Post('check-price')
   checkPrice(@Body() b: any) {
       return this.s.checkPrice(b.supplierId, b.processId);
