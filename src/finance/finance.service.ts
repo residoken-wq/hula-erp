@@ -19,37 +19,32 @@ export class FinanceService {
   ) {}
 
   async create(data: any) {
-    // --- FIX: Ánh xạ refCode từ Frontend sang reference_code của Database ---
+    // --- FIX: Map note -> description ---
     const transaction = this.transactionRepo.create({
         ...data,
-        reference_code: data.refCode || data.reference_code // Mapping quan trọng
+        reference_code: data.refCode || data.reference_code,
+        // Dòng này quan trọng: Lấy note từ frontend gán vào description
+        description: data.note || data.description 
     });
-    // -----------------------------------------------------------------------
+    // ------------------------------------
 
     const saved = await this.transactionRepo.save(transaction);
 
-    // Logic cập nhật trạng thái đơn hàng (SO/PO)
     if (data.refCode) {
         if (data.type === 'INCOME') {
             try { 
                 await this.salesService.updatePayment(data.refCode, Number(data.amount)); 
-            } catch(e) {
-                console.warn(`Sales update error: ${e}`);
-            }
+            } catch(e) { console.warn(e); }
         } else if (data.type === 'EXPENSE') {
             try { 
                 await this.purchasingService.updatePayment(data.refCode, Number(data.amount)); 
-            } catch(e) {
-                console.warn(`Purchasing update error: ${e}`);
-            }
+            } catch(e) { console.warn(e); }
         }
     }
     return saved;
   }
 
-  async findAll() {
-    return this.transactionRepo.find({ order: { created_at: 'DESC' } });
-  }
+  async findAll() { return this.transactionRepo.find({ order: { created_at: 'DESC' } }); }
 
   async getSummary() {
       const all = await this.findAll();

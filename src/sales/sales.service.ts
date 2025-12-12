@@ -137,6 +137,12 @@ export class SalesService {
     
     if (order.paid_amount >= order.total_amount) order.payment_status = PaymentStatus.PAID;
     else if (order.paid_amount > 0) order.payment_status = PaymentStatus.PARTIAL_PAID;
+    
+    // Nếu đã trả đủ và đã giao đủ -> Hoàn tất
+    if (order.payment_status === PaymentStatus.PAID && order.status === SalesOrderStatus.DELIVERED) {
+        order.status = SalesOrderStatus.COMPLETED;
+    }
+
     return this.orderRepo.save(order);
   }
   
@@ -153,9 +159,9 @@ export class SalesService {
   }
   async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
   
-  // --- FIX: createDelivery ---
+  // --- FIX LOGIC GIAO HÀNG ---
   async createDelivery(orderId: number, data: any) {
-      const order = await this.orderRepo.findOne({ where: { id: orderId } });
+      const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
       if (!order) throw new NotFoundException('Not found');
       
       const delivery = this.deliveryRepo.create({
@@ -163,23 +169,42 @@ export class SalesService {
           delivery_date: data.date,
           note: data.note,
           sales_order: order,
-          // FIX: Ép kiểu Integer (Math.floor/round) để tránh lỗi "30.00"
-          items: data.items.map((i:any) => ({ 
-              sku: i.sku, 
-              quantity: Math.floor(Number(i.quantity)) 
-          }))
+          items: data.items.map((i:any) => ({ sku: i.sku, quantity: Math.floor(Number(i.quantity)) }))
       });
 
-      // Trừ kho cũng cần số nguyên
+      // 1. Lưu & Trừ kho
       for (const item of data.items) {
            const product = await this.productsService.findOneBySku(item.sku);
            if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, Math.floor(Number(item.quantity)), delivery.code, `Giao hang ${order.order_code}`);
       }
       await this.deliveryRepo.save(delivery);
       
-      // Update Status
-      order.status = SalesOrderStatus.PARTIAL_DELIVERY; 
-      // Kiem tra xem giao het chua (Logic phuc tap hon, tam thoi set Partial)
+      // 2. Tính toán lại trạng thái: Đã giao đủ chưa?
+      const allDeliveries = await this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'] });
+      
+      let isFullyDelivered = true;
+      for (const orderItem of order.items) {
+          let deliveredQty = 0;
+          // Tổng hợp số lượng đã giao của SKU này
+          allDeliveries.forEach(d => {
+              const dItem = d.items.find(i => i.sku === orderItem.sku);
+              if (dItem) deliveredQty += Number(dItem.quantity);
+          });
+          
+          if (deliveredQty < Number(orderItem.quantity)) {
+              isFullyDelivered = false;
+              break;
+          }
+      }
+
+      // 3. Cập nhật trạng thái
+      if (isFullyDelivered) {
+          order.status = SalesOrderStatus.DELIVERED;
+          if (order.payment_status === PaymentStatus.PAID) order.status = SalesOrderStatus.COMPLETED;
+      } else {
+          order.status = SalesOrderStatus.PARTIAL_DELIVERY;
+      }
+
       return this.orderRepo.save(order);
   }
 
