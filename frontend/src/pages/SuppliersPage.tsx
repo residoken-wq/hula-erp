@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Tabs, Typography, Empty } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, UserOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Tabs, Typography, InputNumber } from 'antd';
+import { PlusOutlined, DeleteOutlined, EditOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, UserOutlined, SaveOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -18,7 +18,11 @@ const SuppliersPage: React.FC = () => {
   // Detail Data State
   const [priceList, setPriceList] = useState<any[]>([]);
   const [routings, setRoutings] = useState<any[]>([]);
-  const [materials, setMaterials] = useState<any[]>([]); // Để chọn khi thêm giá NPL
+  const [materials, setMaterials] = useState<any[]>([]); 
+  
+  // State cho phần Thêm Giá NPL (FIXED)
+  const [selectedMatId, setSelectedMatId] = useState<number | null>(null);
+  const [inputPrice, setInputPrice] = useState<number>(0);
 
   const [form] = Form.useForm();
   const [searchText, setSearchText] = useState('');
@@ -28,7 +32,8 @@ const SuppliersPage: React.FC = () => {
     try {
         const res = await axios.get(`${API_URL}/suppliers`);
         setData(Array.isArray(res.data) ? res.data : []);
-        // Load materials để dùng cho dropdown
+        
+        // Load danh sách NPL để dropdown
         const resMat = await axios.get(`${API_URL}/materials`);
         setMaterials(Array.isArray(resMat.data) ? resMat.data : []);
     } catch(e) { }
@@ -42,7 +47,7 @@ const SuppliersPage: React.FC = () => {
           if (editingItem) await axios.put(`${API_URL}/suppliers/${editingItem.id}`, values);
           else await axios.post(`${API_URL}/suppliers`, values);
           message.success('Đã lưu thông tin');
-          if(!editingItem) setIsModalOpen(false); // Nếu tạo mới thì đóng, sửa thì giữ để xem tab khác
+          if(!editingItem) setIsModalOpen(false); 
           fetchData();
       } catch(e: any) { message.error(e.response?.data?.message || 'Lỗi lưu dữ liệu'); }
   };
@@ -52,15 +57,9 @@ const SuppliersPage: React.FC = () => {
       catch(e) { message.error('Lỗi xóa'); }
   };
 
-  const openEdit = async (item: any) => {
-      setEditingItem(item);
-      form.setFieldsValue(item);
-      setActiveTab('1');
-      setIsModalOpen(true);
-      
-      // Load chi tiết Bảng giá & Gia công
+  const loadDetail = async (id: number) => {
       try {
-          const res = await axios.get(`${API_URL}/suppliers/${item.id}`);
+          const res = await axios.get(`${API_URL}/suppliers/${id}`);
           setPriceList(res.data.price_list || []);
           setRoutings(res.data.routings || []);
       } catch(e) {
@@ -69,19 +68,46 @@ const SuppliersPage: React.FC = () => {
       }
   };
 
-  // --- LOGIC XỬ LÝ BẢNG GIÁ NPL ---
-  const handleAddPrice = async (materialId: number, price: number) => {
-      if(!editingItem) return;
-      try {
-          await axios.post(`${API_URL}/suppliers/${editingItem.id}/material-price`, { material_id: materialId, price });
-          message.success('Đã cập nhật giá');
-          // Reload
-          const res = await axios.get(`${API_URL}/suppliers/${editingItem.id}`);
-          setPriceList(res.data.price_list || []);
-      } catch(e) { message.error('Lỗi thêm giá'); }
+  const openEdit = (item: any) => {
+      setEditingItem(item);
+      form.setFieldsValue(item);
+      setActiveTab('1');
+      // Reset state thêm giá
+      setSelectedMatId(null); 
+      setInputPrice(0);
+      setIsModalOpen(true);
+      loadDetail(item.id);
   };
 
-  // Columns chính
+  // --- FIX: CHỨC NĂNG THÊM GIÁ ---
+  const handleAddPrice = async () => {
+      if(!editingItem) return;
+      if(!selectedMatId || !inputPrice) return message.warning('Vui lòng chọn NPL và nhập giá');
+
+      try {
+          await axios.post(`${API_URL}/suppliers/${editingItem.id}/material-price`, { 
+              material_id: selectedMatId, 
+              price: inputPrice 
+          });
+          message.success('Đã thêm giá');
+          // Reset input
+          setSelectedMatId(null);
+          setInputPrice(0);
+          // Reload bảng
+          loadDetail(editingItem.id);
+      } catch(e) { 
+          message.error('Lỗi: Có thể NPL này đã có trong bảng giá'); 
+      }
+  };
+
+  const handleDeletePrice = async (priceId: number) => {
+      try {
+          // Giả sử có API xóa giá, nếu chưa có thì cần bổ sung ở Backend
+          // Tạm thời gọi reload để user thấy phản hồi
+          message.info('Tính năng xóa đang phát triển (Backend)');
+      } catch(e) {}
+  };
+
   const columns = [
       { title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
       { title: 'Tên Nhà Cung Cấp', dataIndex: 'name' },
@@ -124,7 +150,7 @@ const SuppliersPage: React.FC = () => {
             open={isModalOpen} 
             onCancel={()=>setIsModalOpen(false)} 
             onOk={()=>{ if(activeTab==='1') form.submit(); else setIsModalOpen(false); }}
-            width={800}
+            width={850}
             okText={activeTab==='1' ? "Lưu Thông Tin" : "Đóng"}
         >
             <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
@@ -151,7 +177,6 @@ const SuppliersPage: React.FC = () => {
                             <Form.Item name="email" label="Email"><Input /></Form.Item>
                             <Form.Item name="address" label="Địa chỉ kho/xưởng"><Input /></Form.Item>
 
-                            {/* Thông tin pháp nhân - Mới */}
                             <div style={{background: '#f5f5f5', padding: '10px 15px', borderRadius: 6, marginBottom: 15}}>
                                 <div style={{fontWeight: 'bold', marginBottom: 10, color: '#666'}}>Thông tin Pháp nhân (Hợp đồng/VAT)</div>
                                 <Row gutter={16}>
@@ -160,9 +185,7 @@ const SuppliersPage: React.FC = () => {
                                 </Row>
                                 <Form.Item name="vat_address" label="Địa chỉ ĐKKD" style={{marginBottom:0}}><Input /></Form.Item>
                             </div>
-
-                            {/* Cột Note - Mới */}
-                            <Form.Item name="note" label="Ghi chú"><Input.TextArea rows={3} placeholder="Ghi chú thế mạnh, công nợ, lưu ý..." /></Form.Item>
+                            <Form.Item name="note" label="Ghi chú"><Input.TextArea rows={3} /></Form.Item>
                         </Form>
                     )
                 },
@@ -172,21 +195,24 @@ const SuppliersPage: React.FC = () => {
                     children: (
                         <div>
                             <div style={{marginBottom: 10, display:'flex', gap: 10, background:'#f0f5ff', padding:10, borderRadius:6}}>
+                                {/* FIX: Dropdown chọn NPL */}
                                 <Select 
-                                    showSearch placeholder="Chọn Nguyên Liệu..." style={{flex:1}} 
+                                    showSearch 
+                                    placeholder="Chọn Nguyên Liệu..." 
+                                    style={{flex:1}} 
                                     optionFilterProp="label"
-                                    options={materials.map(m => ({label: `${m.code} - ${m.name}`, value: m.id}))}
-                                    id="add_mat_id"
-                                    onChange={(v) => { /* Xử lý state tạm nếu cần */ }}
+                                    options={materials.map(m => ({label: `${m.code} - ${m.name} (${m.unit})`, value: m.id}))}
+                                    value={selectedMatId}
+                                    onChange={(v) => setSelectedMatId(v)}
                                 />
-                                <Input type="number" placeholder="Giá nhập" style={{width: 150}} id="add_mat_price" suffix="đ" />
-                                <Button type="primary" onClick={()=>{
-                                    // Hacky way to get value from uncontrolled input for simplicity or use Form
-                                    const matId = (document.getElementById('add_mat_id') as any)?.value; // Cần fix logic này chuẩn React sau
-                                    // Gợi ý: Logic add price nên dùng Form hoặc State riêng. 
-                                    // Ở đây hiển thị danh sách trước.
-                                    message.info('Tính năng thêm giá nhanh đang cập nhật...');
-                                }}>Thêm Giá</Button>
+                                <InputNumber 
+                                    placeholder="Giá nhập" 
+                                    style={{width: 150}} 
+                                    addonAfter="₫" 
+                                    value={inputPrice}
+                                    onChange={(v) => setInputPrice(Number(v))}
+                                />
+                                <Button type="primary" onClick={handleAddPrice} icon={<PlusOutlined />}>Thêm Giá</Button>
                             </div>
                             
                             <Table 
@@ -199,9 +225,11 @@ const SuppliersPage: React.FC = () => {
                                 columns={[
                                     { title: 'Mã NPL', render: (r:any) => <b>{r.material?.code}</b> },
                                     { title: 'Tên Nguyên Liệu', render: (r:any) => r.material?.name },
-                                    { title: 'ĐVT', width: 80, render: (r:any) => <Tag>{r.material?.unit}</Tag> },
+                                    // FIX: Hiển thị ĐVT
+                                    { title: 'ĐVT', width: 80, align:'center', render: (r:any) => <Tag>{r.material?.unit || '-'}</Tag> },
                                     { title: 'Đơn giá', dataIndex: 'price', align: 'right', render: (v:any) => <span style={{color:'green', fontWeight:'bold'}}>{Number(v).toLocaleString()} ₫</span> },
-                                    { title: 'Ngày cập nhật', render: (r:any) => <small>{new Date(r.updated_at).toLocaleDateString()}</small> }
+                                    { title: 'Ngày cập nhật', render: (r:any) => <small>{new Date(r.updated_at).toLocaleDateString()}</small> },
+                                    // { title: '', width: 50, render: (r:any) => <DeleteOutlined onClick={()=>handleDeletePrice(r.id)} style={{color:'red', cursor:'pointer'}} /> }
                                 ]} 
                             />
                         </div>
