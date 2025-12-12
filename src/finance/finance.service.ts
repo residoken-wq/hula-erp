@@ -19,32 +19,42 @@ export class FinanceService {
   ) {}
 
   async create(data: any) {
-    // --- FIX: Map note -> description ---
-    const transaction = this.transactionRepo.create({
+    // --- FIX QUAN TRỌNG: Mapping dữ liệu ---
+    // Frontend gửi 'refCode', Database cần 'reference_code'
+    // Frontend gửi 'note', Database cần 'description'
+    const transactionPayload = {
         ...data,
         reference_code: data.refCode || data.reference_code,
-        // Dòng này quan trọng: Lấy note từ frontend gán vào description
-        description: data.note || data.description 
-    });
-    // ------------------------------------
+        description: data.note || data.description
+    };
 
+    const transaction = this.transactionRepo.create(transactionPayload);
     const saved = await this.transactionRepo.save(transaction);
 
-    if (data.refCode) {
+    // Cập nhật trạng thái đơn hàng (SO/PO) nếu có mã tham chiếu
+    if (transactionPayload.reference_code) {
+        const amount = Number(data.amount);
+        
         if (data.type === 'INCOME') {
             try { 
-                await this.salesService.updatePayment(data.refCode, Number(data.amount)); 
-            } catch(e) { console.warn(e); }
+                await this.salesService.updatePayment(transactionPayload.reference_code, amount); 
+            } catch(e) {
+                console.warn(`Sales update payment error: ${e}`);
+            }
         } else if (data.type === 'EXPENSE') {
             try { 
-                await this.purchasingService.updatePayment(data.refCode, Number(data.amount)); 
-            } catch(e) { console.warn(e); }
+                await this.purchasingService.updatePayment(transactionPayload.reference_code, amount); 
+            } catch(e) {
+                console.warn(`Purchasing update payment error: ${e}`);
+            }
         }
     }
     return saved;
   }
 
-  async findAll() { return this.transactionRepo.find({ order: { created_at: 'DESC' } }); }
+  async findAll() {
+    return this.transactionRepo.find({ order: { created_at: 'DESC' } });
+  }
 
   async getSummary() {
       const all = await this.findAll();
