@@ -1,108 +1,82 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Supplier } from './supplier.entity';
 import { SupplierMaterial } from './supplier-material.entity';
-import { SupplierContact } from './supplier-contact.entity';
-import { MaterialsService } from '../materials/materials.service';
+import { ProductRouting } from '../products/product-routing.entity';
 
 @Injectable()
 export class SuppliersService {
   constructor(
-    @InjectRepository(Supplier) private supplierRepo: Repository<Supplier>,
-    @InjectRepository(SupplierMaterial) private priceRepo: Repository<SupplierMaterial>,
-    @InjectRepository(SupplierContact) private contactRepo: Repository<SupplierContact>,
-    private materialsService: MaterialsService,
+    @InjectRepository(Supplier)
+    private supplierRepo: Repository<Supplier>,
+    
+    @InjectRepository(SupplierMaterial)
+    private supplierMaterialRepo: Repository<SupplierMaterial>,
+
+    @InjectRepository(ProductRouting)
+    private routingRepo: Repository<ProductRouting>,
   ) {}
 
-  async create(data: Partial<Supplier>) { return this.supplierRepo.save(data); }
+  async create(data: any) {
+    const supplier = this.supplierRepo.create(data);
+    return this.supplierRepo.save(supplier);
+  }
 
   async findAll() {
-    return this.supplierRepo.find({ relations: ['contacts'], order: { id: 'DESC' } });
+    return this.supplierRepo.find({ order: { created_at: 'DESC' } });
+  }
+
+  async findOne(id: number) {
+    const supplier = await this.supplierRepo.findOne({ 
+        where: { id },
+        relations: ['price_list', 'price_list.material', 'routings', 'routings.product'] // Load chi tiết
+    });
+    if (!supplier) throw new NotFoundException('Not found');
+    return supplier;
   }
 
   async update(id: number, data: any) {
-    const { contacts, ...supplierData } = data;
-    await this.supplierRepo.update(id, supplierData);
-    if (contacts && Array.isArray(contacts)) {
-        await this.contactRepo.delete({ supplier: { id } });
-        for (const c of contacts) {
-            await this.contactRepo.save(this.contactRepo.create({ ...c, supplier: { id } }));
-        }
-    }
-    return this.supplierRepo.findOne({ where: { id }, relations: ['contacts'] });
+    await this.supplierRepo.update(id, data);
+    return this.findOne(id);
   }
 
-  async remove(id: number) { return this.supplierRepo.delete(id); }
-
-  async getPriceList(supplierId: number) {
-    return this.priceRepo.find({ 
-        where: { supplier_id: supplierId },
-        relations: ['material', 'process', 'product'], 
-        order: { updated_at: 'DESC' }
-    });
+  async remove(id: number) {
+    await this.supplierRepo.delete(id);
+    return { deleted: true };
   }
 
-  // --- API MỚI: TRA CỨU GIÁ ---
-  async checkPrice(dto: any) {
-      // dto: { supplierId, processId, productId }
-      // Logic: Ưu tiên giá có ProductId -> Nếu không có thì lấy giá Process chung
-      
-      const prices = await this.priceRepo.find({
-          where: { 
-              supplier_id: dto.supplierId, 
-              process_id: dto.processId 
-          },
-          order: { id: 'DESC' }
+  // --- FIX: LOGIC THÊM/CẬP NHẬT GIÁ NPL ---
+  async addMaterialPrice(supplierId: number, data: any) {
+      const { material_id, price } = data;
+
+      // 1. Kiểm tra xem đã có giá của NPL này chưa
+      const existing = await this.supplierMaterialRepo.findOne({
+          where: {
+              supplier: { id: supplierId },
+              material: { id: material_id }
+          }
       });
 
-      // 1. Tìm chính xác Product
-      const productMatch = prices.find(p => p.product_id == dto.productId);
-      if (productMatch) return { price: Number(productMatch.price) };
-
-      // 2. Tìm giá chung (Product = null)
-      const generalMatch = prices.find(p => !p.product_id);
-      if (generalMatch) return { price: Number(generalMatch.price) };
-
-      return { price: 0 };
-  }
-  // ---------------------------
-
-  async addPrice(data: any) {
-    if (data.isPreferred) {
-        let whereCond: any = { supplier_id: data.supplierId };
-        if (data.itemType === 'MATERIAL') {
-            whereCond.material_id = data.itemId;
-        } else {
-            whereCond.process_id = data.itemId;
-            if (data.productId) whereCond.product_id = data.productId;
-        }
-        await this.priceRepo.update(whereCond, { is_preferred: false });
-    }
-
-    const newPriceData = {
-        supplier_id: data.supplierId,
-        material_id: data.itemType === 'MATERIAL' ? data.itemId : null,
-        process_id: data.itemType === 'PROCESS' ? data.itemId : null,
-        product_id: data.itemType === 'PROCESS' ? data.productId : null,
-        price: data.price,
-        is_preferred: data.isPreferred || false,
-        valid_from: data.validFrom,
-        valid_to: data.validTo
-    };
-
-    const priceItem = this.priceRepo.create(newPriceData as unknown as SupplierMaterial);
-    const saved = await this.priceRepo.save(priceItem) as SupplierMaterial;
-
-    if (saved.is_preferred && data.itemType === 'MATERIAL') {
-        const supplier = await this.supplierRepo.findOne({where:{id: data.supplierId}});
-        await this.materialsService.materialRepo.update(data.itemId, {
-            cost_per_unit: data.price,
-            supplier_name: supplier ? supplier.name : ''
-        });
-    }
-    return saved;
+      if (existing) {
+          // 2. Nếu có rồi -> CẬP NHẬT GIÁ
+          existing.price = price;
+          return this.supplierMaterialRepo.save(existing);
+      } else {
+          // 3. Nếu chưa có -> TẠO MỚI
+          const newItem = this.supplierMaterialRepo.create({
+              supplier: { id: supplierId },
+              material: { id: material_id },
+              price: price
+          });
+          return this.supplierMaterialRepo.save(newItem);
+      }
   }
 
-  async removePrice(id: number) { return this.priceRepo.delete(id); }
+  // --- LOGIC KIỂM TRA GIÁ GIA CÔNG (CHO SẢN PHẨM) ---
+  async checkPrice(supplierId: number, processId: number) {
+      // Logic tạm: Tìm xem NCC này có làm công đoạn này không
+      // Trong thực tế có thể cần bảng giá gia công riêng
+      return { price: 0 }; 
+  }
 }

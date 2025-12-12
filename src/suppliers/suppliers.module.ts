@@ -1,16 +1,20 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Supplier } from './supplier.entity';
+import { SupplierContact } from './supplier-contact.entity';
 import { SupplierMaterial } from './supplier-material.entity';
-import { SupplierContact } from './supplier-contact.entity'; // MOI
-import { SuppliersController } from './suppliers.controller';
 import { SuppliersService } from './suppliers.service';
-import { MaterialsModule } from '../materials/materials.module';
+import { SuppliersController } from './suppliers.controller';
+import { ProductRouting } from '../products/product-routing.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Supplier, SupplierMaterial, SupplierContact]), // Them Contact
-    MaterialsModule
+    TypeOrmModule.forFeature([
+        Supplier, 
+        SupplierContact, 
+        SupplierMaterial, 
+        ProductRouting
+    ])
   ],
   controllers: [SuppliersController],
   providers: [SuppliersService],

@@ -1,26 +1,24 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
 
 @Controller('suppliers')
 export class SuppliersController {
-  constructor(private readonly suppliersService: SuppliersService) {}
+  constructor(private readonly s: SuppliersService) {}
 
-  @Post() create(@Body() b: any) { return this.suppliersService.create(b); }
-  @Get() findAll() { return this.suppliersService.findAll(); }
-  @Put(':id') update(@Param('id') id: number, @Body() b: any) { return this.suppliersService.update(id, b); }
-  @Delete(':id') remove(@Param('id') id: number) { return this.suppliersService.remove(id); }
+  @Post() create(@Body() b: any) { return this.s.create(b); }
+  @Get() findAll() { return this.s.findAll(); }
+  @Get(':id') findOne(@Param('id') id: number) { return this.s.findOne(id); }
+  @Put(':id') update(@Param('id') id: number, @Body() b: any) { return this.s.update(id, b); }
+  @Delete(':id') remove(@Param('id') id: number) { return this.s.remove(id); }
 
-  @Get(':id/prices') 
-  getPrices(@Param('id') id: number) { return this.suppliersService.getPriceList(id); }
+  // API Thêm giá NPL
+  @Post(':id/material-price') 
+  addPrice(@Param('id') id: number, @Body() b: any) { 
+      return this.s.addMaterialPrice(id, b); 
+  }
 
-  // --- API CHECK PRICE ---
   @Post('check-price')
-  checkPrice(@Body() body: any) { return this.suppliersService.checkPrice(body); }
-  // ---------------------
-
-  @Post('price')
-  addPrice(@Body() b: any) { return this.suppliersService.addPrice(b); }
-
-  @Delete('price/:id')
-  removePrice(@Param('id') id: number) { return this.suppliersService.removePrice(id); }
+  checkPrice(@Body() b: any) {
+      return this.s.checkPrice(b.supplierId, b.processId);
+  }
 }
