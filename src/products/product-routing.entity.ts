@@ -1,37 +1,42 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Product } from './product.entity';
 import { Supplier } from '../suppliers/supplier.entity';
+import { Process } from '../processes/process.entity'; // Import Process
 
 @Entity('product_routings')
 export class ProductRouting {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Product, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Product, (product) => product.routings, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'product_id' })
   product: Product;
 
-  @Column()
+  @Column({ nullable: true })
   product_id: number;
 
-  @Column()
-  step_name: string; // Noi Vai, Chan Gon, May, Dong Goi
+  // --- FIX: THÊM QUAN HỆ PROCESS (Công đoạn) ---
+  @ManyToOne(() => Process, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'process_id' })
+  process: Process;
 
-  @Column({ default: false })
-  is_required: boolean; // Co bat buoc khong? (Vd: Noi vai co the khong can)
+  @Column({ nullable: true })
+  process_id: number;
+  // ---------------------------------------------
 
-  // Nha Gia Cong
-  @ManyToOne(() => Supplier, { nullable: true })
+  @ManyToOne(() => Supplier, (supplier) => supplier.routings, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
 
   @Column({ nullable: true })
   supplier_id: number;
 
-  // Don gia gia cong (Vd: 5000d / cai)
-  @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  cost: number;
-
   @Column({ nullable: true })
-  note: string;
+  step_name: string; // Tên công đoạn (vd: Cắt, May, Chần)
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  cost: number; // Chi phí gia công
+
+  @Column({ default: 1 })
+  step_order: number;
 }

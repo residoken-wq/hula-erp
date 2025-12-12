@@ -7,12 +7,14 @@ import { SuppliersService } from './suppliers.service';
 import { SuppliersController } from './suppliers.controller';
 import { ProductRouting } from '../products/product-routing.entity';
 import { Material } from '../materials/material.entity';
+import { Process } from '../processes/process.entity'; // <-- MỚI: Thêm Process
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
         Supplier, SupplierContact, SupplierMaterial, 
-        ProductRouting, Material
+        ProductRouting, Material,
+        Process // <-- THÊM VÀO ĐÂY
     ])
   ],
   controllers: [SuppliersController],
