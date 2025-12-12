@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Layout, Menu, theme } from 'antd';
 import type { MenuProps } from 'antd';
-import { DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, BankOutlined, CloudUploadOutlined } from '@ant-design/icons';
+import {
+  DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, BankOutlined, CloudUploadOutlined
+} from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ProductsPage from './pages/ProductsPage';
 import CombosPage from './pages/CombosPage';
@@ -17,7 +19,7 @@ import ProductionRoutePage from './pages/ProductionRoutePage';
 import ProcessesPage from './pages/ProcessesPage';
 import CategoriesPage from './pages/CategoriesPage';
 import PortalQuotePage from './pages/PortalQuotePage';
-import PortalPurchasePage from './pages/PortalPurchasePage';
+import PortalPurchasePage from './pages/PortalPurchasePage'; // Import Portal PO
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -54,7 +56,11 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
+        {/* --- ROUTE PORTAL (KHÔNG LAYOUT) --- */}
         <Route path="/portal/quote/:uuid" element={<PortalQuotePage />} />
+        <Route path="/portal/po/:uuid" element={<PortalPurchasePage />} />
+
+        {/* --- MAIN LAYOUT --- */}
         <Route path="*" element={
           <Layout style={{ minHeight: '100vh' }}>
             <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
@@ -79,7 +85,6 @@ const App: React.FC = () => {
                     <Route path="/routes" element={<ProductionRoutePage />} />
                     <Route path="/processes" element={<ProcessesPage />} />
                     <Route path="/categories" element={<CategoriesPage />} />
-                    <Route path="/portal/po/:uuid" element={<PortalPurchasePage />} />
                     <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
                   </Routes>
                 </div>
