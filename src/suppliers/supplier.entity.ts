@@ -44,6 +44,10 @@ export class Supplier {
   @Column({ nullable: true })
   address: string;
 
+  // --- MỚI: BỔ SUNG CỘT GHI CHÚ ---
+  @Column('text', { nullable: true })
+  note: string;
+
   @OneToMany(() => SupplierContact, (c) => c.supplier, { cascade: true })
   contacts: SupplierContact[];
 
