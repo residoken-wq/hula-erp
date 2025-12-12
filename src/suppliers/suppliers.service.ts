@@ -9,28 +9,16 @@ import { Material } from '../materials/material.entity';
 @Injectable()
 export class SuppliersService {
   constructor(
-    @InjectRepository(Supplier)
-    private supplierRepo: Repository<Supplier>,
-    
-    @InjectRepository(SupplierMaterial)
-    private supplierMaterialRepo: Repository<SupplierMaterial>,
-
-    @InjectRepository(ProductRouting)
-    private routingRepo: Repository<ProductRouting>,
-
-    @InjectRepository(Material)
-    private materialRepo: Repository<Material>,
+    @InjectRepository(Supplier) private supplierRepo: Repository<Supplier>,
+    @InjectRepository(SupplierMaterial) private supplierMaterialRepo: Repository<SupplierMaterial>,
+    @InjectRepository(ProductRouting) private routingRepo: Repository<ProductRouting>,
+    @InjectRepository(Material) private materialRepo: Repository<Material>,
   ) {}
 
-  async create(data: any) {
-    const supplier = this.supplierRepo.create(data);
-    return this.supplierRepo.save(supplier);
-  }
-
-  async findAll() {
-    return this.supplierRepo.find({ order: { created_at: 'DESC' } });
-  }
-
+  async create(data: any) { return this.supplierRepo.save(this.supplierRepo.create(data)); }
+  async findAll() { return this.supplierRepo.find({ order: { created_at: 'DESC' } }); }
+  async remove(id: number) { await this.supplierRepo.delete(id); return { deleted: true }; }
+  
   async findOne(id: number) {
     const supplier = await this.supplierRepo.findOne({ 
         where: { id },
@@ -45,52 +33,43 @@ export class SuppliersService {
     return this.findOne(id);
   }
 
-  async remove(id: number) {
-    await this.supplierRepo.delete(id);
-    return { deleted: true };
-  }
-
-  // --- FIX: CẬP NHẬT LOGIC LƯU TỪ NGÀY - ĐẾN NGÀY ---
+  // --- FIX: UPSERT PRICE ---
   async addMaterialPrice(supplierId: number, data: any) {
-      const { material_id, price, valid_from, valid_to, is_preferred } = data; // Thêm valid_to
+      const { material_id, price, valid_from, valid_to, is_preferred } = data;
 
-      // 1. Tìm bản ghi cũ
       let record = await this.supplierMaterialRepo.findOne({
-          where: {
-              supplier: { id: supplierId },
-              material: { id: material_id }
-          }
+          where: { supplier: { id: supplierId }, material: { id: material_id } }
       });
 
       if (record) {
           // Update
           record.price = price;
-          record.valid_from = valid_from;
-          record.valid_to = valid_to; // Lưu ngày kết thúc
+          if(valid_from) record.valid_from = valid_from;
+          if(valid_to) record.valid_to = valid_to;
           record.is_preferred = is_preferred;
       } else {
-          // Create new
+          // Create
           record = this.supplierMaterialRepo.create({
               supplier: { id: supplierId },
               material: { id: material_id },
               price: price,
               valid_from: valid_from,
-              valid_to: valid_to, // Lưu ngày kết thúc
+              valid_to: valid_to,
               is_preferred: is_preferred
           });
       }
       
       const saved = await this.supplierMaterialRepo.save(record);
 
-      // 2. Cập nhật giá vốn BOM nếu là mặc định
       if (is_preferred) {
           await this.materialRepo.update(material_id, { cost_price: price });
       }
-
       return saved;
   }
 
-  async checkPrice(supplierId: number, processId: number) {
-      return { price: 0 }; 
+  async deleteMaterialPrice(id: number) {
+      return this.supplierMaterialRepo.delete(id);
   }
+
+  async checkPrice(supplierId: number, processId: number) { return { price: 0 }; }
 }

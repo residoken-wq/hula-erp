@@ -11,11 +11,8 @@ import { Material } from '../materials/material.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-        Supplier, 
-        SupplierContact, 
-        SupplierMaterial, 
-        ProductRouting,
-        Material 
+        Supplier, SupplierContact, SupplierMaterial, 
+        ProductRouting, Material
     ])
   ],
   controllers: [SuppliersController],
