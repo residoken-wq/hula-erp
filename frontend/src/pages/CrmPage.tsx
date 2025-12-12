@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Tabs, Statistic, Divider, Popconfirm, Tooltip, Progress } from 'antd';
+import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Tabs, Statistic, Divider, Popconfirm, Tooltip, Progress, Typography } from 'antd';
 import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import QuotationTemplate from '../components/QuotationTemplate';
-import SalesOrderDetail from '../components/SalesOrderDetail'; // IMPORT MOI
-import { LinkOutlined } from '@ant-design/icons'; // Import icon moi
+import SalesOrderDetail from '../components/SalesOrderDetail';
+
+const { Text } = Typography;
 
 const CrmPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('LEAD');
@@ -34,7 +35,6 @@ const CrmPage: React.FC = () => {
   const [formLead] = Form.useForm();
   const [followNote, setFollowNote] = useState('');
 
-  // ... (Giữ nguyên phần fetchData, openCreateLead, calculateProgress, handleSaveLead, handleFollowLead)
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -47,7 +47,7 @@ const CrmPage: React.FC = () => {
             const resSales = await axios.get(`${API_URL}/sales`);
             const salesData = Array.isArray(resSales.data) ? resSales.data : [];
             setQuotes(salesData.filter((s:any) => s.status === 'QUOTATION' || s.status === 'CANCELLED'));
-            setOrders(salesData.filter((s:any) => ['SO_PENDING', 'PLANNED', 'SHIPPING', 'COMPLETED', 'DEPOSITED'].includes(s.status)));
+            setOrders(salesData.filter((s:any) => ['SO_PENDING', 'PLANNED', 'SHIPPING', 'COMPLETED', 'DEPOSITED', 'PARTIAL_DELIVERY', 'DELIVERED'].includes(s.status)));
         } catch(e) {}
 
         try { const resSamples = await axios.get(`${API_URL}/sales/samples/all`); setSamples(resSamples.data || []); } catch (e) {}
@@ -55,7 +55,7 @@ const CrmPage: React.FC = () => {
         const resProd = await axios.get(`${API_URL}/products`);
         if (Array.isArray(resProd.data)) {
             setProducts(resProd.data.map((p:any) => ({
-                label: p.name, value: p.sku, price: Number(p.base_price) || 0
+                label: p.name, value: p.sku, price: Number(p.base_price) || 0, unit: p.unit
             })));
         }
     } catch(e) { message.error('Lỗi kết nối dữ liệu'); }
@@ -123,7 +123,6 @@ const CrmPage: React.FC = () => {
       catch(e: any) { message.error(e.response?.data?.message || 'Không thể xóa'); }
   };
 
-  // --- HAM MO FORM MOI ---
   const openDetailModal = async (record?: any, isQuote = false) => {
       if (record) {
           try {
@@ -137,7 +136,6 @@ const CrmPage: React.FC = () => {
       setDetailModalOpen(true);
   };
 
-  // --- HAM TAO BAO GIA TU DRAWER ---
   const handleCreateQuoteFromFollow = () => {
       setFollowDrawerOpen(false);
       setEditingOrder({ customer_id: currentCustomer.id }); // Pre-fill
@@ -145,7 +143,7 @@ const CrmPage: React.FC = () => {
       setDetailModalOpen(true);
   };
 
-  // COLUMNS DEFINITION
+  // COLUMNS
   const leadColumns = [
       { title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
       { title: 'Tên Khách', dataIndex: 'name', render: (t:any, r:any) => <a onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}}>{t}</a> },
@@ -168,15 +166,6 @@ const CrmPage: React.FC = () => {
       {
           title: 'Thao tác', key: 'act', align: 'center' as const, width: 180,
           render: (_:any, r:any) => r.status === 'QUOTATION' ? (
-              <Space size={2}>
-                {/* NÚT COPY LINK PORTAL */}
-                <Tooltip title="Copy Link cho Khách">
-                    <Button icon={<LinkOutlined />} size="small" onClick={()=>{
-                        const link = `${window.location.origin}/portal/quote/${r.uuid}`;
-                        navigator.clipboard.writeText(link);
-                        message.success('Đã copy link báo giá!');
-                    }} />
-                </Tooltip>
               <Space size={2}>
                   <Tooltip title="Xem & In"><Button icon={<PrinterOutlined />} size="small" onClick={()=>{openDetailModal(r); setTimeout(()=>setIsPreviewOpen(true), 500)}} /></Tooltip>
                   <Tooltip title="Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, true)} /></Tooltip>
@@ -212,7 +201,6 @@ const CrmPage: React.FC = () => {
           ]} />
       </Card>
 
-      {/* COMPONENT QUAN LY CHI TIET (MODAL) */}
       <SalesOrderDetail 
         open={detailModalOpen} 
         onClose={()=>setDetailModalOpen(false)} 
@@ -223,7 +211,6 @@ const CrmPage: React.FC = () => {
         products={products}
       />
 
-      {/* MODAL PREVIEW IN */}
       <Modal title="Xem Trước Báo Giá" open={isPreviewOpen} onCancel={()=>setIsPreviewOpen(false)} footer={null} width={900}>
           <div id="printableArea"><QuotationTemplate data={editingOrder} /></div>
           <div style={{textAlign:'center', marginTop:20}}><Button type="primary" onClick={()=>{ const c = document.getElementById('printableArea'); const w = window.open(); if(w && c) { w.document.write(c.innerHTML); w.print(); } }}>In Ngay</Button></div>
