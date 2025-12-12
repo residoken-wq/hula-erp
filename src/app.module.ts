@@ -24,15 +24,16 @@ import { ProductComponent } from './products/product-component.entity';
 import { ProductRouting } from './products/product-routing.entity';
 import { ProductLogistics } from './products/product-logistics.entity';
 import { SalesOrder } from './sales/sales-order.entity';
-import { SalesOrderItem } from './sales/sales-order-item.entity'; // --- FIX: ĐÚNG ĐƯỜNG DẪN
+import { SalesOrderItem } from './sales/sales-order-item.entity';
 import { ProductSample } from './sales/product-sample.entity';
-import { SalesDelivery } from './sales/sales-delivery.entity'; 
+import { SalesDelivery } from './sales/sales-delivery.entity';
 import { SalesDeliveryItem } from './sales/sales-delivery-item.entity';
 import { StockHistory } from './inventory/stock-history.entity';
 import { WorkOrder } from './production/work-order.entity';
 import { WorkOrderStep } from './production/work-order-step.entity';
 import { PurchaseOrder } from './purchasing/purchase-order.entity';
 import { PurchaseOrderItem } from './purchasing/purchase-order-item.entity';
+import { PurchaseDelivery } from './purchasing/purchase-delivery.entity'; // MOI THEM
 import { Transaction } from './finance/transaction.entity';
 import { Supplier } from './suppliers/supplier.entity';
 import { SupplierMaterial } from './suppliers/supplier-material.entity';
@@ -55,6 +56,7 @@ import { Category } from './categories/category.entity';
       entities: [
         Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics,
         SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem,
+        PurchaseOrder, PurchaseOrderItem, PurchaseDelivery, // FIX: Đảm bảo có PurchaseDelivery
         StockHistory, 
         WorkOrder, WorkOrderStep,
         PurchaseOrder, PurchaseOrderItem,
@@ -63,7 +65,7 @@ import { Category } from './categories/category.entity';
         Customer, CustomerContact,
         ProductionPlan, Process, Category
       ], 
-      synchronize: true, 
+      synchronize: true, // Day la lenh tao bang tu dong
     }),
     ProductsModule, MaterialsModule, BomModule, SalesModule,
     InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
