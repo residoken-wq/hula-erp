@@ -1,18 +1,19 @@
-// src/components/sales/SalesDeliveries.tsx
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Input, Modal, message, InputNumber } from 'antd';
 import { CarOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { API_URL } from '../../../../src/config';
+// FIX: Đường dẫn import config
+import { API_URL } from '../../config';
 
 interface Props {
     orderId: number;
-    orderItems: any[]; // Items gốc của đơn hàng
+    orderItems: any[]; 
     onSuccess: () => void;
 }
 
 const SalesDeliveries: React.FC<Props> = ({ orderId, orderItems, onSuccess }) => {
+    // FIX: Thêm <any[]>
     const [history, setHistory] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [shipNote, setShipNote] = useState('');
@@ -27,7 +28,6 @@ const SalesDeliveries: React.FC<Props> = ({ orderId, orderItems, onSuccess }) =>
 
     useEffect(() => { if (orderId) fetchHistory(); }, [orderId]);
 
-    // Tính toán tiến độ giao hàng
     const summaryData = orderItems.map((item: any) => {
         const ordered = Number(item.quantity) || 0;
         let delivered = 0;

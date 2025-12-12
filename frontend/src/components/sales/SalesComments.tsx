@@ -1,13 +1,14 @@
-// src/components/sales/SalesComments.tsx
 import React, { useEffect, useState } from 'react';
 import { List, Avatar, Input, Button, message } from 'antd';
 import { UserOutlined, MessageOutlined, EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { API_URL } from '../../../../src/config';
+// FIX: Đường dẫn import config
+import { API_URL } from '../../config';
 
 const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
-    const [comments, setComments] = useState([]);
+    // FIX: Thêm <any[]>
+    const [comments, setComments] = useState<any[]>([]);
     const [text, setText] = useState('');
 
     const fetchComments = async () => {

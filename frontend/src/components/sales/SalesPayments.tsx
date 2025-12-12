@@ -1,10 +1,10 @@
-// src/components/sales/SalesPayments.tsx
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Statistic, Row, Col, Divider, Modal, Form, InputNumber, Radio, Input, message } from 'antd';
 import { DollarOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { API_URL } from '../../../../src/config';
+// FIX: Đường dẫn import config
+import { API_URL } from '../../config';
 
 interface Props {
     orderId: number;
@@ -15,7 +15,9 @@ interface Props {
 }
 
 const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidAmount, onSuccess }) => {
-    const [history, setHistory] = useState([]);
+    // FIX: Thêm <any[]>
+    const [history, setHistory] = useState<any[]>([]);
+    
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [amount, setAmount] = useState<number>(0);
     const [type, setType] = useState('DEPOSIT');
