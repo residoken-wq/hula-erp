@@ -103,7 +103,8 @@ export class PlanningService {
           });
           
           let total = 0;
-          // --- FIX: Ép kiểu as PurchaseOrderItem để tránh lỗi TS2322 ---
+          
+          // --- FIX: Double Cast (as unknown as PurchaseOrderItem) ---
           po.items = (items as any[]).map(i => {
               const sub = i.net_requirement * i.cost;
               total += sub;
@@ -113,7 +114,7 @@ export class PlanningService {
                   quantity: i.net_requirement,
                   unit_price: i.cost,
                   subtotal: sub
-              } as any) as PurchaseOrderItem;
+              } as any) as unknown as PurchaseOrderItem;
           });
           
           po.total_amount = total;
