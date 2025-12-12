@@ -6,7 +6,7 @@ import { SalesOrderItem } from './sales-order-item.entity';
 import { ProductSample } from './product-sample.entity';
 import { SalesDelivery } from './sales-delivery.entity';
 import { SalesDeliveryItem } from './sales-delivery-item.entity';
-import { SalesComment } from './sales-comment.entity'; // Import
+import { SalesComment } from './sales-comment.entity';
 import { Transaction } from '../finance/transaction.entity';
 import { ProductsService } from '../products/products.service';
 import { InventoryService } from '../inventory/inventory.service';
@@ -26,7 +26,6 @@ export class SalesService {
     private customersService: CustomersService,
   ) {}
 
-  // ... (Giữ nguyên các hàm validateItemsForSO, createOrder, findAll)
   private async validateItemsForSO(items: any[]) {
       if(!items) return;
       for (const item of items) {
@@ -108,7 +107,6 @@ export class SalesService {
       return this.orderRepo.save(order);
   }
 
-  // --- NEW: Force Complete ---
   async completeOrder(id: number) {
       const order = await this.orderRepo.findOne({ where: { id } });
       if (!order) throw new NotFoundException();
@@ -116,7 +114,6 @@ export class SalesService {
       return this.orderRepo.save(order);
   }
 
-  // --- NEW: Comment Logic ---
   async addComment(orderId: number, content: string, sender: 'STAFF'|'CUSTOMER', name?: string) {
       const order = await this.orderRepo.findOne({ where: { id: orderId } });
       if (!order) throw new NotFoundException();
@@ -136,7 +133,6 @@ export class SalesService {
       }
   }
 
-  // --- EXISTING METHODS (No change) ---
   async convertQuoteToSo(id: number, accepted: boolean) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();
@@ -168,12 +164,10 @@ export class SalesService {
        throw new BadRequestException('Khong the xoa');
   }
   
-  // --- UPDATED: Get Portal Data (Include Customer & Deliveries) ---
   async getQuoteByUuid(uuid: string) { 
       const order = await this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer', 'comments'] });
       if(!order) throw new NotFoundException('Not found');
       
-      // Load delivery history for Portal
       const deliveries = await this.deliveryRepo.find({ where: { order_id: order.id }, relations: ['items'], order: { created_at: 'DESC' } });
       const payments = await this.transRepo.find({ where: { reference_code: order.order_code }, order: { created_at: 'DESC' } });
       
@@ -186,17 +180,32 @@ export class SalesService {
       return this.convertQuoteToSo(order.id, action === 'ACCEPT');
   }
   async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
+  
+  // --- FIX: createDelivery (Sửa lỗi 30.00 -> 30) ---
   async createDelivery(orderId: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
       if (!order) throw new NotFoundException('Not found');
-      const delivery = this.deliveryRepo.create({ code: data.code, delivery_date: data.date, note: data.note, sales_order: order, items: data.items.map((i:any) => ({ sku: i.sku, quantity: Math.floor(Number(i.quantity)) })) });
+      
+      const delivery = this.deliveryRepo.create({ 
+          code: data.code, 
+          delivery_date: data.date, 
+          note: data.note, 
+          sales_order: order, 
+          items: data.items.map((i:any) => ({ 
+              sku: i.sku, 
+              // Ép kiểu số nguyên triệt để
+              quantity: Math.floor(Number(i.quantity)) 
+          })) 
+      });
+
+      // Trừ kho cũng phải ép kiểu
       for (const item of data.items) {
            const product = await this.productsService.findOneBySku(item.sku);
            if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, Math.floor(Number(item.quantity)), delivery.code, `Giao hang ${order.order_code}`);
       }
       await this.deliveryRepo.save(delivery);
       
-      // Recalc status
+      // Tính lại trạng thái
       const allDeliveries = await this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'] });
       let isFullyDelivered = true;
       for (const orderItem of order.items) {
@@ -212,5 +221,6 @@ export class SalesService {
       }
       return this.orderRepo.save(order);
   }
+  
   async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
 }
