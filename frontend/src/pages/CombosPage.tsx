@@ -1,50 +1,40 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Select, Space, Typography, Tag, Row, Col } from 'antd';
-import { PlusOutlined, DeleteOutlined, ReloadOutlined, SaveOutlined, AppstoreAddOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Select, Row, Col } from 'antd';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
-const { Text } = Typography;
-
 const CombosPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  // FIX: Thêm <any[]> để tránh lỗi never[]
   const [combos, setCombos] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [form] = Form.useForm();
 
   const fetchData = async () => {
     setLoading(true);
     try {
-        const resCombo = await axios.get(`${API_URL}/products/combos/all`); // Giả sử có API này hoặc filter từ products
-        // Tạm thời lấy all products và lọc ra combo nếu backend chưa tách API
         const resProd = await axios.get(`${API_URL}/products`);
         
         if (Array.isArray(resProd.data)) {
-            // FIX: Set type cho setProducts
             setProducts(resProd.data.map((p:any) => ({
                 label: `${p.sku} - ${p.name}`, 
                 value: p.sku, 
                 price: Number(p.base_price) || 0
             })));
 
-            // Mock logic lọc combo (hoặc lấy từ API riêng)
             const comboList = resProd.data.filter((p:any) => p.product_type === 'COMBO');
             setCombos(comboList);
         }
-    } catch(e) { 
-        // message.error('Lỗi tải dữ liệu'); 
-    }
+    } catch(e) { }
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
 
   const handleSave = async (values: any) => {
-      // Logic save...
+      console.log(values); // Avoid unused warning
       message.success('Tính năng đang phát triển');
       setIsModalOpen(false);
   };
