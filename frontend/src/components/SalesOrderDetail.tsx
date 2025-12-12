@@ -14,6 +14,9 @@ const { Text } = Typography;
 
 interface Props { open: boolean; onClose: () => void; onSuccess: () => void; initialData?: any; isQuotation: boolean; customers: any[]; products: any[]; }
 
+// DEFAULT TERMS
+const DEFAULT_TERMS = `- Báo giá có hiệu lực trong vòng 07 ngày.\n- Thời gian giao hàng: 3-5 ngày (hoặc theo thỏa thuận).\n- Thanh toán: Tạm ứng 50% ngay khi xác nhận đơn, 50% còn lại trước khi giao hàng.`;
+
 const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, isQuotation, customers, products }) => {
     const [form] = Form.useForm();
     const [activeTab, setActiveTab] = useState('1');
@@ -37,11 +40,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 ...initialData,
                 customer_id: initialData.customer?.id || initialData.customer_id,
                 delivery_date: initialData.delivery_date ? dayjs(initialData.delivery_date) : null,
-                items: (initialData.items || []).map((i: any) => ({ ...i, quantity: Number(i.quantity), price: Number(i.unit_price) }))
+                items: (initialData.items || []).map((i: any) => ({ ...i, quantity: Number(i.quantity), price: Number(i.unit_price) })),
+                // LOAD TERMS
+                terms_content: initialData.terms_content || DEFAULT_TERMS
             });
         } else if (open) {
             form.resetFields();
-            form.setFieldsValue({ isQuotation, order_code: `QUOTE-${dayjs().format('YYMMDD')}-${Math.floor(Math.random() * 1000)}`, items: [{}], vat_rate: 0 });
+            form.setFieldsValue({ isQuotation, order_code: `QUOTE-${dayjs().format('YYMMDD')}-${Math.floor(Math.random() * 1000)}`, items: [{}], vat_rate: 0, terms_content: DEFAULT_TERMS });
         }
         setActiveTab('1');
     }, [open, initialData, form]);
@@ -77,13 +82,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         });
     };
 
-    // Hàm mở trang in (Portal)
     const handlePrint = () => {
-        if(initialData?.uuid) {
-            window.open(`/portal/quote/${initialData.uuid}`, '_blank');
-        } else {
-            message.warning('Vui lòng lưu đơn hàng trước khi in');
-        }
+        if(initialData?.uuid) { window.open(`/portal/quote/${initialData.uuid}`, '_blank'); } else { message.warning('Vui lòng lưu đơn hàng trước khi in'); }
     };
 
     const handleSampleAction = (idx: number) => { setCurrentSampleIdx(idx); sampleForm.setFieldsValue(form.getFieldValue(['items', idx])); setIsSampleModalOpen(true); };
@@ -105,7 +105,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         {!canEdit && <Tag color="orange">Khóa</Tag>}
                         {initialData?.status==='COMPLETED'&&<Tag color="green">HOÀN TẤT</Tag>}
                     </div>
-                    {/* NÚT IN / XUẤT PDF */}
                     {hasData && <Button icon={<PrinterOutlined />} onClick={handlePrint}>In Đơn Hàng</Button>}
                 </div>
             }
@@ -140,7 +139,16 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         <Row justify="space-between"><Col>{!isQuotation && <Button type="primary" ghost icon={<CheckCircleOutlined/>} onClick={approveAllSamples}>Duyệt Mẫu (All)</Button>}</Col><Col><div style={{textAlign:'right', minWidth:200}}><Row><Col span={12}>Tổng:</Col><Col span={12}><b>{subTotal.toLocaleString()}</b></Col></Row><Row><Col span={12}>VAT:</Col><Col span={12}><Space><Form.Item name="vat_rate" noStyle><Select size="small" options={[{label:'0%',value:0},{label:'8%',value:8},{label:'10%',value:10}]} /></Form.Item><span>{(subTotal*vatRate/100).toLocaleString()}</span></Space></Col></Row><Row><Col span={12}>Phí VC:</Col><Col span={12}><Form.Item name="shipping_fee" noStyle><InputNumber size="small" style={{width:80}}/></Form.Item></Col></Row><Divider style={{margin:'5px 0'}}/><Row style={{fontSize:16, color:'red'}}><Col span={12}>TỔNG:</Col><Col span={12}><b>{totalAmount.toLocaleString()}</b></Col></Row></div></Col></Row>
                                     </div>
                                 </Col>
-                                <Col span={8}><div style={{background:'#f9f9f9', padding:15, borderRadius:8}}><Divider orientation="left" style={{marginTop:0}}><BankOutlined/> Hóa Đơn & Giao Nhận</Divider><Form.Item name="vat_company_name" label="Tên Đơn vị"><Input/></Form.Item><Row gutter={8}><Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input/></Form.Item></Col><Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input/></Form.Item></Col></Row><Divider orientation="left"><CarOutlined/> Giao nhận</Divider><Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}}/></Form.Item><Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2}/></Form.Item><Row gutter={8}><Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input/></Form.Item></Col><Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input/></Form.Item></Col></Row></div></Col>
+                                <Col span={8}>
+                                    <div style={{background:'#f9f9f9', padding:15, borderRadius:8, marginBottom: 10}}><Divider orientation="left" style={{marginTop:0}}><BankOutlined/> Hóa Đơn & Giao Nhận</Divider><Form.Item name="vat_company_name" label="Tên Đơn vị"><Input/></Form.Item><Row gutter={8}><Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input/></Form.Item></Col><Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input/></Form.Item></Col></Row><Divider orientation="left"><CarOutlined/> Giao nhận</Divider><Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}}/></Form.Item><Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2}/></Form.Item><Row gutter={8}><Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input/></Form.Item></Col><Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input/></Form.Item></Col></Row></div>
+                                    
+                                    {/* --- Ô NHẬP ĐIỀU KHOẢN --- */}
+                                    <div style={{background:'#fffbe6', padding:15, borderRadius:8, border:'1px solid #ffe58f'}}>
+                                        <Divider orientation="left" style={{marginTop:0, color:'#d48806'}}><FileImageOutlined/> Điều khoản & Ghi chú</Divider>
+                                        <Form.Item name="terms_content" noStyle><Input.TextArea rows={6} placeholder="Nhập điều khoản..." /></Form.Item>
+                                        <div style={{textAlign:'right', marginTop:5}}><Button size="small" type="link" onClick={() => form.setFieldValue('terms_content', DEFAULT_TERMS)}>Load Mặc định</Button></div>
+                                    </div>
+                                </Col>
                             </Row>
                         )
                     },

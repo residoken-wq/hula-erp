@@ -2,26 +2,47 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, Ma
 import { SalesOrderItem } from './sales-order-item.entity';
 import { Customer } from '../customers/customer.entity';
 import { ProductionPlan } from '../planning/production-plan.entity';
-// Import Entity Comment
 import { SalesComment } from './sales-comment.entity';
 
-// ... (Giữ nguyên các Enum SalesOrderStatus, PaymentStatus)
 export enum SalesOrderStatus {
-  QUOTATION = 'QUOTATION', SO_PENDING = 'SO_PENDING', SAMPLE_APPROVED = 'SAMPLE_APPROVED',
-  DEPOSITED = 'DEPOSITED', PLANNED = 'PLANNED', PARTIAL_DELIVERY = 'PARTIAL_DELIVERY',
-  DELIVERED = 'DELIVERED', COMPLETED = 'COMPLETED', CANCELLED = 'CANCELLED'
+  QUOTATION = 'QUOTATION',   
+  SO_PENDING = 'SO_PENDING',
+  SAMPLE_APPROVED = 'SAMPLE_APPROVED',
+  DEPOSITED = 'DEPOSITED',
+  PLANNED = 'PLANNED',       
+  PARTIAL_DELIVERY = 'PARTIAL_DELIVERY',
+  DELIVERED = 'DELIVERED',   
+  COMPLETED = 'COMPLETED',   
+  CANCELLED = 'CANCELLED'    
 }
-export enum PaymentStatus { UNPAID = 'UNPAID', PARTIAL_PAID = 'PARTIAL_PAID', PAID = 'PAID' }
+
+export enum PaymentStatus {
+  UNPAID = 'UNPAID',
+  PARTIAL_PAID = 'PARTIAL_PAID',
+  PAID = 'PAID'
+}
 
 @Entity('sales_orders')
 export class SalesOrder {
-  @PrimaryGeneratedColumn() id: number;
-  @Column() @Generated("uuid") uuid: string;
-  @Column({ unique: true }) order_code: string; 
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @ManyToOne(() => Customer, { nullable: true }) @JoinColumn({ name: 'customer_id' }) customer: Customer;
-  @Column({ nullable: true }) customer_id: number;
-  @Column({ nullable: true }) customer_name: string;
+  @Column()
+  @Generated("uuid")
+  uuid: string;
+
+  @Column({ unique: true })
+  order_code: string; 
+
+  @ManyToOne(() => Customer, { nullable: true })
+  @JoinColumn({ name: 'customer_id' })
+  customer: Customer;
+
+  @Column({ nullable: true })
+  customer_id: number;
+
+  @Column({ nullable: true })
+  customer_name: string;
 
   @Column({ nullable: true }) vat_company_name: string;
   @Column({ nullable: true }) vat_tax_code: string; 
@@ -43,7 +64,12 @@ export class SalesOrder {
   @Column('text', { nullable: true }) sample_image_url: string;
   @Column('text', { nullable: true }) sample_note: string;
 
-  @ManyToOne(() => ProductionPlan, (plan) => plan.sales_orders, { nullable: true }) @JoinColumn({ name: 'plan_id' }) production_plan: ProductionPlan;
+  // --- MỚI: CỘT LƯU ĐIỀU KHOẢN ---
+  @Column('text', { nullable: true }) terms_content: string;
+
+  @ManyToOne(() => ProductionPlan, (plan) => plan.sales_orders, { nullable: true })
+  @JoinColumn({ name: 'plan_id' })
+  production_plan: ProductionPlan;
   @Column({ nullable: true }) plan_id: number;
 
   @Column({ type: 'enum', enum: SalesOrderStatus, default: SalesOrderStatus.QUOTATION }) status: SalesOrderStatus;
@@ -51,10 +77,9 @@ export class SalesOrder {
   @Column('decimal', { precision: 15, scale: 2, default: 0 }) total_amount: number; 
   @Column('decimal', { precision: 15, scale: 2, default: 0 }) total_cost: number; 
 
-  @OneToMany(() => SalesOrderItem, (item) => item.order, { cascade: true }) items: SalesOrderItem[];
+  @OneToMany(() => SalesOrderItem, (item) => item.order, { cascade: true })
+  items: SalesOrderItem[];
 
-  // --- QUAN TRỌNG: Relation Comment ---
-  // Sử dụng arrow function () => SalesComment để lazy loading, tránh lỗi Circular
   @OneToMany(() => SalesComment, (comment) => comment.order, { cascade: true })
   comments: SalesComment[];
 

@@ -26,7 +26,6 @@ export class SalesService {
     private customersService: CustomersService,
   ) {}
 
-  // ... (Giữ nguyên các hàm validate, createOrder, findAll, getOrder, updateQuote)
   private async validateItemsForSO(items: any[]) {
       if(!items) return;
       for (const item of items) {
@@ -35,6 +34,7 @@ export class SalesService {
           if (!product) throw new NotFoundException(`SP ${item.sku} k tim thay`);
       }
   }
+
   async createOrder(data: any) {
     if (!data.isQuotation) await this.validateItemsForSO(data.items);
     const order = this.orderRepo.create({
@@ -44,29 +44,55 @@ export class SalesService {
         vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate)||0,
         delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone, shipping_carrier: data.shipping_carrier,
         payment_note: data.payment_note, shipping_fee: Number(data.shipping_fee)||0,
-        status: data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING
+        status: data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING,
+        // LƯU ĐIỀU KHOẢN
+        terms_content: data.terms_content
     });
+    
     const validItems = (data.items || []).filter((i:any) => i.sku); 
     let itemsTotal = 0; let totalCost = 0;
+    
     order.items = validItems.map((itemData:any) => {
         const qty = Number(itemData.quantity) || 0;
         const price = Number(itemData.price) || 0;
         const sub = qty * price;
         itemsTotal += sub;
-        return this.orderRepo.manager.create(SalesOrderItem, { sku: itemData.sku, quantity: qty, unit_price: price, subtotal: sub, variant_color: itemData.variant_color, is_sample_approved: itemData.is_sample_approved || false, sample_image: itemData.sample_image, sample_note: itemData.sample_note });
+        
+        return this.orderRepo.manager.create(SalesOrderItem, {
+            sku: itemData.sku,
+            quantity: qty,
+            unit_price: price,
+            subtotal: sub,
+            variant_color: itemData.variant_color,
+            is_sample_approved: itemData.is_sample_approved || false,
+            sample_image: itemData.sample_image,
+            sample_note: itemData.sample_note
+        });
     });
+
     for (const item of order.items) { try { const costInfo = await this.productsService.calculateCostPrice(item.sku); totalCost += (costInfo.new_cost_price || 0) * item.quantity; } catch (e) {} }
     order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
     order.total_cost = totalCost;
     return this.orderRepo.save(order);
   }
+
   async findAll() { return this.orderRepo.find({ order: { order_date: 'DESC' }, relations: ['customer'] }); }
   async getOrder(code: string) { return this.orderRepo.findOne({ where: { order_code: code }, relations: ['items', 'customer', 'comments'] }); }
+
   async updateQuote(id: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if (!order) throw new NotFoundException('Not Found');
-      Object.assign(order, { vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate)||0, delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone, shipping_fee: Number(data.shipping_fee)||0, payment_note: data.payment_note, sample_image_url: data.sample_image_url, sample_note: data.sample_note });
+      
+      Object.assign(order, {
+          vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate)||0,
+          delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone,
+          shipping_fee: Number(data.shipping_fee)||0, payment_note: data.payment_note,
+          sample_image_url: data.sample_image_url, sample_note: data.sample_note,
+          // LƯU ĐIỀU KHOẢN
+          terms_content: data.terms_content
+      });
       if(data.customer_id) order.customer = { id: data.customer_id } as any;
+
       let itemsTotal = 0;
       if (data.items && (order.status === SalesOrderStatus.QUOTATION || order.status === SalesOrderStatus.SO_PENDING || order.status === SalesOrderStatus.SAMPLE_APPROVED)) {
           await this.orderRepo.createQueryBuilder().relation(SalesOrder, "items").of(order).remove(order.items);
@@ -78,12 +104,14 @@ export class SalesService {
               itemsTotal += sub;
               return this.orderRepo.manager.create(SalesOrderItem, { sku: i.sku, quantity: qty, unit_price: price, subtotal: sub, variant_color: i.variant_color, is_sample_approved: i.is_sample_approved, sample_image: i.sample_image, sample_note: i.sample_note });
           });
-      } else { itemsTotal = order.items.reduce((s, i) => s + Number(i.subtotal), 0); }
+      } else {
+          itemsTotal = order.items.reduce((s, i) => s + Number(i.subtotal), 0);
+      }
       order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
       return this.orderRepo.save(order);
   }
 
-  // --- Functions for Portal & Completion ---
+  // --- Complete & Comment ---
   async completeOrder(id: number) {
       const order = await this.orderRepo.findOne({ where: { id } });
       if (!order) throw new NotFoundException();
@@ -101,15 +129,8 @@ export class SalesService {
       const comment = await this.commentRepo.findOne({ where: { id } });
       if (comment) { comment.is_visible = !comment.is_visible; return this.commentRepo.save(comment); }
   }
-  async getQuoteByUuid(uuid: string) { 
-      const order = await this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer', 'comments'] });
-      if(!order) throw new NotFoundException('Not found');
-      const deliveries = await this.deliveryRepo.find({ where: { order_id: order.id }, relations: ['items'], order: { created_at: 'DESC' } });
-      const payments = await this.transRepo.find({ where: { reference_code: order.order_code }, order: { created_at: 'DESC' } });
-      return { ...order, deliveries, payments };
-  }
 
-  // --- EXISTING LOGIC ---
+  // --- Logic cũ ---
   async convertQuoteToSo(id: number, accepted: boolean) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();
@@ -138,6 +159,15 @@ export class SalesService {
        if (order && (order.status === 'QUOTATION' || order.status === 'CANCELLED')) return this.orderRepo.remove(order);
        throw new BadRequestException('Khong the xoa');
   }
+  
+  async getQuoteByUuid(uuid: string) { 
+      const order = await this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer', 'comments'] });
+      if(!order) throw new NotFoundException('Not found');
+      const deliveries = await this.deliveryRepo.find({ where: { order_id: order.id }, relations: ['items'], order: { created_at: 'DESC' } });
+      const payments = await this.transRepo.find({ where: { reference_code: order.order_code }, order: { created_at: 'DESC' } });
+      return { ...order, deliveries, payments };
+  }
+
   async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT') {
       const order = await this.getQuoteByUuid(uuid);
       if (order.status !== SalesOrderStatus.QUOTATION) throw new BadRequestException('Da xu ly roi');
@@ -146,20 +176,15 @@ export class SalesService {
   async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
   async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
 
-  // --- FIX: createDelivery (Ep kieu Integer) ---
   async createDelivery(orderId: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
       if (!order) throw new NotFoundException('Not found');
-      const delivery = this.deliveryRepo.create({ 
-          code: data.code, delivery_date: data.date, note: data.note, sales_order: order, 
-          items: data.items.map((i:any) => ({ sku: i.sku, quantity: Math.floor(Number(i.quantity)) })) // FIX
-      });
+      const delivery = this.deliveryRepo.create({ code: data.code, delivery_date: data.date, note: data.note, sales_order: order, items: data.items.map((i:any) => ({ sku: i.sku, quantity: Math.floor(Number(i.quantity)) })) });
       for (const item of data.items) {
            const product = await this.productsService.findOneBySku(item.sku);
            if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, Math.floor(Number(item.quantity)), delivery.code, `Giao hang ${order.order_code}`);
       }
       await this.deliveryRepo.save(delivery);
-      // Status calc
       const allDeliveries = await this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'] });
       let isFullyDelivered = true;
       for (const orderItem of order.items) {
