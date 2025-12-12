@@ -23,115 +23,79 @@ export class SalesService {
     private customersService: CustomersService,
   ) {}
 
-  // --- BỎ BẮT LỖI BIẾN THỂ TẠI ĐÂY (Sẽ bắt lỗi khi Lập Kế Hoạch SX) ---
+  // ... (validateItemsForSO, createOrder, findAll, getOrder, convertQuoteToSo GIU NGUYEN)
   private async validateItemsForSO(items: any[]) {
+      if(!items) return;
       for (const item of items) {
           const product = await this.productsService.findOneBySku(item.sku);
-          if (!product) throw new NotFoundException(`Sản phẩm ${item.sku} không tồn tại`);
-          // REMOVED: Không bắt lỗi color/variant ở bước này nữa
+          if (!product) throw new NotFoundException(`SP ${item.sku} k tim thay`);
       }
   }
 
   async createOrder(data: any) {
-    // if (!data.isQuotation) await this.validateItemsForSO(data.items); // Tạm bỏ validate chặt
-    
+    if (!data.isQuotation) await this.validateItemsForSO(data.items);
     const order = this.orderRepo.create({
         order_code: data.order_code,
         customer: data.customer_id ? { id: data.customer_id } : null,
         customer_name: data.customer_name,
-        vat_company_name: data.vat_company_name,
-        vat_tax_code: data.vat_tax_code,
-        vat_address: data.vat_address,
-        vat_rate: Number(data.vat_rate) || 0,
-        delivery_date: data.delivery_date,
-        shipping_address: data.shipping_address,
-        receiver_name: data.receiver_name,
-        receiver_phone: data.receiver_phone,
-        shipping_carrier: data.shipping_carrier,
-        payment_note: data.payment_note,
-        shipping_fee: Number(data.shipping_fee) || 0,
+        vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate)||0,
+        delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone, shipping_carrier: data.shipping_carrier,
+        payment_note: data.payment_note, shipping_fee: Number(data.shipping_fee)||0,
         status: data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING
     });
-
-    let itemsTotal = 0; 
-    let totalCost = 0;
-
+    let itemsTotal = 0; let totalCost = 0;
     order.items = (data.items || []).map((itemData:any) => {
         const sub = Number(itemData.quantity) * Number(itemData.price);
         itemsTotal += sub;
-        return this.orderRepo.manager.create(SalesOrderItem, { // Fix create relation
-            sku: itemData.sku,
-            quantity: itemData.quantity,
-            unit_price: itemData.price,
-            subtotal: sub
-        });
+        return { sku: itemData.sku, quantity: itemData.quantity, unit_price: itemData.price, subtotal: sub };
     });
-
-    // Tinh Cost
-    for (const item of order.items) {
-        try {
-            const costInfo = await this.productsService.calculateCostPrice(item.sku);
-            totalCost += (costInfo.new_cost_price || 0) * item.quantity;
-        } catch (e) {}
-    }
-
+    for (const item of order.items) { try { const costInfo = await this.productsService.calculateCostPrice(item.sku); totalCost += (costInfo.new_cost_price || 0) * item.quantity; } catch (e) {} }
     order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
     order.total_cost = totalCost;
-
     return this.orderRepo.save(order);
   }
 
   async findAll() { return this.orderRepo.find({ order: { order_date: 'DESC' }, relations: ['customer'] }); }
   async getOrder(code: string) { return this.orderRepo.findOne({ where: { order_code: code }, relations: ['items', 'customer'] }); }
 
+  // --- UPDATE QUOTE / ORDER ---
   async updateQuote(id: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if (!order) throw new NotFoundException('Not Found');
       
-      // Update Info
+      // Update info
       Object.assign(order, {
-          vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address,
-          vat_rate: Number(data.vat_rate) || 0,
-          delivery_date: data.delivery_date, shipping_address: data.shipping_address,
-          receiver_name: data.receiver_name, receiver_phone: data.receiver_phone,
-          shipping_fee: Number(data.shipping_fee) || 0,
-          payment_note: data.payment_note,
-          shipping_carrier: data.shipping_carrier, tracking_code: data.tracking_code
+          vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate)||0,
+          delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone,
+          shipping_fee: Number(data.shipping_fee)||0, payment_note: data.payment_note,
+          
+          // MOI: Cap nhat thong tin mau
+          sample_image_url: data.sample_image_url,
+          sample_note: data.sample_note
       });
       if(data.customer_id) order.customer = { id: data.customer_id } as any;
 
-      // Update Items: Cho phép sửa item ngay cả khi là SO_PENDING (để Sale chốt màu)
+      let itemsTotal = 0;
+      // Allow update items if Quote or Pending (Sample Approval)
       if (data.items && (order.status === SalesOrderStatus.QUOTATION || order.status === SalesOrderStatus.SO_PENDING)) {
-          // Xóa cũ
-          await this.orderRepo.manager.delete(SalesOrderItem, { order: { id: order.id } });
-          
-          let itemsTotal = 0; let totalCost = 0;
+          await this.orderRepo.createQueryBuilder().relation(SalesOrder, "items").of(order).remove(order.items);
           order.items = data.items.map((i:any) => {
               const sub = Number(i.quantity) * Number(i.price);
               itemsTotal += sub;
-              return this.orderRepo.manager.create(SalesOrderItem, { 
-                  sku: i.sku, quantity: i.quantity, unit_price: i.price, subtotal: sub 
-              });
+              return { sku: i.sku, quantity: i.quantity, unit_price: i.price, subtotal: sub };
           });
-          
-          // Re-calc cost logic here if needed...
-          order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
+      } else {
+          itemsTotal = order.items.reduce((s, i) => s + Number(i.subtotal), 0);
       }
 
+      order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
       return this.orderRepo.save(order);
   }
 
   async convertQuoteToSo(id: number, accepted: boolean) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();
-      
-      if (accepted) {
-          order.status = SalesOrderStatus.SO_PENDING; // Chuyển sang chờ duyệt mẫu/hợp đồng
-          // Chưa trừ kho vội
-          if(order.customer_id) await this.customersService.convertToCustomer(order.customer_id);
-      } else {
-          order.status = SalesOrderStatus.CANCELLED;
-      }
+      order.status = accepted ? SalesOrderStatus.SO_PENDING : SalesOrderStatus.CANCELLED;
       return this.orderRepo.save(order);
   }
 
@@ -139,13 +103,15 @@ export class SalesService {
     const order = await this.orderRepo.findOne({ where: { order_code: orderCode } });
     if (!order) throw new NotFoundException();
     order.paid_amount = Number(order.paid_amount || 0) + Number(amount);
+    
+    // Logic: Nếu đang chờ duyệt mẫu (SO_PENDING) mà có tiền cọc -> Chuyển sang Đã cọc (DEPOSITED)
+    if (order.paid_amount > 0 && order.status === SalesOrderStatus.SO_PENDING) {
+        order.status = SalesOrderStatus.DEPOSITED;
+    }
+    // Full payment check...
     if (order.paid_amount >= order.total_amount) order.payment_status = PaymentStatus.PAID;
     else if (order.paid_amount > 0) order.payment_status = PaymentStatus.PARTIAL_PAID;
-    
-    // Logic trạng thái
-    if (order.status === SalesOrderStatus.DELIVERED && order.payment_status === PaymentStatus.PAID) order.status = SalesOrderStatus.COMPLETED;
-    else if (order.paid_amount > 0 && order.status === SalesOrderStatus.SO_PENDING) order.status = SalesOrderStatus.DEPOSITED;
-    
+
     return this.orderRepo.save(order);
   }
   
@@ -156,28 +122,25 @@ export class SalesService {
   }
 
   async getQuoteByUuid(uuid: string) { return this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer'] }); }
-  
   async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT') {
       const order = await this.getQuoteByUuid(uuid);
-      // Cho phép confirm lại nếu đang ở trạng thái Quote
-      if (order.status !== SalesOrderStatus.QUOTATION) throw new BadRequestException('Báo giá đã được xử lý');
+      if (order.status !== SalesOrderStatus.QUOTATION) throw new BadRequestException('Da xu ly roi');
       return this.convertQuoteToSo(order.id, action === 'ACCEPT');
   }
 
   async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
   async createDelivery(orderId: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id: orderId } });
-      if (!order) throw new NotFoundException();
+      if (!order) throw new NotFoundException('Not found');
       const delivery = this.deliveryRepo.create({
           code: data.code, delivery_date: data.date, note: data.note, sales_order: order,
           items: data.items.map((i:any) => ({ sku: i.sku, quantity: i.quantity }))
       });
-      await this.deliveryRepo.save(delivery);
-      // Tru kho
       for (const item of data.items) {
            const product = await this.productsService.findOneBySku(item.sku);
            if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, item.quantity, delivery.code, `Giao hang ${order.order_code}`);
       }
+      await this.deliveryRepo.save(delivery);
       order.status = SalesOrderStatus.PARTIAL_DELIVERY; 
       return this.orderRepo.save(order);
   }
