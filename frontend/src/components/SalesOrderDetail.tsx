@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker, Tooltip } from 'antd';
-import { PlusOutlined, CarOutlined, BankOutlined, DeleteOutlined, ExperimentOutlined, FileImageOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, ExperimentOutlined, FileImageOutlined, CheckCircleOutlined, BankOutlined, CarOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -27,7 +27,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     const subTotal = items.reduce((sum: number, item: any) => sum + (Number(item?.quantity || 0) * Number(item?.price || 0)), 0);
     const totalAmount = subTotal * (1 + vatRate / 100) + Number(shippingFee);
+    
+    // FIX: Kiểm tra kỹ initialData để tránh lỗi null
     const canEdit = !initialData || isQuotation || initialData.status === 'QUOTATION' || initialData.status === 'SO_PENDING';
+    const hasData = initialData && initialData.id; 
 
     useEffect(() => {
         if (open && initialData) {
@@ -35,7 +38,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 ...initialData,
                 customer_id: initialData.customer?.id || initialData.customer_id,
                 delivery_date: initialData.delivery_date ? dayjs(initialData.delivery_date) : null,
-                items: initialData.items.map((i: any) => ({ ...i, quantity: Number(i.quantity), price: Number(i.unit_price) }))
+                items: (initialData.items || []).map((i: any) => ({ ...i, quantity: Number(i.quantity), price: Number(i.unit_price) }))
             });
         } else if (open) {
             form.resetFields();
@@ -123,9 +126,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             </Row>
                         )
                     },
-                    !isQuotation && { key: '2', label: '2. Thanh toán', children: <SalesPayments orderId={initialData.id} orderCode={initialData.order_code} totalAmount={totalAmount} paidAmount={Number(initialData.paid_amount)} onSuccess={onSuccess} /> },
-                    !isQuotation && { key: '3', label: '3. Giao hàng', children: <SalesDeliveries orderId={initialData.id} orderItems={items} onSuccess={onSuccess} /> },
-                    !isQuotation && { key: '4', label: '4. Trao đổi', children: <SalesComments orderId={initialData.id} /> }
+                    /* FIX: CHỈ RENDER NẾU HAS DATA ĐỂ TRÁNH LỖI NULL */
+                    !isQuotation && { key: '2', label: '2. Thanh toán', children: hasData ? <SalesPayments orderId={initialData.id} orderCode={initialData.order_code} totalAmount={totalAmount} paidAmount={Number(initialData.paid_amount)} onSuccess={onSuccess} /> : <div>Đang tải dữ liệu...</div> },
+                    !isQuotation && { key: '3', label: '3. Giao hàng', children: hasData ? <SalesDeliveries orderId={initialData.id} orderItems={items} onSuccess={onSuccess} /> : <div>Đang tải dữ liệu...</div> },
+                    !isQuotation && { key: '4', label: '4. Trao đổi', children: hasData ? <SalesComments orderId={initialData.id} /> : <div>Đang tải dữ liệu...</div> }
                 ].filter(Boolean) as any} />
             </Form>
             <Modal title="Chi tiết Duyệt Mẫu" open={isSampleModalOpen} onCancel={()=>setIsSampleModalOpen(false)} onOk={saveSampleInfo}><Form form={sampleForm} layout="vertical"><Form.Item name="sample_image" label="Link Ảnh"><Input prefix={<FileImageOutlined/>}/></Form.Item><Form.Item name="sample_note" label="Note"><Input.TextArea/></Form.Item><Form.Item name="is_sample_approved" valuePropName="checked"><div style={{display:'flex', gap:10}}><input type="checkbox"/> <span style={{color:'green', fontWeight:'bold'}}>ĐÃ DUYỆT</span></div></Form.Item></Form></Modal>
