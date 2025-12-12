@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker } from 'antd'; // FIX: Thêm DatePicker
-import { PlusOutlined, MinusCircleOutlined, CarOutlined, BankOutlined, SaveOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker, Table, Statistic } from 'antd';
+import { PlusOutlined, MinusCircleOutlined, CarOutlined, BankOutlined, SaveOutlined, DeleteOutlined, DollarOutlined, ExperimentOutlined, FileImageOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -19,25 +19,40 @@ interface Props {
 
 const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, isQuotation, customers, products }) => {
     const [form] = Form.useForm();
+    const [activeTab, setActiveTab] = useState('1');
     
-    // Watch values để tính toán real-time
+    // History Data
+    const [paymentHistory, setPaymentHistory] = useState([]);
+    const [deliveryHistory, setDeliveryHistory] = useState([]);
+
+    // Sub-modals state
+    const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+    const [isShipModalOpen, setIsShipModalOpen] = useState(false);
+    const [payAmount, setPayAmount] = useState(0);
+    const [shipNote, setShipNote] = useState('');
+    const [shipItems, setShipItems] = useState<any[]>([]);
+
+    // Watch values
     const items = Form.useWatch('items', form) || [];
     const vatRate = Form.useWatch('vat_rate', form) || 0;
     const shippingFee = Form.useWatch('shipping_fee', form) || 0;
 
-    // --- LOGIC QUYỀN CHỈNH SỬA ---
-    const canEditItems = !initialData || 
-                         isQuotation || 
-                         initialData.status === 'QUOTATION' || 
-                         initialData.status === 'SO_PENDING';
+    // Permissions
+    const isPendingSample = initialData?.status === 'SO_PENDING';
+    const canEditItems = !initialData || isQuotation || initialData.status === 'QUOTATION' || isPendingSample;
 
-    // --- LOGIC TÍNH TIỀN ---
+    // Calculation
     const subTotal = items.reduce((sum: number, item: any) => sum + (Number(item?.quantity || 0) * Number(item?.price || 0)), 0);
     const vatAmount = subTotal * (vatRate / 100);
     const totalAmount = subTotal + vatAmount + Number(shippingFee);
+    
+    // Totals for Payment
+    const totalPaid = paymentHistory.reduce((s, x:any) => s + Number(x.amount), 0);
+    const remain = totalAmount - totalPaid;
 
     useEffect(() => {
         if (open) {
+            setActiveTab('1');
             if (initialData) {
                 // Mode: Edit
                 form.setFieldsValue({
@@ -50,8 +65,14 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         sku: i.sku,
                         quantity: Number(i.quantity),
                         price: Number(i.unit_price)
-                    }))
+                    })),
+                    // Sample info
+                    sample_image_url: initialData.sample_image_url,
+                    sample_note: initialData.sample_note
                 });
+                
+                // Load History if Order
+                if (!isQuotation) loadHistory(initialData);
             } else {
                 // Mode: Create
                 form.resetFields();
@@ -65,16 +86,21 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     }, [open, initialData, isQuotation, form]);
 
+    const loadHistory = async (order: any) => {
+        try {
+            const resPay = await axios.get(`${API_URL}/sales/${order.order_code}/payments`);
+            setPaymentHistory(resPay.data);
+            const resShip = await axios.get(`${API_URL}/sales/${order.id}/deliveries`);
+            setDeliveryHistory(resShip.data);
+        } catch(e) {}
+    };
+
     const handleSave = async (values: any) => {
         try {
             const payload = {
                 ...values,
                 isQuotation: isQuotation,
-                items: values.items.map((i: any) => ({ 
-                    sku: i.sku, 
-                    quantity: Number(i.quantity), 
-                    price: Number(i.price) 
-                }))
+                items: values.items.map((i: any) => ({ sku: i.sku, quantity: Number(i.quantity), price: Number(i.price) }))
             };
 
             if (initialData && initialData.id) {
@@ -86,9 +112,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             }
             onSuccess();
             onClose();
-        } catch (e: any) { 
-            message.error(e.response?.data?.message || 'Lỗi lưu thông tin'); 
-        }
+        } catch (e: any) { message.error(e.response?.data?.message || 'Lỗi'); }
     };
 
     const handleProductChange = (val: string, index: number) => {
@@ -102,17 +126,50 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     const handleCustomerChange = (val: number) => {
         const c = customers.find(x => x.id === val);
-        if (c) {
-            form.setFieldsValue({ 
-                customer_name: c.name, 
-                vat_company_name: c.name, 
-                vat_tax_code: c.tax_code, 
-                vat_address: c.address, 
-                receiver_name: c.name, 
-                receiver_phone: c.phone, 
-                shipping_address: c.address 
+        if (c) form.setFieldsValue({ 
+            customer_name: c.name, vat_company_name: c.name, vat_tax_code: c.tax_code, vat_address: c.address, 
+            receiver_name: c.name, receiver_phone: c.phone, shipping_address: c.address 
+        });
+    };
+
+    // --- PAYMENT ACTIONS ---
+    const handleAddPayment = async () => {
+        if(payAmount <= 0) return message.warning('Nhập số tiền');
+        try {
+            await axios.post(`${API_URL}/finance/payment`, {
+                type: 'INCOME',
+                amount: payAmount,
+                refCode: initialData.order_code,
+                note: `Thanh toán/Cọc cho đơn ${initialData.order_code}`
             });
-        }
+            message.success('Đã ghi nhận thanh toán');
+            setIsPayModalOpen(false);
+            loadHistory(initialData);
+            onSuccess(); // Reload status parent
+        } catch(e) { message.error('Lỗi'); }
+    };
+
+    // --- SHIP ACTIONS ---
+    const prepareShipment = () => {
+        // Prepare data for shipping modal
+        const items = initialData.items.map((i:any) => ({ sku: i.sku, max: i.quantity, quantity: i.quantity }));
+        setShipItems(items);
+        setIsShipModalOpen(true);
+    };
+
+    const handleConfirmShip = async () => {
+        try {
+            await axios.post(`${API_URL}/sales/${initialData.id}/delivery`, {
+                code: `DO-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*100)}`,
+                date: new Date(),
+                note: shipNote,
+                items: shipItems
+            });
+            message.success('Đã tạo phiếu xuất kho');
+            setIsShipModalOpen(false);
+            loadHistory(initialData);
+            onSuccess();
+        } catch(e) { message.error('Lỗi'); }
     };
 
     return (
@@ -120,7 +177,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             title={
                 <div style={{display:'flex', alignItems:'center', gap: 10}}>
                     {isQuotation ? "Báo Giá Chi Tiết" : "Quản Lý Đơn Hàng (SO)"}
-                    {!canEditItems && <Tag color="orange">Đã khóa chỉnh sửa SP</Tag>}
+                    {!canEditItems && <Tag color="orange">Khóa SP</Tag>}
+                    {isPendingSample && <Tag color="blue" icon={<ExperimentOutlined/>}>Đang Duyệt Mẫu</Tag>}
                 </div>
             }
             open={open} onCancel={onClose} onOk={() => form.submit()} width={1100} style={{ top: 20 }}
@@ -130,9 +188,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 <Form.Item name="order_code" hidden><Input /></Form.Item>
                 <Form.Item name="isQuotation" hidden><Input /></Form.Item>
 
-                <Tabs defaultActiveKey="1" items={[
+                <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                     {
-                        key: '1', label: 'Thông tin & Sản phẩm',
+                        key: '1', label: '1. Thông tin & Sản phẩm',
                         children: (
                             <Row gutter={24}>
                                 <Col span={15} style={{ borderRight: '1px solid #f0f0f0' }}>
@@ -141,6 +199,25 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         <Col span={12}><Form.Item name="order_code" label="Mã Đơn"><Input disabled style={{ fontWeight: 'bold', color: '#1890ff' }} /></Form.Item></Col>
                                     </Row>
                                     
+                                    {/* --- DUYỆT MẪU (CHỈ HIỆN KHI SO_PENDING HOẶC EDIT) --- */}
+                                    {!isQuotation && (
+                                        <div style={{background:'#e6f7ff', padding:10, borderRadius:6, marginBottom:15, border:'1px solid #91d5ff'}}>
+                                            <Divider orientation="left" style={{marginTop:0, marginBottom:10}}><ExperimentOutlined /> Thông Tin Duyệt Mẫu</Divider>
+                                            <Row gutter={16}>
+                                                <Col span={12}>
+                                                    <Form.Item name="sample_image_url" label="Link Ảnh Mẫu (Đã duyệt)" help="Paste link ảnh Google Drive / Cloud">
+                                                        <Input prefix={<FileImageOutlined/>} placeholder="https://..." />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col span={12}>
+                                                    <Form.Item name="sample_note" label="Ghi chú kỹ thuật">
+                                                        <Input.TextArea rows={1} placeholder="VD: Sửa lai cổ áo rộng hơn 1cm..." />
+                                                    </Form.Item>
+                                                </Col>
+                                            </Row>
+                                        </div>
+                                    )}
+
                                     <div style={{background: '#fafafa', padding: 10, borderRadius: 6, border: '1px solid #eee'}}>
                                         <Row gutter={8} style={{marginBottom: 5, fontWeight: 600, color: '#666', fontSize: 13, borderBottom:'1px solid #ddd', paddingBottom:5}}>
                                             <Col span={9}>Tên sản phẩm</Col>
@@ -153,7 +230,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         
                                         <Form.List name="items">
                                             {(fields, { add, remove }) => (
-                                                <div style={{maxHeight: 300, overflowY:'auto'}}>
+                                                <div style={{maxHeight: 250, overflowY:'auto'}}>
                                                     {fields.map(({ key, name, ...restField }) => {
                                                         const currentItem = form.getFieldValue(['items', name]);
                                                         const currentProd = products.find(p => p.value === currentItem?.sku);
@@ -161,38 +238,12 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                         
                                                         return (
                                                             <Row key={key} gutter={8} style={{ marginBottom: 8, borderBottom:'1px dashed #eee', paddingBottom:5 }} align="middle">
-                                                                <Col span={9}>
-                                                                    <Form.Item {...restField} name={[name, 'sku']} style={{ marginBottom: 0 }} rules={[{ required: true, message: 'Chọn SP' }]}>
-                                                                        <Select 
-                                                                            placeholder="Chọn SP..." 
-                                                                            options={products} 
-                                                                            onChange={(v) => handleProductChange(v, name)} 
-                                                                            dropdownMatchSelectWidth={400} 
-                                                                            disabled={!canEditItems}
-                                                                        />
-                                                                    </Form.Item>
-                                                                </Col>
-                                                                <Col span={3}>
-                                                                    <Form.Item {...restField} name={[name, 'quantity']} style={{ marginBottom: 0 }} rules={[{ required: true }]}>
-                                                                        <InputNumber min={1} style={{width:'100%'}} disabled={!canEditItems} />
-                                                                    </Form.Item>
-                                                                </Col>
-                                                                <Col span={3} style={{textAlign:'center'}}>
-                                                                    <span style={{color:'#888', fontSize:12, background:'#eee', padding:'2px 5px', borderRadius:4}}>
-                                                                        {currentProd?.unit || 'Cái'}
-                                                                    </span>
-                                                                </Col>
-                                                                <Col span={4}>
-                                                                    <Form.Item {...restField} name={[name, 'price']} style={{ marginBottom: 0 }} rules={[{ required: true }]}>
-                                                                        <InputNumber style={{width:'100%'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} disabled={!canEditItems} />
-                                                                    </Form.Item>
-                                                                </Col>
-                                                                <Col span={4} style={{textAlign:'right', fontWeight:500, color:'#555'}}>
-                                                                    {subTotalItem.toLocaleString()}
-                                                                </Col>
-                                                                <Col span={1}>
-                                                                    {canEditItems && <DeleteOutlined onClick={() => remove(name)} style={{ color: 'red', cursor: 'pointer' }} />}
-                                                                </Col>
+                                                                <Col span={9}><Form.Item {...restField} name={[name, 'sku']} style={{ marginBottom: 0 }} rules={[{ required: true }]}><Select placeholder="Chọn SP..." options={products} onChange={(v) => handleProductChange(v, name)} dropdownMatchSelectWidth={400} disabled={!canEditItems} /></Form.Item></Col>
+                                                                <Col span={3}><Form.Item {...restField} name={[name, 'quantity']} style={{ marginBottom: 0 }} rules={[{ required: true }]}><InputNumber min={1} style={{width:'100%'}} disabled={!canEditItems} /></Form.Item></Col>
+                                                                <Col span={3} style={{textAlign:'center'}}><span style={{color:'#888', fontSize:12, background:'#eee', padding:'2px 5px', borderRadius:4}}>{currentProd?.unit || 'Cái'}</span></Col>
+                                                                <Col span={4}><Form.Item {...restField} name={[name, 'price']} style={{ marginBottom: 0 }} rules={[{ required: true }]}><InputNumber style={{width:'100%'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} disabled={!canEditItems} /></Form.Item></Col>
+                                                                <Col span={4} style={{textAlign:'right', fontWeight:500, color:'#555'}}>{subTotalItem.toLocaleString()}</Col>
+                                                                <Col span={1}>{canEditItems && <DeleteOutlined onClick={() => remove(name)} style={{ color: 'red', cursor: 'pointer' }} />}</Col>
                                                             </Row>
                                                         )
                                                     })}
@@ -201,36 +252,14 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                             )}
                                         </Form.List>
 
-                                        <Divider style={{margin: '15px 0'}} />
-                                        
+                                        <Divider style={{margin: '10px 0'}} />
                                         <Row justify="end" style={{textAlign: 'right', lineHeight: '2.2em'}}>
                                             <Col span={12}>
-                                                <Row>
-                                                    <Col span={14}><Text type="secondary">Cộng tiền hàng:</Text></Col>
-                                                    <Col span={10}><b>{subTotal.toLocaleString()}</b></Col>
-                                                </Row>
-                                                <Row align="middle">
-                                                    <Col span={14}><Text type="secondary">Thuế GTGT (VAT):</Text></Col>
-                                                    <Col span={10}>
-                                                        <Space>
-                                                            <Form.Item name="vat_rate" noStyle>
-                                                                <Select style={{width: 80}} size="small" options={[
-                                                                    {label: '0%', value: 0}, {label: '5%', value: 5}, {label: '8%', value: 8}, {label: '10%', value: 10}
-                                                                ]} />
-                                                            </Form.Item>
-                                                            <span style={{display:'inline-block', width: 90}}>{vatAmount.toLocaleString()}</span>
-                                                        </Space>
-                                                    </Col>
-                                                </Row>
-                                                <Row>
-                                                    <Col span={14}><Text type="secondary">Phí vận chuyển:</Text></Col>
-                                                    <Col span={10}>{Number(shippingFee).toLocaleString()}</Col>
-                                                </Row>
+                                                <Row><Col span={14}><Text type="secondary">Cộng tiền hàng:</Text></Col><Col span={10}><b>{subTotal.toLocaleString()}</b></Col></Row>
+                                                <Row align="middle"><Col span={14}><Text type="secondary">Thuế GTGT (VAT):</Text></Col><Col span={10}><Space><Form.Item name="vat_rate" noStyle><Select style={{width: 80}} size="small" options={[{label:'0%',value:0},{label:'5%',value:5},{label:'8%',value:8},{label:'10%',value:10}]} /></Form.Item><span style={{display:'inline-block', width: 90}}>{vatAmount.toLocaleString()}</span></Space></Col></Row>
+                                                <Row><Col span={14}><Text type="secondary">Phí vận chuyển:</Text></Col><Col span={10}>{Number(shippingFee).toLocaleString()}</Col></Row>
                                                 <Divider style={{margin: '5px 0'}} />
-                                                <Row>
-                                                    <Col span={14}><Text strong style={{fontSize: 16}}>TỔNG CỘNG:</Text></Col>
-                                                    <Col span={10}><Text strong style={{fontSize: 18, color: '#cf1322'}}>{totalAmount.toLocaleString()} ₫</Text></Col>
-                                                </Row>
+                                                <Row><Col span={14}><Text strong style={{fontSize: 16}}>TỔNG CỘNG:</Text></Col><Col span={10}><Text strong style={{fontSize: 18, color: '#cf1322'}}>{totalAmount.toLocaleString()} ₫</Text></Col></Row>
                                             </Col>
                                         </Row>
                                     </div>
@@ -240,11 +269,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                     <div style={{background: '#f9f9f9', padding: 15, borderRadius: 8}}>
                                         <Divider orientation="left" style={{ marginTop: 0 }}><BankOutlined /> VAT Invoice Info</Divider>
                                         <Form.Item name="vat_company_name" label="Tên Đơn vị"><Input placeholder="Để trống nếu khách lẻ" /></Form.Item>
-                                        <Row gutter={8}>
-                                            <Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input /></Form.Item></Col>
-                                            <Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input /></Form.Item></Col>
-                                        </Row>
-                                        
+                                        <Row gutter={8}><Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input /></Form.Item></Col><Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input /></Form.Item></Col></Row>
                                         <Divider orientation="left">Giao nhận</Divider>
                                         <Form.Item name="delivery_date" label="Ngày Giao (Deadline SX)"><DatePicker style={{width:'100%'}} /></Form.Item>
                                         <Form.Item name="shipping_address" label="Địa chỉ Nhận"><Input.TextArea rows={2} /></Form.Item>
@@ -257,9 +282,73 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             </Row>
                         )
                     },
-                    !isQuotation && { key: '2', label: 'Thanh toán & Xuất kho', children: <div>(Tính năng quản lý thanh toán/giao hàng)</div> }
+                    /* --- PHỤC HỒI TAB THANH TOÁN (Chỉ hiện khi là Order) --- */
+                    !isQuotation && {
+                        key: '2', label: '2. Thanh toán',
+                        children: (
+                            <div>
+                                <Row gutter={16}>
+                                    <Col span={8}><Statistic title="Tổng giá trị" value={totalAmount} suffix="đ" /></Col>
+                                    <Col span={8}><Statistic title="Đã thanh toán" value={totalPaid} valueStyle={{color:'green'}} suffix="đ" /></Col>
+                                    <Col span={8}><Statistic title="Còn lại" value={remain} valueStyle={{color:'red'}} suffix="đ" /></Col>
+                                </Row>
+                                <Divider />
+                                <div style={{display:'flex', justifyContent:'space-between', marginBottom:10}}>
+                                    <b>Lịch sử thanh toán:</b>
+                                    <Button type="primary" icon={<DollarOutlined />} onClick={()=>setIsPayModalOpen(true)}>Thêm đợt thanh toán</Button>
+                                </div>
+                                <Table dataSource={paymentHistory} rowKey="id" pagination={false} size="small" bordered columns={[
+                                    { title: 'Ngày', dataIndex: 'created_at', render: (t:any)=>dayjs(t).format('DD/MM/YYYY HH:mm') },
+                                    { title: 'Số tiền', dataIndex: 'amount', align:'right', render: (v:any)=><b style={{color:'green'}}>{Number(v).toLocaleString()}</b> },
+                                    { title: 'Nội dung', dataIndex: 'description' },
+                                ]} />
+                            </div>
+                        )
+                    },
+                    /* --- PHỤC HỒI TAB GIAO HÀNG (Chỉ hiện khi là Order) --- */
+                    !isQuotation && {
+                        key: '3', label: '3. Giao hàng & Xuất kho',
+                        children: (
+                            <div>
+                                <div style={{display:'flex', justifyContent:'space-between', marginBottom:10}}>
+                                    <b>Lịch sử giao hàng:</b>
+                                    <Button type="primary" icon={<CarOutlined />} onClick={prepareShipment}>Tạo Phiếu Giao Hàng</Button>
+                                </div>
+                                <Table dataSource={deliveryHistory} rowKey="id" pagination={false} size="small" bordered columns={[
+                                    { title: 'Mã phiếu', dataIndex: 'code', render: (t:any)=><b>{t}</b> },
+                                    { title: 'Ngày giao', dataIndex: 'delivery_date', render: (t:any)=>dayjs(t).format('DD/MM/YYYY') },
+                                    { title: 'SL Hàng', align:'center', render: (r:any) => r.items?.reduce((s:number,i:any)=>s+i.quantity,0) },
+                                    { title: 'Ghi chú', dataIndex: 'note' }
+                                ]} expandable={{ expandedRowRender: (rec) => (
+                                    <ul style={{margin:0, paddingLeft:20}}>{rec.items.map((i:any) => <li key={i.id}>{i.sku} - SL: {i.quantity}</li>)}</ul>
+                                )}} />
+                            </div>
+                        )
+                    }
                 ].filter(Boolean) as any} />
             </Form>
+
+            {/* MODAL PAY */}
+            <Modal title="Thêm Đợt Thanh Toán" open={isPayModalOpen} onCancel={()=>setIsPayModalOpen(false)} onOk={handleAddPayment}>
+                <p>Số tiền khách thanh toán (Đặt cọc / Trả sau):</p>
+                <InputNumber style={{width:'100%'}} value={payAmount} onChange={(v:any)=>setPayAmount(v)} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} addonAfter="₫" />
+            </Modal>
+
+            {/* MODAL SHIP */}
+            <Modal title="Tạo Phiếu Xuất Kho / Giao Hàng" open={isShipModalOpen} onCancel={()=>setIsShipModalOpen(false)} onOk={handleConfirmShip} width={600}>
+                <Input placeholder="Ghi chú giao hàng..." value={shipNote} onChange={e=>setShipNote(e.target.value)} style={{marginBottom:10}} />
+                <Table dataSource={shipItems} rowKey="sku" pagination={false} size="small" columns={[
+                    { title: 'SKU', dataIndex: 'sku' },
+                    { title: 'SL Đặt', dataIndex: 'max' },
+                    { title: 'Giao lần này', render: (_:any, r:any, idx:number) => (
+                        <InputNumber max={r.max} min={0} value={r.quantity} onChange={(v:any)=>{
+                            const newItems = [...shipItems];
+                            newItems[idx].quantity = v;
+                            setShipItems(newItems);
+                        }} />
+                    )}
+                ]} />
+            </Modal>
         </Modal>
     );
 };
