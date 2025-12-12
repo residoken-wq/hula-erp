@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Tabs, Statistic, Divider, Popconfirm, Tooltip, Progress, Typography } from 'antd';
-import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined } from '@ant-design/icons';
+import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -55,10 +55,7 @@ const CrmPage: React.FC = () => {
         const resProd = await axios.get(`${API_URL}/products`);
         if (Array.isArray(resProd.data)) {
             setProducts(resProd.data.map((p:any) => ({
-                label: p.name, 
-                value: p.sku, 
-                price: Number(p.base_price) || 0,
-                unit: p.unit || 'Cái' // LAY THEM DON VI TINH
+                label: p.name, value: p.sku, price: Number(p.base_price) || 0, unit: p.unit
             })));
         }
     } catch(e) { message.error('Lỗi kết nối dữ liệu'); }
@@ -167,9 +164,19 @@ const CrmPage: React.FC = () => {
       { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v:any) => Number(v).toLocaleString() },
       { title: 'TT', dataIndex: 'status', render: (t:any) => t==='CANCELLED' ? <Tag color="red">Hủy</Tag> : <Tag color="processing">Chờ</Tag> },
       {
-          title: 'Thao tác', key: 'act', align: 'center' as const, width: 180,
+          title: 'Thao tác', key: 'act', align: 'center' as const, width: 200,
           render: (_:any, r:any) => r.status === 'QUOTATION' ? (
               <Space size={2}>
+                  {/* --- NÚT LINK PORTAL --- */}
+                  <Tooltip title="Copy Link cho Khách">
+                      <Button icon={<LinkOutlined />} size="small" onClick={()=>{
+                           const link = `${window.location.origin}/portal/quote/${r.uuid}`;
+                           navigator.clipboard.writeText(link);
+                           message.success('Đã copy link báo giá!');
+                      }} />
+                  </Tooltip>
+                  {/* ----------------------- */}
+                  
                   <Tooltip title="Xem & In"><Button icon={<PrinterOutlined />} size="small" onClick={()=>{openDetailModal(r); setTimeout(()=>setIsPreviewOpen(true), 500)}} /></Tooltip>
                   <Tooltip title="Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, true)} /></Tooltip>
                   <Popconfirm title="Xóa?" onConfirm={()=>handleDeleteQuote(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
