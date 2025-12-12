@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Tabs, Typography, InputNumber } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, UserOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Tabs, Typography, InputNumber, DatePicker, Checkbox, Tooltip } from 'antd';
+import { PlusOutlined, DeleteOutlined, EditOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, UserOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import dayjs from 'dayjs';
 import { API_URL } from '../config';
 
 const SuppliersPage: React.FC = () => {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('1');
   
-  // Detail Data
   const [priceList, setPriceList] = useState<any[]>([]);
   const [routings, setRoutings] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]); 
@@ -21,6 +20,9 @@ const SuppliersPage: React.FC = () => {
   // State thêm giá
   const [selectedMatId, setSelectedMatId] = useState<number | null>(null);
   const [inputPrice, setInputPrice] = useState<number>(0);
+  // --- MỚI ---
+  const [validDate, setValidDate] = useState<any>(dayjs()); // Ngày hiệu lực
+  const [isDefault, setIsDefault] = useState(false); // Giá mặc định
 
   const [form] = Form.useForm();
   const [searchText, setSearchText] = useState('');
@@ -30,7 +32,6 @@ const SuppliersPage: React.FC = () => {
     try {
         const res = await axios.get(`${API_URL}/suppliers`);
         setData(Array.isArray(res.data) ? res.data : []);
-        // Load materials để dropdown
         const resMat = await axios.get(`${API_URL}/materials`);
         setMaterials(Array.isArray(resMat.data) ? resMat.data : []);
     } catch(e) { }
@@ -39,7 +40,6 @@ const SuppliersPage: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // Hàm load lại dữ liệu chi tiết của 1 NCC (để cập nhật bảng giá ngay lập tức)
   const refreshDetail = async (id: number) => {
       try {
           const res = await axios.get(`${API_URL}/suppliers/${id}`);
@@ -54,7 +54,7 @@ const SuppliersPage: React.FC = () => {
           else await axios.post(`${API_URL}/suppliers`, values);
           message.success('Đã lưu thông tin');
           if(!editingItem) setIsModalOpen(false); 
-          else refreshDetail(editingItem.id); // Reload nếu đang sửa
+          else refreshDetail(editingItem.id);
           fetchData();
       } catch(e: any) { message.error('Lỗi lưu dữ liệu'); }
   };
@@ -68,10 +68,14 @@ const SuppliersPage: React.FC = () => {
       setEditingItem(item);
       form.setFieldsValue(item);
       setActiveTab('1');
+      // Reset inputs
       setSelectedMatId(null); 
       setInputPrice(0);
+      setValidDate(dayjs());
+      setIsDefault(false);
+      
       setIsModalOpen(true);
-      refreshDetail(item.id); // Gọi API lấy chi tiết
+      refreshDetail(item.id);
   };
 
   const handleAddPrice = async () => {
@@ -81,17 +85,17 @@ const SuppliersPage: React.FC = () => {
       try {
           await axios.post(`${API_URL}/suppliers/${editingItem.id}/material-price`, { 
               material_id: selectedMatId, 
-              price: inputPrice 
+              price: inputPrice,
+              valid_from: validDate, // Gửi ngày
+              is_preferred: isDefault // Gửi cờ mặc định
           });
-          message.success('Đã cập nhật bảng giá');
-          // Reset input
+          message.success(isDefault ? 'Đã lưu và cập nhật giá tính BOM' : 'Đã thêm giá');
+          
           setSelectedMatId(null);
           setInputPrice(0);
-          // Reload bảng ngay lập tức
+          setIsDefault(false);
           refreshDetail(editingItem.id);
-      } catch(e) { 
-          message.error('Lỗi thêm giá'); 
-      }
+      } catch(e) { message.error('Lỗi thêm giá'); }
   };
 
   const filteredData = data.filter(d => d.name?.toLowerCase().includes(searchText.toLowerCase()) || d.code?.toLowerCase().includes(searchText.toLowerCase()));
@@ -101,7 +105,7 @@ const SuppliersPage: React.FC = () => {
         <div style={{marginBottom: 16, maxWidth: 400}}><Input placeholder="Tìm kiếm..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} /></div>
         <Table dataSource={filteredData} columns={[{ title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> }, { title: 'Tên Nhà Cung Cấp', dataIndex: 'name' }, { title: 'Loại', dataIndex: 'type', width: 120, align: 'center', render: (t:any) => t==='MATERIAL'?<Tag color="blue">NPL</Tag>:t==='PROCESSING'?<Tag color="orange">Gia Công</Tag>:<Tag color="purple">MIX</Tag> }, { title: 'SĐT', dataIndex: 'phone', width: 120 }, { title: 'Ghi chú', dataIndex: 'note', ellipsis: true }, { title: '', key: 'action', width: 100, align: 'center', render: (_:any, r:any) => (<><Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)} style={{marginRight:5}} /><Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm></>) }]} rowKey="id" loading={loading} size="small" />
         
-        <Modal title={editingItem ? `Cập nhật: ${editingItem.name}` : "Thêm Đối Tác Mới"} open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>{ if(activeTab==='1') form.submit(); else setIsModalOpen(false); }} width={850} okText={activeTab==='1' ? "Lưu Thông Tin" : "Đóng"}>
+        <Modal title={editingItem ? `Cập nhật: ${editingItem.name}` : "Thêm Đối Tác Mới"} open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>{ if(activeTab==='1') form.submit(); else setIsModalOpen(false); }} width={900} okText={activeTab==='1' ? "Lưu Thông Tin" : "Đóng"}>
             <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                 {
                     key: '1', label: <span><UserOutlined /> Thông Tin Chung</span>,
@@ -120,23 +124,37 @@ const SuppliersPage: React.FC = () => {
                     disabled: !editingItem || (editingItem.type === 'PROCESSING'),
                     children: (
                         <div>
-                            <div style={{marginBottom: 10, display:'flex', gap: 10, background:'#f0f5ff', padding:10, borderRadius:6}}>
-                                {/* FIX: Dropdown hiển thị rõ ĐVT */}
-                                <Select showSearch placeholder="Chọn Nguyên Liệu..." style={{flex:1}} optionFilterProp="label" 
-                                    options={materials.map(m => ({label: `${m.code} - ${m.name} (${m.unit})`, value: m.id}))} 
-                                    value={selectedMatId} onChange={(v) => setSelectedMatId(v)} 
-                                />
-                                <InputNumber placeholder="Giá nhập" style={{width: 150}} addonAfter="₫" value={inputPrice} onChange={(v) => setInputPrice(Number(v))} />
-                                <Button type="primary" onClick={handleAddPrice} icon={<PlusOutlined />}>Thêm Giá</Button>
+                            <div style={{marginBottom: 10, display:'flex', gap: 10, background:'#f0f5ff', padding:10, borderRadius:6, alignItems:'flex-end'}}>
+                                <div style={{flex:1}}>
+                                    <div style={{fontSize:12, marginBottom:4, color:'#666'}}>Nguyên liệu:</div>
+                                    <Select showSearch placeholder="Chọn Nguyên Liệu..." style={{width:'100%'}} optionFilterProp="label" 
+                                        options={materials.map(m => ({label: `${m.code} - ${m.name} (${m.unit})`, value: m.id}))} 
+                                        value={selectedMatId} onChange={(v) => setSelectedMatId(v)} 
+                                    />
+                                </div>
+                                <div style={{width: 140}}>
+                                    <div style={{fontSize:12, marginBottom:4, color:'#666'}}>Giá nhập:</div>
+                                    <InputNumber style={{width: '100%'}} addonAfter="₫" value={inputPrice} onChange={(v) => setInputPrice(Number(v))} />
+                                </div>
+                                <div style={{width: 130}}>
+                                    <div style={{fontSize:12, marginBottom:4, color:'#666'}}>Ngày áp dụng:</div>
+                                    <DatePicker style={{width: '100%'}} value={validDate} onChange={(d) => setValidDate(d)} format="DD/MM/YYYY" />
+                                </div>
+                                <div style={{marginBottom: 5}}>
+                                    <Checkbox checked={isDefault} onChange={e=>setIsDefault(e.target.checked)}>Giá tính BOM</Checkbox>
+                                </div>
+                                <Button type="primary" onClick={handleAddPrice} icon={<PlusOutlined />}>Thêm</Button>
                             </div>
+                            
                             <Table dataSource={priceList} rowKey="id" pagination={false} size="small" bordered locale={{emptyText: 'Chưa có bảng giá'}}
                                 columns={[
+                                    { title: 'Default', width: 60, align: 'center', render: (r:any) => r.is_preferred ? <Tooltip title="Giá mặc định tính BOM"><StarFilled style={{color:'#faad14', fontSize:16}} /></Tooltip> : <StarOutlined style={{color:'#ccc'}} /> },
                                     { title: 'Mã NPL', render: (r:any) => <b>{r.material?.code}</b> },
                                     { title: 'Tên Nguyên Liệu', render: (r:any) => r.material?.name },
-                                    // FIX: Hiển thị ĐVT từ material
-                                    { title: 'ĐVT', width: 80, align:'center', render: (r:any) => <Tag>{r.material?.unit || '-'}</Tag> },
+                                    { title: 'ĐVT', width: 70, align:'center', render: (r:any) => <Tag>{r.material?.unit || '-'}</Tag> },
                                     { title: 'Đơn giá', dataIndex: 'price', align: 'right', render: (v:any) => <span style={{color:'green', fontWeight:'bold'}}>{Number(v).toLocaleString()} ₫</span> },
-                                    { title: 'Cập nhật', render: (r:any) => <small>{new Date(r.updated_at).toLocaleDateString()}</small> }
+                                    { title: 'Ngày áp dụng', width: 120, align:'center', render: (r:any) => r.valid_from ? dayjs(r.valid_from).format('DD/MM/YYYY') : '-' },
+                                    { title: 'Cập nhật', width: 100, align:'center', render: (r:any) => <small style={{color:'#999'}}>{dayjs(r.updated_at).format('DD/MM')}</small> }
                                 ]} 
                             />
                         </div>

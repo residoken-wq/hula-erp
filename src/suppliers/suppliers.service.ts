@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Supplier } from './supplier.entity';
 import { SupplierMaterial } from './supplier-material.entity';
 import { ProductRouting } from '../products/product-routing.entity';
+import { Material } from '../materials/material.entity'; // <-- Import
 
 @Injectable()
 export class SuppliersService {
@@ -16,6 +17,9 @@ export class SuppliersService {
 
     @InjectRepository(ProductRouting)
     private routingRepo: Repository<ProductRouting>,
+
+    @InjectRepository(Material)
+    private materialRepo: Repository<Material>, // <-- Inject
   ) {}
 
   async create(data: any) {
@@ -27,11 +31,9 @@ export class SuppliersService {
     return this.supplierRepo.find({ order: { created_at: 'DESC' } });
   }
 
-  // Hàm này sẽ hoạt động OK sau khi Entity đã được sửa ở Bước 1
   async findOne(id: number) {
     const supplier = await this.supplierRepo.findOne({ 
         where: { id },
-        // Load đầy đủ quan hệ để lấy ĐVT (material) và Giá GC (routings)
         relations: ['price_list', 'price_list.material', 'routings', 'routings.product'] 
     });
     if (!supplier) throw new NotFoundException('Not found');
@@ -48,31 +50,48 @@ export class SuppliersService {
     return { deleted: true };
   }
 
-  // --- FIX LOGIC THÊM GIÁ (Tránh lỗi duplicate key) ---
+  // --- FIX: LOGIC THÊM GIÁ + NGÀY HIỆU LỰC + GIÁ MẶC ĐỊNH ---
   async addMaterialPrice(supplierId: number, data: any) {
-      const { material_id, price } = data;
+      const { material_id, price, valid_from, is_preferred } = data;
 
-      // 1. Tìm xem đã có giá chưa
-      const existing = await this.supplierMaterialRepo.findOne({
+      // 1. Tìm xem đã có giá của NPL này với NCC này chưa
+      let record = await this.supplierMaterialRepo.findOne({
           where: {
               supplier: { id: supplierId },
               material: { id: material_id }
           }
       });
 
-      if (existing) {
-          // 2. Có rồi -> Cập nhật giá mới
-          existing.price = price;
-          return this.supplierMaterialRepo.save(existing);
+      if (record) {
+          // Cập nhật
+          record.price = price;
+          record.valid_from = valid_from;
+          record.is_preferred = is_preferred;
       } else {
-          // 3. Chưa có -> Tạo mới
-          const newItem = this.supplierMaterialRepo.create({
+          // Tạo mới
+          record = this.supplierMaterialRepo.create({
               supplier: { id: supplierId },
               material: { id: material_id },
-              price: price
+              price: price,
+              valid_from: valid_from,
+              is_preferred: is_preferred
           });
-          return this.supplierMaterialRepo.save(newItem);
       }
+      
+      const saved = await this.supplierMaterialRepo.save(record);
+
+      // 2. LOGIC QUAN TRỌNG: Nếu chọn là giá mặc định (is_preferred = true)
+      // Thì cập nhật giá này vào bảng Material gốc để tính BOM
+      if (is_preferred) {
+          await this.materialRepo.update(material_id, { 
+              cost_price: price 
+          });
+          
+          // (Tùy chọn) Bỏ tick mặc định của các NCC khác cho cùng NPL này (để chỉ có 1 giá chuẩn)
+          // await this.supplierMaterialRepo.update({ material_id, is_preferred: true, id: Not(saved.id) }, { is_preferred: false });
+      }
+
+      return saved;
   }
 
   async checkPrice(supplierId: number, processId: number) {
