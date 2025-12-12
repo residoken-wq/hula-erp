@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DeepPartial } from 'typeorm';
 import { Product } from './product.entity';
 import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from './product-component.entity';
@@ -69,32 +69,47 @@ export class ProductsService {
       return { message: 'Saved' };
   }
 
-  async getRoutings(productId: number) { return this.routingRepo.find({ where: { product_id: productId }, relations: ['supplier'] }); }
+  async getRoutings(productId: number) { 
+      // FIX: Thêm relations process và supplier
+      return this.routingRepo.find({ 
+          where: { product_id: productId }, 
+          relations: ['supplier', 'process'] 
+      }); 
+  }
   
   async saveRoutings(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
       const pId = Number(productId);
       await this.routingRepo.delete({ product_id: pId }); 
       
-      const newItems = [];
+      const newItems: DeepPartial<ProductRouting>[] = [];
+
       for (const item of items) {
           let cost = Number(item.cost) || 0;
+          
+          // Logic tìm giá từ NCC nếu giá Cost là 0 (Giữ nguyên logic của bạn)
           if (cost === 0 && item.supplier_id && item.process_id) {
-              const prices = await this.priceRepo.find({ where: { supplier_id: item.supplier_id, process_id: item.process_id } });
+              const prices = await this.priceRepo.find({ 
+                  where: { supplier_id: item.supplier_id, process_id: item.process_id } 
+              });
               const productPrice = prices.find(p => p.product_id === pId);
               const generalPrice = prices.find(p => p.product_id === null);
               if (productPrice) cost = Number(productPrice.price);
               else if (generalPrice) cost = Number(generalPrice.price);
           }
-          newItems.push(this.routingRepo.create({
+          
+          // FIX: Sử dụng DeepPartial và các trường ID/boolean đã được sửa trong Entity
+          newItems.push({
               product_id: pId,
-              step_name: item.step_name,
-              is_required: Boolean(item.is_required),
+              process_id: item.process_id || null, // FIX: Thêm process_id
               supplier_id: item.supplier_id || null,
-              cost: cost
-          }));
+              step_name: item.step_name,
+              cost: cost,
+              is_required: Boolean(item.is_required) // FIX: Sử dụng trường is_required
+          } as DeepPartial<ProductRouting>);
       }
-      const saved = await this.routingRepo.save(newItems);
+      
+      const saved = await this.routingRepo.save(newItems as ProductRouting[]);
       const product = await this.productRepo.findOne({ where: { id: pId } });
       if(product) await this.calculateCostPrice(product.sku);
       return saved;
@@ -115,6 +130,7 @@ export class ProductsService {
   async syncToVariants(sourceProductId: number) {
       const source = await this.productRepo.findOne({ where: { id: sourceProductId } });
       if (!source) throw new NotFoundException('SP Goc khong ton tai');
+      // FIX: Dùng tên cột đã sửa trong entity (category)
       const variants = await this.productRepo.find({ where: { name: source.name, category: source.category } });
       const targets = variants.filter(v => v.id !== sourceProductId);
       
@@ -126,7 +142,16 @@ export class ProductsService {
           await this.bomRepo.delete({ product_id: target.id });
           if(sourceBoms.length) await this.bomRepo.save(sourceBoms.map(b => this.bomRepo.create({ ...b, id: undefined, product_id: target.id })) as any);
           await this.routingRepo.delete({ product_id: target.id });
-          if(sourceRoutings.length) await this.routingRepo.save(sourceRoutings.map(r => this.routingRepo.create({ ...r, id: undefined, product_id: target.id })) as any);
+          // FIX: Clone và tạo đối tượng mới cho Routings (đảm bảo không bị lỗi TS)
+          if(sourceRoutings.length) {
+              const newRoutings = sourceRoutings.map(r => this.routingRepo.create({ 
+                  ...r, 
+                  id: undefined, 
+                  product_id: target.id,
+                  product: { id: target.id } as Product // Cần object Product cho quan hệ ManyToOne
+              }));
+              await this.routingRepo.save(newRoutings as any);
+          }
           await this.logisticRepo.delete({ product_id: target.id });
           if(sourceLogistics.length) await this.logisticRepo.save(sourceLogistics.map(l => this.logisticRepo.create({ ...l, id: undefined, product_id: target.id })) as any);
           await this.calculateCostPrice(target.sku);
@@ -147,7 +172,7 @@ export class ProductsService {
 
     let totalCost = 0;
     
-    // Check Combo - Load relation child_product
+    // Check Combo
     const components = await this.componentRepo.find({ 
         where: { parent_product: { id: product.id } }, 
         relations: ['child_product'] 
@@ -158,16 +183,22 @@ export class ProductsService {
             totalCost += Number(comp.child_product?.base_price ?? 0) * Number(comp.quantity);
         }
     } else {
-        // BOM & Routing (Giu nguyen)
+        // BOM (Nguyên vật liệu)
         const boms = await this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
         for (const item of boms) {
             if(item.material) {
                 const waste = Number(item.waste_percent) / 100;
-                totalCost += Number(item.material.cost_per_unit) * Number(item.quantity) * (1 + waste);
+                // FIX: Ưu tiên cost_price (Giá tự động từ NCC) hoặc dùng cost_per_unit
+                const materialCost = Number(item.material.cost_price || item.material.cost_per_unit);
+                totalCost += materialCost * Number(item.quantity) * (1 + waste);
             }
         }
+        // Routing (Gia công bắt buộc)
         const routings = await this.routingRepo.find({ where: { product_id: product.id } });
-        routings.forEach(r => { if(r.is_required) totalCost += Number(r.cost); });
+        routings.forEach(r => { 
+            if(r.is_required) totalCost += Number(r.cost); 
+        });
+        // Logistics (Vận chuyển)
         const logistics = await this.logisticRepo.find({ where: { product_id: product.id } });
         logistics.forEach(l => { totalCost += Number(l.cost); });
     }
@@ -178,7 +209,7 @@ export class ProductsService {
     if (!margin && product.category_link) {
         margin = Number(product.category_link.profit_margin);
     }
-    if (!margin) margin = 30;
+    if (!margin) margin = 30; // Mặc định 30%
 
     const sellingPrice = this.calculateSellingPrice(totalCost, margin);
 
@@ -200,13 +231,12 @@ export class ProductsService {
       }
   }
 
-  // --- API COMBO (FIXED) ---
+  // --- API COMBO ---
   async getComboComponents(sku: string) {
       const product = await this.productRepo.findOne({ where: { sku } });
       if (!product) return [];
-      // QUAN TRONG: Query dung parent_product ID
       return this.componentRepo.find({ 
-          where: { parent_product: { id: product.id } },
+          where: { parent_product: { id: product.id } }, 
           relations: ['child_product']
       });
   }
@@ -216,7 +246,6 @@ export class ProductsService {
       const child = await this.productRepo.findOne({ where: { sku: childSku } });
       if (!parent || !child) throw new NotFoundException('SP khong ton tai');
 
-      // Check duplicate
       let comp = await this.componentRepo.findOne({ 
           where: { parent_product: { id: parent.id }, child_product: { id: child.id } } 
       });

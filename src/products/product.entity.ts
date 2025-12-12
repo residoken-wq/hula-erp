@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Category } from '../categories/category.entity';
+import { ProductRouting } from './product-routing.entity'; // Import Routing
 
 @Entity('products')
 export class Product {
@@ -12,7 +13,7 @@ export class Product {
   @Column()
   name: string;
 
-  // --- LIÊN KẾT DANH MỤC (MỚI) ---
+  // --- LIÊN KẾT DANH MỤC ---
   @ManyToOne(() => Category, (cat) => cat.products, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'category_id' })
   category_link: Category;
@@ -22,7 +23,7 @@ export class Product {
   // ------------------------------
 
   @Column({ nullable: true })
-  category: string; // Giữ lại field cũ để backup text
+  category: string; 
 
   @Column({ nullable: true })
   product_type: string;
@@ -34,12 +35,12 @@ export class Product {
   unit: string; 
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  base_price: number; // Giá bán
+  base_price: number; 
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  cost_price: number; // Giá vốn
+  cost_price: number; 
 
-  // --- OVERRIDE MARGIN (Nếu muốn SP này khác biệt với nhóm) ---
+  // --- OVERRIDE MARGIN ---
   @Column('decimal', { precision: 5, scale: 2, nullable: true })
   profit_margin: number; 
   // ----------------------------------------------------------
@@ -49,6 +50,11 @@ export class Product {
 
   @Column({ default: true })
   is_active: boolean;
+
+  // --- FIX: BỔ SUNG QUAN HỆ NGƯỢC ROUTINGS ---
+  @OneToMany(() => ProductRouting, (routing) => routing.product)
+  routings: ProductRouting[];
+  // ----------------------------------------
 
   @CreateDateColumn()
   created_at: Date;
