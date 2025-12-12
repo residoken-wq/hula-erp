@@ -1,37 +1,35 @@
-# ==========================================
-# Stage 1: Builder
-# ==========================================
-FROM node:18 AS builder
+# Stage 1: Build Stage
+FROM node:18-alpine AS build
+
+# Sử dụng Yarn nếu có (hoặc npm)
 WORKDIR /app
-
-# Copy only dependency files for cache
 COPY package*.json ./
+# --- BẮT BUỘC: Copy tsconfig.json ---
 COPY tsconfig.json ./
+# ------------------------------------
 
-# Use npm ci for deterministic + faster install
-RUN npm ci
+# Cài đặt dependency (sử dụng cache)
+RUN npm install
 
-# Copy full source
+# Copy source code
 COPY . .
 
-# Build NestJS (outputs to dist/)
+# Chạy build TypeScript (tạo thư mục dist)
 RUN npm run build
 
+# Stage 2: Production/Development Stage
+FROM node:18-alpine
 
-# ==========================================
-# Stage 2: Production Image
-# ==========================================
-FROM node:18-alpine AS prod
 WORKDIR /app
-
-# Copy only package.json
 COPY package*.json ./
+# --- BẮT BUỘC: Copy tsconfig.json ---
+COPY tsconfig.json ./
+# ------------------------------------
 
-# Install only production modules
-RUN npm ci --omit=dev
+# Copy node_modules từ stage build (Quan trọng)
+COPY --from=build /app/node_modules ./node_modules
+# Copy file build (JS code)
+COPY --from=build /app/dist ./dist
 
-# Copy build output
-COPY --from=builder /app/dist ./dist
-
-# Start production mode
-CMD ["node", "dist/main"]
+# Thay đổi lệnh chạy: Chuyển sang chế độ Watch (Development)
+CMD ["npm", "run", "start:dev"]
