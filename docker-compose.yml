@@ -12,16 +12,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # Map volume để giữ dữ liệu
       - postgres_data:/var/lib/postgresql/data
     
-    # --- HEALTHCHECK: Đảm bảo DB sống mới cho App chạy ---
+    # --- CẬP NHẬT HEALTHCHECK: Tăng thời gian chờ ---
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hula_user -d hula_db"]
-      interval: 5s
+      interval: 10s  # Kiểm tra mỗi 10 giây (Thay vì 5s)
       timeout: 5s
-      retries: 5
-    # ---------------------------------------------------
+      retries: 10    # Thử lại 10 lần (Tổng cộng chờ ~100 giây)
+    # ------------------------------------------------
 
   app:
     build: .
@@ -35,13 +34,9 @@ services:
       DB_USERNAME: hula_user
       DB_PASSWORD: hula_password
       DB_DATABASE: hula_db
-    
-    # --- DEPENDS_ON: Chờ DB Healthcheck OK ---
     depends_on:
       db:
         condition: service_healthy
-    # -----------------------------------------
-    
     volumes:
       - ./src:/app/src
 
@@ -56,6 +51,5 @@ services:
     depends_on:
       - app
 
-# --- KHAI BÁO VOLUME (Ghi nhớ phần này) ---
 volumes:
   postgres_data:
