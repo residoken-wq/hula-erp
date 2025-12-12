@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Layout, Menu, theme } from 'antd';
 import type { MenuProps } from 'antd';
 import {
-  DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, BankOutlined, CloudUploadOutlined
+  DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ProductsPage from './pages/ProductsPage';
@@ -10,7 +10,6 @@ import CombosPage from './pages/CombosPage';
 import UploadPage from './pages/UploadPage';
 import MaterialsPage from './pages/MaterialsPage';
 import SuppliersPage from './pages/SuppliersPage';
-import SalesPage from './pages/SalesPage';
 import CrmPage from './pages/CrmPage';
 import CustomersPage from './pages/CustomersPage';
 import PlanningPage from './pages/PlanningPage';
