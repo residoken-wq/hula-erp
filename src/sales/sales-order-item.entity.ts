@@ -11,14 +11,28 @@ export class SalesOrderItem {
   order: SalesOrder;
 
   @Column()
-  sku: string; // Ma san pham (Link voi bang Product)
+  sku: string;
 
-  @Column('int')
+  // --- MỚI: BIẾN THỂ & DUYỆT MẪU ---
+  @Column({ nullable: true })
+  variant_color: string; // Màu chốt (nếu khác SKU gốc)
+
+  @Column({ default: false })
+  is_sample_approved: boolean; // Đã duyệt mẫu chưa?
+
+  @Column('text', { nullable: true })
+  sample_image: string; // Ảnh mẫu đã duyệt cho dòng này
+
+  @Column('text', { nullable: true })
+  sample_note: string; // Ghi chú kỹ thuật cho dòng này
+  // --------------------------------
+
+  @Column('decimal', { precision: 10, scale: 2 })
   quantity: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  unit_price: number; // Gia ban thuc te (Sale nhap)
+  unit_price: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  subtotal: number; // = quantity * unit_price
+  subtotal: number;
 }

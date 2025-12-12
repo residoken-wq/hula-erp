@@ -15,15 +15,10 @@ export class SalesController {
   @Get(':id/deliveries') getDeliveries(@Param('id') id: number) { return this.s.getDeliveryHistory(id); }
   @Post(':id/delivery') createDelivery(@Param('id') id: number, @Body() b: any) { return this.s.createDelivery(id, b); }
   @Get(':code/payments') getPayments(@Param('code') code: string) { return this.s.getPaymentHistory(code); }
+  @Get('portal/:uuid') getPortal(@Param('uuid') uuid: string) { return this.s.getQuoteByUuid(uuid); }
+  @Post('portal/:uuid/action') customerAction(@Param('uuid') uuid: string, @Body() body: any) { return this.s.customerAction(uuid, body.action); }
 
-  // --- PORTAL ENDPOINTS ---
-  @Get('portal/:uuid')
-  getPortalQuote(@Param('uuid') uuid: string) {
-      return this.s.getQuoteByUuid(uuid);
-  }
-
-  @Post('portal/:uuid/action')
-  customerAction(@Param('uuid') uuid: string, @Body() body: any) {
-      return this.s.customerAction(uuid, body.action); // action: 'ACCEPT' | 'REJECT'
-  }
+  // API MOI
+  @Post(':id/approve-samples') 
+  approveSamples(@Param('id') id: number) { return this.s.approveAllSamples(id); }
 }
