@@ -257,6 +257,36 @@ const ProductsPage: React.FC = () => {
       { title: '', key: 'action', width: 70, align: 'center' as const, render: (r:any) => (<Popconfirm title="Xóa?" onConfirm={() => handleRemoveComponent(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>) },
   ];
 
+  // --- THÊM ĐOẠN CODE NÀY VÀO TRƯỚC HÀM LỌC filteredData ---
+
+  const columns = [
+      { title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t:any) => <b>{t}</b> },
+      { title: 'Tên Sản Phẩm', dataIndex: 'name', render: (t:any) => <TagOutlined /> + t },
+      { title: 'Phân loại', dataIndex: 'category_id', width: 150, render: (id: number) => <Tag color="blue">{getCategoryName(id)}</Tag> },
+      { 
+          title: 'Giá vốn', dataIndex: 'cost_price', width: 100, align: 'right' as const,
+          render: (v: number) => <span style={{fontWeight:'bold', color:'red'}}>{Number(v).toLocaleString()}</span>
+      },
+      { 
+          title: 'Giá bán', dataIndex: 'base_price', width: 100, align: 'right' as const,
+          render: (v: number) => <span style={{fontWeight:'bold', color:'green'}}>{Number(v).toLocaleString()}</span>
+      },
+      { 
+          title: 'Tồn kho', dataIndex: 'quantity_in_stock', width: 80, align: 'right' as const,
+          render: (v: number) => <Badge count={v} showZero overflowCount={999} style={{ backgroundColor: v > 0 ? '#52c41a' : '#faad14' }} />
+      },
+      { 
+          title: '', key: 'action', width: 120, align: 'center' as const,
+          render: (_:any, r:any) => (
+              <Space size="small">
+                  <Tooltip title="Tính Giá Vốn"><Button icon={<DollarOutlined />} size="small" onClick={() => handleCalculateCost(r.sku)} type="primary" ghost /></Tooltip>
+                  <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)} />
+                  <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
+              </Space>
+          )
+      }
+  ];
+
   // FIX: Áp dụng Filter
   const filteredData = data.filter(d => {
     const textMatch = d.name?.toLowerCase().includes(searchText.toLowerCase()) || d.sku?.toLowerCase().includes(searchText.toLowerCase());
