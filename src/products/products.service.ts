@@ -57,7 +57,6 @@ export class ProductsService {
     // 1. Tìm sản phẩm gốc
     const baseProduct = await this.productRepo.findOne({ 
         where: { sku: baseSku },
-        // KHÔNG load relations ở đây để tránh lỗi TS khi spread operator
     });
     if (!baseProduct) {
       throw new NotFoundException(`Sản phẩm gốc với SKU "${baseSku}" không tồn tại.`);
@@ -70,7 +69,6 @@ export class ProductsService {
     }
 
     // 3. Tạo bản sao (Biến thể mới)
-    // FIX TS2339: Ép kiểu baseProduct thành 'any' để cho phép destructuring các thuộc tính quan hệ (routings, logistics, components) mà không cần load
     const { routings, logistics, components, ...baseProductClone } = baseProduct as any;
 
     const newVariant = this.productRepo.create({
@@ -85,8 +83,8 @@ export class ProductsService {
       category_link: baseProduct.category_link 
     });
 
-    // FIX TS2740: Buộc kiểu trả về là Product để giải quyết lỗi khi truy cập savedVariant.id/sku
-    const savedVariant = await this.productRepo.save(newVariant) as Product; 
+    // FIX TS2352: Ép kiểu hai bước (unknown -> Product)
+    const savedVariant = await this.productRepo.save(newVariant) as unknown as Product; 
 
     // 4. Sao chép BOM (Nếu có)
     const baseBoms = await this.bomRepo.find({ where: { product_id: baseProduct.id } });
