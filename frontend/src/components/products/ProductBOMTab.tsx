@@ -1,3 +1,5 @@
+// src/components/products/ProductBOMTab.tsx
+
 import React from 'react';
 import { Table, Button, message, Card, Form, Select, InputNumber, Popconfirm, Row, Col, Space } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
@@ -7,7 +9,7 @@ import { API_URL } from '../../config';
 interface ProductBOMTabProps {
     editingItem: any;
     boms: any[];
-    materials: any[];
+    materials: any[]; // Đã được chuẩn hóa thành { value, label } trong ProductsPage
     fetchDetailData: (id: number) => void;
     setBoms: React.Dispatch<React.SetStateAction<any[]>>;
 }
@@ -17,10 +19,9 @@ const ProductBOMTab: React.FC<ProductBOMTabProps> = ({ editingItem, boms, materi
 
     const handleSaveBOM = async (values: any) => {
         try {
-            const items = [...boms, { ...values, id: Date.now() }];
-            setBoms(items); // Tạm thêm vào list để hiển thị
+            const items = [...boms, { ...values, id: Date.now() }]; // Thêm tạm ID giả
+            setBoms(items);
             
-            // Xóa tạm ID giả để Backend tạo mới
             const payload = items.map(i => ({
                 material_id: i.material_id, 
                 quantity: i.quantity, 
@@ -50,8 +51,29 @@ const ProductBOMTab: React.FC<ProductBOMTabProps> = ({ editingItem, boms, materi
     };
 
     const bomColumns = [
-        { title: 'Mã NPL', dataIndex: 'material_id', render: (id: number) => materials.find(m => m.id === id)?.label.split(' - ')[0] || '-' },
-        { title: 'Tên NPL', dataIndex: 'material_id', render: (id: number) => materials.find(m => m.id === id)?.label.split(' - ')[1] || '-' },
+        { 
+            title: 'Mã NPL', 
+            dataIndex: 'material_id', 
+            // FIX: Ưu tiên lấy từ Material object (khi Backend JOIN) hoặc tìm trong Master Data
+            render: (id: number, record: any) => {
+                // Trường hợp 1: Backend trả về object Material (material)
+                if (record.material?.sku) return record.material.sku;
+                // Trường hợp 2: Lấy từ Master Data đã chuẩn hóa
+                const materialItem = materials.find(m => m.value === id);
+                return materialItem ? materialItem.label.split(' - ')[0] : '-';
+            }
+        },
+        { 
+            title: 'Tên NPL', 
+            dataIndex: 'material_id', 
+            render: (id: number, record: any) => {
+                // Trường hợp 1: Backend trả về object Material (material)
+                if (record.material?.name) return record.material.name;
+                // Trường hợp 2: Lấy từ Master Data đã chuẩn hóa
+                const materialItem = materials.find(m => m.value === id);
+                return materialItem ? materialItem.label.split(' - ')[1] : '-';
+            }
+        },
         { title: 'SL', dataIndex: 'quantity', width: 70, align: 'right' as const },
         { title: 'Hao hụt (%)', dataIndex: 'waste_percent', width: 90, align: 'right' as const },
         { title: '', key: 'action', width: 70, align: 'center' as const, render: (r:any) => (<Popconfirm title="Xóa?" onConfirm={() => handleRemoveBOM(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>) },
