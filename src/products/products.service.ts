@@ -28,6 +28,12 @@ export class ProductsService {
       return this.productRepo.find({ order: { id: 'DESC' }, relations: ['category_link'] }); 
   }
   
+  // --- FIX: BỔ SUNG HÀM FIND ONE BY ID ---
+  async findOne(id: number) { 
+      return this.productRepo.findOne({ where: { id }, relations: ['category_link'] }); 
+  }
+  // ----------------------------------------
+  
   async findOneBySku(sku: string) { return this.productRepo.findOne({ where: { sku }, relations: ['category_link'] }); }
 
   private cleanData(data: any) {
@@ -83,7 +89,6 @@ export class ProductsService {
       category_link: baseProduct.category_link 
     });
 
-    // FIX TS2352: Ép kiểu hai bước (unknown -> Product)
     const savedVariant = await this.productRepo.save(newVariant) as unknown as Product; 
 
     // 4. Sao chép BOM (Nếu có)

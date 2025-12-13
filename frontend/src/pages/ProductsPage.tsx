@@ -7,7 +7,7 @@ import { API_URL } from '../config';
 // --- IMPORTS CÁC COMPONENT ĐÃ TÁCH ---
 import ProductBOMTab from '../components/products/ProductBOMTab';
 import ProductRoutingTab from '../components/products/ProductRoutingTab';
-import ProductVariantsTab from '../components/products/ProductVariantsTab'; // Đã đảm bảo file này tồn tại
+import ProductVariantsTab from '../components/products/ProductVariantsTab'; 
 // -------------------------------------
 
 const { TextArea } = Input;
@@ -215,7 +215,6 @@ const ProductsPage: React.FC = () => {
 
     const columns = [
         { title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t:any) => <b>{t}</b> },
-        // FIX: Lỗi [object Object]
         { 
             title: 'Tên Sản Phẩm', 
             dataIndex: 'name', 
@@ -312,7 +311,6 @@ const ProductsPage: React.FC = () => {
             <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} 
                    open={isModalOpen} 
                    onCancel={()=>setIsModalOpen(false)} 
-                   // FIX: Logic onOk
                    onOk={()=>{ 
                        if(activeTab==='1') {
                            form.submit();
@@ -332,7 +330,7 @@ const ProductsPage: React.FC = () => {
                                 layout="vertical" 
                                 onFinish={handleSave} 
                                 initialValues={{ is_active: true }}
-                                onValuesChange={handleFormValuesChange} // FIX: Lắng nghe thay đổi Phân loại
+                                onValuesChange={handleFormValuesChange} 
                             >
                                 <Row gutter={16}>
                                     <Col span={8}>

@@ -1,22 +1,28 @@
 import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { CreateVariantDto } from './dto/create-variant.dto'; // <-- IMPORT DTO MỚI
+import { CreateVariantDto } from './dto/create-variant.dto'; // Đã thêm ở lần fix trước
 
 @Controller('products')
 export class ProductsController {
   constructor(private readonly service: ProductsService) {}
 
   @Get() findAll() { return this.service.findAll(); }
+  
+  // --- FIX: BỔ SUNG ROUTE FIND ONE BY ID ---
+  @Get(':id') 
+  findOne(@Param('id') id: number) { return this.service.findOne(Number(id)); }
+  // ------------------------------------------
+
   @Post() create(@Body() b: any) { return this.service.create(b); }
   @Put(':id') update(@Param('id') id: number, @Body() b: any) { return this.service.update(id, b); }
   @Delete(':id') remove(@Param('id') id: number) { return this.service.remove(id); }
 
-  // --- MỚI: ROUTE TẠO BIẾN THỂ ---
+  // --- API TẠO BIẾN THỂ (Đã thêm) ---
   @Post('create-variant')
   async createVariant(@Body() createVariantDto: CreateVariantDto) {
     return this.service.createVariant(createVariantDto);
   }
-  // ---------------------------------
+  // ------------------------------------
 
   @Get(':id/routings') getRoutings(@Param('id') id: number) { return this.service.getRoutings(id); }
   @Post(':id/routings') saveRoutings(@Param('id') id: number, @Body() b: any) { return this.service.saveRoutings(id, b); }
@@ -34,12 +40,10 @@ export class ProductsController {
   @Post('combo/add') addComboItem(@Body() body: any) { return this.service.addComponent(body.parentSku, body.childSku, Number(body.qty)); }
   @Delete('combo/item/:id') removeComboItem(@Param('id') id: number) { return this.service.removeComponent(id); }
   
-  // MOI: Save list components (cho viec edit combo)
   @Post(':id/components') 
   saveComponents(@Param('id') id: number, @Body() items: any[]) { 
       return this.service.saveComponents(id, items); 
   }
-  // ----------------
 
   @Get('calculate-cost/:sku') calculateCost(@Param('sku') sku: string) { return this.service.calculateCostPrice(sku); }
 }
