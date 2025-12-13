@@ -7,7 +7,6 @@ import { API_URL } from '../config';
 // --- IMPORTS CÁC COMPONENT ĐÃ TÁCH ---
 import ProductBOMTab from '../components/products/ProductBOMTab';
 import ProductRoutingTab from '../components/products/ProductRoutingTab';
-// --- BỔ SUNG IMPORT TAB BIẾN THỂ ---
 import ProductVariantsTab from '../components/products/ProductVariantsTab'; 
 // -------------------------------------
 
@@ -50,7 +49,6 @@ const ProductsPage: React.FC = () => {
             setData(Array.isArray(res.data) ? res.data : []);
             
             const resCat = await axios.get(`${API_URL}/categories`);
-            // FIX: Đảm bảo dữ liệu Category có profit_margin
             setCategories(Array.isArray(resCat.data) ? resCat.data : []); 
 
             const resMat = await axios.get(`${API_URL}/materials`);
@@ -157,7 +155,18 @@ const ProductsPage: React.FC = () => {
 
     const columns = [
         { title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t:any) => <b>{t}</b> },
-        { title: 'Tên Sản Phẩm', dataIndex: 'name', render: (t:any) => <TagOutlined /> + t },
+        // --- FIX LỖI HIỂN THỊ [object Object] BẰNG CÁCH SỬ DỤNG <Space> ---
+        { 
+            title: 'Tên Sản Phẩm', 
+            dataIndex: 'name', 
+            render: (t:any) => (
+                <Space size={4}>
+                    <TagOutlined /> 
+                    {t}
+                </Space>
+            )
+        },
+        // -------------------------------------------------------------------
         { title: 'Phân loại', dataIndex: 'category_id', width: 150, render: (id: number) => <Tag color="blue">{getCategoryName(id)}</Tag> },
         { 
             title: 'Giá vốn', dataIndex: 'cost_price', width: 100, align: 'right' as const,
@@ -189,6 +198,11 @@ const ProductsPage: React.FC = () => {
         return textMatch && categoryMatch;
     });
 
+    // Lọc danh sách sản phẩm cho Combo
+    const productOptions = useMemo(() => {
+        return data.map(p => ({ label: `${p.sku} - ${p.name}`, value: p.sku }));
+    }, [data]);
+
     return (
         <Card title="Quản Lý Sản Phẩm (SKU)" extra={<Button type="primary" icon={<PlusOutlined />} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1')}}>Thêm Mới</Button>}>
             
@@ -211,13 +225,12 @@ const ProductsPage: React.FC = () => {
             
             <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
             
-            {/* FIX: MỞ RỘNG MODAL ĐỂ CHỨA TAB BIẾN THỂ */}
             <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>{ if(activeTab==='1') form.submit(); else message.warning('Vui lòng lưu thông tin chung trước') }} width={1400} okText="Lưu Thông Tin Chung">
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                     {
                         key: '1', label: <span><BuildOutlined /> Thông Tin Chung</span>,
                         children: (
-                            <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ is_active: true, profit_margin: 30 }}>
+                            <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ is_active: true }}>
                                 <Row gutter={16}>
                                     <Col span={8}>
                                         <Form.Item name="sku" label="Mã Sản Phẩm (SKU)" rules={[{required:true}]}><Input/></Form.Item>
@@ -294,7 +307,7 @@ const ProductsPage: React.FC = () => {
                         )
                     },
                     {
-                        // --- BỔ SUNG TAB BIẾN THỂ ---
+                        // --- TAB BIẾN THỂ ---
                         key: '6', 
                         label: <span><SyncOutlined /> Quản lý Biến thể</span>,
                         disabled: !editingItem,
