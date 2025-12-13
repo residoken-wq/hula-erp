@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Select, Row, Col } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Select, Row, Col, Space, Divider, Tooltip } from 'antd';
+import { PlusOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -28,7 +28,7 @@ const CombosPage: React.FC = () => {
             const comboList = resProd.data.filter((p:any) => p.product_type === 'COMBO');
             setCombos(comboList);
         }
-    } catch(e) { }
+    } catch(e) { message.error('Lỗi tải dữ liệu'); }
     setLoading(false);
   };
 
@@ -51,29 +51,75 @@ const CombosPage: React.FC = () => {
     <Card title="Quản lý Combo Quà Tặng" extra={<Button type="primary" icon={<PlusOutlined/>} onClick={()=>setIsModalOpen(true)}>Tạo Combo</Button>}>
         <Table dataSource={combos} columns={columns} rowKey="id" loading={loading} />
         
-        <Modal title="Thiết lập Combo" open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>form.submit()} width={700}>
+        <Modal 
+            title={<span><GiftOutlined /> Thiết lập Combo</span>} 
+            open={isModalOpen} 
+            onCancel={()=>setIsModalOpen(false)} 
+            onOk={()=>form.submit()} 
+            width={800} // Tăng kích thước modal
+        >
             <Form form={form} layout="vertical" onFinish={handleSave}>
                 <Row gutter={16}>
                     <Col span={12}><Form.Item name="sku" label="Mã Combo" rules={[{required:true}]}><Input /></Form.Item></Col>
                     <Col span={12}><Form.Item name="name" label="Tên Combo" rules={[{required:true}]}><Input /></Form.Item></Col>
                 </Row>
+                
+                <Divider orientation="left">Sản phẩm Thành phần</Divider>
+                
                 <Form.List name="items">
                     {(fields, { add, remove }) => (
                         <>
-                            {fields.map(({ key, name, ...restField }) => (
-                                <Row key={key} gutter={8} style={{marginBottom:10}}>
-                                    <Col span={14}>
-                                        <Form.Item {...restField} name={[name, 'sku']} noStyle rules={[{ required: true }]}>
-                                            <Select placeholder="Chọn sản phẩm con" options={products} showSearch optionFilterProp="label" />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={8}>
-                                        <Form.Item {...restField} name={[name, 'quantity']} noStyle rules={[{ required: true }]}>
-                                            <InputNumber min={1} placeholder="SL" style={{width:'100%'}} />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={2}><DeleteOutlined onClick={() => remove(name)} style={{color:'red'}} /></Col>
-                                </Row>
+                            {fields.map(({ key, name, ...restField }, index) => (
+                                // FIX: Dùng Card để bao bọc mỗi Item, tạo sự chuyên nghiệp
+                                <Card 
+                                    key={key} 
+                                    size="small"
+                                    style={{ marginBottom: 16 }}
+                                    title={`Sản phẩm ${index + 1}`}
+                                    extra={
+                                        <Tooltip title="Xóa sản phẩm này">
+                                            <Button 
+                                                icon={<DeleteOutlined/>} 
+                                                onClick={() => remove(name)} 
+                                                danger 
+                                                size="small"
+                                            />
+                                        </Tooltip>
+                                    }
+                                >
+                                    <Row gutter={16}>
+                                        <Col span={18}>
+                                            <Form.Item 
+                                                {...restField} 
+                                                name={[name, 'sku']} 
+                                                label="Sản phẩm con"
+                                                rules={[{ required: true, message: 'Vui lòng chọn SKU' }]}
+                                            >
+                                                <Select 
+                                                    placeholder="Tìm kiếm SKU hoặc Tên sản phẩm" 
+                                                    options={products} 
+                                                    showSearch 
+                                                    optionFilterProp="label" 
+                                                    style={{ width: '100%' }}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={6}>
+                                            <Form.Item 
+                                                {...restField} 
+                                                name={[name, 'quantity']} 
+                                                label="Số lượng"
+                                                rules={[{ required: true, message: 'Nhập SL' }]}
+                                            >
+                                                <InputNumber 
+                                                    min={1} 
+                                                    placeholder="SL" 
+                                                    style={{ width: '100%' }} 
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                </Card>
                             ))}
                             <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm sản phẩm vào Combo</Button>
                         </>
