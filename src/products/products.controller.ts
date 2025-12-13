@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
 import { ProductsService } from './products.service';
+import { CreateVariantDto } from './dto/create-variant.dto'; // <-- IMPORT DTO MỚI
 
 @Controller('products')
 export class ProductsController {
@@ -9,6 +10,13 @@ export class ProductsController {
   @Post() create(@Body() b: any) { return this.service.create(b); }
   @Put(':id') update(@Param('id') id: number, @Body() b: any) { return this.service.update(id, b); }
   @Delete(':id') remove(@Param('id') id: number) { return this.service.remove(id); }
+
+  // --- MỚI: ROUTE TẠO BIẾN THỂ ---
+  @Post('create-variant')
+  async createVariant(@Body() createVariantDto: CreateVariantDto) {
+    return this.service.createVariant(createVariantDto);
+  }
+  // ---------------------------------
 
   @Get(':id/routings') getRoutings(@Param('id') id: number) { return this.service.getRoutings(id); }
   @Post(':id/routings') saveRoutings(@Param('id') id: number, @Body() b: any) { return this.service.saveRoutings(id, b); }

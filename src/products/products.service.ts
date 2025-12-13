@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, forwardRef, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DeepPartial } from 'typeorm';
 import { Product } from './product.entity';
@@ -9,6 +9,7 @@ import { ProductLogistics } from './product-logistics.entity';
 import { Supplier } from '../suppliers/supplier.entity';
 import { SupplierMaterial } from '../suppliers/supplier-material.entity';
 import { CategoriesService } from '../categories/categories.service';
+import { CreateVariantDto } from './dto/create-variant.dto'; // <-- IMPORT DTO MỚI
 
 @Injectable()
 export class ProductsService {
@@ -30,10 +31,8 @@ export class ProductsService {
   async findOneBySku(sku: string) { return this.productRepo.findOne({ where: { sku }, relations: ['category_link'] }); }
 
   private cleanData(data: any) {
-      // Bổ sung customer_description và processing_description vào danh sách loại trừ tạm thời
       const { boms, routings, logistics, components, color, size, fabric, customer_description, processing_description, ...clean } = data; 
       
-      // Khôi phục các trường mô tả để NestJS TypeORM lưu chúng
       clean.customer_description = customer_description;
       clean.processing_description = processing_description;
       
@@ -49,6 +48,84 @@ export class ProductsService {
       return this.productRepo.findOne({ where: { id } }); 
   }
   async remove(id: number) { return this.productRepo.delete(id); }
+
+  // ------------------------------------------------------------------
+  // --- MỚI: HÀM TẠO BIẾN THỂ VÀ SAO CHÉP BOM/ROUTING ---
+  async createVariant(createVariantDto: CreateVariantDto): Promise<Product> {
+    const { baseSku, newSku, newName, attributes } = createVariantDto;
+
+    // 1. Tìm sản phẩm gốc
+    const baseProduct = await this.productRepo.findOne({ 
+        where: { sku: baseSku },
+        relations: ['boms', 'routings', 'logistics'] // Load các quan hệ cần sao chép
+    });
+    if (!baseProduct) {
+      throw new NotFoundException(`Sản phẩm gốc với SKU "${baseSku}" không tồn tại.`);
+    }
+
+    // 2. Kiểm tra SKU mới đã tồn tại chưa
+    const existingProduct = await this.productRepo.findOne({ where: { sku: newSku } });
+    if (existingProduct) {
+        throw new ConflictException(`SKU biến thể "${newSku}" đã tồn tại.`);
+    }
+
+    // 3. Tạo bản sao (Biến thể mới)
+    const newVariant = this.productRepo.create({
+      ...baseProduct, // Sao chép tất cả các thuộc tính
+      id: undefined, // Bỏ ID để tạo mới
+      sku: newSku,
+      name: newName || baseProduct.name,
+      attributes: attributes, // Gán thuộc tính biến thể mới
+      quantity_in_stock: 0, // Reset tồn kho
+      cost_price: 0, // Reset giá vốn
+      // Reset các quan hệ để không copy trực tiếp
+      boms: undefined,
+      routings: undefined,
+      logistics: undefined,
+      components: undefined,
+    });
+
+    const savedVariant = await this.productRepo.save(newVariant);
+
+    // 4. Sao chép BOM (Nếu có)
+    const baseBoms = await this.bomRepo.find({ where: { product_id: baseProduct.id } });
+    if(baseBoms.length > 0) {
+        const newBoms = baseBoms.map(b => this.bomRepo.create({
+            ...b,
+            id: undefined,
+            product_id: savedVariant.id,
+        }));
+        await this.bomRepo.save(newBoms as any);
+    }
+    
+    // 5. Sao chép Routing (Nếu có)
+    const baseRoutings = await this.routingRepo.find({ where: { product_id: baseProduct.id } });
+    if(baseRoutings.length > 0) {
+        const newRoutings = baseRoutings.map(r => this.routingRepo.create({
+            ...r,
+            id: undefined,
+            product_id: savedVariant.id,
+        }));
+        await this.routingRepo.save(newRoutings as any);
+    }
+
+    // 6. Sao chép Logistics (Nếu có)
+    const baseLogistics = await this.logisticRepo.find({ where: { product_id: baseProduct.id } });
+    if(baseLogistics.length > 0) {
+        const newLogistics = baseLogistics.map(l => this.logisticRepo.create({
+            ...l,
+            id: undefined,
+            product_id: savedVariant.id,
+        }));
+        await this.logisticRepo.save(newLogistics as any);
+    }
+
+    // 7. Tính lại giá vốn
+    await this.calculateCostPrice(savedVariant.sku); 
+
+    return savedVariant;
+  }
+  // ------------------------------------------------------------------
 
   async getBomByProductSku(sku: string): Promise<BOM[]> {
     const product = await this.productRepo.findOne({ where: { sku } });
