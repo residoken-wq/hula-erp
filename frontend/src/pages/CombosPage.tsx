@@ -6,7 +6,6 @@ import { API_URL } from '../config';
 
 const CombosPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  // FIX: Định nghĩa rõ kiểu mảng để tránh lỗi "never[]"
   const [combos, setCombos] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   
@@ -35,7 +34,7 @@ const CombosPage: React.FC = () => {
   useEffect(() => { fetchData(); }, []);
 
   const handleSave = async (values: any) => {
-      console.log('Saving combo:', values); // Dùng biến values để không bị lỗi unused
+      console.log('Saving combo:', values);
       message.success('Tính năng đang phát triển');
       setIsModalOpen(false);
   };
@@ -56,7 +55,7 @@ const CombosPage: React.FC = () => {
             open={isModalOpen} 
             onCancel={()=>setIsModalOpen(false)} 
             onOk={()=>form.submit()} 
-            width={800} // Tăng kích thước modal
+            width={800} 
         >
             <Form form={form} layout="vertical" onFinish={handleSave}>
                 <Row gutter={16}>
@@ -70,8 +69,8 @@ const CombosPage: React.FC = () => {
                     {(fields, { add, remove }) => (
                         <>
                             {fields.map(({ key, name, ...restField }, index) => (
-                                // FIX: Dùng Card để bao bọc mỗi Item, tạo sự chuyên nghiệp
                                 <Card 
+                                    // FIX: Đảm bảo key được truyền đúng cách
                                     key={key} 
                                     size="small"
                                     style={{ marginBottom: 16 }}
@@ -90,6 +89,8 @@ const CombosPage: React.FC = () => {
                                     <Row gutter={16}>
                                         <Col span={18}>
                                             <Form.Item 
+                                                // FIX: Sử dụng index làm key cho Form.Item (Ant Design khuyến nghị)
+                                                key={`sku-${key}`} 
                                                 {...restField} 
                                                 name={[name, 'sku']} 
                                                 label="Sản phẩm con"
@@ -106,6 +107,8 @@ const CombosPage: React.FC = () => {
                                         </Col>
                                         <Col span={6}>
                                             <Form.Item 
+                                                // FIX: Sử dụng index làm key cho Form.Item
+                                                key={`qty-${key}`} 
                                                 {...restField} 
                                                 name={[name, 'quantity']} 
                                                 label="Số lượng"
