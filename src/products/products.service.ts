@@ -57,7 +57,7 @@ export class ProductsService {
     // 1. Tìm sản phẩm gốc
     const baseProduct = await this.productRepo.findOne({ 
         where: { sku: baseSku },
-        // KHÔNG load relations ở đây để tránh lỗi spread operator
+        // KHÔNG load relations ở đây để tránh lỗi TS khi spread operator
     });
     if (!baseProduct) {
       throw new NotFoundException(`Sản phẩm gốc với SKU "${baseSku}" không tồn tại.`);
@@ -70,8 +70,8 @@ export class ProductsService {
     }
 
     // 3. Tạo bản sao (Biến thể mới)
-    // FIX 1: Tách các trường quan hệ trước khi spread để tránh lỗi TS2769
-    const { boms, routings, logistics, components, ...baseProductClone } = baseProduct;
+    // FIX TS2339: Ép kiểu baseProduct thành 'any' để cho phép destructuring các thuộc tính quan hệ (routings, logistics, components) mà không cần load
+    const { routings, logistics, components, ...baseProductClone } = baseProduct as any;
 
     const newVariant = this.productRepo.create({
       ...baseProductClone, 
@@ -82,11 +82,10 @@ export class ProductsService {
       quantity_in_stock: 0, 
       cost_price: 0,
       
-      // Giữ lại category_link object nếu cần, nhưng không phải là array
       category_link: baseProduct.category_link 
     });
 
-    // FIX 2: Buộc kiểu trả về là Product để giải quyết lỗi TS2740
+    // FIX TS2740: Buộc kiểu trả về là Product để giải quyết lỗi khi truy cập savedVariant.id/sku
     const savedVariant = await this.productRepo.save(newVariant) as Product; 
 
     // 4. Sao chép BOM (Nếu có)
@@ -95,7 +94,7 @@ export class ProductsService {
         const newBoms = baseBoms.map(b => this.bomRepo.create({
             ...b,
             id: undefined,
-            product_id: savedVariant.id, // FIX 3: Truy cập .id an toàn
+            product_id: savedVariant.id, 
         }));
         await this.bomRepo.save(newBoms as any);
     }
@@ -106,7 +105,7 @@ export class ProductsService {
         const newRoutings = baseRoutings.map(r => this.routingRepo.create({
             ...r,
             id: undefined,
-            product_id: savedVariant.id, // FIX 4
+            product_id: savedVariant.id,
         }));
         await this.routingRepo.save(newRoutings as any);
     }
@@ -117,13 +116,13 @@ export class ProductsService {
         const newLogistics = baseLogistics.map(l => this.logisticRepo.create({
             ...l,
             id: undefined,
-            product_id: savedVariant.id, // FIX 5
+            product_id: savedVariant.id,
         }));
         await this.logisticRepo.save(newLogistics as any);
     }
 
     // 7. Tính lại giá vốn
-    await this.calculateCostPrice(savedVariant.sku); // FIX 6: Truy cập .sku an toàn
+    await this.calculateCostPrice(savedVariant.sku); 
 
     return savedVariant; 
   }
