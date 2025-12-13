@@ -7,9 +7,8 @@ import { API_URL } from '../config';
 // --- IMPORTS CÁC COMPONENT ĐÃ TÁCH ---
 import ProductBOMTab from '../components/products/ProductBOMTab';
 import ProductRoutingTab from '../components/products/ProductRoutingTab';
-// Import các component khác khi bạn tạo chúng:
-// import ProductLogisticsTab from '../components/products/ProductLogisticsTab';
-// import ProductComponentTab from '../components/products/ProductComponentTab'; 
+// --- BỔ SUNG IMPORT TAB BIẾN THỂ ---
+import ProductVariantsTab from '../components/products/ProductVariantsTab'; 
 // -------------------------------------
 
 const { TextArea } = Input;
@@ -51,7 +50,8 @@ const ProductsPage: React.FC = () => {
             setData(Array.isArray(res.data) ? res.data : []);
             
             const resCat = await axios.get(`${API_URL}/categories`);
-            setCategories(Array.isArray(resCat.data) ? resCat.data : []);
+            // FIX: Đảm bảo dữ liệu Category có profit_margin
+            setCategories(Array.isArray(resCat.data) ? resCat.data : []); 
 
             const resMat = await axios.get(`${API_URL}/materials`);
             const normalizedMaterials = Array.isArray(resMat.data) 
@@ -119,7 +119,24 @@ const ProductsPage: React.FC = () => {
 
     const openEdit = (item: any) => {
         setEditingItem(item);
-        form.setFieldsValue(item);
+        
+        // --- FIX: Thiết lập Lợi nhuận mong muốn theo Danh mục ---
+        let initialProfitMargin = 30; // Giá trị mặc định nếu không tìm thấy
+        if (item.category_id) {
+            const category = categories.find(c => c.id === item.category_id);
+            if (category && category.profit_margin !== undefined) {
+                initialProfitMargin = category.profit_margin;
+            }
+        }
+
+        const initialValues = {
+            ...item,
+            // Sử dụng giá trị cũ nếu có, nếu không lấy từ Category (hoặc 30)
+            profit_margin: item.profit_margin !== undefined ? item.profit_margin : initialProfitMargin, 
+        };
+        // -------------------------------------------------------------
+        
+        form.setFieldsValue(initialValues);
         setActiveTab('1');
         setIsModalOpen(true);
         fetchDetailData(item.id);
@@ -194,13 +211,13 @@ const ProductsPage: React.FC = () => {
             
             <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
             
-            <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>{ if(activeTab==='1') form.submit(); else message.warning('Vui lòng lưu thông tin chung trước') }} width={1200} okText="Lưu Thông Tin Chung">
+            {/* FIX: MỞ RỘNG MODAL ĐỂ CHỨA TAB BIẾN THỂ */}
+            <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>{ if(activeTab==='1') form.submit(); else message.warning('Vui lòng lưu thông tin chung trước') }} width={1400} okText="Lưu Thông Tin Chung">
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                     {
                         key: '1', label: <span><BuildOutlined /> Thông Tin Chung</span>,
                         children: (
                             <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ is_active: true, profit_margin: 30 }}>
-                                {/* Đây là nơi bạn cần tạo ProductForm.tsx và nhúng vào */}
                                 <Row gutter={16}>
                                     <Col span={8}>
                                         <Form.Item name="sku" label="Mã Sản Phẩm (SKU)" rules={[{required:true}]}><Input/></Form.Item>
@@ -216,7 +233,7 @@ const ProductsPage: React.FC = () => {
                                         <Divider orientation="left">Thông tin Giá & Tồn</Divider>
                                         <Form.Item name="base_price" label="Giá bán (Chưa KM)"><InputNumber style={{width:'100%'}} addonAfter="₫" formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Form.Item>
                                         <Form.Item name="cost_price" label="Giá vốn (Hệ thống tính)" tooltip="Hệ thống tính tự động, không cần nhập"><InputNumber style={{width:'100%'}} addonAfter="₫" disabled/></Form.Item>
-                                        <Form.Item name="profit_margin" label="Lợi nhuận mong muốn (%)" tooltip="Override Margin của danh mục (Ví dụ: 30)"><InputNumber style={{width:'100%'}} addonAfter="%" min={0} max={99}/></Form.Item>
+                                        <Form.Item name="profit_margin" label="Lợi nhuận mong muốn (%)" tooltip="Lấy từ Danh mục nếu tạo mới, có thể override tại đây"><InputNumber style={{width:'100%'}} addonAfter="%" min={0} max={99}/></Form.Item>
                                         <Form.Item name="quantity_in_stock" label="Tồn kho"><InputNumber style={{width:'100%'}}/></Form.Item>
                                     </Col>
                                     
@@ -275,6 +292,21 @@ const ProductsPage: React.FC = () => {
                             // Thay thế bằng ProductComponentTab
                             <div>Combo Tab (Cần tạo component riêng)</div>
                         )
+                    },
+                    {
+                        // --- BỔ SUNG TAB BIẾN THỂ ---
+                        key: '6', 
+                        label: <span><SyncOutlined /> Quản lý Biến thể</span>,
+                        disabled: !editingItem,
+                        children: (
+                            <ProductVariantsTab
+                                editingItem={editingItem}
+                                data={data} // Truyền toàn bộ dữ liệu sản phẩm để tìm biến thể
+                                fetchData={fetchData}
+                                fetchDetailData={fetchDetailData}
+                            />
+                        )
+                        // -----------------------------
                     }
                 ]} />
                 
