@@ -1,4 +1,5 @@
 // src/components/products/ProductVariantsTab.tsx
+
 import React, { useState } from 'react';
 import { Table, Button, message, Card, Form, Select, Input, Popconfirm, Row, Col, Space, Tooltip, Divider, Tag } from 'antd';
 import { PlusOutlined, DeleteOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
@@ -17,22 +18,24 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
     // Giả định: Các biến thể cùng loại được tìm thông qua một tiền tố SKU chung
     const baseSku = editingItem.sku?.split('_')[0] || editingItem.sku;
     
+    // Lọc biến thể: Những sản phẩm có SKU bắt đầu bằng tiền tố SKU gốc và không phải là sản phẩm hiện tại
     const variants = data.filter(p => 
         p.sku !== editingItem.sku && p.sku.startsWith(baseSku)
     );
     
     const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
-    const handleCopyBOM = async (targetSku: string) => {
-        if (!editingItem.sku) {
-            return message.error("Vui lòng lưu sản phẩm gốc trước.");
+    // Xử lý Copy BOM (Cần API Backend: /products/copy-bom)
+    const handleCopyBOM = async (targetSku: string, sourceSku: string) => {
+        if (!sourceSku) {
+            return message.error("Vui lòng chọn hoặc xác định biến thể nguồn.");
         }
         try {
             await axios.post(`${API_URL}/products/copy-bom`, {
-                sourceSku: selectedVariant,
+                sourceSku: sourceSku,
                 targetSku: targetSku
             });
-            message.success(`Đã sao chép BOM từ ${selectedVariant} sang ${targetSku}`);
+            message.success(`Đã sao chép BOM từ ${sourceSku} sang ${targetSku}`);
             fetchDetailData(editingItem.id); 
         } catch (error) {
             message.error("Lỗi khi sao chép BOM. Kiểm tra API Backend.");
@@ -56,13 +59,13 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
         { 
             title: 'Hành động', 
             key: 'action', 
-            width: 250, 
+            width: 150, 
             render: (v: any) => (
                 <Space size="small">
-                    <Tooltip title="Sao chép BOM từ Biến thể này sang Sản phẩm đang sửa">
+                    <Tooltip title={`Sao chép BOM từ ${v.sku} sang Sản phẩm đang sửa`}>
                         <Popconfirm
                             title={`Chắc chắn sao chép BOM từ ${v.sku} sang ${editingItem.sku}?`}
-                            onConfirm={() => handleCopyBOM(editingItem.sku)}
+                            onConfirm={() => handleCopyBOM(editingItem.sku, v.sku)}
                         >
                             <Button icon={<CopyOutlined />} size="small">Copy BOM</Button>
                         </Popconfirm>
@@ -89,9 +92,9 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
                 </Card>
             </Col>
             
-            <Col span={24}><Divider orientation="left">Sao chép BOM từ Sản phẩm khác</Divider></Col>
+            <Col span={24}><Divider orientation="left">Sao chép BOM từ Sản phẩm bất kỳ</Divider></Col>
             <Col span={8}>
-                <Card title="Sao chép BOM đến Sản phẩm này" size="small">
+                <Card title="Chọn Nguồn BOM" size="small">
                     <Form layout="vertical">
                         <Form.Item label="Chọn Biến thể Nguồn">
                              <Select 
@@ -104,12 +107,12 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
                         </Form.Item>
                         <Button 
                             type="primary" 
-                            onClick={() => selectedVariant && handleCopyBOM(editingItem.sku)} 
+                            onClick={() => selectedVariant && handleCopyBOM(editingItem.sku, selectedVariant)} 
                             disabled={!selectedVariant || selectedVariant === editingItem.sku}
                             block
                             icon={<CopyOutlined />}
                         >
-                            Copy BOM từ SKU đã chọn
+                            Copy BOM đến Sản phẩm hiện tại
                         </Button>
                     </Form>
                 </Card>

@@ -7,7 +7,7 @@ import { API_URL } from '../config';
 // --- IMPORTS CÁC COMPONENT ĐÃ TÁCH ---
 import ProductBOMTab from '../components/products/ProductBOMTab';
 import ProductRoutingTab from '../components/products/ProductRoutingTab';
-import ProductVariantsTab from '../components/products/ProductVariantsTab'; 
+import ProductVariantsTab from '../components/products/ProductVariantsTab'; // Đã đảm bảo file này tồn tại
 // -------------------------------------
 
 const { TextArea } = Input;
@@ -19,10 +19,12 @@ const ProductsPage: React.FC = () => {
     const [searchText, setSearchText] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
     
+    // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [activeTab, setActiveTab] = useState('1'); 
     
+    // Variant State
     const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
     const [baseProductForVariant, setBaseProductForVariant] = useState<any>(null);
 
@@ -32,7 +34,7 @@ const ProductsPage: React.FC = () => {
     const [suppliers, setSuppliers] = useState<any[]>([]); 
     const [processes, setProcesses] = useState<any[]>([]); 
 
-    // Sub-data State (Đã giữ lại logic fetch/state trong ProductsPage)
+    // Sub-data State 
     const [boms, setBoms] = useState<any[]>([]);
     const [routings, setRoutings] = useState<any[]>([]);
     const [logistics, setLogistics] = useState<any[]>([]);
@@ -76,7 +78,7 @@ const ProductsPage: React.FC = () => {
 
     useEffect(() => { fetchData(); }, []);
     
-    // 2. Detail Data Fetcher (Truyền xuống các Component con)
+    // 2. Detail Data Fetcher
     const fetchDetailData = async (id: number) => {
         if (!id) return;
         try {
@@ -102,15 +104,29 @@ const ProductsPage: React.FC = () => {
     const handleSave = async (values: any) => {
         try {
             const payload = { ...values };
-            
+            let savedProduct: any; 
+
             if (editingItem) {
+                // Cập nhật sản phẩm
                 await axios.put(`${API_URL}/products/${editingItem.id}`, payload);
+                message.success('Đã lưu thành công'); 
+                setIsModalOpen(false); 
+                fetchData();
             } else {
-                await axios.post(`${API_URL}/products`, payload);
+                // TẠO MỚI SẢN PHẨM (FIX: Nhận ID để xử lý các bước tiếp theo)
+                const res = await axios.post(`${API_URL}/products`, payload);
+                savedProduct = res.data; 
+                
+                message.success('Đã tạo sản phẩm mới thành công. Vui lòng thiết lập BOM/Quy trình.'); 
+                
+                setEditingItem(savedProduct); 
+                form.setFieldsValue(savedProduct);
+                setActiveTab('2'); // Chuyển sang Tab BOM
+                
+                fetchDetailData(savedProduct.id); 
+                fetchData(); 
             }
-            message.success('Đã lưu thành công'); 
-            setIsModalOpen(false); 
-            fetchData();
+            
         } catch(e) { message.error('Lỗi lưu'); }
     };
 
@@ -122,6 +138,7 @@ const ProductsPage: React.FC = () => {
     const openEdit = (item: any) => {
         setEditingItem(item);
         
+        // Logic Lợi nhuận mong muốn theo Danh mục (Fix)
         let initialProfitMargin = 30; 
         if (item.category_id) {
             const category = categories.find(c => c.id === item.category_id);
@@ -198,6 +215,7 @@ const ProductsPage: React.FC = () => {
 
     const columns = [
         { title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t:any) => <b>{t}</b> },
+        // FIX: Lỗi [object Object]
         { 
             title: 'Tên Sản Phẩm', 
             dataIndex: 'name', 
@@ -225,6 +243,7 @@ const ProductsPage: React.FC = () => {
             title: '', key: 'action', width: 160, align: 'center' as const,
             render: (_:any, r:any) => (
                 <Space size="small">
+                    {/* Nút Tạo Biến thể (Fix) */}
                     <Tooltip title="Tạo Biến thể mới từ Sản phẩm này">
                          <Button 
                              icon={<ForkOutlined />} 
@@ -251,6 +270,7 @@ const ProductsPage: React.FC = () => {
         return data.map(p => ({ label: `${p.sku} - ${p.name}`, value: p.sku }));
     }, [data]);
 
+    // FIX: Logic Lợi nhuận tự động cập nhật khi thay đổi Phân loại
     const handleFormValuesChange = (changedValues: any) => {
         if (changedValues.category_id !== undefined) {
             const newCategoryId = changedValues.category_id;
@@ -289,7 +309,20 @@ const ProductsPage: React.FC = () => {
             <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
             
             {/* Modal chính (Cập nhật sản phẩm) */}
-            <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>{ if(activeTab==='1') form.submit(); else message.warning('Vui lòng lưu thông tin chung trước') }} width={1400} okText="Lưu Thông Tin Chung">
+            <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} 
+                   open={isModalOpen} 
+                   onCancel={()=>setIsModalOpen(false)} 
+                   // FIX: Logic onOk
+                   onOk={()=>{ 
+                       if(activeTab==='1') {
+                           form.submit();
+                       } else {
+                           setIsModalOpen(false);
+                       }
+                   }} 
+                   width={1400} 
+                   okText={editingItem ? "Lưu Thông Tin Chung" : "Tạo Sản Phẩm & Tiếp tục"} 
+            >
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                     {
                         key: '1', label: <span><BuildOutlined /> Thông Tin Chung</span>,
@@ -299,7 +332,7 @@ const ProductsPage: React.FC = () => {
                                 layout="vertical" 
                                 onFinish={handleSave} 
                                 initialValues={{ is_active: true }}
-                                onValuesChange={handleFormValuesChange}
+                                onValuesChange={handleFormValuesChange} // FIX: Lắng nghe thay đổi Phân loại
                             >
                                 <Row gutter={16}>
                                     <Col span={8}>
@@ -398,7 +431,7 @@ const ProductsPage: React.FC = () => {
                 )}
             </Modal>
             
-            {/* --- MODAL TẠO BIẾN THỂ MỚI (Đã mở rộng width) --- */}
+            {/* Modal Tạo Biến thể (Fix Width & Form) */}
             <Modal
                 title={`Tạo Biến thể mới từ ${baseProductForVariant?.sku}`}
                 open={isVariantModalOpen}
@@ -406,7 +439,7 @@ const ProductsPage: React.FC = () => {
                 okText="Tạo & Sao chép BOM"
                 onOk={() => variantForm.submit()}
                 destroyOnClose={true}
-                width={800} // FIX: Mở rộng Modal Biến thể
+                width={800} 
             >
                 <Form form={variantForm} layout="vertical" onFinish={handleCreateVariant} initialValues={{ base_sku: baseProductForVariant?.sku }}>
                     <Form.Item name="base_sku" label="SKU Gốc" ><Input disabled /></Form.Item>
@@ -415,7 +448,6 @@ const ProductsPage: React.FC = () => {
                     <Row gutter={16}>
                         <Col span={12}>
                              <Form.Item name="variant_sku_suffix" label="Hậu tố SKU Biến thể" rules={[{required: true, message: 'Nhập hậu tố SKU (VD: RED)'}]}>
-                                 {/* Fix lỗi nhập liệu bằng cách sử dụng addonAfter='_' */}
                                 <Input addonBefore={baseProductForVariant?.sku} addonAfter='_' placeholder="VD: RED, L" /> 
                             </Form.Item>
                         </Col>
@@ -441,7 +473,6 @@ const ProductsPage: React.FC = () => {
                     </Row>
                 </Form>
             </Modal>
-            {/* ------------------------------- */}
         </Card>
     );
 };
