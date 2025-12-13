@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Button, message, Card, Form, Select, InputNumber, Popconfirm, Row, Col, Tag, Checkbox } from 'antd';
+import { Table, Button, message, Card, Form, Select, InputNumber, Popconfirm, Row, Col, Tag, Checkbox, Input } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../../config';
