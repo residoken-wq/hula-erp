@@ -123,13 +123,26 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                     <Row gutter={16}><Col span={12}><Form.Item name="customer_id" label="Khách Hàng" rules={[{required:true}]}><Select showSearch optionFilterProp="label" options={customers.map(c=>({label:`${c.code} - ${c.name}`,value:c.id}))} onChange={handleCustomerChange} disabled={!canEdit && initialData} /></Form.Item></Col><Col span={12}><Form.Item name="order_code" label="Mã Đơn"><Input disabled style={{fontWeight:'bold', color:'#1890ff'}}/></Form.Item></Col></Row>
                                     {!isQuotation && <div style={{background:'#e6f7ff', padding:10, borderRadius:6, marginBottom:10}}><Row gutter={16}><Col span={12}><Form.Item name="sample_image_url" label="Ảnh Mẫu Chung"><Input prefix={<FileImageOutlined/>}/></Form.Item></Col><Col span={12}><Form.Item name="sample_note" label="Ghi chú kỹ thuật"><Input.TextArea rows={1}/></Form.Item></Col></Row></div>}
                                     <div style={{background:'#fafafa', padding:10, borderRadius:6, border:'1px solid #eee'}}>
-                                        <Row gutter={8} style={{marginBottom:5, fontWeight:'bold', borderBottom:'1px solid #ddd'}}><Col span={8}>Sản phẩm</Col><Col span={4}>Màu/Biến thể</Col><Col span={2}>SL</Col><Col span={2}>ĐVT</Col><Col span={3}>Giá</Col><Col span={3}>Thành tiền</Col><Col span={2}>Mẫu</Col></Row>
+                                        
+                                        {/* FIX HEADER: Tăng span Sản phẩm, giảm span Màu/Biến thể và ĐVT */}
+                                        <Row gutter={8} style={{marginBottom:5, fontWeight:'bold', borderBottom:'1px solid #ddd'}}>
+                                            <Col span={10}>Sản phẩm</Col>
+                                            <Col span={3}>Màu/Biến thể</Col>
+                                            <Col span={2}>SL</Col>
+                                            <Col span={1}>ĐVT</Col>
+                                            <Col span={3}>Giá</Col>
+                                            <Col span={3}>Thành tiền</Col>
+                                            <Col span={2}>Mẫu</Col>
+                                        </Row>
+                                        
                                         <Form.List name="items">{(fields,{add,remove})=>(<div style={{maxHeight:300, overflowY:'auto'}}>{fields.map(({key,name,...rest})=>(
                                             <Row key={key} gutter={8} style={{marginBottom:8, borderBottom:'1px dashed #eee'}} align="middle">
-                                                <Col span={8}><Form.Item {...rest} name={[name,'sku']} noStyle rules={[{required:true}]}><Select options={products} onChange={(v)=>handleProductChange(v,name)} disabled={!canEdit}/></Form.Item></Col>
-                                                <Col span={4}><Form.Item {...rest} name={[name,'variant_color']} noStyle><Input placeholder="Màu..." disabled={!canEdit}/></Form.Item></Col>
+                                                
+                                                {/* FIX ITEM ROW: Tăng span Sản phẩm, giảm span Màu/Biến thể và ĐVT */}
+                                                <Col span={10}><Form.Item {...rest} name={[name,'sku']} noStyle rules={[{required:true}]}><Select options={products} onChange={(v)=>handleProductChange(v,name)} disabled={!canEdit}/></Form.Item></Col>
+                                                <Col span={3}><Form.Item {...rest} name={[name,'variant_color']} noStyle><Input placeholder="Màu..." disabled={!canEdit}/></Form.Item></Col>
                                                 <Col span={2}><Form.Item {...rest} name={[name,'quantity']} noStyle rules={[{required:true}]}><InputNumber min={1} style={{width:'100%'}} disabled={!canEdit}/></Form.Item></Col>
-                                                <Col span={2} style={{textAlign:'center'}}>Cái</Col>
+                                                <Col span={1} style={{textAlign:'center'}}>Cái</Col> {/* ĐVT giảm span */}
                                                 <Col span={3}><Form.Item {...rest} name={[name,'price']} noStyle rules={[{required:true}]}><InputNumber style={{width:'100%'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} disabled={!canEdit}/></Form.Item></Col>
                                                 <Col span={3} style={{textAlign:'right'}}>{((items[name]?.quantity||0)*(items[name]?.price||0)).toLocaleString()}</Col>
                                                 <Col span={2} style={{textAlign:'center'}}><Space><Tooltip title="Duyệt mẫu"><Button size="small" icon={<ExperimentOutlined/>} style={{color:items[name]?.is_sample_approved?'green':'orange'}} onClick={()=>handleSampleAction(name)}/></Tooltip>{canEdit && <DeleteOutlined onClick={()=>remove(name)} style={{color:'red'}}/>}</Space></Col>
@@ -140,7 +153,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         {/* --- 2. GIAO DIỆN TỔNG TIỀN CHUYÊN NGHIỆP --- */}
                                         <Row justify="space-between" align="bottom">
                                             <Col span={10}>
-                                                {!isQuotation && <Button type="primary" ghost icon={<CheckCircleOutlined/>} onClick={approveAllSamples}>Duyệt Mẫu (All)</Button>}
+                                                {!isQuotation && initialData?.status === 'SO_PENDING' && <Button type="primary" ghost icon={<CheckCircleOutlined/>} onClick={approveAllSamples}>Duyệt Mẫu (All)</Button>}
                                             </Col>
                                             <Col span={14}>
                                                 <div style={{background: '#fff', padding: '15px', borderRadius: 8, border: '1px solid #f0f0f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'}}>
@@ -151,13 +164,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8}}>
                                                         <span style={{color: '#666'}}>Thuế VAT:</span>
                                                         <Space>
-                                                            <Form.Item name="vat_rate" noStyle><Select size="small" style={{width: 70}} options={[{label:'0%',value:0},{label:'8%',value:8},{label:'10%',value:10}]} /></Form.Item>
+                                                            <Form.Item name="vat_rate" noStyle><Select size="small" style={{width: 70}} options={[{label:'0%',value:0},{label:'8%',value:8},{label:'10%',value:10}]} disabled={!canEdit}/></Form.Item>
                                                             <span style={{minWidth: 80, textAlign:'right'}}>{vatAmount.toLocaleString()}</span>
                                                         </Space>
                                                     </div>
                                                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 12}}>
                                                         <span style={{color: '#666'}}>Phí vận chuyển:</span>
-                                                        <Form.Item name="shipping_fee" noStyle><InputNumber size="small" style={{width: 100, textAlign: 'right'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Form.Item>
+                                                        <Form.Item name="shipping_fee" noStyle><InputNumber size="small" style={{width: 100, textAlign: 'right'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} disabled={!canEdit}/></Form.Item>
                                                     </div>
                                                     <Divider style={{margin: '10px 0'}} />
                                                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
@@ -172,17 +185,17 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 <Col span={8}>
                                     <div style={{background:'#f9f9f9', padding:15, borderRadius:8, marginBottom: 10, border: '1px solid #f0f0f0'}}>
                                         <Divider orientation="left" style={{marginTop:0}}><BankOutlined/> Hóa Đơn & Giao Nhận</Divider>
-                                        <Form.Item name="vat_company_name" label="Tên Đơn vị"><Input/></Form.Item>
+                                        <Form.Item name="vat_company_name" label="Tên Đơn vị"><Input disabled={!canEdit}/></Form.Item>
                                         <Row gutter={8}>
-                                            <Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input/></Form.Item></Col>
-                                            <Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input/></Form.Item></Col>
+                                            <Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input disabled={!canEdit}/></Form.Item></Col>
+                                            <Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input disabled={!canEdit}/></Form.Item></Col>
                                         </Row>
                                         <Divider orientation="left"><CarOutlined/> Giao nhận</Divider>
-                                        <Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}}/></Form.Item>
-                                        <Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2}/></Form.Item>
+                                        <Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}} disabled={!canEdit}/></Form.Item>
+                                        <Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2} disabled={!canEdit}/></Form.Item>
                                         <Row gutter={8}>
-                                            <Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input/></Form.Item></Col>
-                                            <Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input/></Form.Item></Col>
+                                            <Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input disabled={!canEdit}/></Form.Item></Col>
+                                            <Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input disabled={!canEdit}/></Form.Item></Col>
                                         </Row>
                                     </div>
                                     
@@ -197,6 +210,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                 rows={5} 
                                                 placeholder="Nhập điều khoản báo giá..." 
                                                 style={{fontSize: 12, lineHeight: 1.5, background: '#fff'}}
+                                                disabled={!canEdit}
                                             />
                                         </Form.Item>
                                     </div>
