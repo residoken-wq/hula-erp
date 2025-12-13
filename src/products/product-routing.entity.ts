@@ -29,6 +29,7 @@ export class ProductRouting {
   @Column({ nullable: true })
   supplier_id: number;
 
+  // --- FIX: Cho phép trường này là NULL ---
   @Column({ nullable: true })
   step_name: string;
 
@@ -38,7 +39,6 @@ export class ProductRouting {
   @Column({ default: 1 })
   step_order: number;
   
-  // --- FIX: BỔ SUNG CỘT IS_REQUIRED ---
   @Column({ default: false })
   is_required: boolean;
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react'; // Bổ sung useState
 import { Table, Button, message, Card, Form, Select, InputNumber, Popconfirm, Row, Col, Tag, Checkbox, Input } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -15,14 +15,30 @@ interface ProductRoutingTabProps {
 
 const ProductRoutingTab: React.FC<ProductRoutingTabProps> = ({ editingItem, routings, suppliers, processes, fetchDetailData, setRoutings }) => {
     const [routingForm] = Form.useForm();
+    
+    // Tạo danh sách tùy chọn Process để có thể lấy tên khi lưu
+    const processOptions = processes.map(p => ({
+        label: p.name,
+        value: p.id,
+        name: p.name // Lưu trữ tên để gán vào step_name
+    }));
 
     const handleSaveRouting = async (values: any) => {
         try {
-            const items = [...routings, { ...values, id: Date.now() }];
+            // Lấy tên Process đã chọn từ danh sách options
+            const processName = processOptions.find(p => p.value === values.process_id)?.name || 'N/A';
+            
+            const itemToAdd = { 
+                ...values, 
+                step_name: processName, // Gán TÊN CÔNG ĐOẠN từ tên Process (DM)
+                id: Date.now() 
+            };
+
+            const items = [...routings, itemToAdd];
             setRoutings(items);
             
             const payload = items.map(i => ({
-                step_name: i.step_name,
+                step_name: i.step_name, // Gửi về Backend
                 process_id: i.process_id,
                 supplier_id: i.supplier_id,
                 cost: i.cost,
@@ -54,7 +70,7 @@ const ProductRoutingTab: React.FC<ProductRoutingTabProps> = ({ editingItem, rout
     };
 
     const routingColumns = [
-        { title: 'Công đoạn', dataIndex: 'step_name' },
+        { title: 'Công đoạn', dataIndex: 'step_name' }, 
         { title: 'NCC', dataIndex: 'supplier_id', render: (id: number) => suppliers.find(s => s.id === id)?.name || '-' },
         { title: 'Bắt buộc', dataIndex: 'is_required', render: (val: boolean) => val ? <Tag color="green">Có</Tag> : <Tag color="red">Không</Tag> },
         { title: 'Chi phí', dataIndex: 'cost', width: 100, align: 'right' as const, render: (v: number) => Number(v).toLocaleString() },
@@ -66,10 +82,12 @@ const ProductRoutingTab: React.FC<ProductRoutingTabProps> = ({ editingItem, rout
             <Col span={8}>
                 <Card title="Thêm Công Đoạn" size="small">
                     <Form form={routingForm} layout="vertical" onFinish={handleSaveRouting}>
-                        <Form.Item name="step_name" label="Tên Công Đoạn" rules={[{required:true}]}><Input/></Form.Item>
-                        <Form.Item name="process_id" label="Loại Công Đoạn">
-                            <Select options={processes} placeholder="VD: May, Ủi, Đóng gói..." />
+                        
+                        {/* FIX: Chỉ giữ lại SELECT Loại Công Đoạn (DM) */}
+                        <Form.Item name="process_id" label="Loại Công Đoạn" rules={[{required:true}]}>
+                            <Select options={processOptions} placeholder="Chọn Loại Công Đoạn..." />
                         </Form.Item>
+                        
                         <Form.Item name="supplier_id" label="Nhà Gia Công">
                             <Select showSearch options={suppliers.filter(s => s.type !== 'MATERIAL').map(s => ({label: s.name, value: s.id}))} placeholder="Chọn NCC/Xưởng GC"/>
                         </Form.Item>
