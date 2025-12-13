@@ -19,15 +19,12 @@ const ProductsPage: React.FC = () => {
     const [searchText, setSearchText] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
     
-    // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [activeTab, setActiveTab] = useState('1'); 
     
-    // --- MỚI: STATE CHO TẠO BIẾN THỂ ---
     const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
     const [baseProductForVariant, setBaseProductForVariant] = useState<any>(null);
-    // ----------------------------------
 
     // Master Data
     const [categories, setCategories] = useState<any[]>([]);
@@ -42,7 +39,7 @@ const ProductsPage: React.FC = () => {
     const [components, setComponents] = useState<any[]>([]); 
 
     const [form] = Form.useForm();
-    const [variantForm] = Form.useForm(); // Form mới cho Biến thể
+    const [variantForm] = Form.useForm(); 
 
     const getCategoryName = (id: number) => {
         return categories.find(c => c.id === id)?.name || 'N/A';
@@ -144,7 +141,6 @@ const ProductsPage: React.FC = () => {
         fetchDetailData(item.id);
     };
     
-    // --- MỚI: LOGIC TẠO BIẾN THỂ TỪ SẢN PHẨM GỐC ---
     const openCreateVariant = (item: any) => {
         setBaseProductForVariant(item);
         variantForm.resetFields();
@@ -158,9 +154,7 @@ const ProductsPage: React.FC = () => {
     const handleCreateVariant = async (values: any) => {
         const { base_sku, variant_sku_suffix, variant_name_suffix, color, size, ...otherValues } = values;
 
-        // Tạo SKU mới: SKU_GOC_SUFFIX
         const newSku = `${base_sku}_${variant_sku_suffix}`;
-        // Tạo Tên mới: TÊN GỐC + ' ' + SUFFIX
         const newName = `${baseProductForVariant.name} ${variant_name_suffix}`;
         
         const payload = {
@@ -170,22 +164,26 @@ const ProductsPage: React.FC = () => {
             attributes: {
                 color: color,
                 size: size,
-                // Thêm các thuộc tính khác nếu cần
             }
-            // Backend cần copy các trường khác (category_id, base_price, unit...)
         };
         
         try {
-            // API Backend cần xử lý việc tạo bản sao sản phẩm và BOM
             await axios.post(`${API_URL}/products/create-variant`, payload); 
             message.success(`Đã tạo biến thể mới: ${newSku}`); 
             setIsVariantModalOpen(false);
             fetchData();
         } catch(e) {
-            message.error(`Lỗi tạo biến thể: ${e.response?.data?.message || e.message}`);
+            // --- FIX: XỬ LÝ LỖI UNKNOWN (TS18046) ---
+            let errorMessage = "Đã xảy ra lỗi không xác định.";
+            if (axios.isAxiosError(e)) {
+                errorMessage = e.response?.data?.message || e.message;
+            } else if (e instanceof Error) {
+                errorMessage = e.message;
+            }
+            message.error(`Lỗi tạo biến thể: ${errorMessage}`);
+            // ----------------------------------------
         }
     }
-    // ----------------------------------------------------
 
     const handleCalculateCost = async (sku: string) => {
         try {
@@ -226,10 +224,9 @@ const ProductsPage: React.FC = () => {
             render: (v: number) => <Badge count={v} showZero overflowCount={999} style={{ backgroundColor: v > 0 ? '#52c41a' : '#faad14' }} />
         },
         { 
-            title: '', key: 'action', width: 160, align: 'center' as const, // Mở rộng cột action
+            title: '', key: 'action', width: 160, align: 'center' as const,
             render: (_:any, r:any) => (
                 <Space size="small">
-                    {/* --- BỔ SUNG NÚT TẠO BIẾN THỂ --- */}
                     <Tooltip title="Tạo Biến thể mới từ Sản phẩm này">
                          <Button 
                              icon={<ForkOutlined />} 
@@ -238,7 +235,6 @@ const ProductsPage: React.FC = () => {
                              onClick={() => openCreateVariant(r)}
                          />
                     </Tooltip>
-                    {/* --------------------------------- */}
                     <Tooltip title="Tính Giá Vốn"><Button icon={<DollarOutlined />} size="small" onClick={() => handleCalculateCost(r.sku)} type="primary" ghost /></Tooltip>
                     <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)} />
                     <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
