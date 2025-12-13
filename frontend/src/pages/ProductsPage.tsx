@@ -13,6 +13,10 @@ const ProductsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
   
+  // --- MỚI: STATE CHO FILTER ---
+  const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
+  // ----------------------------
+  
   // UI State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -95,7 +99,6 @@ const ProductsPage: React.FC = () => {
   // 3. Main CRUD
   const handleSave = async (values: any) => {
       try {
-          // Xử lý data attribute
           const payload = { ...values };
           
           if (editingItem) {
@@ -116,10 +119,8 @@ const ProductsPage: React.FC = () => {
 
   const openEdit = (item: any) => {
       setEditingItem(item);
-      // Gán giá trị vào Form (Nếu attributes là JSON)
       const initialValues = {
           ...item,
-          // Gán lại các thuộc tính nếu cần (ví dụ: item.attributes.color)
       };
       form.setFieldsValue(initialValues);
       setActiveTab('1');
@@ -132,7 +133,7 @@ const ProductsPage: React.FC = () => {
   const handleSaveBOM = async () => {
       try {
           const values = await bomForm.validateFields();
-          const items = [...boms, { ...values, id: Date.now() }]; // Tạm thêm vào list để hiển thị
+          const items = [...boms, { ...values, id: Date.now() }]; 
           setBoms(items);
           await axios.post(`${API_URL}/products/${editingItem.id}/boms`, items);
           message.success('Đã lưu BOM');
@@ -256,36 +257,12 @@ const ProductsPage: React.FC = () => {
       { title: '', key: 'action', width: 70, align: 'center' as const, render: (r:any) => (<Popconfirm title="Xóa?" onConfirm={() => handleRemoveComponent(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>) },
   ];
 
-
-  const columns = [
-      { title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t:any) => <b>{t}</b> },
-      { title: 'Tên Sản Phẩm', dataIndex: 'name', render: (t:any) => <TagOutlined /> + t },
-      { title: 'Phân loại', dataIndex: 'category_id', width: 150, render: (id: number) => <Tag color="blue">{getCategoryName(id)}</Tag> },
-      { 
-          title: 'Giá vốn', dataIndex: 'cost_price', width: 100, align: 'right' as const,
-          render: (v: number) => <span style={{fontWeight:'bold', color:'red'}}>{Number(v).toLocaleString()}</span>
-      },
-      { 
-          title: 'Giá bán', dataIndex: 'base_price', width: 100, align: 'right' as const,
-          render: (v: number) => <span style={{fontWeight:'bold', color:'green'}}>{Number(v).toLocaleString()}</span>
-      },
-      { 
-          title: 'Tồn kho', dataIndex: 'quantity_in_stock', width: 80, align: 'right' as const,
-          render: (v: number) => <Badge count={v} showZero overflowCount={999} style={{ backgroundColor: v > 0 ? '#52c41a' : '#faad14' }} />
-      },
-      { 
-          title: '', key: 'action', width: 120, align: 'center' as const,
-          render: (_:any, r:any) => (
-              <Space size="small">
-                  <Tooltip title="Tính Giá Vốn"><Button icon={<DollarOutlined />} size="small" onClick={() => handleCalculateCost(r.sku)} type="primary" ghost /></Tooltip>
-                  <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)} />
-                  <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
-              </Space>
-          )
-      }
-  ];
-
-  const filteredData = data.filter(d => d.name?.toLowerCase().includes(searchText.toLowerCase()) || d.sku?.toLowerCase().includes(searchText.toLowerCase()));
+  // FIX: Áp dụng Filter
+  const filteredData = data.filter(d => {
+    const textMatch = d.name?.toLowerCase().includes(searchText.toLowerCase()) || d.sku?.toLowerCase().includes(searchText.toLowerCase());
+    const categoryMatch = selectedCategory === undefined || d.category_id === selectedCategory;
+    return textMatch && categoryMatch;
+  });
 
   // Lọc danh sách sản phẩm cho Combo
   const productOptions = useMemo(() => {
@@ -294,7 +271,25 @@ const ProductsPage: React.FC = () => {
 
   return (
     <Card title="Quản Lý Sản Phẩm (SKU)" extra={<Button type="primary" icon={<PlusOutlined />} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1')}}>Thêm Mới</Button>}>
-        <div style={{marginBottom: 16, maxWidth: 400}}><Input placeholder="Tìm kiếm SKU/Tên..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} /></div>
+        
+        {/* FIX: KHU VỰC TÌM KIẾM VÀ FILTER */}
+        <div style={{marginBottom: 16, display: 'flex', gap: 16}}>
+            <Input 
+                placeholder="Tìm kiếm SKU/Tên..." 
+                prefix={<SearchOutlined />} 
+                value={searchText} 
+                onChange={e => setSearchText(e.target.value)} 
+                style={{maxWidth: 300}}
+            />
+            <Select 
+                placeholder="Lọc theo Phân loại" 
+                allowClear
+                style={{minWidth: 200}}
+                onChange={setSelectedCategory}
+                options={categories.map(c => ({ label: c.name, value: c.id }))}
+            />
+        </div>
+        
         <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
         
         {/* MODAL EDIT */}
@@ -303,7 +298,7 @@ const ProductsPage: React.FC = () => {
                 {
                     key: '1', label: <span><BuildOutlined /> Thông Tin Chung</span>,
                     children: (
-                        <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ is_active: true }}>
+                        <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ is_active: true, profit_margin: 30 }}>
                             <Row gutter={16}>
                                 <Col span={8}>
                                     <Form.Item name="sku" label="Mã Sản Phẩm (SKU)" rules={[{required:true}]}><Input/></Form.Item>
@@ -326,12 +321,10 @@ const ProductsPage: React.FC = () => {
                                 <Col span={8}>
                                     <Divider orientation="left"><FileTextOutlined /> Mô tả & Thông tin chi tiết</Divider>
                                     
-                                    {/* --- FIX: FIELD MÔ TẢ KHÁCH HÀNG --- */}
                                     <Form.Item name="customer_description" label="Mô tả Khách hàng/Bán hàng" tooltip="Hiển thị trên Báo giá, SO, Phiếu giao hàng">
                                         <TextArea rows={3} placeholder="Mô tả thương mại, chất liệu cơ bản, v.v."/>
                                     </Form.Item>
                                     
-                                    {/* --- FIX: FIELD MÔ TẢ GIA CÔNG --- */}
                                     <Form.Item name="processing_description" label="Mô tả Gia công/Sản xuất" tooltip="Hiển thị trên PO Gia công, Lệnh sản xuất">
                                         <TextArea rows={3} placeholder="Yêu cầu kỹ thuật, chi tiết may/cắt, v.v."/>
                                     </Form.Item>

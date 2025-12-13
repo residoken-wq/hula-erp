@@ -13,14 +13,12 @@ export class Product {
   @Column()
   name: string;
 
-  // --- LIÊN KẾT DANH MỤC ---
   @ManyToOne(() => Category, (cat) => cat.products, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'category_id' })
   category_link: Category;
 
   @Column({ nullable: true })
   category_id: number;
-  // ------------------------------
 
   @Column({ nullable: true })
   category: string; 
@@ -49,11 +47,11 @@ export class Product {
   @Column({ default: true })
   is_active: boolean;
   
-  // --- MỚI: FIELD MÔ TẢ DÀNH CHO KHÁCH HÀNG ---
+  // --- MỚI: FIELD MÔ TẢ KHÁCH HÀNG ---
   @Column('text', { nullable: true })
   customer_description: string;
 
-  // --- MỚI: FIELD MÔ TẢ DÀNH CHO GIA CÔNG ---
+  // --- MỚI: FIELD MÔ TẢ GIA CÔNG ---
   @Column('text', { nullable: true })
   processing_description: string;
   

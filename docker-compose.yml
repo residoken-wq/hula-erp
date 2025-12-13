@@ -21,14 +21,10 @@ services:
       start_period: 10s
 
   app:
-    # Build context phải trỏ đến thư mục chứa Dockerfile của Backend
-    build:
-      context: . # Giả sử Dockerfile của Backend nằm cùng cấp với docker-compose.yml
+    build: .
     container_name: hula_app
     restart: always
-    # Cần đảm bảo Dockerfile của Backend có lệnh CMD ["npm", "run", "start:dev"]
-    # Hoặc sử dụng lệnh command dưới đây để chạy chế độ dev
-    command: npm run start:dev
+    command: npm run start:dev # Chạy chế độ Dev (Hot Reload)
     ports:
       - "3000:3000"
     environment:
@@ -41,13 +37,14 @@ services:
       db:
         condition: service_healthy
     volumes:
-      # 1. Mapping source code gốc vào container (QUAN TRỌNG cho Hot Reload)
+      # Mapping source code gốc vào container (QUAN TRỌNG cho Hot Reload)
       - ./src:/app/src 
-      # 2. Mapping thư mục dist để NestJS ghi file build (QUAN TRỌNG cho tốc độ)
+      # Mapping dist và node_modules để tăng tốc Rebuild
       - ./dist:/app/dist
-      # 3. Sử dụng Named Volume cho node_modules để tránh bị ghi đè/chậm chạp
       - /app/node_modules
-
+      # Mapping tsconfig.json để NestJS biết cách biên dịch
+      - ./tsconfig.json:/app/tsconfig.json
+      
   frontend:
     build:
       context: ./frontend
@@ -58,7 +55,6 @@ services:
       - "80:80"
     depends_on:
       - app
-    # Giữ nguyên: Không dùng volumes ở đây vì Frontend đã được build tĩnh
 
 volumes:
   postgres_data:
