@@ -30,7 +30,13 @@ export class ProductsService {
   async findOneBySku(sku: string) { return this.productRepo.findOne({ where: { sku }, relations: ['category_link'] }); }
 
   private cleanData(data: any) {
-      const { boms, routings, logistics, components, color, size, fabric, ...clean } = data; 
+      // Bổ sung customer_description và processing_description vào danh sách loại trừ tạm thời
+      const { boms, routings, logistics, components, color, size, fabric, customer_description, processing_description, ...clean } = data; 
+      
+      // Khôi phục các trường mô tả để NestJS TypeORM lưu chúng
+      clean.customer_description = customer_description;
+      clean.processing_description = processing_description;
+      
       if (!clean.attributes && (color || size || fabric)) {
           clean.attributes = { color, size, fabric };
       }

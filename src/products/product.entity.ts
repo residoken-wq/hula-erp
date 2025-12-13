@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Category } from '../categories/category.entity';
-import { ProductRouting } from './product-routing.entity'; // Import Routing
+import { ProductRouting } from './product-routing.entity';
 
 @Entity('products')
 export class Product {
@@ -40,21 +40,25 @@ export class Product {
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   cost_price: number; 
 
-  // --- OVERRIDE MARGIN ---
   @Column('decimal', { precision: 5, scale: 2, nullable: true })
   profit_margin: number; 
-  // ----------------------------------------------------------
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   quantity_in_stock: number;
 
   @Column({ default: true })
   is_active: boolean;
+  
+  // --- MỚI: FIELD MÔ TẢ DÀNH CHO KHÁCH HÀNG ---
+  @Column('text', { nullable: true })
+  customer_description: string;
 
-  // --- FIX: BỔ SUNG QUAN HỆ NGƯỢC ROUTINGS ---
+  // --- MỚI: FIELD MÔ TẢ DÀNH CHO GIA CÔNG ---
+  @Column('text', { nullable: true })
+  processing_description: string;
+  
   @OneToMany(() => ProductRouting, (routing) => routing.product)
   routings: ProductRouting[];
-  // ----------------------------------------
 
   @CreateDateColumn()
   created_at: Date;
