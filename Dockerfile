@@ -3,17 +3,13 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 COPY package*.json ./
-# --- BẮT BUỘT: Copy tsconfig.json ---
 COPY tsconfig.json ./
-# ------------------------------------
 
-# Cài đặt dependency (sử dụng cache)
 RUN npm install
 
-# Copy source code
-COPY . .
+# COPY . . (Lệnh này copy cả src và các file khác)
+COPY . . 
 
-# Chạy build TypeScript (tạo thư mục dist)
 RUN npm run build
 
 # Stage 2: Production/Development Stage
@@ -27,7 +23,11 @@ COPY tsconfig.json ./
 COPY --from=build /app/node_modules ./node_modules
 # Copy file build (JS code)
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/src ./src # Cần thiết cho start:dev
+
+# --- FIX: BỎ HOÀN TOÀN DÒNG LỖI ---
+# Loại bỏ dòng này vì đã có Volume Mapping trong docker-compose.yml:
+# COPY --from=build /app/src ./src # Cần thiết cho start:dev
+# ------------------------------------
 
 # Thay đổi lệnh chạy: Chuyển sang chế độ Watch (Development)
 CMD ["npm", "run", "start:dev"]
