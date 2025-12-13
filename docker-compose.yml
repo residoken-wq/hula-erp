@@ -53,7 +53,7 @@ services:
     restart: always
     # FIX: Map cổng Dev Server (thường là 5173 hoặc 3000) sang cổng 80 của host
     ports:
-      - "80:5173" # Giả định Vite chạy cổng 5173
+      - "80:80" # Giả định Vite chạy cổng 5173
     depends_on:
       - app
     volumes:
