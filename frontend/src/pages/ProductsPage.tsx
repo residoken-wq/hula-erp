@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -19,10 +19,16 @@ const ProductsPage: React.FC = () => {
     const [searchText, setSearchText] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
     
+    // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [activeTab, setActiveTab] = useState('1'); 
     
+    // --- MỚI: STATE CHO TẠO BIẾN THỂ ---
+    const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+    const [baseProductForVariant, setBaseProductForVariant] = useState<any>(null);
+    // ----------------------------------
+
     // Master Data
     const [categories, setCategories] = useState<any[]>([]);
     const [materials, setMaterials] = useState<any[]>([]); 
@@ -36,6 +42,7 @@ const ProductsPage: React.FC = () => {
     const [components, setComponents] = useState<any[]>([]); 
 
     const [form] = Form.useForm();
+    const [variantForm] = Form.useForm(); // Form mới cho Biến thể
 
     const getCategoryName = (id: number) => {
         return categories.find(c => c.id === id)?.name || 'N/A';
@@ -118,7 +125,6 @@ const ProductsPage: React.FC = () => {
     const openEdit = (item: any) => {
         setEditingItem(item);
         
-        // --- LOGIC LỢI NHUẬN KHỞI TẠO ---
         let initialProfitMargin = 30; 
         if (item.category_id) {
             const category = categories.find(c => c.id === item.category_id);
@@ -131,13 +137,55 @@ const ProductsPage: React.FC = () => {
             ...item,
             profit_margin: item.profit_margin !== undefined ? item.profit_margin : initialProfitMargin, 
         };
-        // --------------------------------
-
+        
         form.setFieldsValue(initialValues);
         setActiveTab('1');
         setIsModalOpen(true);
         fetchDetailData(item.id);
     };
+    
+    // --- MỚI: LOGIC TẠO BIẾN THỂ TỪ SẢN PHẨM GỐC ---
+    const openCreateVariant = (item: any) => {
+        setBaseProductForVariant(item);
+        variantForm.resetFields();
+        variantForm.setFieldsValue({
+            base_sku: item.sku,
+            base_name: item.name,
+        });
+        setIsVariantModalOpen(true);
+    }
+    
+    const handleCreateVariant = async (values: any) => {
+        const { base_sku, variant_sku_suffix, variant_name_suffix, color, size, ...otherValues } = values;
+
+        // Tạo SKU mới: SKU_GOC_SUFFIX
+        const newSku = `${base_sku}_${variant_sku_suffix}`;
+        // Tạo Tên mới: TÊN GỐC + ' ' + SUFFIX
+        const newName = `${baseProductForVariant.name} ${variant_name_suffix}`;
+        
+        const payload = {
+            baseSku: base_sku,
+            newSku: newSku,
+            newName: newName,
+            attributes: {
+                color: color,
+                size: size,
+                // Thêm các thuộc tính khác nếu cần
+            }
+            // Backend cần copy các trường khác (category_id, base_price, unit...)
+        };
+        
+        try {
+            // API Backend cần xử lý việc tạo bản sao sản phẩm và BOM
+            await axios.post(`${API_URL}/products/create-variant`, payload); 
+            message.success(`Đã tạo biến thể mới: ${newSku}`); 
+            setIsVariantModalOpen(false);
+            fetchData();
+        } catch(e) {
+            message.error(`Lỗi tạo biến thể: ${e.response?.data?.message || e.message}`);
+        }
+    }
+    // ----------------------------------------------------
 
     const handleCalculateCost = async (sku: string) => {
         try {
@@ -178,9 +226,19 @@ const ProductsPage: React.FC = () => {
             render: (v: number) => <Badge count={v} showZero overflowCount={999} style={{ backgroundColor: v > 0 ? '#52c41a' : '#faad14' }} />
         },
         { 
-            title: '', key: 'action', width: 120, align: 'center' as const,
+            title: '', key: 'action', width: 160, align: 'center' as const, // Mở rộng cột action
             render: (_:any, r:any) => (
                 <Space size="small">
+                    {/* --- BỔ SUNG NÚT TẠO BIẾN THỂ --- */}
+                    <Tooltip title="Tạo Biến thể mới từ Sản phẩm này">
+                         <Button 
+                             icon={<ForkOutlined />} 
+                             size="small" 
+                             type="default" 
+                             onClick={() => openCreateVariant(r)}
+                         />
+                    </Tooltip>
+                    {/* --------------------------------- */}
                     <Tooltip title="Tính Giá Vốn"><Button icon={<DollarOutlined />} size="small" onClick={() => handleCalculateCost(r.sku)} type="primary" ghost /></Tooltip>
                     <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)} />
                     <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
@@ -195,29 +253,24 @@ const ProductsPage: React.FC = () => {
         return textMatch && categoryMatch;
     });
 
-    // Lọc danh sách sản phẩm cho Combo
     const productOptions = useMemo(() => {
         return data.map(p => ({ label: `${p.sku} - ${p.name}`, value: p.sku }));
     }, [data]);
-    
-    // --- FIX LOGIC LẮNG NGHE THAY ĐỔI CATEGORY ---
+
     const handleFormValuesChange = (changedValues: any) => {
         if (changedValues.category_id !== undefined) {
             const newCategoryId = changedValues.category_id;
             const category = categories.find(c => c.id === newCategoryId);
             
             if (category && category.profit_margin !== undefined) {
-                // Chỉ cập nhật profit_margin nếu nó khác giá trị hiện tại
                 if (form.getFieldValue('profit_margin') !== category.profit_margin) {
                     form.setFieldsValue({ profit_margin: category.profit_margin });
                 }
             } else {
-                // Nếu không tìm thấy danh mục hoặc không có margin, đặt giá trị mặc định
                 form.setFieldsValue({ profit_margin: 30 }); 
             }
         }
     };
-    // --------------------------------------------
 
     return (
         <Card title="Quản Lý Sản Phẩm (SKU)" extra={<Button type="primary" icon={<PlusOutlined />} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1')}}>Thêm Mới</Button>}>
@@ -251,7 +304,7 @@ const ProductsPage: React.FC = () => {
                                 layout="vertical" 
                                 onFinish={handleSave} 
                                 initialValues={{ is_active: true }}
-                                onValuesChange={handleFormValuesChange} // --- FIX: GÁN HOOK LẮNG NGHE ---
+                                onValuesChange={handleFormValuesChange}
                             >
                                 <Row gutter={16}>
                                     <Col span={8}>
@@ -316,7 +369,6 @@ const ProductsPage: React.FC = () => {
                         key: '4', label: <span><SendOutlined /> Logistics & Vận chuyển</span>,
                         disabled: !editingItem,
                         children: (
-                            // Thay thế bằng ProductLogisticsTab
                             <div>Logistics Tab (Cần tạo component riêng)</div>
                         )
                     },
@@ -324,12 +376,10 @@ const ProductsPage: React.FC = () => {
                         key: '5', label: <span><LinkOutlined /> Combo/Thành phần</span>,
                         disabled: !editingItem,
                         children: (
-                            // Thay thế bằng ProductComponentTab
                             <div>Combo Tab (Cần tạo component riêng)</div>
                         )
                     },
                     {
-                        // --- TAB BIẾN THỂ ---
                         key: '6', 
                         label: <span><SyncOutlined /> Quản lý Biến thể</span>,
                         disabled: !editingItem,
@@ -341,7 +391,6 @@ const ProductsPage: React.FC = () => {
                                 fetchDetailData={fetchDetailData}
                             />
                         )
-                        // -----------------------------
                     }
                 ]} />
                 
@@ -353,6 +402,49 @@ const ProductsPage: React.FC = () => {
                     </div>
                 )}
             </Modal>
+            
+            {/* --- MODAL TẠO BIẾN THỂ MỚI --- */}
+            <Modal
+                title={`Tạo Biến thể mới từ ${baseProductForVariant?.sku}`}
+                open={isVariantModalOpen}
+                onCancel={() => setIsVariantModalOpen(false)}
+                okText="Tạo & Sao chép BOM"
+                onOk={() => variantForm.submit()}
+                destroyOnClose={true}
+            >
+                <Form form={variantForm} layout="vertical" onFinish={handleCreateVariant} initialValues={{ base_sku: baseProductForVariant?.sku }}>
+                    <Form.Item name="base_sku" label="SKU Gốc" ><Input disabled /></Form.Item>
+                    <Divider />
+                    
+                    <Row gutter={16}>
+                        <Col span={12}>
+                             <Form.Item name="variant_sku_suffix" label="Hậu tố SKU Biến thể" rules={[{required: true, message: 'Nhập hậu tố SKU (VD: -RED)'}]}>
+                                <Input addonBefore={baseProductForVariant?.sku + '_'} placeholder="VD: RED, L" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="variant_name_suffix" label="Hậu tố Tên Biến thể">
+                                <Input addonBefore={baseProductForVariant?.name + ' '} placeholder="VD: Đỏ, Size L" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Divider orientation="left">Thuộc tính Biến thể</Divider>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="color" label="Màu sắc (Color)">
+                                <Input placeholder="VD: Đỏ, Xanh Navy" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="size" label="Kích thước (Size)">
+                                <Input placeholder="VD: L, 40x60cm" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </Form>
+            </Modal>
+            {/* ------------------------------- */}
         </Card>
     );
 };
