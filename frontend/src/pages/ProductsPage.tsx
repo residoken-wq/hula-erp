@@ -118,8 +118,8 @@ const ProductsPage: React.FC = () => {
     const openEdit = (item: any) => {
         setEditingItem(item);
         
-        // --- FIX: Thiết lập Lợi nhuận mong muốn theo Danh mục ---
-        let initialProfitMargin = 30; // Giá trị mặc định nếu không tìm thấy
+        // --- LOGIC LỢI NHUẬN KHỞI TẠO ---
+        let initialProfitMargin = 30; 
         if (item.category_id) {
             const category = categories.find(c => c.id === item.category_id);
             if (category && category.profit_margin !== undefined) {
@@ -129,11 +129,10 @@ const ProductsPage: React.FC = () => {
 
         const initialValues = {
             ...item,
-            // Sử dụng giá trị cũ nếu có, nếu không lấy từ Category (hoặc 30)
             profit_margin: item.profit_margin !== undefined ? item.profit_margin : initialProfitMargin, 
         };
-        // -------------------------------------------------------------
-        
+        // --------------------------------
+
         form.setFieldsValue(initialValues);
         setActiveTab('1');
         setIsModalOpen(true);
@@ -155,7 +154,6 @@ const ProductsPage: React.FC = () => {
 
     const columns = [
         { title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t:any) => <b>{t}</b> },
-        // --- FIX LỖI HIỂN THỊ [object Object] BẰNG CÁCH SỬ DỤNG <Space> ---
         { 
             title: 'Tên Sản Phẩm', 
             dataIndex: 'name', 
@@ -166,7 +164,6 @@ const ProductsPage: React.FC = () => {
                 </Space>
             )
         },
-        // -------------------------------------------------------------------
         { title: 'Phân loại', dataIndex: 'category_id', width: 150, render: (id: number) => <Tag color="blue">{getCategoryName(id)}</Tag> },
         { 
             title: 'Giá vốn', dataIndex: 'cost_price', width: 100, align: 'right' as const,
@@ -202,6 +199,25 @@ const ProductsPage: React.FC = () => {
     const productOptions = useMemo(() => {
         return data.map(p => ({ label: `${p.sku} - ${p.name}`, value: p.sku }));
     }, [data]);
+    
+    // --- FIX LOGIC LẮNG NGHE THAY ĐỔI CATEGORY ---
+    const handleFormValuesChange = (changedValues: any) => {
+        if (changedValues.category_id !== undefined) {
+            const newCategoryId = changedValues.category_id;
+            const category = categories.find(c => c.id === newCategoryId);
+            
+            if (category && category.profit_margin !== undefined) {
+                // Chỉ cập nhật profit_margin nếu nó khác giá trị hiện tại
+                if (form.getFieldValue('profit_margin') !== category.profit_margin) {
+                    form.setFieldsValue({ profit_margin: category.profit_margin });
+                }
+            } else {
+                // Nếu không tìm thấy danh mục hoặc không có margin, đặt giá trị mặc định
+                form.setFieldsValue({ profit_margin: 30 }); 
+            }
+        }
+    };
+    // --------------------------------------------
 
     return (
         <Card title="Quản Lý Sản Phẩm (SKU)" extra={<Button type="primary" icon={<PlusOutlined />} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1')}}>Thêm Mới</Button>}>
@@ -230,7 +246,13 @@ const ProductsPage: React.FC = () => {
                     {
                         key: '1', label: <span><BuildOutlined /> Thông Tin Chung</span>,
                         children: (
-                            <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ is_active: true }}>
+                            <Form 
+                                form={form} 
+                                layout="vertical" 
+                                onFinish={handleSave} 
+                                initialValues={{ is_active: true }}
+                                onValuesChange={handleFormValuesChange} // --- FIX: GÁN HOOK LẮNG NGHE ---
+                            >
                                 <Row gutter={16}>
                                     <Col span={8}>
                                         <Form.Item name="sku" label="Mã Sản Phẩm (SKU)" rules={[{required:true}]}><Input/></Form.Item>
@@ -314,7 +336,7 @@ const ProductsPage: React.FC = () => {
                         children: (
                             <ProductVariantsTab
                                 editingItem={editingItem}
-                                data={data} // Truyền toàn bộ dữ liệu sản phẩm để tìm biến thể
+                                data={data} 
                                 fetchData={fetchData}
                                 fetchDetailData={fetchDetailData}
                             />

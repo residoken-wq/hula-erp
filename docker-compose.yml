@@ -51,10 +51,17 @@ services:
       dockerfile: Dockerfile
     container_name: hula_frontend
     restart: always
+    # FIX: Map cổng Dev Server (thường là 5173 hoặc 3000) sang cổng 80 của host
     ports:
-      - "80:80"
+      - "80:5173" # Giả định Vite chạy cổng 5173
     depends_on:
       - app
+    volumes:
+      # QUAN TRỌNG: Mapping Source Code để HMR hoạt động
+      - ./frontend/src:/app/src 
+      - ./frontend/package.json:/app/package.json
+      # Không cache node_modules từ host
+      - /app/node_modules
 
 volumes:
   postgres_data:
