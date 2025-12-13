@@ -21,4 +21,14 @@ RUN npm run build
 
 # Stage 2: Nginx (Chạy Production)
 FROM nginx:alpine
-# ... (Phần Nginx giữ nguyên)
+
+# Copy cấu hình Nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+ 
+# Copy file build từ Stage 1
+# Giả định npm run build tạo ra thư mục dist
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+ 
+CMD ["nginx", "-g", "daemon off;"]
