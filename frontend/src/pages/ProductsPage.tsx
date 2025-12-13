@@ -173,7 +173,6 @@ const ProductsPage: React.FC = () => {
             setIsVariantModalOpen(false);
             fetchData();
         } catch(e) {
-            // --- FIX: XỬ LÝ LỖI UNKNOWN (TS18046) ---
             let errorMessage = "Đã xảy ra lỗi không xác định.";
             if (axios.isAxiosError(e)) {
                 errorMessage = e.response?.data?.message || e.message;
@@ -181,7 +180,6 @@ const ProductsPage: React.FC = () => {
                 errorMessage = e.message;
             }
             message.error(`Lỗi tạo biến thể: ${errorMessage}`);
-            // ----------------------------------------
         }
     }
 
@@ -290,6 +288,7 @@ const ProductsPage: React.FC = () => {
             
             <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
             
+            {/* Modal chính (Cập nhật sản phẩm) */}
             <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>{ if(activeTab==='1') form.submit(); else message.warning('Vui lòng lưu thông tin chung trước') }} width={1400} okText="Lưu Thông Tin Chung">
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                     {
@@ -399,7 +398,7 @@ const ProductsPage: React.FC = () => {
                 )}
             </Modal>
             
-            {/* --- MODAL TẠO BIẾN THỂ MỚI --- */}
+            {/* --- MODAL TẠO BIẾN THỂ MỚI (Đã mở rộng width) --- */}
             <Modal
                 title={`Tạo Biến thể mới từ ${baseProductForVariant?.sku}`}
                 open={isVariantModalOpen}
@@ -407,6 +406,7 @@ const ProductsPage: React.FC = () => {
                 okText="Tạo & Sao chép BOM"
                 onOk={() => variantForm.submit()}
                 destroyOnClose={true}
+                width={800} // FIX: Mở rộng Modal Biến thể
             >
                 <Form form={variantForm} layout="vertical" onFinish={handleCreateVariant} initialValues={{ base_sku: baseProductForVariant?.sku }}>
                     <Form.Item name="base_sku" label="SKU Gốc" ><Input disabled /></Form.Item>
@@ -414,8 +414,9 @@ const ProductsPage: React.FC = () => {
                     
                     <Row gutter={16}>
                         <Col span={12}>
-                             <Form.Item name="variant_sku_suffix" label="Hậu tố SKU Biến thể" rules={[{required: true, message: 'Nhập hậu tố SKU (VD: -RED)'}]}>
-                                <Input addonBefore={baseProductForVariant?.sku + '_'} placeholder="VD: RED, L" />
+                             <Form.Item name="variant_sku_suffix" label="Hậu tố SKU Biến thể" rules={[{required: true, message: 'Nhập hậu tố SKU (VD: RED)'}]}>
+                                 {/* Fix lỗi nhập liệu bằng cách sử dụng addonAfter='_' */}
+                                <Input addonBefore={baseProductForVariant?.sku} addonAfter='_' placeholder="VD: RED, L" /> 
                             </Form.Item>
                         </Col>
                         <Col span={12}>
