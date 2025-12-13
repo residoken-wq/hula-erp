@@ -215,6 +215,7 @@ const ProductsPage: React.FC = () => {
 
     const columns = [
         { title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t:any) => <b>{t}</b> },
+        // FIX: Lỗi [object Object]
         { 
             title: 'Tên Sản Phẩm', 
             dataIndex: 'name', 
@@ -346,7 +347,19 @@ const ProductsPage: React.FC = () => {
                                     <Col span={8}>
                                         <Divider orientation="left">Thông tin Giá & Tồn</Divider>
                                         <Form.Item name="base_price" label="Giá bán (Chưa KM)"><InputNumber style={{width:'100%'}} addonAfter="₫" formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Form.Item>
-                                        <Form.Item name="cost_price" label="Giá vốn (Hệ thống tính)" tooltip="Hệ thống tính tự động, không cần nhập"><InputNumber style={{width:'100%'}} addonAfter="₫" disabled/></Form.Item>
+                                        
+                                        {/* --- FIX: THÊM ICON REFRESH VÀO GIÁ VỐN --- */}
+                                        <Form.Item name="cost_price" label="Giá vốn (Hệ thống tính)" tooltip="Hệ thống tính tự động (BOM + Gia công). Click refresh để tính lại.">
+                                            <InputNumber 
+                                                style={{width:'100%'}} 
+                                                // Nút Refresh gọi handleCalculateCost với SKU hiện tại
+                                                addonAfter={<Tooltip title="Tính lại Giá vốn (BOM + Gia công)"><SyncOutlined onClick={() => handleCalculateCost(form.getFieldValue('sku'))} style={{cursor: 'pointer'}}/></Tooltip>}
+                                                formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+                                                disabled
+                                            />
+                                        </Form.Item>
+                                        {/* ------------------------------------------- */}
+                                        
                                         <Form.Item name="profit_margin" label="Lợi nhuận mong muốn (%)" tooltip="Lấy từ Danh mục nếu tạo mới, có thể override tại đây"><InputNumber style={{width:'100%'}} addonAfter="%" min={0} max={99}/></Form.Item>
                                         <Form.Item name="quantity_in_stock" label="Tồn kho"><InputNumber style={{width:'100%'}}/></Form.Item>
                                     </Col>
@@ -420,13 +433,7 @@ const ProductsPage: React.FC = () => {
                     }
                 ]} />
                 
-                {editingItem && activeTab !== '1' && (
-                    <div style={{ position: 'absolute', bottom: 10, right: 24 }}>
-                        <Button type="default" onClick={() => handleCalculateCost(editingItem.sku)} icon={<SyncOutlined />}>
-                            Tính lại Giá Vốn
-                        </Button>
-                    </div>
-                )}
+                {/* Đã loại bỏ nút Tính lại Giá vốn dưới footer vì đã có icon trong Tab 1 */}
             </Modal>
             
             {/* Modal Tạo Biến thể (Fix Width & Form) */}
