@@ -1,105 +1,479 @@
-// src/components/products/ProductBOMTab.tsx
-
-import React from 'react';
-import { Table, Button, message, Card, Form, Select, InputNumber, Popconfirm, Row, Col, Space } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined } from '@ant-design/icons';
 import axios from 'axios';
-import { API_URL } from '../../config';
+import { API_URL } from '../config';
 
-interface ProductBOMTabProps {
-    editingItem: any;
-    boms: any[];
-    materials: any[]; // Đã được chuẩn hóa thành { value, label } trong ProductsPage
-    fetchDetailData: (id: number) => void;
-    setBoms: React.Dispatch<React.SetStateAction<any[]>>;
-}
+// --- IMPORTS CÁC COMPONENT ĐÃ TÁCH ---
+import ProductBOMTab from '../components/products/ProductBOMTab';
+import ProductRoutingTab from '../components/products/ProductRoutingTab';
+import ProductVariantsTab from '../components/products/ProductVariantsTab'; 
+// -------------------------------------
 
-const ProductBOMTab: React.FC<ProductBOMTabProps> = ({ editingItem, boms, materials, fetchDetailData, setBoms }) => {
-    const [bomForm] = Form.useForm();
+const { TextArea } = Input;
+const { Option } = Select;
 
-    const handleSaveBOM = async (values: any) => {
+const ProductsPage: React.FC = () => {
+    const [data, setData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [searchText, setSearchText] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
+    
+    // UI State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState<any>(null);
+    const [activeTab, setActiveTab] = useState('1'); 
+    
+    // Variant State
+    const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+    const [baseProductForVariant, setBaseProductForVariant] = useState<any>(null);
+
+    // Master Data
+    const [categories, setCategories] = useState<any[]>([]);
+    const [materials, setMaterials] = useState<any[]>([]); 
+    const [suppliers, setSuppliers] = useState<any[]>([]); 
+    const [processes, setProcesses] = useState<any[]>([]); 
+
+    // Sub-data State 
+    const [boms, setBoms] = useState<any[]>([]);
+    const [routings, setRoutings] = useState<any[]>([]);
+    const [logistics, setLogistics] = useState<any[]>([]);
+    const [components, setComponents] = useState<any[]>([]); 
+
+    const [form] = Form.useForm();
+    const [variantForm] = Form.useForm(); 
+
+    const getCategoryName = (id: number) => {
+        return categories.find(c => c.id === id)?.name || 'N/A';
+    }
+
+    // 1. Fetch Master Data
+    const fetchData = async () => {
+        setLoading(true);
         try {
-            const items = [...boms, { ...values, id: Date.now() }]; // Thêm tạm ID giả
-            setBoms(items);
+            const res = await axios.get(`${API_URL}/products`);
+            setData(Array.isArray(res.data) ? res.data : []);
             
-            const payload = items.map(i => ({
-                material_id: i.material_id, 
-                quantity: i.quantity, 
-                waste_percent: i.waste_percent 
-            }));
+            const resCat = await axios.get(`${API_URL}/categories`);
+            setCategories(Array.isArray(resCat.data) ? resCat.data : []); 
 
-            await axios.post(`${API_URL}/products/${editingItem.id}/boms`, payload);
-            message.success('Đã lưu BOM');
-            fetchDetailData(editingItem.id);
-            bomForm.resetFields();
-        } catch(e) { message.error('Lỗi lưu BOM'); }
+            const resMat = await axios.get(`${API_URL}/materials`);
+            const normalizedMaterials = Array.isArray(resMat.data) 
+                ? resMat.data.map(m => ({
+                    value: m.id, 
+                    label: `${m.sku || m.code} - ${m.name}` 
+                }))
+                : [];
+            setMaterials(normalizedMaterials);
+
+            const resSup = await axios.get(`${API_URL}/suppliers`);
+            setSuppliers(Array.isArray(resSup.data) ? resSup.data : []);
+            
+            const resProc = await axios.get(`${API_URL}/processes`);
+            setProcesses(Array.isArray(resProc.data) ? resProc.data : []);
+            
+        } catch(e) { message.error('Lỗi tải dữ liệu'); }
+        setLoading(false);
+    };
+
+    useEffect(() => { fetchData(); }, []);
+    
+    // 2. Detail Data Fetcher
+    const fetchDetailData = async (id: number) => {
+        if (!id) return;
+        try {
+            const res = await axios.get(`${API_URL}/products/${id}`);
+            const product = res.data;
+            
+            const resBOM = await axios.get(`${API_URL}/products/${product.sku}/boms`);
+            setBoms(resBOM.data || []);
+            
+            const resRouting = await axios.get(`${API_URL}/products/${id}/routings`);
+            setRoutings(resRouting.data || []);
+
+            const resLogistics = await axios.get(`${API_URL}/products/${id}/logistics`);
+            setLogistics(resLogistics.data || []);
+
+            const resComp = await axios.get(`${API_URL}/products/combo/${product.sku}`);
+            setComponents(resComp.data || []);
+
+        } catch(e) { message.error('Lỗi tải chi tiết'); }
     };
     
-    const handleRemoveBOM = async (idToRemove: number) => {
-        const updatedBoms = boms.filter(b => b.id !== idToRemove);
-        setBoms(updatedBoms);
+    // 3. Main CRUD
+    const handleSave = async (values: any) => {
+        try {
+            const payload = { ...values };
+            let savedProduct: any; 
 
-        const payload = updatedBoms.map(i => ({
-            material_id: i.material_id, 
-            quantity: i.quantity, 
-            waste_percent: i.waste_percent 
-        }));
-
-        await axios.post(`${API_URL}/products/${editingItem.id}/boms`, payload);
-        message.success('Đã xóa BOM');
-        fetchDetailData(editingItem.id);
+            if (editingItem) {
+                // Cập nhật sản phẩm
+                await axios.put(`${API_URL}/products/${editingItem.id}`, payload);
+                message.success('Đã lưu thành công'); 
+                setIsModalOpen(false); 
+                fetchData();
+            } else {
+                // TẠO MỚI SẢN PHẨM (FIX: Nhận ID để xử lý các bước tiếp theo)
+                const res = await axios.post(`${API_URL}/products`, payload);
+                savedProduct = res.data; 
+                
+                message.success('Đã tạo sản phẩm mới thành công. Vui lòng thiết lập BOM/Quy trình.'); 
+                
+                setEditingItem(savedProduct); 
+                form.setFieldsValue(savedProduct);
+                setActiveTab('2'); // Chuyển sang Tab BOM
+                
+                fetchDetailData(savedProduct.id); 
+                fetchData(); 
+            }
+            
+        } catch(e) { message.error('Lỗi lưu'); }
     };
 
-    const bomColumns = [
-        { 
-            title: 'Mã NPL', 
-            dataIndex: 'material_id', 
-            // FIX: Ưu tiên lấy từ Material object (khi Backend JOIN) hoặc tìm trong Master Data
-            render: (id: number, record: any) => {
-                // Trường hợp 1: Backend trả về object Material (material)
-                if (record.material?.sku) return record.material.sku;
-                // Trường hợp 2: Lấy từ Master Data đã chuẩn hóa
-                const materialItem = materials.find(m => m.value === id);
-                return materialItem ? materialItem.label.split(' - ')[0] : '-';
+    const handleDelete = async (id: number) => {
+        try { await axios.delete(`${API_URL}/products/${id}`); message.success('Đã xóa'); fetchData(); } 
+        catch(e) { message.error('Lỗi xóa'); }
+    };
+
+    const openEdit = (item: any) => {
+        setEditingItem(item);
+        
+        // Logic Lợi nhuận mong muốn theo Danh mục (Fix)
+        let initialProfitMargin = 30; 
+        if (item.category_id) {
+            const category = categories.find(c => c.id === item.category_id);
+            if (category && category.profit_margin !== undefined) {
+                initialProfitMargin = category.profit_margin;
             }
+        }
+
+        const initialValues = {
+            ...item,
+            profit_margin: item.profit_margin !== undefined ? item.profit_margin : initialProfitMargin, 
+        };
+        
+        form.setFieldsValue(initialValues);
+        setActiveTab('1');
+        setIsModalOpen(true);
+        fetchDetailData(item.id);
+    };
+    
+    const openCreateVariant = (item: any) => {
+        setBaseProductForVariant(item);
+        variantForm.resetFields();
+        variantForm.setFieldsValue({
+            base_sku: item.sku,
+            base_name: item.name,
+        });
+        setIsVariantModalOpen(true);
+    }
+    
+    const handleCreateVariant = async (values: any) => {
+        const { base_sku, variant_sku_suffix, variant_name_suffix, color, size, ...otherValues } = values;
+
+        const newSku = `${base_sku}_${variant_sku_suffix}`;
+        const newName = `${baseProductForVariant.name} ${variant_name_suffix}`;
+        
+        const payload = {
+            baseSku: base_sku,
+            newSku: newSku,
+            newName: newName,
+            attributes: {
+                color: color,
+                size: size,
+            }
+        };
+        
+        try {
+            await axios.post(`${API_URL}/products/create-variant`, payload); 
+            message.success(`Đã tạo biến thể mới: ${newSku}`); 
+            setIsVariantModalOpen(false);
+            fetchData();
+        } catch(e) {
+            let errorMessage = "Đã xảy ra lỗi không xác định.";
+            if (axios.isAxiosError(e)) {
+                errorMessage = e.response?.data?.message || e.message;
+            } else if (e instanceof Error) {
+                errorMessage = e.message;
+            }
+            message.error(`Lỗi tạo biến thể: ${errorMessage}`);
+        }
+    }
+
+    const handleCalculateCost = async (sku: string) => {
+        try {
+            const res = await axios.get(`${API_URL}/products/calculate-cost/${sku}`);
+            message.success(`Giá vốn mới: ${Number(res.data.new_cost_price).toLocaleString()} ₫`);
+            fetchData(); 
+            if(editingItem) {
+                const updatedItem = await axios.get(`${API_URL}/products/${editingItem.id}`);
+                setEditingItem(updatedItem.data);
+                form.setFieldsValue(updatedItem.data);
+            }
+        } catch(e) { message.error('Lỗi tính giá vốn'); }
+    };
+
+    const columns = [
+        { title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t:any) => <b>{t}</b> },
+        // FIX: Lỗi [object Object]
+        { 
+            title: 'Tên Sản Phẩm', 
+            dataIndex: 'name', 
+            render: (t:any) => (
+                <Space size={4}>
+                    <TagOutlined /> 
+                    {t}
+                </Space>
+            )
+        },
+        { title: 'Phân loại', dataIndex: 'category_id', width: 150, render: (id: number) => <Tag color="blue">{getCategoryName(id)}</Tag> },
+        { 
+            title: 'Giá vốn', dataIndex: 'cost_price', width: 100, align: 'right' as const,
+            render: (v: number) => <span style={{fontWeight:'bold', color:'red'}}>{Number(v).toLocaleString()}</span>
         },
         { 
-            title: 'Tên NPL', 
-            dataIndex: 'material_id', 
-            render: (id: number, record: any) => {
-                // Trường hợp 1: Backend trả về object Material (material)
-                if (record.material?.name) return record.material.name;
-                // Trường hợp 2: Lấy từ Master Data đã chuẩn hóa
-                const materialItem = materials.find(m => m.value === id);
-                return materialItem ? materialItem.label.split(' - ')[1] : '-';
-            }
+            title: 'Giá bán', dataIndex: 'base_price', width: 100, align: 'right' as const,
+            render: (v: number) => <span style={{fontWeight:'bold', color:'green'}}>{Number(v).toLocaleString()}</span>
         },
-        { title: 'SL', dataIndex: 'quantity', width: 70, align: 'right' as const },
-        { title: 'Hao hụt (%)', dataIndex: 'waste_percent', width: 90, align: 'right' as const },
-        { title: '', key: 'action', width: 70, align: 'center' as const, render: (r:any) => (<Popconfirm title="Xóa?" onConfirm={() => handleRemoveBOM(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>) },
+        { 
+            title: 'Tồn kho', dataIndex: 'quantity_in_stock', width: 80, align: 'right' as const,
+            render: (v: number) => <Badge count={v} showZero overflowCount={999} style={{ backgroundColor: v > 0 ? '#52c41a' : '#faad14' }} />
+        },
+        { 
+            title: '', key: 'action', width: 160, align: 'center' as const,
+            render: (_:any, r:any) => (
+                <Space size="small">
+                    {/* Nút Tạo Biến thể (Fix) */}
+                    <Tooltip title="Tạo Biến thể mới từ Sản phẩm này">
+                         <Button 
+                             icon={<ForkOutlined />} 
+                             size="small" 
+                             type="default" 
+                             onClick={() => openCreateVariant(r)}
+                         />
+                    </Tooltip>
+                    <Tooltip title="Tính Giá Vốn"><Button icon={<DollarOutlined />} size="small" onClick={() => handleCalculateCost(r.sku)} type="primary" ghost /></Tooltip>
+                    <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)} />
+                    <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
+                </Space>
+            )
+        }
     ];
 
-    return (
-        <Row gutter={16}>
-            <Col span={8}>
-                <Card title="Thêm NPL" size="small">
-                    <Form form={bomForm} layout="vertical" onFinish={handleSaveBOM}>
-                        <Form.Item name="material_id" label="Nguyên Vật Liệu" rules={[{required:true}]}>
-                            <Select showSearch options={materials} optionFilterProp="label" placeholder="Chọn NPL..." />
-                        </Form.Item>
-                        <Row gutter={8}>
-                            <Col span={12}><Form.Item name="quantity" label="Số lượng" rules={[{required:true}]}><InputNumber style={{width:'100%'}} min={0} /></Form.Item></Col>
-                            <Col span={12}><Form.Item name="waste_percent" label="Hao hụt (%)"><InputNumber style={{width:'100%'}} min={0} max={100}/></Form.Item></Col>
-                        </Row>
-                        <Button type="primary" htmlType="submit" block><PlusOutlined /> Thêm</Button>
-                    </Form>
-                </Card>
-            </Col>
-            <Col span={16}>
-                <Table dataSource={boms} columns={bomColumns} rowKey="id" pagination={false} size="small" bordered />
-            </Col>
-        </Row>
-    );
-}
+    const filteredData = data.filter(d => {
+        const textMatch = d.name?.toLowerCase().includes(searchText.toLowerCase()) || d.sku?.toLowerCase().includes(searchText.toLowerCase());
+        const categoryMatch = selectedCategory === undefined || d.category_id === selectedCategory;
+        return textMatch && categoryMatch;
+    });
 
-export default ProductBOMTab;
+    const productOptions = useMemo(() => {
+        return data.map(p => ({ label: `${p.sku} - ${p.name}`, value: p.sku }));
+    }, [data]);
+
+    // FIX: Logic Lợi nhuận tự động cập nhật khi thay đổi Phân loại
+    const handleFormValuesChange = (changedValues: any) => {
+        if (changedValues.category_id !== undefined) {
+            const newCategoryId = changedValues.category_id;
+            const category = categories.find(c => c.id === newCategoryId);
+            
+            if (category && category.profit_margin !== undefined) {
+                if (form.getFieldValue('profit_margin') !== category.profit_margin) {
+                    form.setFieldsValue({ profit_margin: category.profit_margin });
+                }
+            } else {
+                form.setFieldsValue({ profit_margin: 30 }); 
+            }
+        }
+    };
+
+    return (
+        <Card title="Quản Lý Sản Phẩm (SKU)" extra={<Button type="primary" icon={<PlusOutlined />} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1')}}>Thêm Mới</Button>}>
+            
+            <div style={{marginBottom: 16, display: 'flex', gap: 16}}>
+                <Input 
+                    placeholder="Tìm kiếm SKU/Tên..." 
+                    prefix={<SearchOutlined />} 
+                    value={searchText} 
+                    onChange={e => setSearchText(e.target.value)} 
+                    style={{maxWidth: 300}}
+                />
+                <Select 
+                    placeholder="Lọc theo Phân loại" 
+                    allowClear
+                    style={{minWidth: 200}}
+                    onChange={setSelectedCategory}
+                    options={categories.map(c => ({ label: c.name, value: c.id }))}
+                />
+            </div>
+            
+            <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
+            
+            {/* Modal chính (Cập nhật sản phẩm) */}
+            <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} 
+                   open={isModalOpen} 
+                   onCancel={()=>setIsModalOpen(false)} 
+                   // FIX: Logic onOk
+                   onOk={()=>{ 
+                       if(activeTab==='1') {
+                           form.submit();
+                       } else {
+                           setIsModalOpen(false);
+                       }
+                   }} 
+                   width={1400} 
+                   okText={editingItem ? "Lưu Thông Tin Chung" : "Tạo Sản Phẩm & Tiếp tục"} 
+            >
+                <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
+                    {
+                        key: '1', label: <span><BuildOutlined /> Thông Tin Chung</span>,
+                        children: (
+                            <Form 
+                                form={form} 
+                                layout="vertical" 
+                                onFinish={handleSave} 
+                                initialValues={{ is_active: true }}
+                                onValuesChange={handleFormValuesChange} // FIX: Lắng nghe thay đổi Phân loại
+                            >
+                                <Row gutter={16}>
+                                    <Col span={8}>
+                                        <Form.Item name="sku" label="Mã Sản Phẩm (SKU)" rules={[{required:true}]}><Input/></Form.Item>
+                                        <Form.Item name="name" label="Tên Sản Phẩm" rules={[{required:true}]}><Input/></Form.Item>
+                                        <Row gutter={16}>
+                                            <Col span={12}><Form.Item name="unit" label="ĐVT"><Input/></Form.Item></Col>
+                                            <Col span={12}><Form.Item name="is_active" label="Trạng thái"><Select><Option value={true}>Hoạt động</Option><Option value={false}>Ngừng bán</Option></Select></Form.Item></Col>
+                                        </Row>
+                                        <Form.Item name="category_id" label="Phân loại"><Select showSearch optionFilterProp="children" options={categories.map(c => ({ label: c.name, value: c.id }))} /></Form.Item>
+                                    </Col>
+                                    
+                                    <Col span={8}>
+                                        <Divider orientation="left">Thông tin Giá & Tồn</Divider>
+                                        <Form.Item name="base_price" label="Giá bán (Chưa KM)"><InputNumber style={{width:'100%'}} addonAfter="₫" formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Form.Item>
+                                        <Form.Item name="cost_price" label="Giá vốn (Hệ thống tính)" tooltip="Hệ thống tính tự động, không cần nhập"><InputNumber style={{width:'100%'}} addonAfter="₫" disabled/></Form.Item>
+                                        <Form.Item name="profit_margin" label="Lợi nhuận mong muốn (%)" tooltip="Lấy từ Danh mục nếu tạo mới, có thể override tại đây"><InputNumber style={{width:'100%'}} addonAfter="%" min={0} max={99}/></Form.Item>
+                                        <Form.Item name="quantity_in_stock" label="Tồn kho"><InputNumber style={{width:'100%'}}/></Form.Item>
+                                    </Col>
+                                    
+                                    <Col span={8}>
+                                        <Divider orientation="left"><FileTextOutlined /> Mô tả & Thông tin chi tiết</Divider>
+                                        <Form.Item name="customer_description" label="Mô tả Khách hàng/Bán hàng" tooltip="Hiển thị trên Báo giá, SO, Phiếu giao hàng">
+                                            <TextArea rows={3} placeholder="Mô tả thương mại, chất liệu cơ bản, v.v."/>
+                                        </Form.Item>
+                                        <Form.Item name="processing_description" label="Mô tả Gia công/Sản xuất" tooltip="Hiển thị trên PO Gia công, Lệnh sản xuất">
+                                            <TextArea rows={3} placeholder="Yêu cầu kỹ thuật, chi tiết may/cắt, v.v."/>
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                            </Form>
+                        )
+                    },
+                    {
+                        key: '2', label: <span><AppstoreOutlined /> BOM (Nguyên liệu)</span>,
+                        disabled: !editingItem,
+                        children: (
+                            <ProductBOMTab
+                                editingItem={editingItem}
+                                boms={boms}
+                                materials={materials}
+                                fetchDetailData={fetchDetailData}
+                                setBoms={setBoms}
+                            />
+                        )
+                    },
+                    {
+                        key: '3', label: <span><ExperimentOutlined /> Quy Trình Gia Công</span>,
+                        disabled: !editingItem,
+                        children: (
+                            <ProductRoutingTab
+                                editingItem={editingItem}
+                                routings={routings}
+                                suppliers={suppliers}
+                                processes={processes}
+                                fetchDetailData={fetchDetailData}
+                                setRoutings={setRoutings}
+                            />
+                        )
+                    },
+                    {
+                        key: '4', label: <span><SendOutlined /> Logistics & Vận chuyển</span>,
+                        disabled: !editingItem,
+                        children: (
+                            <div>Logistics Tab (Cần tạo component riêng)</div>
+                        )
+                    },
+                    {
+                        key: '5', label: <span><LinkOutlined /> Combo/Thành phần</span>,
+                        disabled: !editingItem,
+                        children: (
+                            <div>Combo Tab (Cần tạo component riêng)</div>
+                        )
+                    },
+                    {
+                        key: '6', 
+                        label: <span><SyncOutlined /> Quản lý Biến thể</span>,
+                        disabled: !editingItem,
+                        children: (
+                            <ProductVariantsTab
+                                editingItem={editingItem}
+                                data={data} 
+                                fetchData={fetchData}
+                                fetchDetailData={fetchDetailData}
+                            />
+                        )
+                    }
+                ]} />
+                
+                {editingItem && activeTab !== '1' && (
+                    <div style={{ position: 'absolute', bottom: 10, right: 24 }}>
+                        <Button type="default" onClick={() => handleCalculateCost(editingItem.sku)} icon={<SyncOutlined />}>
+                            Tính lại Giá Vốn
+                        </Button>
+                    </div>
+                )}
+            </Modal>
+            
+            {/* Modal Tạo Biến thể (Fix Width & Form) */}
+            <Modal
+                title={`Tạo Biến thể mới từ ${baseProductForVariant?.sku}`}
+                open={isVariantModalOpen}
+                onCancel={() => setIsVariantModalOpen(false)}
+                okText="Tạo & Sao chép BOM"
+                onOk={() => variantForm.submit()}
+                destroyOnClose={true}
+                width={800} 
+            >
+                <Form form={variantForm} layout="vertical" onFinish={handleCreateVariant} initialValues={{ base_sku: baseProductForVariant?.sku }}>
+                    <Form.Item name="base_sku" label="SKU Gốc" ><Input disabled /></Form.Item>
+                    <Divider />
+                    
+                    <Row gutter={16}>
+                        <Col span={12}>
+                             <Form.Item name="variant_sku_suffix" label="Hậu tố SKU Biến thể" rules={[{required: true, message: 'Nhập hậu tố SKU (VD: RED)'}]}>
+                                <Input addonBefore={baseProductForVariant?.sku} addonAfter='_' placeholder="VD: RED, L" /> 
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="variant_name_suffix" label="Hậu tố Tên Biến thể">
+                                <Input addonBefore={baseProductForVariant?.name + ' '} placeholder="VD: Đỏ, Size L" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Divider orientation="left">Thuộc tính Biến thể</Divider>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="color" label="Màu sắc (Color)">
+                                <Input placeholder="VD: Đỏ, Xanh Navy" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="size" label="Kích thước (Size)">
+                                <Input placeholder="VD: L, 40x60cm" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </Form>
+            </Modal>
+        </Card>
+    );
+};
+export default ProductsPage;
