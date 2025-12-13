@@ -1,20 +1,34 @@
-# Dockerfile cho Development Mode (Frontend)
-FROM node:18-alpine
-
+# Stage 1: Build (Tận dụng Cache cho Dependencies)
+FROM node:18-alpine as build
 WORKDIR /app
 
-# Copy dependency list
+# 1. Copy file dependency list
 COPY package.json ./
-COPY package-lock.json ./ 
+# --- FIX: LOẠI BỎ LỆNH COPY package-lock.json GÂY LỖI ---
+# COPY package-lock.json ./ 
 
+# 2. Cài đặt dependencies (Layer này chỉ thay đổi khi package.json thay đổi)
 RUN npm install
 
-# Copy toàn bộ source code
+# 3. Copy toàn bộ source code (Layer này thay đổi khi code thay đổi)
 COPY . .
 
-# Thêm VOLUME để tận dụng Hot Reloading
-# VOLUME /app/src 
+# Sửa lỗi build bộ nhớ nếu cần
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Lệnh chạy Dev Server (Sử dụng lệnh start dev/serve trong package.json)
-# Giả định lệnh này là "npm run dev"
-CMD ["npm", "run", "dev"]
+# 4. Tạo bản build production
+RUN npm run build
+
+
+# Stage 2: Nginx (Chạy Production)
+FROM nginx:alpine
+
+# Copy cấu hình Nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+ 
+# Copy file build từ Stage 1
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+ 
+CMD ["nginx", "-g", "daemon off;"]
