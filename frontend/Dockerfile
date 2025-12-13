@@ -2,15 +2,20 @@
 FROM node:18-alpine as build
 WORKDIR /app
 
-# 1. Copy file dependency list trước
+# 1. Copy file dependency list (package.json BẮT BUỘC)
 COPY package.json ./
-COPY package-lock.json ./ 
-# Hoặc yarn.lock nếu bạn dùng yarn
- 
-# 2. Cài đặt dependencies (Layer này chỉ thay đổi khi package*.json thay đổi)
+
+# 2. Copy file lock (Tùy chọn: chỉ copy nếu tồn tại)
+# Lệnh COPY này có thể bị lỗi nếu file không tồn tại. Tốt nhất là sử dụng một lệnh COPY chung.
+# Tuy nhiên, để tránh lỗi, ta chỉ cần dựa vào package.json.
+# Nếu bạn dùng Yarn, bạn cần đảm bảo file yarn.lock cũng được copy.
+
+# Tôi sẽ loại bỏ lỗi này bằng cách chỉ tập trung vào package.json và toàn bộ source code sau đó.
+
+# 2. Cài đặt dependencies 
 RUN npm install
  
-# 3. Copy toàn bộ source code (Layer này thay đổi khi code thay đổi)
+# 3. Copy toàn bộ source code (Bao gồm cả file lock, nếu có)
 COPY . .
  
 # Sửa lỗi build bộ nhớ nếu cần
