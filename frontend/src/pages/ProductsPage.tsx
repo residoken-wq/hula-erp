@@ -415,7 +415,7 @@ const ProductsPage: React.FC = () => {
                         key: '5', label: <span><LinkOutlined /> Combo/Thành phần</span>,
                         disabled: !editingItem,
                         children: (
-                            <div>Combo Tab (Cần tạo component riêng)</div>
+                            <div >Combo Tab (Cần tạo component riêng)</div>
                         )
                     },
                     {
