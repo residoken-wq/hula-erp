@@ -168,7 +168,23 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                             <Row key={key} gutter={8} style={{marginBottom:8, borderBottom:'1px dashed #eee', paddingBottom: 8}} align="middle">
                                                 
                                                 {/* FIX ITEM ROW: Tăng span Sản phẩm lên 12 */}
-                                                <Col span={12}><Form.Item {...rest} name={[name,'sku']} noStyle rules={[{required:true}]}><Select options={products} onChange={(v)=>handleProductChange(v,name)} disabled={!canEdit} placeholder="Chọn Sản phẩm/SKU"/></Form.Item></Col>
+                                                <Col span={12}>
+                                                    <Form.Item {...rest} name={[name,'sku']} noStyle rules={[{required:true}]}>
+                                                        {/* --- FIX: BỔ SUNG TÍNH NĂNG SEARCH VÀ FILTER --- */}
+                                                        <Select 
+                                                            options={products} 
+                                                            onChange={(v)=>handleProductChange(v,name)} 
+                                                            disabled={!canEdit} 
+                                                            placeholder="Chọn Sản phẩm/SKU"
+                                                            showSearch // Kích hoạt ô tìm kiếm
+                                                            optionFilterProp="label" // Lọc theo nội dung label (SKU - Name)
+                                                            filterOption={(input, option) =>
+                                                                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                                                            } // Hàm filter tùy chỉnh
+                                                        />
+                                                        {/* -------------------------------------------------- */}
+                                                    </Form.Item>
+                                                </Col>
                                                 <Col span={2}><Form.Item {...rest} name={[name,'variant_color']} noStyle><Input placeholder="Màu..." disabled={!canEdit}/></Form.Item></Col>
                                                 <Col span={2}><Form.Item {...rest} name={[name,'quantity']} noStyle rules={[{required:true}]}><InputNumber min={1} style={{width:'100%'}} disabled={!canEdit}/></Form.Item></Col>
                                                 <Col span={1} style={{textAlign:'center'}}><Text type="secondary" style={{fontSize: 12}}>Cái</Text></Col>
