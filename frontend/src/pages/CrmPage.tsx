@@ -33,7 +33,7 @@ const CrmPage: React.FC = () => {
   
   // FIX: State & Form cho Lead Modal
   const [currentCustomer, setCurrentCustomer] = useState<any>(null);
-  const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [isNewCustomerMode, setIsNewCustomerMode] = useState(false); // Thay thế isNewCustomer
   const [formLead] = Form.useForm();
   const [followNote, setFollowNote] = useState('');
   
@@ -77,8 +77,8 @@ const CrmPage: React.FC = () => {
   const openCreateLead = () => {
     const autoCode = `LEAD-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}`;
     formLead.setFieldsValue({ code: autoCode });
-    formLead.resetFields(['customer_selector', 'phone']); // Reset các trường liên quan
-    setIsNewCustomer(false);
+    formLead.resetFields(); // Reset toàn bộ form
+    setIsNewCustomerMode(false);
     setIsLeadModalOpen(true);
   };
   
@@ -97,37 +97,41 @@ const CrmPage: React.FC = () => {
   // FIX: Logic Save Lead đã được cập nhật
   const handleSaveLead = async (values: any) => {
     try {
-        const { code, customer_selector, phone } = values;
+        const { code, customer_id, name, phone } = values;
         
-        if (typeof customer_selector === 'number') {
-            // Case 1: Existing Customer selected (value is ID)
-            const customerId = customer_selector;
-            
-            // 1. Update existing customer to LEAD type if necessary (assuming backend handles type update on PUT)
-            const existingCustomer = allCustomers.find(c => c.id === customerId);
-            if (existingCustomer && existingCustomer.type !== 'LEAD' && existingCustomer.type !== 'CUSTOMER') {
-                 await axios.put(`${API_URL}/customers/${customerId}`, { type: 'LEAD' });
-            }
-
-            // 2. Record the initial follow-up event
-            const newFollowUpNote = `Lead created (Initial action/Association)`;
-            await axios.post(`${API_URL}/customers/${customerId}/follow`, { note: newFollowUpNote });
-
-        } else {
-            // Case 2: New Customer name typed (value is string)
-            if (!customer_selector || !phone) {
-                message.error('Vui lòng nhập Tên và SĐT cho Khách hàng mới.');
+        if (isNewCustomerMode) {
+            // Case 1: New Customer is created
+            if (!name || !phone) {
+                message.error('Vui lòng nhập đầy đủ Tên và SĐT cho Khách hàng mới.');
                 return;
             }
             
             // Create new customer as LEAD
             const finalPayload = {
                 code: code, 
-                name: customer_selector, 
+                name: name, 
                 phone: phone,
                 type: 'LEAD' 
             };
             await axios.post(`${API_URL}/customers`, finalPayload);
+        } else {
+            // Case 2: Existing Customer selected (value is ID)
+            if (!customer_id) {
+                 message.error('Vui lòng chọn khách hàng có sẵn hoặc tạo mới.');
+                 return;
+            }
+            const customerId = customer_id;
+            
+            // Update existing customer to LEAD type if necessary
+            const existingCustomer = allCustomers.find(c => c.id === customerId);
+            if (existingCustomer && existingCustomer.type !== 'LEAD' && existingCustomer.type !== 'CUSTOMER') {
+                 await axios.put(`${API_URL}/customers/${customerId}`, { type: 'LEAD' });
+            }
+
+            // Record the initial follow-up event
+            const newFollowUpNote = `Lead created (Initial action/Association)`;
+            await axios.post(`${API_URL}/customers/${customerId}/follow`, { note: newFollowUpNote });
+
         }
 
         message.success('Tạo Lead thành công!'); 
@@ -215,24 +219,6 @@ const CrmPage: React.FC = () => {
       });
   };
   
-  // FIX: Hàm xử lý thay đổi Select để cập nhật trạng thái isNewCustomer
-  const handleCustomerSelectChange = (value: number | string | undefined) => {
-      if (value === undefined || typeof value === 'string') {
-          // New name typed or cleared
-          setIsNewCustomer(true);
-          formLead.setFieldsValue({ phone: undefined }); // Clear phone if searching for new
-      } else {
-          // Existing customer ID selected
-          setIsNewCustomer(false);
-          const selectedCust = allCustomers.find(c => c.id === value);
-          // Pre-fill phone from selected customer
-          if (selectedCust) {
-              formLead.setFieldsValue({ phone: selectedCust.phone });
-          }
-      }
-  };
-
-
   const leadColumns = [
       { title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
       { title: 'Tên Khách', dataIndex: 'name', render: (t:any, r:any) => <a onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}}>{t}</a> },
@@ -321,11 +307,11 @@ const CrmPage: React.FC = () => {
           <div style={{textAlign:'center', marginTop:20}}><Button type="primary" onClick={()=>{ const c = document.getElementById('printableArea'); const w = window.open(); if(w && c) { w.document.write(c.innerHTML); w.print(); } }}>In Ngay</Button></div>
       </Modal>
 
-      {/* --- FIX: MODAL TẠO LEAD MỚI --- */}
+      {/* --- FIX: MODAL TẠO LEAD MỚI VỚI NÚT ADD NEW --- */}
       <Modal 
           title="Tạo Lead" 
           open={isLeadModalOpen} 
-          onCancel={() => { setIsLeadModalOpen(false); formLead.resetFields(); setIsNewCustomer(false); }} 
+          onCancel={() => { setIsLeadModalOpen(false); formLead.resetFields(); setIsNewCustomerMode(false); }} 
           onOk={() => formLead.submit()}
       >
           <Form 
@@ -336,52 +322,71 @@ const CrmPage: React.FC = () => {
           >
               <Form.Item name="code" label="Mã Lead" rules={[{ required: true }]}><Input disabled /></Form.Item>
               
-              <Form.Item 
-                  label="Khách hàng (Tìm kiếm hoặc Nhập mới)" 
-                  name="customer_selector" 
-                  rules={[{ required: true, message: 'Vui lòng chọn hoặc nhập tên Khách hàng.' }]}
-              >
-                  <Select
-                      showSearch
-                      placeholder="Nhập tên KH hoặc SĐT để tìm/tạo mới"
-                      optionFilterProp="label"
-                      filterOption={(input, option) =>
-                          (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                      }
-                      options={customerOptionsForLead}
-                      onChange={handleCustomerSelectChange}
-                      onSearch={value => { if (value && !customerOptionsForLead.some(o => o.label.toLowerCase().includes(value.toLowerCase()))) setIsNewCustomer(true); }}
-                      allowClear
-                      // Vấn đề: Khi nhập mới, Select sẽ coi giá trị nhập là giá trị được chọn (string)
-                  />
-              </Form.Item>
-              
-              {/* Trường Tên và SĐT chỉ hiển thị khi tạo Khách hàng mới (giá trị selector là string) */}
-              {isNewCustomer && (
+              {/* 1. SELECTION / SEARCH (Chỉ hiển thị khi KHÔNG trong chế độ New) */}
+              {!isNewCustomerMode ? (
+                  <Form.Item 
+                      label="Khách hàng (Tìm kiếm hoặc Thêm mới)" 
+                      name="customer_id" 
+                      rules={[{ required: !isNewCustomerMode, message: 'Vui lòng chọn khách hàng có sẵn.' }]}
+                  >
+                      <Select
+                          showSearch
+                          placeholder="Tìm kiếm theo Mã, Tên hoặc SĐT"
+                          optionFilterProp="label"
+                          filterOption={(input, option) =>
+                              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                          }
+                          options={customerOptionsForLead}
+                          onChange={(value) => {
+                              // Tự động điền SĐT nếu chọn KH cũ
+                              const selectedCust = allCustomers.find(c => c.id === value);
+                              if (selectedCust) formLead.setFieldsValue({ name: selectedCust.name, phone: selectedCust.phone });
+                              else formLead.setFieldsValue({ name: undefined, phone: undefined });
+                          }}
+                          allowClear
+                      />
+                  </Form.Item>
+              ) : (
+                  // 2. INPUT FIELDS (Chỉ hiển thị khi đang trong chế độ New)
                   <>
                       <Divider orientation="left">Thông tin Khách hàng MỚI</Divider>
                       <Form.Item 
+                          name="name" 
+                          label="Tên Khách hàng"
+                          rules={[{ required: isNewCustomerMode, message: 'Vui lòng nhập Tên KH' }]}
+                      >
+                          <Input placeholder="Tên khách hàng mới" />
+                      </Form.Item>
+                      <Form.Item 
                           name="phone" 
                           label="SĐT"
-                          rules={[{ required: isNewCustomer, message: 'Vui lòng nhập SĐT cho KH mới' }]}
+                          rules={[{ required: isNewCustomerMode, message: 'Vui lòng nhập SĐT' }]}
                       >
-                          <Input placeholder="SĐT (Bắt buộc nếu tạo mới)" />
-                      </Form.Item>
-                      <Form.Item name="name_temp" label="Tên Khách hàng Mới (Xác nhận)">
-                          <Input value={formLead.getFieldValue('customer_selector')} disabled />
+                          <Input placeholder="SĐT liên hệ" />
                       </Form.Item>
                   </>
               )}
               
-              {/* Hiển thị SĐT và Tên của khách hàng ĐÃ TỒN TẠI (chỉ để đọc) */}
-              {typeof formLead.getFieldValue('customer_selector') === 'number' && (
-                   <Card size="small" style={{marginTop: 10}}>
-                       <Row gutter={16}>
-                           <Col span={12}><Text type="secondary">Tên:</Text> <Text strong>{allCustomers.find(c => c.id === formLead.getFieldValue('customer_selector'))?.name}</Text></Col>
-                           <Col span={12}><Text type="secondary">SĐT:</Text> <Text>{allCustomers.find(c => c.id === formLead.getFieldValue('customer_selector'))?.phone}</Text></Col>
-                       </Row>
-                   </Card>
-              )}
+              <Row justify={isNewCustomerMode ? 'end' : 'start'} style={{marginTop: 10}}>
+                  <Col>
+                      {!isNewCustomerMode ? (
+                          <Button 
+                              type="dashed" 
+                              onClick={() => { setIsNewCustomerMode(true); formLead.resetFields(['customer_id']); }} 
+                              icon={<PlusOutlined />}
+                          >
+                              Thêm Khách hàng Mới
+                          </Button>
+                      ) : (
+                          <Button 
+                              type="link" 
+                              onClick={() => { setIsNewCustomerMode(false); formLead.resetFields(['name', 'phone']); }}
+                          >
+                              Chọn KH có sẵn
+                          </Button>
+                      )}
+                  </Col>
+              </Row>
           </Form>
       </Modal>
       {/* ----------------------------------- */}
