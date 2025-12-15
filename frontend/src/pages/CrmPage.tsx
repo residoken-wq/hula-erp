@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Tabs, Statistic, Divider, Popconfirm, Tooltip, Progress, Typography } from 'antd';
 import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -30,10 +30,20 @@ const CrmPage: React.FC = () => {
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [isQuotationMode, setIsQuotationMode] = useState(false);
-
+  
+  // FIX: State & Form cho Lead Modal
   const [currentCustomer, setCurrentCustomer] = useState<any>(null);
+  const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [formLead] = Form.useForm();
   const [followNote, setFollowNote] = useState('');
+  
+  // FIX: Prepare Customer Options for Select/Search
+  const customerOptionsForLead = useMemo(() => allCustomers.map((c: any) => ({
+      label: `${c.code} - ${c.name} (${c.phone || 'N/A'})`,
+      value: c.id, // ID number (existing)
+      name: c.name,
+      phone: c.phone
+  })), [allCustomers]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -67,6 +77,8 @@ const CrmPage: React.FC = () => {
   const openCreateLead = () => {
     const autoCode = `LEAD-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}`;
     formLead.setFieldsValue({ code: autoCode });
+    formLead.resetFields(['customer_selector', 'phone']); // Reset các trường liên quan
+    setIsNewCustomer(false);
     setIsLeadModalOpen(true);
   };
   
@@ -82,11 +94,49 @@ const CrmPage: React.FC = () => {
     return { percent: 5, status: 'normal', text: 'Mới tạo' };
   };
 
+  // FIX: Logic Save Lead đã được cập nhật
   const handleSaveLead = async (values: any) => {
-      try {
-          await axios.post(`${API_URL}/customers`, { ...values, type: 'LEAD' });
-          message.success('Thành công'); setIsLeadModalOpen(false); fetchData();
-      } catch(e) { message.error('Lỗi'); }
+    try {
+        const { code, customer_selector, phone } = values;
+        
+        if (typeof customer_selector === 'number') {
+            // Case 1: Existing Customer selected (value is ID)
+            const customerId = customer_selector;
+            
+            // 1. Update existing customer to LEAD type if necessary (assuming backend handles type update on PUT)
+            const existingCustomer = allCustomers.find(c => c.id === customerId);
+            if (existingCustomer && existingCustomer.type !== 'LEAD' && existingCustomer.type !== 'CUSTOMER') {
+                 await axios.put(`${API_URL}/customers/${customerId}`, { type: 'LEAD' });
+            }
+
+            // 2. Record the initial follow-up event
+            const newFollowUpNote = `Lead created (Initial action/Association)`;
+            await axios.post(`${API_URL}/customers/${customerId}/follow`, { note: newFollowUpNote });
+
+        } else {
+            // Case 2: New Customer name typed (value is string)
+            if (!customer_selector || !phone) {
+                message.error('Vui lòng nhập Tên và SĐT cho Khách hàng mới.');
+                return;
+            }
+            
+            // Create new customer as LEAD
+            const finalPayload = {
+                code: code, 
+                name: customer_selector, 
+                phone: phone,
+                type: 'LEAD' 
+            };
+            await axios.post(`${API_URL}/customers`, finalPayload);
+        }
+
+        message.success('Tạo Lead thành công!'); 
+        setIsLeadModalOpen(false); 
+        fetchData();
+
+    } catch(e: any) { 
+        message.error(e.response?.data?.message || 'Lỗi khi tạo Lead'); 
+    }
   };
 
   const handleFollowLead = async () => {
@@ -132,7 +182,6 @@ const CrmPage: React.FC = () => {
       setDetailModalOpen(true);
   };
 
-  // --- FIX: LOGIC COPY LINK AN TOÀN ---
   const handleCopyLink = (uuid: string) => {
       if (!uuid) {
           message.warning('Báo giá chưa có Link Portal. Vui lòng mở chi tiết và lưu lại để tạo link.');
@@ -140,13 +189,11 @@ const CrmPage: React.FC = () => {
       }
       const link = `${window.location.protocol}//${window.location.host}/portal/quote/${uuid}`;
       
-      // Kiểm tra trình duyệt có hỗ trợ Clipboard API an toàn không
       if (navigator.clipboard && window.isSecureContext) {
           navigator.clipboard.writeText(link)
               .then(() => message.success('Đã copy link!'))
-              .catch(() => showManualCopy(link)); // Nếu lỗi thì hiện popup
+              .catch(() => showManualCopy(link));
       } else {
-          // Fallback cho HTTP thường
           showManualCopy(link);
       }
   };
@@ -158,7 +205,6 @@ const CrmPage: React.FC = () => {
               <div>
                   <p>Trình duyệt chặn copy tự động. Bạn hãy copy link dưới đây:</p>
                   <Input value={url} readOnly addonAfter={<CopyOutlined onClick={()=>{
-                      // Hack copy thủ công nếu cần
                       const input = document.querySelector('.ant-modal-body input') as HTMLInputElement;
                       if(input) { input.select(); document.execCommand('copy'); message.success('Đã copy'); }
                   }}/>} />
@@ -168,7 +214,24 @@ const CrmPage: React.FC = () => {
           okText: 'Đóng'
       });
   };
-  // ------------------------------------
+  
+  // FIX: Hàm xử lý thay đổi Select để cập nhật trạng thái isNewCustomer
+  const handleCustomerSelectChange = (value: number | string | undefined) => {
+      if (value === undefined || typeof value === 'string') {
+          // New name typed or cleared
+          setIsNewCustomer(true);
+          formLead.setFieldsValue({ phone: undefined }); // Clear phone if searching for new
+      } else {
+          // Existing customer ID selected
+          setIsNewCustomer(false);
+          const selectedCust = allCustomers.find(c => c.id === value);
+          // Pre-fill phone from selected customer
+          if (selectedCust) {
+              formLead.setFieldsValue({ phone: selectedCust.phone });
+          }
+      }
+  };
+
 
   const leadColumns = [
       { title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
@@ -258,7 +321,70 @@ const CrmPage: React.FC = () => {
           <div style={{textAlign:'center', marginTop:20}}><Button type="primary" onClick={()=>{ const c = document.getElementById('printableArea'); const w = window.open(); if(w && c) { w.document.write(c.innerHTML); w.print(); } }}>In Ngay</Button></div>
       </Modal>
 
-      <Modal title="Tạo Lead" open={isLeadModalOpen} onCancel={()=>setIsLeadModalOpen(false)} onOk={()=>formLead.submit()}><Form form={formLead} layout="vertical" onFinish={handleSaveLead}><Form.Item name="code" label="Mã"><Input disabled /></Form.Item><Form.Item name="name" label="Tên" rules={[{required:true}]}><Input /></Form.Item><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Form></Modal>
+      {/* --- FIX: MODAL TẠO LEAD MỚI --- */}
+      <Modal 
+          title="Tạo Lead" 
+          open={isLeadModalOpen} 
+          onCancel={() => { setIsLeadModalOpen(false); formLead.resetFields(); setIsNewCustomer(false); }} 
+          onOk={() => formLead.submit()}
+      >
+          <Form 
+              form={formLead} 
+              layout="vertical" 
+              onFinish={handleSaveLead}
+              initialValues={{ code: `LEAD-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}` }}
+          >
+              <Form.Item name="code" label="Mã Lead" rules={[{ required: true }]}><Input disabled /></Form.Item>
+              
+              <Form.Item 
+                  label="Khách hàng (Tìm kiếm hoặc Nhập mới)" 
+                  name="customer_selector" 
+                  rules={[{ required: true, message: 'Vui lòng chọn hoặc nhập tên Khách hàng.' }]}
+              >
+                  <Select
+                      showSearch
+                      placeholder="Nhập tên KH hoặc SĐT để tìm/tạo mới"
+                      optionFilterProp="label"
+                      filterOption={(input, option) =>
+                          (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      options={customerOptionsForLead}
+                      onChange={handleCustomerSelectChange}
+                      onSearch={value => { if (value && !customerOptionsForLead.some(o => o.label.toLowerCase().includes(value.toLowerCase()))) setIsNewCustomer(true); }}
+                      allowClear
+                      // Vấn đề: Khi nhập mới, Select sẽ coi giá trị nhập là giá trị được chọn (string)
+                  />
+              </Form.Item>
+              
+              {/* Trường Tên và SĐT chỉ hiển thị khi tạo Khách hàng mới (giá trị selector là string) */}
+              {isNewCustomer && (
+                  <>
+                      <Divider orientation="left">Thông tin Khách hàng MỚI</Divider>
+                      <Form.Item 
+                          name="phone" 
+                          label="SĐT"
+                          rules={[{ required: isNewCustomer, message: 'Vui lòng nhập SĐT cho KH mới' }]}
+                      >
+                          <Input placeholder="SĐT (Bắt buộc nếu tạo mới)" />
+                      </Form.Item>
+                      <Form.Item name="name_temp" label="Tên Khách hàng Mới (Xác nhận)">
+                          <Input value={formLead.getFieldValue('customer_selector')} disabled />
+                      </Form.Item>
+                  </>
+              )}
+              
+              {/* Hiển thị SĐT và Tên của khách hàng ĐÃ TỒN TẠI (chỉ để đọc) */}
+              {typeof formLead.getFieldValue('customer_selector') === 'number' && (
+                   <Card size="small" style={{marginTop: 10}}>
+                       <Row gutter={16}>
+                           <Col span={12}><Text type="secondary">Tên:</Text> <Text strong>{allCustomers.find(c => c.id === formLead.getFieldValue('customer_selector'))?.name}</Text></Col>
+                           <Col span={12}><Text type="secondary">SĐT:</Text> <Text>{allCustomers.find(c => c.id === formLead.getFieldValue('customer_selector'))?.phone}</Text></Col>
+                       </Row>
+                   </Card>
+              )}
+          </Form>
+      </Modal>
+      {/* ----------------------------------- */}
       
       <Drawer title={`Chăm sóc: ${currentCustomer?.name}`} open={followDrawerOpen} onClose={()=>setFollowDrawerOpen(false)} footer={<Button type="primary" block onClick={handleCreateQuoteFromFollow}>Tạo Báo Giá Ngay</Button>}>
           <div style={{marginBottom:20}}><Input.TextArea rows={3} value={followNote} onChange={e=>setFollowNote(e.target.value)} placeholder="Ghi chú..." /><Button block type="primary" style={{marginTop:10}} onClick={handleFollowLead}>Lưu</Button></div>
