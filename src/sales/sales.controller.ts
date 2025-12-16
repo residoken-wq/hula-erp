@@ -5,21 +5,48 @@ import { SalesService } from './sales.service';
 export class SalesController {
   constructor(private readonly s: SalesService) {}
 
+  // --- API CŨ ---
   @Post('create') create(@Body() b: any) { return this.s.createOrder(b); }
   @Get() findAll() { return this.s.findAll(); }
   @Get(':code') getOne(@Param('code') c: string) { return this.s.getOrder(c); }
   
-  // --- ENDPOINT VALIDATE GIÁ ---
+  // --- API PRICE LIST & VALIDATION (MỚI) ---
+  
+  // 1. Kiểm tra giá (Được gọi từ SalesOrderDetail)
   @Get('validate-price')
   async validatePrice(
       @Query('sku') sku: string, 
       @Query('unitPrice') unitPrice: number,
-      @Query('userId') userId: number // Có thể lấy từ @Request() req nếu có Auth
+      @Query('userId') userId: number 
   ) {
       // Vì userId hiện tại hardcode là 1 ở Service, nên ở đây truyền vào để mở rộng sau này
       return this.s.validatePriceAgainstPriceList(sku, Number(unitPrice), Number(userId));
   }
-  // -----------------------------
+
+  // 2. Tạo Bảng giá mới
+  @Post('price-lists') 
+  createPriceList(@Body() body: any) { 
+      return this.s.createPriceList(body); 
+  }
+
+  // 3. Lấy danh sách Bảng giá
+  @Get('price-lists') 
+  getAllPriceLists() { 
+      return this.s.getAllPriceLists(); 
+  }
+
+  // 4. Thêm Quy tắc giá (Rule) vào Bảng giá
+  @Post('price-lists/:id/rules') 
+  createRule(@Param('id') id: number, @Body() body: any) { 
+      return this.s.createPriceListRule(id, body); 
+  }
+
+  // 5. Lấy danh sách Quy tắc của một Bảng giá
+  @Get('price-lists/:id/rules') 
+  getRules(@Param('id') id: number) { 
+      return this.s.getPriceListRules(id); 
+  }
+  // ----------------------------------------
 
   @Post(':id/convert') convert(@Param('id') id: number, @Body('accepted') accepted: boolean) { return this.s.convertQuoteToSo(id, accepted); }
   @Get('samples/all') getAllSamples() { return this.s.sampleRepo.find({ order: { created_at: 'DESC' } }); }

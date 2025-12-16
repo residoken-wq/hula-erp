@@ -201,7 +201,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                             options={products} 
                                                             onChange={(v)=>handleProductChange(v,name)} 
                                                             disabled={!canEdit} 
-                                                            placeholder="Chọn Sản phẩm/SKU"
+                                                            placeholder="Chọn Sản phẩm/SKU trong danh sách sản phẩm"
                                                             showSearch 
                                                             optionFilterProp="label" 
                                                             filterOption={(input, option) =>
