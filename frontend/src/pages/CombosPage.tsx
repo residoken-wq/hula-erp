@@ -10,7 +10,7 @@ const CombosPage: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null); // State cho item đang edit
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [form] = Form.useForm();
 
   // Dữ liệu sản phẩm dưới dạng Map để dễ dàng tra cứu giá
@@ -31,11 +31,10 @@ const CombosPage: React.FC = () => {
             setProducts(resProd.data.map((p:any) => ({
                 label: `${p.sku} - ${p.name}`, 
                 value: p.sku, 
-                price: Number(p.base_price) || 0, // Lưu giá bán vào options
+                price: Number(p.base_price) || 0,
                 unit: p.unit
             })));
 
-            // Lọc sản phẩm là COMBO
             const comboList = resProd.data.filter((p:any) => p.product_type === 'COMBO');
             setCombos(comboList);
         }
@@ -45,74 +44,71 @@ const CombosPage: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // --- HÀM TẢI CHI TIẾT COMBO (ĐỂ EDIT) ---
   const fetchComboDetail = async (comboSku: string) => {
       try {
-          // API: GET /products/combo/:sku trả về các ProductComponent
           const res = await axios.get(`${API_URL}/products/combo/${comboSku}`);
-          // Chuyển đổi dữ liệu trả về sang định dạng Form.List mong muốn
           return (res.data || [])
             .map((comp: any) => ({
-                // FIX 1: Thêm optional chaining để an toàn khi truy cập
                 sku: comp.child_product?.sku, 
                 quantity: comp.quantity,
                 id: comp.id
             }))
-            .filter((item: any) => item.sku); // Lọc item bị lỗi SKU (nếu có)
+            .filter((item: any) => item.sku);
       } catch(e) {
           message.error('Lỗi tải chi tiết thành phần Combo');
           return [];
       }
   };
 
-  // --- HÀM MỞ EDIT ---
   const openEdit = async (record: any) => {
       setEditingItem(record);
-      
-      // FIX 2: Reset Form trước khi nạp dữ liệu mới
       form.resetFields(); 
       
       const comboItems = await fetchComboDetail(record.sku);
       
-      // Tính total ban đầu để hiển thị ngay trong form
-      let initialTotal = 0;
+      let initialCalculatedCost = 0;
       comboItems.forEach((item: any) => {
           const productInfo = productMap[item.sku] || { price: 0 };
-          initialTotal += Number(item.quantity) * Number(productInfo.price);
+          initialCalculatedCost += Number(item.quantity) * Number(productInfo.price);
       });
 
       form.setFieldsValue({
           sku: record.sku,
           name: record.name,
-          items: comboItems, // Setting the fetched data
-          total_price_calculated: Math.round(initialTotal)
+          // FIX: Nạp giá bán hiện tại vào trường tùy chỉnh
+          manual_base_price: record.base_price, 
+          items: comboItems, 
+          total_price_calculated: Math.round(initialCalculatedCost)
       });
       setIsModalOpen(true);
   };
 
 
-  // --- HÀM LƯU COMBO ---
   const handleSave = async (values: any) => {
       try {
-          const { sku, name, items } = values;
+          const { sku, name, items, manual_base_price } = values; // Lấy giá tùy chỉnh
+          
+          const calculatedCost = form.getFieldValue('total_price_calculated');
+          // Ưu tiên giá do user nhập, nếu không có thì lấy giá tính toán
+          const finalPrice = manual_base_price || calculatedCost; 
 
           let comboProduct = editingItem;
           
           if (!comboProduct) {
-              // 1. TẠO MỚI (Product Type: COMBO)
+              // 1. TẠO MỚI 
               const res = await axios.post(`${API_URL}/products`, {
                   sku: sku,
                   name: name,
                   product_type: 'COMBO',
-                  base_price: form.getFieldValue('total_price_calculated'), 
+                  base_price: finalPrice, 
                   is_active: true
               });
               comboProduct = res.data;
           } else {
-              // 1. CẬP NHẬT thông tin chung (giá bán)
+              // 1. CẬP NHẬT 
               await axios.put(`${API_URL}/products/${comboProduct.id}`, {
                   name: name,
-                  base_price: form.getFieldValue('total_price_calculated'),
+                  base_price: finalPrice,
               });
           }
 
@@ -126,13 +122,12 @@ const CombosPage: React.FC = () => {
               quantity: item.quantity
           }));
           
-          // API /products/:id/components sẽ xóa component cũ và tạo mới toàn bộ
           await axios.post(`${API_URL}/products/${comboProduct.id}/components`, componentPayload);
           
           message.success(`Đã lưu Combo ${sku} thành công!`);
           setIsModalOpen(false);
           setEditingItem(null);
-          fetchData(); // Cập nhật danh sách Combo
+          fetchData();
       } catch(e: any) { 
           let errorMessage = "Lỗi lưu Combo.";
           if (axios.isAxiosError(e) && e.response?.data?.message) {
@@ -142,17 +137,14 @@ const CombosPage: React.FC = () => {
       }
   };
 
-  // --- HÀM XÓA COMBO ---
   const handleDelete = async (id: number) => {
       try {
-          // DELETE /products/:id sẽ xóa sản phẩm
           await axios.delete(`${API_URL}/products/${id}`);
           message.success('Đã xóa Combo thành công.');
           fetchData();
       } catch(e: any) {
           let errorMessage = "Lỗi xóa Combo. Có thể Combo này đã được sử dụng.";
           if (axios.isAxiosError(e) && e.response?.status === 400) {
-               // Giả định Backend trả về 400/409 nếu có ràng buộc
                errorMessage = e.response.data.message || "Combo này đã được sử dụng trong Đơn hàng/Báo giá và không thể xóa.";
           }
           Modal.warning({
@@ -165,7 +157,6 @@ const CombosPage: React.FC = () => {
   };
 
 
-  // --- HÀM TÍNH TOÁN TỔNG TIỀN TRÊN FORM ---
   const calculateTotal = (changedValues: any, allValues: any) => {
     const items = allValues.items || [];
     let total = 0;
@@ -179,11 +170,9 @@ const CombosPage: React.FC = () => {
         }
     });
 
-    // Lưu tổng tiền vào một trường ẩn trên form để có thể submit
     form.setFieldsValue({ total_price_calculated: Math.round(total) });
   };
-  // ------------------------------------------
-
+  
   const columns = [
       { title: 'Mã Combo', dataIndex: 'sku', render: (t:any) => <b>{t}</b> },
       { title: 'Tên Combo', dataIndex: 'name' },
@@ -231,11 +220,28 @@ const CombosPage: React.FC = () => {
                 form={form} 
                 layout="vertical" 
                 onFinish={handleSave}
-                onValuesChange={calculateTotal} // Gọi hàm tính toán Total
+                onValuesChange={calculateTotal}
             >
                 <Row gutter={16}>
-                    <Col span={12}><Form.Item name="sku" label="Mã Combo" rules={[{required:true}]}><Input disabled={!!editingItem} /></Form.Item></Col>
-                    <Col span={12}><Form.Item name="name" label="Tên Combo" rules={[{required:true}]}><Input /></Form.Item></Col>
+                    <Col span={8}><Form.Item name="sku" label="Mã Combo" rules={[{required:true}]}><Input disabled={!!editingItem} /></Form.Item></Col>
+                    <Col span={8}><Form.Item name="name" label="Tên Combo" rules={[{required:true}]}><Input /></Form.Item></Col>
+                    
+                    {/* --- MỚI: FIELD GIÁ BÁN TÙY CHỈNH --- */}
+                    <Col span={8}>
+                        <Form.Item 
+                            name="manual_base_price" 
+                            label="Giá bán Combo (Tùy chỉnh)" 
+                            tooltip="Giá này sẽ được lưu làm giá bán chính thức của Combo."
+                            rules={[{required: true, message: 'Nhập giá bán'}]}
+                        >
+                            <InputNumber 
+                                style={{width:'100%'}} 
+                                formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+                                addonAfter="₫"
+                            />
+                        </Form.Item>
+                    </Col>
+                    {/* -------------------------------------- */}
                 </Row>
                 
                 <Divider orientation="left">Sản phẩm Thành phần</Divider>
@@ -339,7 +345,8 @@ const CombosPage: React.FC = () => {
                 
                 <Row justify="end" style={{ paddingRight: 16 }}>
                     <Statistic 
-                        title="TỔNG GIÁ VỐN COMBO (Giá bán SP con)" 
+                        // FIX: Đổi tiêu đề để user biết đây là giá vốn tham khảo
+                        title="GIÁ VỐN COMBO (Tham khảo từ thành phần)" 
                         value={form.getFieldValue('total_price_calculated') || 0} 
                         precision={0} 
                         valueStyle={{ color: '#3f8600', fontSize: 24, fontWeight: 'bold' }} 
