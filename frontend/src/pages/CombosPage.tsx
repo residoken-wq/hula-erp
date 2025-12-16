@@ -16,7 +16,6 @@ const CombosPage: React.FC = () => {
   // Dữ liệu sản phẩm dưới dạng Map để dễ dàng tra cứu giá
   const productMap = useMemo(() => {
     return products.reduce((acc, p) => {
-        // Lấy SKU/Value ra khỏi label
         const sku = p.value;
         const price = p.price;
         acc[sku] = { price: price, name: p.label.split(' - ')[1], unit: p.unit };
@@ -52,12 +51,14 @@ const CombosPage: React.FC = () => {
           // API: GET /products/combo/:sku trả về các ProductComponent
           const res = await axios.get(`${API_URL}/products/combo/${comboSku}`);
           // Chuyển đổi dữ liệu trả về sang định dạng Form.List mong muốn
-          return (res.data || []).map((comp: any) => ({
-              sku: comp.child_product.sku,
-              quantity: comp.quantity,
-              // ID của Component, cần cho việc xóa (nếu có)
-              id: comp.id
-          }));
+          return (res.data || [])
+            .map((comp: any) => ({
+                // FIX 1: Thêm optional chaining để an toàn khi truy cập
+                sku: comp.child_product?.sku, 
+                quantity: comp.quantity,
+                id: comp.id
+            }))
+            .filter((item: any) => item.sku); // Lọc item bị lỗi SKU (nếu có)
       } catch(e) {
           message.error('Lỗi tải chi tiết thành phần Combo');
           return [];
@@ -67,7 +68,9 @@ const CombosPage: React.FC = () => {
   // --- HÀM MỞ EDIT ---
   const openEdit = async (record: any) => {
       setEditingItem(record);
-      form.resetFields();
+      
+      // FIX 2: Reset Form trước khi nạp dữ liệu mới
+      form.resetFields(); 
       
       const comboItems = await fetchComboDetail(record.sku);
       
@@ -81,7 +84,7 @@ const CombosPage: React.FC = () => {
       form.setFieldsValue({
           sku: record.sku,
           name: record.name,
-          items: comboItems,
+          items: comboItems, // Setting the fetched data
           total_price_calculated: Math.round(initialTotal)
       });
       setIsModalOpen(true);
