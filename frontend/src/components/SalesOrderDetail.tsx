@@ -19,8 +19,8 @@ const DEFAULT_TERMS = `- Báo giá có hiệu lực trong vòng 07 ngày.\n- Th�
 
 const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, isQuotation, customers, products }) => {
     const [form] = Form.useForm();
-    const [activeTab, setActiveTab] = useState('1'); // Tab chính của Modal
-    const [infoTabKey, setInfoTabKey] = useState('VAT'); // Tab con trong cột phải
+    const [activeTab, setActiveTab] = useState('1');
+    const [infoTabKey, setInfoTabKey] = useState('VAT');
     const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
     const [currentSampleIdx, setCurrentSampleIdx] = useState<number | null>(null);
     const [sampleForm] = Form.useForm();
@@ -35,6 +35,32 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     
     const canEdit = !initialData || isQuotation || initialData.status === 'QUOTATION' || initialData.status === 'SO_PENDING';
     const hasData = initialData && initialData.id; 
+
+    // --- LOGIC MỚI: KIỂM TRA GIÁ KHI THAY ĐỔI ---
+    const handlePriceChange = async (newPrice: number | null, itemSku: string, itemIndex: number) => {
+        if (!itemSku || !newPrice || newPrice <= 0 || !canEdit) return;
+
+        // Xóa cảnh báo cũ
+        form.setFields([
+            { name: ['items', itemIndex, 'price'], errors: [] }
+        ]);
+        
+        try {
+            // NOTE: Giả định UserId = 1 (cần thay bằng User ID thực tế của Sales)
+            await axios.get(`${API_URL}/sales/validate-price`, {
+                params: { sku: itemSku, unitPrice: newPrice, userId: 1 } 
+            });
+        } catch (e: any) {
+            const errorMessage = e.response?.data?.message || 'Giá bán không hợp lệ.';
+            message.warning(errorMessage);
+
+            // Hiển thị lỗi ngay trên trường Price
+            form.setFields([
+                { name: ['items', itemIndex, 'price'], errors: [errorMessage] }
+            ]);
+        }
+    };
+    // ---------------------------------------------
 
     useEffect(() => {
         if (open && initialData) {
@@ -75,6 +101,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             const current = form.getFieldValue('items');
             current[idx].price = p.price;
             form.setFieldsValue({ items: [...current] });
+             // Kích hoạt kiểm tra giá sau khi chọn sản phẩm
+            handlePriceChange(p.price, val, idx);
         }
     };
 
@@ -169,25 +197,35 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                 {/* FIX ITEM ROW: Tăng span Sản phẩm lên 12 */}
                                                 <Col span={12}>
                                                     <Form.Item {...rest} name={[name,'sku']} noStyle rules={[{required:true}]}>
-                                                        {/* --- FIX: BỔ SUNG TÍNH NĂNG SEARCH VÀ FILTER --- */}
                                                         <Select 
                                                             options={products} 
                                                             onChange={(v)=>handleProductChange(v,name)} 
                                                             disabled={!canEdit} 
-                                                            placeholder="Chọn Sản phẩm/SKU trong danh sách sản phẩm"
-                                                            showSearch // Kích hoạt ô tìm kiếm
-                                                            optionFilterProp="label" // Lọc theo nội dung label (SKU - Name)
+                                                            placeholder="Chọn Sản phẩm/SKU"
+                                                            showSearch 
+                                                            optionFilterProp="label" 
                                                             filterOption={(input, option) =>
                                                                 (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                                                            } // Hàm filter tùy chỉnh
+                                                            } 
                                                         />
-                                                        {/* -------------------------------------------------- */}
                                                     </Form.Item>
                                                 </Col>
                                                 <Col span={2}><Form.Item {...rest} name={[name,'variant_color']} noStyle><Input placeholder="Màu..." disabled={!canEdit}/></Form.Item></Col>
-                                                <Col span={2}><Form.Item {...rest} name={[name,'quantity']} noStyle rules={[{required:true}]}><InputNumber min={1} style={{width:'100%'}} disabled={!canEdit}/></Form.Item></Col>
+                                                <Col span={2}><Form.Item {...rest} name={[name,'quantity']} noStyle rules={[{required:true}]}>
+                                                    <InputNumber min={1} style={{width:'100%'}} disabled={!canEdit}/>
+                                                </Form.Item></Col>
                                                 <Col span={1} style={{textAlign:'center'}}><Text type="secondary" style={{fontSize: 12}}>Cái</Text></Col>
-                                                <Col span={3}><Form.Item {...rest} name={[name,'price']} noStyle rules={[{required:true}]}><InputNumber style={{width:'100%'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} disabled={!canEdit}/></Form.Item></Col>
+                                                <Col span={3}>
+                                                    <Form.Item {...rest} name={[name,'price']} noStyle rules={[{required:true}]}>
+                                                        <InputNumber 
+                                                            style={{width:'100%'}} 
+                                                            formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} 
+                                                            disabled={!canEdit}
+                                                            // --- MỚI: KÍCH HOẠT KIỂM TRA GIÁ KHI BLUR (THAY ĐỔI) ---
+                                                            onBlur={(e) => handlePriceChange(Number(e.target.value.replace(/,/g, '')), form.getFieldValue(['items', name, 'sku']), name)}
+                                                        />
+                                                    </Form.Item>
+                                                </Col>
                                                 <Col span={2} style={{textAlign:'right'}}><Text strong style={{fontSize: 13}}>{((items[name]?.quantity||0)*(items[name]?.price||0)).toLocaleString()}</Text></Col>
                                                 <Col span={2} style={{textAlign:'center'}}><Space><Tooltip title="Duyệt mẫu"><Button size="small" icon={<ExperimentOutlined/>} style={{color:items[name]?.is_sample_approved?'green':'orange'}} onClick={()=>handleSampleAction(name)}/></Tooltip>{canEdit && <DeleteOutlined onClick={()=>remove(name)} style={{color:'red'}}/>}</Space></Col>
                                             </Row>
@@ -225,64 +263,39 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                 </div>
                                             </Col>
                                         </Row>
-                                        {/* ----------------------------------------------------- */}
                                     </Card>
                                 </Col>
                                 
-                                {/* Cột Phải: TÁCH THÀNH TABS */}
+                                {/* Cột Phải: Hóa đơn, Giao nhận, Điều khoản (Giữ nguyên cấu trúc Tabs cũ) */}
                                 <Col span={8}>
-                                    <Tabs 
-                                        activeKey={infoTabKey} 
-                                        onChange={setInfoTabKey} 
-                                        type="card"
-                                        size="small"
-                                        items={[
-                                            {
-                                                key: 'VAT',
-                                                label: <Space><BankOutlined/> Hóa Đơn</Space>,
-                                                children: (
-                                                    <Card size="small">
-                                                        <Form.Item name="vat_company_name" label="Tên Đơn vị"><Input disabled={!canEdit}/></Form.Item>
-                                                        <Row gutter={8}>
-                                                            <Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input disabled={!canEdit}/></Form.Item></Col>
-                                                            <Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input disabled={!canEdit}/></Form.Item></Col>
-                                                        </Row>
-                                                    </Card>
-                                                )
-                                            },
-                                            {
-                                                key: 'SHIP',
-                                                label: <Space><CarOutlined/> Giao Nhận</Space>,
-                                                children: (
-                                                    <Card size="small">
-                                                        <Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}} disabled={!canEdit}/></Form.Item>
-                                                        <Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2} disabled={!canEdit}/></Form.Item>
-                                                        <Row gutter={8}>
-                                                            <Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input disabled={!canEdit}/></Form.Item></Col>
-                                                            <Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input disabled={!canEdit}/></Form.Item></Col>
-                                                        </Row>
-                                                    </Card>
-                                                )
-                                            },
-                                            {
-                                                key: 'TERM',
-                                                label: <Space style={{color:'#d48806'}}><FileTextOutlined/> Điều khoản</Space>,
-                                                children: (
-                                                    <Card size="small" headStyle={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
-                                                        <div style={{textAlign: 'right'}}><Button size="small" type="link" onClick={() => form.setFieldValue('terms_content', DEFAULT_TERMS)}>Mặc định</Button></div>
-                                                        <Form.Item name="terms_content" noStyle>
-                                                            <Input.TextArea 
-                                                                rows={8} 
-                                                                placeholder="Nhập điều khoản báo giá..." 
-                                                                style={{fontSize: 12, lineHeight: 1.5, background: '#fff'}}
-                                                                disabled={!canEdit}
-                                                            />
-                                                        </Form.Item>
-                                                    </Card>
-                                                )
-                                            }
-                                        ]}
-                                    />
+                                    
+                                    <Card title={<Space><BankOutlined/> Hóa Đơn & Giao Nhận</Space>} size="small" style={{marginBottom: 16}}>
+                                        <Form.Item name="vat_company_name" label="Tên Đơn vị"><Input disabled={!canEdit}/></Form.Item>
+                                        <Row gutter={8}>
+                                            <Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input disabled={!canEdit}/></Form.Item></Col>
+                                            <Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input disabled={!canEdit}/></Form.Item></Col>
+                                        </Row>
+                                        <Divider orientation="left" plain style={{margin: '10px 0'}}><CarOutlined/> Giao nhận</Divider>
+                                        <Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}} disabled={!canEdit}/></Form.Item>
+                                        <Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2} disabled={!canEdit}/></Form.Item>
+                                        <Row gutter={8}>
+                                            <Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input disabled={!canEdit}/></Form.Item></Col>
+                                            <Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input disabled={!canEdit}/></Form.Item></Col>
+                                        </Row>
+                                    </Card>
+                                    
+                                    {/* --- GHI CHÚ & ĐIỀU KHOẢN --- */}
+                                    <Card title={<Space style={{color:'#d48806'}}><FileTextOutlined/> Điều khoản & Ghi chú</Space>} size="small" headStyle={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
+                                        <div style={{textAlign: 'right'}}><Button size="small" type="link" onClick={() => form.setFieldValue('terms_content', DEFAULT_TERMS)}>Mặc định</Button></div>
+                                        <Form.Item name="terms_content" noStyle>
+                                            <Input.TextArea 
+                                                rows={5} 
+                                                placeholder="Nhập điều khoản báo giá..." 
+                                                style={{fontSize: 12, lineHeight: 1.5, background: '#fff'}}
+                                                disabled={!canEdit}
+                                            />
+                                        </Form.Item>
+                                    </Card>
                                 </Col>
                             </Row>
                         )

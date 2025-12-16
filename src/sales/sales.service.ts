@@ -12,6 +12,11 @@ import { ProductsService } from '../products/products.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { CustomersService } from '../customers/customers.service';
 
+// --- IMPORT TỪ THƯ MỤC PRICELIST ---
+import { PriceList } from './pricelist/price-list.entity';
+import { PriceListRule } from './pricelist/price-list-rule.entity';
+// -----------------------------------
+
 @Injectable()
 export class SalesService {
   constructor(
@@ -21,6 +26,12 @@ export class SalesService {
     @InjectRepository(SalesDelivery) private deliveryRepo: Repository<SalesDelivery>,
     @InjectRepository(SalesComment) private commentRepo: Repository<SalesComment>,
     @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
+    
+    // --- INJECT REPOSITORY CHO PRICE LIST ---
+    @InjectRepository(PriceList) private priceListRepo: Repository<PriceList>,
+    @InjectRepository(PriceListRule) private priceListRuleRepo: Repository<PriceListRule>,
+    // ----------------------------------------
+
     private productsService: ProductsService,
     private inventoryService: InventoryService,
     private customersService: CustomersService,
@@ -35,8 +46,75 @@ export class SalesService {
       }
   }
 
+  // --- LOGIC KIỂM TRA GIÁ BÁN (PRICE LIST VALIDATION) ---
+  async validatePriceAgainstPriceList(sku: string, unitPrice: number, currentUserId: number): Promise<boolean> {
+    const today = new Date();
+    
+    // 1. Tìm Price List đang hoạt động áp dụng cho User này
+    const applicableList = await this.priceListRepo.findOne({
+        where: {
+            user_id: currentUserId, 
+            is_active: true,
+            // Lưu ý: Cần xử lý logic ngày tháng (TypeORM query builder hoặc filter js)
+            // Ở đây dùng logic đơn giản, TypeORM findOne options cho date range có thể cần operator
+        },
+        order: { id: 'DESC' }
+    });
+
+    // Nếu không tìm thấy list active, hoặc list hết hạn, bỏ qua check
+    if (!applicableList) return true;
+    if (applicableList.valid_from > today || applicableList.valid_to < today) return true;
+
+    // 2. Tìm Rule cho SKU trong Price List này
+    const rule = await this.priceListRuleRepo.findOne({
+        where: {
+            price_list_id: applicableList.id,
+            product_sku: sku
+        }
+    });
+
+    if (!rule) return true; // Không có luật cho sản phẩm này -> Cho phép bán
+
+    const product = await this.productsService.findOneBySku(sku);
+    const costPrice = Number(product?.cost_price || 0);
+
+    // 3. Kiểm tra Giá (Price Min/Max)
+    if (rule.min_price && unitPrice < Number(rule.min_price)) {
+        throw new BadRequestException(`Giá bán ${unitPrice.toLocaleString()} ₫ thấp hơn mức tối thiểu: ${Number(rule.min_price).toLocaleString()} ₫ (Bảng giá: ${applicableList.name}).`);
+    }
+    if (rule.max_price && unitPrice > Number(rule.max_price)) {
+        throw new BadRequestException(`Giá bán ${unitPrice.toLocaleString()} ₫ cao hơn mức tối đa: ${Number(rule.max_price).toLocaleString()} ₫ (Bảng giá: ${applicableList.name}).`);
+    }
+
+    // 4. Kiểm tra Biên lợi nhuận (Margin Min/Max)
+    if (costPrice > 0) {
+        const margin = ((unitPrice - costPrice) / unitPrice) * 100;
+
+        if (rule.min_margin && margin < Number(rule.min_margin)) {
+            throw new BadRequestException(`Lợi nhuận ${margin.toFixed(1)}% thấp hơn mức tối thiểu: ${rule.min_margin}% (Bảng giá: ${applicableList.name}).`);
+        }
+        if (rule.max_margin && margin > Number(rule.max_margin)) {
+            throw new BadRequestException(`Lợi nhuận ${margin.toFixed(1)}% cao hơn mức tối đa: ${rule.max_margin}% (Bảng giá: ${applicableList.name}).`);
+        }
+    }
+
+    return true;
+  }
+  // --------------------------------------------------------
+
   async createOrder(data: any) {
     if (!data.isQuotation) await this.validateItemsForSO(data.items);
+    
+    // --- GỌI VALIDATION GIÁ ---
+    // TODO: Thay thế '1' bằng ID user thực tế từ request (JWT)
+    const currentUserId = 1; 
+    for (const itemData of (data.items || [])) {
+        if (itemData.sku && itemData.price) {
+            await this.validatePriceAgainstPriceList(itemData.sku, Number(itemData.price), currentUserId); 
+        }
+    }
+    // -------------------------
+
     const order = this.orderRepo.create({
         order_code: data.order_code,
         customer: data.customer_id ? { id: data.customer_id } : null,
@@ -45,7 +123,6 @@ export class SalesService {
         delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone, shipping_carrier: data.shipping_carrier,
         payment_note: data.payment_note, shipping_fee: Number(data.shipping_fee)||0,
         status: data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING,
-        // LƯU ĐIỀU KHOẢN
         terms_content: data.terms_content
     });
     
@@ -76,6 +153,31 @@ export class SalesService {
     return this.orderRepo.save(order);
   }
 
+  // --- CRUD API CHO PRICE LIST (ĐỂ FRONTEND GỌI) ---
+  async createPriceList(data: any) {
+      const list = this.priceListRepo.create(data);
+      list.valid_from = new Date(data.valid_from);
+      list.valid_to = new Date(data.valid_to);
+      return this.priceListRepo.save(list);
+  }
+
+  async createPriceListRule(listId: number, data: any) {
+      const list = await this.priceListRepo.findOne({ where: { id: listId } });
+      if (!list) throw new NotFoundException('Price List not found');
+      
+      const existingRule = await this.priceListRuleRepo.findOne({ where: { price_list_id: listId, product_sku: data.product_sku } });
+      if (existingRule) {
+           throw new BadRequestException(`Sản phẩm ${data.product_sku} đã có quy tắc trong bảng giá này.`);
+      }
+      
+      const rule = this.priceListRuleRepo.create({ ...data, price_list_id: listId });
+      return this.priceListRuleRepo.save(rule);
+  }
+
+  async getAllPriceLists() { return this.priceListRepo.find({ order: { valid_from: 'DESC' } }); }
+  async getPriceListRules(listId: number) { return this.priceListRuleRepo.find({ where: { price_list_id: listId } }); }
+  // ------------------------------------------------
+
   async findAll() { return this.orderRepo.find({ order: { order_date: 'DESC' }, relations: ['customer'] }); }
   async getOrder(code: string) { return this.orderRepo.findOne({ where: { order_code: code }, relations: ['items', 'customer', 'comments'] }); }
 
@@ -83,12 +185,20 @@ export class SalesService {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if (!order) throw new NotFoundException('Not Found');
       
+      // --- GỌI VALIDATION GIÁ ---
+      const currentUserId = 1; // TODO: Thay bằng ID thật
+      for (const itemData of (data.items || [])) {
+          if (itemData.sku && itemData.price) {
+              await this.validatePriceAgainstPriceList(itemData.sku, Number(itemData.price), currentUserId); 
+          }
+      }
+      // -------------------------
+
       Object.assign(order, {
           vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate)||0,
           delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone,
           shipping_fee: Number(data.shipping_fee)||0, payment_note: data.payment_note,
           sample_image_url: data.sample_image_url, sample_note: data.sample_note,
-          // LƯU ĐIỀU KHOẢN
           terms_content: data.terms_content
       });
       if(data.customer_id) order.customer = { id: data.customer_id } as any;
@@ -111,7 +221,6 @@ export class SalesService {
       return this.orderRepo.save(order);
   }
 
-  // --- Complete & Comment ---
   async completeOrder(id: number) {
       const order = await this.orderRepo.findOne({ where: { id } });
       if (!order) throw new NotFoundException();
@@ -130,7 +239,6 @@ export class SalesService {
       if (comment) { comment.is_visible = !comment.is_visible; return this.commentRepo.save(comment); }
   }
 
-  // --- Logic cũ ---
   async convertQuoteToSo(id: number, accepted: boolean) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if(!order) throw new NotFoundException();

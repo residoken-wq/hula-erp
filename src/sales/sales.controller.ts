@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { SalesService } from './sales.service';
 
 @Controller('sales')
@@ -8,6 +8,19 @@ export class SalesController {
   @Post('create') create(@Body() b: any) { return this.s.createOrder(b); }
   @Get() findAll() { return this.s.findAll(); }
   @Get(':code') getOne(@Param('code') c: string) { return this.s.getOrder(c); }
+  
+  // --- ENDPOINT VALIDATE GIÁ ---
+  @Get('validate-price')
+  async validatePrice(
+      @Query('sku') sku: string, 
+      @Query('unitPrice') unitPrice: number,
+      @Query('userId') userId: number // Có thể lấy từ @Request() req nếu có Auth
+  ) {
+      // Vì userId hiện tại hardcode là 1 ở Service, nên ở đây truyền vào để mở rộng sau này
+      return this.s.validatePriceAgainstPriceList(sku, Number(unitPrice), Number(userId));
+  }
+  // -----------------------------
+
   @Post(':id/convert') convert(@Param('id') id: number, @Body('accepted') accepted: boolean) { return this.s.convertQuoteToSo(id, accepted); }
   @Get('samples/all') getAllSamples() { return this.s.sampleRepo.find({ order: { created_at: 'DESC' } }); }
   @Put('quote/:id') updateQuote(@Param('id') id: number, @Body() b: any) { return this.s.updateQuote(id, b); }
@@ -18,10 +31,5 @@ export class SalesController {
   @Get('portal/:uuid') getPortal(@Param('uuid') uuid: string) { return this.s.getQuoteByUuid(uuid); }
   @Post('portal/:uuid/action') customerAction(@Param('uuid') uuid: string, @Body() body: any) { return this.s.customerAction(uuid, body.action); }
   @Post(':id/approve-samples') approveSamples(@Param('id') id: number) { return this.s.approveAllSamples(id); }
-
-  // --- API MOI ---
   @Post(':id/complete') complete(@Param('id') id: number) { return this.s.completeOrder(id); }
-  @Post(':id/comment') addComment(@Param('id') id: number, @Body() b: any) { return this.s.addComment(id, b.content, b.sender, b.name); }
-  @Get(':id/comments') getComments(@Param('id') id: number) { return this.s.getComments(id); }
-  @Post('comment/:id/toggle') toggleComment(@Param('id') id: number) { return this.s.toggleCommentVisibility(id); }
 }

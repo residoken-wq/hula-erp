@@ -5,8 +5,13 @@ import { SalesOrderItem } from './sales-order-item.entity';
 import { ProductSample } from './product-sample.entity';
 import { SalesDelivery } from './sales-delivery.entity';
 import { SalesDeliveryItem } from './sales-delivery-item.entity';
-import { SalesComment } from './sales-comment.entity'; // <--- 1. IMPORT
+import { SalesComment } from './sales-comment.entity';
 import { Transaction } from '../finance/transaction.entity';
+
+// --- IMPORT TỪ THƯ MỤC PRICELIST ---
+import { PriceList } from './pricelist/price-list.entity';
+import { PriceListRule } from './pricelist/price-list-rule.entity';
+// -----------------------------------
 
 import { SalesController } from './sales.controller';
 import { SalesService } from './sales.service';
@@ -23,8 +28,12 @@ import { FinanceModule } from '../finance/finance.module';
         ProductSample, 
         SalesDelivery, 
         SalesDeliveryItem,
-        SalesComment, // <--- 2. BẮT BUỘC PHẢI CÓ Ở ĐÂY
-        Transaction
+        SalesComment, 
+        Transaction,
+        // --- ĐĂNG KÝ ENTITY ---
+        PriceList,      
+        PriceListRule   
+        // ---------------------
     ]),
     ProductsModule,
     InventoryModule,

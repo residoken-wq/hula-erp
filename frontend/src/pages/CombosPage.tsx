@@ -10,7 +10,7 @@ const CombosPage: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<any>(null); // State cho item đang edit
   const [form] = Form.useForm();
 
   // Dữ liệu sản phẩm dưới dạng Map để dễ dàng tra cứu giá
@@ -31,7 +31,7 @@ const CombosPage: React.FC = () => {
             setProducts(resProd.data.map((p:any) => ({
                 label: `${p.sku} - ${p.name}`, 
                 value: p.sku, 
-                price: Number(p.base_price) || 0,
+                price: Number(p.base_price) || 0, // Lưu giá bán vào options
                 unit: p.unit
             })));
 
@@ -44,6 +44,7 @@ const CombosPage: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
+  // --- HÀM TẢI CHI TIẾT COMBO (ĐỂ EDIT) ---
   const fetchComboDetail = async (comboSku: string) => {
       try {
           const res = await axios.get(`${API_URL}/products/combo/${comboSku}`);
@@ -60,10 +61,12 @@ const CombosPage: React.FC = () => {
       }
   };
 
+  // --- HÀM MỞ EDIT (FIX LỖI NẠP DỮ LIỆU BẤT ĐỒNG BỘ) ---
   const openEdit = async (record: any) => {
       setEditingItem(record);
       form.resetFields(); 
-      
+      setIsModalOpen(true); // Mở Modal
+
       const comboItems = await fetchComboDetail(record.sku);
       
       let initialCalculatedCost = 0;
@@ -71,25 +74,26 @@ const CombosPage: React.FC = () => {
           const productInfo = productMap[item.sku] || { price: 0 };
           initialCalculatedCost += Number(item.quantity) * Number(productInfo.price);
       });
-
-      form.setFieldsValue({
-          sku: record.sku,
-          name: record.name,
-          // FIX: Nạp giá bán hiện tại vào trường tùy chỉnh
-          manual_base_price: record.base_price, 
-          items: comboItems, 
-          total_price_calculated: Math.round(initialCalculatedCost)
-      });
-      setIsModalOpen(true);
+      
+      // FIX: Thêm độ trễ nhỏ để đảm bảo Form.List đã mount trước khi setFieldsValue
+      setTimeout(() => {
+          form.setFieldsValue({
+              sku: record.sku,
+              name: record.name,
+              manual_base_price: record.base_price, 
+              items: comboItems, 
+              total_price_calculated: Math.round(initialCalculatedCost)
+          });
+      }, 50); // 50ms delay
   };
 
 
+  // --- HÀM LƯU COMBO ---
   const handleSave = async (values: any) => {
       try {
-          const { sku, name, items, manual_base_price } = values; // Lấy giá tùy chỉnh
+          const { sku, name, items, manual_base_price } = values;
           
           const calculatedCost = form.getFieldValue('total_price_calculated');
-          // Ưu tiên giá do user nhập, nếu không có thì lấy giá tính toán
           const finalPrice = manual_base_price || calculatedCost; 
 
           let comboProduct = editingItem;
@@ -137,6 +141,7 @@ const CombosPage: React.FC = () => {
       }
   };
 
+  // --- HÀM XÓA COMBO ---
   const handleDelete = async (id: number) => {
       try {
           await axios.delete(`${API_URL}/products/${id}`);
@@ -157,6 +162,7 @@ const CombosPage: React.FC = () => {
   };
 
 
+  // --- HÀM TÍNH TOÁN TỔNG TIỀN TRÊN FORM ---
   const calculateTotal = (changedValues: any, allValues: any) => {
     const items = allValues.items || [];
     let total = 0;
@@ -345,7 +351,6 @@ const CombosPage: React.FC = () => {
                 
                 <Row justify="end" style={{ paddingRight: 16 }}>
                     <Statistic 
-                        // FIX: Đổi tiêu đề để user biết đây là giá vốn tham khảo
                         title="GIÁ VỐN COMBO (Tham khảo từ thành phần)" 
                         value={form.getFieldValue('total_price_calculated') || 0} 
                         precision={0} 
