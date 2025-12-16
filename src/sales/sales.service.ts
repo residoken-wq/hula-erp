@@ -153,8 +153,8 @@ export class SalesService {
 
   // --- CRUD API CHO PRICE LIST (ĐỂ FRONTEND GỌI) ---
   async createPriceList(data: any) {
-      // FIX TS2339: Ép kiểu kết quả về PriceList để TS không hiểu nhầm là mảng
-      const list = this.priceListRepo.create(data) as PriceList;
+      // FIX TS2352: Ép kiểu qua 'unknown' rồi mới về 'PriceList'
+      const list = this.priceListRepo.create(data) as unknown as PriceList;
       
       list.valid_from = new Date(data.valid_from);
       list.valid_to = new Date(data.valid_to);
