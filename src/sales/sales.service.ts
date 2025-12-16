@@ -55,8 +55,6 @@ export class SalesService {
         where: {
             user_id: currentUserId, 
             is_active: true,
-            // Lưu ý: Cần xử lý logic ngày tháng (TypeORM query builder hoặc filter js)
-            // Ở đây dùng logic đơn giản, TypeORM findOne options cho date range có thể cần operator
         },
         order: { id: 'DESC' }
     });
@@ -155,7 +153,9 @@ export class SalesService {
 
   // --- CRUD API CHO PRICE LIST (ĐỂ FRONTEND GỌI) ---
   async createPriceList(data: any) {
-      const list = this.priceListRepo.create(data);
+      // FIX TS2339: Ép kiểu kết quả về PriceList để TS không hiểu nhầm là mảng
+      const list = this.priceListRepo.create(data) as PriceList;
+      
       list.valid_from = new Date(data.valid_from);
       list.valid_to = new Date(data.valid_to);
       return this.priceListRepo.save(list);
