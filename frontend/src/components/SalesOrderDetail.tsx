@@ -19,7 +19,8 @@ const DEFAULT_TERMS = `- Báo giá có hiệu lực trong vòng 07 ngày.\n- Th�
 
 const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, isQuotation, customers, products }) => {
     const [form] = Form.useForm();
-    const [activeTab, setActiveTab] = useState('1');
+    const [activeTab, setActiveTab] = useState('1'); // Tab chính của Modal
+    const [infoTabKey, setInfoTabKey] = useState('VAT'); // Tab con trong cột phải
     const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
     const [currentSampleIdx, setCurrentSampleIdx] = useState<number | null>(null);
     const [sampleForm] = Form.useForm();
@@ -46,10 +47,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             });
         } else if (open) {
             form.resetFields();
-            // Lỗi order_code khi tạo mới sẽ được fix bằng cách thêm isQuotation vào payload
             form.setFieldsValue({ order_code: `QUOTE-${dayjs().format('YYMMDD')}-${Math.floor(Math.random() * 1000)}`, items: [{}], vat_rate: 0, terms_content: DEFAULT_TERMS });
         }
         setActiveTab('1');
+        setInfoTabKey('VAT');
     }, [open, initialData, form]);
 
     const handleSave = async (values: any) => {
@@ -58,10 +59,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             const payload = { ...values, isQuotation, items: validItems.map((i: any) => ({ ...i, quantity: Number(i.quantity) || 0, price: Number(i.price) || 0 })) };
             
             if (initialData?.id) {
-                // Cập nhật Báo giá/SO
                 await axios.put(`${API_URL}/sales/quote/${initialData.id}`, payload);
             } else {
-                // Tạo mới Báo giá (POST /sales/create)
                 await axios.post(`${API_URL}/sales/create`, { ...payload, isQuotation: isQuotation });
             }
             message.success('Đã lưu thành công'); 
@@ -155,12 +154,12 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         
                                         {/* FIX HEADER: Tăng span Sản phẩm lên 12, đảm bảo hiển thị full tên sản phẩm */}
                                         <Row gutter={8} style={{marginBottom:5, fontWeight:'bold', borderBottom:'2px solid #ddd', paddingBottom: 5}}>
-                                            <Col span={12}>Sản phẩm</Col> {/* Tăng span */}
-                                            <Col span={2}>Màu/Biến thể</Col> {/* Giảm span */}
+                                            <Col span={12}>Sản phẩm</Col>
+                                            <Col span={2}>Màu/Biến thể</Col>
                                             <Col span={2}>SL</Col>
                                             <Col span={1}>ĐVT</Col>
                                             <Col span={3}>Giá</Col>
-                                            <Col span={2}>Thành tiền</Col> {/* Giảm span */}
+                                            <Col span={2}>Thành tiền</Col>
                                             <Col span={2}>Mẫu</Col>
                                         </Row>
                                         
@@ -230,36 +229,60 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                     </Card>
                                 </Col>
                                 
-                                {/* Cột Phải: Hóa đơn, Giao nhận, Điều khoản */}
+                                {/* Cột Phải: TÁCH THÀNH TABS */}
                                 <Col span={8}>
-                                    
-                                    <Card title={<Space><BankOutlined/> Hóa Đơn & Giao Nhận</Space>} size="small" style={{marginBottom: 16}}>
-                                        <Form.Item name="vat_company_name" label="Tên Đơn vị"><Input disabled={!canEdit}/></Form.Item>
-                                        <Row gutter={8}>
-                                            <Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input disabled={!canEdit}/></Form.Item></Col>
-                                            <Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input disabled={!canEdit}/></Form.Item></Col>
-                                        </Row>
-                                        <Divider orientation="left" plain style={{margin: '10px 0'}}><CarOutlined/> Giao nhận</Divider>
-                                        <Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}} disabled={!canEdit}/></Form.Item>
-                                        <Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2} disabled={!canEdit}/></Form.Item>
-                                        <Row gutter={8}>
-                                            <Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input disabled={!canEdit}/></Form.Item></Col>
-                                            <Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input disabled={!canEdit}/></Form.Item></Col>
-                                        </Row>
-                                    </Card>
-                                    
-                                    {/* --- GHI CHÚ & ĐIỀU KHOẢN --- */}
-                                    <Card title={<Space style={{color:'#d48806'}}><FileTextOutlined/> Điều khoản & Ghi chú</Space>} size="small" headStyle={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
-                                        <div style={{textAlign: 'right'}}><Button size="small" type="link" onClick={() => form.setFieldValue('terms_content', DEFAULT_TERMS)}>Mặc định</Button></div>
-                                        <Form.Item name="terms_content" noStyle>
-                                            <Input.TextArea 
-                                                rows={5} 
-                                                placeholder="Nhập điều khoản báo giá..." 
-                                                style={{fontSize: 12, lineHeight: 1.5, background: '#fff'}}
-                                                disabled={!canEdit}
-                                            />
-                                        </Form.Item>
-                                    </Card>
+                                    <Tabs 
+                                        activeKey={infoTabKey} 
+                                        onChange={setInfoTabKey} 
+                                        type="card"
+                                        size="small"
+                                        items={[
+                                            {
+                                                key: 'VAT',
+                                                label: <Space><BankOutlined/> Hóa Đơn</Space>,
+                                                children: (
+                                                    <Card size="small">
+                                                        <Form.Item name="vat_company_name" label="Tên Đơn vị"><Input disabled={!canEdit}/></Form.Item>
+                                                        <Row gutter={8}>
+                                                            <Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input disabled={!canEdit}/></Form.Item></Col>
+                                                            <Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input disabled={!canEdit}/></Form.Item></Col>
+                                                        </Row>
+                                                    </Card>
+                                                )
+                                            },
+                                            {
+                                                key: 'SHIP',
+                                                label: <Space><CarOutlined/> Giao Nhận</Space>,
+                                                children: (
+                                                    <Card size="small">
+                                                        <Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}} disabled={!canEdit}/></Form.Item>
+                                                        <Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2} disabled={!canEdit}/></Form.Item>
+                                                        <Row gutter={8}>
+                                                            <Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input disabled={!canEdit}/></Form.Item></Col>
+                                                            <Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input disabled={!canEdit}/></Form.Item></Col>
+                                                        </Row>
+                                                    </Card>
+                                                )
+                                            },
+                                            {
+                                                key: 'TERM',
+                                                label: <Space style={{color:'#d48806'}}><FileTextOutlined/> Điều khoản</Space>,
+                                                children: (
+                                                    <Card size="small" headStyle={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
+                                                        <div style={{textAlign: 'right'}}><Button size="small" type="link" onClick={() => form.setFieldValue('terms_content', DEFAULT_TERMS)}>Mặc định</Button></div>
+                                                        <Form.Item name="terms_content" noStyle>
+                                                            <Input.TextArea 
+                                                                rows={8} 
+                                                                placeholder="Nhập điều khoản báo giá..." 
+                                                                style={{fontSize: 12, lineHeight: 1.5, background: '#fff'}}
+                                                                disabled={!canEdit}
+                                                            />
+                                                        </Form.Item>
+                                                    </Card>
+                                                )
+                                            }
+                                        ]}
+                                    />
                                 </Col>
                             </Row>
                         )
