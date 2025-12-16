@@ -1,37 +1,33 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { PriceListRule } from './price-list-rule.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+// Import class cha từ file khác (Lưu ý đường dẫn ./price-list.entity)
+import { PriceList } from './price-list.entity';
 
-@Entity('price_lists')
-export class PriceList {
+@Entity('price_list_rules')
+export class PriceListRule {
   @PrimaryGeneratedColumn()
   id: number;
 
+  // Mối quan hệ n-1: Trỏ ngược về PriceList
+  @ManyToOne(() => PriceList, (list) => list.rules, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'price_list_id' })
+  price_list: PriceList;
+
   @Column()
-  name: string; // Tên bảng giá (VD: Bảng giá Q1-2024 - Sale Team A)
+  price_list_id: number;
 
-  @Column({ nullable: true })
-  description: string;
+  @Column()
+  product_sku: string;
 
-  // Áp dụng cho User Sale cụ thể (Theo yêu cầu của bạn)
-  @Column({ nullable: true })
-  user_id: number; 
+  // --- CÁC GIỚI HẠN ---
+  @Column('decimal', { precision: 15, scale: 2, nullable: true })
+  min_price: number;
 
-  @Column({ type: 'date' })
-  valid_from: Date; // Ngày bắt đầu áp dụng
+  @Column('decimal', { precision: 15, scale: 2, nullable: true })
+  max_price: number;
 
-  @Column({ type: 'date' })
-  valid_to: Date; // Ngày kết thúc áp dụng
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  min_margin: number;
 
-  @Column({ default: true })
-  is_active: boolean;
-
-  // Mối quan hệ 1-n: Một bảng giá có nhiều quy tắc (rules) cho từng sản phẩm
-  @OneToMany(() => PriceListRule, (rule) => rule.price_list, { cascade: true })
-  rules: PriceListRule[];
-
-  @CreateDateColumn()
-  created_at: Date;
-
-  @UpdateDateColumn()
-  updated_at: Date;
+  @Column('decimal', { precision: 5, scale: 2, nullable: true })
+  max_margin: number;
 }

@@ -1,33 +1,37 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { PriceList } from './price-list.entity';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+// Import class con từ file khác (Lưu ý đường dẫn ./price-list-rule.entity)
+import { PriceListRule } from './price-list-rule.entity';
 
-@Entity('price_list_rules')
-export class PriceListRule {
+@Entity('price_lists')
+export class PriceList {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // Liên kết ngược lại bảng giá cha
-  @ManyToOne(() => PriceList, (list) => list.rules, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'price_list_id' })
-  price_list: PriceList;
-
   @Column()
-  price_list_id: number;
+  name: string; // Tên bảng giá
 
-  @Column()
-  product_sku: string; // SKU sản phẩm được áp dụng luật này
+  @Column({ nullable: true })
+  description: string;
 
-  // --- CÁC GIỚI HẠN GIÁ ---
+  @Column({ nullable: true })
+  user_id: number; // Áp dụng cho Sale nào
 
-  @Column('decimal', { precision: 15, scale: 2, nullable: true })
-  min_price: number; // Giá bán tối thiểu (VND)
+  @Column({ type: 'date' })
+  valid_from: Date;
 
-  @Column('decimal', { precision: 15, scale: 2, nullable: true })
-  max_price: number; // Giá bán tối đa (VND) - Nếu muốn giới hạn trần
+  @Column({ type: 'date' })
+  valid_to: Date;
 
-  @Column('decimal', { precision: 5, scale: 2, nullable: true })
-  min_margin: number; // Lợi nhuận tối thiểu (%) - VD: 10%
+  @Column({ default: true })
+  is_active: boolean;
 
-  @Column('decimal', { precision: 5, scale: 2, nullable: true })
-  max_margin: number; // Lợi nhuận tối đa (%)
+  // Mối quan hệ 1-n: Trỏ tới PriceListRule
+  @OneToMany(() => PriceListRule, (rule) => rule.price_list, { cascade: true })
+  rules: PriceListRule[];
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }
