@@ -273,7 +273,7 @@ const CrmPage: React.FC = () => {
                 {/* --- FIX: NÚT QUẢN LÝ BẢNG GIÁ --- */}
                 <Button 
                     icon={<UnorderedListOutlined />} 
-                    onClick={() => navigate('/sales/price-lists')}
+                    onClick={() => navigate('/sales/pricelist')}
                 >
                     Quản lý Bảng Giá
                 </Button>
