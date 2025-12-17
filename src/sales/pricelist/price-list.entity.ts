@@ -12,10 +12,10 @@ export class PriceList {
   @Column({ nullable: true })
   description: string;
 
-  // --- THAY ĐỔI: ÁP DỤNG CHO NHÓM USER ---
+  // --- QUAN TRỌNG: Cột này dùng để gán cho Nhóm User ---
   @Column({ nullable: true })
   group_id: number; 
-  // ---------------------------------------
+  // ----------------------------------------------------
 
   @Column({ type: 'date' })
   valid_from: Date; 

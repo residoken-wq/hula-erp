@@ -12,9 +12,7 @@ const PriceListsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [priceLists, setPriceLists] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]); 
-  // --- MỚI: State lưu danh sách nhóm ---
   const [groups, setGroups] = useState<any[]>([]);
-  // ------------------------------------
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formList] = Form.useForm();
@@ -31,7 +29,7 @@ const PriceListsPage: React.FC = () => {
         const [resLists, resProds, resGroups] = await Promise.all([
             axios.get(`${API_URL}/sales/price-lists`),
             axios.get(`${API_URL}/products`),
-            axios.get(`${API_URL}/users/groups`) // Tải danh sách nhóm
+            axios.get(`${API_URL}/users/groups`) 
         ]);
         setPriceLists(Array.isArray(resLists.data) ? resLists.data : []);
         setProducts(Array.isArray(resProds.data) ? resProds.data.map((p:any) => ({label: `${p.sku} - ${p.name}`, value: p.sku})) : []);
