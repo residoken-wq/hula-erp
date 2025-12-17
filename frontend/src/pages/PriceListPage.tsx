@@ -23,6 +23,7 @@ const PriceListsPage: React.FC = () => {
   const [formRule] = Form.useForm();
   const [loadingRules, setLoadingRules] = useState(false);
 
+  // Load Data
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -40,8 +41,10 @@ const PriceListsPage: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
+  // Handle Create
   const handleCreateList = async (values: any) => {
       try {
+          // Chuẩn hóa dữ liệu trước khi gửi
           const payload = {
               name: values.name,
               description: values.description,
@@ -54,7 +57,7 @@ const PriceListsPage: React.FC = () => {
           await axios.post(`${API_URL}/sales/price-lists`, payload);
           message.success('Tạo bảng giá thành công');
           setIsModalOpen(false);
-          fetchData(); 
+          fetchData(); // Reload ngay
       } catch(e) { message.error('Lỗi tạo bảng giá'); }
   };
 
@@ -154,6 +157,7 @@ const PriceListsPage: React.FC = () => {
             <Table dataSource={priceLists} columns={listColumns} rowKey="id" loading={loading} pagination={{pageSize: 10}} />
         </Card>
 
+        {/* MODAL TẠO */}
         <Modal title="Thiết lập Bảng Giá Mới" open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>formList.submit()}>
             <Form form={formList} layout="vertical" onFinish={handleCreateList}>
                 <Form.Item name="name" label="Tên Bảng Giá" rules={[{required:true}]}><Input placeholder="VD: Giá bán lẻ - Nhóm Sale HN" /></Form.Item>
@@ -171,6 +175,7 @@ const PriceListsPage: React.FC = () => {
             </Form>
         </Modal>
 
+        {/* DRAWER RULES */}
         <Drawer title={currentPriceList ? `Cấu hình chi tiết: ${currentPriceList.name}` : 'Chi tiết Bảng Giá'} width={800} open={isDrawerOpen} onClose={()=>setIsDrawerOpen(false)} bodyStyle={{paddingTop: 10, background: '#f0f2f5'}}>
             <div style={{background: '#fff', padding: 20, borderRadius: 8, marginBottom: 15, boxShadow: '0 1px 2px rgba(0,0,0,0.03)'}}>
                 <div style={{fontWeight: 600, marginBottom: 15, color: '#0050b3', textTransform: 'uppercase', fontSize: 13}}>Thêm Quy Tắc Giá Mới</div>

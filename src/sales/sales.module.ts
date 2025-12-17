@@ -12,9 +12,9 @@ import { Transaction } from '../finance/transaction.entity';
 import { PriceList } from './pricelist/price-list.entity';
 import { PriceListRule } from './pricelist/price-list-rule.entity';
 
-// --- MỚI: Import User Entity để tra cứu Group ---
+// --- MỚI: Import User Entity ---
 import { User } from '../users/entities/user.entity';
-// ------------------------------------------------
+// ------------------------------
 
 import { SalesController } from './sales.controller';
 import { SalesService } from './sales.service';
@@ -35,7 +35,7 @@ import { FinanceModule } from '../finance/finance.module';
         Transaction,
         PriceList, 
         PriceListRule,
-        User // <--- Đăng ký User Repository
+        User // <--- Đăng ký User
     ]),
     ProductsModule,
     InventoryModule,
