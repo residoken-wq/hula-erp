@@ -19,6 +19,7 @@ import ProcessesPage from './pages/ProcessesPage';
 import CategoriesPage from './pages/CategoriesPage';
 import PortalQuotePage from './pages/PortalQuotePage';
 import PortalPurchasePage from './pages/PortalPurchasePage';
+import PriceListsPage from './pages/PriceListsPage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
