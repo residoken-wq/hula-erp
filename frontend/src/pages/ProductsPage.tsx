@@ -17,7 +17,7 @@ const ProductsPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
+    // const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined); // Đã bỏ để dùng Table Filter
     
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -213,9 +213,22 @@ const ProductsPage: React.FC = () => {
         } catch(e) { message.error('Lỗi tính giá vốn'); }
     };
 
+    // --- MỚI: LOGIC LỌC DỮ LIỆU ---
+    // Chỉ lọc theo text, phần Category sẽ dùng Table Filter
+    const filteredData = useMemo(() => {
+        if (!searchText) return data;
+        const lower = searchText.toLowerCase();
+        return data.filter(d => 
+            (d.name && d.name.toLowerCase().includes(lower)) || 
+            (d.sku && d.sku.toLowerCase().includes(lower))
+        );
+    }, [data, searchText]);
+
     const columns = [
-        { title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t:any) => <b>{t}</b> },
-        // FIX: Lỗi [object Object]
+        { 
+            title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t:any) => <b>{t}</b>,
+            sorter: (a: any, b: any) => (a.sku || '').localeCompare(b.sku || '')
+        },
         { 
             title: 'Tên Sản Phẩm', 
             dataIndex: 'name', 
@@ -224,20 +237,32 @@ const ProductsPage: React.FC = () => {
                     <TagOutlined /> 
                     {t}
                 </Space>
-            )
+            ),
+            sorter: (a: any, b: any) => (a.name || '').localeCompare(b.name || '')
         },
-        { title: 'Phân loại', dataIndex: 'category_id', width: 150, render: (id: number) => <Tag color="blue">{getCategoryName(id)}</Tag> },
+        { 
+            title: 'Phân loại', 
+            dataIndex: 'category_id', 
+            width: 150, 
+            render: (id: number) => <Tag color="blue">{getCategoryName(id)}</Tag>,
+            // MỚI: Thêm filter cho Category
+            filters: categories.map(c => ({ text: c.name, value: c.id })),
+            onFilter: (value: any, record: any) => record.category_id === value,
+        },
         { 
             title: 'Giá vốn', dataIndex: 'cost_price', width: 100, align: 'right' as const,
-            render: (v: number) => <span style={{fontWeight:'bold', color:'red'}}>{Number(v).toLocaleString()}</span>
+            render: (v: number) => <span style={{fontWeight:'bold', color:'red'}}>{Number(v).toLocaleString()}</span>,
+            sorter: (a: any, b: any) => Number(a.cost_price) - Number(b.cost_price)
         },
         { 
             title: 'Giá bán', dataIndex: 'base_price', width: 100, align: 'right' as const,
-            render: (v: number) => <span style={{fontWeight:'bold', color:'green'}}>{Number(v).toLocaleString()}</span>
+            render: (v: number) => <span style={{fontWeight:'bold', color:'green'}}>{Number(v).toLocaleString()}</span>,
+            sorter: (a: any, b: any) => Number(a.base_price) - Number(b.base_price)
         },
         { 
             title: 'Tồn kho', dataIndex: 'quantity_in_stock', width: 80, align: 'right' as const,
-            render: (v: number) => <Badge count={v} showZero overflowCount={999} style={{ backgroundColor: v > 0 ? '#52c41a' : '#faad14' }} />
+            render: (v: number) => <Badge count={v} showZero overflowCount={999} style={{ backgroundColor: v > 0 ? '#52c41a' : '#faad14' }} />,
+            sorter: (a: any, b: any) => Number(a.quantity_in_stock) - Number(b.quantity_in_stock)
         },
         { 
             title: '', key: 'action', width: 160, align: 'center' as const,
@@ -260,16 +285,6 @@ const ProductsPage: React.FC = () => {
         }
     ];
 
-    const filteredData = data.filter(d => {
-        const textMatch = d.name?.toLowerCase().includes(searchText.toLowerCase()) || d.sku?.toLowerCase().includes(searchText.toLowerCase());
-        const categoryMatch = selectedCategory === undefined || d.category_id === selectedCategory;
-        return textMatch && categoryMatch;
-    });
-
-    const productOptions = useMemo(() => {
-        return data.map(p => ({ label: `${p.sku} - ${p.name}`, value: p.sku }));
-    }, [data]);
-
     // FIX: Logic Lợi nhuận tự động cập nhật khi thay đổi Phân loại
     const handleFormValuesChange = (changedValues: any) => {
         if (changedValues.category_id !== undefined) {
@@ -287,24 +302,25 @@ const ProductsPage: React.FC = () => {
     };
 
     return (
-        <Card title="Quản Lý Sản Phẩm (SKU)" extra={<Button type="primary" icon={<PlusOutlined />} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1')}}>Thêm Mới</Button>}>
+        <Card 
+            title="Quản Lý Sản Phẩm (SKU)" 
+            extra={
+                <Space>
+                    {/* MỚI: Input Search đặt tại đây cho gọn */}
+                    <Input 
+                        placeholder="Tìm kiếm SKU/Tên..." 
+                        prefix={<SearchOutlined />} 
+                        value={searchText} 
+                        onChange={e => setSearchText(e.target.value)} 
+                        style={{ width: 250 }}
+                        allowClear
+                    />
+                    <Button type="primary" icon={<PlusOutlined />} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1')}}>Thêm Mới</Button>
+                </Space>
+            }
+        >
             
-            <div style={{marginBottom: 16, display: 'flex', gap: 16}}>
-                <Input 
-                    placeholder="Tìm kiếm SKU/Tên..." 
-                    prefix={<SearchOutlined />} 
-                    value={searchText} 
-                    onChange={e => setSearchText(e.target.value)} 
-                    style={{maxWidth: 300}}
-                />
-                <Select 
-                    placeholder="Lọc theo Phân loại" 
-                    allowClear
-                    style={{minWidth: 200}}
-                    onChange={setSelectedCategory}
-                    options={categories.map(c => ({ label: c.name, value: c.id }))}
-                />
-            </div>
+            {/* Đã bỏ dòng filter cũ ở đây để giao diện thoáng hơn */}
             
             <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
             
@@ -432,11 +448,9 @@ const ProductsPage: React.FC = () => {
                         )
                     }
                 ]} />
-                
-                {/* Đã loại bỏ nút Tính lại Giá vốn dưới footer vì đã có icon trong Tab 1 */}
             </Modal>
             
-            {/* Modal Tạo Biến thể (Fix Width & Form) */}
+            {/* Modal Tạo Biến thể */}
             <Modal
                 title={`Tạo Biến thể mới từ ${baseProductForVariant?.sku}`}
                 open={isVariantModalOpen}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Select, Row, Col, Space, Divider, Tooltip, Statistic, Popconfirm } from 'antd';
-import { PlusOutlined, DeleteOutlined, GiftOutlined, DollarOutlined, EditOutlined, WarningOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, GiftOutlined, DollarOutlined, EditOutlined, WarningOutlined, SearchOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -9,6 +9,9 @@ const CombosPage: React.FC = () => {
   const [combos, setCombos] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   
+  // --- MỚI: STATE TÌM KIẾM ---
+  const [searchText, setSearchText] = useState('');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null); // State cho item đang edit
   const [form] = Form.useForm();
@@ -43,6 +46,16 @@ const CombosPage: React.FC = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  // --- MỚI: LOGIC LỌC DỮ LIỆU ---
+  const filteredCombos = useMemo(() => {
+      if (!searchText) return combos;
+      const lower = searchText.toLowerCase();
+      return combos.filter(c => 
+          (c.sku && c.sku.toLowerCase().includes(lower)) || 
+          (c.name && c.name.toLowerCase().includes(lower))
+      );
+  }, [combos, searchText]);
 
   // --- HÀM TẢI CHI TIẾT COMBO (ĐỂ EDIT) ---
   const fetchComboDetail = async (comboSku: string) => {
@@ -180,9 +193,20 @@ const CombosPage: React.FC = () => {
   };
   
   const columns = [
-      { title: 'Mã Combo', dataIndex: 'sku', render: (t:any) => <b>{t}</b> },
-      { title: 'Tên Combo', dataIndex: 'name' },
-      { title: 'Giá bán', dataIndex: 'base_price', align: 'right' as const, render: (v:any) => Number(v).toLocaleString() + ' ₫' },
+      { 
+          title: 'Mã Combo', dataIndex: 'sku', 
+          render: (t:any) => <b>{t}</b>,
+          sorter: (a: any, b: any) => (a.sku || '').localeCompare(b.sku || '')
+      },
+      { 
+          title: 'Tên Combo', dataIndex: 'name',
+          sorter: (a: any, b: any) => (a.name || '').localeCompare(b.name || '')
+      },
+      { 
+          title: 'Giá bán', dataIndex: 'base_price', align: 'right' as const, 
+          render: (v:any) => Number(v).toLocaleString() + ' ₫',
+          sorter: (a: any, b: any) => Number(a.base_price) - Number(b.base_price)
+      },
       { 
           title: '', key: 'action', width: 100, align: 'center' as const,
           render: (r: any) => (
@@ -204,10 +228,23 @@ const CombosPage: React.FC = () => {
   return (
     <Card 
         title="Quản lý Combo Quà Tặng" 
-        extra={<Button type="primary" icon={<PlusOutlined/>} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true);}}>Tạo Combo</Button>}
+        extra={
+            <Space>
+                {/* --- MỚI: THANH TÌM KIẾM --- */}
+                <Input 
+                    placeholder="Tìm mã hoặc tên combo..." 
+                    prefix={<SearchOutlined />} 
+                    value={searchText} 
+                    onChange={e => setSearchText(e.target.value)} 
+                    style={{ width: 250 }}
+                    allowClear
+                />
+                <Button type="primary" icon={<PlusOutlined/>} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true);}}>Tạo Combo</Button>
+            </Space>
+        }
     >
         <Table 
-            dataSource={combos} 
+            dataSource={filteredCombos} // Sử dụng dữ liệu đã lọc
             columns={columns} 
             rowKey="id" 
             loading={loading} 
