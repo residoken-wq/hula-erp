@@ -8,10 +8,13 @@ import { SalesDeliveryItem } from './sales-delivery-item.entity';
 import { SalesComment } from './sales-comment.entity';
 import { Transaction } from '../finance/transaction.entity';
 
-// --- IMPORT TỪ THƯ MỤC PRICELIST ---
+// Price List Entities
 import { PriceList } from './pricelist/price-list.entity';
 import { PriceListRule } from './pricelist/price-list-rule.entity';
-// -----------------------------------
+
+// --- MỚI: Import User Entity để tra cứu Group ---
+import { User } from '../users/entities/user.entity';
+// ------------------------------------------------
 
 import { SalesController } from './sales.controller';
 import { SalesService } from './sales.service';
@@ -30,10 +33,9 @@ import { FinanceModule } from '../finance/finance.module';
         SalesDeliveryItem,
         SalesComment, 
         Transaction,
-        // --- ĐĂNG KÝ ENTITY ---
-        PriceList,      
-        PriceListRule   
-        // ---------------------
+        PriceList, 
+        PriceListRule,
+        User // <--- Đăng ký User Repository
     ]),
     ProductsModule,
     InventoryModule,

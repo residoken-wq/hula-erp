@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Select, Tag, Drawer, Row, Col, InputNumber, Divider, Space, Typography } from 'antd';
-import { PlusOutlined, SettingOutlined, CalendarOutlined, RiseOutlined, FallOutlined } from '@ant-design/icons';
+import { PlusOutlined, SettingOutlined, CalendarOutlined, RiseOutlined, FallOutlined, TeamOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -12,6 +12,9 @@ const PriceListsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [priceLists, setPriceLists] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]); 
+  // --- MỚI: State lưu danh sách nhóm ---
+  const [groups, setGroups] = useState<any[]>([]);
+  // ------------------------------------
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formList] = Form.useForm();
@@ -25,12 +28,14 @@ const PriceListsPage: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-        const [resLists, resProds] = await Promise.all([
+        const [resLists, resProds, resGroups] = await Promise.all([
             axios.get(`${API_URL}/sales/price-lists`),
-            axios.get(`${API_URL}/products`)
+            axios.get(`${API_URL}/products`),
+            axios.get(`${API_URL}/users/groups`) // Tải danh sách nhóm
         ]);
         setPriceLists(Array.isArray(resLists.data) ? resLists.data : []);
         setProducts(Array.isArray(resProds.data) ? resProds.data.map((p:any) => ({label: `${p.sku} - ${p.name}`, value: p.sku})) : []);
+        setGroups(Array.isArray(resGroups.data) ? resGroups.data : []);
     } catch(e) { message.error('Lỗi tải dữ liệu'); }
     setLoading(false);
   };
@@ -39,11 +44,10 @@ const PriceListsPage: React.FC = () => {
 
   const handleCreateList = async (values: any) => {
       try {
-          // FIX: Tách ngày tháng từ RangePicker và xóa field 'validity'
           const payload = {
               name: values.name,
               description: values.description,
-              user_id: values.user_id,
+              group_id: values.group_id, // Gửi group_id
               valid_from: values.validity[0].format('YYYY-MM-DD'),
               valid_to: values.validity[1].format('YYYY-MM-DD'),
               is_active: true
@@ -52,7 +56,7 @@ const PriceListsPage: React.FC = () => {
           await axios.post(`${API_URL}/sales/price-lists`, payload);
           message.success('Tạo bảng giá thành công');
           setIsModalOpen(false);
-          fetchData(); // Reload danh sách ngay lập tức
+          fetchData(); 
       } catch(e) { message.error('Lỗi tạo bảng giá'); }
   };
 
@@ -86,8 +90,11 @@ const PriceListsPage: React.FC = () => {
           render: (t:any) => <span style={{fontWeight: 600, fontSize: 15, color: '#1890ff'}}>{t}</span> 
       },
       { 
-          title: 'Áp dụng cho', dataIndex: 'user_id', 
-          render: (uid: number) => <Tag color="blue">User ID: {uid}</Tag> 
+          title: 'Áp dụng cho Nhóm', dataIndex: 'group_id', 
+          render: (gid: number) => {
+              const g = groups.find(x => x.id === gid);
+              return g ? <Tag color="purple" icon={<TeamOutlined />}>{g.name}</Tag> : <Tag>ID: {gid}</Tag>;
+          }
       },
       { 
           title: 'Thời gian hiệu lực', 
@@ -141,7 +148,7 @@ const PriceListsPage: React.FC = () => {
   return (
     <div style={{paddingBottom: 20}}>
         <Card 
-            title={<Title level={4} style={{margin:0}}>Quản Lý Bảng Giá (Price Lists)</Title>} 
+            title={<Title level={4} style={{margin:0}}>Quản Lý Bảng Giá Theo Nhóm (Price Lists)</Title>} 
             extra={<Button type="primary" icon={<PlusOutlined />} onClick={()=>{setIsModalOpen(true); formList.resetFields()}}>Tạo Bảng Giá Mới</Button>}
             bordered={false}
             style={{boxShadow: '0 2px 8px rgba(0,0,0,0.05)'}}
@@ -149,19 +156,23 @@ const PriceListsPage: React.FC = () => {
             <Table dataSource={priceLists} columns={listColumns} rowKey="id" loading={loading} pagination={{pageSize: 10}} />
         </Card>
 
-        {/* MODAL TẠO BẢNG GIÁ */}
         <Modal title="Thiết lập Bảng Giá Mới" open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>formList.submit()}>
             <Form form={formList} layout="vertical" onFinish={handleCreateList}>
-                <Form.Item name="name" label="Tên Bảng Giá" rules={[{required:true}]}><Input placeholder="VD: Bảng giá Sale Team A - Q1/2024" /></Form.Item>
+                <Form.Item name="name" label="Tên Bảng Giá" rules={[{required:true}]}><Input placeholder="VD: Giá bán lẻ - Nhóm Sale HN" /></Form.Item>
                 <Row gutter={16}>
-                    <Col span={12}><Form.Item name="user_id" label="Áp dụng cho User (ID)" rules={[{required:true}]} help="Nhập ID Sale (VD: 1)."><InputNumber style={{width:'100%'}} /></Form.Item></Col>
+                    <Col span={12}>
+                        <Form.Item name="group_id" label="Áp dụng cho Nhóm Quyền" rules={[{required:true}]}>
+                            <Select placeholder="Chọn nhóm áp dụng">
+                                {groups.map(g => <Select.Option key={g.id} value={g.id}>{g.name}</Select.Option>)}
+                            </Select>
+                        </Form.Item>
+                    </Col>
                     <Col span={12}><Form.Item name="validity" label="Thời gian hiệu lực" rules={[{required:true}]}><RangePicker style={{width:'100%'}} format="DD/MM/YYYY" /></Form.Item></Col>
                 </Row>
                 <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2} /></Form.Item>
             </Form>
         </Modal>
 
-        {/* DRAWER CẤU HÌNH RULES */}
         <Drawer title={currentPriceList ? `Cấu hình chi tiết: ${currentPriceList.name}` : 'Chi tiết Bảng Giá'} width={800} open={isDrawerOpen} onClose={()=>setIsDrawerOpen(false)} bodyStyle={{paddingTop: 10, background: '#f0f2f5'}}>
             <div style={{background: '#fff', padding: 20, borderRadius: 8, marginBottom: 15, boxShadow: '0 1px 2px rgba(0,0,0,0.03)'}}>
                 <div style={{fontWeight: 600, marginBottom: 15, color: '#0050b3', textTransform: 'uppercase', fontSize: 13}}>Thêm Quy Tắc Giá Mới</div>
