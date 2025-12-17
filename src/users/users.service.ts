@@ -15,14 +15,14 @@ export class UsersService {
 
   // --- USER MANAGEMENT ---
   async getAllUsers() {
-    return this.userRepo.find({ relations: ['group'] });
+    return this.userRepo.find({ relations: ['group'], order: { id: 'DESC' } });
   }
 
   async createUser(data: any) {
-    // Lưu ý thực tế cần hash password bằng bcrypt
     const existing = await this.userRepo.findOne({ where: { username: data.username } });
-    if (existing) throw new BadRequestException('Username đã tồn tại');
+    if (existing) throw new BadRequestException('Tên đăng nhập đã tồn tại');
     
+    // Lưu ý: Thực tế cần mã hóa password (bcrypt)
     const user = this.userRepo.create(data);
     return this.userRepo.save(user);
   }
@@ -38,34 +38,51 @@ export class UsersService {
 
   // --- GROUP & PERMISSION MANAGEMENT ---
   async getAllGroups() {
-    return this.groupRepo.find({ relations: ['permissions'] }); // Lấy kèm quyền
+    return this.groupRepo.find({ order: { id: 'ASC' }, relations: ['permissions'] });
+  }
+
+  async getGroupDetail(id: number) {
+      return this.groupRepo.findOne({ where: { id }, relations: ['permissions'] });
   }
 
   async createGroup(data: any) {
-    const group = this.groupRepo.create({
-        name: data.name,
-        description: data.description
-    });
-    const savedGroup = await this.groupRepo.save(group);
-
-    // Tạo permissions mặc định (nếu có gửi kèm)
-    if (data.permissions && Array.isArray(data.permissions)) {
-        const perms = data.permissions.map((p: any) => 
-            this.permRepo.create({ ...p, group_id: savedGroup.id })
-        );
+    const group = this.groupRepo.create({ name: data.name, description: data.description });
+    const saved = await this.groupRepo.save(group);
+    
+    // FIX TS2769: Map dữ liệu trước, sau đó create batch
+    if (data.permissions && data.permissions.length > 0) {
+        const permObjects = data.permissions.map((p: any) => ({
+            ...p,
+            group_id: saved.id 
+        }));
+        
+        // Create nhận vào mảng object và trả về mảng Entity -> Đúng kiểu cho save()
+        const perms = this.permRepo.create(permObjects);
         await this.permRepo.save(perms);
     }
-    return savedGroup;
+    return saved;
   }
 
-  async updateGroupPermissions(groupId: number, permissions: any[]) {
-    const group = await this.groupRepo.findOne({ where: { id: groupId } });
-    if (!group) throw new NotFoundException('Group not found');
+  async updateGroupPermissions(groupId: number, data: any) {
+      const group = await this.groupRepo.findOne({ where: { id: groupId } });
+      if (!group) throw new NotFoundException('Không tìm thấy nhóm');
 
-    // Xóa quyền cũ, tạo quyền mới (Cách đơn giản nhất để update)
-    await this.permRepo.delete({ group_id: groupId });
-    
-    const newPerms = permissions.map(p => this.permRepo.create({ ...p, group_id: groupId }));
-    return this.permRepo.save(newPerms);
+      // Update thông tin cơ bản
+      if (data.name) await this.groupRepo.update(groupId, { name: data.name, description: data.description });
+
+      // Update permissions: Xóa cũ -> Thêm mới (Batch Insert)
+      if (data.permissions) {
+          await this.permRepo.delete({ group_id: groupId });
+          
+          // FIX TS2769: Xử lý tương tự hàm createGroup
+          const permObjects = data.permissions.map((p: any) => ({
+              ...p,
+              group_id: groupId 
+          }));
+
+          const perms = this.permRepo.create(permObjects);
+          await this.permRepo.save(perms);
+      }
+      return { success: true };
   }
 }
