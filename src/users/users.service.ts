@@ -22,6 +22,7 @@ export class UsersService {
     const existing = await this.userRepo.findOne({ where: { username: data.username } });
     if (existing) throw new BadRequestException('Tên đăng nhập đã tồn tại');
     
+    // Lưu ý: Thực tế cần mã hóa password (bcrypt)
     const user = this.userRepo.create(data);
     return this.userRepo.save(user);
   }
@@ -53,6 +54,7 @@ export class UsersService {
             ...p,
             group_id: saved.id 
         }));
+        
         const perms = this.permRepo.create(permObjects);
         await this.permRepo.save(perms);
     }
@@ -79,12 +81,12 @@ export class UsersService {
       return { success: true };
   }
 
-  // --- CẬP NHẬT QUAN TRỌNG: LẤY KÈM PERMISSIONS ---
+  // --- CẬP NHẬT QUAN TRỌNG: JOIN BẢNG PERMISSIONS ---
   async findOneByUsernameForAuth(username: string) {
     return this.userRepo.createQueryBuilder('user')
-        .addSelect('user.password') // Lấy password ẩn
+        .addSelect('user.password') // Lấy thêm cột password ẩn
         .leftJoinAndSelect('user.group', 'group')
-        .leftJoinAndSelect('group.permissions', 'permissions') // JOIN thêm bảng permissions
+        .leftJoinAndSelect('group.permissions', 'permissions') // <--- DÒNG QUAN TRỌNG MỚI THÊM
         .where('user.username = :username', { username })
         .getOne();
     }   

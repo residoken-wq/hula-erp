@@ -41,17 +41,17 @@ const App: React.FC = () => {
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [permissions, setPermissions] = useState<any[]>([]);
+  const [userPermissions, setUserPermissions] = useState<any[]>([]);
 
-  // Check Token & Load Permissions
+  // Check Token khi load trang
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
     if (token && userStr) {
-        const user = JSON.parse(userStr);
         setIsAuthenticated(true);
+        const user = JSON.parse(userStr);
         setCurrentUser(user);
-        setPermissions(user.permissions || []); // Load quyền từ storage
+        setUserPermissions(user.permissions || []); // Lấy danh sách quyền từ storage
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
   }, []);
@@ -64,24 +64,26 @@ const App: React.FC = () => {
   };
 
   // --- HÀM KIỂM TRA QUYỀN ---
-  const hasPerm = (moduleName: string) => {
-      if (currentUser?.username === 'admin') return true; // Admin full quyền
-      // Kiểm tra trong mảng permissions xem có module này và can_view = true không
-      const p = permissions.find((perm: any) => perm.module === moduleName);
-      return p && p.can_view;
+  const hasPermission = (moduleName: string) => {
+      // Admin luôn thấy tất cả
+      if (currentUser?.username === 'admin') return true; 
+      
+      // Tìm xem user có quyền View module này không
+      const perm = userPermissions.find((p: any) => p.module === moduleName);
+      return perm && perm.can_view === true;
   };
 
   // --- TẠO MENU ĐỘNG DỰA TRÊN QUYỀN ---
   const menuItems = useMemo(() => {
       const items: MenuItem[] = [];
 
-      // 1. Tổng quan (Luôn hiện hoặc check quyền)
-      if (hasPerm('Tổng quan') || true) {
+      // 1. Tổng quan
+      if (hasPermission('Tổng quan') || true) { // Mặc định ai cũng thấy Dashboard
           items.push(getItem(<Link to="/">Tổng quan</Link>, '1', <PieChartOutlined />));
       }
 
       // 2. Quản lý sản phẩm
-      if (hasPerm('Quản lý Sản phẩm')) {
+      if (hasPermission('Quản lý Sản phẩm')) {
           items.push(getItem('Quản lý sản phẩm', 'sub_prod', <ShopOutlined />, [
             getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'),
             getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
@@ -89,23 +91,23 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 3. Nhập liệu (Gộp quyền với Kho hoặc Sản phẩm)
-      if (hasPerm('Quản lý Sản phẩm') || hasPerm('Kho & Tồn kho')) {
+      // 3. Nhập liệu (Excel)
+      if (hasPermission('Quản lý Sản phẩm') || hasPermission('Kho & Tồn kho')) {
           items.push(getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />));
       }
 
       // 4. Kho hàng & NCC
-      if (hasPerm('Kho & Tồn kho')) {
+      if (hasPermission('Kho & Tồn kho')) {
           items.push(getItem('Kho hàng & NCC', 'sub1', <DropboxOutlined />, [
             getItem(<Link to="/materials">Nguyên liệu</Link>, '3'),
             getItem(<Link to="/suppliers">Nhà cung cấp (NPL)</Link>, 'supp'),
             getItem(<Link to="/manufacturers">Nhà gia công</Link>, 'manu'),
-            // getItem(<Link to="/inventory">Nhập xuất kho</Link>, '4'), // Tạm ẩn do chưa có page
+            getItem(<Link to="/inventory">Nhập xuất kho</Link>, '4'),
           ]));
       }
 
-      // 5. Bán hàng (CRM)
-      if (hasPerm('Bán hàng (Sales/CRM)')) {
+      // 5. Bán hàng (CRM) -> Đây là module User Sales01 cần thấy
+      if (hasPermission('Bán hàng (Sales/CRM)')) {
           items.push(getItem('Bán hàng (CRM)', 'sub2', <TeamOutlined />, [ 
             getItem(<Link to="/sales">Pipeline Bán Hàng</Link>, '5'),
             getItem(<Link to="/customers">Danh sách Khách hàng</Link>, 'cust'),
@@ -114,7 +116,7 @@ const App: React.FC = () => {
       }
 
       // 6. Sản xuất (MRP)
-      if (hasPerm('Sản xuất (MRP)')) {
+      if (hasPermission('Sản xuất (MRP)')) {
           items.push(getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
             getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
             getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
@@ -122,8 +124,8 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 7. Hệ thống & User
-      if (hasPerm('Hệ thống & User')) {
+      // 7. Hệ thống (Admin Only)
+      if (hasPermission('Hệ thống & User')) {
           items.push(getItem('Hệ thống & Phân quyền', 'sub_sys', <SettingOutlined />, [
             getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
             getItem(<Link to="/users/groups">Nhóm & Phân quyền</Link>, 'group_perm'),
@@ -131,11 +133,11 @@ const App: React.FC = () => {
       }
 
       return items;
-  }, [permissions, currentUser]);
+  }, [userPermissions, currentUser]);
 
   const userMenu = (
       <Menu items={[
-          { key: '1', label: 'Hồ sơ cá nhân', icon: <UserOutlined/> },
+          { key: '1', label: <span>Xin chào, <b>{currentUser?.full_name}</b></span>, icon: <UserOutlined/> },
           { key: '2', label: 'Đăng xuất', icon: <LogoutOutlined/>, onClick: handleLogout, danger: true }
       ]} />
   );
@@ -143,24 +145,21 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
         <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
         <Route path="/portal/quote/:uuid" element={<PortalQuotePage />} />
         <Route path="/portal/po/:uuid" element={<PortalPurchasePage />} />
 
-        {/* Protected Routes */}
         <Route path="*" element={
           isAuthenticated ? (
             <Layout style={{ minHeight: '100vh' }}>
                 <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
                 <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', textAlign: 'center', color: '#fff', lineHeight: '32px', fontWeight: 'bold' }}>HULA ERP</div>
-                <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={menuItems} />
+                <Menu theme="dark" selectedKeys={[window.location.pathname]} mode="inline" items={menuItems} />
                 </Sider>
                 <Layout>
                 <Header style={{ padding: '0 24px', background: colorBgContainer, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                     <Dropdown overlay={userMenu}>
                         <div style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10}}>
-                            <span style={{fontWeight: 600}}>{currentUser?.full_name || 'User'}</span>
                             <Avatar style={{ backgroundColor: '#87d068' }} icon={<UserOutlined />} />
                         </div>
                     </Dropdown>
@@ -170,9 +169,11 @@ const App: React.FC = () => {
                     <Routes>
                         <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
                         
-                        {(hasPerm('Quản lý Sản phẩm') || hasPerm('Kho & Tồn kho')) && <Route path="/upload" element={<UploadPage />} />}
+                        {/* --- PROTECTED ROUTES (Check quyền trước khi cho vào trang) --- */}
                         
-                        {hasPerm('Quản lý Sản phẩm') && (
+                        {(hasPermission('Quản lý Sản phẩm') || hasPermission('Kho & Tồn kho')) && <Route path="/upload" element={<UploadPage />} />}
+                        
+                        {hasPermission('Quản lý Sản phẩm') && (
                             <>
                                 <Route path="/products" element={<ProductsPage />} />
                                 <Route path="/combos" element={<CombosPage />} />
@@ -180,7 +181,7 @@ const App: React.FC = () => {
                             </>
                         )}
 
-                        {hasPerm('Kho & Tồn kho') && (
+                        {hasPermission('Kho & Tồn kho') && (
                             <>
                                 <Route path="/materials" element={<MaterialsPage />} />
                                 <Route path="/suppliers" element={<SuppliersPage />} />
@@ -188,7 +189,7 @@ const App: React.FC = () => {
                             </>
                         )}
 
-                        {hasPerm('Bán hàng (Sales/CRM)') && (
+                        {hasPermission('Bán hàng (Sales/CRM)') && (
                             <>
                                 <Route path="/sales" element={<CrmPage />} />
                                 <Route path="/customers" element={<CustomersPage />} />
@@ -196,7 +197,7 @@ const App: React.FC = () => {
                             </>
                         )}
 
-                        {hasPerm('Sản xuất (MRP)') && (
+                        {hasPermission('Sản xuất (MRP)') && (
                             <>
                                 <Route path="/planning" element={<PlanningPage />} />
                                 <Route path="/routes" element={<ProductionRoutePage />} />
@@ -204,14 +205,14 @@ const App: React.FC = () => {
                             </>
                         )}
 
-                        {hasPerm('Hệ thống & User') && (
+                        {hasPermission('Hệ thống & User') && (
                             <>
                                 <Route path="/users" element={<UsersPage />} />
                                 <Route path="/users/groups" element={<UserGroupsPage />} />
                             </>
                         )}
 
-                        <Route path="*" element={<h2>Không tìm thấy trang hoặc bạn không có quyền truy cập.</h2>} />
+                        <Route path="*" element={<h2>Trang không tồn tại hoặc bạn không có quyền truy cập.</h2>} />
                     </Routes>
                     </div>
                 </Content>

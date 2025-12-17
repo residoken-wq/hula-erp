@@ -24,7 +24,7 @@ export class AuthService {
   }
 
   async login(user: any) {
-    // Lưu ý: user ở đây là kết quả từ validateUser (đã bao gồm group và permissions)
+    // user lúc này đã có group và permissions do users.service trả về
     const payload = { username: user.username, sub: user.id, group_id: user.group?.id };
     
     return {
@@ -35,9 +35,9 @@ export class AuthService {
           full_name: user.full_name,
           group_id: user.group?.id,
           role_name: user.group?.name,
-          // --- QUAN TRỌNG: TRẢ VỀ DANH SÁCH QUYỀN ---
+          // --- QUAN TRỌNG: TRẢ VỀ QUYỀN CHO FRONTEND ---
           permissions: user.group?.permissions || [] 
-          // -------------------------------------------
+          // --------------------------------------------
       }
     };
   }
