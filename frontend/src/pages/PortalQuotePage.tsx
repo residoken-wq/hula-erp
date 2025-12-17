@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider } from 'antd'; 
+// FIX: Đã bổ sung Table, Space, Tag vào dòng import dưới đây
+import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag } from 'antd'; 
 import { CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined } from '@ant-design/icons';
 import QuotationTemplate from '../components/QuotationTemplate'; // Import component đã fix
 import { API_URL } from '../config';
@@ -52,6 +53,33 @@ const PortalQuotePage: React.FC = () => {
   if(data.status === 'COMPLETED') currentStep = 6;
 
   const visibleComments = (data.comments || []).filter((c:any) => c.sender_type === 'CUSTOMER' || c.is_visible);
+
+  // --- CẤU HÌNH CỘT BẢNG BÁO GIÁ CHI TIẾT ---
+  const columns = [
+      { title: 'STT', key: 'index', width: 50, align: 'center' as const, render: (_:any, __:any, index: number) => index + 1 },
+      { 
+          title: 'Sản phẩm', 
+          key: 'product',
+          render: (r:any) => (
+              <div>
+                  <div style={{fontWeight: 600}}>{r.product_name_real || r.sku}</div>
+                  <div style={{fontSize: 12, color: '#666'}}>SKU: {r.sku} {r.variant_color ? `- ${r.variant_color}` : ''}</div>
+              </div>
+          ) 
+      },
+      // --- CỘT MỚI: MÔ TẢ SẢN PHẨM ---
+      { 
+          title: 'Mô tả chi tiết', 
+          dataIndex: 'product_desc', 
+          width: '30%',
+          render: (t: string) => <div style={{whiteSpace: 'pre-line', fontSize: 13, color: '#555'}}>{t || '-'}</div>
+      },
+      // -------------------------------
+      { title: 'ĐVT', dataIndex: 'unit', width: 80, align: 'center' as const, render: () => 'Cái' }, 
+      { title: 'SL', dataIndex: 'quantity', width: 80, align: 'center' as const, render: (v:any) => Number(v) },
+      { title: 'Đơn giá', dataIndex: 'unit_price', width: 120, align: 'right' as const, render: (v:any) => Number(v).toLocaleString() },
+      { title: 'Thành tiền', dataIndex: 'subtotal', width: 120, align: 'right' as const, render: (v:any) => <b>{Number(v).toLocaleString()}</b> }
+  ];
 
   return (
     <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 40 }}>
@@ -106,11 +134,52 @@ const PortalQuotePage: React.FC = () => {
                    </Card>
                </Col>
                
-               {/* SỬ DỤNG LẠI COMPONENT QUOTATION TEMPLATE ĐÃ FIX */}
+               {/* SỬ DỤNG TABLE TRỰC TIẾP THAY VÌ COMPONENT ĐỂ DỄ CẤU HÌNH CỘT MÔ TẢ */}
                <Col span={16} xs={24} md={16}>
                    <Card title="📄 Chi Tiết Báo Giá / Đơn Hàng" style={{marginBottom: 20}}>
-                       <div className="quotation-wrapper">
-                           <QuotationTemplate data={data} />
+                       <div style={{padding: 10}}>
+                           <Table 
+                               dataSource={data.items} 
+                               columns={columns} 
+                               rowKey="id" 
+                               pagination={false} 
+                               bordered 
+                               summary={() => {
+                                   const vatRate = data.vat_rate || 0;
+                                   const subTotal = data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0);
+                                   const vatAmount = subTotal * (vatRate / 100);
+                                   const total = subTotal + vatAmount + Number(data.shipping_fee || 0);
+                                   
+                                   return (
+                                       <>
+                                           <Table.Summary.Row>
+                                               <Table.Summary.Cell index={0} colSpan={5} align="right"><b>Tổng tiền hàng:</b></Table.Summary.Cell>
+                                               <Table.Summary.Cell index={1} align="right">{subTotal.toLocaleString()}</Table.Summary.Cell>
+                                           </Table.Summary.Row>
+                                           <Table.Summary.Row>
+                                               <Table.Summary.Cell index={0} colSpan={5} align="right">Thuế VAT ({vatRate}%):</Table.Summary.Cell>
+                                               <Table.Summary.Cell index={1} align="right">{vatAmount.toLocaleString()}</Table.Summary.Cell>
+                                           </Table.Summary.Row>
+                                           <Table.Summary.Row>
+                                               <Table.Summary.Cell index={0} colSpan={5} align="right">Phí vận chuyển:</Table.Summary.Cell>
+                                               <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee || 0).toLocaleString()}</Table.Summary.Cell>
+                                           </Table.Summary.Row>
+                                           <Table.Summary.Row style={{background: '#fafafa'}}>
+                                               <Table.Summary.Cell index={0} colSpan={5} align="right"><b style={{fontSize: 16, color: '#1890ff'}}>TỔNG CỘNG:</b></Table.Summary.Cell>
+                                               <Table.Summary.Cell index={1} align="right"><b style={{fontSize: 16, color: '#cf1322'}}>{total.toLocaleString()} ₫</b></Table.Summary.Cell>
+                                           </Table.Summary.Row>
+                                       </>
+                                   );
+                               }}
+                           />
+                           
+                           {/* Điều khoản */}
+                           {data.terms_content && (
+                               <div style={{marginTop: 20, background: '#fffbe6', padding: 15, borderRadius: 6, border: '1px dashed #ffe58f'}}>
+                                   <div style={{fontWeight: 600, marginBottom: 5}}>Điều khoản & Ghi chú:</div>
+                                   <div style={{whiteSpace: 'pre-line', fontSize: 13}}>{data.terms_content}</div>
+                               </div>
+                           )}
                        </div>
                    </Card>
                    
