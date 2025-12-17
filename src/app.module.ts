@@ -17,6 +17,9 @@ import { CustomersModule } from './customers/customers.module';
 import { PlanningModule } from './planning/planning.module';
 import { ProcessesModule } from './processes/processes.module';
 import { CategoriesModule } from './categories/categories.module';
+// --- MỚI: USERS MODULE ---
+import { UsersModule } from './users/users.module';
+// -------------------------
 
 // Entities
 import { Product } from './products/product.entity';
@@ -31,10 +34,8 @@ import { SalesOrderItem } from './sales/sales-order-item.entity';
 import { ProductSample } from './sales/product-sample.entity';
 import { SalesDelivery } from './sales/sales-delivery.entity';
 import { SalesDeliveryItem } from './sales/sales-delivery-item.entity';
-// --- MỚI: PRICE LIST ENTITIES ---
 import { PriceList } from './sales/pricelist/price-list.entity';
 import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
-// -------------------------------
 import { StockHistory } from './inventory/stock-history.entity';
 import { WorkOrder } from './production/work-order.entity';
 import { WorkOrderStep } from './production/work-order-step.entity';
@@ -51,6 +52,12 @@ import { ProductionPlan } from './planning/production-plan.entity';
 import { Process } from './processes/process.entity';
 import { Category } from './categories/category.entity';
 
+// --- MỚI: USER ENTITIES ---
+import { User } from './users/entities/user.entity';
+import { UserGroup } from './users/entities/user-group.entity';
+import { GroupPermission } from './users/entities/group-permission.entity';
+// --------------------------
+
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -63,24 +70,27 @@ import { Category } from './categories/category.entity';
       entities: [
         Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics,
         SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
-        // --- ĐĂNG KÝ PRICE LIST VÀO HỆ THỐNG ---
         PriceList, PriceListRule,
-        // ---------------------------------------
         PurchaseOrder, PurchaseOrderItem, PurchaseDelivery, 
         StockHistory, 
         WorkOrder, WorkOrderStep,
-        PurchaseOrder, PurchaseOrderItem,
         Transaction,
         Supplier, SupplierMaterial, SupplierContact,
         Customer, CustomerContact,
-        ProductionPlan, Process, Category
+        ProductionPlan, Process, Category,
+        // --- ĐĂNG KÝ ENTITIES USER ---
+        User, UserGroup, GroupPermission
+        // -----------------------------
       ], 
-      synchronize: true, // Day la lenh tao bang tu dong
+      synchronize: true, // Auto create tables
     }),
     ProductsModule, MaterialsModule, BomModule, SalesModule,
     InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
-    ProcessesModule, CategoriesModule
+    ProcessesModule, CategoriesModule,
+    // --- ĐĂNG KÝ MODULE USER ---
+    UsersModule
+    // --------------------------
   ],
 })
 export class AppModule {}

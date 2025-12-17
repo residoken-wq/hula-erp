@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Layout, Menu, theme } from 'antd';
 import type { MenuProps } from 'antd';
 import {
-  DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined
+  DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
+  SettingOutlined // <--- Thêm icon Setting
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import ProductsPage from './pages/ProductsPage';
@@ -19,10 +20,12 @@ import ProcessesPage from './pages/ProcessesPage';
 import CategoriesPage from './pages/CategoriesPage';
 import PortalQuotePage from './pages/PortalQuotePage';
 import PortalPurchasePage from './pages/PortalPurchasePage';
-
-// --- FIX: IMPORT CHÍNH XÁC TÊN FILE (PriceListPage - số ít) ---
 import PriceListsPage from './pages/PriceListPage'; 
-// --------------------------------------------------------------
+
+// --- MỚI: IMPORT USER PAGES ---
+import UsersPage from './pages/UsersPage';
+import UserGroupsPage from './pages/UserGroupsPage';
+// -----------------------------
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -51,6 +54,13 @@ const items: MenuItem[] = [
     getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
     getItem(<Link to="/processes">DM Công Đoạn</Link>, 'proc_list'),
   ]),
+  
+  // --- MỚI: MENU HỆ THỐNG ---
+  getItem('Hệ thống & Phân quyền', 'sub_sys', <SettingOutlined />, [
+    getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
+    getItem(<Link to="/users/groups">Nhóm & Phân quyền</Link>, 'group_perm'),
+  ]),
+  // -------------------------
 ];
 
 const App: React.FC = () => {
@@ -89,9 +99,12 @@ const App: React.FC = () => {
                     <Route path="/processes" element={<ProcessesPage />} />
                     <Route path="/categories" element={<CategoriesPage />} />
                     
-                    {/* --- ROUTE CHO PRICE LIST --- */}
                     <Route path="/sales/pricelist" element={<PriceListsPage />} />
-                    {/* --------------------------- */}
+
+                    {/* --- MỚI: ROUTE USER MANAGEMENT --- */}
+                    <Route path="/users" element={<UsersPage />} />
+                    <Route path="/users/groups" element={<UserGroupsPage />} />
+                    {/* ---------------------------------- */}
 
                     <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
                   </Routes>
