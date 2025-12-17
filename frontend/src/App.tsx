@@ -19,6 +19,7 @@ import ProcessesPage from './pages/ProcessesPage';
 import CategoriesPage from './pages/CategoriesPage';
 import PortalQuotePage from './pages/PortalQuotePage';
 import PortalPurchasePage from './pages/PortalPurchasePage';
+// FIX: Đã import file mới tạo
 import PriceListsPage from './pages/PriceListsPage';
 
 const { Header, Content, Footer, Sider } = Layout;
@@ -85,7 +86,11 @@ const App: React.FC = () => {
                     <Route path="/routes" element={<ProductionRoutePage />} />
                     <Route path="/processes" element={<ProcessesPage />} />
                     <Route path="/categories" element={<CategoriesPage />} />
-                    <Route path="/sales/price-lists" element={<PriceListsPage />} />
+                    
+                    {/* --- FIX: DÙNG ĐÚNG ROUTE '/sales/pricelist' --- */}
+                    <Route path="/sales/pricelist" element={<PriceListsPage />} />
+                    {/* ----------------------------------------------- */}
+
                     <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
                   </Routes>
                 </div>
