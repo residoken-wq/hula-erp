@@ -47,11 +47,19 @@ const App: React.FC = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
+    
     if (token && userStr) {
         const user = JSON.parse(userStr);
         setIsAuthenticated(true);
         setCurrentUser(user);
-        setPermissions(user.permissions || []); // Lấy quyền từ localStorage
+        
+        // Load permissions
+        const perms = user.permissions || [];
+        setPermissions(perms);
+        
+        // Debug: Xem quyền thực tế nhận được là gì
+        console.log('App Permissions Loaded:', perms);
+
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
   }, []);
@@ -63,25 +71,26 @@ const App: React.FC = () => {
       window.location.href = '/login';
   };
 
-  // --- HÀM KIỂM TRA QUYỀN ---
-  const hasPerm = (moduleName: string) => {
-      if (currentUser?.username === 'admin') return true; // Admin full quyền
-      // Kiểm tra quyền 'can_view' trong danh sách permissions
-      const p = permissions.find((perm: any) => perm.module === moduleName);
-      return p && p.can_view;
+  // --- HÀM KIỂM TRA QUYỀN (ĐÃ FIX: DÙNG MODULE_CODE) ---
+  const hasPerm = (moduleCode: string) => {
+      if (currentUser?.username === 'admin') return true; 
+      
+      // Tìm theo module_code (VD: 'SALES', 'PRODUCT') thay vì tên tiếng Việt
+      const p = permissions.find((perm: any) => perm.module_code === moduleCode);
+      return !!(p && (p.can_view === true || p.can_view === 1));
   };
 
-  // --- TẠO MENU ĐỘNG DỰA TRÊN QUYỀN ---
+  // --- TẠO MENU ĐỘNG DỰA TRÊN CODE ---
   const menuItems = useMemo(() => {
       const items: MenuItem[] = [];
 
-      // 1. Tổng quan
-      if (hasPerm('Tổng quan') || true) { 
+      // 1. Tổng quan (DASHBOARD)
+      if (hasPerm('DASHBOARD') || true) { 
           items.push(getItem(<Link to="/">Tổng quan</Link>, '1', <PieChartOutlined />));
       }
 
-      // 2. Quản lý sản phẩm
-      if (hasPerm('Quản lý Sản phẩm')) {
+      // 2. Quản lý sản phẩm (PRODUCT)
+      if (hasPerm('PRODUCT')) {
           items.push(getItem('Quản lý sản phẩm', 'sub_prod', <ShopOutlined />, [
             getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'),
             getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
@@ -89,13 +98,13 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 3. Nhập liệu (Excel)
-      if (hasPerm('Quản lý Sản phẩm') || hasPerm('Kho & Tồn kho')) {
+      // 3. Nhập liệu (Gộp quyền)
+      if (hasPerm('PRODUCT') || hasPerm('INVENTORY')) {
           items.push(getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />));
       }
 
-      // 4. Kho hàng & NCC
-      if (hasPerm('Kho & Tồn kho')) {
+      // 4. Kho hàng & NCC (INVENTORY)
+      if (hasPerm('INVENTORY')) {
           items.push(getItem('Kho hàng & NCC', 'sub1', <DropboxOutlined />, [
             getItem(<Link to="/materials">Nguyên liệu</Link>, '3'),
             getItem(<Link to="/suppliers">Nhà cung cấp (NPL)</Link>, 'supp'),
@@ -104,8 +113,8 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 5. Bán hàng (CRM) -> Quan trọng cho Sales
-      if (hasPerm('Bán hàng (Sales/CRM)')) {
+      // 5. Bán hàng (SALES) --> Đây là cái User Sales cần thấy
+      if (hasPerm('SALES')) {
           items.push(getItem('Bán hàng (CRM)', 'sub2', <TeamOutlined />, [ 
             getItem(<Link to="/sales">Pipeline Bán Hàng</Link>, '5'),
             getItem(<Link to="/customers">Danh sách Khách hàng</Link>, 'cust'),
@@ -113,8 +122,8 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 6. Sản xuất (MRP)
-      if (hasPerm('Sản xuất (MRP)')) {
+      // 6. Sản xuất (PRODUCTION)
+      if (hasPerm('PRODUCTION')) {
           items.push(getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
             getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
             getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
@@ -122,8 +131,8 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 7. Hệ thống & User
-      if (hasPerm('Hệ thống & User')) {
+      // 7. Hệ thống (USERS)
+      if (hasPerm('USERS')) {
           items.push(getItem('Hệ thống & Phân quyền', 'sub_sys', <SettingOutlined />, [
             getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
             getItem(<Link to="/users/groups">Nhóm & Phân quyền</Link>, 'group_perm'),
@@ -152,7 +161,7 @@ const App: React.FC = () => {
             <Layout style={{ minHeight: '100vh' }}>
                 <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
                 <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', textAlign: 'center', color: '#fff', lineHeight: '32px', fontWeight: 'bold' }}>HULA ERP</div>
-                <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={menuItems} />
+                <Menu theme="dark" selectedKeys={[window.location.pathname]} mode="inline" items={menuItems} />
                 </Sider>
                 <Layout>
                 <Header style={{ padding: '0 24px', background: colorBgContainer, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
@@ -167,11 +176,11 @@ const App: React.FC = () => {
                     <Routes>
                         <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
                         
-                        {/* --- PROTECTED ROUTES: CHỈ RENDER NẾU CÓ QUYỀN --- */}
+                        {/* --- PROTECTED ROUTES: Check theo CODE --- */}
                         
-                        {(hasPerm('Quản lý Sản phẩm') || hasPerm('Kho & Tồn kho')) && <Route path="/upload" element={<UploadPage />} />}
+                        {(hasPerm('PRODUCT') || hasPerm('INVENTORY')) && <Route path="/upload" element={<UploadPage />} />}
                         
-                        {hasPerm('Quản lý Sản phẩm') && (
+                        {hasPerm('PRODUCT') && (
                             <>
                                 <Route path="/products" element={<ProductsPage />} />
                                 <Route path="/combos" element={<CombosPage />} />
@@ -179,7 +188,7 @@ const App: React.FC = () => {
                             </>
                         )}
 
-                        {hasPerm('Kho & Tồn kho') && (
+                        {hasPerm('INVENTORY') && (
                             <>
                                 <Route path="/materials" element={<MaterialsPage />} />
                                 <Route path="/suppliers" element={<SuppliersPage />} />
@@ -187,7 +196,7 @@ const App: React.FC = () => {
                             </>
                         )}
 
-                        {hasPerm('Bán hàng (Sales/CRM)') && (
+                        {hasPerm('SALES') && (
                             <>
                                 <Route path="/sales" element={<CrmPage />} />
                                 <Route path="/customers" element={<CustomersPage />} />
@@ -195,7 +204,7 @@ const App: React.FC = () => {
                             </>
                         )}
 
-                        {hasPerm('Sản xuất (MRP)') && (
+                        {hasPerm('PRODUCTION') && (
                             <>
                                 <Route path="/planning" element={<PlanningPage />} />
                                 <Route path="/routes" element={<ProductionRoutePage />} />
@@ -203,7 +212,7 @@ const App: React.FC = () => {
                             </>
                         )}
 
-                        {hasPerm('Hệ thống & User') && (
+                        {hasPerm('USERS') && (
                             <>
                                 <Route path="/users" element={<UsersPage />} />
                                 <Route path="/users/groups" element={<UserGroupsPage />} />
