@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, DatePicker, Row, Col, Tabs, Progress, Tooltip, Space } from 'antd';
-import { PlusOutlined, ReloadOutlined, DollarOutlined, InfoCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, DollarOutlined, InfoCircleOutlined, CheckCircleOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom'; // <--- 1. Import useNavigate
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 
 const SalesPage: React.FC = () => {
+  const navigate = useNavigate(); // <--- 2. Init hook
   const [activeTab, setActiveTab] = useState('ALL');
   
-  // FIX: Thêm <any[]> để tránh lỗi never[]
   const [data, setData] = useState<any[]>([]);
-  
   const [loading, setLoading] = useState(false);
 
   const fetchData = async () => {
@@ -35,7 +35,7 @@ const SalesPage: React.FC = () => {
               let color = 'default';
               if(t==='QUOTATION') color = 'orange';
               if(t==='SO_PENDING') color = 'blue';
-              if(t==='SAMPLE_APPROVED') color = 'cyan'; // Màu mới
+              if(t==='SAMPLE_APPROVED') color = 'cyan';
               if(t==='DEPOSITED') color = 'purple';
               if(t==='COMPLETED') color = 'green';
               return <Tag color={color}>{t}</Tag>
@@ -53,12 +53,27 @@ const SalesPage: React.FC = () => {
   const filteredData = activeTab === 'ALL' ? data : data.filter((x:any) => x.status === activeTab);
 
   return (
-    <Card title="Pipeline Bán Hàng" extra={<Button icon={<ReloadOutlined />} onClick={fetchData} />}>
+    <Card 
+        title="Pipeline Bán Hàng" 
+        extra={
+            <Space>
+                {/* --- 3. THÊM NÚT TRUY CẬP PRICE LIST --- */}
+                <Button 
+                    icon={<UnorderedListOutlined />} 
+                    onClick={() => navigate('/sales/price-lists')}
+                >
+                    Quản lý Bảng Giá
+                </Button>
+                {/* --------------------------------------- */}
+                <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
+            </Space>
+        }
+    >
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
             { key: 'ALL', label: 'Tất cả' },
             { key: 'QUOTATION', label: 'Báo Giá' },
             { key: 'SO_PENDING', label: 'Chờ Duyệt Mẫu' },
-            { key: 'SAMPLE_APPROVED', label: 'Đã Duyệt Mẫu' }, // Tab mới
+            { key: 'SAMPLE_APPROVED', label: 'Đã Duyệt Mẫu' },
             { key: 'DEPOSITED', label: 'Đã Cọc/SX' },
             { key: 'DELIVERED', label: 'Đã Giao' },
         ]} />
