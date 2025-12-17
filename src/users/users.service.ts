@@ -85,4 +85,12 @@ export class UsersService {
       }
       return { success: true };
   }
+
+  async findOneByUsernameForAuth(username: string) {
+    return this.userRepo.createQueryBuilder('user')
+        .addSelect('user.password') // Lấy thêm cột password ẩn
+        .leftJoinAndSelect('user.group', 'group')
+        .where('user.username = :username', { username })
+        .getOne();
+    }   
 }

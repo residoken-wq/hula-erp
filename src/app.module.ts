@@ -51,6 +51,7 @@ import { CustomerContact } from './customers/customer-contact.entity';
 import { ProductionPlan } from './planning/production-plan.entity';
 import { Process } from './processes/process.entity';
 import { Category } from './categories/category.entity';
+import { AuthModule } from './auth/auth.module';
 
 // --- MỚI: USER ENTITIES ---
 import { User } from './users/entities/user.entity';
@@ -89,7 +90,8 @@ import { GroupPermission } from './users/entities/group-permission.entity';
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
     ProcessesModule, CategoriesModule,
     // --- ĐĂNG KÝ MODULE USER ---
-    UsersModule
+    UsersModule, 
+    AuthModule,
     // --------------------------
   ],
 })
