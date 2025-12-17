@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Tabs, Statistic, Divider, Popconfirm, Tooltip, Progress, Typography } from 'antd';
-import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined } from '@ant-design/icons';
+// FIX: Import thêm useNavigate và icon UnorderedListOutlined
+import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -10,6 +12,9 @@ import SalesOrderDetail from '../components/SalesOrderDetail';
 const { Text } = Typography;
 
 const CrmPage: React.FC = () => {
+  // FIX: Khởi tạo hook điều hướng
+  const navigate = useNavigate();
+  
   const [activeTab, setActiveTab] = useState('LEAD');
   const [loading, setLoading] = useState(false);
   
@@ -31,16 +36,16 @@ const CrmPage: React.FC = () => {
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [isQuotationMode, setIsQuotationMode] = useState(false);
   
-  // FIX: State & Form cho Lead Modal
+  // State & Form cho Lead Modal
   const [currentCustomer, setCurrentCustomer] = useState<any>(null);
-  const [isNewCustomerMode, setIsNewCustomerMode] = useState(false); // Thay thế isNewCustomer
+  const [isNewCustomerMode, setIsNewCustomerMode] = useState(false); 
   const [formLead] = Form.useForm();
   const [followNote, setFollowNote] = useState('');
   
-  // FIX: Prepare Customer Options for Select/Search
+  // Prepare Customer Options for Select/Search
   const customerOptionsForLead = useMemo(() => allCustomers.map((c: any) => ({
       label: `${c.code} - ${c.name} (${c.phone || 'N/A'})`,
-      value: c.id, // ID number (existing)
+      value: c.id, 
       name: c.name,
       phone: c.phone
   })), [allCustomers]);
@@ -77,7 +82,7 @@ const CrmPage: React.FC = () => {
   const openCreateLead = () => {
     const autoCode = `LEAD-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}`;
     formLead.setFieldsValue({ code: autoCode });
-    formLead.resetFields(); // Reset toàn bộ form
+    formLead.resetFields(); 
     setIsNewCustomerMode(false);
     setIsLeadModalOpen(true);
   };
@@ -94,50 +99,30 @@ const CrmPage: React.FC = () => {
     return { percent: 5, status: 'normal', text: 'Mới tạo' };
   };
 
-  // FIX: Logic Save Lead đã được cập nhật
   const handleSaveLead = async (values: any) => {
     try {
         const { code, customer_id, name, phone } = values;
         
         if (isNewCustomerMode) {
-            // Case 1: New Customer is created
             if (!name || !phone) {
                 message.error('Vui lòng nhập đầy đủ Tên và SĐT cho Khách hàng mới.');
                 return;
             }
-            
-            // Create new customer as LEAD
-            const finalPayload = {
-                code: code, 
-                name: name, 
-                phone: phone,
-                type: 'LEAD' 
-            };
+            const finalPayload = { code: code, name: name, phone: phone, type: 'LEAD' };
             await axios.post(`${API_URL}/customers`, finalPayload);
         } else {
-            // Case 2: Existing Customer selected (value is ID)
-            if (!customer_id) {
-                 message.error('Vui lòng chọn khách hàng có sẵn hoặc tạo mới.');
-                 return;
-            }
+            if (!customer_id) { message.error('Vui lòng chọn khách hàng có sẵn hoặc tạo mới.'); return; }
             const customerId = customer_id;
-            
-            // Update existing customer to LEAD type if necessary
             const existingCustomer = allCustomers.find(c => c.id === customerId);
             if (existingCustomer && existingCustomer.type !== 'LEAD' && existingCustomer.type !== 'CUSTOMER') {
                  await axios.put(`${API_URL}/customers/${customerId}`, { type: 'LEAD' });
             }
-
-            // Record the initial follow-up event
             const newFollowUpNote = `Lead created (Initial action/Association)`;
             await axios.post(`${API_URL}/customers/${customerId}/follow`, { note: newFollowUpNote });
-
         }
-
         message.success('Tạo Lead thành công!'); 
         setIsLeadModalOpen(false); 
         fetchData();
-
     } catch(e: any) { 
         message.error(e.response?.data?.message || 'Lỗi khi tạo Lead'); 
     }
@@ -192,11 +177,8 @@ const CrmPage: React.FC = () => {
           return;
       }
       const link = `${window.location.protocol}//${window.location.host}/portal/quote/${uuid}`;
-      
       if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(link)
-              .then(() => message.success('Đã copy link!'))
-              .catch(() => showManualCopy(link));
+          navigator.clipboard.writeText(link).then(() => message.success('Đã copy link!')).catch(() => showManualCopy(link));
       } else {
           showManualCopy(link);
       }
@@ -284,7 +266,22 @@ const CrmPage: React.FC = () => {
           <Col span={8}><Card><Statistic title="Đơn Hàng (SO)" value={orders.length} prefix={<DollarOutlined />} /></Card></Col>
       </Row>
 
-      <Card title="Quản Lý Kinh Doanh (CRM)" extra={<Button icon={<ReloadOutlined />} onClick={fetchData} />}>
+      <Card 
+        title="Quản Lý Kinh Doanh (CRM)" 
+        extra={
+            <Space>
+                {/* --- FIX: NÚT QUẢN LÝ BẢNG GIÁ --- */}
+                <Button 
+                    icon={<UnorderedListOutlined />} 
+                    onClick={() => navigate('/sales/price-lists')}
+                >
+                    Quản lý Bảng Giá
+                </Button>
+                {/* ---------------------------------- */}
+                <Button icon={<ReloadOutlined />} onClick={fetchData} />
+            </Space>
+        }
+      >
           <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
               { key: 'LEAD', label: '1. Leads', children: <><Button type="primary" onClick={openCreateLead} style={{marginBottom:10}}>+ Lead</Button><Table dataSource={leads} columns={leadColumns} rowKey="id" /></> },
               { key: 'QUOTE', label: '2. Báo Giá', children: <><Button type="primary" onClick={()=>openDetailModal(null, true)} style={{marginBottom:10}}>+ Báo Giá Mới</Button><Table dataSource={quotes} columns={quoteColumns} rowKey="id" /></> },
@@ -307,7 +304,7 @@ const CrmPage: React.FC = () => {
           <div style={{textAlign:'center', marginTop:20}}><Button type="primary" onClick={()=>{ const c = document.getElementById('printableArea'); const w = window.open(); if(w && c) { w.document.write(c.innerHTML); w.print(); } }}>In Ngay</Button></div>
       </Modal>
 
-      {/* --- FIX: MODAL TẠO LEAD MỚI VỚI NÚT ADD NEW --- */}
+      {/* MODAL TẠO LEAD */}
       <Modal 
           title="Tạo Lead" 
           open={isLeadModalOpen} 
@@ -322,23 +319,13 @@ const CrmPage: React.FC = () => {
           >
               <Form.Item name="code" label="Mã Lead" rules={[{ required: true }]}><Input disabled /></Form.Item>
               
-              {/* 1. SELECTION / SEARCH (Chỉ hiển thị khi KHÔNG trong chế độ New) */}
               {!isNewCustomerMode ? (
-                  <Form.Item 
-                      label="Khách hàng (Tìm kiếm hoặc Thêm mới)" 
-                      name="customer_id" 
-                      rules={[{ required: !isNewCustomerMode, message: 'Vui lòng chọn khách hàng có sẵn.' }]}
-                  >
+                  <Form.Item label="Khách hàng (Tìm kiếm hoặc Thêm mới)" name="customer_id" rules={[{ required: !isNewCustomerMode, message: 'Vui lòng chọn khách hàng có sẵn.' }]}>
                       <Select
-                          showSearch
-                          placeholder="Tìm kiếm theo Mã, Tên hoặc SĐT"
-                          optionFilterProp="label"
-                          filterOption={(input, option) =>
-                              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                          }
+                          showSearch placeholder="Tìm kiếm theo Mã, Tên hoặc SĐT" optionFilterProp="label"
+                          filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                           options={customerOptionsForLead}
                           onChange={(value) => {
-                              // Tự động điền SĐT nếu chọn KH cũ
                               const selectedCust = allCustomers.find(c => c.id === value);
                               if (selectedCust) formLead.setFieldsValue({ name: selectedCust.name, phone: selectedCust.phone });
                               else formLead.setFieldsValue({ name: undefined, phone: undefined });
@@ -347,49 +334,24 @@ const CrmPage: React.FC = () => {
                       />
                   </Form.Item>
               ) : (
-                  // 2. INPUT FIELDS (Chỉ hiển thị khi đang trong chế độ New)
                   <>
                       <Divider orientation="left">Thông tin Khách hàng MỚI</Divider>
-                      <Form.Item 
-                          name="name" 
-                          label="Tên Khách hàng"
-                          rules={[{ required: isNewCustomerMode, message: 'Vui lòng nhập Tên KH' }]}
-                      >
-                          <Input placeholder="Tên khách hàng mới" />
-                      </Form.Item>
-                      <Form.Item 
-                          name="phone" 
-                          label="SĐT"
-                          rules={[{ required: isNewCustomerMode, message: 'Vui lòng nhập SĐT' }]}
-                      >
-                          <Input placeholder="SĐT liên hệ" />
-                      </Form.Item>
+                      <Form.Item name="name" label="Tên Khách hàng" rules={[{ required: isNewCustomerMode, message: 'Vui lòng nhập Tên KH' }]}><Input placeholder="Tên khách hàng mới" /></Form.Item>
+                      <Form.Item name="phone" label="SĐT" rules={[{ required: isNewCustomerMode, message: 'Vui lòng nhập SĐT' }]}><Input placeholder="SĐT liên hệ" /></Form.Item>
                   </>
               )}
               
               <Row justify={isNewCustomerMode ? 'end' : 'start'} style={{marginTop: 10}}>
                   <Col>
                       {!isNewCustomerMode ? (
-                          <Button 
-                              type="dashed" 
-                              onClick={() => { setIsNewCustomerMode(true); formLead.resetFields(['customer_id']); }} 
-                              icon={<PlusOutlined />}
-                          >
-                              Thêm Khách hàng Mới
-                          </Button>
+                          <Button type="dashed" onClick={() => { setIsNewCustomerMode(true); formLead.resetFields(['customer_id']); }} icon={<PlusOutlined />}>Thêm Khách hàng Mới</Button>
                       ) : (
-                          <Button 
-                              type="link" 
-                              onClick={() => { setIsNewCustomerMode(false); formLead.resetFields(['name', 'phone']); }}
-                          >
-                              Chọn KH có sẵn
-                          </Button>
+                          <Button type="link" onClick={() => { setIsNewCustomerMode(false); formLead.resetFields(['name', 'phone']); }}>Chọn KH có sẵn</Button>
                       )}
                   </Col>
               </Row>
           </Form>
       </Modal>
-      {/* ----------------------------------- */}
       
       <Drawer title={`Chăm sóc: ${currentCustomer?.name}`} open={followDrawerOpen} onClose={()=>setFollowDrawerOpen(false)} footer={<Button type="primary" block onClick={handleCreateQuoteFromFollow}>Tạo Báo Giá Ngay</Button>}>
           <div style={{marginBottom:20}}><Input.TextArea rows={3} value={followNote} onChange={e=>setFollowNote(e.target.value)} placeholder="Ghi chú..." /><Button block type="primary" style={{marginTop:10}} onClick={handleFollowLead}>Lưu</Button></div>
