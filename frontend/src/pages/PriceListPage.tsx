@@ -39,16 +39,20 @@ const PriceListsPage: React.FC = () => {
 
   const handleCreateList = async (values: any) => {
       try {
+          // FIX: Tách ngày tháng từ RangePicker và xóa field 'validity'
           const payload = {
-              ...values,
+              name: values.name,
+              description: values.description,
+              user_id: values.user_id,
               valid_from: values.validity[0].format('YYYY-MM-DD'),
               valid_to: values.validity[1].format('YYYY-MM-DD'),
               is_active: true
           };
+          
           await axios.post(`${API_URL}/sales/price-lists`, payload);
           message.success('Tạo bảng giá thành công');
           setIsModalOpen(false);
-          fetchData();
+          fetchData(); // Reload danh sách ngay lập tức
       } catch(e) { message.error('Lỗi tạo bảng giá'); }
   };
 
@@ -145,6 +149,7 @@ const PriceListsPage: React.FC = () => {
             <Table dataSource={priceLists} columns={listColumns} rowKey="id" loading={loading} pagination={{pageSize: 10}} />
         </Card>
 
+        {/* MODAL TẠO BẢNG GIÁ */}
         <Modal title="Thiết lập Bảng Giá Mới" open={isModalOpen} onCancel={()=>setIsModalOpen(false)} onOk={()=>formList.submit()}>
             <Form form={formList} layout="vertical" onFinish={handleCreateList}>
                 <Form.Item name="name" label="Tên Bảng Giá" rules={[{required:true}]}><Input placeholder="VD: Bảng giá Sale Team A - Q1/2024" /></Form.Item>
@@ -156,12 +161,23 @@ const PriceListsPage: React.FC = () => {
             </Form>
         </Modal>
 
+        {/* DRAWER CẤU HÌNH RULES */}
         <Drawer title={currentPriceList ? `Cấu hình chi tiết: ${currentPriceList.name}` : 'Chi tiết Bảng Giá'} width={800} open={isDrawerOpen} onClose={()=>setIsDrawerOpen(false)} bodyStyle={{paddingTop: 10, background: '#f0f2f5'}}>
             <div style={{background: '#fff', padding: 20, borderRadius: 8, marginBottom: 15, boxShadow: '0 1px 2px rgba(0,0,0,0.03)'}}>
                 <div style={{fontWeight: 600, marginBottom: 15, color: '#0050b3', textTransform: 'uppercase', fontSize: 13}}>Thêm Quy Tắc Giá Mới</div>
                 <Form form={formRule} layout="vertical" onFinish={handleAddRule}>
                     <Row gutter={16}>
-                        <Col span={16}><Form.Item name="product_sku" label="Sản phẩm áp dụng" rules={[{required:true}]}><Select showSearch options={products} placeholder="Tìm kiếm SKU hoặc Tên sản phẩm..." optionFilterProp="label" /></Form.Item></Col>
+                        <Col span={16}>
+                            <Form.Item name="product_sku" label="Sản phẩm áp dụng" rules={[{required:true}]}>
+                                <Select 
+                                    showSearch 
+                                    options={products} 
+                                    placeholder="Tìm kiếm SKU hoặc Tên sản phẩm..." 
+                                    optionFilterProp="label"
+                                    filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())} 
+                                />
+                            </Form.Item>
+                        </Col>
                         <Col span={8}><Form.Item label=" " colon={false}><Button type="primary" htmlType="submit" icon={<PlusOutlined />} block>Lưu Quy Tắc</Button></Form.Item></Col>
                     </Row>
                     <Divider orientation="left" style={{margin: '5px 0 15px 0', fontSize: 12}}>Giới hạn (Nhập số 0 hoặc bỏ trống nếu không áp dụng)</Divider>
