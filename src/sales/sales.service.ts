@@ -12,8 +12,10 @@ import { ProductsService } from '../products/products.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { CustomersService } from '../customers/customers.service';
 
+// Price List Entities
 import { PriceList } from './pricelist/price-list.entity';
 import { PriceListRule } from './pricelist/price-list-rule.entity';
+// User Entity
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
@@ -35,7 +37,7 @@ export class SalesService {
     private customersService: CustomersService,
   ) {}
 
-  // --- LOGIC VALIDATE GIÁ THEO GROUP USER ---
+  // --- LOGIC PRICE LIST ---
   async validatePriceAgainstPriceList(sku: string, unitPrice: number, currentUserId: number): Promise<boolean> {
     const today = new Date();
     const user = await this.userRepo.findOne({ where: { id: currentUserId }, relations: ['group'] });
@@ -69,38 +71,32 @@ export class SalesService {
     return true;
   }
 
-  // --- CRUD PRICE LIST ---
   async createPriceList(data: any) {
       const list = new PriceList();
       list.name = data.name;
       list.description = data.description;
-      
-      // FIX: Đảm bảo group_id là số hợp lệ
       const gid = Number(data.group_id);
       list.group_id = !isNaN(gid) ? gid : null;
-      
       list.valid_from = new Date(data.valid_from);
       list.valid_to = new Date(data.valid_to);
       list.is_active = true;
-
       return this.priceListRepo.save(list);
   }
 
+  async getAllPriceLists() { return this.priceListRepo.find({ order: { id: 'DESC' } }); }
+  
   async createPriceListRule(listId: number, data: any) {
       const list = await this.priceListRepo.findOne({ where: { id: listId } });
       if (!list) throw new NotFoundException('Price List not found');
-      
       const existing = await this.priceListRuleRepo.findOne({ where: { price_list_id: listId, product_sku: data.product_sku } });
       if (existing) throw new BadRequestException(`Sản phẩm ${data.product_sku} đã có quy tắc.`);
-      
       const rule = this.priceListRuleRepo.create({ ...data, price_list_id: listId });
       return this.priceListRuleRepo.save(rule);
   }
 
-  async getAllPriceLists() { return this.priceListRepo.find({ order: { id: 'DESC' } }); }
   async getPriceListRules(listId: number) { return this.priceListRuleRepo.find({ where: { price_list_id: listId }, order: { id: 'DESC' } }); }
 
-  // --- CÁC HÀM CŨ GIỮ NGUYÊN ---
+  // --- SALES ORDER ---
   private async validateItemsForSO(items: any[]) {
       if(!items) return;
       for (const item of items) {
@@ -109,6 +105,7 @@ export class SalesService {
           if (!product) throw new NotFoundException(`SP ${item.sku} k tim thay`);
       }
   }
+
   async createOrder(data: any) {
     if (!data.isQuotation) await this.validateItemsForSO(data.items);
     const currentUserId = 1; 
@@ -131,8 +128,10 @@ export class SalesService {
     order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee; order.total_cost = totalCost;
     return this.orderRepo.save(order);
   }
+
   async findAll() { return this.orderRepo.find({ order: { order_date: 'DESC' }, relations: ['customer'] }); }
   async getOrder(code: string) { return this.orderRepo.findOne({ where: { order_code: code }, relations: ['items', 'customer', 'comments'] }); }
+  
   async updateQuote(id: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if (!order) throw new NotFoundException('Not Found');
@@ -153,6 +152,7 @@ export class SalesService {
       order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
       return this.orderRepo.save(order);
   }
+
   async completeOrder(id: number) { const order = await this.orderRepo.findOne({ where: { id } }); if (!order) throw new NotFoundException(); order.status = SalesOrderStatus.COMPLETED; return this.orderRepo.save(order); }
   async addComment(orderId: number, content: string, sender: 'STAFF'|'CUSTOMER', name?: string) { const order = await this.orderRepo.findOne({ where: { id: orderId } }); if (!order) throw new NotFoundException(); const comment = this.commentRepo.create({ order, content, sender_type: sender, sender_name: name }); return this.commentRepo.save(comment); }
   async getComments(orderId: number) { return this.commentRepo.find({ where: { order: { id: orderId } }, order: { created_at: 'ASC' } }); }
@@ -161,7 +161,28 @@ export class SalesService {
   async approveAllSamples(id: number) { const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] }); if(!order) throw new NotFoundException(); for(const item of order.items) { item.is_sample_approved = true; await this.orderRepo.manager.save(item); } if (order.status === SalesOrderStatus.SO_PENDING) order.status = SalesOrderStatus.SAMPLE_APPROVED; return this.orderRepo.save(order); }
   async updatePayment(orderCode: string, amount: number) { const order = await this.orderRepo.findOne({ where: { order_code: orderCode } }); if (!order) throw new NotFoundException(); order.paid_amount = Number(order.paid_amount || 0) + Number(amount); if (order.paid_amount > 0 && (order.status === SalesOrderStatus.SO_PENDING || order.status === SalesOrderStatus.SAMPLE_APPROVED)) { order.status = SalesOrderStatus.DEPOSITED; } if (order.paid_amount >= order.total_amount) order.payment_status = PaymentStatus.PAID; else if (order.paid_amount > 0) order.payment_status = PaymentStatus.PARTIAL_PAID; if (order.payment_status === PaymentStatus.PAID && order.status === SalesOrderStatus.DELIVERED) order.status = SalesOrderStatus.COMPLETED; return this.orderRepo.save(order); }
   async deleteQuote(id: number) { const order = await this.orderRepo.findOne({ where: { id } }); if (order && (order.status === 'QUOTATION' || order.status === 'CANCELLED')) return this.orderRepo.remove(order); throw new BadRequestException('Khong the xoa'); }
-  async getQuoteByUuid(uuid: string) { const order = await this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer', 'comments'] }); if(!order) throw new NotFoundException('Not found'); const deliveries = await this.deliveryRepo.find({ where: { order_id: order.id }, relations: ['items'], order: { created_at: 'DESC' } }); const payments = await this.transRepo.find({ where: { reference_code: order.order_code }, order: { created_at: 'DESC' } }); return { ...order, deliveries, payments }; }
+  
+  // --- FIX: CẬP NHẬT LẤY CHI TIẾT KÈM MÔ TẢ SẢN PHẨM ---
+  async getQuoteByUuid(uuid: string) { 
+      const order = await this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer', 'comments'] });
+      if(!order) throw new NotFoundException('Not found');
+      
+      // Lấy thêm thông tin mô tả sản phẩm từ bảng Product
+      const itemsWithDesc = await Promise.all(order.items.map(async (item) => {
+          const product = await this.productsService.findOneBySku(item.sku);
+          return {
+              ...item,
+              product_desc: product?.customer_description || '', // Lấy mô tả khách hàng
+              product_name_real: product?.name || ''
+          };
+      }));
+      
+      const deliveries = await this.deliveryRepo.find({ where: { order_id: order.id }, relations: ['items'], order: { created_at: 'DESC' } });
+      const payments = await this.transRepo.find({ where: { reference_code: order.order_code }, order: { created_at: 'DESC' } });
+      return { ...order, items: itemsWithDesc, deliveries, payments };
+  }
+  // -----------------------------------------------------
+
   async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT') { const order = await this.getQuoteByUuid(uuid); if (order.status !== SalesOrderStatus.QUOTATION) throw new BadRequestException('Da xu ly roi'); return this.convertQuoteToSo(order.id, action === 'ACCEPT'); }
   async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
   async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
