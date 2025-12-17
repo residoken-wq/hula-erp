@@ -1,20 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Tag, Button, message, Card, Row, Col, Modal, Form, Input, InputNumber, Select, Popconfirm, Space, Divider, Tabs, Tooltip } from 'antd';
-import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SwapOutlined } from '@ant-design/icons';
+import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SwapOutlined, SearchOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-import { API_URL } from '../config'; const API = `${API_URL}/materials`;
+import { API_URL } from '../config'; 
+const API = `${API_URL}/materials`;
 
 const MaterialsPage: React.FC = () => {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // --- MỚI: STATE CHO TÌM KIẾM ---
+  const [searchText, setSearchText] = useState('');
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [form] = Form.useForm();
 
   const fetchData = async () => {
     setLoading(true);
-    try { const res = await axios.get(API); setData(res.data); } catch (e) { message.error('Lỗi tải dữ liệu'); }
+    try { 
+        const res = await axios.get(API); 
+        // Đảm bảo data luôn là mảng
+        setData(Array.isArray(res.data) ? res.data : []); 
+    } catch (e) { 
+        message.error('Lỗi tải dữ liệu'); 
+    }
     setLoading(false);
   };
 
@@ -39,30 +50,59 @@ const MaterialsPage: React.FC = () => {
     catch (e) { message.error('Xóa thất bại'); }
   };
 
-  // --- CẤU HÌNH CỘT CHO TAB 1: KHO CƠ BẢN (DA TACH COT) ---
+  // --- MỚI: LOGIC TẠO BỘ LỌC ĐỘNG TỪ DỮ LIỆU ---
+  // Lấy danh sách unique các Category và Material Type để tạo filter cho cột
+  const getFilters = (key: string) => {
+      const uniqueValues = [...new Set(data.map(item => item[key]).filter(Boolean))];
+      return uniqueValues.map(val => ({ text: val, value: val }));
+  };
+
+  // --- MỚI: LOGIC TÌM KIẾM & LỌC DỮ LIỆU ---
+  const filteredData = useMemo(() => {
+      if (!searchText) return data;
+      const lowerSearch = searchText.toLowerCase();
+      return data.filter((item: any) => 
+          (item.code && item.code.toLowerCase().includes(lowerSearch)) ||
+          (item.name && item.name.toLowerCase().includes(lowerSearch))
+      );
+  }, [data, searchText]);
+
+  // --- CẤU HÌNH CỘT CHO TAB 1: KHO CƠ BẢN ---
   const columnsBase = [
     { 
       title: 'Nhóm', 
       dataIndex: 'category', 
       key: 'cat',
-      width: 100,
-      filters: [
-        { text: 'Vải', value: 'Vải' },
-        { text: 'Phụ liệu', value: 'Phụ liệu' },
-        { text: 'Chỉ', value: 'Chỉ' },
-      ],
-      onFilter: (value: any, record: any) => (record.category || '').includes(value),
+      width: 120,
+      // MỚI: Filter động
+      filters: getFilters('category'),
+      onFilter: (value: any, record: any) => record.category === value,
       render: (t:any) => t ? <Tag color="blue">{t}</Tag> : '-' 
     },
     { 
       title: 'Loại', 
       dataIndex: 'material_type', 
       key: 'type',
-      width: 100,
+      width: 120,
+      // MỚI: Filter động cho Loại
+      filters: getFilters('material_type'),
+      onFilter: (value: any, record: any) => record.material_type === value,
       render: (t:any) => t ? <Tag color="cyan">{t}</Tag> : '-'
     },
-    { title: 'Mã VL', dataIndex: 'code', width: 120, render: (t:any) => <b>{t}</b> },
-    { title: 'Tên Nguyên Liệu', dataIndex: 'name' },
+    { 
+        title: 'Mã VL', 
+        dataIndex: 'code', 
+        width: 120, 
+        render: (t:any) => <b>{t}</b>,
+        // Có thể sort theo mã
+        sorter: (a: any, b: any) => (a.code || '').localeCompare(b.code || '')
+    },
+    { 
+        title: 'Tên Nguyên Liệu', 
+        dataIndex: 'name',
+        // Có thể sort theo tên
+        sorter: (a: any, b: any) => (a.name || '').localeCompare(b.name || '')
+    },
     { 
       title: 'ĐVT', dataIndex: 'unit', align: 'center' as const, width: 80,
       render: (t:any) => <Tag color="orange">{t}</Tag>
@@ -73,7 +113,8 @@ const MaterialsPage: React.FC = () => {
     },
     { 
       title: 'Tồn Kho', dataIndex: 'quantity_in_stock', align: 'right' as const, width: 120,
-      render: (v:any, r:any) => <b style={{color: v>0?'green':'red', fontSize: 15}}>{Number(v).toLocaleString()}</b>
+      render: (v:any, r:any) => <b style={{color: v>0?'green':'red', fontSize: 15}}>{Number(v).toLocaleString()}</b>,
+      sorter: (a: any, b: any) => a.quantity_in_stock - b.quantity_in_stock
     },
     {
       title: 'Hành động', key: 'action', width: 100, align: 'center' as const,
@@ -119,13 +160,14 @@ const MaterialsPage: React.FC = () => {
     },
   ];
 
-  const conversionData = data.filter((item: any) => item.purchase_unit && item.conversion_factor > 1);
+  // Lọc dữ liệu quy đổi từ dữ liệu đã search
+  const conversionData = filteredData.filter((item: any) => item.purchase_unit && item.conversion_factor > 1);
 
   const tabItems = [
     {
       key: '1',
-      label: 'Danh Sách Tồn Kho (Cơ Bản)',
-      children: <Table columns={columnsBase} dataSource={data} rowKey="id" loading={loading} bordered pagination={{ pageSize: 10 }} />
+      label: `Danh Sách Tồn Kho (${filteredData.length})`,
+      children: <Table columns={columnsBase} dataSource={filteredData} rowKey="id" loading={loading} bordered pagination={{ pageSize: 10 }} />
     },
     {
       key: '2',
@@ -140,6 +182,15 @@ const MaterialsPage: React.FC = () => {
         title="Quản lý Nguyên Vật Liệu" 
         extra={
             <Space>
+                {/* --- MỚI: THANH TÌM KIẾM --- */}
+                <Input 
+                    placeholder="Tìm kiếm Mã hoặc Tên..." 
+                    prefix={<SearchOutlined />} 
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: 250 }}
+                    allowClear
+                />
                 <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); }}>Thêm Mới</Button>
                 <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
             </Space>
