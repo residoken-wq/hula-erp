@@ -14,6 +14,7 @@ export class AuthService {
     const user = await this.usersService.findOneByUsernameForAuth(username); 
     
     if (user) {
+        // So sánh password (chấp nhận cả chưa mã hóa và bcrypt để test)
         const isMatch = (pass === user.password) || (await bcrypt.compare(pass, user.password));
         if (isMatch) {
             const { password, ...result } = user;
@@ -24,9 +25,7 @@ export class AuthService {
   }
 
   async login(user: any) {
-    // user lúc này đã có group và permissions do users.service trả về
     const payload = { username: user.username, sub: user.id, group_id: user.group?.id };
-    
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -35,9 +34,9 @@ export class AuthService {
           full_name: user.full_name,
           group_id: user.group?.id,
           role_name: user.group?.name,
-          // --- QUAN TRỌNG: TRẢ VỀ QUYỀN CHO FRONTEND ---
+          // --- QUAN TRỌNG: Trả về danh sách quyền ---
           permissions: user.group?.permissions || [] 
-          // --------------------------------------------
+          // ----------------------------------------
       }
     };
   }

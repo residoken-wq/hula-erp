@@ -81,12 +81,12 @@ export class UsersService {
       return { success: true };
   }
 
-  // --- CẬP NHẬT QUAN TRỌNG: JOIN BẢNG PERMISSIONS ---
+  // --- QUAN TRỌNG: Lấy user kèm theo thông tin Group và Permissions ---
   async findOneByUsernameForAuth(username: string) {
     return this.userRepo.createQueryBuilder('user')
-        .addSelect('user.password') // Lấy thêm cột password ẩn
+        .addSelect('user.password') // Lấy password ẩn
         .leftJoinAndSelect('user.group', 'group')
-        .leftJoinAndSelect('group.permissions', 'permissions') // <--- DÒNG QUAN TRỌNG MỚI THÊM
+        .leftJoinAndSelect('group.permissions', 'permissions') // <--- DÒNG MỚI QUAN TRỌNG
         .where('user.username = :username', { username })
         .getOne();
     }   
