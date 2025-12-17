@@ -27,6 +27,7 @@ import PriceListsPage from './pages/PriceListPage';
 import UsersPage from './pages/UsersPage';
 import UserGroupsPage from './pages/UserGroupsPage';
 import LoginPage from './pages/LoginPage';
+import InventoryPage from './pages/InventoryPage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -193,6 +194,7 @@ const App: React.FC = () => {
                                 <Route path="/materials" element={<MaterialsPage />} />
                                 <Route path="/suppliers" element={<SuppliersPage />} />
                                 <Route path="/manufacturers" element={<ManufacturersPage />} />
+                                <Route path="/inventory" element={<InventoryPage />} />
                             </>
                         )}
 

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Get, Body, UsePipes, ValidationPipe } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './create-inventory.dto';
 
@@ -6,8 +6,15 @@ import { CreateInventoryDto } from './create-inventory.dto';
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
+  // --- MỚI: API LẤY LỊCH SỬ ---
+  @Get('history')
+  async getHistory() {
+      return this.inventoryService.getHistory();
+  }
+  // ----------------------------
+
   @Post('adjust')
-  @UsePipes(new ValidationPipe()) // Kich hoat kiem tra du lieu
+  @UsePipes(new ValidationPipe()) 
   async adjust(@Body() dto: CreateInventoryDto) {
     return this.inventoryService.adjustStock(
       dto.type,
