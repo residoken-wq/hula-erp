@@ -6,52 +6,56 @@ export class SalesController {
   constructor(private readonly s: SalesService) {}
 
   // ============================================================
-  // KHU VỰC API PRICE LIST (BẮT BUỘC ĐẶT TRƯỚC CÁC API KHÁC)
+  // KHU VỰC API PRICE LIST
   // ============================================================
-
-  // 1. Tạo Bảng giá mới
   @Post('price-lists') 
-  createPriceList(@Body() body: any) { 
-      return this.s.createPriceList(body); 
-  }
+  createPriceList(@Body() body: any) { return this.s.createPriceList(body); }
 
-  // 2. Lấy danh sách Bảng giá
   @Get('price-lists') 
-  getAllPriceLists() { 
-      return this.s.getAllPriceLists(); 
-  }
+  getAllPriceLists() { return this.s.getAllPriceLists(); }
 
-  // 3. Thêm Quy tắc giá (Rule) vào Bảng giá
   @Post('price-lists/:id/rules') 
-  createRule(@Param('id') id: number, @Body() body: any) { 
-      return this.s.createPriceListRule(id, body); 
-  }
+  createRule(@Param('id') id: number, @Body() body: any) { return this.s.createPriceListRule(id, body); }
 
-  // 4. Lấy danh sách Quy tắc của một Bảng giá
   @Get('price-lists/:id/rules') 
-  getRules(@Param('id') id: number) { 
-      return this.s.getPriceListRules(id); 
-  }
+  getRules(@Param('id') id: number) { return this.s.getPriceListRules(id); }
 
-  // 5. Kiểm tra giá (Validate)
   @Get('validate-price')
-  async validatePrice(
-      @Query('sku') sku: string, 
-      @Query('unitPrice') unitPrice: number,
-      @Query('userId') userId: number 
-  ) {
+  async validatePrice(@Query('sku') sku: string, @Query('unitPrice') unitPrice: number, @Query('userId') userId: number) {
       return this.s.validatePriceAgainstPriceList(sku, Number(unitPrice), Number(userId));
   }
 
   // ============================================================
-  // KHU VỰC API SALES ORDER (ĐẶT SAU)
+  // KHU VỰC API TRAO ĐỔI / COMMENT (FIX LỖI 404)
+  // ============================================================
+  
+  // 1. Lấy danh sách trao đổi
+  @Get(':id/comments')
+  getComments(@Param('id') id: number) {
+      return this.s.getComments(id);
+  }
+
+  // 2. Gửi tin nhắn mới (Đây là API bị lỗi 404)
+  @Post(':id/comment')
+  addComment(@Param('id') id: number, @Body() body: any) {
+      return this.s.addComment(id, body.content, body.sender, body.name);
+  }
+
+  // 3. Ẩn/Hiện tin nhắn (Dành cho KH xem hay không)
+  @Post('comment/:id/toggle')
+  toggleComment(@Param('id') id: number) {
+      return this.s.toggleCommentVisibility(id);
+  }
+
+  // ============================================================
+  // KHU VỰC API SALES ORDER
   // ============================================================
 
   @Post('create') create(@Body() b: any) { return this.s.createOrder(b); }
   
   @Get() findAll() { return this.s.findAll(); }
 
-  // API này dễ "ăn" nhầm các đường dẫn khác nếu đặt ở trên cùng
+  // API lấy chi tiết đơn hàng (Đặt sau các API custom path để tránh xung đột)
   @Get(':code') getOne(@Param('code') c: string) { return this.s.getOrder(c); }
   
   @Get('samples/all') getAllSamples() { return this.s.sampleRepo.find({ order: { created_at: 'DESC' } }); }
