@@ -19,8 +19,10 @@ import ProcessesPage from './pages/ProcessesPage';
 import CategoriesPage from './pages/CategoriesPage';
 import PortalQuotePage from './pages/PortalQuotePage';
 import PortalPurchasePage from './pages/PortalPurchasePage';
-// FIX: Đã import file mới tạo
-import PriceListsPage from './pages/PriceListsPage';
+
+// --- FIX: IMPORT CHÍNH XÁC TÊN FILE (PriceListPage - số ít) ---
+import PriceListsPage from './pages/PriceListPage'; 
+// --------------------------------------------------------------
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -87,9 +89,9 @@ const App: React.FC = () => {
                     <Route path="/processes" element={<ProcessesPage />} />
                     <Route path="/categories" element={<CategoriesPage />} />
                     
-                    {/* --- FIX: DÙNG ĐÚNG ROUTE '/sales/pricelist' --- */}
+                    {/* --- ROUTE CHO PRICE LIST --- */}
                     <Route path="/sales/pricelist" element={<PriceListsPage />} />
-                    {/* ----------------------------------------------- */}
+                    {/* --------------------------- */}
 
                     <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
                   </Routes>
