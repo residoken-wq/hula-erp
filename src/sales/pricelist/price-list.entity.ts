@@ -12,10 +12,8 @@ export class PriceList {
   @Column({ nullable: true })
   description: string;
 
-  // --- QUAN TRỌNG: Liên kết với Nhóm User ---
   @Column({ nullable: true })
   group_id: number; 
-  // ----------------------------------------
 
   @Column({ type: 'date' })
   valid_from: Date; 

@@ -12,10 +12,8 @@ import { ProductsService } from '../products/products.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { CustomersService } from '../customers/customers.service';
 
-// Price List Entities
 import { PriceList } from './pricelist/price-list.entity';
 import { PriceListRule } from './pricelist/price-list-rule.entity';
-// User Entity (Để check quyền)
 import { User } from '../users/entities/user.entity';
 
 @Injectable()
@@ -28,11 +26,8 @@ export class SalesService {
     @InjectRepository(SalesComment) private commentRepo: Repository<SalesComment>,
     @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
     
-    // --- Price List Repositories ---
     @InjectRepository(PriceList) private priceListRepo: Repository<PriceList>,
     @InjectRepository(PriceListRule) private priceListRuleRepo: Repository<PriceListRule>,
-    
-    // --- User Repo (Để lấy Group ID của user hiện tại) ---
     @InjectRepository(User) private userRepo: Repository<User>,
 
     private productsService: ProductsService,
@@ -40,120 +35,49 @@ export class SalesService {
     private customersService: CustomersService,
   ) {}
 
-  private async validateItemsForSO(items: any[]) {
-      if(!items) return;
-      for (const item of items) {
-          if (!item.sku) continue;
-          const product = await this.productsService.findOneBySku(item.sku);
-          if (!product) throw new NotFoundException(`SP ${item.sku} k tim thay`);
-      }
-  }
-
-  // --- LOGIC CHECK GIÁ (CẬP NHẬT THEO GROUP) ---
+  // --- LOGIC VALIDATE GIÁ THEO GROUP USER ---
   async validatePriceAgainstPriceList(sku: string, unitPrice: number, currentUserId: number): Promise<boolean> {
     const today = new Date();
-    
-    // 1. Lấy thông tin User để biết Group ID
     const user = await this.userRepo.findOne({ where: { id: currentUserId }, relations: ['group'] });
-    if (!user || !user.group) return true; // Không thuộc nhóm nào -> Bỏ qua check
+    if (!user || !user.group) return true; 
 
-    // 2. Tìm Price List áp dụng cho Group này
     const applicableList = await this.priceListRepo.findOne({
-        where: {
-            group_id: user.group.id, 
-            is_active: true,
-        },
+        where: { group_id: user.group.id, is_active: true },
         order: { id: 'DESC' }
     });
 
     if (!applicableList) return true;
     
-    // Check ngày hiệu lực thủ công
     const validFrom = new Date(applicableList.valid_from);
     const validTo = new Date(applicableList.valid_to);
     if (today < validFrom || today > validTo) return true;
 
-    // 3. Tìm Rule cho SKU
-    const rule = await this.priceListRuleRepo.findOne({
-        where: { price_list_id: applicableList.id, product_sku: sku }
-    });
-
+    const rule = await this.priceListRuleRepo.findOne({ where: { price_list_id: applicableList.id, product_sku: sku } });
     if (!rule) return true;
 
     const product = await this.productsService.findOneBySku(sku);
     const costPrice = Number(product?.cost_price || 0);
 
-    // Check Min/Max Price
-    if (rule.min_price && unitPrice < Number(rule.min_price)) {
-        throw new BadRequestException(`Giá bán thấp hơn mức tối thiểu: ${Number(rule.min_price).toLocaleString()} ₫ (Bảng giá: ${applicableList.name}).`);
-    }
-    if (rule.max_price && unitPrice > Number(rule.max_price)) {
-        throw new BadRequestException(`Giá bán cao hơn mức tối đa: ${Number(rule.max_price).toLocaleString()} ₫ (Bảng giá: ${applicableList.name}).`);
-    }
+    if (rule.min_price && unitPrice < Number(rule.min_price)) throw new BadRequestException(`Giá thấp hơn min: ${Number(rule.min_price).toLocaleString()} ₫ (Bảng giá: ${applicableList.name}).`);
+    if (rule.max_price && unitPrice > Number(rule.max_price)) throw new BadRequestException(`Giá cao hơn max: ${Number(rule.max_price).toLocaleString()} ₫ (Bảng giá: ${applicableList.name}).`);
 
-    // Check Margin
     if (costPrice > 0) {
         const margin = ((unitPrice - costPrice) / unitPrice) * 100;
-        if (rule.min_margin && margin < Number(rule.min_margin)) {
-            throw new BadRequestException(`Lợi nhuận ${margin.toFixed(1)}% thấp hơn mức tối thiểu: ${rule.min_margin}% (Bảng giá: ${applicableList.name}).`);
-        }
-        if (rule.max_margin && margin > Number(rule.max_margin)) {
-            throw new BadRequestException(`Lợi nhuận ${margin.toFixed(1)}% cao hơn mức tối đa: ${rule.max_margin}% (Bảng giá: ${applicableList.name}).`);
-        }
+        if (rule.min_margin && margin < Number(rule.min_margin)) throw new BadRequestException(`Lợi nhuận thấp hơn min: ${rule.min_margin}% (Bảng giá: ${applicableList.name}).`);
+        if (rule.max_margin && margin > Number(rule.max_margin)) throw new BadRequestException(`Lợi nhuận cao hơn max: ${rule.max_margin}% (Bảng giá: ${applicableList.name}).`);
     }
     return true;
   }
 
-  async createOrder(data: any) {
-    if (!data.isQuotation) await this.validateItemsForSO(data.items);
-    
-    const currentUserId = 1; // TODO: Lấy từ token
-    for (const itemData of (data.items || [])) {
-        if (itemData.sku && itemData.price) {
-            await this.validatePriceAgainstPriceList(itemData.sku, Number(itemData.price), currentUserId); 
-        }
-    }
-
-    const order = this.orderRepo.create({
-        order_code: data.order_code,
-        customer: data.customer_id ? { id: data.customer_id } : null,
-        customer_name: data.customer_name,
-        vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate)||0,
-        delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone, shipping_carrier: data.shipping_carrier,
-        payment_note: data.payment_note, shipping_fee: Number(data.shipping_fee)||0,
-        status: data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING,
-        terms_content: data.terms_content
-    });
-    
-    const validItems = (data.items || []).filter((i:any) => i.sku); 
-    let itemsTotal = 0; let totalCost = 0;
-    
-    order.items = validItems.map((itemData:any) => {
-        const qty = Number(itemData.quantity) || 0;
-        const price = Number(itemData.price) || 0;
-        const sub = qty * price;
-        itemsTotal += sub;
-        return this.orderRepo.manager.create(SalesOrderItem, {
-            sku: itemData.sku, quantity: qty, unit_price: price, subtotal: sub,
-            variant_color: itemData.variant_color, is_sample_approved: itemData.is_sample_approved || false,
-            sample_image: itemData.sample_image, sample_note: itemData.sample_note
-        });
-    });
-
-    for (const item of order.items) { try { const costInfo = await this.productsService.calculateCostPrice(item.sku); totalCost += (costInfo.new_cost_price || 0) * item.quantity; } catch (e) {} }
-    order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
-    order.total_cost = totalCost;
-    return this.orderRepo.save(order);
-  }
-
-  // --- CRUD PRICE LIST (CẬP NHẬT GROUP ID) ---
+  // --- CRUD PRICE LIST ---
   async createPriceList(data: any) {
       const list = new PriceList();
       list.name = data.name;
       list.description = data.description;
       
-      // FIX: Lưu group_id. Nếu frontend gửi chuỗi thì ép về số
-      list.group_id = data.group_id ? Number(data.group_id) : null; 
+      // FIX: Đảm bảo group_id là số hợp lệ
+      const gid = Number(data.group_id);
+      list.group_id = !isNaN(gid) ? gid : null;
       
       list.valid_from = new Date(data.valid_from);
       list.valid_to = new Date(data.valid_to);
@@ -166,47 +90,65 @@ export class SalesService {
       const list = await this.priceListRepo.findOne({ where: { id: listId } });
       if (!list) throw new NotFoundException('Price List not found');
       
-      const existingRule = await this.priceListRuleRepo.findOne({ where: { price_list_id: listId, product_sku: data.product_sku } });
-      if (existingRule) throw new BadRequestException(`Sản phẩm ${data.product_sku} đã có quy tắc.`);
+      const existing = await this.priceListRuleRepo.findOne({ where: { price_list_id: listId, product_sku: data.product_sku } });
+      if (existing) throw new BadRequestException(`Sản phẩm ${data.product_sku} đã có quy tắc.`);
       
       const rule = this.priceListRuleRepo.create({ ...data, price_list_id: listId });
       return this.priceListRuleRepo.save(rule);
   }
 
-  async getAllPriceLists() { 
-      // FIX: Sắp xếp theo ID giảm dần để thấy bảng giá mới tạo
-      return this.priceListRepo.find({ order: { id: 'DESC' } }); 
-  }
-  
-  async getPriceListRules(listId: number) { 
-      return this.priceListRuleRepo.find({ where: { price_list_id: listId }, order: { id: 'DESC' } }); 
-  }
+  async getAllPriceLists() { return this.priceListRepo.find({ order: { id: 'DESC' } }); }
+  async getPriceListRules(listId: number) { return this.priceListRuleRepo.find({ where: { price_list_id: listId }, order: { id: 'DESC' } }); }
 
-  // ... (Giữ nguyên các hàm findAll, getOne, updateQuote... như cũ)
+  // --- CÁC HÀM CŨ GIỮ NGUYÊN ---
+  private async validateItemsForSO(items: any[]) {
+      if(!items) return;
+      for (const item of items) {
+          if (!item.sku) continue;
+          const product = await this.productsService.findOneBySku(item.sku);
+          if (!product) throw new NotFoundException(`SP ${item.sku} k tim thay`);
+      }
+  }
+  async createOrder(data: any) {
+    if (!data.isQuotation) await this.validateItemsForSO(data.items);
+    const currentUserId = 1; 
+    for (const itemData of (data.items || [])) {
+        if (itemData.sku && itemData.price) await this.validatePriceAgainstPriceList(itemData.sku, Number(itemData.price), currentUserId);
+    }
+    const order = this.orderRepo.create({
+        order_code: data.order_code, customer: data.customer_id ? { id: data.customer_id } : null,
+        customer_name: data.customer_name, vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate)||0,
+        delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone, shipping_carrier: data.shipping_carrier,
+        payment_note: data.payment_note, shipping_fee: Number(data.shipping_fee)||0, status: data.isQuotation ? SalesOrderStatus.QUOTATION : SalesOrderStatus.SO_PENDING, terms_content: data.terms_content
+    });
+    const validItems = (data.items || []).filter((i:any) => i.sku); 
+    let itemsTotal = 0; let totalCost = 0;
+    order.items = validItems.map((itemData:any) => {
+        const qty = Number(itemData.quantity) || 0; const price = Number(itemData.price) || 0; const sub = qty * price; itemsTotal += sub;
+        return this.orderRepo.manager.create(SalesOrderItem, { sku: itemData.sku, quantity: qty, unit_price: price, subtotal: sub, variant_color: itemData.variant_color, is_sample_approved: itemData.is_sample_approved || false, sample_image: itemData.sample_image, sample_note: itemData.sample_note });
+    });
+    for (const item of order.items) { try { const costInfo = await this.productsService.calculateCostPrice(item.sku); totalCost += (costInfo.new_cost_price || 0) * item.quantity; } catch (e) {} }
+    order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee; order.total_cost = totalCost;
+    return this.orderRepo.save(order);
+  }
   async findAll() { return this.orderRepo.find({ order: { order_date: 'DESC' }, relations: ['customer'] }); }
   async getOrder(code: string) { return this.orderRepo.findOne({ where: { order_code: code }, relations: ['items', 'customer', 'comments'] }); }
   async updateQuote(id: number, data: any) {
       const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
       if (!order) throw new NotFoundException('Not Found');
       const currentUserId = 1; 
-      for (const itemData of (data.items || [])) {
-          if (itemData.sku && itemData.price) await this.validatePriceAgainstPriceList(itemData.sku, Number(itemData.price), currentUserId); 
-      }
+      for (const itemData of (data.items || [])) { if (itemData.sku && itemData.price) await this.validatePriceAgainstPriceList(itemData.sku, Number(itemData.price), currentUserId); }
       Object.assign(order, {
           vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate)||0,
           delivery_date: data.delivery_date, shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone,
-          shipping_fee: Number(data.shipping_fee)||0, payment_note: data.payment_note,
-          sample_image_url: data.sample_image_url, sample_note: data.sample_note, terms_content: data.terms_content
+          shipping_fee: Number(data.shipping_fee)||0, payment_note: data.payment_note, sample_image_url: data.sample_image_url, sample_note: data.sample_note, terms_content: data.terms_content
       });
       if(data.customer_id) order.customer = { id: data.customer_id } as any;
       let itemsTotal = 0;
       if (data.items && (order.status === SalesOrderStatus.QUOTATION || order.status === SalesOrderStatus.SO_PENDING || order.status === SalesOrderStatus.SAMPLE_APPROVED)) {
           await this.orderRepo.createQueryBuilder().relation(SalesOrder, "items").of(order).remove(order.items);
           const validItems = data.items.filter((i:any) => i.sku);
-          order.items = validItems.map((i:any) => {
-              const qty = Number(i.quantity) || 0; const price = Number(i.price) || 0; const sub = qty * price; itemsTotal += sub;
-              return this.orderRepo.manager.create(SalesOrderItem, { sku: i.sku, quantity: qty, unit_price: price, subtotal: sub, variant_color: i.variant_color, is_sample_approved: i.is_sample_approved, sample_image: i.sample_image, sample_note: i.sample_note });
-          });
+          order.items = validItems.map((i:any) => { const qty = Number(i.quantity) || 0; const price = Number(i.price) || 0; const sub = qty * price; itemsTotal += sub; return this.orderRepo.manager.create(SalesOrderItem, { sku: i.sku, quantity: qty, unit_price: price, subtotal: sub, variant_color: i.variant_color, is_sample_approved: i.is_sample_approved, sample_image: i.sample_image, sample_note: i.sample_note }); });
       } else { itemsTotal = order.items.reduce((s, i) => s + Number(i.subtotal), 0); }
       order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
       return this.orderRepo.save(order);

@@ -12,9 +12,8 @@ import { Transaction } from '../finance/transaction.entity';
 import { PriceList } from './pricelist/price-list.entity';
 import { PriceListRule } from './pricelist/price-list-rule.entity';
 
-// --- MỚI: Import User Entity ---
+// User Entity
 import { User } from '../users/entities/user.entity';
-// ------------------------------
 
 import { SalesController } from './sales.controller';
 import { SalesService } from './sales.service';
