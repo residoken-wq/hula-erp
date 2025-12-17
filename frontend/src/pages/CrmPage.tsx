@@ -233,14 +233,14 @@ const CrmPage: React.FC = () => {
         title="Quản Lý Kinh Doanh (CRM)" 
         extra={
             <Space>
-                {/* --- FIX: NÚT DẪN TỚI PRICE LIST (ROUTE CHUẨN) --- */}
+                {/* --- FIX: NÚT QUẢN LÝ BẢNG GIÁ --- */}
                 <Button 
                     icon={<UnorderedListOutlined />} 
                     onClick={() => navigate('/sales/pricelist')}
                 >
                     Quản lý Bảng Giá
                 </Button>
-                {/* ------------------------------------------------ */}
+                {/* ---------------------------------- */}
                 <Button icon={<ReloadOutlined />} onClick={fetchData} />
             </Space>
         }

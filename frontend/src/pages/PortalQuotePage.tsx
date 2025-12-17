@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Tag, Table, Space, Divider } from 'antd'; 
+import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider } from 'antd'; 
 import { CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined } from '@ant-design/icons';
-import QuotationTemplate from '../components/QuotationTemplate';
+import QuotationTemplate from '../components/QuotationTemplate'; // Import component đã fix
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
 
@@ -105,9 +105,20 @@ const PortalQuotePage: React.FC = () => {
                         <div style={{display:'flex', gap:5}}><Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder="Nhập tin nhắn..." onPressEnter={(e)=>{if(!e.shiftKey) {e.preventDefault(); handleSendComment()}}} /><Button type="primary" icon={<SendOutlined/>} onClick={handleSendComment} /></div>
                    </Card>
                </Col>
+               
+               {/* SỬ DỤNG LẠI COMPONENT QUOTATION TEMPLATE ĐÃ FIX */}
                <Col span={16} xs={24} md={16}>
-                   <Card title="📄 Chi Tiết Đơn Hàng" style={{marginBottom: 20}}><div className="quotation-wrapper"><QuotationTemplate data={data} /></div></Card>
-                   {data.deliveries && data.deliveries.length > 0 && (<Card title="📦 Lịch Sử Giao Hàng"><Table dataSource={data.deliveries} rowKey="id" pagination={false} size="small" columns={[{ title: 'Ngày giao', render: (r:any)=>dayjs(r.delivery_date).format('DD/MM/YYYY') }, { title: 'Mã phiếu', dataIndex: 'code' }, { title: 'Ghi chú', dataIndex: 'note' }, { title: 'Chi tiết', render: (r:any)=>r.items.map((i:any)=>`${i.sku} (x${i.quantity})`).join(', ') }]} /></Card>)}
+                   <Card title="📄 Chi Tiết Báo Giá / Đơn Hàng" style={{marginBottom: 20}}>
+                       <div className="quotation-wrapper">
+                           <QuotationTemplate data={data} />
+                       </div>
+                   </Card>
+                   
+                   {data.deliveries && data.deliveries.length > 0 && (
+                       <Card title="📦 Lịch Sử Giao Hàng">
+                           <Table dataSource={data.deliveries} rowKey="id" pagination={false} size="small" columns={[{ title: 'Ngày giao', render: (r:any)=>dayjs(r.delivery_date).format('DD/MM/YYYY') }, { title: 'Mã phiếu', dataIndex: 'code' }, { title: 'Ghi chú', dataIndex: 'note' }, { title: 'Chi tiết', render: (r:any)=>r.items.map((i:any)=>`${i.sku} (x${i.quantity})`).join(', ') }]} />
+                       </Card>
+                   )}
                </Col>
            </Row>
        </div>
