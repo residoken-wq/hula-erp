@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Layout, Menu, theme, Button, Avatar, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -26,56 +26,32 @@ import PortalPurchasePage from './pages/PortalPurchasePage';
 import PriceListsPage from './pages/PriceListPage'; 
 import UsersPage from './pages/UsersPage';
 import UserGroupsPage from './pages/UserGroupsPage';
-import LoginPage from './pages/LoginPage'; // Import trang Login
+import LoginPage from './pages/LoginPage';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
-function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem { return { key, icon, children, label } as MenuItem; }
 
-const items: MenuItem[] = [
-  getItem(<Link to="/">Tổng quan</Link>, '1', <PieChartOutlined />),
-  getItem('Quản lý sản phẩm', 'sub_prod', <ShopOutlined />, [
-    getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'),
-    getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
-    getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page'),
-  ]),
-  getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />),
-  getItem('Kho hàng & NCC', 'sub1', <DropboxOutlined />, [
-    getItem(<Link to="/materials">Nguyên liệu</Link>, '3'),
-    getItem(<Link to="/suppliers">Nhà cung cấp (NPL)</Link>, 'supp'),
-    getItem(<Link to="/manufacturers">Nhà gia công</Link>, 'manu'),
-    getItem(<Link to="/inventory">Nhập xuất kho</Link>, '4'),
-  ]),
-  getItem('Bán hàng (CRM)', 'sub2', <TeamOutlined />, [ 
-    getItem(<Link to="/sales">Pipeline Bán Hàng</Link>, '5'),
-    getItem(<Link to="/customers">Danh sách Khách hàng</Link>, 'cust'),
-    getItem(<Link to="/sales/pricelist">Bảng giá (Price List)</Link>, 'pl_page'),
-  ]),
-  getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
-    getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
-    getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
-    getItem(<Link to="/processes">DM Công Đoạn</Link>, 'proc_list'),
-  ]),
-  getItem('Hệ thống & Phân quyền', 'sub_sys', <SettingOutlined />, [
-    getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
-    getItem(<Link to="/users/groups">Nhóm & Phân quyền</Link>, 'group_perm'),
-  ]),
-];
+function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem { 
+    return { key, icon, children, label } as MenuItem; 
+}
 
 const App: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
+  
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [permissions, setPermissions] = useState<any[]>([]);
 
-  // Check Token khi load trang
+  // Check Token & Load Permissions
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
-    if (token) {
+    if (token && userStr) {
+        const user = JSON.parse(userStr);
         setIsAuthenticated(true);
-        if(userStr) setCurrentUser(JSON.parse(userStr));
-        // Cấu hình Header mặc định cho Axios
+        setCurrentUser(user);
+        setPermissions(user.permissions || []); // Load quyền từ storage
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
   }, []);
@@ -87,6 +63,76 @@ const App: React.FC = () => {
       window.location.href = '/login';
   };
 
+  // --- HÀM KIỂM TRA QUYỀN ---
+  const hasPerm = (moduleName: string) => {
+      if (currentUser?.username === 'admin') return true; // Admin full quyền
+      // Kiểm tra trong mảng permissions xem có module này và can_view = true không
+      const p = permissions.find((perm: any) => perm.module === moduleName);
+      return p && p.can_view;
+  };
+
+  // --- TẠO MENU ĐỘNG DỰA TRÊN QUYỀN ---
+  const menuItems = useMemo(() => {
+      const items: MenuItem[] = [];
+
+      // 1. Tổng quan (Luôn hiện hoặc check quyền)
+      if (hasPerm('Tổng quan') || true) {
+          items.push(getItem(<Link to="/">Tổng quan</Link>, '1', <PieChartOutlined />));
+      }
+
+      // 2. Quản lý sản phẩm
+      if (hasPerm('Quản lý Sản phẩm')) {
+          items.push(getItem('Quản lý sản phẩm', 'sub_prod', <ShopOutlined />, [
+            getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'),
+            getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
+            getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page'),
+          ]));
+      }
+
+      // 3. Nhập liệu (Gộp quyền với Kho hoặc Sản phẩm)
+      if (hasPerm('Quản lý Sản phẩm') || hasPerm('Kho & Tồn kho')) {
+          items.push(getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />));
+      }
+
+      // 4. Kho hàng & NCC
+      if (hasPerm('Kho & Tồn kho')) {
+          items.push(getItem('Kho hàng & NCC', 'sub1', <DropboxOutlined />, [
+            getItem(<Link to="/materials">Nguyên liệu</Link>, '3'),
+            getItem(<Link to="/suppliers">Nhà cung cấp (NPL)</Link>, 'supp'),
+            getItem(<Link to="/manufacturers">Nhà gia công</Link>, 'manu'),
+            // getItem(<Link to="/inventory">Nhập xuất kho</Link>, '4'), // Tạm ẩn do chưa có page
+          ]));
+      }
+
+      // 5. Bán hàng (CRM)
+      if (hasPerm('Bán hàng (Sales/CRM)')) {
+          items.push(getItem('Bán hàng (CRM)', 'sub2', <TeamOutlined />, [ 
+            getItem(<Link to="/sales">Pipeline Bán Hàng</Link>, '5'),
+            getItem(<Link to="/customers">Danh sách Khách hàng</Link>, 'cust'),
+            getItem(<Link to="/sales/pricelist">Bảng giá (Price List)</Link>, 'pl_page'),
+          ]));
+      }
+
+      // 6. Sản xuất (MRP)
+      if (hasPerm('Sản xuất (MRP)')) {
+          items.push(getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
+            getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
+            getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
+            getItem(<Link to="/processes">DM Công Đoạn</Link>, 'proc_list'),
+          ]));
+      }
+
+      // 7. Hệ thống & User
+      if (hasPerm('Hệ thống & User')) {
+          items.push(getItem('Hệ thống & Phân quyền', 'sub_sys', <SettingOutlined />, [
+            getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
+            getItem(<Link to="/users/groups">Nhóm & Phân quyền</Link>, 'group_perm'),
+          ]));
+      }
+
+      return items;
+  }, [permissions, currentUser]);
+
   const userMenu = (
       <Menu items={[
           { key: '1', label: 'Hồ sơ cá nhân', icon: <UserOutlined/> },
@@ -97,24 +143,24 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {/* --- CÁC TRANG PUBLIC (KHÔNG CẦN LOGIN) --- */}
+        {/* Public Routes */}
         <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
         <Route path="/portal/quote/:uuid" element={<PortalQuotePage />} />
         <Route path="/portal/po/:uuid" element={<PortalPurchasePage />} />
 
-        {/* --- CÁC TRANG CẦN BẢO VỆ (PROTECTED ROUTES) --- */}
+        {/* Protected Routes */}
         <Route path="*" element={
           isAuthenticated ? (
             <Layout style={{ minHeight: '100vh' }}>
                 <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
                 <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', textAlign: 'center', color: '#fff', lineHeight: '32px', fontWeight: 'bold' }}>HULA ERP</div>
-                <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={items} />
+                <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={menuItems} />
                 </Sider>
                 <Layout>
                 <Header style={{ padding: '0 24px', background: colorBgContainer, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
                     <Dropdown overlay={userMenu}>
                         <div style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10}}>
-                            <span style={{fontWeight: 600}}>{currentUser?.full_name || 'Admin'}</span>
+                            <span style={{fontWeight: 600}}>{currentUser?.full_name || 'User'}</span>
                             <Avatar style={{ backgroundColor: '#87d068' }} icon={<UserOutlined />} />
                         </div>
                     </Dropdown>
@@ -123,22 +169,49 @@ const App: React.FC = () => {
                     <div style={{ padding: 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG, marginTop: 16 }}>
                     <Routes>
                         <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
-                        <Route path="/upload" element={<UploadPage />} /> 
-                        <Route path="/products" element={<ProductsPage />} />
-                        <Route path="/combos" element={<CombosPage />} /> 
-                        <Route path="/materials" element={<MaterialsPage />} />
-                        <Route path="/suppliers" element={<SuppliersPage />} />
-                        <Route path="/sales" element={<CrmPage />} />
-                        <Route path="/customers" element={<CustomersPage />} />
-                        <Route path="/planning" element={<PlanningPage />} />
-                        <Route path="/manufacturers" element={<ManufacturersPage />} />
-                        <Route path="/routes" element={<ProductionRoutePage />} />
-                        <Route path="/processes" element={<ProcessesPage />} />
-                        <Route path="/categories" element={<CategoriesPage />} />
-                        <Route path="/sales/pricelist" element={<PriceListsPage />} />
-                        <Route path="/users" element={<UsersPage />} />
-                        <Route path="/users/groups" element={<UserGroupsPage />} />
-                        <Route path="*" element={<h2>404 - Không tìm thấy trang</h2>} />
+                        
+                        {(hasPerm('Quản lý Sản phẩm') || hasPerm('Kho & Tồn kho')) && <Route path="/upload" element={<UploadPage />} />}
+                        
+                        {hasPerm('Quản lý Sản phẩm') && (
+                            <>
+                                <Route path="/products" element={<ProductsPage />} />
+                                <Route path="/combos" element={<CombosPage />} />
+                                <Route path="/categories" element={<CategoriesPage />} />
+                            </>
+                        )}
+
+                        {hasPerm('Kho & Tồn kho') && (
+                            <>
+                                <Route path="/materials" element={<MaterialsPage />} />
+                                <Route path="/suppliers" element={<SuppliersPage />} />
+                                <Route path="/manufacturers" element={<ManufacturersPage />} />
+                            </>
+                        )}
+
+                        {hasPerm('Bán hàng (Sales/CRM)') && (
+                            <>
+                                <Route path="/sales" element={<CrmPage />} />
+                                <Route path="/customers" element={<CustomersPage />} />
+                                <Route path="/sales/pricelist" element={<PriceListsPage />} />
+                            </>
+                        )}
+
+                        {hasPerm('Sản xuất (MRP)') && (
+                            <>
+                                <Route path="/planning" element={<PlanningPage />} />
+                                <Route path="/routes" element={<ProductionRoutePage />} />
+                                <Route path="/processes" element={<ProcessesPage />} />
+                            </>
+                        )}
+
+                        {hasPerm('Hệ thống & User') && (
+                            <>
+                                <Route path="/users" element={<UsersPage />} />
+                                <Route path="/users/groups" element={<UserGroupsPage />} />
+                            </>
+                        )}
+
+                        <Route path="*" element={<h2>Không tìm thấy trang hoặc bạn không có quyền truy cập.</h2>} />
                     </Routes>
                     </div>
                 </Content>

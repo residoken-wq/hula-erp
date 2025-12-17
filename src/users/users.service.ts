@@ -22,7 +22,6 @@ export class UsersService {
     const existing = await this.userRepo.findOne({ where: { username: data.username } });
     if (existing) throw new BadRequestException('Tên đăng nhập đã tồn tại');
     
-    // Lưu ý: Thực tế cần mã hóa password (bcrypt)
     const user = this.userRepo.create(data);
     return this.userRepo.save(user);
   }
@@ -49,14 +48,11 @@ export class UsersService {
     const group = this.groupRepo.create({ name: data.name, description: data.description });
     const saved = await this.groupRepo.save(group);
     
-    // FIX TS2769: Map dữ liệu trước, sau đó create batch
     if (data.permissions && data.permissions.length > 0) {
         const permObjects = data.permissions.map((p: any) => ({
             ...p,
             group_id: saved.id 
         }));
-        
-        // Create nhận vào mảng object và trả về mảng Entity -> Đúng kiểu cho save()
         const perms = this.permRepo.create(permObjects);
         await this.permRepo.save(perms);
     }
@@ -67,14 +63,11 @@ export class UsersService {
       const group = await this.groupRepo.findOne({ where: { id: groupId } });
       if (!group) throw new NotFoundException('Không tìm thấy nhóm');
 
-      // Update thông tin cơ bản
       if (data.name) await this.groupRepo.update(groupId, { name: data.name, description: data.description });
 
-      // Update permissions: Xóa cũ -> Thêm mới (Batch Insert)
       if (data.permissions) {
           await this.permRepo.delete({ group_id: groupId });
           
-          // FIX TS2769: Xử lý tương tự hàm createGroup
           const permObjects = data.permissions.map((p: any) => ({
               ...p,
               group_id: groupId 
@@ -86,10 +79,12 @@ export class UsersService {
       return { success: true };
   }
 
+  // --- CẬP NHẬT QUAN TRỌNG: LẤY KÈM PERMISSIONS ---
   async findOneByUsernameForAuth(username: string) {
     return this.userRepo.createQueryBuilder('user')
-        .addSelect('user.password') // Lấy thêm cột password ẩn
+        .addSelect('user.password') // Lấy password ẩn
         .leftJoinAndSelect('user.group', 'group')
+        .leftJoinAndSelect('group.permissions', 'permissions') // JOIN thêm bảng permissions
         .where('user.username = :username', { username })
         .getOne();
     }   
