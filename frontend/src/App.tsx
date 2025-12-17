@@ -84,6 +84,7 @@ const App: React.FC = () => {
                     <Route path="/routes" element={<ProductionRoutePage />} />
                     <Route path="/processes" element={<ProcessesPage />} />
                     <Route path="/categories" element={<CategoriesPage />} />
+                    <Route path="/sales/price-lists" element={<PriceListsPage />} />
                     <Route path="*" element={<h2>Tính năng đang phát triển</h2>} />
                   </Routes>
                 </div>
