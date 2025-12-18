@@ -52,6 +52,7 @@ import { ProductionPlan } from './planning/production-plan.entity';
 import { Process } from './processes/process.entity';
 import { Category } from './categories/category.entity';
 import { AuthModule } from './auth/auth.module';
+import { InventoryStock } from './inventory/inventory-stock.entity';
 
 // --- MỚI: USER ENTITIES ---
 import { User } from './users/entities/user.entity';

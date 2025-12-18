@@ -1,8 +1,8 @@
 import { IsNotEmpty, IsEnum, IsNumber, IsString, IsOptional } from 'class-validator';
 
 export class CreateInventoryDto {
-  @IsNotEmpty({ message: 'Loai giao dich (type) khong duoc de trong! (IMPORT hoac EXPORT)' })
-  @IsEnum(['IMPORT', 'EXPORT'], { message: 'Type phai la IMPORT hoac EXPORT' })
+  @IsNotEmpty()
+  @IsEnum(['IMPORT', 'EXPORT'])
   type: 'IMPORT' | 'EXPORT';
 
   @IsNotEmpty()
@@ -12,6 +12,12 @@ export class CreateInventoryDto {
   @IsNotEmpty()
   @IsNumber()
   itemId: number;
+
+  // --- MỚI: BẮT BUỘC CHỌN KHO ---
+  @IsNotEmpty({ message: 'Vui lòng chọn Kho!' })
+  @IsString()
+  warehouse: string;
+  // -----------------------------
 
   @IsNotEmpty()
   @IsNumber()

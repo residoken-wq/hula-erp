@@ -6,25 +6,30 @@ export class StockHistory {
   id: number;
 
   @Column()
-  type: 'IMPORT' | 'EXPORT'; // Nhap hoac Xuat
+  type: 'IMPORT' | 'EXPORT'; 
 
   @Column()
-  item_type: 'PRODUCT' | 'MATERIAL'; // Hang hoa hay Nguyen lieu
+  item_type: 'PRODUCT' | 'MATERIAL'; 
 
   @Column()
-  item_id: number; // ID cua SP hoac NL
+  item_id: number; 
 
   @Column({ nullable: true })
-  item_code: string; // Luu them SKU/Code de de tra cuu
+  item_code: string; 
+
+  // --- MỚI: GHI NHẬN KHO NÀO ---
+  @Column({ default: 'KHO_TONG' })
+  warehouse: string;
+  // ----------------------------
 
   @Column('decimal', { precision: 15, scale: 2 })
-  quantity: number; // So luong bien dong
+  quantity: number; 
 
   @Column('decimal', { precision: 15, scale: 2 })
-  balance_after: number; // Ton kho sau khi giao dich
+  balance_after: number; // Tồn của KHO ĐÓ sau giao dịch
 
   @Column({ nullable: true })
-  reference_code: string; // Ma SO (Sales Order) hoac PO (Purchase Order)
+  reference_code: string; 
 
   @Column({ nullable: true })
   note: string;
