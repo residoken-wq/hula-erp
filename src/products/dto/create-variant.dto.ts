@@ -19,6 +19,8 @@ export class CreateVariantDto {
   attributes: {
     color?: string;
     size?: string;
+    logo?: string;   // <--- MỚI: Thuộc tính Logo
+    design?: string; // <--- MỚI: Thuộc tính Design
     [key: string]: any; // Cho phép các thuộc tính khác
   };
 }

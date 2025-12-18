@@ -169,7 +169,8 @@ const ProductsPage: React.FC = () => {
     }
     
     const handleCreateVariant = async (values: any) => {
-        const { base_sku, variant_sku_suffix, variant_name_suffix, color, size, ...otherValues } = values;
+        // --- CẬP NHẬT: Lấy thêm Logo và Design ---
+        const { base_sku, variant_sku_suffix, variant_name_suffix, color, size, logo, design, ...otherValues } = values;
 
         const newSku = `${base_sku}_${variant_sku_suffix}`;
         const newName = `${baseProductForVariant.name} ${variant_name_suffix}`;
@@ -181,6 +182,8 @@ const ProductsPage: React.FC = () => {
             attributes: {
                 color: color,
                 size: size,
+                logo: logo,     // Mới
+                design: design, // Mới
             }
         };
         
@@ -490,6 +493,21 @@ const ProductsPage: React.FC = () => {
                             </Form.Item>
                         </Col>
                     </Row>
+                    
+                    {/* --- MỚI: Bổ sung Logo và Design --- */}
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="logo" label="Logo (Hình in/Thêu)">
+                                <Input placeholder="VD: Logo ngực trái, In Pet" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="design" label="Design (Thiết kế)">
+                                <Input placeholder="VD: Mẫu A, Hình in rồng" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    {/* ----------------------------------- */}
                 </Form>
             </Modal>
         </Card>
