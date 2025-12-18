@@ -37,6 +37,7 @@ const CrmPage: React.FC = () => {
   // State Lead Modal
   const [currentCustomer, setCurrentCustomer] = useState<any>(null);
   const [isNewCustomerMode, setIsNewCustomerMode] = useState(false); 
+  const [editingLeadId, setEditingLeadId] = useState<number | null>(null); // --- MỚI: Track ID đang sửa
   const [formLead] = Form.useForm();
   const [followNote, setFollowNote] = useState('');
   
@@ -77,11 +78,35 @@ const CrmPage: React.FC = () => {
   useEffect(() => { fetchData(); }, []);
 
   const openCreateLead = () => {
+    setEditingLeadId(null); // Reset mode sửa
     const autoCode = `LEAD-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}`;
     formLead.setFieldsValue({ code: autoCode });
-    formLead.resetFields(); 
+    formLead.resetFields(['name', 'phone', 'customer_id']); 
     setIsNewCustomerMode(false);
     setIsLeadModalOpen(true);
+  };
+
+  // --- MỚI: HÀM MỞ MODAL SỬA LEAD ---
+  const handleEditLead = (record: any) => {
+      setEditingLeadId(record.id);
+      setIsNewCustomerMode(true); // Bật mode nhập liệu để sửa tên/sđt
+      formLead.setFieldsValue({
+          code: record.code,
+          name: record.name,
+          phone: record.phone
+      });
+      setIsLeadModalOpen(true);
+  };
+
+  // --- MỚI: HÀM XÓA LEAD ---
+  const handleDeleteLead = async (id: number) => {
+      try {
+          await axios.delete(`${API_URL}/customers/${id}`);
+          message.success('Đã xóa Lead');
+          fetchData();
+      } catch (e: any) {
+          message.error(e.response?.data?.message || 'Không thể xóa (có thể đã có đơn hàng)');
+      }
   };
   
   const calculateProgress = (lead: any) => {
@@ -100,23 +125,32 @@ const CrmPage: React.FC = () => {
     try {
         const { code, customer_id, name, phone } = values;
         
-        if (isNewCustomerMode) {
-            if (!name || !phone) { message.error('Vui lòng nhập Tên và SĐT.'); return; }
-            const finalPayload = { code: code, name: name, phone: phone, type: 'LEAD' };
-            await axios.post(`${API_URL}/customers`, finalPayload);
-        } else {
-            if (!customer_id) { message.error('Vui lòng chọn khách hàng.'); return; }
-            const customerId = customer_id;
-            const existingCustomer = allCustomers.find(c => c.id === customerId);
-            if (existingCustomer && existingCustomer.type !== 'LEAD' && existingCustomer.type !== 'CUSTOMER') {
-                 await axios.put(`${API_URL}/customers/${customerId}`, { type: 'LEAD' });
+        // --- LOGIC CẬP NHẬT (EDIT) ---
+        if (editingLeadId) {
+             await axios.put(`${API_URL}/customers/${editingLeadId}`, { name, phone });
+             message.success('Cập nhật Lead thành công!');
+        } 
+        // --- LOGIC TẠO MỚI ---
+        else {
+            if (isNewCustomerMode) {
+                if (!name || !phone) { message.error('Vui lòng nhập Tên và SĐT.'); return; }
+                const finalPayload = { code: code, name: name, phone: phone, type: 'LEAD' };
+                await axios.post(`${API_URL}/customers`, finalPayload);
+            } else {
+                if (!customer_id) { message.error('Vui lòng chọn khách hàng.'); return; }
+                const customerId = customer_id;
+                const existingCustomer = allCustomers.find(c => c.id === customerId);
+                if (existingCustomer && existingCustomer.type !== 'LEAD' && existingCustomer.type !== 'CUSTOMER') {
+                     await axios.put(`${API_URL}/customers/${customerId}`, { type: 'LEAD' });
+                }
+                await axios.post(`${API_URL}/customers/${customerId}/follow`, { note: `Lead created (Initial action)` });
             }
-            await axios.post(`${API_URL}/customers/${customerId}/follow`, { note: `Lead created (Initial action)` });
+            message.success('Tạo Lead thành công!'); 
         }
-        message.success('Tạo Lead thành công!'); 
+        
         setIsLeadModalOpen(false); 
         fetchData();
-    } catch(e: any) { message.error(e.response?.data?.message || 'Lỗi khi tạo Lead'); }
+    } catch(e: any) { message.error(e.response?.data?.message || 'Lỗi khi lưu Lead'); }
   };
 
   const handleFollowLead = async () => {
@@ -178,13 +212,30 @@ const CrmPage: React.FC = () => {
       });
   };
   
+  // --- CẬP NHẬT CỘT LEAD: THÊM NÚT SỬA VÀ XÓA ---
   const leadColumns = [
       { title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
       { title: 'Tên Khách', dataIndex: 'name', render: (t:any, r:any) => <a onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}}>{t}</a> },
       { title: 'SĐT', dataIndex: 'phone' },
       { title: 'Tiến Độ', key: 'progress', width: 200, render: (_:any, r:any) => { const p = calculateProgress(r); return <Tooltip title={p.text}><Progress percent={p.percent} size="small" status={p.status as any} showInfo={false} /></Tooltip> } },
       { title: 'Lần chăm sóc cuối', dataIndex: 'history', width: 150, render: (h:any[]) => h && h.length > 0 ? <Tag>{dayjs(h[0].date).format('DD/MM HH:mm')}</Tag> : '-' },
-      { title: '', key: 'act', render: (_:any, r:any) => <Button size="small" icon={<ClockCircleOutlined />} onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}} /> }
+      { 
+          title: 'Thao tác', key: 'act', align: 'right' as const, width: 150,
+          render: (_:any, r:any) => (
+              <Space size={2}>
+                  {/* Nút Chăm sóc */}
+                  <Tooltip title="Chăm sóc"><Button size="small" icon={<ClockCircleOutlined />} onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}} /></Tooltip>
+                  
+                  {/* Nút Sửa (Mới) */}
+                  <Tooltip title="Sửa thông tin"><Button size="small" icon={<EditOutlined />} onClick={()=>handleEditLead(r)} /></Tooltip>
+                  
+                  {/* Nút Xóa (Mới) */}
+                  <Popconfirm title="Xóa Lead này?" onConfirm={()=>handleDeleteLead(r.id)} okText="Xóa" cancelText="Hủy">
+                      <Button size="small" danger icon={<DeleteOutlined />} />
+                  </Popconfirm>
+              </Space>
+          ) 
+      }
   ];
 
   const quoteColumns = [
@@ -233,14 +284,13 @@ const CrmPage: React.FC = () => {
         title="Quản Lý Kinh Doanh (CRM)" 
         extra={
             <Space>
-                {/* --- FIX: NÚT QUẢN LÝ BẢNG GIÁ --- */}
+                {/* NÚT QUẢN LÝ BẢNG GIÁ */}
                 <Button 
                     icon={<UnorderedListOutlined />} 
                     onClick={() => navigate('/sales/pricelist')}
                 >
                     Quản lý Bảng Giá
                 </Button>
-                {/* ---------------------------------- */}
                 <Button icon={<ReloadOutlined />} onClick={fetchData} />
             </Space>
         }
@@ -262,23 +312,27 @@ const CrmPage: React.FC = () => {
           <div style={{textAlign:'center', marginTop:20}}><Button type="primary" onClick={()=>{ const c = document.getElementById('printableArea'); const w = window.open(); if(w && c) { w.document.write(c.innerHTML); w.print(); } }}>In Ngay</Button></div>
       </Modal>
 
-      <Modal title="Tạo Lead" open={isLeadModalOpen} onCancel={() => { setIsLeadModalOpen(false); formLead.resetFields(); setIsNewCustomerMode(false); }} onOk={() => formLead.submit()}>
+      <Modal title={editingLeadId ? "Cập nhật Lead" : "Tạo Lead"} open={isLeadModalOpen} onCancel={() => { setIsLeadModalOpen(false); formLead.resetFields(); setIsNewCustomerMode(false); setEditingLeadId(null); }} onOk={() => formLead.submit()}>
           <Form form={formLead} layout="vertical" onFinish={handleSaveLead} initialValues={{ code: `LEAD-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}` }}>
               <Form.Item name="code" label="Mã Lead" rules={[{ required: true }]}><Input disabled /></Form.Item>
+              
               {!isNewCustomerMode ? (
                   <Form.Item label="Khách hàng (Tìm kiếm hoặc Thêm mới)" name="customer_id" rules={[{ required: !isNewCustomerMode, message: 'Vui lòng chọn khách hàng có sẵn.' }]}>
                       <Select showSearch placeholder="Tìm kiếm theo Mã, Tên hoặc SĐT" optionFilterProp="label" filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())} options={customerOptionsForLead} onChange={(value) => { const s = allCustomers.find(c => c.id === value); if (s) formLead.setFieldsValue({ name: s.name, phone: s.phone }); else formLead.setFieldsValue({ name: undefined, phone: undefined }); }} allowClear />
                   </Form.Item>
               ) : (
                   <>
-                      <Divider orientation="left">Thông tin Khách hàng MỚI</Divider>
+                      <Divider orientation="left">{editingLeadId ? "Cập nhật thông tin" : "Thông tin Khách hàng MỚI"}</Divider>
                       <Form.Item name="name" label="Tên Khách hàng" rules={[{ required: isNewCustomerMode, message: 'Vui lòng nhập Tên KH' }]}><Input placeholder="Tên khách hàng mới" /></Form.Item>
                       <Form.Item name="phone" label="SĐT" rules={[{ required: isNewCustomerMode, message: 'Vui lòng nhập SĐT' }]}><Input placeholder="SĐT liên hệ" /></Form.Item>
                   </>
               )}
-              <Row justify={isNewCustomerMode ? 'end' : 'start'} style={{marginTop: 10}}>
-                  <Col>{!isNewCustomerMode ? (<Button type="dashed" onClick={() => { setIsNewCustomerMode(true); formLead.resetFields(['customer_id']); }} icon={<PlusOutlined />}>Thêm Khách hàng Mới</Button>) : (<Button type="link" onClick={() => { setIsNewCustomerMode(false); formLead.resetFields(['name', 'phone']); }}>Chọn KH có sẵn</Button>)}</Col>
-              </Row>
+              
+              {!editingLeadId && (
+                  <Row justify={isNewCustomerMode ? 'end' : 'start'} style={{marginTop: 10}}>
+                      <Col>{!isNewCustomerMode ? (<Button type="dashed" onClick={() => { setIsNewCustomerMode(true); formLead.resetFields(['customer_id']); }} icon={<PlusOutlined />}>Thêm Khách hàng Mới</Button>) : (<Button type="link" onClick={() => { setIsNewCustomerMode(false); formLead.resetFields(['name', 'phone']); }}>Chọn KH có sẵn</Button>)}</Col>
+                  </Row>
+              )}
           </Form>
       </Modal>
       
