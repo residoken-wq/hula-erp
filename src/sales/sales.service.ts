@@ -162,17 +162,15 @@ export class SalesService {
   async updatePayment(orderCode: string, amount: number) { const order = await this.orderRepo.findOne({ where: { order_code: orderCode } }); if (!order) throw new NotFoundException(); order.paid_amount = Number(order.paid_amount || 0) + Number(amount); if (order.paid_amount > 0 && (order.status === SalesOrderStatus.SO_PENDING || order.status === SalesOrderStatus.SAMPLE_APPROVED)) { order.status = SalesOrderStatus.DEPOSITED; } if (order.paid_amount >= order.total_amount) order.payment_status = PaymentStatus.PAID; else if (order.paid_amount > 0) order.payment_status = PaymentStatus.PARTIAL_PAID; if (order.payment_status === PaymentStatus.PAID && order.status === SalesOrderStatus.DELIVERED) order.status = SalesOrderStatus.COMPLETED; return this.orderRepo.save(order); }
   async deleteQuote(id: number) { const order = await this.orderRepo.findOne({ where: { id } }); if (order && (order.status === 'QUOTATION' || order.status === 'CANCELLED')) return this.orderRepo.remove(order); throw new BadRequestException('Khong the xoa'); }
   
-  // --- FIX: CẬP NHẬT LẤY CHI TIẾT KÈM MÔ TẢ SẢN PHẨM ---
   async getQuoteByUuid(uuid: string) { 
       const order = await this.orderRepo.findOne({ where: { uuid }, relations: ['items', 'customer', 'comments'] });
       if(!order) throw new NotFoundException('Not found');
       
-      // Lấy thêm thông tin mô tả sản phẩm từ bảng Product
       const itemsWithDesc = await Promise.all(order.items.map(async (item) => {
           const product = await this.productsService.findOneBySku(item.sku);
           return {
               ...item,
-              product_desc: product?.customer_description || '', // Lấy mô tả khách hàng
+              product_desc: product?.customer_description || '', 
               product_name_real: product?.name || ''
           };
       }));
@@ -181,10 +179,60 @@ export class SalesService {
       const payments = await this.transRepo.find({ where: { reference_code: order.order_code }, order: { created_at: 'DESC' } });
       return { ...order, items: itemsWithDesc, deliveries, payments };
   }
-  // -----------------------------------------------------
 
   async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT') { const order = await this.getQuoteByUuid(uuid); if (order.status !== SalesOrderStatus.QUOTATION) throw new BadRequestException('Da xu ly roi'); return this.convertQuoteToSo(order.id, action === 'ACCEPT'); }
   async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
   async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
-  async createDelivery(orderId: number, data: any) { const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] }); if (!order) throw new NotFoundException('Not found'); const delivery = this.deliveryRepo.create({ code: data.code, delivery_date: data.date, note: data.note, sales_order: order, items: data.items.map((i:any) => ({ sku: i.sku, quantity: Math.floor(Number(i.quantity)) })) }); for (const item of data.items) { const product = await this.productsService.findOneBySku(item.sku); if (product) await this.inventoryService.adjustStock('EXPORT', 'PRODUCT', product.id, Math.floor(Number(item.quantity)), delivery.code, `Giao hang ${order.order_code}`); } await this.deliveryRepo.save(delivery); const allDeliveries = await this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'] }); let isFullyDelivered = true; for (const orderItem of order.items) { let deliveredQty = 0; allDeliveries.forEach(d => { const dItem = d.items.find(i => i.sku === orderItem.sku); if (dItem) deliveredQty += Number(dItem.quantity); }); if (deliveredQty < Number(orderItem.quantity)) { isFullyDelivered = false; break; } } if (isFullyDelivered) { order.status = SalesOrderStatus.DELIVERED; if (order.payment_status === PaymentStatus.PAID) order.status = SalesOrderStatus.COMPLETED; } else { order.status = SalesOrderStatus.PARTIAL_DELIVERY; } return this.orderRepo.save(order); }
+  
+  // --- FIX: createDelivery CẬP NHẬT GỌI adjustStock KÈM WAREHOUSE 'KHO_TP' ---
+  async createDelivery(orderId: number, data: any) { 
+      const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] }); 
+      if (!order) throw new NotFoundException('Not found'); 
+      
+      const delivery = this.deliveryRepo.create({ 
+          code: data.code, 
+          delivery_date: data.date, 
+          note: data.note, 
+          sales_order: order, 
+          items: data.items.map((i:any) => ({ sku: i.sku, quantity: Math.floor(Number(i.quantity)) })) 
+      }); 
+      
+      for (const item of data.items) { 
+          const product = await this.productsService.findOneBySku(item.sku); 
+          if (product) {
+              // --- FIX Ở ĐÂY: Thêm 'KHO_TP' vào cuối ---
+              await this.inventoryService.adjustStock(
+                  'EXPORT', 
+                  'PRODUCT', 
+                  product.id, 
+                  Math.floor(Number(item.quantity)), 
+                  delivery.code, 
+                  `Giao hang ${order.order_code}`,
+                  'KHO_TP' // <--- Bổ sung tham số warehouse: Kho Thành Phẩm
+              ); 
+          }
+      } 
+      
+      await this.deliveryRepo.save(delivery); 
+      
+      const allDeliveries = await this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'] }); 
+      let isFullyDelivered = true; 
+      for (const orderItem of order.items) { 
+          let deliveredQty = 0; 
+          allDeliveries.forEach(d => { 
+              const dItem = d.items.find(i => i.sku === orderItem.sku); 
+              if (dItem) deliveredQty += Number(dItem.quantity); 
+          }); 
+          if (deliveredQty < Number(orderItem.quantity)) { isFullyDelivered = false; break; } 
+      } 
+      
+      if (isFullyDelivered) { 
+          order.status = SalesOrderStatus.DELIVERED; 
+          if (order.payment_status === PaymentStatus.PAID) order.status = SalesOrderStatus.COMPLETED; 
+      } else { 
+          order.status = SalesOrderStatus.PARTIAL_DELIVERY; 
+      } 
+      
+      return this.orderRepo.save(order); 
+  }
 }
