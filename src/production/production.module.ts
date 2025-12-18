@@ -1,20 +1,25 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WorkOrder } from './work-order.entity';
-import { ProductionController } from './production.controller';
 import { ProductionService } from './production.service';
+import { ProductionController } from './production.controller';
+
+// Entities
+import { ProductionOrder } from './entities/production-order.entity';
+
+// External Modules
+import { InventoryModule } from '../inventory/inventory.module';
 import { ProductsModule } from '../products/products.module';
-import { InventoryModule } from '../inventory/inventory.module'; // De goi tru kho
-import { BomModule } from '../bom/bom.module'; // De lay cong thuc
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([WorkOrder]),
-    ProductsModule,
+    TypeOrmModule.forFeature([
+        ProductionOrder // <--- Đảm bảo đã đăng ký
+    ]),
     InventoryModule,
-    BomModule
+    ProductsModule
   ],
   controllers: [ProductionController],
   providers: [ProductionService],
+  exports: [ProductionService]
 })
 export class ProductionModule {}

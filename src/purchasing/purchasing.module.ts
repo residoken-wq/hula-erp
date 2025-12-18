@@ -1,23 +1,31 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PurchasingController } from './purchasing.controller';
 import { PurchasingService } from './purchasing.service';
+import { PurchasingController } from './purchasing.controller';
+
+// Entities
 import { PurchaseOrder } from './entities/purchase-order.entity';
 import { PurchaseOrderItem } from './entities/purchase-order-item.entity';
-import { PurchaseDelivery } from './purchase-delivery.entity';
+import { GoodsReceipt } from './entities/goods-receipt.entity';
+
+// External Modules (Service cần gọi đến)
 import { InventoryModule } from '../inventory/inventory.module';
+import { ProductsModule } from '../products/products.module';
 import { SuppliersModule } from '../suppliers/suppliers.module';
-import { FinanceModule } from '../finance/finance.module'; // Import Finance
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PurchaseOrder, PurchaseOrderItem, PurchaseDelivery]),
+    TypeOrmModule.forFeature([
+        PurchaseOrder, 
+        PurchaseOrderItem, 
+        GoodsReceipt // <--- Đảm bảo đã đăng ký
+    ]),
     InventoryModule,
-    SuppliersModule,
-    forwardRef(() => FinanceModule) // Them Finance
+    ProductsModule,
+    SuppliersModule
   ],
   controllers: [PurchasingController],
   providers: [PurchasingService],
-  exports: [PurchasingService],
+  exports: [PurchasingService]
 })
 export class PurchasingModule {}
