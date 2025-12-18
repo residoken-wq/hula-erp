@@ -17,31 +17,40 @@ import { CustomersModule } from './customers/customers.module';
 import { PlanningModule } from './planning/planning.module';
 import { ProcessesModule } from './processes/processes.module';
 import { CategoriesModule } from './categories/categories.module';
-// --- MỚI: USERS MODULE ---
 import { UsersModule } from './users/users.module';
-// -------------------------
+import { AuthModule } from './auth/auth.module';
 
 // Entities
 import { Product } from './products/product.entity';
 import { Material } from './materials/material.entity';
-import { BOM } from './bom/bom.entity';
+import { BOM } from './bom/bom.entity'; 
 import { ProductComponent } from './products/product-component.entity';
 import { ProductRouting } from './products/product-routing.entity';
 import { ProductLogistics } from './products/product-logistics.entity';
-import { SalesComment } from './sales/sales-comment.entity';
+
 import { SalesOrder } from './sales/sales-order.entity';
 import { SalesOrderItem } from './sales/sales-order-item.entity';
 import { ProductSample } from './sales/product-sample.entity';
 import { SalesDelivery } from './sales/sales-delivery.entity';
 import { SalesDeliveryItem } from './sales/sales-delivery-item.entity';
+import { SalesComment } from './sales/sales-comment.entity';
 import { PriceList } from './sales/pricelist/price-list.entity';
 import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
+
 import { StockHistory } from './inventory/stock-history.entity';
-import { WorkOrder } from './production/work-order.entity';
-import { WorkOrderStep } from './production/work-order-step.entity';
+import { InventoryStock } from './inventory/inventory-stock.entity';
+
+// --- CẬP NHẬT ENTITIES MỚI CHO PURCHASING ---
 import { PurchaseOrder } from './purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from './purchasing/entities/purchase-order-item.entity';
-import { PurchaseDelivery } from './purchasing/purchase-delivery.entity'; 
+import { GoodsReceipt } from './purchasing/entities/goods-receipt.entity'; // <--- MỚI
+// import { PurchaseDelivery } from './purchasing/purchase-delivery.entity'; // (Cũ - Tạm ẩn)
+
+// --- CẬP NHẬT ENTITIES MỚI CHO PRODUCTION ---
+import { ProductionOrder } from './production/entities/production-order.entity'; // <--- MỚI
+// import { WorkOrder } from './production/work-order.entity'; // (Cũ - Tạm ẩn)
+// import { WorkOrderStep } from './production/work-order-step.entity'; // (Cũ - Tạm ẩn)
+
 import { Transaction } from './finance/transaction.entity';
 import { Supplier } from './suppliers/supplier.entity';
 import { SupplierMaterial } from './suppliers/supplier-material.entity';
@@ -51,49 +60,61 @@ import { CustomerContact } from './customers/customer-contact.entity';
 import { ProductionPlan } from './planning/production-plan.entity';
 import { Process } from './processes/process.entity';
 import { Category } from './categories/category.entity';
-import { AuthModule } from './auth/auth.module';
-import { InventoryStock } from './inventory/inventory-stock.entity';
 
-// --- MỚI: USER ENTITIES ---
+// User Entities
 import { User } from './users/entities/user.entity';
 import { UserGroup } from './users/entities/user-group.entity';
 import { GroupPermission } from './users/entities/group-permission.entity';
-// --------------------------
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'db',
+      host: process.env.DB_HOST || 'db',
       port: 5432,
-      username: 'hula_user',
-      password: 'hula_password',
-      database: 'hula_db',
+      username: process.env.DB_USERNAME || 'hula_user', // Dùng biến môi trường hoặc fallback
+      password: process.env.DB_PASSWORD || 'hula_password',
+      database: process.env.DB_DATABASE || 'hula_db',
       entities: [
+        // Sản phẩm & BOM
         Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics,
+        
+        // Bán hàng
         SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
         PriceList, PriceListRule,
-        PurchaseOrder, PurchaseOrderItem, PurchaseDelivery, 
-        StockHistory, 
-        WorkOrder, WorkOrderStep,
+        
+        // Mua hàng (Đã cập nhật)
+        PurchaseOrder, PurchaseOrderItem, GoodsReceipt, 
+        // PurchaseDelivery, // (Cũ)
+        
+        // Kho
+        StockHistory, InventoryStock,
+        
+        // Sản xuất (Đã cập nhật)
+        ProductionOrder, 
+        // WorkOrder, WorkOrderStep, // (Cũ)
+        
+        // Tài chính & Đối tác
         Transaction,
         Supplier, SupplierMaterial, SupplierContact,
         Customer, CustomerContact,
-        ProductionPlan, Process, Category,InventoryStock,
-        // --- ĐĂNG KÝ ENTITIES USER ---
+        
+        // Kế hoạch & Danh mục
+        ProductionPlan, Process, Category,
+        
+        // Hệ thống & User
         User, UserGroup, GroupPermission
-        // -----------------------------
       ], 
-      synchronize: true, // Auto create tables
+      synchronize: true, // Auto create tables (Cẩn thận khi dùng trên production)
     }),
+    
+    // Modules Registry
+    UsersModule, AuthModule,
     ProductsModule, MaterialsModule, BomModule, SalesModule,
     InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
     ProcessesModule, CategoriesModule,
-    // --- ĐĂNG KÝ MODULE USER ---
-    UsersModule, 
-    AuthModule,
-    // --------------------------
   ],
 })
 export class AppModule {}
