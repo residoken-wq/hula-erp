@@ -11,12 +11,12 @@ import { API_URL } from '../config';
 
 const { Option } = Select;
 
-// ĐỊNH NGHĨA 4 KHO
+// ĐỊNH NGHĨA 4 KHO & QUY ĐỊNH LOẠI HÀNG CHO TỪNG KHO
 const WAREHOUSES = [
-    { code: 'KHO_TP', name: '1. Kho Thành Phẩm', color: 'green' },
-    { code: 'KHO_BTP', name: '2. Kho Bán Thành Phẩm', color: 'orange' },
-    { code: 'KHO_NPL', name: '3. Kho Nguyên Phụ Liệu', color: 'blue' },
-    { code: 'KHO_LOI', name: '4. Kho Hàng Lỗi', color: 'red' },
+    { code: 'KHO_TP', name: '1. Kho Thành Phẩm', color: 'green', allowedTypes: ['PRODUCT'] },
+    { code: 'KHO_BTP', name: '2. Kho Bán Thành Phẩm', color: 'orange', allowedTypes: ['PRODUCT'] }, // BTP thường là SP dở dang
+    { code: 'KHO_NPL', name: '3. Kho Nguyên Phụ Liệu', color: 'blue', allowedTypes: ['MATERIAL'] }, // Kho này chỉ chứa NL
+    { code: 'KHO_LOI', name: '4. Kho Hàng Lỗi', color: 'red', allowedTypes: ['PRODUCT'] }, // Hàng lỗi trả về thường là SP
 ];
 
 const InventoryPage: React.FC = () => {
@@ -40,7 +40,7 @@ const InventoryPage: React.FC = () => {
         const [resProd, resMat, resStock, resHist] = await Promise.all([
             axios.get(`${API_URL}/products`),
             axios.get(`${API_URL}/materials`),
-            axios.get(`${API_URL}/inventory/stocks`), // API mới lấy chi tiết kho
+            axios.get(`${API_URL}/inventory/stocks`), // API lấy chi tiết kho
             axios.get(`${API_URL}/inventory/history`)
         ]);
         setProducts(Array.isArray(resProd.data) ? resProd.data : []);
@@ -74,12 +74,20 @@ const InventoryPage: React.FC = () => {
       return Number(record?.quantity || 0);
   };
 
-  // --- PREPARE DATA ---
+  // --- PREPARE DATA TỔNG HỢP ---
   const masterData = useMemo(() => {
       const prodList = products.map(p => ({ ...p, item_type: 'PRODUCT', key: `P_${p.id}` }));
       const matList = materials.map(m => ({ ...m, item_type: 'MATERIAL', key: `M_${m.id}` }));
       return [...prodList, ...matList];
   }, [products, materials]);
+
+  // --- HÀM LỌC DATA THEO KHO ---
+  const getDataByWarehouse = (whCode: string) => {
+      const whConfig = WAREHOUSES.find(w => w.code === whCode);
+      if (!whConfig) return [];
+      // Lọc master data xem loại hàng nào được phép ở kho này
+      return masterData.filter(item => whConfig.allowedTypes.includes(item.item_type));
+  };
 
   // Cột hiển thị linh động theo Kho
   const getStockColumns = (whCode?: string) => [
@@ -128,7 +136,7 @@ const InventoryPage: React.FC = () => {
       { title: 'Note', dataIndex: 'note' }
   ];
 
-  // List item cho Select trong Modal
+  // List item cho Select trong Modal (Chỉ hiện item đúng loại đã chọn)
   const itemList = useMemo(() => {
       if(itemType === 'PRODUCT') return products.map(p => ({ label: `${p.sku} - ${p.name}`, value: p.id }));
       if(itemType === 'MATERIAL') return materials.map(m => ({ label: `${m.code} - ${m.name}`, value: m.id }));
@@ -168,15 +176,21 @@ const InventoryPage: React.FC = () => {
             }
         >
             <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
-                {/* TAB TỔNG HỢP */}
+                {/* TAB TỔNG HỢP: HIỆN TẤT CẢ */}
                 <Tabs.TabPane tab={<span><AppstoreOutlined /> Toàn bộ hệ thống</span>} key="ALL_STOCKS">
                     <Table dataSource={masterData} columns={getStockColumns()} size="small" rowKey="key" pagination={{pageSize:10}} />
                 </Tabs.TabPane>
 
-                {/* CÁC TAB KHO CON */}
+                {/* CÁC TAB KHO CON: LỌC THEO LOGIC */}
                 {WAREHOUSES.map(wh => (
                     <Tabs.TabPane tab={<span style={{color: wh.color}}>{wh.name}</span>} key={wh.code}>
-                        <Table dataSource={masterData} columns={getStockColumns(wh.code)} size="small" rowKey="key" pagination={{pageSize:10}} />
+                        <Table 
+                            dataSource={getDataByWarehouse(wh.code)} // <--- LỌC DỮ LIỆU Ở ĐÂY
+                            columns={getStockColumns(wh.code)} 
+                            size="small" 
+                            rowKey="key" 
+                            pagination={{pageSize:10}} 
+                        />
                     </Tabs.TabPane>
                 ))}
 
