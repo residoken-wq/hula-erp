@@ -28,11 +28,9 @@ export class ProductsService {
       return this.productRepo.find({ order: { id: 'DESC' }, relations: ['category_link'] }); 
   }
   
-  // --- FIX: BỔ SUNG HÀM FIND ONE BY ID ---
   async findOne(id: number) { 
       return this.productRepo.findOne({ where: { id }, relations: ['category_link'] }); 
   }
-  // ----------------------------------------
   
   async findOneBySku(sku: string) { return this.productRepo.findOne({ where: { sku }, relations: ['category_link'] }); }
 
@@ -49,92 +47,82 @@ export class ProductsService {
   }
 
   async create(data: Partial<Product>) { return this.productRepo.save(this.cleanData(data)); }
+  
   async update(id: number, data: Partial<Product>) { 
       await this.productRepo.update(id, this.cleanData(data)); 
       return this.productRepo.findOne({ where: { id } }); 
   }
+  
   async remove(id: number) { return this.productRepo.delete(id); }
 
-  // ------------------------------------------------------------------
-  // --- HÀM TẠO BIẾN THỂ VÀ SAO CHÉP BOM/ROUTING (ĐÃ FIX LỖI TS) ---
+  // --- HÀM TẠO BIẾN THỂ ---
   async createVariant(createVariantDto: CreateVariantDto): Promise<Product> {
     const { baseSku, newSku, newName, attributes } = createVariantDto;
 
-    // 1. Tìm sản phẩm gốc
-    const baseProduct = await this.productRepo.findOne({ 
-        where: { sku: baseSku },
-    });
+    const baseProduct = await this.productRepo.findOne({ where: { sku: baseSku } });
     if (!baseProduct) {
       throw new NotFoundException(`Sản phẩm gốc với SKU "${baseSku}" không tồn tại.`);
     }
 
-    // 2. Kiểm tra SKU mới đã tồn tại chưa
     const existingProduct = await this.productRepo.findOne({ where: { sku: newSku } });
     if (existingProduct) {
         throw new ConflictException(`SKU biến thể "${newSku}" đã tồn tại.`);
     }
 
-    // 3. Tạo bản sao (Biến thể mới)
     const { routings, logistics, components, ...baseProductClone } = baseProduct as any;
 
     const newVariant = this.productRepo.create({
       ...baseProductClone, 
-      id: undefined, // Bỏ ID để tạo mới
+      id: undefined, 
       sku: newSku,
       name: newName || baseProduct.name,
-      attributes: attributes, // Gán thuộc tính biến thể mới
+      attributes: attributes, 
       quantity_in_stock: 0, 
       cost_price: 0,
-      
       category_link: baseProduct.category_link 
     });
 
     const savedVariant = await this.productRepo.save(newVariant) as unknown as Product; 
 
-    // 4. Sao chép BOM (Nếu có)
+    // Sao chép BOM
     const baseBoms = await this.bomRepo.find({ where: { product_id: baseProduct.id } });
     if(baseBoms.length > 0) {
-        const newBoms = baseBoms.map(b => this.bomRepo.create({
-            ...b,
-            id: undefined,
-            product_id: savedVariant.id, 
-        }));
+        const newBoms = baseBoms.map(b => this.bomRepo.create({ ...b, id: undefined, product_id: savedVariant.id }));
         await this.bomRepo.save(newBoms as any);
     }
     
-    // 5. Sao chép Routing (Nếu có)
+    // Sao chép Routing
     const baseRoutings = await this.routingRepo.find({ where: { product_id: baseProduct.id } });
     if(baseRoutings.length > 0) {
-        const newRoutings = baseRoutings.map(r => this.routingRepo.create({
-            ...r,
-            id: undefined,
-            product_id: savedVariant.id,
-        }));
+        const newRoutings = baseRoutings.map(r => this.routingRepo.create({ ...r, id: undefined, product_id: savedVariant.id }));
         await this.routingRepo.save(newRoutings as any);
     }
 
-    // 6. Sao chép Logistics (Nếu có)
+    // Sao chép Logistics
     const baseLogistics = await this.logisticRepo.find({ where: { product_id: baseProduct.id } });
     if(baseLogistics.length > 0) {
-        const newLogistics = baseLogistics.map(l => this.logisticRepo.create({
-            ...l,
-            id: undefined,
-            product_id: savedVariant.id,
-        }));
+        const newLogistics = baseLogistics.map(l => this.logisticRepo.create({ ...l, id: undefined, product_id: savedVariant.id }));
         await this.logisticRepo.save(newLogistics as any);
     }
 
-    // 7. Tính lại giá vốn
     await this.calculateCostPrice(savedVariant.sku); 
-
     return savedVariant; 
   }
-  // ------------------------------------------------------------------
 
-  async getBomByProductSku(sku: string): Promise<BOM[]> {
+  // --- HÀM QUAN TRỌNG: Lấy BOM cho Production Service ---
+  async getProductBOM(sku: string): Promise<BOM[]> {
     const product = await this.productRepo.findOne({ where: { sku } });
     if (!product) return [];
-    return this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
+    
+    return this.bomRepo.find({ 
+        where: { product: { id: product.id } },
+        relations: ['material']
+    });
+  }
+  // ------------------------------------------------------
+
+  async getBomByProductSku(sku: string): Promise<BOM[]> {
+    return this.getProductBOM(sku); // Alias về hàm chuẩn
   }
 
   async saveBoms(productId: number, items: any[]) {
@@ -197,6 +185,7 @@ export class ProductsService {
   }
 
   async getLogistics(productId: number) { return this.logisticRepo.find({ where: { product_id: productId } }); }
+  
   async saveLogistics(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
       const pId = Number(productId);
@@ -262,7 +251,7 @@ export class ProductsService {
             totalCost += Number(comp.child_product?.base_price ?? 0) * Number(comp.quantity);
         }
     } else {
-        // BOM (Nguyên vật liệu)
+        // BOM
         const boms = await this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
         for (const item of boms) {
             if(item.material) {
@@ -271,12 +260,12 @@ export class ProductsService {
                 totalCost += materialCost * Number(item.quantity) * (1 + waste);
             }
         }
-        // Routing (Gia công bắt buộc)
+        // Routing
         const routings = await this.routingRepo.find({ where: { product_id: product.id } });
         routings.forEach(r => { 
             if(r.is_required) totalCost += Number(r.cost); 
         });
-        // Logistics (Vận chuyển)
+        // Logistics
         const logistics = await this.logisticRepo.find({ where: { product_id: product.id } });
         logistics.forEach(l => { totalCost += Number(l.cost); });
     }
@@ -287,7 +276,7 @@ export class ProductsService {
     if (!margin && product.category_link) {
         margin = Number(product.category_link.profit_margin);
     }
-    if (!margin) margin = 30; // Mặc định 30%
+    if (!margin) margin = 30;
 
     const sellingPrice = this.calculateSellingPrice(totalCost, margin);
 
@@ -309,7 +298,6 @@ export class ProductsService {
       }
   }
 
-  // --- API COMBO ---
   async getComboComponents(sku: string) {
       const product = await this.productRepo.findOne({ where: { sku } });
       if (!product) return [];
