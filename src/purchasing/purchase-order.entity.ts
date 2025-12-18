@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, ManyToOne, JoinColumn, UpdateDateColumn, Generated } from 'typeorm';
 import { PurchaseOrderItem } from './purchase-order-item.entity';
-import { Supplier } from '../suppliers/supplier.entity';
-import { ProductionPlan } from '../planning/production-plan.entity';
+import { Supplier } from '../../suppliers/supplier.entity';
+// import { ProductionPlan } from '../../planning/production-plan.entity'; // Bỏ comment nếu đã có file này
 
 export enum POStatus {
   DRAFT = 'DRAFT',
@@ -44,9 +44,9 @@ export class PurchaseOrder {
   })
   type: POType;
 
-  @ManyToOne(() => ProductionPlan, { nullable: true })
-  @JoinColumn({ name: 'plan_id' })
-  production_plan: ProductionPlan;
+  // @ManyToOne(() => ProductionPlan, { nullable: true })
+  // @JoinColumn({ name: 'plan_id' })
+  // production_plan: ProductionPlan;
 
   @Column({ nullable: true })
   plan_id: number;
@@ -64,7 +64,7 @@ export class PurchaseOrder {
   @Column({ type: 'enum', enum: POStatus, default: POStatus.DRAFT })
   status: POStatus;
 
-  // --- QUAN TRỌNG: property 'po' phải khớp với property bên Item ---
+  // Quan hệ 1-N với Items
   @OneToMany(() => PurchaseOrderItem, (item) => item.po, { cascade: true })
   items: PurchaseOrderItem[];
 

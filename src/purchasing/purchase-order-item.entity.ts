@@ -1,13 +1,14 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { PurchaseOrder } from './purchase-order.entity';
-import { Material } from '../materials/material.entity'; // Import
-import { Product } from '../products/product.entity';   // Import
+import { Material } from '../../materials/material.entity'; // Sửa đường dẫn ../.. nếu cần
+import { Product } from '../../products/product.entity';   // Sửa đường dẫn ../.. nếu cần
 
 @Entity('purchase_order_items')
 export class PurchaseOrderItem {
   @PrimaryGeneratedColumn()
   id: number;
 
+  // Quan hệ N-1 với PurchaseOrder
   @ManyToOne(() => PurchaseOrder, (po) => po.items, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'po_id' })
   po: PurchaseOrder;
@@ -30,8 +31,8 @@ export class PurchaseOrderItem {
   product_id: number;
   // ----------------------------------------------------
 
-  @Column()
-  description: string; // Tên hiển thị (phòng khi xóa master data)
+  @Column({ nullable: true })
+  description: string;
 
   @Column('decimal', { precision: 10, scale: 2 })
   quantity: number;
