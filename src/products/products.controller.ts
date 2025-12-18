@@ -1,28 +1,22 @@
 import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { CreateVariantDto } from './dto/create-variant.dto'; // Đã thêm ở lần fix trước
+import { CreateVariantDto } from './dto/create-variant.dto';
 
 @Controller('products')
 export class ProductsController {
   constructor(private readonly service: ProductsService) {}
 
   @Get() findAll() { return this.service.findAll(); }
-  
-  // --- FIX: BỔ SUNG ROUTE FIND ONE BY ID ---
-  @Get(':id') 
-  findOne(@Param('id') id: number) { return this.service.findOne(Number(id)); }
-  // ------------------------------------------
+  @Get(':id') findOne(@Param('id') id: number) { return this.service.findOne(Number(id)); }
 
   @Post() create(@Body() b: any) { return this.service.create(b); }
   @Put(':id') update(@Param('id') id: number, @Body() b: any) { return this.service.update(id, b); }
   @Delete(':id') remove(@Param('id') id: number) { return this.service.remove(id); }
 
-  // --- API TẠO BIẾN THỂ (Đã thêm) ---
   @Post('create-variant')
   async createVariant(@Body() createVariantDto: CreateVariantDto) {
     return this.service.createVariant(createVariantDto);
   }
-  // ------------------------------------
 
   @Get(':id/routings') getRoutings(@Param('id') id: number) { return this.service.getRoutings(id); }
   @Post(':id/routings') saveRoutings(@Param('id') id: number, @Body() b: any) { return this.service.saveRoutings(id, b); }
@@ -30,12 +24,16 @@ export class ProductsController {
   @Get(':id/logistics') getLogistics(@Param('id') id: number) { return this.service.getLogistics(id); }
   @Post(':id/logistics') saveLogistics(@Param('id') id: number, @Body() b: any) { return this.service.saveLogistics(id, b); }
 
+  // --- API PATTERN (MỚI) ---
+  @Get(':id/pattern') getPattern(@Param('id') id: number) { return this.service.getPattern(id); }
+  @Post(':id/pattern') savePattern(@Param('id') id: number, @Body() b: any) { return this.service.savePattern(id, b); }
+  // -------------------------
+
   @Get(':sku/boms') getBoms(@Param('sku') sku: string) { return this.service.getBomByProductSku(sku); }
   @Post(':id/boms') saveBoms(@Param('id') id: number, @Body() b: any) { return this.service.saveBoms(Number(id), b); }
   
   @Post(':id/sync-variants') syncVariants(@Param('id') id: number) { return this.service.syncToVariants(id); }
 
-  // --- API COMBO ---
   @Get('combo/:sku') getCombo(@Param('sku') sku: string) { return this.service.getComboComponents(sku); }
   @Post('combo/add') addComboItem(@Body() body: any) { return this.service.addComponent(body.parentSku, body.childSku, Number(body.qty)); }
   @Delete('combo/item/:id') removeComboItem(@Param('id') id: number) { return this.service.removeComponent(id); }

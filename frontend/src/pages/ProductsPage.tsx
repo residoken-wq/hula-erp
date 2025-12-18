@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -8,6 +8,7 @@ import { API_URL } from '../config';
 import ProductBOMTab from '../components/products/ProductBOMTab';
 import ProductRoutingTab from '../components/products/ProductRoutingTab';
 import ProductVariantsTab from '../components/products/ProductVariantsTab'; 
+import ProductPatternTab from '../components/products/ProductPatternTab'; // <--- MỚI: Tab Sơ đồ rập
 // -------------------------------------
 
 const { TextArea } = Input;
@@ -17,7 +18,6 @@ const ProductsPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
-    // const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined); // Đã bỏ để dùng Table Filter
     
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -169,7 +169,7 @@ const ProductsPage: React.FC = () => {
     }
     
     const handleCreateVariant = async (values: any) => {
-        // --- CẬP NHẬT: Lấy thêm Logo và Design ---
+        // Lấy thêm Logo và Design từ form tạo biến thể
         const { base_sku, variant_sku_suffix, variant_name_suffix, color, size, logo, design, ...otherValues } = values;
 
         const newSku = `${base_sku}_${variant_sku_suffix}`;
@@ -182,8 +182,8 @@ const ProductsPage: React.FC = () => {
             attributes: {
                 color: color,
                 size: size,
-                logo: logo,     // Mới
-                design: design, // Mới
+                logo: logo,     
+                design: design, 
             }
         };
         
@@ -216,8 +216,7 @@ const ProductsPage: React.FC = () => {
         } catch(e) { message.error('Lỗi tính giá vốn'); }
     };
 
-    // --- MỚI: LOGIC LỌC DỮ LIỆU ---
-    // Chỉ lọc theo text, phần Category sẽ dùng Table Filter
+    // --- LOGIC LỌC DỮ LIỆU ---
     const filteredData = useMemo(() => {
         if (!searchText) return data;
         const lower = searchText.toLowerCase();
@@ -248,7 +247,6 @@ const ProductsPage: React.FC = () => {
             dataIndex: 'category_id', 
             width: 150, 
             render: (id: number) => <Tag color="blue">{getCategoryName(id)}</Tag>,
-            // MỚI: Thêm filter cho Category
             filters: categories.map(c => ({ text: c.name, value: c.id })),
             onFilter: (value: any, record: any) => record.category_id === value,
         },
@@ -271,7 +269,6 @@ const ProductsPage: React.FC = () => {
             title: '', key: 'action', width: 160, align: 'center' as const,
             render: (_:any, r:any) => (
                 <Space size="small">
-                    {/* Nút Tạo Biến thể (Fix) */}
                     <Tooltip title="Tạo Biến thể mới từ Sản phẩm này">
                          <Button 
                              icon={<ForkOutlined />} 
@@ -288,7 +285,6 @@ const ProductsPage: React.FC = () => {
         }
     ];
 
-    // FIX: Logic Lợi nhuận tự động cập nhật khi thay đổi Phân loại
     const handleFormValuesChange = (changedValues: any) => {
         if (changedValues.category_id !== undefined) {
             const newCategoryId = changedValues.category_id;
@@ -309,7 +305,6 @@ const ProductsPage: React.FC = () => {
             title="Quản Lý Sản Phẩm (SKU)" 
             extra={
                 <Space>
-                    {/* MỚI: Input Search đặt tại đây cho gọn */}
                     <Input 
                         placeholder="Tìm kiếm SKU/Tên..." 
                         prefix={<SearchOutlined />} 
@@ -322,9 +317,6 @@ const ProductsPage: React.FC = () => {
                 </Space>
             }
         >
-            
-            {/* Đã bỏ dòng filter cũ ở đây để giao diện thoáng hơn */}
-            
             <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
             
             {/* Modal chính (Cập nhật sản phẩm) */}
@@ -367,17 +359,14 @@ const ProductsPage: React.FC = () => {
                                         <Divider orientation="left">Thông tin Giá & Tồn</Divider>
                                         <Form.Item name="base_price" label="Giá bán (Chưa KM)"><InputNumber style={{width:'100%'}} addonAfter="₫" formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Form.Item>
                                         
-                                        {/* --- FIX: THÊM ICON REFRESH VÀO GIÁ VỐN --- */}
                                         <Form.Item name="cost_price" label="Giá vốn (Hệ thống tính)" tooltip="Hệ thống tính tự động (BOM + Gia công). Click refresh để tính lại.">
                                             <InputNumber 
                                                 style={{width:'100%'}} 
-                                                // Nút Refresh gọi handleCalculateCost với SKU hiện tại
                                                 addonAfter={<Tooltip title="Tính lại Giá vốn (BOM + Gia công)"><SyncOutlined onClick={() => handleCalculateCost(form.getFieldValue('sku'))} style={{cursor: 'pointer'}}/></Tooltip>}
                                                 formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')}
                                                 disabled
                                             />
                                         </Form.Item>
-                                        {/* ------------------------------------------- */}
                                         
                                         <Form.Item name="profit_margin" label="Lợi nhuận mong muốn (%)" tooltip="Lấy từ Danh mục nếu tạo mới, có thể override tại đây"><InputNumber style={{width:'100%'}} addonAfter="%" min={0} max={99}/></Form.Item>
                                         <Form.Item name="quantity_in_stock" label="Tồn kho"><InputNumber style={{width:'100%'}}/></Form.Item>
@@ -421,6 +410,13 @@ const ProductsPage: React.FC = () => {
                                 fetchDetailData={fetchDetailData}
                                 setRoutings={setRoutings}
                             />
+                        )
+                    },
+                    {
+                        key: '7', label: <span><ScissorOutlined /> Sơ đồ & Định mức</span>,
+                        disabled: !editingItem,
+                        children: (
+                            <ProductPatternTab editingItem={editingItem} />
                         )
                     },
                     {
