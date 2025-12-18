@@ -5,8 +5,8 @@ import { ProductionPlan, PlanStatus } from './production-plan.entity';
 import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
 import { ProductsService } from '../products/products.service';
 import { MaterialsService } from '../materials/materials.service';
-import { PurchaseOrder, POType, POStatus } from '../purchasing/purchase-order.entity';
-import { PurchaseOrderItem } from '../purchasing/purchase-order-item.entity';
+import { PurchaseOrder, POType, POStatus } from '../purchasing/entities/purchase-order.entity';
+import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 
 @Injectable()
 export class PlanningService {

@@ -4,8 +4,8 @@ import { PlanningController } from './planning.controller';
 import { PlanningService } from './planning.service';
 import { ProductionPlan } from './production-plan.entity';
 import { SalesOrder } from '../sales/sales-order.entity';
-import { PurchaseOrder } from '../purchasing/purchase-order.entity';
-import { PurchaseOrderItem } from '../purchasing/purchase-order-item.entity';
+import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
+import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { ProductsModule } from '../products/products.module';
 import { MaterialsModule } from '../materials/materials.module';
 

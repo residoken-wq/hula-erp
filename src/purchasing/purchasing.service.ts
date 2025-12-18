@@ -1,13 +1,15 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+// Fix imports Entities: Trỏ vào thư mục entities
 import { PurchaseOrder } from './entities/purchase-order.entity';
 import { PurchaseOrderItem } from './entities/purchase-order-item.entity';
 import { GoodsReceipt } from './entities/goods-receipt.entity';
+
 import { InventoryService } from '../inventory/inventory.service';
 import { ProductsService } from '../products/products.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
-import { v4 as uuidv4 } from 'uuid'; // Cần chạy: npm install uuid @types/uuid
+import { v4 as uuidv4 } from 'uuid'; 
 
 @Injectable()
 export class PurchasingService {
@@ -63,11 +65,9 @@ export class PurchasingService {
       return this.poRepo.findOne({ where: { id }, relations: ['supplier', 'items', 'items.material', 'items.product'] });
   }
 
-  // --- IMPLEMENT CÁC HÀM THIẾU ---
   async updatePO(id: number, data: any) {
       const po = await this.poRepo.findOne({ where: { id } });
       if(!po) throw new NotFoundException();
-      // Logic update cơ bản
       return this.poRepo.save({ ...po, ...data });
   }
 
@@ -78,7 +78,9 @@ export class PurchasingService {
   async supplierAction(uuid: string, action: string, note?: string) {
       const po = await this.poRepo.findOne({ where: { uuid } });
       if(!po) throw new NotFoundException();
-      // Logic xử lý status
+      if(action === 'CONFIRM') po.status = 'CONFIRMED' as any;
+      if(action === 'REJECT') po.status = 'CANCELLED' as any;
+      po.note = note ? `${po.note || ''}\nSupplier: ${note}` : po.note;
       return this.poRepo.save(po);
   }
 
@@ -89,7 +91,6 @@ export class PurchasingService {
           await this.poRepo.save(po);
       }
   }
-  // ------------------------------
 
   async createGoodsReceipt(poId: number, data: any) {
       const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items'] });
@@ -107,16 +108,15 @@ export class PurchasingService {
           const poItem = po.items.find(pi => pi.id === item.po_item_id);
           if (!poItem) continue;
 
-          // --- FIX: Thêm tham số warehouse ---
           if (poItem.material_id) {
               await this.inventoryService.adjustStock(
                   'IMPORT', 'MATERIAL', poItem.material_id, Number(item.quantity), data.code, 'Nhập từ PO ' + po.po_code, 
-                  'KHO_NPL' // Kho Nguyên Liệu
+                  'KHO_NPL' 
               );
           } else if (poItem.product_id) {
               await this.inventoryService.adjustStock(
                   'IMPORT', 'PRODUCT', poItem.product_id, Number(item.quantity), data.code, 'Nhập từ PO ' + po.po_code, 
-                  'KHO_TP' // Kho Thành Phẩm
+                  'KHO_TP' 
               );
           }
       }

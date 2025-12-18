@@ -39,8 +39,8 @@ import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
 import { StockHistory } from './inventory/stock-history.entity';
 import { WorkOrder } from './production/work-order.entity';
 import { WorkOrderStep } from './production/work-order-step.entity';
-import { PurchaseOrder } from './purchasing/purchase-order.entity';
-import { PurchaseOrderItem } from './purchasing/purchase-order-item.entity';
+import { PurchaseOrder } from './purchasing/entities/purchase-order.entity';
+import { PurchaseOrderItem } from './purchasing/entities/purchase-order-item.entity';
 import { PurchaseDelivery } from './purchasing/purchase-delivery.entity'; 
 import { Transaction } from './finance/transaction.entity';
 import { Supplier } from './suppliers/supplier.entity';
@@ -79,7 +79,7 @@ import { GroupPermission } from './users/entities/group-permission.entity';
         Transaction,
         Supplier, SupplierMaterial, SupplierContact,
         Customer, CustomerContact,
-        ProductionPlan, Process, Category,
+        ProductionPlan, Process, Category,InventoryStock,
         // --- ĐĂNG KÝ ENTITIES USER ---
         User, UserGroup, GroupPermission
         // -----------------------------
