@@ -20,7 +20,6 @@ export class PurchasingService {
     private suppliersService: SuppliersService,
   ) {}
 
-  // ... (Các hàm createPO, getAllPOs, getPODetail, updatePayment giữ nguyên) ...
   async createPO(data: any) {
     const po = this.poRepo.create({
       po_code: data.po_code,
@@ -62,11 +61,11 @@ export class PurchasingService {
   async updatePO(id: number, data: any) {
       const po = await this.poRepo.findOne({ where: { id } });
       if(!po) throw new NotFoundException();
-      // Nếu update thông tin giao NPL
+      
       if (data.outsourcing_delivery_info) {
           po.outsourcing_delivery_info = data.outsourcing_delivery_info;
       }
-      // Các trường khác
+      
       if (data.status) po.status = data.status;
       
       return this.poRepo.save(po);
@@ -80,7 +79,7 @@ export class PurchasingService {
       }
   }
 
-  // --- MỚI: TÍNH TOÁN NPL CẦN THIẾT CHO ĐƠN GIA CÔNG ---
+  // --- TÍNH TOÁN NPL CẦN THIẾT CHO ĐƠN GIA CÔNG ---
   async getOutsourcingMaterials(poId: number) {
       const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items', 'items.product'] });
       if (!po || po.type !== POType.OUTSOURCING) return [];
@@ -101,12 +100,12 @@ export class PurchasingService {
                       } else {
                           materialNeeds.set(matId, {
                               material_id: matId,
-                              code: bom.material.code || bom.material.sku, // Tùy tên cột
+                              code: bom.material.code, // FIX: Chỉ dùng code, bỏ sku
                               name: bom.material.name,
                               unit: bom.material.unit,
                               quantity: needQty,
-                              stock: Number(bom.material.quantity_in_stock || 0), // Tồn kho hiện tại
-                              image: bom.material.image_url
+                              stock: Number(bom.material.quantity_in_stock || 0),
+                              // image: bom.material.image_url // FIX: Bỏ image_url vì không tồn tại trong Material entity
                           });
                       }
                   }
@@ -117,11 +116,9 @@ export class PurchasingService {
   }
   // ------------------------------------------------------
 
-  // --- FIX: BỔ SUNG HÀM DELETE MÀ TRƯỚC ĐÓ BỊ THIẾU ---
   async remove(id: number) {
       return this.poRepo.delete(id);
   }
-  // ----------------------------------------------------
 
   async createGoodsReceipt(poId: number, data: any) {
       const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items'] });
