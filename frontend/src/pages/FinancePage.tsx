@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
     Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form, 
     Input, Select, DatePicker, Tag, message, Popconfirm, 
-    Radio, InputNumber // <--- ĐÃ BỔ SUNG IMPORT CÒN THIẾU
+    Radio, InputNumber 
 } from 'antd';
 import { 
     WalletOutlined, ArrowUpOutlined, ArrowDownOutlined, 
@@ -30,6 +30,9 @@ const FinancePage: React.FC = () => {
     const [formTrans] = Form.useForm();
     const [formCat] = Form.useForm();
 
+    // --- MỚI: Watch giá trị Type để lọc danh mục ---
+    const currentTransType = Form.useWatch('type', formTrans); 
+
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -37,7 +40,7 @@ const FinancePage: React.FC = () => {
             const [resTrans, resCat, resSum] = await Promise.all([
                 axios.get(`${API_URL}/finance/transactions?month=${monthStr}`),
                 axios.get(`${API_URL}/finance/categories`),
-                axios.get(`${API_URL}/finance/summary`) // Tổng lũy kế
+                axios.get(`${API_URL}/finance/summary`)
             ]);
             setTransactions(Array.isArray(resTrans.data) ? resTrans.data : []);
             setCategories(Array.isArray(resCat.data) ? resCat.data : []);
@@ -54,8 +57,8 @@ const FinancePage: React.FC = () => {
             const payload = {
                 ...values,
                 date: values.date.format('YYYY-MM-DD'),
-                // Tự động xác định Type dựa vào Category
-                type: categories.find(c => c.id === values.category_id)?.type || 'EXPENSE'
+                // Type đã được chọn manual, không cần tự động suy diễn nữa
+                type: values.type 
             };
             await axios.post(`${API_URL}/finance/transactions`, payload);
             message.success('Đã lưu giao dịch');
@@ -178,30 +181,50 @@ const FinancePage: React.FC = () => {
                 ]} />
             </Card>
 
-            {/* MODAL TẠO GIAO DỊCH */}
+            {/* MODAL TẠO GIAO DỊCH (ĐÃ CẬP NHẬT LOGIC) */}
             <Modal title="Lập Phiếu Thu / Chi" open={isTransModalOpen} onCancel={()=>setIsTransModalOpen(false)} footer={null}>
-                <Form form={formTrans} layout="vertical" onFinish={handleSaveTrans} initialValues={{ date: dayjs() }}>
+                <Form form={formTrans} layout="vertical" onFinish={handleSaveTrans} initialValues={{ date: dayjs(), type: 'EXPENSE' }}>
+                    
+                    {/* --- MỚI: CHỌN LOẠI PHIẾU TRƯỚC --- */}
+                    <Form.Item name="type" label="Loại phiếu" rules={[{required:true}]}>
+                        <Radio.Group 
+                            buttonStyle="solid" 
+                            onChange={() => formTrans.setFieldsValue({ category_id: undefined })} // Reset danh mục khi đổi loại
+                        >
+                            <Radio.Button value="INCOME" style={{color: 'green'}}>PHIẾU THU (+)</Radio.Button>
+                            <Radio.Button value="EXPENSE" style={{color: 'red'}}>PHIẾU CHI (-)</Radio.Button>
+                        </Radio.Group>
+                    </Form.Item>
+                    {/* ---------------------------------- */}
+
                     <Row gutter={16}>
                         <Col span={12}><Form.Item name="date" label="Ngày giao dịch" rules={[{required:true}]}><DatePicker style={{width:'100%'}} format="DD/MM/YYYY"/></Form.Item></Col>
                         <Col span={12}>
                             <Form.Item name="amount" label="Số tiền" rules={[{required:true}]}>
                                 <InputNumber 
                                     style={{width:'100%'}} 
-                                    formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} // <--- FIX LỖI TYPE
+                                    formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
                                     addonAfter="₫"
                                 />
                             </Form.Item>
                         </Col>
                     </Row>
                     
-                    <Form.Item name="category_id" label="Danh mục (Tự động xác định Thu/Chi)" rules={[{required:true}]}>
-                        <Select placeholder="Chọn loại giao dịch...">
-                            <Select.OptGroup label="KHOẢN THU (INCOME)">
-                                {categories.filter(c=>c.type==='INCOME').map(c=><Option key={c.id} value={c.id}><Tag color="green">{c.name}</Tag></Option>)}
-                            </Select.OptGroup>
-                            <Select.OptGroup label="KHOẢN CHI (EXPENSE)">
-                                {categories.filter(c=>c.type==='EXPENSE').map(c=><Option key={c.id} value={c.id}><Tag color="red">{c.name}</Tag></Option>)}
-                            </Select.OptGroup>
+                    <Form.Item 
+                        name="category_id" 
+                        label="Chọn Danh mục (Lọc theo Loại phiếu)" 
+                        rules={[{required:true, message: 'Vui lòng chọn danh mục'}]}
+                    >
+                        <Select placeholder="Chọn danh mục...">
+                            {/* --- MỚI: Chỉ hiện danh mục khớp với Type đang chọn --- */}
+                            {categories
+                                .filter(c => c.type === currentTransType)
+                                .map(c => (
+                                    <Option key={c.id} value={c.id}>
+                                        <Tag color={c.color || (c.type==='INCOME'?'green':'red')}>{c.name}</Tag>
+                                    </Option>
+                                ))
+                            }
                         </Select>
                     </Form.Item>
 
