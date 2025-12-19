@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { 
     Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form, 
     Input, Select, DatePicker, Tag, message, Popconfirm, 
-    Radio, InputNumber 
+    Radio, InputNumber, Space 
 } from 'antd';
 import { 
     WalletOutlined, ArrowUpOutlined, ArrowDownOutlined, 
     PlusOutlined, DeleteOutlined, BankOutlined, 
-    FileTextOutlined, PieChartOutlined, ReloadOutlined 
+    FileTextOutlined, PieChartOutlined, ReloadOutlined, EditOutlined, CloseOutlined 
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -23,14 +23,15 @@ const FinancePage: React.FC = () => {
     
     // UI State
     const [isTransModalOpen, setIsTransModalOpen] = useState(false);
-    const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+    // isCatModalOpen không còn dùng vì Form nằm trên trang, ta dùng editingCategory để control
+    const [editingCategory, setEditingCategory] = useState<any>(null); // <--- MỚI: Lưu danh mục đang sửa
+    
     const [activeTab, setActiveTab] = useState('1');
     const [filterMonth, setFilterMonth] = useState(dayjs());
 
     const [formTrans] = Form.useForm();
     const [formCat] = Form.useForm();
 
-    // --- MỚI: Watch giá trị Type để lọc danh mục ---
     const currentTransType = Form.useWatch('type', formTrans); 
 
     const fetchData = async () => {
@@ -57,7 +58,6 @@ const FinancePage: React.FC = () => {
             const payload = {
                 ...values,
                 date: values.date.format('YYYY-MM-DD'),
-                // Type đã được chọn manual, không cần tự động suy diễn nữa
                 type: values.type 
             };
             await axios.post(`${API_URL}/finance/transactions`, payload);
@@ -68,19 +68,38 @@ const FinancePage: React.FC = () => {
         } catch(e) { message.error('Lỗi lưu'); }
     };
 
+    // --- MỚI: LOGIC LƯU DANH MỤC (TẠO MỚI HOẶC CẬP NHẬT) ---
     const handleSaveCat = async (values: any) => {
         try {
-            await axios.post(`${API_URL}/finance/categories`, values);
-            message.success('Đã thêm danh mục');
-            setIsCatModalOpen(false);
+            if (editingCategory) {
+                // Update
+                await axios.put(`${API_URL}/finance/categories/${editingCategory.id}`, values);
+                message.success('Cập nhật danh mục thành công');
+                setEditingCategory(null); // Reset mode
+            } else {
+                // Create
+                await axios.post(`${API_URL}/finance/categories`, values);
+                message.success('Đã thêm danh mục mới');
+            }
             formCat.resetFields();
             fetchData();
-        } catch(e) { message.error('Lỗi lưu'); }
+        } catch(e) { message.error('Lỗi lưu danh mục'); }
     };
+
+    const handleEditCat = (record: any) => {
+        setEditingCategory(record);
+        formCat.setFieldsValue(record); // Điền dữ liệu vào form bên phải
+    };
+
+    const handleCancelEdit = () => {
+        setEditingCategory(null);
+        formCat.resetFields();
+    };
+    // -------------------------------------------------------
 
     const handleDelete = async (endpoint: string, id: number) => {
         try { await axios.delete(`${API_URL}/finance/${endpoint}/${id}`); message.success('Đã xóa'); fetchData(); }
-        catch(e) { message.error('Không thể xóa'); }
+        catch(e) { message.error('Không thể xóa (có thể đang có dữ liệu liên quan)'); }
     };
 
     // --- COMPONENTS ---
@@ -110,7 +129,19 @@ const FinancePage: React.FC = () => {
         { title: 'Tên danh mục', dataIndex: 'name', render: (t:any, r:any) => <Tag color={r.color}>{t}</Tag> },
         { title: 'Loại', dataIndex: 'type', render: (t: string) => t==='INCOME' ? <Tag color="green">Khoản Thu</Tag> : <Tag color="red">Khoản Chi</Tag> },
         { title: 'Mô tả', dataIndex: 'description' },
-        { title: '', key: 'act', align: 'right' as const, render: (_:any, r:any) => <Popconfirm title="Xóa?" onConfirm={()=>handleDelete('categories', r.id)}><Button size="small" danger icon={<DeleteOutlined/>}/></Popconfirm> }
+        { 
+            title: '', key: 'act', align: 'right' as const, 
+            render: (_:any, r:any) => (
+                <Space>
+                    {/* Nút Edit */}
+                    <Button size="small" icon={<EditOutlined/>} onClick={()=>handleEditCat(r)} />
+                    {/* Nút Delete */}
+                    <Popconfirm title="Xóa?" onConfirm={()=>handleDelete('categories', r.id)}>
+                        <Button size="small" danger icon={<DeleteOutlined/>}/>
+                    </Popconfirm>
+                </Space>
+            ) 
+        }
     ];
 
     return (
@@ -165,13 +196,20 @@ const FinancePage: React.FC = () => {
                                     <Table dataSource={categories} columns={columnsCat} rowKey="id" pagination={false} size="small" />
                                 </Col>
                                 <Col span={8}>
-                                    <Card title="Thêm Danh mục mới" size="small" style={{background:'#f9f9f9'}}>
+                                    <Card 
+                                        title={editingCategory ? "Cập nhật Danh mục" : "Thêm Danh mục mới"} 
+                                        size="small" 
+                                        style={{background: editingCategory ? '#fffbe6' : '#f9f9f9', borderColor: editingCategory ? '#ffe58f' : '#f0f0f0'}}
+                                        extra={editingCategory && <Button size="small" type="text" danger icon={<CloseOutlined/>} onClick={handleCancelEdit}>Hủy</Button>}
+                                    >
                                         <Form form={formCat} layout="vertical" onFinish={handleSaveCat}>
                                             <Form.Item name="name" label="Tên danh mục" rules={[{required:true}]}><Input placeholder="Vd: Tiền điện, Tiếp khách..."/></Form.Item>
                                             <Form.Item name="type" label="Loại" initialValue="EXPENSE"><Radio.Group options={[{label:'Thu', value:'INCOME'}, {label:'Chi', value:'EXPENSE'}]} optionType="button" buttonStyle="solid" /></Form.Item>
                                             <Form.Item name="color" label="Màu nhãn"><Input type="color" style={{width: 50, padding: 0, border:'none'}}/></Form.Item>
                                             <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2}/></Form.Item>
-                                            <Button type="primary" htmlType="submit" block icon={<PlusOutlined/>}>Thêm Danh mục</Button>
+                                            <Button type="primary" htmlType="submit" block icon={editingCategory ? <EditOutlined/> : <PlusOutlined/>}>
+                                                {editingCategory ? "Lưu thay đổi" : "Thêm Danh mục"}
+                                            </Button>
                                         </Form>
                                     </Card>
                                 </Col>
@@ -181,21 +219,19 @@ const FinancePage: React.FC = () => {
                 ]} />
             </Card>
 
-            {/* MODAL TẠO GIAO DỊCH (ĐÃ CẬP NHẬT LOGIC) */}
+            {/* MODAL TẠO GIAO DỊCH */}
             <Modal title="Lập Phiếu Thu / Chi" open={isTransModalOpen} onCancel={()=>setIsTransModalOpen(false)} footer={null}>
                 <Form form={formTrans} layout="vertical" onFinish={handleSaveTrans} initialValues={{ date: dayjs(), type: 'EXPENSE' }}>
                     
-                    {/* --- MỚI: CHỌN LOẠI PHIẾU TRƯỚC --- */}
                     <Form.Item name="type" label="Loại phiếu" rules={[{required:true}]}>
                         <Radio.Group 
                             buttonStyle="solid" 
-                            onChange={() => formTrans.setFieldsValue({ category_id: undefined })} // Reset danh mục khi đổi loại
+                            onChange={() => formTrans.setFieldsValue({ category_id: undefined })} 
                         >
                             <Radio.Button value="INCOME" style={{color: 'green'}}>PHIẾU THU (+)</Radio.Button>
                             <Radio.Button value="EXPENSE" style={{color: 'red'}}>PHIẾU CHI (-)</Radio.Button>
                         </Radio.Group>
                     </Form.Item>
-                    {/* ---------------------------------- */}
 
                     <Row gutter={16}>
                         <Col span={12}><Form.Item name="date" label="Ngày giao dịch" rules={[{required:true}]}><DatePicker style={{width:'100%'}} format="DD/MM/YYYY"/></Form.Item></Col>
@@ -216,7 +252,6 @@ const FinancePage: React.FC = () => {
                         rules={[{required:true, message: 'Vui lòng chọn danh mục'}]}
                     >
                         <Select placeholder="Chọn danh mục...">
-                            {/* --- MỚI: Chỉ hiện danh mục khớp với Type đang chọn --- */}
                             {categories
                                 .filter(c => c.type === currentTransType)
                                 .map(c => (

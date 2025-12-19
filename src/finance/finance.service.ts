@@ -18,6 +18,13 @@ export class FinanceService {
       const cat = this.catRepo.create(data);
       return this.catRepo.save(cat); 
   }
+
+  // --- MỚI: HÀM UPDATE CATEGORY ---
+  async updateCategory(id: number, data: any) {
+      await this.catRepo.update(id, data);
+      return this.catRepo.findOne({ where: { id } });
+  }
+  // -------------------------------
   
   async deleteCategory(id: number) { return this.catRepo.delete(id); }
 
@@ -38,7 +45,6 @@ export class FinanceService {
   }
 
   async createTransaction(data: any) {
-      // Nếu có category_id, tìm và gán
       let category = null;
       if (data.category_id) category = await this.catRepo.findOne({ where: { id: data.category_id } });
 
