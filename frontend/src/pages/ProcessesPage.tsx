@@ -24,8 +24,15 @@ const ProcessesPage: React.FC = () => {
 
   const handleSave = async (values: any) => {
       try {
-          if(editingItem) await axios.put(`${API_URL}/processes/${editingItem.id}`, values);
-          else await axios.post(`${API_URL}/processes`, values);
+          // Đảm bảo standard_cost luôn có giá trị số
+          const payload = {
+              ...values,
+              standard_cost: values.standard_cost || 0
+          };
+
+          if(editingItem) await axios.put(`${API_URL}/processes/${editingItem.id}`, payload);
+          else await axios.post(`${API_URL}/processes`, payload);
+          
           message.success('Thành công');
           setIsModalOpen(false); fetchData();
       } catch(e: any) { message.error(e.response?.data?.message || 'Lỗi lưu'); }
@@ -40,7 +47,7 @@ const ProcessesPage: React.FC = () => {
       { title: 'Mã Công Đoạn', dataIndex: 'code', width: 150, render: (t:any) => <b>{t}</b> },
       { title: 'Tên Công Đoạn', dataIndex: 'name', render: (t:any) => <><ExperimentOutlined /> {t}</> },
       { title: 'ĐVT Tính Lương', dataIndex: 'unit', align: 'center' as const, render: (t:any) => <Tag color="blue">{t}</Tag> },
-      { title: 'Đơn Giá Định Mức (Gợi ý)', dataIndex: 'standard_cost', align: 'right' as const, render: (v:any) => Number(v).toLocaleString() },
+      { title: 'Đơn Giá Định Mức', dataIndex: 'standard_cost', align: 'right' as const, render: (v:any) => Number(v).toLocaleString() },
       { 
           title: '', key: 'act', align: 'right' as const, width: 100,
           render: (_:any, r:any) => (
@@ -68,7 +75,11 @@ const ProcessesPage: React.FC = () => {
                 <Form.Item name="code" label="Mã (Viết liền, không dấu)" rules={[{required:true}]}><Input disabled={!!editingItem} placeholder="VD: P_MAY, P_THEU" /></Form.Item>
                 <Form.Item name="name" label="Tên Công Đoạn" rules={[{required:true}]}><Input placeholder="VD: May vắt sổ" /></Form.Item>
                 <Form.Item name="unit" label="Đơn Vị Tính (để tính lương/gia công)" rules={[{required:true}]}><Input placeholder="VD: Cái, Giờ, Đường may" /></Form.Item>
-                <Form.Item name="standard_cost" label="Đơn Giá Định Mức (Tham khảo)"><InputNumber style={{width:'100%'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Form.Item>
+                
+                {/* --- FIX: Thêm initialValue={0} và required --- */}
+                <Form.Item name="standard_cost" label="Đơn Giá Định Mức (Tham khảo)" initialValue={0} rules={[{required: true, message: 'Nhập 0 nếu chưa có giá'}]}>
+                    <InputNumber style={{width:'100%'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} min={0} />
+                </Form.Item>
             </Form>
         </Modal>
     </div>

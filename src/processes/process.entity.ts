@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('processes')
 export class Process {
@@ -6,17 +6,25 @@ export class Process {
   id: number;
 
   @Column({ unique: true })
-  code: string; // VD: P_MAY, P_CAT
+  code: string; // Mã công đoạn (VD: P_MAY)
 
   @Column()
-  name: string; // VD: Gia công May
+  name: string; // Tên công đoạn (VD: May vắt sổ)
 
-  @Column({ default: 'Cái' })
-  unit: string; // ĐVT (Cái, Giờ, Mét)
+  @Column()
+  unit: string; // Đơn vị tính (VD: Cái, Giờ)
 
+  // --- FIX: Thêm default: 0 để tránh lỗi not-null ---
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  standard_cost: number; // Giá định mức tham khảo
+  standard_cost: number; 
+  // ------------------------------------------------
+
+  @Column({ nullable: true })
+  description: string;
 
   @CreateDateColumn()
   created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }
