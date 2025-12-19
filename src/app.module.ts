@@ -27,12 +27,13 @@ import { BOM } from './bom/bom.entity';
 import { ProductComponent } from './products/product-component.entity';
 import { ProductRouting } from './products/product-routing.entity';
 import { ProductLogistics } from './products/product-logistics.entity';
+import { ProductPattern } from './products/product-pattern.entity'; // Đảm bảo có Entity này
 
 import { SalesOrder } from './sales/sales-order.entity';
 import { SalesOrderItem } from './sales/sales-order-item.entity';
 import { ProductSample } from './sales/product-sample.entity';
 import { SalesDelivery } from './sales/sales-delivery.entity';
-import { SalesDeliveryItem } from './sales-delivery-item.entity';
+import { SalesDeliveryItem } from './sales/sales-delivery-item.entity'; // <--- FIX LỖI Ở ĐÂY (Thêm /sales/)
 import { SalesComment } from './sales/sales-comment.entity';
 import { PriceList } from './sales/pricelist/price-list.entity';
 import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
@@ -46,10 +47,9 @@ import { GoodsReceipt } from './purchasing/entities/goods-receipt.entity';
 
 import { ProductionOrder } from './production/entities/production-order.entity';
 
-// --- FINANCE ENTITIES ---
+// Finance Entities
 import { Transaction } from './finance/transaction.entity';
-import { TransactionCategory } from './finance/transaction-category.entity'; // <--- MỚI: Danh mục Thu/Chi
-// ------------------------
+import { TransactionCategory } from './finance/transaction-category.entity'; 
 
 import { Supplier } from './suppliers/supplier.entity';
 import { SupplierMaterial } from './suppliers/supplier-material.entity';
@@ -77,7 +77,7 @@ import { GroupPermission } from './users/entities/group-permission.entity';
       database: process.env.DB_DATABASE || 'hula_db',
       entities: [
         // Sản phẩm & BOM
-        Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics,
+        Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern,
         
         // Bán hàng
         SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
@@ -92,8 +92,8 @@ import { GroupPermission } from './users/entities/group-permission.entity';
         // Sản xuất
         ProductionOrder, 
         
-        // Tài chính (Đã cập nhật)
-        Transaction, TransactionCategory, 
+        // Tài chính
+        Transaction, TransactionCategory,
         
         // Đối tác & Khác
         Supplier, SupplierMaterial, SupplierContact,
