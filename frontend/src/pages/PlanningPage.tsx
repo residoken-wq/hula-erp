@@ -1,22 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Typography } from 'antd';
-import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, CheckCircleOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber } from 'antd';
+import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 
 const { RangePicker } = DatePicker;
+const { Option } = Select;
 
 const PlanningPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('PENDING');
   const [loading, setLoading] = useState(false);
+  
+  // Data State
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]); // <--- MỚI: Danh sách NCC
   
-  // State dữ liệu phân tích (MRP + Outsourcing)
+  // Analysis Data (Editable)
   const [mrpData, setMrpData] = useState<any>(null); 
-  const [outsourcingList, setOutsourcingList] = useState<any[]>([]); // <--- MỚI: State cho gia công
+  const [outsourcingList, setOutsourcingList] = useState<any[]>([]); 
   
+  // UI State
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -25,12 +30,14 @@ const PlanningPage: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-        const [resSuggest, resPlans] = await Promise.all([
+        const [resSuggest, resPlans, resSupp] = await Promise.all([
             axios.get(`${API_URL}/planning/suggestion`),
-            axios.get(`${API_URL}/planning`)
+            axios.get(`${API_URL}/planning`),
+            axios.get(`${API_URL}/suppliers`) // <--- Load Suppliers
         ]);
         setPendingOrders(Array.isArray(resSuggest.data) ? resSuggest.data : []);
         setPlans(Array.isArray(resPlans.data) ? resPlans.data : []);
+        setSuppliers(Array.isArray(resSupp.data) ? resSupp.data : []);
     } catch(e) { message.error('Lỗi tải dữ liệu'); }
     setLoading(false);
   };
@@ -57,7 +64,6 @@ const PlanningPage: React.FC = () => {
       try {
           const res = await axios.post(`${API_URL}/planning/mrp/${planId}`);
           setMrpData(res.data);
-          // Set danh sách gia công từ response
           setOutsourcingList(res.data.outsourcing_result || []);
           setIsDashboardOpen(true);
           fetchData();
@@ -65,34 +71,43 @@ const PlanningPage: React.FC = () => {
       setLoading(false);
   };
 
-  // --- HÀM TẠO PO CHUNG (NPL hoặc Gia công) ---
   const handleGeneratePOs = async (type: 'MATERIAL' | 'OUTSOURCING') => {
       if (!mrpData) return;
       
-      // Chọn nguồn dữ liệu dựa trên loại
+      // Gửi dữ liệu ĐÃ ĐƯỢC CHỈNH SỬA (trong state) về Backend
       const itemsToOrder = type === 'MATERIAL' ? mrpData.mrp_result : outsourcingList;
       
       try {
           const res = await axios.post(`${API_URL}/planning/${mrpData.plan_info.id}/generate-pos`, { 
-              items: itemsToOrder // Gửi kèm note đã nhập
+              items: itemsToOrder 
           });
           message.success(res.data.message);
-          // Không đóng modal để user có thể tạo tiếp loại kia
       } catch(e) { message.error('Lỗi tạo PO'); }
   };
 
-  // --- HÀM UPDATE GHI CHÚ TRONG STATE ---
-  const handleNoteChange = (type: 'MATERIAL' | 'OUTSOURCING', index: number, value: string) => {
+  // --- MỚI: HÀM XỬ LÝ CHỈNH SỬA DỮ LIỆU TRÊN BẢNG ---
+  const handleDataChange = (type: 'MATERIAL' | 'OUTSOURCING', index: number, field: string, value: any) => {
       if (type === 'MATERIAL') {
           const newData = [...mrpData.mrp_result];
-          newData[index].note = value;
+          newData[index] = { ...newData[index], [field]: value };
+          // Nếu đổi NCC, cập nhật luôn tên NCC để hiển thị (Logic backend group theo tên)
+          if (field === 'supplier_name') {
+             // value ở đây là tên NCC (Select option value)
+          }
           setMrpData({ ...mrpData, mrp_result: newData });
       } else {
           const newData = [...outsourcingList];
-          newData[index].note = value;
+          newData[index] = { ...newData[index], [field]: value };
+          
+          // Tự động tính lại Thành tiền nếu đổi SL hoặc Đơn giá
+          if (field === 'quantity' || field === 'unit_price') {
+              newData[index].total_cost = Number(newData[index].quantity) * Number(newData[index].unit_price);
+          }
+          
           setOutsourcingList(newData);
       }
   };
+  // --------------------------------------------------
 
   const pendingColumns = [
       { title: 'Mã Đơn', dataIndex: 'order_code', render: (t:any) => <b>{t}</b> },
@@ -113,8 +128,9 @@ const PlanningPage: React.FC = () => {
   const renderDashboard = () => {
       if (!mrpData) return null;
       const totalRevenue = mrpData.plan_info.sales_orders.reduce((s:number, o:any) => s + Number(o.total_amount), 0);
+      
+      // Tính lại tổng chi phí realtime dựa trên dữ liệu đang edit
       const estMaterialCost = mrpData.mrp_result.reduce((s:number, i:any) => s + (Number(i.net_requirement) * Number(i.cost)), 0);
-      // Ước tính chi phí gia công
       const estOutsourceCost = outsourcingList.reduce((s:number, i:any) => s + (Number(i.total_cost)), 0);
       
       return (
@@ -135,14 +151,53 @@ const PlanningPage: React.FC = () => {
                               <Table dataSource={mrpData.mrp_result} rowKey="material_id" pagination={false} size="small" scroll={{y: 300}}
                                 columns={[
                                   { title: 'Nguyên Liệu', dataIndex: 'material_name', render: (t:any,r:any) => <div><b>{r.material_code}</b><br/>{t}</div> },
-                                  { title: 'Tổng Cần', dataIndex: 'gross_requirement', align:'center' as const },
-                                  { title: 'Tồn Kho', dataIndex: 'available_stock', align:'center' as const },
-                                  { title: 'Cần Mua', dataIndex: 'net_requirement', align:'center' as const, render: (v:any)=> v>0 ? <b style={{color:'red'}}>{Number(v).toLocaleString()}</b> : '-' },
-                                  { title: 'NCC', dataIndex: 'supplier_name' },
-                                  // --- CỘT GHI CHÚ ---
+                                  { title: 'Tổng Cần', dataIndex: 'gross_requirement', align:'center' as const, width: 80 },
+                                  { title: 'Tồn Kho', dataIndex: 'available_stock', align:'center' as const, width: 80 },
+                                  { 
+                                      title: 'Cần Mua (SL)', 
+                                      dataIndex: 'net_requirement', 
+                                      width: 120,
+                                      render: (v:any, r:any, i:number) => (
+                                          <InputNumber 
+                                              value={v} 
+                                              min={0} 
+                                              onChange={(val) => handleDataChange('MATERIAL', i, 'net_requirement', val)}
+                                              status={v > 0 ? 'warning' : ''}
+                                              style={{width: '100%'}}
+                                          />
+                                      )
+                                  },
+                                  { title: 'ĐVT', align:'center' as const, dataIndex: 'unit', width: 60 },
+                                  {
+                                      title: 'Nhà Cung Cấp',
+                                      dataIndex: 'supplier_name',
+                                      width: 180,
+                                      render: (v:any, r:any, i:number) => (
+                                          <Select 
+                                              value={v}
+                                              style={{width: '100%'}}
+                                              onChange={(val) => handleDataChange('MATERIAL', i, 'supplier_name', val)}
+                                              options={suppliers.filter(s => s.type !== 'MANUFACTURER').map(s => ({ label: s.name, value: s.name }))}
+                                          />
+                                      )
+                                  },
+                                  { 
+                                      title: 'Đơn Giá', 
+                                      dataIndex: 'cost', 
+                                      width: 120,
+                                      render: (v:any, r:any, i:number) => (
+                                          <InputNumber 
+                                              value={v} 
+                                              min={0}
+                                              formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                              onChange={(val) => handleDataChange('MATERIAL', i, 'cost', val)}
+                                              style={{width: '100%'}}
+                                          />
+                                      )
+                                  },
                                   { 
                                       title: 'Ghi chú PO', 
-                                      render: (t:any, r:any, idx:number) => <Input size="small" value={r.note} onChange={(e) => handleNoteChange('MATERIAL', idx, e.target.value)} placeholder="Note..." /> 
+                                      render: (t:any, r:any, i:number) => <Input size="small" value={r.note} onChange={(e) => handleDataChange('MATERIAL', i, 'note', e.target.value)} placeholder="Note..." /> 
                                   }
                               ]} />
                               <div style={{marginTop: 15, textAlign:'right'}}><Button type="primary" icon={<AppstoreAddOutlined />} onClick={() => handleGeneratePOs('MATERIAL')}>Tạo PO Nguyên Liệu</Button></div>
@@ -150,23 +205,58 @@ const PlanningPage: React.FC = () => {
                       )
                   },
                   {
-                      // --- TAB GIA CÔNG MỚI ---
                       key: '2', label: '2. Nhu Cầu Gia Công (Outsource)',
                       children: (
                           <div>
                               <Table dataSource={outsourcingList} rowKey={(r,i)=>i||0} pagination={false} size="small" scroll={{y: 300}}
                                 columns={[
-                                  { title: 'Sản Phẩm', dataIndex: 'product_sku', render: (t:any) => <b>{t}</b> },
-                                  { title: 'Công Đoạn', dataIndex: 'step_name' },
-                                  { title: 'Nhà Gia Công', dataIndex: 'supplier_name', render: (t:any) => <Tag color="blue">{t || 'Chưa gán'}</Tag> },
-                                  { title: 'Số Lượng', dataIndex: 'quantity', align:'center' as const },
-                                  { title: 'Đơn Giá', dataIndex: 'unit_price', align:'right' as const, render: (v:any) => Number(v).toLocaleString() },
-                                  { title: 'Thành Tiền', dataIndex: 'total_cost', align:'right' as const, render: (v:any) => <b>{Number(v).toLocaleString()}</b> },
-                                  // --- CỘT GHI CHÚ ---
+                                  { title: 'Sản Phẩm', dataIndex: 'product_sku', width: 100, render: (t:any) => <b>{t}</b> },
+                                  { title: 'Công Đoạn', dataIndex: 'step_name', width: 150 },
+                                  { 
+                                      title: 'Nhà Gia Công', 
+                                      dataIndex: 'supplier_name', 
+                                      width: 180,
+                                      render: (v:any, r:any, i:number) => (
+                                          <Select 
+                                              value={v}
+                                              style={{width: '100%'}}
+                                              placeholder="Chọn Nhà GC"
+                                              onChange={(val) => handleDataChange('OUTSOURCING', i, 'supplier_name', val)}
+                                              options={suppliers.filter(s => s.type !== 'MATERIAL').map(s => ({ label: s.name, value: s.name }))}
+                                          />
+                                      )
+                                  },
+                                  { 
+                                      title: 'Số Lượng', 
+                                      dataIndex: 'quantity', 
+                                      width: 100,
+                                      render: (v:any, r:any, i:number) => (
+                                          <InputNumber 
+                                              value={v} 
+                                              min={0} 
+                                              onChange={(val) => handleDataChange('OUTSOURCING', i, 'quantity', val)}
+                                              style={{width: '100%'}}
+                                          />
+                                      )
+                                  },
+                                  { 
+                                      title: 'Đơn Giá', 
+                                      dataIndex: 'unit_price', 
+                                      width: 120,
+                                      render: (v:any, r:any, i:number) => (
+                                          <InputNumber 
+                                              value={v} 
+                                              min={0}
+                                              formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                              onChange={(val) => handleDataChange('OUTSOURCING', i, 'unit_price', val)}
+                                              style={{width: '100%'}}
+                                          />
+                                      )
+                                  },
+                                  { title: 'Thành Tiền', dataIndex: 'total_cost', align:'right' as const, width: 120, render: (v:any) => <b>{Number(v).toLocaleString()}</b> },
                                   { 
                                       title: 'Ghi chú PO', 
-                                      width: 200,
-                                      render: (t:any, r:any, idx:number) => <Input size="small" value={r.note} onChange={(e) => handleNoteChange('OUTSOURCING', idx, e.target.value)} placeholder="Ghi chú đơn hàng..." /> 
+                                      render: (t:any, r:any, i:number) => <Input size="small" value={r.note} onChange={(e) => handleDataChange('OUTSOURCING', i, 'note', e.target.value)} placeholder="Ghi chú đơn hàng..." /> 
                                   }
                               ]} />
                               <div style={{marginTop: 15, textAlign:'right'}}><Button type="primary" style={{backgroundColor:'#d46b08'}} icon={<ScissorOutlined />} onClick={() => handleGeneratePOs('OUTSOURCING')}>Tạo Đơn Hàng Gia Công</Button></div>
@@ -177,7 +267,7 @@ const PlanningPage: React.FC = () => {
                       key: '3', label: '3. Tiến Độ (Gantt)',
                       children: (
                           <div>
-                              {mrpData.gantt_data.map((task:any) => (
+                              {mrpData?.gantt_data?.map((task:any) => (
                                   <div key={task.id} style={{marginBottom: 15}}>
                                       <div style={{display:'flex', justifyContent:'space-between'}}><strong>{task.name}</strong><small>{dayjs(task.end).format('DD/MM')}</small></div>
                                       <Progress percent={30} strokeColor="#1890ff" trailColor="#f0f0f0" />
