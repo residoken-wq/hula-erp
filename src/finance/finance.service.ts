@@ -3,28 +3,20 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Transaction } from './transaction.entity';
 import { TransactionCategory } from './transaction-category.entity';
-import { PurchasingService } from '../purchasing/purchasing.service'; // Import Service
+import { PurchasingService } from '../purchasing/purchasing.service'; 
 
 @Injectable()
 export class FinanceService {
   constructor(
     @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
     @InjectRepository(TransactionCategory) private catRepo: Repository<TransactionCategory>,
-    @Inject(forwardRef(() => PurchasingService)) private purchasingService: PurchasingService, // Inject Service
+    @Inject(forwardRef(() => PurchasingService)) private purchasingService: PurchasingService,
   ) {}
 
+  // ... (Giữ nguyên các hàm Category) ...
   async getCategories() { return this.catRepo.find({ order: { type: 'ASC', name: 'ASC' } }); }
-  
-  async createCategory(data: any) { 
-      const cat = this.catRepo.create(data);
-      return this.catRepo.save(cat); 
-  }
-
-  async updateCategory(id: number, data: any) {
-      await this.catRepo.update(id, data);
-      return this.catRepo.findOne({ where: { id } });
-  }
-  
+  async createCategory(data: any) { return this.catRepo.save(this.catRepo.create(data)); }
+  async updateCategory(id: number, data: any) { await this.catRepo.update(id, data); return this.catRepo.findOne({ where: { id } }); }
   async deleteCategory(id: number) { return this.catRepo.delete(id); }
 
   async getAllTransactions(month?: string) {
@@ -35,23 +27,24 @@ export class FinanceService {
           const end = new Date(Number(y), Number(m), 0);
           where = { date: Between(start.toISOString().split('T')[0], end.toISOString().split('T')[0]) };
       }
-      return this.transRepo.find({ 
-          where, 
-          relations: ['category'], 
-          order: { date: 'DESC', id: 'DESC' } 
-      });
+      return this.transRepo.find({ where, relations: ['category'], order: { date: 'DESC', id: 'DESC' } });
   }
 
-  // Tạo phiếu thu/chi thông thường
-  async createTransaction(data: any) {
-      let category = null;
-      if (data.category_id) category = await this.catRepo.findOne({ where: { id: data.category_id } });
+  // --- MỚI: LẤY LỊCH SỬ GIAO DỊCH THEO MÃ THAM CHIẾU (PO/SO) ---
+  async getTransactionsByRef(refCode: string) {
+      return this.transRepo.find({ 
+          where: { reference_code: refCode },
+          order: { date: 'DESC', created_at: 'DESC' }
+      });
+  }
+  // -------------------------------------------------------------
 
-      const trans = this.transRepo.create({ ...data, category });
+  async createTransaction(data: any) {
+      const trans = this.transRepo.create(data);
       return this.transRepo.save(trans);
   }
 
-  // Tạo phiếu Thu tiền từ Đơn Bán Hàng (Sales)
+  // Payment Sales (Thu tiền)
   async createPayment(data: any) {
       const trans = this.transRepo.create({
           date: new Date().toISOString().split('T')[0],
@@ -64,28 +57,31 @@ export class FinanceService {
       return this.transRepo.save(trans);
   }
 
-  // --- MỚI: Tạo phiếu Chi tiền cho Đơn Mua Hàng (Purchasing) ---
+  // --- CẬP NHẬT: THANH TOÁN PO (CHI TIỀN) ---
   async createPOPayment(data: any) {
-      // data: { amount, poCode, note }
+      // data: { amount, poCode, note, date, vatCode, vatUrl }
       const trans = this.transRepo.create({
-          date: new Date().toISOString().split('T')[0],
-          type: 'EXPENSE', // Chi tiền
+          date: data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          type: 'EXPENSE', 
           amount: Number(data.amount),
           reference_code: data.poCode, 
           reference_type: 'PURCHASE',
-          description: data.note || `Thanh toán cho đơn ${data.poCode}`,
+          description: data.note || `Thanh toán PO ${data.poCode}`,
+          
+          // Lưu thông tin VAT
+          vat_invoice_code: data.vatCode,
+          vat_invoice_url: data.vatUrl
       });
       
       const saved = await this.transRepo.save(trans);
 
-      // Cập nhật ngược lại số tiền đã trả cho PO
+      // Cộng dồn số tiền đã trả vào PO
       if (data.poCode) {
           await this.purchasingService.updatePayment(data.poCode, Number(data.amount));
       }
-
       return saved;
   }
-  // -------------------------------------------------------------
+  // ------------------------------------------
 
   async deleteTransaction(id: number) { return this.transRepo.delete(id); }
 

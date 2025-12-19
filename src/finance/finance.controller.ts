@@ -15,12 +15,18 @@ export class FinanceController {
   @Post('transactions') createTransaction(@Body() b: any) { return this.s.createTransaction(b); }
   @Delete('transactions/:id') deleteTransaction(@Param('id') id: number) { return this.s.deleteTransaction(id); }
 
-  // Sales Payment
+  // --- MỚI: API LỊCH SỬ THANH TOÁN CỦA 1 ĐƠN HÀNG ---
+  @Get('history/:refCode')
+  getHistory(@Param('refCode') refCode: string) {
+      return this.s.getTransactionsByRef(refCode);
+  }
+  // --------------------------------------------------
+
   @Post('payment') createPayment(@Body() b: any) { return this.s.createPayment(b); }
 
-  // --- MỚI: PO Payment ---
   @Post('payment/po') 
   createPOPayment(@Body() b: any) { 
+      // b includes: amount, poCode, note, date, vatCode, vatUrl
       return this.s.createPOPayment(b); 
   }
 }

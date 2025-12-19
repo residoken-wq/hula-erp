@@ -7,7 +7,7 @@ export class Transaction {
   id: number;
 
   @Column({ type: 'date' })
-  date: string;
+  date: string; // Ngày ghi nhận giao dịch
 
   @Column()
   type: 'INCOME' | 'EXPENSE';
@@ -25,12 +25,20 @@ export class Transaction {
   @Column({ nullable: true })
   description: string;
 
-  // --- LIÊN KẾT TỰ ĐỘNG (Auto ref) ---
+  // --- LIÊN KẾT TỰ ĐỘNG ---
   @Column({ nullable: true })
-  reference_code: string; // Mã đơn hàng (nếu có)
+  reference_code: string; // Mã đơn hàng (PO-..., SO-...)
 
   @Column({ nullable: true })
-  reference_type: string; // SALES_ORDER, PURCHASE_ORDER, etc.
+  reference_type: string; // SALES, PURCHASE
+
+  // --- MỚI: THÔNG TIN HÓA ĐƠN VAT ---
+  @Column({ nullable: true })
+  vat_invoice_code: string; // Số hóa đơn VAT
+
+  @Column({ nullable: true })
+  vat_invoice_url: string; // Link ảnh/file hóa đơn
+  // ---------------------------------
 
   @CreateDateColumn()
   created_at: Date;
