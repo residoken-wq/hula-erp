@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form, Input, Select, DatePicker, Tag, message, Popconfirm, Progress, List, Avatar, Tooltip } from 'antd';
+import { 
+    Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form, 
+    Input, Select, DatePicker, Tag, message, Popconfirm, 
+    Radio, InputNumber // <--- ĐÃ BỔ SUNG IMPORT CÒN THIẾU
+} from 'antd';
 import { 
     WalletOutlined, ArrowUpOutlined, ArrowDownOutlined, 
     PlusOutlined, DeleteOutlined, BankOutlined, 
@@ -35,9 +39,9 @@ const FinancePage: React.FC = () => {
                 axios.get(`${API_URL}/finance/categories`),
                 axios.get(`${API_URL}/finance/summary`) // Tổng lũy kế
             ]);
-            setTransactions(resTrans.data);
-            setCategories(resCat.data);
-            setSummary(resSum.data);
+            setTransactions(Array.isArray(resTrans.data) ? resTrans.data : []);
+            setCategories(Array.isArray(resCat.data) ? resCat.data : []);
+            setSummary(resSum.data || { income: 0, expense: 0, balance: 0 });
         } catch(e) { message.error('Lỗi tải dữ liệu'); }
         setLoading(false);
     };
@@ -75,9 +79,6 @@ const FinancePage: React.FC = () => {
         try { await axios.delete(`${API_URL}/finance/${endpoint}/${id}`); message.success('Đã xóa'); fetchData(); }
         catch(e) { message.error('Không thể xóa'); }
     };
-
-    // --- HELPERS ---
-    const getCatColor = (type: string) => type === 'INCOME' ? 'green' : 'red';
 
     // --- COMPONENTS ---
     const columnsTrans = [
@@ -139,33 +140,42 @@ const FinancePage: React.FC = () => {
                     </div>
                 }
             >
-                <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
-                    <Tabs.TabPane tab={<span><FileTextOutlined /> Danh sách Giao dịch</span>} key="1">
-                        <div style={{marginBottom: 16, textAlign: 'right'}}>
-                            <Button type="primary" icon={<PlusOutlined/>} onClick={()=>{formTrans.resetFields(); setIsTransModalOpen(true)}}>Lập Phiếu Thu/Chi</Button>
-                        </div>
-                        <Table dataSource={transactions} columns={columnsTrans} rowKey="id" loading={loading} pagination={{pageSize: 10}} />
-                    </Tabs.TabPane>
-                    
-                    <Tabs.TabPane tab={<span><PieChartOutlined /> Quản lý Danh mục Thu/Chi</span>} key="2">
-                        <Row gutter={24}>
-                            <Col span={16}>
-                                <Table dataSource={categories} columns={columnsCat} rowKey="id" pagination={false} size="small" />
-                            </Col>
-                            <Col span={8}>
-                                <Card title="Thêm Danh mục mới" size="small" style={{background:'#f9f9f9'}}>
-                                    <Form form={formCat} layout="vertical" onFinish={handleSaveCat}>
-                                        <Form.Item name="name" label="Tên danh mục" rules={[{required:true}]}><Input placeholder="Vd: Tiền điện, Tiếp khách..."/></Form.Item>
-                                        <Form.Item name="type" label="Loại" initialValue="EXPENSE"><Radio.Group options={[{label:'Thu', value:'INCOME'}, {label:'Chi', value:'EXPENSE'}]} optionType="button" buttonStyle="solid" /></Form.Item>
-                                        <Form.Item name="color" label="Màu nhãn"><Input type="color" style={{width: 50, padding: 0, border:'none'}}/></Form.Item>
-                                        <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2}/></Form.Item>
-                                        <Button type="primary" htmlType="submit" block icon={<PlusOutlined/>}>Thêm Danh mục</Button>
-                                    </Form>
-                                </Card>
-                            </Col>
-                        </Row>
-                    </Tabs.TabPane>
-                </Tabs>
+                <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" items={[
+                    {
+                        key: '1', 
+                        label: <span><FileTextOutlined /> Danh sách Giao dịch</span>, 
+                        children: (
+                            <>
+                                <div style={{marginBottom: 16, textAlign: 'right'}}>
+                                    <Button type="primary" icon={<PlusOutlined/>} onClick={()=>{formTrans.resetFields(); setIsTransModalOpen(true)}}>Lập Phiếu Thu/Chi</Button>
+                                </div>
+                                <Table dataSource={transactions} columns={columnsTrans} rowKey="id" loading={loading} pagination={{pageSize: 10}} />
+                            </>
+                        )
+                    },
+                    {
+                        key: '2', 
+                        label: <span><PieChartOutlined /> Quản lý Danh mục Thu/Chi</span>, 
+                        children: (
+                            <Row gutter={24}>
+                                <Col span={16}>
+                                    <Table dataSource={categories} columns={columnsCat} rowKey="id" pagination={false} size="small" />
+                                </Col>
+                                <Col span={8}>
+                                    <Card title="Thêm Danh mục mới" size="small" style={{background:'#f9f9f9'}}>
+                                        <Form form={formCat} layout="vertical" onFinish={handleSaveCat}>
+                                            <Form.Item name="name" label="Tên danh mục" rules={[{required:true}]}><Input placeholder="Vd: Tiền điện, Tiếp khách..."/></Form.Item>
+                                            <Form.Item name="type" label="Loại" initialValue="EXPENSE"><Radio.Group options={[{label:'Thu', value:'INCOME'}, {label:'Chi', value:'EXPENSE'}]} optionType="button" buttonStyle="solid" /></Form.Item>
+                                            <Form.Item name="color" label="Màu nhãn"><Input type="color" style={{width: 50, padding: 0, border:'none'}}/></Form.Item>
+                                            <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2}/></Form.Item>
+                                            <Button type="primary" htmlType="submit" block icon={<PlusOutlined/>}>Thêm Danh mục</Button>
+                                        </Form>
+                                    </Card>
+                                </Col>
+                            </Row>
+                        )
+                    }
+                ]} />
             </Card>
 
             {/* MODAL TẠO GIAO DỊCH */}
@@ -173,7 +183,15 @@ const FinancePage: React.FC = () => {
                 <Form form={formTrans} layout="vertical" onFinish={handleSaveTrans} initialValues={{ date: dayjs() }}>
                     <Row gutter={16}>
                         <Col span={12}><Form.Item name="date" label="Ngày giao dịch" rules={[{required:true}]}><DatePicker style={{width:'100%'}} format="DD/MM/YYYY"/></Form.Item></Col>
-                        <Col span={12}><Form.Item name="amount" label="Số tiền" rules={[{required:true}]}><InputNumber style={{width:'100%'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} addonAfter="₫"/></Form.Item></Col>
+                        <Col span={12}>
+                            <Form.Item name="amount" label="Số tiền" rules={[{required:true}]}>
+                                <InputNumber 
+                                    style={{width:'100%'}} 
+                                    formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} // <--- FIX LỖI TYPE
+                                    addonAfter="₫"
+                                />
+                            </Form.Item>
+                        </Col>
                     </Row>
                     
                     <Form.Item name="category_id" label="Danh mục (Tự động xác định Thu/Chi)" rules={[{required:true}]}>
