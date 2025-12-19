@@ -21,11 +21,13 @@ const PlanningPage: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-        const resSuggest = await axios.get(`${API_URL}/planning/suggestion`);
-        setPendingOrders(resSuggest.data);
-        const resPlans = await axios.get(`${API_URL}/planning`);
-        setPlans(resPlans.data);
-    } catch(e) { }
+        const [resSuggest, resPlans] = await Promise.all([
+            axios.get(`${API_URL}/planning/suggestion`),
+            axios.get(`${API_URL}/planning`)
+        ]);
+        setPendingOrders(Array.isArray(resSuggest.data) ? resSuggest.data : []);
+        setPlans(Array.isArray(resPlans.data) ? resPlans.data : []);
+    } catch(e) { message.error('Lỗi tải dữ liệu'); }
     setLoading(false);
   };
 
@@ -69,6 +71,15 @@ const PlanningPage: React.FC = () => {
   const pendingColumns = [
       { title: 'Mã Đơn', dataIndex: 'order_code', render: (t:any) => <b>{t}</b> },
       { title: 'Khách Hàng', dataIndex: 'customer_name' },
+      { 
+          title: 'Trạng Thái', dataIndex: 'status', 
+          render: (t:any) => {
+              if (t === 'SO_PENDING') return <Tag color="blue">Chờ duyệt mẫu</Tag>;
+              if (t === 'SAMPLE_APPROVED') return <Tag color="cyan">Đã duyệt mẫu</Tag>;
+              if (t === 'DEPOSITED') return <Tag color="purple">Đã cọc</Tag>;
+              return <Tag>{t}</Tag>;
+          }
+      },
       { title: 'Ngày Giao', dataIndex: 'delivery_date', render: (t:any) => t ? <Tag color="red">{dayjs(t).format('DD/MM/YYYY')}</Tag> : '-' },
       { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v:any) => Number(v).toLocaleString() }
   ];
@@ -103,12 +114,11 @@ const PlanningPage: React.FC = () => {
                           <div>
                               <Table dataSource={mrpData.mrp_result} rowKey="material_id" pagination={false} size="small" scroll={{y: 300}}
                                 columns={[
-                                  // FIX: Type any cho r
                                   { title: 'Nguyên Liệu', dataIndex: 'material_name', render: (t:any,r:any) => <div><b>{r.material_code}</b><br/>{t}</div> },
-                                  { title: 'Tổng Cần', dataIndex: 'gross_requirement', align:'center' },
-                                  { title: 'Tồn Kho', dataIndex: 'available_stock', align:'center' },
-                                  { title: 'Cần Mua Thêm', dataIndex: 'net_requirement', align:'center', render: (v:any)=> v>0 ? <b style={{color:'red'}}>{Number(v).toLocaleString()}</b> : '-' },
-                                  { title: 'TT', align:'center', render: (v:any) => 'Cái' }
+                                  { title: 'Tổng Cần', dataIndex: 'gross_requirement', align:'center' as const },
+                                  { title: 'Tồn Kho', dataIndex: 'available_stock', align:'center' as const },
+                                  { title: 'Cần Mua Thêm', dataIndex: 'net_requirement', align:'center' as const, render: (v:any)=> v>0 ? <b style={{color:'red'}}>{Number(v).toLocaleString()}</b> : '-' },
+                                  { title: 'ĐVT', align:'center' as const, dataIndex: 'unit' }
                               ]} />
                               <div style={{marginTop: 20, textAlign:'right'}}><Button type="primary" icon={<AppstoreAddOutlined />} onClick={handleGeneratePOs}>Tạo Đơn Mua Hàng (PO) Tự Động</Button></div>
                           </div>

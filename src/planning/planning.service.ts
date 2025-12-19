@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, IsNull } from 'typeorm'; // Import thêm IsNull
 import { ProductionPlan, PlanStatus } from './production-plan.entity';
 import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
 import { ProductsService } from '../products/products.service';
@@ -19,23 +19,53 @@ export class PlanningService {
     private materialsService: MaterialsService,
   ) {}
 
+  // --- FIX: MỞ RỘNG ĐIỀU KIỆN LẤY ĐƠN HÀNG ---
   async getSuggestion() {
-      return this.orderRepo.find({ where: { status: SalesOrderStatus.DEPOSITED, plan_id: null }, order: { delivery_date: 'ASC' } });
+      return this.orderRepo.find({ 
+          where: { 
+              // Lấy các đơn hàng đã chốt (Pending), Đã duyệt mẫu, hoặc Đã cọc
+              status: In([
+                  SalesOrderStatus.SO_PENDING, 
+                  SalesOrderStatus.SAMPLE_APPROVED, 
+                  SalesOrderStatus.DEPOSITED
+              ]), 
+              plan_id: IsNull() // Chỉ lấy đơn chưa có trong kế hoạch nào
+          }, 
+          order: { delivery_date: 'ASC' } 
+      });
   }
+  // -------------------------------------------
 
   async createPlan(data: any) {
     const orders = await this.orderRepo.find({ where: { order_code: In(data.orderCodes) } });
+    
+    // Validate: Nếu không tìm thấy đơn
+    if (!orders || orders.length === 0) {
+        throw new BadRequestException('Không tìm thấy đơn hàng hợp lệ để tạo kế hoạch');
+    }
+
     const plan = this.planRepo.create({
-        code: data.code, name: data.name, start_date: data.start_date, end_date: data.end_date, status: PlanStatus.DRAFT
+        code: data.code, 
+        name: data.name, 
+        start_date: data.start_date, 
+        end_date: data.end_date, 
+        status: PlanStatus.DRAFT
     });
+    
     const saved = await this.planRepo.save(plan);
-    await this.orderRepo.update({ id: In(orders.map(o => o.id)) }, { plan_id: saved.id, status: SalesOrderStatus.PLANNED });
+    
+    // Cập nhật Sales Orders: Gán plan_id và chuyển trạng thái sang PLANNED
+    await this.orderRepo.update(
+        { id: In(orders.map(o => o.id)) }, 
+        { plan_id: saved.id, status: SalesOrderStatus.PLANNED } // Giả sử có enum PLANNED, nếu không giữ nguyên status cũ
+    );
+    
     return saved;
   }
 
   async calculateMaterialNeeds(planId: number) {
     const plan = await this.planRepo.findOne({ where: { id: planId }, relations: ['sales_orders', 'sales_orders.items'] });
-    if (!plan) throw new NotFoundException();
+    if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
 
     const productDemand = new Map<string, number>();
     plan.sales_orders.forEach(so => {
@@ -83,6 +113,8 @@ export class PlanningService {
   }
 
   async generatePos(planId: number, mrpData: any[]) {
+      if (!mrpData || !Array.isArray(mrpData)) throw new BadRequestException('Dữ liệu MRP không hợp lệ');
+
       const supplierGroups = {};
       for (const item of mrpData) {
           if (item.net_requirement > 0) {
@@ -104,7 +136,6 @@ export class PlanningService {
           
           let total = 0;
           
-          // --- FIX: Double Cast (as unknown as PurchaseOrderItem) ---
           po.items = (items as any[]).map(i => {
               const sub = i.net_requirement * i.cost;
               total += sub;

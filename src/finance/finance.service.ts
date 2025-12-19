@@ -19,12 +19,10 @@ export class FinanceService {
       return this.catRepo.save(cat); 
   }
 
-  // --- MỚI: HÀM UPDATE CATEGORY ---
   async updateCategory(id: number, data: any) {
       await this.catRepo.update(id, data);
       return this.catRepo.findOne({ where: { id } });
   }
-  // -------------------------------
   
   async deleteCategory(id: number) { return this.catRepo.delete(id); }
 
@@ -54,6 +52,27 @@ export class FinanceService {
       });
       return this.transRepo.save(trans);
   }
+
+  // --- FIX: HÀM TẠO THANH TOÁN TỪ SALES ---
+  async createPayment(data: any) {
+      // data: { type: 'INCOME', amount, refCode, note }
+      
+      // Tự động tìm category "Thu bán hàng" nếu có (Optional)
+      // const cat = await this.catRepo.findOne({ where: { name: 'Thu bán hàng' } });
+
+      const trans = this.transRepo.create({
+          date: new Date().toISOString().split('T')[0], // Ngày hiện tại
+          type: data.type || 'INCOME',
+          amount: Number(data.amount),
+          reference_code: data.refCode, // Mã đơn hàng (VD: SO-251219-53)
+          reference_type: 'SALES',
+          description: data.note,
+          // category: cat // Gán nếu tìm thấy
+      });
+      
+      return this.transRepo.save(trans);
+  }
+  // ----------------------------------------
 
   async deleteTransaction(id: number) { return this.transRepo.delete(id); }
 
