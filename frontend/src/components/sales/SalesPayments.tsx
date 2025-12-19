@@ -3,7 +3,7 @@ import { Table, Button, Statistic, Row, Col, Divider, Modal, Form, InputNumber, 
 import { DollarOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { API_URL } from '../config';
+import { API_URL } from '../../config'; // <--- FIX: Lùi 2 cấp thư mục
 
 interface Props { 
     orderId: number; 
@@ -22,17 +22,14 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
 
     const fetchHistory = async () => {
         try {
-            // Lấy lịch sử thanh toán của đơn hàng này
             const res = await axios.get(`${API_URL}/sales/${orderCode}/payments`);
             setHistory(Array.isArray(res.data) ? res.data : []);
-        } catch (e) {
-            // Không show lỗi nếu chưa có thanh toán nào
-        }
+        } catch (e) {}
     };
 
     useEffect(() => { 
         if (orderCode) fetchHistory(); 
-    }, [orderCode, paidAmount]); // Reload khi paidAmount thay đổi (tức là sau khi thanh toán thành công)
+    }, [orderCode, paidAmount]);
 
     const handlePayment = async () => {
         if (amount <= 0) return message.warning('Nhập số tiền hợp lệ');
@@ -41,7 +38,6 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
         const finalNote = `${prefix} ${note}`.trim();
 
         try {
-            // Gọi API Finance Payment (Đã fix 404)
             await axios.post(`${API_URL}/finance/payment`, {
                 type: 'INCOME', 
                 amount, 
@@ -54,9 +50,8 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
             setAmount(0);
             setNote('');
             
-            // Refresh dữ liệu
             fetchHistory(); 
-            onSuccess(); // Gọi callback để SalesPage reload lại paidAmount
+            onSuccess();
         } catch (e) { 
             message.error('Lỗi lưu thanh toán'); 
         }

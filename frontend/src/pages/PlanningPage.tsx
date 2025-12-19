@@ -10,8 +10,12 @@ const { RangePicker } = DatePicker;
 const PlanningPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('PENDING');
   const [loading, setLoading] = useState(false);
-  const [pendingOrders, setPendingOrders] = useState([]);
-  const [plans, setPlans] = useState([]);
+  
+  // --- FIX: Thêm <any[]> để tránh lỗi 'never[]' ---
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
+  // ------------------------------------------------
+  
   const [mrpData, setMrpData] = useState<any>(null); 
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
