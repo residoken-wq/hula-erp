@@ -32,7 +32,7 @@ import { SalesOrder } from './sales/sales-order.entity';
 import { SalesOrderItem } from './sales/sales-order-item.entity';
 import { ProductSample } from './sales/product-sample.entity';
 import { SalesDelivery } from './sales/sales-delivery.entity';
-import { SalesDeliveryItem } from './sales/sales-delivery-item.entity';
+import { SalesDeliveryItem } from './sales-delivery-item.entity';
 import { SalesComment } from './sales/sales-comment.entity';
 import { PriceList } from './sales/pricelist/price-list.entity';
 import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
@@ -40,18 +40,17 @@ import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
 import { StockHistory } from './inventory/stock-history.entity';
 import { InventoryStock } from './inventory/inventory-stock.entity';
 
-// --- CẬP NHẬT ENTITIES MỚI CHO PURCHASING ---
 import { PurchaseOrder } from './purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from './purchasing/entities/purchase-order-item.entity';
-import { GoodsReceipt } from './purchasing/entities/goods-receipt.entity'; // <--- MỚI
-// import { PurchaseDelivery } from './purchasing/purchase-delivery.entity'; // (Cũ - Tạm ẩn)
+import { GoodsReceipt } from './purchasing/entities/goods-receipt.entity';
 
-// --- CẬP NHẬT ENTITIES MỚI CHO PRODUCTION ---
-import { ProductionOrder } from './production/entities/production-order.entity'; // <--- MỚI
-// import { WorkOrder } from './production/work-order.entity'; // (Cũ - Tạm ẩn)
-// import { WorkOrderStep } from './production/work-order-step.entity'; // (Cũ - Tạm ẩn)
+import { ProductionOrder } from './production/entities/production-order.entity';
 
+// --- FINANCE ENTITIES ---
 import { Transaction } from './finance/transaction.entity';
+import { TransactionCategory } from './finance/transaction-category.entity'; // <--- MỚI: Danh mục Thu/Chi
+// ------------------------
+
 import { Supplier } from './suppliers/supplier.entity';
 import { SupplierMaterial } from './suppliers/supplier-material.entity';
 import { SupplierContact } from './suppliers/supplier-contact.entity';
@@ -73,7 +72,7 @@ import { GroupPermission } from './users/entities/group-permission.entity';
       type: 'postgres',
       host: process.env.DB_HOST || 'db',
       port: 5432,
-      username: process.env.DB_USERNAME || 'hula_user', // Dùng biến môi trường hoặc fallback
+      username: process.env.DB_USERNAME || 'hula_user',
       password: process.env.DB_PASSWORD || 'hula_password',
       database: process.env.DB_DATABASE || 'hula_db',
       entities: [
@@ -84,29 +83,27 @@ import { GroupPermission } from './users/entities/group-permission.entity';
         SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
         PriceList, PriceListRule,
         
-        // Mua hàng (Đã cập nhật)
+        // Mua hàng
         PurchaseOrder, PurchaseOrderItem, GoodsReceipt, 
-        // PurchaseDelivery, // (Cũ)
         
         // Kho
         StockHistory, InventoryStock,
         
-        // Sản xuất (Đã cập nhật)
+        // Sản xuất
         ProductionOrder, 
-        // WorkOrder, WorkOrderStep, // (Cũ)
         
-        // Tài chính & Đối tác
-        Transaction,
+        // Tài chính (Đã cập nhật)
+        Transaction, TransactionCategory, 
+        
+        // Đối tác & Khác
         Supplier, SupplierMaterial, SupplierContact,
         Customer, CustomerContact,
-        
-        // Kế hoạch & Danh mục
         ProductionPlan, Process, Category,
         
         // Hệ thống & User
         User, UserGroup, GroupPermission
       ], 
-      synchronize: true, // Auto create tables (Cẩn thận khi dùng trên production)
+      synchronize: true, 
     }),
     
     // Modules Registry

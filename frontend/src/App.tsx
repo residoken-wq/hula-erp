@@ -3,7 +3,7 @@ import { Layout, Menu, theme, Button, Avatar, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
-  SettingOutlined, UserOutlined, LogoutOutlined
+  SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined // <--- MỚI: Icon Tài chính
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
@@ -28,6 +28,7 @@ import UsersPage from './pages/UsersPage';
 import UserGroupsPage from './pages/UserGroupsPage';
 import LoginPage from './pages/LoginPage';
 import InventoryPage from './pages/InventoryPage';
+import FinancePage from './pages/FinancePage'; // <--- MỚI: Page Tài chính
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -54,13 +55,9 @@ const App: React.FC = () => {
         setIsAuthenticated(true);
         setCurrentUser(user);
         
-        // Load permissions
         const perms = user.permissions || [];
         setPermissions(perms);
         
-        // Debug: Xem quyền thực tế nhận được là gì
-        console.log('App Permissions Loaded:', perms);
-
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
   }, []);
@@ -72,25 +69,23 @@ const App: React.FC = () => {
       window.location.href = '/login';
   };
 
-  // --- HÀM KIỂM TRA QUYỀN (ĐÃ FIX: DÙNG MODULE_CODE) ---
+  // --- HÀM KIỂM TRA QUYỀN ---
   const hasPerm = (moduleCode: string) => {
       if (currentUser?.username === 'admin') return true; 
-      
-      // Tìm theo module_code (VD: 'SALES', 'PRODUCT') thay vì tên tiếng Việt
       const p = permissions.find((perm: any) => perm.module_code === moduleCode);
       return !!(p && (p.can_view === true || p.can_view === 1));
   };
 
-  // --- TẠO MENU ĐỘNG DỰA TRÊN CODE ---
+  // --- TẠO MENU ĐỘNG ---
   const menuItems = useMemo(() => {
       const items: MenuItem[] = [];
 
-      // 1. Tổng quan (DASHBOARD)
+      // 1. Tổng quan
       if (hasPerm('DASHBOARD') || true) { 
           items.push(getItem(<Link to="/">Tổng quan</Link>, '1', <PieChartOutlined />));
       }
 
-      // 2. Quản lý sản phẩm (PRODUCT)
+      // 2. Quản lý sản phẩm
       if (hasPerm('PRODUCT')) {
           items.push(getItem('Quản lý sản phẩm', 'sub_prod', <ShopOutlined />, [
             getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'),
@@ -99,12 +94,12 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 3. Nhập liệu (Gộp quyền)
+      // 3. Nhập liệu
       if (hasPerm('PRODUCT') || hasPerm('INVENTORY')) {
           items.push(getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />));
       }
 
-      // 4. Kho hàng & NCC (INVENTORY)
+      // 4. Kho hàng & NCC
       if (hasPerm('INVENTORY')) {
           items.push(getItem('Kho hàng & NCC', 'sub1', <DropboxOutlined />, [
             getItem(<Link to="/materials">Nguyên liệu</Link>, '3'),
@@ -114,7 +109,7 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 5. Bán hàng (SALES) --> Đây là cái User Sales cần thấy
+      // 5. Bán hàng (CRM)
       if (hasPerm('SALES')) {
           items.push(getItem('Bán hàng (CRM)', 'sub2', <TeamOutlined />, [ 
             getItem(<Link to="/sales">Pipeline Bán Hàng</Link>, '5'),
@@ -123,7 +118,7 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 6. Sản xuất (PRODUCTION)
+      // 6. Sản xuất (MRP)
       if (hasPerm('PRODUCTION')) {
           items.push(getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
             getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
@@ -132,7 +127,12 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 7. Hệ thống (USERS)
+      // 7. Tài chính (MỚI) - Lưu ý: Cần thêm quyền FINANCE vào DB nếu chưa có
+      if (hasPerm('FINANCE') || hasPerm('SALES')) { 
+          items.push(getItem(<Link to="/finance">Tài chính (Thu/Chi)</Link>, 'finance', <BankOutlined />));
+      }
+
+      // 8. Hệ thống (Admin)
       if (hasPerm('USERS')) {
           items.push(getItem('Hệ thống & Phân quyền', 'sub_sys', <SettingOutlined />, [
             getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
@@ -177,8 +177,6 @@ const App: React.FC = () => {
                     <Routes>
                         <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
                         
-                        {/* --- PROTECTED ROUTES: Check theo CODE --- */}
-                        
                         {(hasPerm('PRODUCT') || hasPerm('INVENTORY')) && <Route path="/upload" element={<UploadPage />} />}
                         
                         {hasPerm('PRODUCT') && (
@@ -213,6 +211,12 @@ const App: React.FC = () => {
                                 <Route path="/processes" element={<ProcessesPage />} />
                             </>
                         )}
+
+                        {/* --- MỚI: ROUTE TÀI CHÍNH --- */}
+                        {(hasPerm('FINANCE') || hasPerm('SALES')) && (
+                            <Route path="/finance" element={<FinancePage />} />
+                        )}
+                        {/* --------------------------- */}
 
                         {hasPerm('USERS') && (
                             <>

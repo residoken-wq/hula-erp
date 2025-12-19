@@ -1,32 +1,36 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
-
-export enum TransactionType {
-  INCOME = 'INCOME',   // Thu tien (Ban hang)
-  EXPENSE = 'EXPENSE'  // Chi tien (Mua hang, Tra luong...)
-}
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { TransactionCategory } from './transaction-category.entity';
 
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({
-    type: 'enum',
-    enum: TransactionType
-  })
-  type: TransactionType;
-
-  @Column('decimal', { precision: 15, scale: 2 })
-  amount: number; // So tien
+  @Column({ type: 'date' })
+  date: string;
 
   @Column()
-  reference_code: string; // Ma don hang (SO_... hoac PO_...)
+  type: 'INCOME' | 'EXPENSE';
+
+  @Column('decimal', { precision: 15, scale: 2 })
+  amount: number;
+
+  @ManyToOne(() => TransactionCategory, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'category_id' })
+  category: TransactionCategory;
 
   @Column({ nullable: true })
-  description: string; // Noi dung: Khach A dat coc, Tra tien mua vai...
+  category_id: number;
 
-  @Column({ default: 'CASH' })
-  payment_method: string; // CASH, BANK_TRANSFER
+  @Column({ nullable: true })
+  description: string;
+
+  // --- LIÊN KẾT TỰ ĐỘNG (Auto ref) ---
+  @Column({ nullable: true })
+  reference_code: string; // Mã đơn hàng (nếu có)
+
+  @Column({ nullable: true })
+  reference_type: string; // SALES_ORDER, PURCHASE_ORDER, etc.
 
   @CreateDateColumn()
   created_at: Date;

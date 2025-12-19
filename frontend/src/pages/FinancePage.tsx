@@ -1,0 +1,200 @@
+import React, { useEffect, useState } from 'react';
+import { Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form, Input, Select, DatePicker, Tag, message, Popconfirm, Progress, List, Avatar, Tooltip } from 'antd';
+import { 
+    WalletOutlined, ArrowUpOutlined, ArrowDownOutlined, 
+    PlusOutlined, DeleteOutlined, BankOutlined, 
+    FileTextOutlined, PieChartOutlined, ReloadOutlined 
+} from '@ant-design/icons';
+import axios from 'axios';
+import dayjs from 'dayjs';
+import { API_URL } from '../config';
+
+const { Option } = Select;
+
+const FinancePage: React.FC = () => {
+    const [loading, setLoading] = useState(false);
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
+    const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
+    
+    // UI State
+    const [isTransModalOpen, setIsTransModalOpen] = useState(false);
+    const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('1');
+    const [filterMonth, setFilterMonth] = useState(dayjs());
+
+    const [formTrans] = Form.useForm();
+    const [formCat] = Form.useForm();
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const monthStr = filterMonth.format('YYYY-MM');
+            const [resTrans, resCat, resSum] = await Promise.all([
+                axios.get(`${API_URL}/finance/transactions?month=${monthStr}`),
+                axios.get(`${API_URL}/finance/categories`),
+                axios.get(`${API_URL}/finance/summary`) // Tổng lũy kế
+            ]);
+            setTransactions(resTrans.data);
+            setCategories(resCat.data);
+            setSummary(resSum.data);
+        } catch(e) { message.error('Lỗi tải dữ liệu'); }
+        setLoading(false);
+    };
+
+    useEffect(() => { fetchData(); }, [filterMonth]);
+
+    // --- ACTIONS ---
+    const handleSaveTrans = async (values: any) => {
+        try {
+            const payload = {
+                ...values,
+                date: values.date.format('YYYY-MM-DD'),
+                // Tự động xác định Type dựa vào Category
+                type: categories.find(c => c.id === values.category_id)?.type || 'EXPENSE'
+            };
+            await axios.post(`${API_URL}/finance/transactions`, payload);
+            message.success('Đã lưu giao dịch');
+            setIsTransModalOpen(false);
+            formTrans.resetFields();
+            fetchData();
+        } catch(e) { message.error('Lỗi lưu'); }
+    };
+
+    const handleSaveCat = async (values: any) => {
+        try {
+            await axios.post(`${API_URL}/finance/categories`, values);
+            message.success('Đã thêm danh mục');
+            setIsCatModalOpen(false);
+            formCat.resetFields();
+            fetchData();
+        } catch(e) { message.error('Lỗi lưu'); }
+    };
+
+    const handleDelete = async (endpoint: string, id: number) => {
+        try { await axios.delete(`${API_URL}/finance/${endpoint}/${id}`); message.success('Đã xóa'); fetchData(); }
+        catch(e) { message.error('Không thể xóa'); }
+    };
+
+    // --- HELPERS ---
+    const getCatColor = (type: string) => type === 'INCOME' ? 'green' : 'red';
+
+    // --- COMPONENTS ---
+    const columnsTrans = [
+        { title: 'Ngày', dataIndex: 'date', render: (t:any) => dayjs(t).format('DD/MM/YYYY') },
+        { 
+            title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 80,
+            render: (t: string) => t==='INCOME' ? <Tag color="green"><ArrowUpOutlined/> Thu</Tag> : <Tag color="red"><ArrowDownOutlined/> Chi</Tag>
+        },
+        { 
+            title: 'Danh mục', dataIndex: 'category', 
+            render: (c: any) => c ? <Tag color={c.color || 'default'}>{c.name}</Tag> : <span style={{color:'#999'}}>Khác</span> 
+        },
+        { title: 'Diễn giải', dataIndex: 'description' },
+        { title: 'Mã tham chiếu', dataIndex: 'reference_code', render: (t:any) => t ? <Tag color="blue">{t}</Tag> : '-' },
+        { 
+            title: 'Số tiền', dataIndex: 'amount', align: 'right' as const, 
+            render: (v: any, r: any) => <b style={{color: r.type==='INCOME'?'green':'red'}}>{r.type==='INCOME'?'+':'-'}{Number(v).toLocaleString()}</b> 
+        },
+        { 
+            title: '', key: 'act', width: 50,
+            render: (_:any, r:any) => <Popconfirm title="Xóa?" onConfirm={()=>handleDelete('transactions', r.id)}><Button size="small" danger icon={<DeleteOutlined/>} type="text"/></Popconfirm>
+        }
+    ];
+
+    const columnsCat = [
+        { title: 'Tên danh mục', dataIndex: 'name', render: (t:any, r:any) => <Tag color={r.color}>{t}</Tag> },
+        { title: 'Loại', dataIndex: 'type', render: (t: string) => t==='INCOME' ? <Tag color="green">Khoản Thu</Tag> : <Tag color="red">Khoản Chi</Tag> },
+        { title: 'Mô tả', dataIndex: 'description' },
+        { title: '', key: 'act', align: 'right' as const, render: (_:any, r:any) => <Popconfirm title="Xóa?" onConfirm={()=>handleDelete('categories', r.id)}><Button size="small" danger icon={<DeleteOutlined/>}/></Popconfirm> }
+    ];
+
+    return (
+        <div style={{paddingBottom: 20}}>
+            {/* TOP CARDS */}
+            <Row gutter={16} style={{marginBottom: 16}}>
+                <Col span={8}>
+                    <Card bordered={false} style={{background: 'linear-gradient(135deg, #3f8600 0%, #52c41a 100%)'}}>
+                        <Statistic title={<span style={{color:'rgba(255,255,255,0.8)'}}>Tổng Thu (Lũy kế)</span>} value={summary.income} precision={0} valueStyle={{color:'#fff', fontWeight:'bold'}} prefix={<ArrowUpOutlined />} />
+                    </Card>
+                </Col>
+                <Col span={8}>
+                    <Card bordered={false} style={{background: 'linear-gradient(135deg, #cf1322 0%, #ff4d4f 100%)'}}>
+                        <Statistic title={<span style={{color:'rgba(255,255,255,0.8)'}}>Tổng Chi (Lũy kế)</span>} value={summary.expense} precision={0} valueStyle={{color:'#fff', fontWeight:'bold'}} prefix={<ArrowDownOutlined />} />
+                    </Card>
+                </Col>
+                <Col span={8}>
+                    <Card bordered={false} style={{background: 'linear-gradient(135deg, #096dd9 0%, #1890ff 100%)'}}>
+                        <Statistic title={<span style={{color:'rgba(255,255,255,0.8)'}}>Quỹ Tiền Mặt</span>} value={summary.balance} precision={0} valueStyle={{color:'#fff', fontWeight:'bold'}} prefix={<BankOutlined />} />
+                    </Card>
+                </Col>
+            </Row>
+
+            <Card 
+                title={<span><WalletOutlined/> Sổ Quỹ Tiền Mặt</span>}
+                extra={
+                    <div style={{display:'flex', gap: 10}}>
+                        <DatePicker picker="month" value={filterMonth} onChange={v => v && setFilterMonth(v)} allowClear={false} />
+                        <Button icon={<ReloadOutlined/>} onClick={fetchData} />
+                    </div>
+                }
+            >
+                <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">
+                    <Tabs.TabPane tab={<span><FileTextOutlined /> Danh sách Giao dịch</span>} key="1">
+                        <div style={{marginBottom: 16, textAlign: 'right'}}>
+                            <Button type="primary" icon={<PlusOutlined/>} onClick={()=>{formTrans.resetFields(); setIsTransModalOpen(true)}}>Lập Phiếu Thu/Chi</Button>
+                        </div>
+                        <Table dataSource={transactions} columns={columnsTrans} rowKey="id" loading={loading} pagination={{pageSize: 10}} />
+                    </Tabs.TabPane>
+                    
+                    <Tabs.TabPane tab={<span><PieChartOutlined /> Quản lý Danh mục Thu/Chi</span>} key="2">
+                        <Row gutter={24}>
+                            <Col span={16}>
+                                <Table dataSource={categories} columns={columnsCat} rowKey="id" pagination={false} size="small" />
+                            </Col>
+                            <Col span={8}>
+                                <Card title="Thêm Danh mục mới" size="small" style={{background:'#f9f9f9'}}>
+                                    <Form form={formCat} layout="vertical" onFinish={handleSaveCat}>
+                                        <Form.Item name="name" label="Tên danh mục" rules={[{required:true}]}><Input placeholder="Vd: Tiền điện, Tiếp khách..."/></Form.Item>
+                                        <Form.Item name="type" label="Loại" initialValue="EXPENSE"><Radio.Group options={[{label:'Thu', value:'INCOME'}, {label:'Chi', value:'EXPENSE'}]} optionType="button" buttonStyle="solid" /></Form.Item>
+                                        <Form.Item name="color" label="Màu nhãn"><Input type="color" style={{width: 50, padding: 0, border:'none'}}/></Form.Item>
+                                        <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2}/></Form.Item>
+                                        <Button type="primary" htmlType="submit" block icon={<PlusOutlined/>}>Thêm Danh mục</Button>
+                                    </Form>
+                                </Card>
+                            </Col>
+                        </Row>
+                    </Tabs.TabPane>
+                </Tabs>
+            </Card>
+
+            {/* MODAL TẠO GIAO DỊCH */}
+            <Modal title="Lập Phiếu Thu / Chi" open={isTransModalOpen} onCancel={()=>setIsTransModalOpen(false)} footer={null}>
+                <Form form={formTrans} layout="vertical" onFinish={handleSaveTrans} initialValues={{ date: dayjs() }}>
+                    <Row gutter={16}>
+                        <Col span={12}><Form.Item name="date" label="Ngày giao dịch" rules={[{required:true}]}><DatePicker style={{width:'100%'}} format="DD/MM/YYYY"/></Form.Item></Col>
+                        <Col span={12}><Form.Item name="amount" label="Số tiền" rules={[{required:true}]}><InputNumber style={{width:'100%'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} addonAfter="₫"/></Form.Item></Col>
+                    </Row>
+                    
+                    <Form.Item name="category_id" label="Danh mục (Tự động xác định Thu/Chi)" rules={[{required:true}]}>
+                        <Select placeholder="Chọn loại giao dịch...">
+                            <Select.OptGroup label="KHOẢN THU (INCOME)">
+                                {categories.filter(c=>c.type==='INCOME').map(c=><Option key={c.id} value={c.id}><Tag color="green">{c.name}</Tag></Option>)}
+                            </Select.OptGroup>
+                            <Select.OptGroup label="KHOẢN CHI (EXPENSE)">
+                                {categories.filter(c=>c.type==='EXPENSE').map(c=><Option key={c.id} value={c.id}><Tag color="red">{c.name}</Tag></Option>)}
+                            </Select.OptGroup>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item name="description" label="Diễn giải / Lý do"><Input.TextArea rows={3} /></Form.Item>
+                    <Form.Item name="reference_code" label="Mã tham chiếu (Optional)"><Input placeholder="VD: SO-1234, PO-5678" /></Form.Item>
+                    
+                    <Button type="primary" htmlType="submit" block size="large">Lưu Phiếu</Button>
+                </Form>
+            </Modal>
+        </div>
+    );
+};
+
+export default FinancePage;

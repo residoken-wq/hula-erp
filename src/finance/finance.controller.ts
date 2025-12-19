@@ -1,22 +1,17 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query } from '@nestjs/common';
 import { FinanceService } from './finance.service';
 
 @Controller('finance')
 export class FinanceController {
-  constructor(private readonly financeService: FinanceService) {}
+  constructor(private readonly s: FinanceService) {}
 
-  @Post('payment')
-  create(@Body() body: any) {
-    return this.financeService.create(body);
-  }
+  @Get('summary') getSummary() { return this.s.getSummary(); }
 
-  @Get()
-  findAll() {
-    return this.financeService.findAll();
-  }
+  @Get('categories') getCategories() { return this.s.getCategories(); }
+  @Post('categories') createCategory(@Body() b: any) { return this.s.createCategory(b); }
+  @Delete('categories/:id') deleteCategory(@Param('id') id: number) { return this.s.deleteCategory(id); }
 
-  @Get('summary')
-  getSummary() {
-    return this.financeService.getSummary();
-  }
+  @Get('transactions') getTransactions(@Query('month') month: string) { return this.s.getAllTransactions(month); }
+  @Post('transactions') createTransaction(@Body() b: any) { return this.s.createTransaction(b); }
+  @Delete('transactions/:id') deleteTransaction(@Param('id') id: number) { return this.s.deleteTransaction(id); }
 }

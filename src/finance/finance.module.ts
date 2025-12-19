@@ -1,16 +1,15 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FinanceController } from './finance.controller';
-import { FinanceService } from './finance.service';
 import { Transaction } from './transaction.entity';
-import { SalesModule } from '../sales/sales.module'; // Import
-import { PurchasingModule } from '../purchasing/purchasing.module'; // Import
+import { TransactionCategory } from './transaction-category.entity'; // <--- MỚI
+import { FinanceService } from './finance.service';
+import { FinanceController } from './finance.controller';
+import { SalesModule } from '../sales/sales.module'; // Để lấy thông tin đơn hàng nếu cần
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Transaction]),
-    forwardRef(() => SalesModule),       // Dùng forwardRef để tránh lỗi vòng lặp
-    forwardRef(() => PurchasingModule),  // Dùng forwardRef để tránh lỗi vòng lặp
+    TypeOrmModule.forFeature([Transaction, TransactionCategory]), // <--- ĐĂNG KÝ
+    forwardRef(() => SalesModule),
   ],
   controllers: [FinanceController],
   providers: [FinanceService],
