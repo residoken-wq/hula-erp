@@ -3,7 +3,7 @@ import { Layout, Menu, theme, Button, Avatar, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
-  SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined // <--- MỚI: Icon Tài chính
+  SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined // <--- MỚI: Icon Calendar
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
@@ -28,7 +28,11 @@ import UsersPage from './pages/UsersPage';
 import UserGroupsPage from './pages/UserGroupsPage';
 import LoginPage from './pages/LoginPage';
 import InventoryPage from './pages/InventoryPage';
-import FinancePage from './pages/FinancePage'; // <--- MỚI: Page Tài chính
+import FinancePage from './pages/FinancePage';
+import TasksPage from './pages/TasksPage'; // <--- MỚI: Tasks Page
+
+// Import Components
+import HeaderNotifications from './components/HeaderNotifications'; // <--- MỚI: Notification Component
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -127,12 +131,17 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 7. Tài chính (MỚI) - Lưu ý: Cần thêm quyền FINANCE vào DB nếu chưa có
+      // 7. Tài chính
       if (hasPerm('FINANCE') || hasPerm('SALES')) { 
           items.push(getItem(<Link to="/finance">Tài chính (Thu/Chi)</Link>, 'finance', <BankOutlined />));
       }
 
-      // 8. Hệ thống (Admin)
+      // 8. Công việc (MỚI) - Mặc định cho phép mọi người dùng đã đăng nhập truy cập
+      if (isAuthenticated) {
+          items.push(getItem(<Link to="/tasks">Công việc & Nhắc nhở</Link>, 'tasks', <CalendarOutlined />));
+      }
+
+      // 9. Hệ thống (Admin)
       if (hasPerm('USERS')) {
           items.push(getItem('Hệ thống & Phân quyền', 'sub_sys', <SettingOutlined />, [
             getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
@@ -141,7 +150,7 @@ const App: React.FC = () => {
       }
 
       return items;
-  }, [permissions, currentUser]);
+  }, [permissions, currentUser, isAuthenticated]);
 
   const userMenu = (
       <Menu items={[
@@ -166,6 +175,10 @@ const App: React.FC = () => {
                 </Sider>
                 <Layout>
                 <Header style={{ padding: '0 24px', background: colorBgContainer, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+                    {/* --- MỚI: HIỂN THỊ CHUÔNG THÔNG BÁO --- */}
+                    <HeaderNotifications />
+                    <div style={{ width: 20 }} /> {/* Khoảng cách */}
+                    {/* -------------------------------------- */}
                     <Dropdown overlay={userMenu}>
                         <div style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10}}>
                             <Avatar style={{ backgroundColor: '#87d068' }} icon={<UserOutlined />} />
@@ -212,11 +225,13 @@ const App: React.FC = () => {
                             </>
                         )}
 
-                        {/* --- MỚI: ROUTE TÀI CHÍNH --- */}
                         {(hasPerm('FINANCE') || hasPerm('SALES')) && (
                             <Route path="/finance" element={<FinancePage />} />
                         )}
-                        {/* --------------------------- */}
+
+                        {/* --- MỚI: ROUTE TASKS --- */}
+                        <Route path="/tasks" element={<TasksPage />} />
+                        {/* ----------------------- */}
 
                         {hasPerm('USERS') && (
                             <>

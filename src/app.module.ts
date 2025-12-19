@@ -19,6 +19,8 @@ import { ProcessesModule } from './processes/processes.module';
 import { CategoriesModule } from './categories/categories.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { TasksModule } from './tasks/tasks.module'; // <--- MỚI
+import { NotificationsModule } from './notifications/notifications.module'; // <--- MỚI
 
 // Entities
 import { Product } from './products/product.entity';
@@ -33,7 +35,7 @@ import { SalesOrder } from './sales/sales-order.entity';
 import { SalesOrderItem } from './sales/sales-order-item.entity';
 import { ProductSample } from './sales/product-sample.entity';
 import { SalesDelivery } from './sales/sales-delivery.entity';
-import { SalesDeliveryItem } from './sales/sales-delivery-item.entity'; // <--- FIX LỖI Ở ĐÂY (Thêm /sales/)
+import { SalesDeliveryItem } from './sales/sales-delivery-item.entity';
 import { SalesComment } from './sales/sales-comment.entity';
 import { PriceList } from './sales/pricelist/price-list.entity';
 import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
@@ -50,6 +52,10 @@ import { ProductionOrder } from './production/entities/production-order.entity';
 // Finance Entities
 import { Transaction } from './finance/transaction.entity';
 import { TransactionCategory } from './finance/transaction-category.entity'; 
+
+// Task & Notification Entities (MỚI)
+import { Task } from './tasks/task.entity';
+import { Notification } from './notifications/notification.entity';
 
 import { Supplier } from './suppliers/supplier.entity';
 import { SupplierMaterial } from './suppliers/supplier-material.entity';
@@ -95,6 +101,9 @@ import { GroupPermission } from './users/entities/group-permission.entity';
         // Tài chính
         Transaction, TransactionCategory,
         
+        // Công việc & Thông báo (MỚI)
+        Task, Notification,
+        
         // Đối tác & Khác
         Supplier, SupplierMaterial, SupplierContact,
         Customer, CustomerContact,
@@ -110,6 +119,7 @@ import { GroupPermission } from './users/entities/group-permission.entity';
     UsersModule, AuthModule,
     ProductsModule, MaterialsModule, BomModule, SalesModule,
     InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
+    TasksModule, NotificationsModule, // <--- ĐĂNG KÝ MODULE MỚI
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
     ProcessesModule, CategoriesModule,
   ],
