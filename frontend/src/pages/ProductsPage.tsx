@@ -8,7 +8,8 @@ import { API_URL } from '../config';
 import ProductBOMTab from '../components/products/ProductBOMTab';
 import ProductRoutingTab from '../components/products/ProductRoutingTab';
 import ProductVariantsTab from '../components/products/ProductVariantsTab'; 
-import ProductPatternTab from '../components/products/ProductPatternTab'; // <--- MỚI: Tab Sơ đồ rập
+import ProductPatternTab from '../components/products/ProductPatternTab';
+import ProductLogisticsTab from '../components/products/ProductLogisticsTab'; // <--- MỚI: Import Component
 // -------------------------------------
 
 const { TextArea } = Input;
@@ -37,7 +38,7 @@ const ProductsPage: React.FC = () => {
     // Sub-data State 
     const [boms, setBoms] = useState<any[]>([]);
     const [routings, setRoutings] = useState<any[]>([]);
-    const [logistics, setLogistics] = useState<any[]>([]);
+    const [logistics, setLogistics] = useState<any[]>([]); // State cho Logistics
     const [components, setComponents] = useState<any[]>([]); 
 
     const [form] = Form.useForm();
@@ -91,6 +92,7 @@ const ProductsPage: React.FC = () => {
             const resRouting = await axios.get(`${API_URL}/products/${id}/routings`);
             setRoutings(resRouting.data || []);
 
+            // Fetch Logistics
             const resLogistics = await axios.get(`${API_URL}/products/${id}/logistics`);
             setLogistics(resLogistics.data || []);
 
@@ -107,26 +109,20 @@ const ProductsPage: React.FC = () => {
             let savedProduct: any; 
 
             if (editingItem) {
-                // Cập nhật sản phẩm
                 await axios.put(`${API_URL}/products/${editingItem.id}`, payload);
                 message.success('Đã lưu thành công'); 
                 setIsModalOpen(false); 
                 fetchData();
             } else {
-                // TẠO MỚI SẢN PHẨM (FIX: Nhận ID để xử lý các bước tiếp theo)
                 const res = await axios.post(`${API_URL}/products`, payload);
                 savedProduct = res.data; 
-                
                 message.success('Đã tạo sản phẩm mới thành công. Vui lòng thiết lập BOM/Quy trình.'); 
-                
                 setEditingItem(savedProduct); 
                 form.setFieldsValue(savedProduct);
-                setActiveTab('2'); // Chuyển sang Tab BOM
-                
+                setActiveTab('2');
                 fetchDetailData(savedProduct.id); 
                 fetchData(); 
             }
-            
         } catch(e) { message.error('Lỗi lưu'); }
     };
 
@@ -138,7 +134,6 @@ const ProductsPage: React.FC = () => {
     const openEdit = (item: any) => {
         setEditingItem(item);
         
-        // Logic Lợi nhuận mong muốn theo Danh mục (Fix)
         let initialProfitMargin = 30; 
         if (item.category_id) {
             const category = categories.find(c => c.id === item.category_id);
@@ -169,7 +164,6 @@ const ProductsPage: React.FC = () => {
     }
     
     const handleCreateVariant = async (values: any) => {
-        // Lấy thêm Logo và Design từ form tạo biến thể
         const { base_sku, variant_sku_suffix, variant_name_suffix, color, size, logo, design, ...otherValues } = values;
 
         const newSku = `${base_sku}_${variant_sku_suffix}`;
@@ -179,12 +173,7 @@ const ProductsPage: React.FC = () => {
             baseSku: base_sku,
             newSku: newSku,
             newName: newName,
-            attributes: {
-                color: color,
-                size: size,
-                logo: logo,     
-                design: design, 
-            }
+            attributes: { color, size, logo, design }
         };
         
         try {
@@ -216,7 +205,6 @@ const ProductsPage: React.FC = () => {
         } catch(e) { message.error('Lỗi tính giá vốn'); }
     };
 
-    // --- LOGIC LỌC DỮ LIỆU ---
     const filteredData = useMemo(() => {
         if (!searchText) return data;
         const lower = searchText.toLowerCase();
@@ -232,20 +220,12 @@ const ProductsPage: React.FC = () => {
             sorter: (a: any, b: any) => (a.sku || '').localeCompare(b.sku || '')
         },
         { 
-            title: 'Tên Sản Phẩm', 
-            dataIndex: 'name', 
-            render: (t:any) => (
-                <Space size={4}>
-                    <TagOutlined /> 
-                    {t}
-                </Space>
-            ),
+            title: 'Tên Sản Phẩm', dataIndex: 'name', 
+            render: (t:any) => (<Space size={4}><TagOutlined /> {t}</Space>),
             sorter: (a: any, b: any) => (a.name || '').localeCompare(b.name || '')
         },
         { 
-            title: 'Phân loại', 
-            dataIndex: 'category_id', 
-            width: 150, 
+            title: 'Phân loại', dataIndex: 'category_id', width: 150, 
             render: (id: number) => <Tag color="blue">{getCategoryName(id)}</Tag>,
             filters: categories.map(c => ({ text: c.name, value: c.id })),
             onFilter: (value: any, record: any) => record.category_id === value,
@@ -270,12 +250,7 @@ const ProductsPage: React.FC = () => {
             render: (_:any, r:any) => (
                 <Space size="small">
                     <Tooltip title="Tạo Biến thể mới từ Sản phẩm này">
-                         <Button 
-                             icon={<ForkOutlined />} 
-                             size="small" 
-                             type="default" 
-                             onClick={() => openCreateVariant(r)}
-                         />
+                         <Button icon={<ForkOutlined />} size="small" type="default" onClick={() => openCreateVariant(r)} />
                     </Tooltip>
                     <Tooltip title="Tính Giá Vốn"><Button icon={<DollarOutlined />} size="small" onClick={() => handleCalculateCost(r.sku)} type="primary" ghost /></Tooltip>
                     <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)} />
@@ -305,30 +280,18 @@ const ProductsPage: React.FC = () => {
             title="Quản Lý Sản Phẩm (SKU)" 
             extra={
                 <Space>
-                    <Input 
-                        placeholder="Tìm kiếm SKU/Tên..." 
-                        prefix={<SearchOutlined />} 
-                        value={searchText} 
-                        onChange={e => setSearchText(e.target.value)} 
-                        style={{ width: 250 }}
-                        allowClear
-                    />
+                    <Input placeholder="Tìm kiếm SKU/Tên..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} allowClear />
                     <Button type="primary" icon={<PlusOutlined />} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1')}}>Thêm Mới</Button>
                 </Space>
             }
         >
             <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
             
-            {/* Modal chính (Cập nhật sản phẩm) */}
             <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"} 
                    open={isModalOpen} 
                    onCancel={()=>setIsModalOpen(false)} 
                    onOk={()=>{ 
-                       if(activeTab==='1') {
-                           form.submit();
-                       } else {
-                           setIsModalOpen(false);
-                       }
+                       if(activeTab==='1') { form.submit(); } else { setIsModalOpen(false); }
                    }} 
                    width={1400} 
                    okText={editingItem ? "Lưu Thông Tin Chung" : "Tạo Sản Phẩm & Tiếp tục"} 
@@ -337,13 +300,7 @@ const ProductsPage: React.FC = () => {
                     {
                         key: '1', label: <span><BuildOutlined /> Thông Tin Chung</span>,
                         children: (
-                            <Form 
-                                form={form} 
-                                layout="vertical" 
-                                onFinish={handleSave} 
-                                initialValues={{ is_active: true }}
-                                onValuesChange={handleFormValuesChange} 
-                            >
+                            <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ is_active: true }} onValuesChange={handleFormValuesChange}>
                                 <Row gutter={16}>
                                     <Col span={8}>
                                         <Form.Item name="sku" label="Mã Sản Phẩm (SKU)" rules={[{required:true}]}><Input/></Form.Item>
@@ -358,28 +315,17 @@ const ProductsPage: React.FC = () => {
                                     <Col span={8}>
                                         <Divider orientation="left">Thông tin Giá & Tồn</Divider>
                                         <Form.Item name="base_price" label="Giá bán (Chưa KM)"><InputNumber style={{width:'100%'}} addonAfter="₫" formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} /></Form.Item>
-                                        
                                         <Form.Item name="cost_price" label="Giá vốn (Hệ thống tính)" tooltip="Hệ thống tính tự động (BOM + Gia công). Click refresh để tính lại.">
-                                            <InputNumber 
-                                                style={{width:'100%'}} 
-                                                addonAfter={<Tooltip title="Tính lại Giá vốn (BOM + Gia công)"><SyncOutlined onClick={() => handleCalculateCost(form.getFieldValue('sku'))} style={{cursor: 'pointer'}}/></Tooltip>}
-                                                formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')}
-                                                disabled
-                                            />
+                                            <InputNumber style={{width:'100%'}} addonAfter={<Tooltip title="Tính lại Giá vốn (BOM + Gia công)"><SyncOutlined onClick={() => handleCalculateCost(form.getFieldValue('sku'))} style={{cursor: 'pointer'}}/></Tooltip>} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} disabled />
                                         </Form.Item>
-                                        
                                         <Form.Item name="profit_margin" label="Lợi nhuận mong muốn (%)" tooltip="Lấy từ Danh mục nếu tạo mới, có thể override tại đây"><InputNumber style={{width:'100%'}} addonAfter="%" min={0} max={99}/></Form.Item>
                                         <Form.Item name="quantity_in_stock" label="Tồn kho"><InputNumber style={{width:'100%'}}/></Form.Item>
                                     </Col>
                                     
                                     <Col span={8}>
                                         <Divider orientation="left"><FileTextOutlined /> Mô tả & Thông tin chi tiết</Divider>
-                                        <Form.Item name="customer_description" label="Mô tả Khách hàng/Bán hàng" tooltip="Hiển thị trên Báo giá, SO, Phiếu giao hàng">
-                                            <TextArea rows={3} placeholder="Mô tả thương mại, chất liệu cơ bản, v.v."/>
-                                        </Form.Item>
-                                        <Form.Item name="processing_description" label="Mô tả Gia công/Sản xuất" tooltip="Hiển thị trên PO Gia công, Lệnh sản xuất">
-                                            <TextArea rows={3} placeholder="Yêu cầu kỹ thuật, chi tiết may/cắt, v.v."/>
-                                        </Form.Item>
+                                        <Form.Item name="customer_description" label="Mô tả Khách hàng/Bán hàng" tooltip="Hiển thị trên Báo giá, SO, Phiếu giao hàng"><TextArea rows={3} placeholder="Mô tả thương mại, chất liệu cơ bản, v.v."/></Form.Item>
+                                        <Form.Item name="processing_description" label="Mô tả Gia công/Sản xuất" tooltip="Hiển thị trên PO Gia công, Lệnh sản xuất"><TextArea rows={3} placeholder="Yêu cầu kỹ thuật, chi tiết may/cắt, v.v."/></Form.Item>
                                     </Col>
                                 </Row>
                             </Form>
@@ -419,13 +365,20 @@ const ProductsPage: React.FC = () => {
                             <ProductPatternTab editingItem={editingItem} />
                         )
                     },
+                    // --- MỚI: TAB LOGISTICS ---
                     {
-                        key: '4', label: <span><SendOutlined /> Logistics & Vận chuyển</span>,
+                        key: '4', label: <span><SendOutlined /> Logistics & Khác</span>,
                         disabled: !editingItem,
                         children: (
-                            <div>Logistics Tab (Cần tạo component riêng)</div>
+                            <ProductLogisticsTab 
+                                editingItem={editingItem}
+                                logistics={logistics}
+                                fetchDetailData={fetchDetailData}
+                                setLogistics={setLogistics}
+                            />
                         )
                     },
+                    // --------------------------
                     {
                         key: '5', label: <span><LinkOutlined /> Combo/Thành phần</span>,
                         disabled: !editingItem,
@@ -449,7 +402,6 @@ const ProductsPage: React.FC = () => {
                 ]} />
             </Modal>
             
-            {/* Modal Tạo Biến thể */}
             <Modal
                 title={`Tạo Biến thể mới từ ${baseProductForVariant?.sku}`}
                 open={isVariantModalOpen}
@@ -462,7 +414,6 @@ const ProductsPage: React.FC = () => {
                 <Form form={variantForm} layout="vertical" onFinish={handleCreateVariant} initialValues={{ base_sku: baseProductForVariant?.sku }}>
                     <Form.Item name="base_sku" label="SKU Gốc" ><Input disabled /></Form.Item>
                     <Divider />
-                    
                     <Row gutter={16}>
                         <Col span={12}>
                              <Form.Item name="variant_sku_suffix" label="Hậu tố SKU Biến thể" rules={[{required: true, message: 'Nhập hậu tố SKU (VD: RED)'}]}>
@@ -475,35 +426,15 @@ const ProductsPage: React.FC = () => {
                             </Form.Item>
                         </Col>
                     </Row>
-
                     <Divider orientation="left">Thuộc tính Biến thể</Divider>
                     <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item name="color" label="Màu sắc (Color)">
-                                <Input placeholder="VD: Đỏ, Xanh Navy" />
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item name="size" label="Kích thước (Size)">
-                                <Input placeholder="VD: L, 40x60cm" />
-                            </Form.Item>
-                        </Col>
+                        <Col span={12}><Form.Item name="color" label="Màu sắc (Color)"><Input placeholder="VD: Đỏ, Xanh Navy" /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="size" label="Kích thước (Size)"><Input placeholder="VD: L, 40x60cm" /></Form.Item></Col>
                     </Row>
-                    
-                    {/* --- MỚI: Bổ sung Logo và Design --- */}
                     <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item name="logo" label="Logo (Hình in/Thêu)">
-                                <Input placeholder="VD: Logo ngực trái, In Pet" />
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item name="design" label="Design (Thiết kế)">
-                                <Input placeholder="VD: Mẫu A, Hình in rồng" />
-                            </Form.Item>
-                        </Col>
+                        <Col span={12}><Form.Item name="logo" label="Logo (Hình in/Thêu)"><Input placeholder="VD: Logo ngực trái, In Pet" /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="design" label="Design (Thiết kế)"><Input placeholder="VD: Mẫu A, Hình in rồng" /></Form.Item></Col>
                     </Row>
-                    {/* ----------------------------------- */}
                 </Form>
             </Modal>
         </Card>
