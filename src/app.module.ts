@@ -28,7 +28,6 @@ import { ProductComponent } from './products/product-component.entity';
 import { ProductRouting } from './products/product-routing.entity';
 import { ProductLogistics } from './products/product-logistics.entity';
 import { ProductPattern } from './products/product-pattern.entity';
-import { ProductLogistics } from './products/product-logistics.entity'; // Đảm bảo có Entity này
 
 import { SalesOrder } from './sales/sales-order.entity';
 import { SalesOrderItem } from './sales/sales-order-item.entity';
@@ -78,7 +77,7 @@ import { GroupPermission } from './users/entities/group-permission.entity';
       database: process.env.DB_DATABASE || 'hula_db',
       entities: [
         // Sản phẩm & BOM
-        Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern, ProductLogistics,
+        Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern,
         
         // Bán hàng
         SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
