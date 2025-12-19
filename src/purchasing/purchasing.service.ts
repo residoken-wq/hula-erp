@@ -1,15 +1,13 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-// Fix imports Entities: Trỏ vào thư mục entities
 import { PurchaseOrder } from './entities/purchase-order.entity';
 import { PurchaseOrderItem } from './entities/purchase-order-item.entity';
 import { GoodsReceipt } from './entities/goods-receipt.entity';
-
 import { InventoryService } from '../inventory/inventory.service';
 import { ProductsService } from '../products/products.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
-import { v4 as uuidv4 } from 'uuid'; 
+// import { v4 as uuidv4 } from 'uuid'; // Entity đã tự sinh UUID, có thể bỏ
 
 @Injectable()
 export class PurchasingService {
@@ -25,12 +23,11 @@ export class PurchasingService {
   async createPO(data: any) {
     const po = this.poRepo.create({
       po_code: data.po_code,
-      uuid: uuidv4(),
-      supplier_id: data.supplier_id,
-      expected_delivery_date: data.expected_date,
+      supplier_id: data.supplier_id, // Lưu ID nhà cung cấp
       note: data.note,
-      status: 'PENDING' as any,
-      total_amount: 0
+      status: 'DRAFT' as any,
+      total_amount: 0,
+      paid_amount: 0 // Khởi tạo 0
     });
     
     let total = 0;
@@ -38,14 +35,12 @@ export class PurchasingService {
     if (data.items) {
       for (const i of data.items) {
         const item = new PurchaseOrderItem();
-        item.material = i.material_id ? { id: i.material_id } as any : null;
-        item.product = i.product_id ? { id: i.product_id } as any : null;
         item.material_id = i.material_id;
         item.product_id = i.product_id;
         item.description = i.description || '';
-        item.quantity = i.quantity;
-        item.unit_price = i.unit_price;
-        item.subtotal = i.quantity * i.unit_price;
+        item.quantity = Number(i.quantity);
+        item.unit_price = Number(i.unit_price);
+        item.subtotal = item.quantity * item.unit_price;
         total += item.subtotal;
         po.items.push(item);
       }
@@ -56,7 +51,7 @@ export class PurchasingService {
 
   async getAllPOs() {
     return this.poRepo.find({ 
-        relations: ['supplier', 'items'], 
+        relations: ['supplier', 'items'], // Load Supplier để hiển thị tên
         order: { created_at: 'DESC' } 
     });
   }
@@ -84,6 +79,7 @@ export class PurchasingService {
       return this.poRepo.save(po);
   }
 
+  // --- HÀM CẬP NHẬT THANH TOÁN (ĐƯỢC GỌI TỪ FINANCE) ---
   async updatePayment(poCode: string, amount: number) {
       const po = await this.poRepo.findOne({ where: { po_code: poCode } });
       if (po) {
@@ -91,6 +87,7 @@ export class PurchasingService {
           await this.poRepo.save(po);
       }
   }
+  // -----------------------------------------------------
 
   async createGoodsReceipt(poId: number, data: any) {
       const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items'] });
@@ -121,7 +118,6 @@ export class PurchasingService {
           }
       }
       po.status = 'COMPLETED' as any;
-      await this.poRepo.save(po);
-      return gr;
+      return this.poRepo.save(po);
   }
 }

@@ -1,20 +1,19 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, ManyToOne, JoinColumn, UpdateDateColumn, Generated } from 'typeorm';
-import { PurchaseOrderItem } from './purchase-order-item.entity'; // Cùng thư mục entities
-import { Supplier } from '../../suppliers/supplier.entity'; // Lùi 2 cấp ra src/suppliers
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { PurchaseOrderItem } from './purchase-order-item.entity';
+import { ProductionPlan } from '../../planning/production-plan.entity';
+import { Supplier } from '../../suppliers/supplier.entity'; // <--- Import Supplier
 
 export enum POStatus {
   DRAFT = 'DRAFT',
-  SENT = 'SENT',
-  CONFIRMED = 'CONFIRMED',
-  PARTIAL_RECEIVED = 'PARTIAL_RECEIVED',
-  RECEIVED = 'RECEIVED',
-  COMPLETED = 'COMPLETED',
+  SENT = 'SENT',           // Đã gửi NCC
+  CONFIRMED = 'CONFIRMED', // NCC Xác nhận
+  COMPLETED = 'COMPLETED', // Đã nhập kho đủ
   CANCELLED = 'CANCELLED'
 }
 
 export enum POType {
-  MATERIAL = 'MATERIAL',
-  OUTSOURCING = 'OUTSOURCING'
+  MATERIAL = 'MATERIAL',       // Đơn mua nguyên liệu
+  OUTSOURCING = 'OUTSOURCING'  // Đơn đặt hàng gia công
 }
 
 @Entity('purchase_orders')
@@ -22,46 +21,60 @@ export class PurchaseOrder {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  @Generated("uuid")
-  uuid: string;
-
   @Column({ unique: true })
   po_code: string; 
 
-  @ManyToOne(() => Supplier)
+  // UUID dùng cho Portal NCC
+  @Column({ generated: 'uuid' })
+  uuid: string;
+
+  @Column({
+    type: 'enum',
+    enum: POType,
+    default: POType.MATERIAL
+  })
+  type: POType;
+
+  @Column({
+    type: 'enum',
+    enum: POStatus,
+    default: POStatus.DRAFT
+  })
+  status: POStatus;
+
+  // --- QUAN HỆ NHÀ CUNG CẤP (MỚI) ---
+  @ManyToOne(() => Supplier, { nullable: true })
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
 
   @Column({ nullable: true })
   supplier_id: number;
+  // ----------------------------------
 
-  @Column({
-      type: 'enum',
-      enum: POType,
-      default: POType.MATERIAL
-  })
-  type: POType;
+  @ManyToOne(() => ProductionPlan, { nullable: true })
+  @JoinColumn({ name: 'plan_id' })
+  plan: ProductionPlan;
 
   @Column({ nullable: true })
   plan_id: number;
 
-  @Column('decimal', { precision: 15, scale: 2, default: 0 }) total_amount: number;
-  @Column('decimal', { precision: 15, scale: 2, default: 0 }) paid_amount: number;
-  @Column('decimal', { default: 0 }) shipping_fee: number;
-  @Column('int', { default: 0 }) vat_rate: number;
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  total_amount: number;
 
-  @Column({ type: 'date', nullable: true }) expected_delivery_date: Date;
-  @Column({ nullable: true }) delivery_address: string;
-  @Column({ nullable: true }) payment_term: string;
-  @Column('text', { nullable: true }) note: string;
+  // --- QUẢN LÝ THANH TOÁN (MỚI) ---
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  paid_amount: number;
+  // --------------------------------
 
-  @Column({ type: 'enum', enum: POStatus, default: POStatus.DRAFT })
-  status: POStatus;
+  @Column({ nullable: true })
+  note: string;
 
-  @OneToMany(() => PurchaseOrderItem, (item) => item.po, { cascade: true })
+  @OneToMany(() => PurchaseOrderItem, (item) => item.purchase_order, { cascade: true })
   items: PurchaseOrderItem[];
 
-  @CreateDateColumn() created_at: Date;
-  @UpdateDateColumn() updated_at: Date;
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
 }

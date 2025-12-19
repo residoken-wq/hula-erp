@@ -1,17 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Transaction } from './transaction.entity';
 import { TransactionCategory } from './transaction-category.entity';
+import { PurchasingService } from '../purchasing/purchasing.service'; // Import Service
 
 @Injectable()
 export class FinanceService {
   constructor(
     @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
     @InjectRepository(TransactionCategory) private catRepo: Repository<TransactionCategory>,
+    @Inject(forwardRef(() => PurchasingService)) private purchasingService: PurchasingService, // Inject Service
   ) {}
 
-  // --- CATEGORY ---
   async getCategories() { return this.catRepo.find({ order: { type: 'ASC', name: 'ASC' } }); }
   
   async createCategory(data: any) { 
@@ -26,7 +27,6 @@ export class FinanceService {
   
   async deleteCategory(id: number) { return this.catRepo.delete(id); }
 
-  // --- TRANSACTION ---
   async getAllTransactions(month?: string) {
       let where = {};
       if (month) {
@@ -42,37 +42,50 @@ export class FinanceService {
       });
   }
 
+  // Tạo phiếu thu/chi thông thường
   async createTransaction(data: any) {
       let category = null;
       if (data.category_id) category = await this.catRepo.findOne({ where: { id: data.category_id } });
 
-      const trans = this.transRepo.create({
-          ...data,
-          category: category
-      });
+      const trans = this.transRepo.create({ ...data, category });
       return this.transRepo.save(trans);
   }
 
-  // --- FIX: HÀM TẠO THANH TOÁN TỪ SALES ---
+  // Tạo phiếu Thu tiền từ Đơn Bán Hàng (Sales)
   async createPayment(data: any) {
-      // data: { type: 'INCOME', amount, refCode, note }
-      
-      // Tự động tìm category "Thu bán hàng" nếu có (Optional)
-      // const cat = await this.catRepo.findOne({ where: { name: 'Thu bán hàng' } });
-
       const trans = this.transRepo.create({
-          date: new Date().toISOString().split('T')[0], // Ngày hiện tại
+          date: new Date().toISOString().split('T')[0],
           type: data.type || 'INCOME',
           amount: Number(data.amount),
-          reference_code: data.refCode, // Mã đơn hàng (VD: SO-251219-53)
+          reference_code: data.refCode,
           reference_type: 'SALES',
           description: data.note,
-          // category: cat // Gán nếu tìm thấy
       });
-      
       return this.transRepo.save(trans);
   }
-  // ----------------------------------------
+
+  // --- MỚI: Tạo phiếu Chi tiền cho Đơn Mua Hàng (Purchasing) ---
+  async createPOPayment(data: any) {
+      // data: { amount, poCode, note }
+      const trans = this.transRepo.create({
+          date: new Date().toISOString().split('T')[0],
+          type: 'EXPENSE', // Chi tiền
+          amount: Number(data.amount),
+          reference_code: data.poCode, 
+          reference_type: 'PURCHASE',
+          description: data.note || `Thanh toán cho đơn ${data.poCode}`,
+      });
+      
+      const saved = await this.transRepo.save(trans);
+
+      // Cập nhật ngược lại số tiền đã trả cho PO
+      if (data.poCode) {
+          await this.purchasingService.updatePayment(data.poCode, Number(data.amount));
+      }
+
+      return saved;
+  }
+  // -------------------------------------------------------------
 
   async deleteTransaction(id: number) { return this.transRepo.delete(id); }
 
