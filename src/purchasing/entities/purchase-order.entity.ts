@@ -41,7 +41,6 @@ export class PurchaseOrder {
   })
   status: POStatus;
 
-  // --- QUAN HỆ NHÀ CUNG CẤP ---
   @ManyToOne(() => Supplier, { nullable: true })
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
@@ -49,7 +48,6 @@ export class PurchaseOrder {
   @Column({ nullable: true })
   supplier_id: number;
 
-  // --- LIÊN KẾT PLAN ---
   @ManyToOne(() => ProductionPlan, { nullable: true })
   @JoinColumn({ name: 'plan_id' })
   plan: ProductionPlan;
@@ -57,15 +55,20 @@ export class PurchaseOrder {
   @Column({ nullable: true })
   plan_id: number;
 
-  // --- TÀI CHÍNH ---
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   total_amount: number;
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  paid_amount: number; // Đã thanh toán
+  paid_amount: number;
 
   @Column({ nullable: true })
   note: string;
+
+  // --- MỚI: Thông tin vận chuyển NPL sang Gia công ---
+  // Lưu dạng JSON: { sent_date: '...', vehicle: '...', status: 'SENT/RECEIVED', note: '...' }
+  @Column({ type: 'jsonb', nullable: true })
+  outsourcing_delivery_info: any; 
+  // --------------------------------------------------
 
   @OneToMany(() => PurchaseOrderItem, (item) => item.purchase_order, { cascade: true })
   items: PurchaseOrderItem[];
