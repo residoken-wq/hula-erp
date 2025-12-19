@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Select, Row, Col, Space, Divider, Tooltip, Statistic, Popconfirm } from 'antd';
-import { PlusOutlined, DeleteOutlined, GiftOutlined, DollarOutlined, EditOutlined, WarningOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Select, Row, Col, Space, Divider, Tooltip, Statistic, Popconfirm, Tag } from 'antd';
+import { PlusOutlined, DeleteOutlined, GiftOutlined, DollarOutlined, EditOutlined, WarningOutlined, SearchOutlined, CalculatorOutlined, RiseOutlined, FallOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -8,20 +8,30 @@ const CombosPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [combos, setCombos] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  
-  // --- MỚI: STATE TÌM KIẾM ---
   const [searchText, setSearchText] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null); // State cho item đang edit
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [form] = Form.useForm();
 
-  // Dữ liệu sản phẩm dưới dạng Map để dễ dàng tra cứu giá
+  // --- STATE ĐỂ HIỂN THỊ METRICS TỨC THỜI ---
+  const [metrics, setMetrics] = useState({
+      totalRefCost: 0,    // Tổng giá vốn tham khảo
+      totalRefSell: 0,    // Tổng giá bán lẻ tham khảo
+      diff: 0,            // Chênh lệch (Official - RefSell)
+      profit: 0           // Lợi nhuận (Official - RefCost)
+  });
+
+  // Map dữ liệu để tra cứu nhanh: Giá bán & Giá vốn
   const productMap = useMemo(() => {
     return products.reduce((acc, p) => {
         const sku = p.value;
-        const price = p.price;
-        acc[sku] = { price: price, name: p.label.split(' - ')[1], unit: p.unit };
+        acc[sku] = { 
+            price: Number(p.price) || 0,        // Giá bán lẻ
+            cost: Number(p.cost_price) || 0,    // Giá vốn
+            name: p.label.split(' - ')[1], 
+            unit: p.unit 
+        };
         return acc;
     }, {});
   }, [products]);
@@ -34,7 +44,8 @@ const CombosPage: React.FC = () => {
             setProducts(resProd.data.map((p:any) => ({
                 label: `${p.sku} - ${p.name}`, 
                 value: p.sku, 
-                price: Number(p.base_price) || 0, // Lưu giá bán vào options
+                price: Number(p.base_price) || 0,
+                cost_price: Number(p.cost_price) || 0, // Lấy thêm giá vốn
                 unit: p.unit
             })));
 
@@ -47,7 +58,6 @@ const CombosPage: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // --- MỚI: LOGIC LỌC DỮ LIỆU ---
   const filteredCombos = useMemo(() => {
       if (!searchText) return combos;
       const lower = searchText.toLowerCase();
@@ -57,345 +67,230 @@ const CombosPage: React.FC = () => {
       );
   }, [combos, searchText]);
 
-  // --- HÀM TẢI CHI TIẾT COMBO (ĐỂ EDIT) ---
   const fetchComboDetail = async (comboSku: string) => {
       try {
           const res = await axios.get(`${API_URL}/products/combo/${comboSku}`);
-          return (res.data || [])
-            .map((comp: any) => ({
-                sku: comp.child_product?.sku, 
-                quantity: comp.quantity,
-                id: comp.id
-            }))
-            .filter((item: any) => item.sku);
-      } catch(e) {
-          message.error('Lỗi tải chi tiết thành phần Combo');
-          return [];
-      }
+          return (res.data || []).map((comp: any) => ({
+              sku: comp.child_product?.sku, 
+              quantity: comp.quantity,
+              id: comp.id
+          })).filter((item: any) => item.sku);
+      } catch(e) { return []; }
   };
 
-  // --- HÀM MỞ EDIT (FIX LỖI NẠP DỮ LIỆU BẤT ĐỒNG BỘ) ---
+  // --- HÀM TÍNH TOÁN CÁC CHỈ SỐ TÀI CHÍNH ---
+  const calculateMetrics = (allValues: any) => {
+      const items = allValues.items || [];
+      const officialPrice = Number(allValues.manual_base_price) || 0;
+
+      let refSell = 0;
+      let refCost = 0;
+
+      items.forEach((item: any) => {
+          if (item.sku && item.quantity) {
+              const info = productMap[item.sku];
+              if (info) {
+                  refSell += Number(item.quantity) * info.price;
+                  refCost += Number(item.quantity) * info.cost;
+              }
+          }
+      });
+
+      setMetrics({
+          totalRefSell: refSell,
+          totalRefCost: refCost,
+          diff: officialPrice - refSell,
+          profit: officialPrice - refCost
+      });
+  };
+
   const openEdit = async (record: any) => {
       setEditingItem(record);
       form.resetFields(); 
-      setIsModalOpen(true); // Mở Modal
+      setIsModalOpen(true); 
 
       const comboItems = await fetchComboDetail(record.sku);
       
-      let initialCalculatedCost = 0;
-      comboItems.forEach((item: any) => {
-          const productInfo = productMap[item.sku] || { price: 0 };
-          initialCalculatedCost += Number(item.quantity) * Number(productInfo.price);
-      });
-      
-      // FIX: Thêm độ trễ nhỏ để đảm bảo Form.List đã mount trước khi setFieldsValue
+      // Set value vào form
+      const initialValues = {
+          sku: record.sku,
+          name: record.name,
+          manual_base_price: record.base_price, 
+          items: comboItems
+      };
+
       setTimeout(() => {
-          form.setFieldsValue({
-              sku: record.sku,
-              name: record.name,
-              manual_base_price: record.base_price, 
-              items: comboItems, 
-              total_price_calculated: Math.round(initialCalculatedCost)
-          });
-      }, 50); // 50ms delay
+          form.setFieldsValue(initialValues);
+          calculateMetrics(initialValues); // Tính toán ngay khi mở
+      }, 50); 
   };
 
-
-  // --- HÀM LƯU COMBO ---
   const handleSave = async (values: any) => {
       try {
           const { sku, name, items, manual_base_price } = values;
           
-          const calculatedCost = form.getFieldValue('total_price_calculated');
-          const finalPrice = manual_base_price || calculatedCost; 
-
           let comboProduct = editingItem;
-          
+          const payload = { 
+              name, 
+              base_price: manual_base_price, // Lưu giá bán chính thức user nhập
+              cost_price: metrics.totalRefCost // Lưu giá vốn tổng hợp (Optional)
+          };
+
           if (!comboProduct) {
-              // 1. TẠO MỚI 
-              const res = await axios.post(`${API_URL}/products`, {
-                  sku: sku,
-                  name: name,
-                  product_type: 'COMBO',
-                  base_price: finalPrice, 
-                  is_active: true
-              });
+              const res = await axios.post(`${API_URL}/products`, { ...payload, sku, product_type: 'COMBO', is_active: true });
               comboProduct = res.data;
           } else {
-              // 1. CẬP NHẬT 
-              await axios.put(`${API_URL}/products/${comboProduct.id}`, {
-                  name: name,
-                  base_price: finalPrice,
-              });
+              await axios.put(`${API_URL}/products/${comboProduct.id}`, payload);
           }
 
-          if (!comboProduct || !comboProduct.id) {
-              throw new Error("Không thể tạo hoặc tìm thấy ID Combo.");
+          if (comboProduct?.id) {
+              const components = items.map((item: any) => ({ sku: item.sku, quantity: item.quantity }));
+              await axios.post(`${API_URL}/products/${comboProduct.id}/components`, components);
           }
-
-          // 2. Lưu các thành phần Combo (Components)
-          const componentPayload = items.map((item: any) => ({
-              sku: item.sku,
-              quantity: item.quantity
-          }));
           
-          await axios.post(`${API_URL}/products/${comboProduct.id}/components`, componentPayload);
-          
-          message.success(`Đã lưu Combo ${sku} thành công!`);
-          setIsModalOpen(false);
-          setEditingItem(null);
-          fetchData();
-      } catch(e: any) { 
-          let errorMessage = "Lỗi lưu Combo.";
-          if (axios.isAxiosError(e) && e.response?.data?.message) {
-              errorMessage = e.response.data.message;
-          }
-          message.error(`Lỗi: ${errorMessage}`);
-      }
+          message.success('Đã lưu Combo!');
+          setIsModalOpen(false); setEditingItem(null); fetchData();
+      } catch(e: any) { message.error('Lỗi lưu Combo'); }
   };
 
-  // --- HÀM XÓA COMBO ---
   const handleDelete = async (id: number) => {
       try {
           await axios.delete(`${API_URL}/products/${id}`);
-          message.success('Đã xóa Combo thành công.');
-          fetchData();
-      } catch(e: any) {
-          let errorMessage = "Lỗi xóa Combo. Có thể Combo này đã được sử dụng.";
-          if (axios.isAxiosError(e) && e.response?.status === 400) {
-               errorMessage = e.response.data.message || "Combo này đã được sử dụng trong Đơn hàng/Báo giá và không thể xóa.";
-          }
-          Modal.warning({
-              title: 'Không thể xóa Combo',
-              icon: <WarningOutlined />,
-              content: errorMessage,
-              okText: 'Đóng'
-          });
-      }
-  };
-
-
-  // --- HÀM TÍNH TOÁN TỔNG TIỀN TRÊN FORM ---
-  const calculateTotal = (changedValues: any, allValues: any) => {
-    const items = allValues.items || [];
-    let total = 0;
-
-    items.forEach((item: any) => {
-        if (item.sku && item.quantity) {
-            const productInfo = productMap[item.sku];
-            if (productInfo) {
-                total += Number(item.quantity) * Number(productInfo.price);
-            }
-        }
-    });
-
-    form.setFieldsValue({ total_price_calculated: Math.round(total) });
+          message.success('Đã xóa Combo'); fetchData();
+      } catch(e: any) { Modal.warning({ title: 'Không thể xóa', content: 'Combo này có thể đang được sử dụng.' }); }
   };
   
   const columns = [
+      { title: 'Mã Combo', dataIndex: 'sku', render: (t:any) => <b>{t}</b> },
+      { title: 'Tên Combo', dataIndex: 'name' },
+      { title: 'Giá bán', dataIndex: 'base_price', align: 'right' as const, render: (v:any) => <Tag color="green" style={{fontSize:14}}>{Number(v).toLocaleString()} ₫</Tag> },
       { 
-          title: 'Mã Combo', dataIndex: 'sku', 
-          render: (t:any) => <b>{t}</b>,
-          sorter: (a: any, b: any) => (a.sku || '').localeCompare(b.sku || '')
-      },
-      { 
-          title: 'Tên Combo', dataIndex: 'name',
-          sorter: (a: any, b: any) => (a.name || '').localeCompare(b.name || '')
-      },
-      { 
-          title: 'Giá bán', dataIndex: 'base_price', align: 'right' as const, 
-          render: (v:any) => Number(v).toLocaleString() + ' ₫',
-          sorter: (a: any, b: any) => Number(a.base_price) - Number(b.base_price)
-      },
-      { 
-          title: '', key: 'action', width: 100, align: 'center' as const,
+          title: '', key: 'act', width: 100, align: 'center' as const,
           render: (r: any) => (
-             <Space size="small">
+             <Space>
                  <Button icon={<EditOutlined/>} size="small" onClick={() => openEdit(r)} />
-                 <Popconfirm 
-                    title="Xóa Combo này?" 
-                    onConfirm={() => handleDelete(r.id)}
-                    okText="Xóa"
-                    cancelText="Hủy"
-                 >
-                    <Button icon={<DeleteOutlined/>} danger size="small" />
-                 </Popconfirm>
+                 <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined/>} danger size="small" /></Popconfirm>
              </Space>
           ) 
       }
   ];
 
   return (
-    <Card 
-        title="Quản lý Combo Quà Tặng" 
-        extra={
-            <Space>
-                {/* --- MỚI: THANH TÌM KIẾM --- */}
-                <Input 
-                    placeholder="Tìm mã hoặc tên combo..." 
-                    prefix={<SearchOutlined />} 
-                    value={searchText} 
-                    onChange={e => setSearchText(e.target.value)} 
-                    style={{ width: 250 }}
-                    allowClear
-                />
-                <Button type="primary" icon={<PlusOutlined/>} onClick={()=>{setEditingItem(null); form.resetFields(); setIsModalOpen(true);}}>Tạo Combo</Button>
-            </Space>
-        }
-    >
-        <Table 
-            dataSource={filteredCombos} // Sử dụng dữ liệu đã lọc
-            columns={columns} 
-            rowKey="id" 
-            loading={loading} 
-            locale={{ emptyText: "Chưa có Combo nào được tạo." }} 
-        />
+    <Card title="Quản lý Combo Quà Tặng" extra={<Space><Input prefix={<SearchOutlined />} placeholder="Tìm combo..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 200 }} /><Button type="primary" icon={<PlusOutlined/>} onClick={()=>{setEditingItem(null); form.resetFields(); setMetrics({totalRefCost:0, totalRefSell:0, diff:0, profit:0}); setIsModalOpen(true);}}>Tạo Combo</Button></Space>}>
+        <Table dataSource={filteredCombos} columns={columns} rowKey="id" loading={loading} />
         
         <Modal 
-            title={<span><GiftOutlined /> {editingItem ? `Chỉnh sửa Combo: ${editingItem.sku}` : "Thiết lập Combo"}</span>} 
+            title={<span><GiftOutlined /> {editingItem ? `Chỉnh sửa: ${editingItem.sku}` : "Thiết lập Combo Mới"}</span>} 
             open={isModalOpen} 
-            onCancel={()=>{setIsModalOpen(false); form.resetFields(); setEditingItem(null);}} 
+            onCancel={()=>{setIsModalOpen(false);}} 
             onOk={()=>form.submit()} 
-            width={1000} 
-            okText={editingItem ? "Lưu Cập Nhật" : "Tạo Combo"}
+            width={1100}
+            style={{top: 20}}
         >
-            <Form 
-                form={form} 
-                layout="vertical" 
-                onFinish={handleSave}
-                onValuesChange={calculateTotal}
-            >
+            <Form form={form} layout="vertical" onFinish={handleSave} onValuesChange={(_, all) => calculateMetrics(all)}>
+                {/* --- THÔNG TIN CHUNG --- */}
                 <Row gutter={16}>
                     <Col span={8}><Form.Item name="sku" label="Mã Combo" rules={[{required:true}]}><Input disabled={!!editingItem} /></Form.Item></Col>
                     <Col span={8}><Form.Item name="name" label="Tên Combo" rules={[{required:true}]}><Input /></Form.Item></Col>
-                    
-                    {/* --- MỚI: FIELD GIÁ BÁN TÙY CHỈNH --- */}
                     <Col span={8}>
+                        {/* 2. FIELD GIÁ BÁN CHÍNH THỨC */}
                         <Form.Item 
                             name="manual_base_price" 
-                            label="Giá bán Combo (Tùy chỉnh)" 
-                            tooltip="Giá này sẽ được lưu làm giá bán chính thức của Combo."
-                            rules={[{required: true, message: 'Nhập giá bán'}]}
+                            label="Giá Bán Chính Thức (User nhập)" 
+                            rules={[{required: true, message: 'Vui lòng nhập giá bán'}]}
                         >
                             <InputNumber 
-                                style={{width:'100%'}} 
-                                formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')}
-                                addonAfter="₫"
+                                style={{width:'100%', fontWeight:'bold', color: '#13c2c2'}} 
+                                formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} addonAfter="₫" placeholder="Nhập giá bán..."
                             />
                         </Form.Item>
                     </Col>
-                    {/* -------------------------------------- */}
                 </Row>
                 
-                <Divider orientation="left">Sản phẩm Thành phần</Divider>
-                
-                {/* Trường ẩn để lưu giá tính toán */}
-                <Form.Item name="total_price_calculated" hidden><InputNumber /></Form.Item>
-
-                <Row gutter={16}>
-                    <Col span={12}>**Sản phẩm con**</Col>
-                    <Col span={4} style={{textAlign: 'right'}}>**Giá bán**</Col>
-                    <Col span={4}>**SL**</Col>
-                    <Col span={4} style={{textAlign: 'right'}}>**Thành tiền**</Col>
-                </Row>
-                <Divider style={{ margin: '8px 0' }} />
+                <Divider orientation="left" style={{marginTop:0}}>Thành phần Combo</Divider>
 
                 <Form.List name="items">
                     {(fields, { add, remove }) => (
-                        <>
+                        <div style={{maxHeight: 300, overflowY:'auto', paddingRight:5}}>
                             {fields.map(({ key, name, ...restField }, index) => {
-                                const currentSku = form.getFieldValue(['items', name, 'sku']);
-                                const currentQty = form.getFieldValue(['items', name, 'quantity']) || 0;
-                                const productInfo = productMap[currentSku] || { price: 0 };
-                                const price = productInfo.price;
-                                const lineTotal = currentQty * price;
-                                const unit = productMap[currentSku]?.unit || 'Cái';
-
+                                const sku = form.getFieldValue(['items', name, 'sku']);
+                                const info = productMap[sku] || { price: 0, cost: 0, unit: '' };
                                 return (
-                                    <Card 
-                                        key={key} 
-                                        size="small"
-                                        style={{ marginBottom: 16 }}
-                                        title={`Sản phẩm ${index + 1}`}
-                                        extra={
-                                            <Tooltip title="Xóa sản phẩm này">
-                                                <Button 
-                                                    icon={<DeleteOutlined/>} 
-                                                    onClick={() => remove(name)} 
-                                                    danger 
-                                                    size="small"
-                                                />
-                                            </Tooltip>
-                                        }
-                                    >
-                                        <Row gutter={16}>
-                                            <Col span={12}>
-                                                <Form.Item 
-                                                    key={`sku-${key}`} 
-                                                    {...restField} 
-                                                    name={[name, 'sku']} 
-                                                    label="Sản phẩm con"
-                                                    rules={[{ required: true, message: 'Vui lòng chọn SKU' }]}
-                                                >
-                                                    <Select 
-                                                        placeholder="Tìm kiếm SKU hoặc Tên sản phẩm" 
-                                                        options={products} 
-                                                        showSearch 
-                                                        optionFilterProp="label" 
-                                                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
-                                                        style={{ width: '100%' }}
-                                                    />
-                                                </Form.Item>
-                                            </Col>
-                                            
-                                            <Col span={4}>
-                                                <Form.Item label="Giá bán" style={{marginBottom: 0}}>
-                                                    <Input value={Number(price).toLocaleString() + ' ₫'} disabled />
-                                                </Form.Item>
-                                            </Col>
-                                            
-                                            <Col span={4}>
-                                                <Form.Item 
-                                                    key={`qty-${key}`} 
-                                                    {...restField} 
-                                                    name={[name, 'quantity']} 
-                                                    label={`Số lượng (${unit})`}
-                                                    rules={[{ required: true, message: 'Nhập SL' }]}
-                                                >
-                                                    <InputNumber 
-                                                        min={1} 
-                                                        placeholder="SL" 
-                                                        style={{ width: '100%' }} 
-                                                    />
-                                                </Form.Item>
-                                            </Col>
-                                            
-                                            <Col span={4}>
-                                                <Form.Item label="Thành tiền" style={{marginBottom: 0}}>
-                                                    <Input value={Number(lineTotal).toLocaleString() + ' ₫'} disabled />
-                                                </Form.Item>
-                                            </Col>
-                                        </Row>
-                                    </Card>
+                                    <Row key={key} gutter={8} align="middle" style={{marginBottom: 10, background:'#fafafa', padding: 8, borderRadius: 6, border:'1px solid #f0f0f0'}}>
+                                        <Col span={10}>
+                                            <Form.Item {...restField} name={[name, 'sku']} noStyle rules={[{ required: true }]}>
+                                                <Select placeholder="Chọn sản phẩm con" options={products} showSearch optionFilterProp="label" style={{ width: '100%' }} />
+                                            </Form.Item>
+                                            <div style={{fontSize:11, color:'#888', marginTop:4}}>
+                                                Giá vốn: {info.cost.toLocaleString()} | Giá bán lẻ: {info.price.toLocaleString()}
+                                            </div>
+                                        </Col>
+                                        <Col span={4}>
+                                            <Form.Item {...restField} name={[name, 'quantity']} noStyle rules={[{ required: true }]}>
+                                                <InputNumber min={1} placeholder="SL" addonAfter={info.unit} style={{ width: '100%' }} />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={8} style={{textAlign:'right', color:'#555'}}>
+                                            Thành tiền (Bán): <b>{(info.price * (form.getFieldValue(['items', name, 'quantity'])||0)).toLocaleString()} ₫</b>
+                                        </Col>
+                                        <Col span={2} style={{textAlign:'center'}}>
+                                            <DeleteOutlined onClick={() => remove(name)} style={{color:'red', cursor:'pointer'}} />
+                                        </Col>
+                                    </Row>
                                 );
                             })}
-                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm sản phẩm vào Combo</Button>
-                        </>
+                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm sản phẩm</Button>
+                        </div>
                     )}
                 </Form.List>
                 
                 <Divider />
                 
-                <Row justify="end" style={{ paddingRight: 16 }}>
-                    <Statistic 
-                        title="GIÁ VỐN COMBO (Tham khảo từ thành phần)" 
-                        value={form.getFieldValue('total_price_calculated') || 0} 
-                        precision={0} 
-                        valueStyle={{ color: '#3f8600', fontSize: 24, fontWeight: 'bold' }} 
-                        prefix={<DollarOutlined />}
-                        suffix="₫"
-                    />
-                </Row>
+                {/* --- KHU VỰC THỐNG KÊ TÀI CHÍNH (REQUIREMENT 1, 3, 4, 5) --- */}
+                <div style={{background: '#f6ffed', padding: 16, borderRadius: 8, border: '1px solid #b7eb8f'}}>
+                    <Row gutter={24} style={{textAlign: 'center'}}>
+                        <Col span={6}>
+                            <Statistic 
+                                title="3. Tổng Giá Vốn (Tham Khảo)" 
+                                value={metrics.totalRefCost} 
+                                prefix={<CalculatorOutlined />} 
+                                valueStyle={{ fontSize: 18 }} 
+                            />
+                            <div style={{fontSize:11, color:'#888'}}>(Tổng giá vốn SP con)</div>
+                        </Col>
+                        
+                        <Col span={6} style={{borderLeft:'1px solid #d9d9d9'}}>
+                            <Statistic 
+                                title="1. Tổng Giá Bán Lẻ (Tham Khảo)" 
+                                value={metrics.totalRefSell} 
+                                valueStyle={{ fontSize: 18 }} 
+                            />
+                            <div style={{fontSize:11, color:'#888'}}>(Tổng giá bán SP con)</div>
+                        </Col>
+
+                        <Col span={6} style={{borderLeft:'1px solid #d9d9d9'}}>
+                            {/* 5. Chênh lệch (Tiết kiệm cho khách) */}
+                            <Statistic 
+                                title="5. Chênh lệch (So với mua lẻ)" 
+                                value={Math.abs(metrics.diff)} 
+                                prefix={metrics.diff < 0 ? <FallOutlined /> : <RiseOutlined />}
+                                valueStyle={{ color: metrics.diff < 0 ? '#389e0d' : '#cf1322', fontSize: 18, fontWeight: 'bold' }} 
+                                suffix={metrics.diff < 0 ? "(Tiết kiệm)" : "(Đắt hơn)"}
+                            />
+                        </Col>
+
+                        <Col span={6} style={{borderLeft:'1px solid #d9d9d9', background: '#fff7e6'}}>
+                            {/* 4. Lợi nhuận dự kiến */}
+                            <Statistic 
+                                title="4. Lợi Nhuận Dự Kiến" 
+                                value={metrics.profit} 
+                                prefix={<DollarOutlined />}
+                                valueStyle={{ color: metrics.profit > 0 ? '#d46b08' : 'red', fontSize: 20, fontWeight: 'bold' }} 
+                            />
+                            <div style={{fontSize:11, color:'#888'}}>(Giá chính thức - Giá vốn)</div>
+                        </Col>
+                    </Row>
+                </div>
             </Form>
         </Modal>
     </Card>
