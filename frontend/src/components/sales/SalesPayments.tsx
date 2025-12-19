@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, Statistic, Row, Col, Divider, Modal, Form, InputNumber, Radio, Input, message } from 'antd';
 import { DollarOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { API_URL } from '../../config'; // <--- FIX: Lùi 2 cấp thư mục
+import { API_URL } from '../../config';
 
 interface Props { 
     orderId: number; 
@@ -29,7 +29,16 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
 
     useEffect(() => { 
         if (orderCode) fetchHistory(); 
-    }, [orderCode, paidAmount]);
+    }, [orderCode]); // Bỏ dependency paidAmount để tránh loop, chỉ load khi mở đơn
+
+    // --- FIX: TÍNH TOÁN LẠI SỐ TIỀN ĐÃ TRẢ TỪ LỊCH SỬ (REAL-TIME) ---
+    // Thay vì dùng props.paidAmount (có thể chưa cập nhật), ta cộng dồn từ history
+    const realTimePaidAmount = useMemo(() => {
+        return history.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    }, [history]);
+
+    const remainingAmount = totalAmount - realTimePaidAmount;
+    // ----------------------------------------------------------------
 
     const handlePayment = async () => {
         if (amount <= 0) return message.warning('Nhập số tiền hợp lệ');
@@ -50,15 +59,16 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
             setAmount(0);
             setNote('');
             
-            fetchHistory(); 
-            onSuccess();
+            await fetchHistory(); // Load lại history -> Tự động update realTimePaidAmount
+            onSuccess(); // Báo cho parent reload nếu cần
         } catch (e) { 
             message.error('Lỗi lưu thanh toán'); 
         }
     };
 
     const openModal = () => {
-        const remain = totalAmount - paidAmount;
+        // Gợi ý số tiền còn lại khi mở modal
+        const remain = totalAmount - realTimePaidAmount;
         setAmount(remain > 0 ? remain : 0);
         setNote('');
         setIsModalOpen(true);
@@ -67,16 +77,42 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
     return (
         <div>
             <Row gutter={16}>
-                <Col span={8}><Statistic title="Tổng giá trị" value={totalAmount} suffix="đ" /></Col>
-                <Col span={8}><Statistic title="Đã thanh toán" value={paidAmount} valueStyle={{ color: 'green' }} suffix="đ" /></Col>
-                <Col span={8}><Statistic title="Còn lại" value={totalAmount - paidAmount} valueStyle={{ color: 'red' }} suffix="đ" /></Col>
+                <Col span={8}>
+                    <Statistic title="Tổng giá trị" value={totalAmount} suffix="đ" />
+                </Col>
+                <Col span={8}>
+                    {/* Sử dụng realTimePaidAmount thay vì paidAmount */}
+                    <Statistic 
+                        title="Đã thanh toán" 
+                        value={realTimePaidAmount} 
+                        valueStyle={{ color: 'green' }} 
+                        suffix="đ" 
+                    />
+                </Col>
+                <Col span={8}>
+                    {/* Sử dụng remainingAmount đã tính toán lại */}
+                    <Statistic 
+                        title="Còn lại" 
+                        value={remainingAmount} 
+                        valueStyle={{ color: remainingAmount > 0 ? 'red' : 'gray' }} 
+                        suffix="đ" 
+                    />
+                </Col>
             </Row>
             
             <Divider />
             
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                 <b>Lịch sử thanh toán:</b>
-                <Button type="primary" icon={<DollarOutlined />} onClick={openModal}>Thêm thanh toán</Button>
+                {/* Chỉ cho phép thêm thanh toán nếu còn nợ */}
+                <Button 
+                    type="primary" 
+                    icon={<DollarOutlined />} 
+                    onClick={openModal}
+                    disabled={remainingAmount <= 0}
+                >
+                    Thêm thanh toán
+                </Button>
             </div>
             
             <Table 
@@ -101,6 +137,7 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                             onChange={(v:any) => setAmount(v)} 
                             formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
                             addonAfter="₫"
+                            max={remainingAmount} // Không cho nhập quá số tiền còn lại
                         />
                     </Form.Item>
                     <Form.Item label="Loại">
