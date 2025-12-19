@@ -3,7 +3,7 @@ import { Layout, Menu, theme, Button, Avatar, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
-  SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined // <--- MỚI: Icon Calendar
+  SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined 
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
@@ -29,11 +29,11 @@ import UserGroupsPage from './pages/UserGroupsPage';
 import LoginPage from './pages/LoginPage';
 import InventoryPage from './pages/InventoryPage';
 import FinancePage from './pages/FinancePage';
-import TasksPage from './pages/TasksPage'; // <--- MỚI: Tasks Page
-import PurchasingPage from './pages/PurchasingPage';
+import TasksPage from './pages/TasksPage'; 
+import PurchasingPage from './pages/PurchasingPage'; // Import trang Purchasing
 
 // Import Components
-import HeaderNotifications from './components/HeaderNotifications'; // <--- MỚI: Notification Component
+import HeaderNotifications from './components/HeaderNotifications';
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -104,9 +104,12 @@ const App: React.FC = () => {
           items.push(getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />));
       }
 
-      // 4. Kho hàng & NCC
+      // 4. Kho hàng & Mua hàng (CẬP NHẬT)
       if (hasPerm('INVENTORY')) {
-          items.push(getItem('Kho hàng & NCC', 'sub1', <DropboxOutlined />, [
+          items.push(getItem('Kho hàng & Mua hàng', 'sub1', <DropboxOutlined />, [
+            // --- THÊM MENU PURCHASING TẠI ĐÂY ---
+            getItem(<Link to="/purchasing">Đơn Mua Hàng & GC</Link>, 'po_list'), 
+            // ------------------------------------
             getItem(<Link to="/materials">Nguyên liệu</Link>, '3'),
             getItem(<Link to="/suppliers">Nhà cung cấp (NPL)</Link>, 'supp'),
             getItem(<Link to="/manufacturers">Nhà gia công</Link>, 'manu'),
@@ -137,7 +140,7 @@ const App: React.FC = () => {
           items.push(getItem(<Link to="/finance">Tài chính (Thu/Chi)</Link>, 'finance', <BankOutlined />));
       }
 
-      // 8. Công việc (MỚI) - Mặc định cho phép mọi người dùng đã đăng nhập truy cập
+      // 8. Công việc & Nhắc nhở
       if (isAuthenticated) {
           items.push(getItem(<Link to="/tasks">Công việc & Nhắc nhở</Link>, 'tasks', <CalendarOutlined />));
       }
@@ -176,10 +179,8 @@ const App: React.FC = () => {
                 </Sider>
                 <Layout>
                 <Header style={{ padding: '0 24px', background: colorBgContainer, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                    {/* --- MỚI: HIỂN THỊ CHUÔNG THÔNG BÁO --- */}
                     <HeaderNotifications />
-                    <div style={{ width: 20 }} /> {/* Khoảng cách */}
-                    {/* -------------------------------------- */}
+                    <div style={{ width: 20 }} /> 
                     <Dropdown overlay={userMenu}>
                         <div style={{cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10}}>
                             <Avatar style={{ backgroundColor: '#87d068' }} icon={<UserOutlined />} />
@@ -203,6 +204,9 @@ const App: React.FC = () => {
 
                         {hasPerm('INVENTORY') && (
                             <>
+                                {/* --- THÊM ROUTE PURCHASING --- */}
+                                <Route path="/purchasing" element={<PurchasingPage />} /> 
+                                {/* --------------------------- */}
                                 <Route path="/materials" element={<MaterialsPage />} />
                                 <Route path="/suppliers" element={<SuppliersPage />} />
                                 <Route path="/manufacturers" element={<ManufacturersPage />} />
@@ -223,7 +227,6 @@ const App: React.FC = () => {
                                 <Route path="/planning" element={<PlanningPage />} />
                                 <Route path="/routes" element={<ProductionRoutePage />} />
                                 <Route path="/processes" element={<ProcessesPage />} />
-                                <Route path="/purchasing" element={<PurchasingPage />} />
                             </>
                         )}
 
@@ -231,9 +234,7 @@ const App: React.FC = () => {
                             <Route path="/finance" element={<FinancePage />} />
                         )}
 
-                        {/* --- MỚI: ROUTE TASKS --- */}
                         <Route path="/tasks" element={<TasksPage />} />
-                        {/* ----------------------- */}
 
                         {hasPerm('USERS') && (
                             <>
