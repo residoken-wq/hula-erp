@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, Card, Tabs, Space, Tooltip, Popconfirm, message, Modal, Descriptions, Divider, Input, Statistic, Row, Col, InputNumber, Radio } from 'antd';
+import { Table, Tag, Button, Card, Tabs, Space, Tooltip, Popconfirm, message, Modal, Descriptions, Divider, Input, Statistic, Row, Col, InputNumber, Radio, Form } from 'antd'; // <--- Đã thêm Form
 import { ReloadOutlined, EyeOutlined, DeleteOutlined, SendOutlined, CheckCircleOutlined, ShopOutlined, ScissorOutlined, PrinterOutlined, SearchOutlined, DollarOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -234,9 +234,9 @@ const PurchasingPage: React.FC = () => {
                                 { title: 'Đơn giá', dataIndex: 'unit_price', align:'right' as const, render: (v:number) => Number(v).toLocaleString() },
                                 { title: 'Thành tiền', dataIndex: 'subtotal', align:'right' as const, render: (v:number) => <b>{Number(v).toLocaleString()}</b> }
                             ]}
-                            summary={(pageData) => {
+                            summary={(pageData: readonly any[]) => { // <--- FIX TYPE
                                 let total = 0;
-                                pageData.forEach(({ subtotal }) => { total += Number(subtotal); });
+                                pageData.forEach((item) => { total += Number(item.subtotal || 0); });
                                 return (
                                     <Table.Summary.Row>
                                         <Table.Summary.Cell index={0} colSpan={5} align="right"><b>TỔNG CỘNG</b></Table.Summary.Cell>
