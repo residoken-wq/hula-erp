@@ -24,10 +24,10 @@ export class ProductsController {
   @Get(':id/logistics') getLogistics(@Param('id') id: number) { return this.service.getLogistics(id); }
   @Post(':id/logistics') saveLogistics(@Param('id') id: number, @Body() b: any) { return this.service.saveLogistics(id, b); }
 
-  // --- API PATTERN (MỚI) ---
+  // --- API PATTERN ---
   @Get(':id/pattern') getPattern(@Param('id') id: number) { return this.service.getPattern(id); }
   @Post(':id/pattern') savePattern(@Param('id') id: number, @Body() b: any) { return this.service.savePattern(id, b); }
-  // -------------------------
+  // -------------------
 
   @Get(':sku/boms') getBoms(@Param('sku') sku: string) { return this.service.getBomByProductSku(sku); }
   @Post(':id/boms') saveBoms(@Param('id') id: number, @Body() b: any) { return this.service.saveBoms(Number(id), b); }

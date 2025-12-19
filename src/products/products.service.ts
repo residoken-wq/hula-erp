@@ -6,7 +6,7 @@ import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from './product-component.entity';
 import { ProductRouting } from './product-routing.entity';
 import { ProductLogistics } from './product-logistics.entity';
-import { ProductPattern } from './product-pattern.entity'; // <--- MỚI: Import Pattern
+import { ProductPattern } from './product-pattern.entity';
 import { Supplier } from '../suppliers/supplier.entity';
 import { SupplierMaterial } from '../suppliers/supplier-material.entity';
 import { CategoriesService } from '../categories/categories.service';
@@ -20,7 +20,7 @@ export class ProductsService {
     @InjectRepository(ProductComponent) private componentRepo: Repository<ProductComponent>,
     @InjectRepository(ProductRouting) private routingRepo: Repository<ProductRouting>,
     @InjectRepository(ProductLogistics) private logisticRepo: Repository<ProductLogistics>,
-    @InjectRepository(ProductPattern) private patternRepo: Repository<ProductPattern>, // <--- MỚI: Inject Repo Pattern
+    @InjectRepository(ProductPattern) private patternRepo: Repository<ProductPattern>,
     @InjectRepository(Supplier) private supplierRepo: Repository<Supplier>,
     @InjectRepository(SupplierMaterial) private priceRepo: Repository<SupplierMaterial>,
     @Inject(forwardRef(() => CategoriesService)) private categoriesService: CategoriesService,
@@ -57,19 +57,14 @@ export class ProductsService {
   
   async remove(id: number) { return this.productRepo.delete(id); }
 
-  // --- HÀM TẠO BIẾN THỂ ---
   async createVariant(createVariantDto: CreateVariantDto): Promise<Product> {
     const { baseSku, newSku, newName, attributes } = createVariantDto;
 
     const baseProduct = await this.productRepo.findOne({ where: { sku: baseSku } });
-    if (!baseProduct) {
-      throw new NotFoundException(`Sản phẩm gốc với SKU "${baseSku}" không tồn tại.`);
-    }
+    if (!baseProduct) throw new NotFoundException(`Sản phẩm gốc với SKU "${baseSku}" không tồn tại.`);
 
     const existingProduct = await this.productRepo.findOne({ where: { sku: newSku } });
-    if (existingProduct) {
-        throw new ConflictException(`SKU biến thể "${newSku}" đã tồn tại.`);
-    }
+    if (existingProduct) throw new ConflictException(`SKU biến thể "${newSku}" đã tồn tại.`);
 
     const { routings, logistics, components, ...baseProductClone } = baseProduct as any;
 
@@ -107,7 +102,7 @@ export class ProductsService {
         await this.logisticRepo.save(newLogistics as any);
     }
 
-    // Sao chép Pattern (Mới)
+    // Sao chép Pattern
     const basePattern = await this.patternRepo.findOne({ where: { product_id: baseProduct.id } });
     if(basePattern) {
         const newPattern = this.patternRepo.create({ ...basePattern, id: undefined, product_id: savedVariant.id });
@@ -118,7 +113,6 @@ export class ProductsService {
     return savedVariant; 
   }
 
-  // --- QUẢN LÝ PATTERN (SƠ ĐỒ RẬP) ---
   async getPattern(productId: number) {
       return this.patternRepo.findOne({ where: { product_id: productId } });
   }
@@ -129,13 +123,10 @@ export class ProductsService {
       if (!pattern) {
           pattern = this.patternRepo.create({
               product_id: productId,
-              image_url: data.image_url,
-              fabric_width: data.fabric_width,
-              fabric_yield: data.fabric_yield,
-              details: data.details,
-              note: data.note
+              ...data
           });
       } else {
+          // Update fields
           pattern.image_url = data.image_url;
           pattern.fabric_width = data.fabric_width;
           pattern.fabric_yield = data.fabric_yield;
@@ -144,7 +135,6 @@ export class ProductsService {
       }
       return this.patternRepo.save(pattern);
   }
-  // ------------------------------------
 
   async getProductBOM(sku: string): Promise<BOM[]> {
     const product = await this.productRepo.findOne({ where: { sku } });
@@ -221,16 +211,34 @@ export class ProductsService {
 
   async getLogistics(productId: number) { return this.logisticRepo.find({ where: { product_id: productId } }); }
   
+  // --- FIX: LOGIC LƯU LOGISTICS ---
   async saveLogistics(productId: number, items: any[]) {
       if (!items || !Array.isArray(items)) return [];
       const pId = Number(productId);
+      
+      // 1. Xóa cũ
       await this.logisticRepo.delete({ product_id: pId });
-      const newItems = items.map(i => this.logisticRepo.create({ ...i, product_id: pId, cost: Number(i.cost) || 0 }));
+      
+      // 2. Tạo mới (LOẠI BỎ ID ĐỂ TRÁNH LỖI DUPLICATE KEY)
+      const newItems = items.map(i => {
+          const { id, ...rest } = i; // Tách ID ra khỏi object
+          return this.logisticRepo.create({ 
+              ...rest, // name, note
+              product_id: pId, 
+              cost: Number(i.cost) || 0 
+          });
+      });
+      
+      // 3. Lưu lại
       await this.logisticRepo.save(newItems as any);
+      
+      // 4. Tính lại giá vốn
       const product = await this.productRepo.findOne({ where: { id: pId } });
       if(product) await this.calculateCostPrice(product.sku);
+      
       return { message: 'Saved' };
   }
+  // ------------------------------
 
   async syncToVariants(sourceProductId: number) {
       const source = await this.productRepo.findOne({ where: { id: sourceProductId } });
@@ -238,11 +246,10 @@ export class ProductsService {
       const variants = await this.productRepo.find({ where: { name: source.name, category: source.category } });
       const targets = variants.filter(v => v.id !== sourceProductId);
       
-      // Sync BOMs, Routings, Logistics... (Code cũ giữ nguyên)
       const sourceBoms = await this.bomRepo.find({ where: { product_id: sourceProductId } });
       const sourceRoutings = await this.routingRepo.find({ where: { product_id: sourceProductId } });
       const sourceLogistics = await this.logisticRepo.find({ where: { product_id: sourceProductId } });
-      const sourcePattern = await this.patternRepo.findOne({ where: { product_id: sourceProductId } }); // Sync Pattern
+      const sourcePattern = await this.patternRepo.findOne({ where: { product_id: sourceProductId } });
 
       for (const target of targets) {
           await this.bomRepo.delete({ product_id: target.id });
@@ -262,7 +269,6 @@ export class ProductsService {
           await this.logisticRepo.delete({ product_id: target.id });
           if(sourceLogistics.length) await this.logisticRepo.save(sourceLogistics.map(l => this.logisticRepo.create({ ...l, id: undefined, product_id: target.id })) as any);
           
-          // Sync Pattern
           if(sourcePattern) {
               const existingPattern = await this.patternRepo.findOne({ where: { product_id: target.id } });
               if (existingPattern) {
@@ -321,7 +327,7 @@ export class ProductsService {
         routings.forEach(r => { 
             if(r.is_required) totalCost += Number(r.cost); 
         });
-        // Logistics
+        // Logistics (Đã bao gồm)
         const logistics = await this.logisticRepo.find({ where: { product_id: product.id } });
         logistics.forEach(l => { totalCost += Number(l.cost); });
     }

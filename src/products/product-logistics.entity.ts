@@ -13,13 +13,11 @@ export class ProductLogistics {
   @Column()
   product_id: number;
 
-  // --- CẬP NHẬT: Dùng 'name' để khớp với form nhập liệu Logistics ---
   @Column()
-  name: string; // VD: Bao bì, Vận chuyển, Khấu hao...
-  // ----------------------------------------------------------------
+  name: string; // Tên khoản mục (Khớp với Frontend)
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  cost: number; // Chi phí tính cho 1 đơn vị sản phẩm
+  cost: number; 
 
   @Column({ nullable: true })
   note: string;
