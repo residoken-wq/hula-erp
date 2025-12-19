@@ -30,6 +30,7 @@ import LoginPage from './pages/LoginPage';
 import InventoryPage from './pages/InventoryPage';
 import FinancePage from './pages/FinancePage';
 import TasksPage from './pages/TasksPage'; // <--- MỚI: Tasks Page
+import PurchasingPage from './pages/PurchasingPage';
 
 // Import Components
 import HeaderNotifications from './components/HeaderNotifications'; // <--- MỚI: Notification Component
@@ -222,6 +223,7 @@ const App: React.FC = () => {
                                 <Route path="/planning" element={<PlanningPage />} />
                                 <Route path="/routes" element={<ProductionRoutePage />} />
                                 <Route path="/processes" element={<ProcessesPage />} />
+                                <Route path="/purchasing" element={<PurchasingPage />} />
                             </>
                         )}
 

@@ -8,11 +8,11 @@ export class PurchaseOrderItem {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // --- FIX: Đổi tên 'po' -> 'purchase_order' để khớp với PurchaseOrder entity ---
+  // --- FIX: Đổi tên 'po' -> 'purchase_order' ---
   @ManyToOne(() => PurchaseOrder, (po) => po.items, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'po_id' })
   purchase_order: PurchaseOrder;
-  // -----------------------------------------------------------------------------
+  // ---------------------------------------------
 
   @ManyToOne(() => Material, { nullable: true })
   @JoinColumn({ name: 'material_id' })

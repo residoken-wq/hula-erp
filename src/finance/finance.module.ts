@@ -11,7 +11,7 @@ import { PurchasingModule } from '../purchasing/purchasing.module'; // <--- Impo
   imports: [
     TypeOrmModule.forFeature([Transaction, TransactionCategory]),
     forwardRef(() => SalesModule),
-    forwardRef(() => PurchasingModule), // <--- Dùng forwardRef
+    forwardRef(() => PurchasingModule), // Dùng forwardRef
   ],
   controllers: [FinanceController],
   providers: [FinanceService],

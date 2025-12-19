@@ -6,7 +6,6 @@ export class FinanceController {
   constructor(private readonly s: FinanceService) {}
 
   @Get('summary') getSummary() { return this.s.getSummary(); }
-
   @Get('categories') getCategories() { return this.s.getCategories(); }
   @Post('categories') createCategory(@Body() b: any) { return this.s.createCategory(b); }
   @Put('categories/:id') updateCategory(@Param('id') id: number, @Body() b: any) { return this.s.updateCategory(id, b); }
@@ -16,13 +15,12 @@ export class FinanceController {
   @Post('transactions') createTransaction(@Body() b: any) { return this.s.createTransaction(b); }
   @Delete('transactions/:id') deleteTransaction(@Param('id') id: number) { return this.s.deleteTransaction(id); }
 
-  // Payment Sales (INCOME)
+  // Sales Payment
   @Post('payment') createPayment(@Body() b: any) { return this.s.createPayment(b); }
 
-  // --- MỚI: Payment Purchasing (EXPENSE) ---
+  // --- MỚI: PO Payment ---
   @Post('payment/po') 
   createPOPayment(@Body() b: any) { 
       return this.s.createPOPayment(b); 
   }
-  // ----------------------------------------
 }

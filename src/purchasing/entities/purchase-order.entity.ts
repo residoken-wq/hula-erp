@@ -41,6 +41,7 @@ export class PurchaseOrder {
   })
   status: POStatus;
 
+  // --- QUAN HỆ NHÀ CUNG CẤP ---
   @ManyToOne(() => Supplier, { nullable: true })
   @JoinColumn({ name: 'supplier_id' })
   supplier: Supplier;
@@ -48,6 +49,7 @@ export class PurchaseOrder {
   @Column({ nullable: true })
   supplier_id: number;
 
+  // --- LIÊN KẾT PLAN ---
   @ManyToOne(() => ProductionPlan, { nullable: true })
   @JoinColumn({ name: 'plan_id' })
   plan: ProductionPlan;
@@ -55,20 +57,18 @@ export class PurchaseOrder {
   @Column({ nullable: true })
   plan_id: number;
 
+  // --- TÀI CHÍNH ---
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   total_amount: number;
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  paid_amount: number;
+  paid_amount: number; // Đã thanh toán
 
   @Column({ nullable: true })
   note: string;
 
-  // --- QUAN HỆ VỚI ITEMS ---
-  // Lúc này 'item.purchase_order' đã tồn tại bên PurchaseOrderItem
   @OneToMany(() => PurchaseOrderItem, (item) => item.purchase_order, { cascade: true })
   items: PurchaseOrderItem[];
-  // -------------------------
 
   @CreateDateColumn()
   created_at: Date;
