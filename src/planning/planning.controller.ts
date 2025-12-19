@@ -11,10 +11,10 @@ export class PlanningController {
   
   @Post('mrp/:id') runMrp(@Param('id') id: number) { return this.s.calculateMaterialNeeds(id); }
   
-  // New: Generate POs
+  // Endpoint chung để tạo PO (cho cả NPL và Gia công)
   @Post(':id/generate-pos') 
   generatePos(@Param('id') id: number, @Body() body: any) { 
-      // body.mrpData truyen tu frontend xuong
-      return this.s.generatePos(id, body.mrpData); 
+      // body.items: Danh sách các item cần mua (đã lọc và điền note từ FE)
+      return this.s.generatePos(id, body.items); 
   }
 }

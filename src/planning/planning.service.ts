@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, IsNull } from 'typeorm'; // Import thêm IsNull
+import { Repository, In, IsNull } from 'typeorm';
 import { ProductionPlan, PlanStatus } from './production-plan.entity';
 import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
 import { ProductsService } from '../products/products.service';
@@ -19,61 +19,58 @@ export class PlanningService {
     private materialsService: MaterialsService,
   ) {}
 
-  // --- FIX: MỞ RỘNG ĐIỀU KIỆN LẤY ĐƠN HÀNG ---
   async getSuggestion() {
       return this.orderRepo.find({ 
           where: { 
-              // Lấy các đơn hàng đã chốt (Pending), Đã duyệt mẫu, hoặc Đã cọc
-              status: In([
-                  SalesOrderStatus.SO_PENDING, 
-                  SalesOrderStatus.SAMPLE_APPROVED, 
-                  SalesOrderStatus.DEPOSITED
-              ]), 
-              plan_id: IsNull() // Chỉ lấy đơn chưa có trong kế hoạch nào
+              status: In([SalesOrderStatus.SO_PENDING, SalesOrderStatus.SAMPLE_APPROVED, SalesOrderStatus.DEPOSITED]), 
+              plan_id: IsNull() 
           }, 
           order: { delivery_date: 'ASC' } 
       });
   }
-  // -------------------------------------------
 
   async createPlan(data: any) {
     const orders = await this.orderRepo.find({ where: { order_code: In(data.orderCodes) } });
-    
-    // Validate: Nếu không tìm thấy đơn
-    if (!orders || orders.length === 0) {
-        throw new BadRequestException('Không tìm thấy đơn hàng hợp lệ để tạo kế hoạch');
-    }
+    if (!orders.length) throw new BadRequestException('Không tìm thấy đơn hàng');
 
     const plan = this.planRepo.create({
-        code: data.code, 
-        name: data.name, 
-        start_date: data.start_date, 
-        end_date: data.end_date, 
-        status: PlanStatus.DRAFT
+        code: data.code, name: data.name, start_date: data.start_date, end_date: data.end_date, status: PlanStatus.DRAFT
     });
-    
     const saved = await this.planRepo.save(plan);
-    
-    // Cập nhật Sales Orders: Gán plan_id và chuyển trạng thái sang PLANNED
-    await this.orderRepo.update(
-        { id: In(orders.map(o => o.id)) }, 
-        { plan_id: saved.id, status: SalesOrderStatus.PLANNED } // Giả sử có enum PLANNED, nếu không giữ nguyên status cũ
-    );
-    
+    await this.orderRepo.update({ id: In(orders.map(o => o.id)) }, { plan_id: saved.id, status: SalesOrderStatus.PLANNED });
     return saved;
   }
 
+  // --- LOGIC PHÂN TÍCH KẾ HOẠCH (MRP & GIA CÔNG) ---
   async calculateMaterialNeeds(planId: number) {
     const plan = await this.planRepo.findOne({ where: { id: planId }, relations: ['sales_orders', 'sales_orders.items'] });
-    if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
+    if (!plan) throw new NotFoundException();
 
-    const productDemand = new Map<string, number>();
-    plan.sales_orders.forEach(so => {
-        so.items.forEach(i => productDemand.set(i.sku, (productDemand.get(i.sku)||0) + Number(i.quantity)));
-    });
+    const productDemand = new Map<string, number>(); // SKU -> Quantity
+    const productInfoMap = new Map<string, number>(); // SKU -> ProductID
+
+    // 1. Tổng hợp nhu cầu sản phẩm
+    for (const so of plan.sales_orders) {
+        for (const item of so.items) {
+            productDemand.set(item.sku, (productDemand.get(item.sku)||0) + Number(item.quantity));
+            
+            // Cache Product ID để query Routing sau này
+            if (!productInfoMap.has(item.sku)) {
+                const prod = await this.productsService.findOneBySku(item.sku);
+                if(prod) productInfoMap.set(item.sku, prod.id);
+            }
+        }
+    }
 
     const materialDemand = new Map<number, number>();
+    const outsourcingDemand = []; // --- MỚI: Danh sách nhu cầu gia công
+
+    // 2. Phân tích BOM & ROUTING cho từng sản phẩm
     for (const [sku, qty] of productDemand.entries()) {
+        const prodId = productInfoMap.get(sku);
+        if (!prodId) continue;
+
+        // A. Tính NPL (BOM)
         const boms = await this.productsService.getBomByProductSku(sku);
         for (const bom of boms) {
             if (bom.material_id) {
@@ -81,8 +78,26 @@ export class PlanningService {
                 materialDemand.set(bom.material_id, (materialDemand.get(bom.material_id)||0) + req);
             }
         }
+
+        // B. Tính Gia Công (Routing) --- MỚI ---
+        const routings = await this.productsService.getRoutings(prodId);
+        for (const route of routings) {
+            // Chỉ lấy các công đoạn có gán Nhà cung cấp (Gia công ngoài)
+            if (route.supplier_id) {
+                outsourcingDemand.push({
+                    product_sku: sku,
+                    step_name: route.step_name,
+                    supplier_id: route.supplier_id,
+                    supplier_name: route.supplier?.name, // Cần relation trong service getRoutings
+                    quantity: qty,
+                    unit_price: Number(route.cost),
+                    total_cost: qty * Number(route.cost)
+                });
+            }
+        }
     }
 
+    // 3. Kết quả MRP (NPL)
     const mrpResult = [];
     for (const [matId, gross] of materialDemand.entries()) {
         const mat = await this.materialsService.materialRepo.findOne({ where: { id: matId } });
@@ -97,10 +112,15 @@ export class PlanningService {
                 available_stock: Number(mat.quantity_in_stock),
                 net_requirement: net,
                 unit: mat.unit,
-                cost: mat.cost_per_unit
+                cost: mat.cost_per_unit,
+                note: '' // Placeholder cho FE nhập
             });
         }
     }
+
+    // 4. Kết quả Outsourcing (Gia công) - Gom nhóm theo NCC và Công đoạn (Optional)
+    // Ở đây ta trả về list raw để FE hiển thị, gom nhóm khi tạo PO
+    const outsourcingResult = outsourcingDemand; 
 
     const ganttData = plan.sales_orders.map(so => ({
         id: so.order_code, name: `SX ${so.order_code}`, start: plan.start_date, end: so.delivery_date || plan.end_date, progress: 0
@@ -109,42 +129,62 @@ export class PlanningService {
     plan.status = PlanStatus.CALCULATED;
     await this.planRepo.save(plan);
 
-    return { plan_info: plan, mrp_result: mrpResult, gantt_data: ganttData };
+    return { 
+        plan_info: plan, 
+        mrp_result: mrpResult, 
+        outsourcing_result: outsourcingResult, // <--- Trả về dữ liệu gia công
+        gantt_data: ganttData 
+    };
   }
 
-  async generatePos(planId: number, mrpData: any[]) {
-      if (!mrpData || !Array.isArray(mrpData)) throw new BadRequestException('Dữ liệu MRP không hợp lệ');
-
+  // --- HÀM TẠO PO (Dùng chung cho NPL và Gia Công) ---
+  async generatePos(planId: number, data: any[]) {
+      // data: mảng các item (NPL hoặc Dịch vụ) kèm theo field 'note' từ Frontend
       const supplierGroups = {};
-      for (const item of mrpData) {
-          if (item.net_requirement > 0) {
+      
+      for (const item of data) {
+          // Logic lọc: Với NPL là net > 0, với Gia công thì luôn tạo (quantity > 0)
+          const qty = item.net_requirement !== undefined ? item.net_requirement : item.quantity;
+          
+          if (qty > 0) {
               const suppName = item.supplier_name || 'Unknown';
               if (!supplierGroups[suppName]) supplierGroups[suppName] = [];
-              supplierGroups[suppName].push(item);
+              supplierGroups[suppName].push({ ...item, qtyToBuy: qty });
           }
       }
 
       const createdPos = [];
       for (const [suppName, items] of Object.entries(supplierGroups)) {
+          // Xác định loại PO dựa trên item đầu tiên (có material_id => NPL, không => Gia công)
+          const isMaterial = (items as any)[0].material_id !== undefined;
+          
           const po = this.poRepo.create({
-              po_code: `PO-${planId}-${Math.floor(Math.random()*1000)}`,
-              type: POType.MATERIAL,
+              po_code: `PO-${isMaterial ? 'NPL' : 'GC'}-${planId}-${Math.floor(Math.random()*1000)}`,
+              type: isMaterial ? POType.MATERIAL : 'OUTSOURCING' as any, // Giả sử có type OUTSOURCING hoặc dùng SERVICE
               plan_id: planId,
               status: POStatus.DRAFT,
-              note: `Tự động tạo từ Kế hoạch ${planId}`
+              note: `Tự động từ Kế hoạch ${planId}. NCC: ${suppName}`
           });
           
           let total = 0;
           
           po.items = (items as any[]).map(i => {
-              const sub = i.net_requirement * i.cost;
+              const price = isMaterial ? i.cost : i.unit_price;
+              const sub = i.qtyToBuy * price;
               total += sub;
+              
+              // Ghép ghi chú từ FE vào mô tả item hoặc PO
+              const desc = isMaterial 
+                  ? i.material_name 
+                  : `${i.step_name} (${i.product_sku})`;
+
               return this.poItemRepo.create({
-                  material_id: i.material_id, 
-                  description: i.material_name,
-                  quantity: i.net_requirement,
-                  unit_price: i.cost,
-                  subtotal: sub
+                  material_id: isMaterial ? i.material_id : null, 
+                  description: desc,
+                  quantity: i.qtyToBuy,
+                  unit_price: price,
+                  subtotal: sub,
+                  note: i.note // <--- Lưu ghi chú dòng
               } as any) as unknown as PurchaseOrderItem;
           });
           
@@ -152,7 +192,7 @@ export class PlanningService {
           await this.poRepo.save(po);
           createdPos.push(po.po_code);
       }
-      return { message: `Đã tạo ${createdPos.length} PO`, pos: createdPos };
+      return { message: `Đã tạo ${createdPos.length} Đơn đặt hàng`, pos: createdPos };
   }
 
   async findAll() { return this.planRepo.find({ order: { id: 'DESC' }, relations: ['sales_orders'] }); }
