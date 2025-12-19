@@ -1,17 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, DatePicker, Row, Col, Tabs, Progress, Tooltip, Space } from 'antd';
-import { PlusOutlined, ReloadOutlined, DollarOutlined, InfoCircleOutlined, CheckCircleOutlined, UnorderedListOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom'; // <--- 1. Import useNavigate
+import { PlusOutlined, ReloadOutlined, DollarOutlined, InfoCircleOutlined, CheckCircleOutlined, UnorderedListOutlined, BellOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
+import QuickTaskModal from '../components/QuickTaskModal'; // <--- MỚI: Import Modal Task
 
 const SalesPage: React.FC = () => {
-  const navigate = useNavigate(); // <--- 2. Init hook
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('ALL');
   
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // --- STATE CHO TASK MODAL (MỚI) ---
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [taskInitialValues, setTaskInitialValues] = useState<any>({});
+  // ----------------------------------
 
   const fetchData = async () => {
     setLoading(true);
@@ -23,6 +29,18 @@ const SalesPage: React.FC = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  // --- HÀM MỞ TASK MODAL (MỚI) ---
+  const handleCreateTask = (record: any) => {
+      setTaskInitialValues({
+          title: `Theo dõi đơn: ${record.order_code}`,
+          reference_code: record.order_code,
+          reference_type: 'SALES',
+          description: `Khách: ${record.customer_name}\nTrạng thái: ${record.status}`
+      });
+      setTaskModalOpen(true);
+  };
+  // -------------------------------
 
   const columns = [
       { title: 'Mã', dataIndex: 'order_code', render: (t:any) => <b>{t}</b> },
@@ -47,6 +65,19 @@ const SalesPage: React.FC = () => {
               const pct = r.total_amount > 0 ? Math.round((Number(r.paid_amount)/Number(r.total_amount))*100) : 0;
               return <Tooltip title={`Đã trả: ${Number(r.paid_amount).toLocaleString()}`}><Progress percent={pct} size="small" status={pct>=100?'success':'active'} /></Tooltip>
           }
+      },
+      {
+          title: 'Thao tác', key: 'act', width: 100, align: 'right' as const,
+          render: (r: any) => (
+              <Space size="small">
+                  {/* --- MỚI: Nút Tạo Task --- */}
+                  <Tooltip title="Tạo nhắc nhở">
+                      <Button size="small" icon={<BellOutlined/>} onClick={() => handleCreateTask(r)} />
+                  </Tooltip>
+                  {/* Demo nút xem chi tiết (nếu có logic modal ở đây thì gắn vào) */}
+                  {/* <Button size="small" icon={<EditOutlined/>} /> */}
+              </Space>
+          )
       }
   ];
 
@@ -57,14 +88,12 @@ const SalesPage: React.FC = () => {
         title="Pipeline Bán Hàng" 
         extra={
             <Space>
-                {/* --- 3. THÊM NÚT TRUY CẬP PRICE LIST --- */}
                 <Button 
                     icon={<UnorderedListOutlined />} 
-                    onClick={() => navigate('/sales/price-lists')}
+                    onClick={() => navigate('/sales/pricelist')}
                 >
                     Quản lý Bảng Giá
                 </Button>
-                {/* --------------------------------------- */}
                 <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
             </Space>
         }
@@ -78,6 +107,14 @@ const SalesPage: React.FC = () => {
             { key: 'DELIVERED', label: 'Đã Giao' },
         ]} />
         <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} />
+
+        {/* --- MỚI: Modal Quick Task --- */}
+        <QuickTaskModal 
+            open={taskModalOpen} 
+            onClose={() => setTaskModalOpen(false)} 
+            initialValues={taskInitialValues} 
+        />
+        {/* --------------------------- */}
     </Card>
   );
 };

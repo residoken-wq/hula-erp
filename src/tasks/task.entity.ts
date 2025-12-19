@@ -26,27 +26,26 @@ export class Task {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({
-      type: 'enum',
-      enum: TaskStatus,
-      default: TaskStatus.TODO
-  })
+  @Column({ type: 'enum', enum: TaskStatus, default: TaskStatus.TODO })
   status: TaskStatus;
 
-  @Column({
-      type: 'enum',
-      enum: TaskPriority,
-      default: TaskPriority.MEDIUM
-  })
+  @Column({ type: 'enum', enum: TaskPriority, default: TaskPriority.MEDIUM })
   priority: TaskPriority;
 
   @Column({ type: 'timestamp', nullable: true })
   due_date: Date;
 
   @Column({ default: false })
-  is_reminded: boolean; // Đánh dấu đã nhắc nhở chưa
+  is_reminded: boolean;
 
-  // Người được giao việc
+  // --- MỚI: LIÊN KẾT MODULE KHÁC ---
+  @Column({ nullable: true })
+  reference_code: string; // VD: LEAD-2312, SO-9999, PO-123
+
+  @Column({ nullable: true })
+  reference_type: string; // VD: CRM, SALES, PURCHASE, PRODUCTION
+  // --------------------------------
+
   @ManyToOne(() => User)
   @JoinColumn({ name: 'assignee_id' })
   assignee: User;
@@ -54,7 +53,6 @@ export class Task {
   @Column({ nullable: true })
   assignee_id: number;
 
-  // Người tạo
   @ManyToOne(() => User)
   @JoinColumn({ name: 'creator_id' })
   creator: User;

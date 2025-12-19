@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Tabs, Statistic, Divider, Popconfirm, Tooltip, Progress, Typography } from 'antd';
-import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import QuotationTemplate from '../components/QuotationTemplate';
 import SalesOrderDetail from '../components/SalesOrderDetail';
+import QuickTaskModal from '../components/QuickTaskModal'; // <--- MỚI: Import Modal Task
 
 const { Text } = Typography;
 
@@ -29,6 +30,11 @@ const CrmPage: React.FC = () => {
   const [followDrawerOpen, setFollowDrawerOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
+  // --- STATE CHO TASK MODAL (MỚI) ---
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [taskInitialValues, setTaskInitialValues] = useState<any>({});
+  // ----------------------------------
+
   // State SalesOrderDetail
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
@@ -37,7 +43,7 @@ const CrmPage: React.FC = () => {
   // State Lead Modal
   const [currentCustomer, setCurrentCustomer] = useState<any>(null);
   const [isNewCustomerMode, setIsNewCustomerMode] = useState(false); 
-  const [editingLeadId, setEditingLeadId] = useState<number | null>(null); // --- MỚI: Track ID đang sửa
+  const [editingLeadId, setEditingLeadId] = useState<number | null>(null);
   const [formLead] = Form.useForm();
   const [followNote, setFollowNote] = useState('');
   
@@ -78,7 +84,7 @@ const CrmPage: React.FC = () => {
   useEffect(() => { fetchData(); }, []);
 
   const openCreateLead = () => {
-    setEditingLeadId(null); // Reset mode sửa
+    setEditingLeadId(null);
     const autoCode = `LEAD-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}`;
     formLead.setFieldsValue({ code: autoCode });
     formLead.resetFields(['name', 'phone', 'customer_id']); 
@@ -86,10 +92,9 @@ const CrmPage: React.FC = () => {
     setIsLeadModalOpen(true);
   };
 
-  // --- MỚI: HÀM MỞ MODAL SỬA LEAD ---
   const handleEditLead = (record: any) => {
       setEditingLeadId(record.id);
-      setIsNewCustomerMode(true); // Bật mode nhập liệu để sửa tên/sđt
+      setIsNewCustomerMode(true);
       formLead.setFieldsValue({
           code: record.code,
           name: record.name,
@@ -98,7 +103,6 @@ const CrmPage: React.FC = () => {
       setIsLeadModalOpen(true);
   };
 
-  // --- MỚI: HÀM XÓA LEAD ---
   const handleDeleteLead = async (id: number) => {
       try {
           await axios.delete(`${API_URL}/customers/${id}`);
@@ -108,6 +112,18 @@ const CrmPage: React.FC = () => {
           message.error(e.response?.data?.message || 'Không thể xóa (có thể đã có đơn hàng)');
       }
   };
+
+  // --- HÀM MỞ TASK MODAL (MỚI) ---
+  const handleCreateTask = (record: any, type: 'CRM' | 'SALES') => {
+      setTaskInitialValues({
+          title: type === 'CRM' ? `Chăm sóc: ${record.name}` : `Follow đơn: ${record.order_code}`,
+          reference_code: type === 'CRM' ? record.code : record.order_code,
+          reference_type: type,
+          description: type === 'CRM' ? `KH: ${record.name} - SĐT: ${record.phone}` : `Khách: ${record.customer?.name || 'Unknown'} - Trạng thái: ${record.status}`
+      });
+      setTaskModalOpen(true);
+  };
+  // -------------------------------
   
   const calculateProgress = (lead: any) => {
     const leadId = lead.id;
@@ -125,13 +141,10 @@ const CrmPage: React.FC = () => {
     try {
         const { code, customer_id, name, phone } = values;
         
-        // --- LOGIC CẬP NHẬT (EDIT) ---
         if (editingLeadId) {
              await axios.put(`${API_URL}/customers/${editingLeadId}`, { name, phone });
              message.success('Cập nhật Lead thành công!');
-        } 
-        // --- LOGIC TẠO MỚI ---
-        else {
+        } else {
             if (isNewCustomerMode) {
                 if (!name || !phone) { message.error('Vui lòng nhập Tên và SĐT.'); return; }
                 const finalPayload = { code: code, name: name, phone: phone, type: 'LEAD' };
@@ -212,7 +225,6 @@ const CrmPage: React.FC = () => {
       });
   };
   
-  // --- CẬP NHẬT CỘT LEAD: THÊM NÚT SỬA VÀ XÓA ---
   const leadColumns = [
       { title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
       { title: 'Tên Khách', dataIndex: 'name', render: (t:any, r:any) => <a onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}}>{t}</a> },
@@ -220,16 +232,13 @@ const CrmPage: React.FC = () => {
       { title: 'Tiến Độ', key: 'progress', width: 200, render: (_:any, r:any) => { const p = calculateProgress(r); return <Tooltip title={p.text}><Progress percent={p.percent} size="small" status={p.status as any} showInfo={false} /></Tooltip> } },
       { title: 'Lần chăm sóc cuối', dataIndex: 'history', width: 150, render: (h:any[]) => h && h.length > 0 ? <Tag>{dayjs(h[0].date).format('DD/MM HH:mm')}</Tag> : '-' },
       { 
-          title: 'Thao tác', key: 'act', align: 'right' as const, width: 150,
+          title: 'Thao tác', key: 'act', align: 'right' as const, width: 180,
           render: (_:any, r:any) => (
               <Space size={2}>
-                  {/* Nút Chăm sóc */}
                   <Tooltip title="Chăm sóc"><Button size="small" icon={<ClockCircleOutlined />} onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}} /></Tooltip>
-                  
-                  {/* Nút Sửa (Mới) */}
+                  {/* --- MỚI: Nút Tạo Task --- */}
+                  <Tooltip title="Tạo Nhắc nhở"><Button size="small" icon={<BellOutlined />} onClick={()=>handleCreateTask(r, 'CRM')} /></Tooltip>
                   <Tooltip title="Sửa thông tin"><Button size="small" icon={<EditOutlined />} onClick={()=>handleEditLead(r)} /></Tooltip>
-                  
-                  {/* Nút Xóa (Mới) */}
                   <Popconfirm title="Xóa Lead này?" onConfirm={()=>handleDeleteLead(r.id)} okText="Xóa" cancelText="Hủy">
                       <Button size="small" danger icon={<DeleteOutlined />} />
                   </Popconfirm>
@@ -244,12 +253,16 @@ const CrmPage: React.FC = () => {
       { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v:any) => Number(v).toLocaleString() },
       { title: 'TT', dataIndex: 'status', render: (t:any) => t==='CANCELLED' ? <Tag color="red">Hủy</Tag> : <Tag color="processing">Chờ KH</Tag> },
       {
-          title: 'Thao tác', key: 'act', align: 'center' as const, width: 200,
+          title: 'Thao tác', key: 'act', align: 'center' as const, width: 220,
           render: (_:any, r:any) => r.status === 'QUOTATION' ? (
               <Space size={2}>
                   <Tooltip title="Link Portal"><Button icon={<LinkOutlined />} size="small" onClick={()=>handleCopyLink(r.uuid)} /></Tooltip>
                   <Tooltip title="Xem/In"><Button icon={<PrinterOutlined />} size="small" onClick={()=>{openDetailModal(r); setTimeout(()=>setIsPreviewOpen(true), 500)}} /></Tooltip>
                   <Tooltip title="Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, true)} /></Tooltip>
+                  
+                  {/* --- MỚI: Nút Tạo Task --- */}
+                  <Tooltip title="Tạo Nhắc nhở"><Button size="small" icon={<BellOutlined />} onClick={()=>handleCreateTask(r, 'SALES')} /></Tooltip>
+
                   <Popconfirm title="Xóa?" onConfirm={()=>handleDeleteQuote(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
                   <Divider type="vertical" />
                   <Popconfirm title="Xác nhận?" onConfirm={()=>handleConvertQuote(r.id, true)}><Button type="primary" size="small" icon={<CheckOutlined />} /></Popconfirm>
@@ -267,6 +280,8 @@ const CrmPage: React.FC = () => {
               <Space>
                   <Tooltip title="Link Portal"><Button icon={<LinkOutlined />} size="small" onClick={()=>handleCopyLink(r.uuid)} /></Tooltip>
                   <Tooltip title="Chi tiết & Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, false)} /></Tooltip>
+                  {/* --- MỚI: Nút Tạo Task --- */}
+                  <Tooltip title="Tạo Nhắc nhở"><Button size="small" icon={<BellOutlined />} onClick={()=>handleCreateTask(r, 'SALES')} /></Tooltip>
               </Space>
           )
       }
@@ -284,7 +299,6 @@ const CrmPage: React.FC = () => {
         title="Quản Lý Kinh Doanh (CRM)" 
         extra={
             <Space>
-                {/* NÚT QUẢN LÝ BẢNG GIÁ */}
                 <Button 
                     icon={<UnorderedListOutlined />} 
                     onClick={() => navigate('/sales/pricelist')}
@@ -311,6 +325,14 @@ const CrmPage: React.FC = () => {
           <div id="printableArea"><QuotationTemplate data={editingOrder} /></div>
           <div style={{textAlign:'center', marginTop:20}}><Button type="primary" onClick={()=>{ const c = document.getElementById('printableArea'); const w = window.open(); if(w && c) { w.document.write(c.innerHTML); w.print(); } }}>In Ngay</Button></div>
       </Modal>
+
+      {/* --- MỚI: Modal Quick Task --- */}
+      <QuickTaskModal 
+          open={taskModalOpen} 
+          onClose={() => setTaskModalOpen(false)} 
+          initialValues={taskInitialValues} 
+      />
+      {/* --------------------------- */}
 
       <Modal title={editingLeadId ? "Cập nhật Lead" : "Tạo Lead"} open={isLeadModalOpen} onCancel={() => { setIsLeadModalOpen(false); formLead.resetFields(); setIsNewCustomerMode(false); setEditingLeadId(null); }} onOk={() => formLead.submit()}>
           <Form form={formLead} layout="vertical" onFinish={handleSaveLead} initialValues={{ code: `LEAD-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}` }}>
