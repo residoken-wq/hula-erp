@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Tag, Button, message, Card, Input, Space, Row, Col, Tabs, Progress, Tooltip, Statistic, DatePicker } from 'antd';
-import { ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, FileTextOutlined, CalendarOutlined, WalletOutlined, AuditOutlined } from '@ant-design/icons';
+// --- FIX: Thêm PlusOutlined vào đây ---
+import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, FileTextOutlined, CalendarOutlined, WalletOutlined, AuditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import dayjs from 'dayjs';
-import isBetween from 'dayjs/plugin/isBetween'; // Import plugin để lọc ngày
+import isBetween from 'dayjs/plugin/isBetween'; 
 import { API_URL } from '../config';
 import QuickTaskModal from '../components/QuickTaskModal';
 import SalesOrderDetail from '../components/SalesOrderDetail';
 
-// Kích hoạt plugin isBetween cho dayjs
 dayjs.extend(isBetween);
 
 const { RangePicker } = DatePicker;
@@ -18,7 +18,7 @@ const SalesPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('ALL');
   const [searchText, setSearchText] = useState('');
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]); // State bộ lọc ngày
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]); 
   
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -92,15 +92,11 @@ const SalesPage: React.FC = () => {
   // --- FILTERING LOGIC ---
   const filteredData = useMemo(() => {
       return data.filter((x: any) => {
-          // 1. Filter by Tab
           const matchTab = activeTab === 'ALL' ? true : x.status === activeTab;
-          
-          // 2. Filter by Search Text
           const matchSearch = x.order_code?.toLowerCase().includes(searchText.toLowerCase()) 
                            || x.customer_name?.toLowerCase().includes(searchText.toLowerCase())
                            || x.customer?.name?.toLowerCase().includes(searchText.toLowerCase());
           
-          // 3. Filter by Date Range
           let matchDate = true;
           if (dateRange[0] && dateRange[1]) {
               const orderDate = dayjs(x.order_date);
@@ -111,11 +107,9 @@ const SalesPage: React.FC = () => {
       });
   }, [data, activeTab, searchText, dateRange]);
 
-  // --- CALCULATE METRICS (Dựa trên dữ liệu đã lọc) ---
+  // --- METRICS ---
   const metrics = useMemo(() => {
-      // Chỉ tính các đơn hàng chính thức (không tính Báo giá nháp hoặc Hủy)
       const validOrders = filteredData.filter(x => x.status !== 'QUOTATION' && x.status !== 'CANCELLED');
-      
       const totalRevenue = validOrders.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0);
       const totalPaid = validOrders.reduce((acc, curr) => acc + Number(curr.paid_amount || 0), 0);
       const totalRemaining = totalRevenue - totalPaid;
@@ -139,7 +133,6 @@ const SalesPage: React.FC = () => {
           render: (t:any) => <span style={{color:'#666'}}>{dayjs(t).format('DD/MM/YYYY')}</span> 
       },
       { 
-          // --- CỘT MỚI: NGÀY GIAO HÀNG ---
           title: 'Ngày Giao', dataIndex: 'delivery_date', width: 110,
           render: (t:any) => t ? <span style={{color:'#1890ff'}}>{dayjs(t).format('DD/MM/YYYY')}</span> : '-'
       },
@@ -179,7 +172,6 @@ const SalesPage: React.FC = () => {
           }
       },
       {
-          // --- CẬP NHẬT: ICON ACTIONS TRỰC TIẾP ---
           title: '', key: 'act', width: 120, align: 'right' as const,
           render: (r: any) => (
               <Space size={2}>
@@ -199,7 +191,6 @@ const SalesPage: React.FC = () => {
 
   return (
     <div>
-        {/* --- MINI DASHBOARD VỚI BỘ LỌC VÀ THÊM CARD --- */}
         <div style={{marginBottom: 16}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 10}}>
                 <span style={{fontSize: 16, fontWeight: 600, color: '#555'}}><CalendarOutlined/> Thống kê theo kỳ:</span>
@@ -211,31 +202,26 @@ const SalesPage: React.FC = () => {
             </div>
             
             <Row gutter={16}>
-                {/* 1. Doanh thu tổng */}
                 <Col span={5}>
                     <Card bordered={false} bodyStyle={{padding:12}} style={{background:'#f9f0ff', border:'1px solid #d3adf7'}}>
                         <Statistic title="Doanh Thu" value={metrics.totalRevenue} precision={0} suffix="₫" prefix={<DollarOutlined style={{color:'#722ed1'}}/>} valueStyle={{fontSize:18, fontWeight:'bold'}} />
                     </Card>
                 </Col>
-                {/* 2. Đã thu (MỚI) */}
                 <Col span={5}>
                     <Card bordered={false} bodyStyle={{padding:12}} style={{background:'#f6ffed', border:'1px solid #b7eb8f'}}>
                         <Statistic title="Đã Thực Thu" value={metrics.totalPaid} precision={0} suffix="₫" prefix={<WalletOutlined style={{color:'#52c41a'}}/>} valueStyle={{fontSize:18, fontWeight:'bold', color: '#389e0d'}} />
                     </Card>
                 </Col>
-                {/* 3. Còn lại (MỚI) */}
                 <Col span={5}>
                     <Card bordered={false} bodyStyle={{padding:12}} style={{background:'#fff2e8', border:'1px solid #ffbb96'}}>
                         <Statistic title="Công Nợ / Còn Lại" value={metrics.totalRemaining} precision={0} suffix="₫" prefix={<AuditOutlined style={{color:'#fa541c'}}/>} valueStyle={{fontSize:18, fontWeight:'bold', color: '#cf1322'}} />
                     </Card>
                 </Col>
-                {/* 4. Đơn hàng */}
                 <Col span={4}>
                     <Card bordered={false} bodyStyle={{padding:12}} style={{background:'#e6f7ff', border:'1px solid #91d5ff'}}>
                         <Statistic title="Số Đơn Hàng" value={metrics.count} prefix={<ShoppingCartOutlined style={{color:'#1890ff'}}/>} valueStyle={{fontSize:18}} />
                     </Card>
                 </Col>
-                {/* 5. Đang xử lý */}
                 <Col span={5}>
                     <Card bordered={false} bodyStyle={{padding:12}} style={{background:'#fffbe6', border:'1px solid #ffe58f'}}>
                         <Statistic title="Đang Xử Lý" value={metrics.processingCount} prefix={<FileTextOutlined style={{color:'#fa8c16'}}/>} valueStyle={{fontSize:18}} />
