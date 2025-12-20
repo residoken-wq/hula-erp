@@ -3,7 +3,7 @@ import { Layout, Menu, theme, Button, Avatar, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
   DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
-  SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined 
+  SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
@@ -30,10 +30,11 @@ import LoginPage from './pages/LoginPage';
 import InventoryPage from './pages/InventoryPage';
 import FinancePage from './pages/FinancePage';
 import TasksPage from './pages/TasksPage'; 
-import PurchasingPage from './pages/PurchasingPage'; // Import trang Purchasing
+import PurchasingPage from './pages/PurchasingPage';
+import SalesPage from './pages/SalesPage'; // <--- QUAN TRỌNG: Import trang Đơn hàng
 
 // Import Components
-import HeaderNotifications from './components/HeaderNotifications';
+import HeaderNotifications from './components/HeaderNotifications'; 
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -59,10 +60,8 @@ const App: React.FC = () => {
         const user = JSON.parse(userStr);
         setIsAuthenticated(true);
         setCurrentUser(user);
-        
         const perms = user.permissions || [];
         setPermissions(perms);
-        
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
   }, []);
@@ -74,14 +73,12 @@ const App: React.FC = () => {
       window.location.href = '/login';
   };
 
-  // --- HÀM KIỂM TRA QUYỀN ---
   const hasPerm = (moduleCode: string) => {
       if (currentUser?.username === 'admin') return true; 
       const p = permissions.find((perm: any) => perm.module_code === moduleCode);
       return !!(p && (p.can_view === true || p.can_view === 1));
   };
 
-  // --- TẠO MENU ĐỘNG ---
   const menuItems = useMemo(() => {
       const items: MenuItem[] = [];
 
@@ -104,12 +101,9 @@ const App: React.FC = () => {
           items.push(getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />));
       }
 
-      // 4. Kho hàng & Mua hàng (CẬP NHẬT)
+      // 4. Kho hàng & NCC
       if (hasPerm('INVENTORY')) {
-          items.push(getItem('Kho hàng & Mua hàng', 'sub1', <DropboxOutlined />, [
-            // --- THÊM MENU PURCHASING TẠI ĐÂY ---
-            getItem(<Link to="/purchasing">Đơn Mua Hàng & GC</Link>, 'po_list'), 
-            // ------------------------------------
+          items.push(getItem('Kho hàng & NCC', 'sub1', <DropboxOutlined />, [
             getItem(<Link to="/materials">Nguyên liệu</Link>, '3'),
             getItem(<Link to="/suppliers">Nhà cung cấp (NPL)</Link>, 'supp'),
             getItem(<Link to="/manufacturers">Nhà gia công</Link>, 'manu'),
@@ -117,10 +111,11 @@ const App: React.FC = () => {
           ]));
       }
 
-      // 5. Bán hàng (CRM)
+      // 5. Bán hàng (CRM & Orders) --> CẬP NHẬT CẤU TRÚC MENU
       if (hasPerm('SALES')) {
           items.push(getItem('Bán hàng (CRM)', 'sub2', <TeamOutlined />, [ 
-            getItem(<Link to="/sales">Pipeline Bán Hàng</Link>, '5'),
+            getItem(<Link to="/sales">Leads & Báo giá</Link>, 'crm_lead'), // Đổi tên cho rõ
+            getItem(<Link to="/orders">Đơn Hàng (SO)</Link>, 'crm_order'), // <--- MỚI: Menu Đơn hàng
             getItem(<Link to="/customers">Danh sách Khách hàng</Link>, 'cust'),
             getItem(<Link to="/sales/pricelist">Bảng giá (Price List)</Link>, 'pl_page'),
           ]));
@@ -130,6 +125,7 @@ const App: React.FC = () => {
       if (hasPerm('PRODUCTION')) {
           items.push(getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
             getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
+            getItem(<Link to="/purchasing">Đơn Mua Hàng & GC</Link>, 'po_page'),
             getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
             getItem(<Link to="/processes">DM Công Đoạn</Link>, 'proc_list'),
           ]));
@@ -140,12 +136,12 @@ const App: React.FC = () => {
           items.push(getItem(<Link to="/finance">Tài chính (Thu/Chi)</Link>, 'finance', <BankOutlined />));
       }
 
-      // 8. Công việc & Nhắc nhở
+      // 8. Công việc
       if (isAuthenticated) {
           items.push(getItem(<Link to="/tasks">Công việc & Nhắc nhở</Link>, 'tasks', <CalendarOutlined />));
       }
 
-      // 9. Hệ thống (Admin)
+      // 9. Hệ thống
       if (hasPerm('USERS')) {
           items.push(getItem('Hệ thống & Phân quyền', 'sub_sys', <SettingOutlined />, [
             getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
@@ -204,9 +200,6 @@ const App: React.FC = () => {
 
                         {hasPerm('INVENTORY') && (
                             <>
-                                {/* --- THÊM ROUTE PURCHASING --- */}
-                                <Route path="/purchasing" element={<PurchasingPage />} /> 
-                                {/* --------------------------- */}
                                 <Route path="/materials" element={<MaterialsPage />} />
                                 <Route path="/suppliers" element={<SuppliersPage />} />
                                 <Route path="/manufacturers" element={<ManufacturersPage />} />
@@ -216,7 +209,8 @@ const App: React.FC = () => {
 
                         {hasPerm('SALES') && (
                             <>
-                                <Route path="/sales" element={<CrmPage />} />
+                                <Route path="/sales" element={<CrmPage />} /> {/* CRM Page */}
+                                <Route path="/orders" element={<SalesPage />} /> {/* <--- MỚI: Route cho trang Đơn hàng */}
                                 <Route path="/customers" element={<CustomersPage />} />
                                 <Route path="/sales/pricelist" element={<PriceListsPage />} />
                             </>
@@ -227,6 +221,7 @@ const App: React.FC = () => {
                                 <Route path="/planning" element={<PlanningPage />} />
                                 <Route path="/routes" element={<ProductionRoutePage />} />
                                 <Route path="/processes" element={<ProcessesPage />} />
+                                <Route path="/purchasing" element={<PurchasingPage />} />
                             </>
                         )}
 
