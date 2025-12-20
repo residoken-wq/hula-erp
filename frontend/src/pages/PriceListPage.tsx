@@ -93,7 +93,7 @@ const PriceListsPage: React.FC = () => {
         {
             title: 'Áp dụng cho Nhóm', dataIndex: 'group_id',
             render: (gid: number) => {
-                const g = groups.find(x => x.id === gid);
+                const g = groups.find((x: any) => x.id === gid);
                 return g ? <Tag color="purple" icon={<TeamOutlined />}>{g.name}</Tag> : <Tag>ID: {gid}</Tag>;
             }
         },
@@ -164,7 +164,7 @@ const PriceListsPage: React.FC = () => {
                         <Col span={12}>
                             <Form.Item name="group_id" label="Áp dụng cho Nhóm Quyền" rules={[{ required: true }]}>
                                 <Select placeholder="Chọn nhóm áp dụng">
-                                    {groups.map(g => <Select.Option key={g.id} value={g.id}>{g.name}</Select.Option>)}
+                                    {groups.map((g: any) => <Select.Option key={g.id} value={g.id}>{g.name}</Select.Option>)}
                                 </Select>
                             </Form.Item>
                         </Col>
@@ -187,7 +187,7 @@ const PriceListsPage: React.FC = () => {
                                         options={products}
                                         placeholder="Tìm kiếm SKU hoặc Tên sản phẩm..."
                                         optionFilterProp="label"
-                                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+                                        filterOption={(input: string, option: any) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                                     />
                                 </Form.Item>
                             </Col>
@@ -198,25 +198,25 @@ const PriceListsPage: React.FC = () => {
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item name="price_100" label="Giá (SL 100) - Giá Gốc" rules={[{ required: true }]}>
-                                    <InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
+                                    <InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
                                 </Form.Item>
                                 <div style={{ fontSize: 11, color: '#888', marginTop: -5 }}>Đây là giá tham chiếu gốc</div>
                             </Col>
                             <Col span={8}>
                                 <Form.Item name="price_50" label="Giá (SL 50)">
-                                    <InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
+                                    <InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
                                 </Form.Item>
                             </Col>
                             <Col span={8}>
                                 <Form.Item name="price_30" label="Giá (SL 30)">
-                                    <InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
+                                    <InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
                                 </Form.Item>
                             </Col>
                         </Row>
 
                         <Divider orientation="left" style={{ margin: '15px 0 15px 0', fontSize: 12 }}>Giới hạn (Tùy chọn)</Divider>
                         <Row gutter={16}>
-                            <Col span={6}><Form.Item name="min_price" label="Giá Min (₫)"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="Thấp nhất" /></Form.Item></Col>
+                            <Col span={6}><Form.Item name="min_price" label="Giá Min (₫)"><InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="Thấp nhất" /></Form.Item></Col>
                             <Col span={6}><Form.Item name="min_margin" label="Margin Min (%)"><InputNumber style={{ width: '100%' }} placeholder="Lãi min" /></Form.Item></Col>
                         </Row>
                     </Form>
