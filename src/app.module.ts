@@ -25,7 +25,7 @@ import { NotificationsModule } from './notifications/notifications.module'; // <
 // Entities
 import { Product } from './products/product.entity';
 import { Material } from './materials/material.entity';
-import { BOM } from './bom/bom.entity'; 
+import { BOM } from './bom/bom.entity';
 import { ProductComponent } from './products/product-component.entity';
 import { ProductRouting } from './products/product-routing.entity';
 import { ProductLogistics } from './products/product-logistics.entity';
@@ -51,7 +51,7 @@ import { ProductionOrder } from './production/entities/production-order.entity';
 
 // Finance Entities
 import { Transaction } from './finance/transaction.entity';
-import { TransactionCategory } from './finance/transaction-category.entity'; 
+import { TransactionCategory } from './finance/transaction-category.entity';
 
 // Task & Notification Entities (MỚI)
 import { Task } from './tasks/task.entity';
@@ -74,47 +74,34 @@ import { GroupPermission } from './users/entities/group-permission.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'db',
-      port: 5432,
-      username: process.env.DB_USERNAME || 'hula_user',
-      password: process.env.DB_PASSWORD || 'hula_password',
-      database: process.env.DB_DATABASE || 'hula_db',
-      entities: [
-        // Sản phẩm & BOM
-        Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern,
-        
-        // Bán hàng
-        SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
-        PriceList, PriceListRule,
-        
-        // Mua hàng
-        PurchaseOrder, PurchaseOrderItem, GoodsReceipt, 
-        
-        // Kho
-        StockHistory, InventoryStock,
-        
-        // Sản xuất
-        ProductionOrder, 
-        
-        // Tài chính
-        Transaction, TransactionCategory,
-        
-        // Công việc & Thông báo (MỚI)
-        Task, Notification,
-        
-        // Đối tác & Khác
-        Supplier, SupplierMaterial, SupplierContact,
-        Customer, CustomerContact,
-        ProductionPlan, Process, Category,
-        
-        // Hệ thống & User
-        User, UserGroup, GroupPermission
-      ], 
-      synchronize: true, 
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST') || 'db',
+        port: configService.get<number>('DB_PORT') || 5432,
+        username: configService.get<string>('DB_USERNAME') || 'hula_user',
+        password: configService.get<string>('DB_PASSWORD') || 'hula_password',
+        database: configService.get<string>('DB_DATABASE') || 'hula_db',
+        entities: [
+          Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern,
+          SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
+          PriceList, PriceListRule,
+          PurchaseOrder, PurchaseOrderItem, GoodsReceipt,
+          StockHistory, InventoryStock,
+          ProductionOrder,
+          Transaction, TransactionCategory,
+          Task, Notification,
+          Supplier, SupplierMaterial, SupplierContact,
+          Customer, CustomerContact,
+          ProductionPlan, Process, Category,
+          User, UserGroup, GroupPermission
+        ],
+        synchronize: configService.get<string>('NODE_ENV') !== 'production', // Disable in production
+      }),
     }),
-    
+
     // Modules Registry
     UsersModule, AuthModule,
     ProductsModule, MaterialsModule, BomModule, SalesModule,
@@ -124,4 +111,4 @@ import { GroupPermission } from './users/entities/group-permission.entity';
     ProcessesModule, CategoriesModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
