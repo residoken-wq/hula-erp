@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge } from 'antd';
-import { UserOutlined, ClockCircleOutlined, CheckOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined, SearchOutlined, FilterOutlined, RiseOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge, Tabs } from 'antd'; // <--- Đã thêm Tabs
+import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined, SearchOutlined, FilterOutlined, RiseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -8,6 +8,9 @@ import { API_URL } from '../config';
 import QuotationTemplate from '../components/QuotationTemplate';
 import SalesOrderDetail from '../components/SalesOrderDetail';
 import QuickTaskModal from '../components/QuickTaskModal';
+
+const { Text } = Typography; // Lưu ý: Typography chưa được import, tôi sẽ thêm vào import luôn để tránh lỗi tiếp theo
+import { Typography } from 'antd'; // Bổ sung import Typography riêng cho chắc chắn
 
 const CrmPage: React.FC = () => {
   const navigate = useNavigate();
