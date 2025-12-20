@@ -31,7 +31,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     useEffect(() => {
         if (open) {
             if (initialData) {
-                // Edit Mode
+                // --- EDIT MODE ---
                 form.setFieldsValue({
                     ...initialData,
                     customer_id: initialData.customer?.id,
@@ -39,17 +39,27 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     delivery_date: initialData.delivery_date ? dayjs(initialData.delivery_date) : null
                 });
                 
-                const items = initialData.items?.map((i: any) => ({
-                    ...i,
-                    sku: i.product?.sku || i.sku,
-                    unit_price: Number(i.unit_price) || 0,
-                    quantity: Number(i.quantity) || 1,
-                    total_price: Number(i.total_price) || 0
-                })) || [];
+                // FIX LỖI: Map dữ liệu từ Backend (subtotal) sang Frontend (total_price)
+                const items = initialData.items?.map((i: any) => {
+                    const qty = Number(i.quantity) || 0;
+                    const price = Number(i.unit_price) || 0;
+                    
+                    // Ưu tiên tính toán lại: SL * Đơn giá. Nếu không thì lấy subtotal từ DB.
+                    const calculatedTotal = qty * price;
+                    
+                    return {
+                        ...i,
+                        sku: i.product?.sku || i.sku,
+                        unit_price: price,
+                        quantity: qty,
+                        total_price: calculatedTotal > 0 ? calculatedTotal : (Number(i.subtotal) || 0)
+                    };
+                }) || [];
+
                 setOrderItems(items);
                 calculateTotal(items);
             } else {
-                // Create Mode
+                // --- CREATE MODE ---
                 form.resetFields();
                 form.setFieldsValue({ 
                     order_code: isQuotation ? 'AUTO-QUOTE' : 'AUTO-SO',
@@ -64,7 +74,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     }, [open, initialData, isQuotation]);
 
     const calculateTotal = (items: any[]) => {
-        const total = items.reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.unit_price || 0)), 0);
+        const total = items.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
         setTotalAmount(total);
     };
 
@@ -81,17 +91,16 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             if (prod) {
                 item.unit_price = prod.price;
                 item.unit = prod.unit;
-                // Có thể lưu thêm info để hiển thị mà không cần lookup lại
                 item._description = prod.description;
                 item._type = prod.type;
             }
         }
 
-        // FIX NaN: Ép kiểu Number chặt chẽ
+        // Tính lại thành tiền ngay khi thay đổi số lượng hoặc đơn giá
         if (field === 'quantity' || field === 'unit_price' || field === 'sku') {
-            const qty = Number(item.quantity);
-            const price = Number(item.unit_price);
-            item.total_price = (isNaN(qty) ? 0 : qty) * (isNaN(price) ? 0 : price);
+            const qty = Number(item.quantity) || 0;
+            const price = Number(item.unit_price) || 0;
+            item.total_price = qty * price;
         }
 
         newItems[index] = item;
@@ -116,7 +125,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     sku: i.sku,
                     quantity: i.quantity,
                     unit_price: i.unit_price,
-                    total_price: i.total_price
+                    total_price: i.total_price // Frontend gửi total_price, Backend sẽ map vào subtotal
                 }))
             };
 
@@ -141,12 +150,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         } catch(e) { message.error('Lỗi'); }
     };
 
-    // --- COLUMNS CHO BẢNG SẢN PHẨM ---
     const itemColumns = [
         {
             title: 'Sản phẩm', dataIndex: 'sku', width: 300,
             render: (text: any, record: any, index: number) => {
-                // Lookup info từ danh sách products
                 const prodInfo = products.find(p => p.value === text);
                 return (
                     <div>
@@ -159,7 +166,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             onChange={(val) => handleItemChange(index, 'sku', val)}
                             options={products}
                         />
-                        {/* FIX: Hiển thị mô tả và tag Combo */}
                         {prodInfo && (
                             <div style={{marginTop: 4, lineHeight: '1.2'}}>
                                 {prodInfo.type === 'COMBO' && <Tag color="purple" style={{fontSize:10, marginRight:4}}><GiftOutlined/> Combo</Tag>}
@@ -180,7 +186,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     style={{ width: '100%' }} 
                     value={text}
                     formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '')} // FIX: Parser để tránh NaN
+                    parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '')}
                     onChange={(val) => handleItemChange(index, 'unit_price', val)} 
                 />
             )
@@ -193,7 +199,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         },
         {
             title: 'Thành tiền', dataIndex: 'total_price', align: 'right' as const, width: 140,
-            render: (val: any) => <b>{Number(val).toLocaleString()}</b> // FIX: Đảm bảo hiển thị số
+            render: (val: any) => <b>{Number(val).toLocaleString()}</b>
         },
         {
             title: '', width: 50, align: 'center' as const,
@@ -228,11 +234,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                     />
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
-                                <Form.Item name="order_date" label="Ngày đặt" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item>
-                            </Col>
+                            <Col span={8}><Form.Item name="order_date" label="Ngày đặt" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                         </Row>
-                        
                         <Row gutter={16}>
                             <Col span={8}>
                                 <Form.Item name="status" label="Trạng thái">
@@ -254,7 +257,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             </Col>
                             <Col span={8}><Form.Item name="delivery_date" label="Ngày giao dự kiến"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                         </Row>
-
                         <Divider orientation="left">Danh sách sản phẩm</Divider>
                         <Table 
                             dataSource={orderItems} 
@@ -276,7 +278,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>Thêm sản phẩm</Button>
                     </Form>
                 </Tabs.TabPane>
-
                 {initialData && !isQuotation && (
                     <>
                         <Tabs.TabPane tab="2. Thanh toán" key="2">
