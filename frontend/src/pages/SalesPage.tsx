@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, message, Card, Input, Space, Badge, Statistic, Row, Col, Tabs, Progress, Tooltip, Dropdown } from 'antd';
-import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, CheckCircleOutlined, UnorderedListOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, MoreOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { Table, Tag, Button, message, Card, Input, Space, Row, Col, Tabs, Progress, Tooltip, Dropdown, Statistic } from 'antd';
+import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, MoreOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import QuickTaskModal from '../components/QuickTaskModal';
-import SalesOrderDetail from '../components/SalesOrderDetail'; // Đảm bảo import đúng
+import SalesOrderDetail from '../components/SalesOrderDetail';
 
 const SalesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -33,15 +33,17 @@ const SalesPage: React.FC = () => {
             axios.get(`${API_URL}/customers`)
         ]);
         
-        // Lọc chỉ lấy Đơn hàng (Không lấy Báo giá chưa chốt)
-        const allSales = Array.isArray(resSales.data) ? resSales.data : [];
-        // Tùy chọn: Có thể muốn hiện cả Báo giá ở đây hoặc chỉ Đơn hàng. 
-        // Logic dưới đây hiện tất cả nhưng Tab mặc định là ALL
-        setData(allSales);
+        setData(Array.isArray(resSales.data) ? resSales.data : []);
         
+        // Load products kèm description và type cho modal detail
         if(Array.isArray(resProd.data)) {
             setProducts(resProd.data.map((p:any) => ({
-                label: p.name, value: p.sku, price: Number(p.base_price) || 0, unit: p.unit
+                label: p.name, 
+                value: p.sku, 
+                price: Number(p.base_price) || 0, 
+                unit: p.unit,
+                description: p.customer_description, // Lấy mô tả khách hàng
+                type: p.product_type // Lấy loại (SINGLE/COMBO)
             })));
         }
         setCustomers(Array.isArray(resCust.data) ? resCust.data : []);
@@ -58,7 +60,7 @@ const SalesPage: React.FC = () => {
           title: `Theo dõi đơn: ${record.order_code}`,
           reference_code: record.order_code,
           reference_type: 'SALES',
-          description: `Khách: ${record.customer_name}\nTrạng thái: ${record.status}`
+          description: `Khách: ${record.customer?.name || record.customer_name}`
       });
       setTaskModalOpen(true);
   };
@@ -70,7 +72,7 @@ const SalesPage: React.FC = () => {
               setEditingOrder(res.data);
           } catch(e) { message.error('Không tải được chi tiết đơn'); return; }
       } else {
-          setEditingOrder(null); // Tạo đơn mới
+          setEditingOrder(null);
       }
       setDetailModalOpen(true);
   };
@@ -87,8 +89,9 @@ const SalesPage: React.FC = () => {
           render: (t:any, r:any) => <a onClick={()=>openDetailModal(r)}><b>{t}</b></a> 
       },
       { 
-          title: 'Khách Hàng', dataIndex: 'customer_name',
-          render: (t:any) => <span style={{fontWeight:500}}>{t}</span>
+          title: 'Khách Hàng', 
+          // FIX: Lấy customer.name nếu có object, hoặc customer_name nếu flat
+          render: (r:any) => <span style={{fontWeight:500}}>{r.customer?.name || r.customer_name || 'Khách lẻ'}</span>
       },
       { 
           title: 'Ngày Đặt', dataIndex: 'order_date', 
@@ -131,38 +134,36 @@ const SalesPage: React.FC = () => {
       },
       {
           title: '', key: 'act', width: 60, align: 'center' as const,
+          // FIX: Đảm bảo Dropdown hiển thị đúng
           render: (r: any) => (
               <Dropdown menu={{ items: [
-                  { key: 'edit', label: 'Xem chi tiết / Sửa', icon: <EditOutlined/>, onClick: () => openDetailModal(r) },
+                  { key: 'edit', label: 'Chi tiết / Sửa', icon: <EditOutlined/>, onClick: () => openDetailModal(r) },
                   { key: 'task', label: 'Tạo nhắc nhở', icon: <BellOutlined/>, onClick: () => handleCreateTask(r) },
                   { key: 'link', label: 'Copy Link Portal', icon: <LinkOutlined/>, onClick: () => handleCopyLink(r.uuid) },
               ] }} trigger={['click']}>
-                  <Button type="text" icon={<MoreOutlined />} />
+                  <Button type="text" icon={<MoreOutlined style={{fontSize:18}} />} />
               </Dropdown>
           )
       }
   ];
 
-  // Filter Data
   const filteredData = data.filter((x:any) => {
       const matchTab = activeTab === 'ALL' ? true : x.status === activeTab;
       const matchSearch = x.order_code?.toLowerCase().includes(searchText.toLowerCase()) 
-                       || x.customer_name?.toLowerCase().includes(searchText.toLowerCase());
+                       || x.customer_name?.toLowerCase().includes(searchText.toLowerCase())
+                       || x.customer?.name?.toLowerCase().includes(searchText.toLowerCase()); // Search nested name
       return matchTab && matchSearch;
   });
 
-  // Calculate Metrics
-  const totalOrders = data.filter(x => x.status !== 'QUOTATION' && x.status !== 'CANCELLED').length;
   const totalRevenue = data.filter(x => x.status !== 'QUOTATION' && x.status !== 'CANCELLED').reduce((acc, curr) => acc + Number(curr.total_amount), 0);
   const pendingOrders = data.filter(x => x.status === 'SO_PENDING' || x.status === 'SAMPLE_APPROVED').length;
 
   return (
     <div>
-        {/* METRICS ROW */}
         <Row gutter={16} style={{marginBottom: 16}}>
             <Col span={8}><Card bordered={false} bodyStyle={{padding:16}} style={{background:'#f6ffed', border:'1px solid #b7eb8f'}}><Statistic title="Doanh Thu Thực Tế" value={totalRevenue} precision={0} suffix="₫" prefix={<DollarOutlined style={{color:'#52c41a'}}/>} valueStyle={{fontWeight:'bold'}} /></Card></Col>
-            <Col span={8}><Card bordered={false} bodyStyle={{padding:16}} style={{background:'#e6f7ff', border:'1px solid #91d5ff'}}><Statistic title="Đơn Hàng (Chính thức)" value={totalOrders} prefix={<ShoppingCartOutlined style={{color:'#1890ff'}}/>} /></Card></Col>
-            <Col span={8}><Card bordered={false} bodyStyle={{padding:16}} style={{background:'#fff7e6', border:'1px solid #ffd591'}}><Statistic title="Đang Xử Lý" value={pendingOrders} prefix={<ReloadOutlined style={{color:'#fa8c16'}}/>} /></Card></Col>
+            <Col span={8}><Card bordered={false} bodyStyle={{padding:16}} style={{background:'#e6f7ff', border:'1px solid #91d5ff'}}><Statistic title="Đơn Hàng" value={data.length} prefix={<ShoppingCartOutlined style={{color:'#1890ff'}}/>} /></Card></Col>
+            <Col span={8}><Card bordered={false} bodyStyle={{padding:16}} style={{background:'#fff7e6', border:'1px solid #ffd591'}}><Statistic title="Đang Xử Lý" value={pendingOrders} prefix={<FileTextOutlined style={{color:'#fa8c16'}}/>} /></Card></Col>
         </Row>
 
         <Card 
@@ -204,7 +205,6 @@ const SalesPage: React.FC = () => {
                 size="middle"
             />
 
-            {/* MODALS */}
             <QuickTaskModal open={taskModalOpen} onClose={() => setTaskModalOpen(false)} initialValues={taskInitialValues} />
             
             <SalesOrderDetail 
