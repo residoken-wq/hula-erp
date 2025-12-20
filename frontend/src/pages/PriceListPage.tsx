@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Select, Tag, Drawer, Row, Col, InputNumber, Divider, Space, Typography } from 'antd';
 import { PlusOutlined, SettingOutlined, CalendarOutlined, RiseOutlined, FallOutlined, TeamOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../utils/api';
 import dayjs from 'dayjs';
-import { API_URL } from '../config';
+// API_URL is handled by api client baseURL
 
 const { RangePicker } = DatePicker;
 const { Title } = Typography;
@@ -28,9 +28,9 @@ const PriceListsPage: React.FC = () => {
         setLoading(true);
         try {
             const [resLists, resProds, resGroups] = await Promise.all([
-                axios.get(`${API_URL}/sales/price-lists`),
-                axios.get(`${API_URL}/products`),
-                axios.get(`${API_URL}/users/groups`)
+                api.get('/sales/price-lists'),
+                api.get('/products'),
+                api.get('/users/groups')
             ]);
             setPriceLists(Array.isArray(resLists.data) ? resLists.data : []);
             setProducts(Array.isArray(resProds.data) ? resProds.data.map((p: any) => ({ label: `${p.sku} - ${p.name}`, value: p.sku })) : []);
@@ -54,7 +54,7 @@ const PriceListsPage: React.FC = () => {
                 is_active: true
             };
 
-            await axios.post(`${API_URL}/sales/price-lists`, payload);
+            await api.post('/sales/price-lists', payload);
             message.success('Tạo bảng giá thành công');
             setIsModalOpen(false);
             fetchData(); // Reload ngay
@@ -70,7 +70,7 @@ const PriceListsPage: React.FC = () => {
     const fetchRules = async (listId: number) => {
         setLoadingRules(true);
         try {
-            const res = await axios.get(`${API_URL}/sales/price-lists/${listId}/rules`);
+            const res = await api.get(`/sales/price-lists/${listId}/rules`);
             setCurrentRules(res.data || []);
         } catch (e) { message.error('Lỗi tải quy tắc giá'); }
         setLoadingRules(false);
@@ -78,7 +78,7 @@ const PriceListsPage: React.FC = () => {
 
     const handleAddRule = async (values: any) => {
         try {
-            await axios.post(`${API_URL}/sales/price-lists/${currentPriceList.id}/rules`, values);
+            await api.post(`/sales/price-lists/${currentPriceList.id}/rules`, values);
             message.success('Đã thêm quy tắc giá');
             formRule.resetFields();
             fetchRules(currentPriceList.id);
