@@ -34,7 +34,7 @@ import { FinanceModule } from '../finance/finance.module';
         Transaction,
         PriceList, 
         PriceListRule,
-        User // <--- Đăng ký User
+        User
     ]),
     ProductsModule,
     InventoryModule,
