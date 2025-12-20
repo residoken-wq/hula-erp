@@ -1,21 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Tag, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Tabs, Statistic, Divider, Popconfirm, Tooltip, Progress, Typography } from 'antd';
-import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge } from 'antd';
+import { UserOutlined, ClockCircleOutlined, CheckOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined, SearchOutlined, FilterOutlined, RiseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import QuotationTemplate from '../components/QuotationTemplate';
 import SalesOrderDetail from '../components/SalesOrderDetail';
-import QuickTaskModal from '../components/QuickTaskModal'; // <--- MỚI: Import Modal Task
-
-const { Text } = Typography;
+import QuickTaskModal from '../components/QuickTaskModal';
 
 const CrmPage: React.FC = () => {
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState('LEAD');
   const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState(''); // State tìm kiếm
   
   // Data
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
@@ -23,24 +22,22 @@ const CrmPage: React.FC = () => {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  const [samples, setSamples] = useState<any[]>([]);
 
   // UI State
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [followDrawerOpen, setFollowDrawerOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
-  // --- STATE CHO TASK MODAL (MỚI) ---
+  // Task Modal
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskInitialValues, setTaskInitialValues] = useState<any>({});
-  // ----------------------------------
 
-  // State SalesOrderDetail
+  // Sales Order Detail
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [isQuotationMode, setIsQuotationMode] = useState(false);
   
-  // State Lead Modal
+  // Lead Modal
   const [currentCustomer, setCurrentCustomer] = useState<any>(null);
   const [isNewCustomerMode, setIsNewCustomerMode] = useState(false); 
   const [editingLeadId, setEditingLeadId] = useState<number | null>(null);
@@ -60,6 +57,7 @@ const CrmPage: React.FC = () => {
         const resCust = await axios.get(`${API_URL}/customers`);
         const custData = Array.isArray(resCust.data) ? resCust.data : [];
         setAllCustomers(custData);
+        // Lấy tất cả khách hàng có type là LEAD hoặc chưa phân loại rõ ràng nhưng mới tạo
         setLeads(custData.filter((c:any) => c.type === 'LEAD'));
         
         try {
@@ -68,8 +66,6 @@ const CrmPage: React.FC = () => {
             setQuotes(salesData.filter((s:any) => s.status === 'QUOTATION' || s.status === 'CANCELLED'));
             setOrders(salesData.filter((s:any) => !['QUOTATION', 'CANCELLED'].includes(s.status)));
         } catch(e) {}
-
-        try { const resSamples = await axios.get(`${API_URL}/sales/samples/all`); setSamples(resSamples.data || []); } catch (e) {}
 
         const resProd = await axios.get(`${API_URL}/products`);
         if (Array.isArray(resProd.data)) {
@@ -83,6 +79,20 @@ const CrmPage: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
+  // --- LOGIC LỌC DỮ LIỆU (SEARCH) ---
+  const getFilteredData = (data: any[]) => {
+      if (!searchText) return data;
+      const lower = searchText.toLowerCase();
+      return data.filter(item => 
+          item.code?.toLowerCase().includes(lower) ||
+          item.name?.toLowerCase().includes(lower) ||
+          item.phone?.toLowerCase().includes(lower) ||
+          item.customer?.name?.toLowerCase().includes(lower) ||
+          item.order_code?.toLowerCase().includes(lower)
+      );
+  };
+
+  // --- ACTIONS ---
   const openCreateLead = () => {
     setEditingLeadId(null);
     const autoCode = `LEAD-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}`;
@@ -106,71 +116,46 @@ const CrmPage: React.FC = () => {
   const handleDeleteLead = async (id: number) => {
       try {
           await axios.delete(`${API_URL}/customers/${id}`);
-          message.success('Đã xóa Lead');
-          fetchData();
-      } catch (e: any) {
-          message.error(e.response?.data?.message || 'Không thể xóa (có thể đã có đơn hàng)');
-      }
+          message.success('Đã xóa Lead'); fetchData();
+      } catch (e: any) { message.error('Không thể xóa'); }
   };
 
-  // --- HÀM MỞ TASK MODAL (MỚI) ---
   const handleCreateTask = (record: any, type: 'CRM' | 'SALES') => {
       setTaskInitialValues({
-          title: type === 'CRM' ? `Chăm sóc: ${record.name}` : `Follow đơn: ${record.order_code}`,
+          title: type === 'CRM' ? `CSKH: ${record.name}` : `Follow đơn: ${record.order_code}`,
           reference_code: type === 'CRM' ? record.code : record.order_code,
           reference_type: type,
-          description: type === 'CRM' ? `KH: ${record.name} - SĐT: ${record.phone}` : `Khách: ${record.customer?.name || 'Unknown'} - Trạng thái: ${record.status}`
+          description: type === 'CRM' ? `SĐT: ${record.phone}` : `Khách: ${record.customer?.name}`
       });
       setTaskModalOpen(true);
   };
-  // -------------------------------
   
-  const calculateProgress = (lead: any) => {
-    const leadId = lead.id;
-    const myOrders = orders.filter((o:any) => o.customer?.id === leadId);
-    if (myOrders.some((o:any) => o.status === 'COMPLETED')) return { percent: 100, status: 'success', text: 'Hoàn tất' };
-    if (myOrders.some((o:any) => o.status === 'DELIVERED' || o.status === 'PARTIAL_DELIVERY')) return { percent: 95, status: 'active', text: 'Đang giao hàng' };
-    if (myOrders.some((o:any) => o.status === 'DEPOSITED' || o.status === 'PLANNED')) return { percent: 90, status: 'active', text: 'Đang SX' };
-    if (myOrders.some((o:any) => o.status === 'SO_PENDING')) return { percent: 75, status: 'active', text: 'Duyệt Mẫu/HĐ' };
-    const myQuotes = quotes.filter((q:any) => q.customer?.id === leadId);
-    if (myQuotes.length > 0) return { percent: 50, status: 'active', text: 'Đã báo giá' };
-    return { percent: 5, status: 'normal', text: 'Mới tạo' };
-  };
-
   const handleSaveLead = async (values: any) => {
     try {
         const { code, customer_id, name, phone } = values;
-        
         if (editingLeadId) {
              await axios.put(`${API_URL}/customers/${editingLeadId}`, { name, phone });
-             message.success('Cập nhật Lead thành công!');
+             message.success('Cập nhật thành công!');
         } else {
             if (isNewCustomerMode) {
-                if (!name || !phone) { message.error('Vui lòng nhập Tên và SĐT.'); return; }
-                const finalPayload = { code: code, name: name, phone: phone, type: 'LEAD' };
-                await axios.post(`${API_URL}/customers`, finalPayload);
+                if (!name || !phone) { message.error('Nhập Tên và SĐT'); return; }
+                await axios.post(`${API_URL}/customers`, { code, name, phone, type: 'LEAD' });
             } else {
-                if (!customer_id) { message.error('Vui lòng chọn khách hàng.'); return; }
-                const customerId = customer_id;
-                const existingCustomer = allCustomers.find(c => c.id === customerId);
-                if (existingCustomer && existingCustomer.type !== 'LEAD' && existingCustomer.type !== 'CUSTOMER') {
-                     await axios.put(`${API_URL}/customers/${customerId}`, { type: 'LEAD' });
-                }
-                await axios.post(`${API_URL}/customers/${customerId}/follow`, { note: `Lead created (Initial action)` });
+                if (!customer_id) { message.error('Chọn khách hàng'); return; }
+                await axios.put(`${API_URL}/customers/${customer_id}`, { type: 'LEAD' }); // Update existing cust to LEAD
+                await axios.post(`${API_URL}/customers/${customer_id}/follow`, { note: `Lead created` });
             }
             message.success('Tạo Lead thành công!'); 
         }
-        
-        setIsLeadModalOpen(false); 
-        fetchData();
-    } catch(e: any) { message.error(e.response?.data?.message || 'Lỗi khi lưu Lead'); }
+        setIsLeadModalOpen(false); fetchData();
+    } catch(e: any) { message.error('Lỗi lưu Lead'); }
   };
 
   const handleFollowLead = async () => {
       if(!followNote) return;
       try {
           await axios.post(`${API_URL}/customers/${currentCustomer.id}/follow`, { note: followNote });
-          message.success('Đã lưu'); setFollowNote(''); 
+          message.success('Đã lưu ghi chú'); setFollowNote(''); 
           const res = await axios.get(`${API_URL}/customers/${currentCustomer.id}`);
           setCurrentCustomer(res.data); fetchData();
       } catch(e) { message.error('Lỗi'); }
@@ -179,13 +164,13 @@ const CrmPage: React.FC = () => {
   const handleConvertQuote = async (id: number, accepted: boolean) => {
       try {
           await axios.post(`${API_URL}/sales/${id}/convert`, { accepted });
-          message.success(accepted ? 'Đã xác nhận báo giá!' : 'Đã hủy'); fetchData();
+          message.success(accepted ? 'Đã chốt báo giá!' : 'Đã hủy'); fetchData();
       } catch(e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message }); }
   };
   
   const handleDeleteQuote = async (id: number) => {
       try { await axios.delete(`${API_URL}/sales/quote/${id}`); message.success('Đã xóa'); fetchData(); } 
-      catch(e: any) { message.error(e.response?.data?.message || 'Không thể xóa'); }
+      catch(e: any) { message.error('Không thể xóa'); }
   };
 
   const openDetailModal = async (record?: any, isQuote = false) => {
@@ -194,174 +179,179 @@ const CrmPage: React.FC = () => {
               const res = await axios.get(`${API_URL}/sales/${record.order_code}`);
               setEditingOrder(res.data);
           } catch(e) {}
-      } else {
-          setEditingOrder(null);
-      }
+      } else { setEditingOrder(null); }
       setIsQuotationMode(record ? (record.status === 'QUOTATION') : isQuote);
       setDetailModalOpen(true);
   };
 
-  const handleCreateQuoteFromFollow = () => {
-      setFollowDrawerOpen(false);
-      setEditingOrder({ customer_id: currentCustomer.id }); 
-      setIsQuotationMode(true);
-      setDetailModalOpen(true);
-  };
-
   const handleCopyLink = (uuid: string) => {
-      if (!uuid) { message.warning('Chưa có Link Portal. Mở chi tiết và lưu lại để tạo link.'); return; }
+      if (!uuid) return message.warning('Chưa có Link');
       const link = `${window.location.protocol}//${window.location.host}/portal/quote/${uuid}`;
-      if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(link).then(() => message.success('Đã copy link!')).catch(() => showManualCopy(link));
-      } else { showManualCopy(link); }
+      navigator.clipboard.writeText(link).then(() => message.success('Copied!')).catch(() => {});
   };
 
-  const showManualCopy = (url: string) => {
-      Modal.info({
-          title: 'Link Portal',
-          content: (<Input value={url} readOnly addonAfter={<CopyOutlined onClick={()=>{ const i = document.querySelector('.ant-modal-body input') as any; if(i){i.select();document.execCommand('copy');message.success('Đã copy');}}} />} />),
-          maskClosable: true,
-          okText: 'Đóng'
-      });
-  };
-  
+  // --- COLUMNS DEFINITION ---
   const leadColumns = [
-      { title: 'Mã', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
-      { title: 'Tên Khách', dataIndex: 'name', render: (t:any, r:any) => <a onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}}>{t}</a> },
-      { title: 'SĐT', dataIndex: 'phone' },
-      { title: 'Tiến Độ', key: 'progress', width: 200, render: (_:any, r:any) => { const p = calculateProgress(r); return <Tooltip title={p.text}><Progress percent={p.percent} size="small" status={p.status as any} showInfo={false} /></Tooltip> } },
-      { title: 'Lần chăm sóc cuối', dataIndex: 'history', width: 150, render: (h:any[]) => h && h.length > 0 ? <Tag>{dayjs(h[0].date).format('DD/MM HH:mm')}</Tag> : '-' },
       { 
-          title: 'Thao tác', key: 'act', align: 'right' as const, width: 180,
+          title: 'Khách Hàng', dataIndex: 'name', 
+          render: (t:any, r:any) => (
+              <Space>
+                  <Avatar style={{ backgroundColor: '#1890ff', verticalAlign: 'middle' }} size="small">
+                      {t ? t.charAt(0).toUpperCase() : 'U'}
+                  </Avatar>
+                  <div style={{display:'flex', flexDirection:'column'}}>
+                      <a onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}} style={{fontWeight:500}}>{t}</a>
+                      <small style={{color:'#888'}}>{r.code} - {r.phone}</small>
+                  </div>
+              </Space>
+          ) 
+      },
+      { 
+          title: 'Tiến Độ', key: 'progress', width: 180, 
+          render: (_:any, r:any) => { 
+              const leadId = r.id;
+              const myOrders = orders.filter((o:any) => o.customer?.id === leadId);
+              const myQuotes = quotes.filter((q:any) => q.customer?.id === leadId);
+              
+              let pct = 10, status = 'normal', text = 'Mới tiếp cận';
+              if (myQuotes.length > 0) { pct=50; status='active'; text='Đang báo giá'; }
+              if (myOrders.some((o:any) => o.status === 'SO_PENDING')) { pct=70; status='active'; text='Chốt đơn/HĐ'; }
+              if (myOrders.some((o:any) => o.status === 'DEPOSITED')) { pct=90; status='success'; text='Đang sản xuất'; }
+              
+              return <Tooltip title={text}><Progress percent={pct} size="small" status={status as any} showInfo={false} strokeColor={pct===90?'#52c41a':'#1890ff'} /></Tooltip> 
+          } 
+      },
+      { 
+          title: 'Ghi chú gần nhất', dataIndex: 'history', ellipsis: true,
+          render: (h:any[]) => h && h.length > 0 ? (
+              <Tooltip title={h[0].note}>
+                  <span><ClockCircleOutlined style={{fontSize:10, marginRight:5}}/> {h[0].note}</span>
+              </Tooltip>
+          ) : <span style={{color:'#ccc'}}>-</span>
+      },
+      { 
+          title: '', key: 'act', align: 'right' as const, width: 140,
           render: (_:any, r:any) => (
-              <Space size={2}>
+              <Space size="small">
                   <Tooltip title="Chăm sóc"><Button size="small" icon={<ClockCircleOutlined />} onClick={()=>{setCurrentCustomer(r); setFollowDrawerOpen(true)}} /></Tooltip>
-                  {/* --- MỚI: Nút Tạo Task --- */}
                   <Tooltip title="Tạo Nhắc nhở"><Button size="small" icon={<BellOutlined />} onClick={()=>handleCreateTask(r, 'CRM')} /></Tooltip>
-                  <Tooltip title="Sửa thông tin"><Button size="small" icon={<EditOutlined />} onClick={()=>handleEditLead(r)} /></Tooltip>
-                  <Popconfirm title="Xóa Lead này?" onConfirm={()=>handleDeleteLead(r.id)} okText="Xóa" cancelText="Hủy">
-                      <Button size="small" danger icon={<DeleteOutlined />} />
-                  </Popconfirm>
+                  <Tooltip title="Sửa"><Button size="small" icon={<EditOutlined />} onClick={()=>handleEditLead(r)} /></Tooltip>
+                  <Popconfirm title="Xóa?" onConfirm={()=>handleDeleteLead(r.id)}><Button size="small" danger icon={<DeleteOutlined />} /></Popconfirm>
               </Space>
           ) 
       }
   ];
 
   const quoteColumns = [
-      { title: 'Mã', dataIndex: 'order_code', render: (t:any) => <Tag color="orange">{t}</Tag> },
-      { title: 'Khách', dataIndex: 'customer', render: (c:any) => c?.name || 'N/A' },
-      { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v:any) => Number(v).toLocaleString() },
-      { title: 'TT', dataIndex: 'status', render: (t:any) => t==='CANCELLED' ? <Tag color="red">Hủy</Tag> : <Tag color="processing">Chờ KH</Tag> },
-      {
+      { title: 'Mã BG', dataIndex: 'order_code', render: (t:any) => <Tag color="orange">#{t}</Tag> },
+      { title: 'Khách Hàng', dataIndex: 'customer', render: (c:any) => <b>{c?.name}</b> },
+      { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v:any) => <b style={{color:'#cf1322'}}>{Number(v).toLocaleString()}</b> },
+      { title: 'Ngày tạo', dataIndex: 'created_at', render: (t:any) => <small>{dayjs(t).format('DD/MM/YYYY')}</small> },
+      { 
           title: 'Thao tác', key: 'act', align: 'center' as const, width: 220,
           render: (_:any, r:any) => r.status === 'QUOTATION' ? (
-              <Space size={2}>
-                  <Tooltip title="Link Portal"><Button icon={<LinkOutlined />} size="small" onClick={()=>handleCopyLink(r.uuid)} /></Tooltip>
-                  <Tooltip title="Xem/In"><Button icon={<PrinterOutlined />} size="small" onClick={()=>{openDetailModal(r); setTimeout(()=>setIsPreviewOpen(true), 500)}} /></Tooltip>
+              <Space size="small">
+                  <Tooltip title="Link"><Button icon={<LinkOutlined />} size="small" onClick={()=>handleCopyLink(r.uuid)} /></Tooltip>
+                  <Tooltip title="Xem"><Button icon={<PrinterOutlined />} size="small" onClick={()=>{openDetailModal(r); setTimeout(()=>setIsPreviewOpen(true), 500)}} /></Tooltip>
                   <Tooltip title="Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, true)} /></Tooltip>
-                  
-                  {/* --- MỚI: Nút Tạo Task --- */}
-                  <Tooltip title="Tạo Nhắc nhở"><Button size="small" icon={<BellOutlined />} onClick={()=>handleCreateTask(r, 'SALES')} /></Tooltip>
-
+                  <Tooltip title="Task"><Button size="small" icon={<BellOutlined />} onClick={()=>handleCreateTask(r, 'SALES')} /></Tooltip>
+                  <Popconfirm title="Xác nhận chốt đơn?" onConfirm={()=>handleConvertQuote(r.id, true)}><Button type="primary" size="small" icon={<CheckOutlined />} /></Popconfirm>
                   <Popconfirm title="Xóa?" onConfirm={()=>handleDeleteQuote(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
-                  <Divider type="vertical" />
-                  <Popconfirm title="Xác nhận?" onConfirm={()=>handleConvertQuote(r.id, true)}><Button type="primary" size="small" icon={<CheckOutlined />} /></Popconfirm>
               </Space>
-          ) : <span style={{color:'#ccc'}}>Đã chuyển</span>
-      }
-  ];
-
-  const orderColumns = [
-      { title: 'Mã SO', dataIndex: 'order_code', render: (t:any) => <b>{t}</b> },
-      { title: 'Khách', dataIndex: 'customer', render: (c:any) => c?.name },
-      { title: 'Ngày giao', dataIndex: 'delivery_date', render: (t:any) => t ? dayjs(t).format('DD/MM') : '-' },
-      { title: 'TT', dataIndex: 'status', align: 'center' as const, render: (t:any) => t === 'SO_PENDING' ? <Tag color="warning">Chờ Duyệt Mẫu</Tag> : <Tag color="green">{t}</Tag> },
-      { title: 'Thao tác', key: 'act', align: 'right' as const, render: (_:any, r:any) => (
-              <Space>
-                  <Tooltip title="Link Portal"><Button icon={<LinkOutlined />} size="small" onClick={()=>handleCopyLink(r.uuid)} /></Tooltip>
-                  <Tooltip title="Chi tiết & Sửa"><Button icon={<EditOutlined />} size="small" onClick={()=>openDetailModal(r, false)} /></Tooltip>
-                  {/* --- MỚI: Nút Tạo Task --- */}
-                  <Tooltip title="Tạo Nhắc nhở"><Button size="small" icon={<BellOutlined />} onClick={()=>handleCreateTask(r, 'SALES')} /></Tooltip>
-              </Space>
-          )
+          ) : <Tag color="default">Đã chốt</Tag>
       }
   ];
 
   return (
     <div>
+      {/* KPI DASHBOARD */}
       <Row gutter={16} style={{marginBottom: 16}}>
-          <Col span={8}><Card><Statistic title="Leads" value={leads.length} prefix={<UserOutlined />} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Báo Giá" value={quotes.length} prefix={<FileTextOutlined />} /></Card></Col>
-          <Col span={8}><Card><Statistic title="Đơn Hàng (SO)" value={orders.length} prefix={<DollarOutlined />} /></Card></Col>
+          <Col span={8}><Card bordered={false} style={{background: 'linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%)'}}><Statistic title="Leads Tiềm Năng" value={leads.length} prefix={<UserOutlined style={{color:'#1890ff'}}/>} /></Card></Col>
+          <Col span={8}><Card bordered={false} style={{background: 'linear-gradient(135deg, #fff7e6 0%, #ffffff 100%)'}}><Statistic title="Báo Giá Đang Chờ" value={quotes.length} prefix={<FileTextOutlined style={{color:'#fa8c16'}}/>} /></Card></Col>
+          <Col span={8}><Card bordered={false} style={{background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)'}}><Statistic title="Tỷ lệ chuyển đổi" value={leads.length > 0 ? ((orders.length/leads.length)*100).toFixed(1) : 0} suffix="%" prefix={<RiseOutlined style={{color:'#52c41a'}}/>} /></Card></Col>
       </Row>
 
       <Card 
-        title="Quản Lý Kinh Doanh (CRM)" 
+        bodyStyle={{padding: '12px 24px'}}
+        title={
+            <div style={{display:'flex', alignItems:'center', gap: 10}}>
+                <span style={{fontSize: 18}}>Quản Lý Kinh Doanh (CRM)</span>
+                <Input prefix={<SearchOutlined/>} placeholder="Tìm tên, sđt, mã..." style={{width: 250, fontSize:13}} value={searchText} onChange={e => setSearchText(e.target.value)} allowClear />
+            </div>
+        } 
         extra={
             <Space>
-                <Button 
-                    icon={<UnorderedListOutlined />} 
-                    onClick={() => navigate('/sales/pricelist')}
-                >
-                    Quản lý Bảng Giá
-                </Button>
-                <Button icon={<ReloadOutlined />} onClick={fetchData} />
+                <Button icon={<UnorderedListOutlined />} onClick={() => navigate('/sales/pricelist')}>Bảng Giá</Button>
+                <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
             </Space>
         }
       >
-          <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
-              { key: 'LEAD', label: '1. Leads', children: <><Button type="primary" onClick={openCreateLead} style={{marginBottom:10}}>+ Lead</Button><Table dataSource={leads} columns={leadColumns} rowKey="id" /></> },
-              { key: 'QUOTE', label: '2. Báo Giá', children: <><Button type="primary" onClick={()=>openDetailModal(null, true)} style={{marginBottom:10}}>+ Báo Giá Mới</Button><Table dataSource={quotes} columns={quoteColumns} rowKey="id" /></> },
-              { key: 'SO', label: '3. Đơn Hàng', children: <Table dataSource={orders} columns={orderColumns} rowKey="id" /> }
+          <Tabs 
+            activeKey={activeTab} 
+            onChange={setActiveTab} 
+            type="card"
+            items={[
+              { 
+                  key: 'LEAD', label: <span><UserOutlined/> Leads ({leads.length})</span>, 
+                  children: (
+                      <>
+                          <div style={{marginBottom: 12, display:'flex', justifyContent:'flex-end'}}>
+                              <Button type="primary" onClick={openCreateLead} icon={<PlusOutlined />}>Tạo Lead Mới</Button>
+                          </div>
+                          <Table 
+                              dataSource={getFilteredData(leads)} 
+                              columns={leadColumns} 
+                              rowKey="id" 
+                              pagination={{ pageSize: 8, showTotal: (total) => `Tổng ${total} leads` }}
+                          />
+                      </>
+                  ) 
+              },
+              { 
+                  key: 'QUOTE', label: <span><FileTextOutlined/> Báo Giá ({quotes.length})</span>, 
+                  children: (
+                      <>
+                          <div style={{marginBottom: 12, display:'flex', justifyContent:'flex-end'}}>
+                              <Button type="primary" onClick={()=>openDetailModal(null, true)} icon={<PlusOutlined />}>Tạo Báo Giá</Button>
+                          </div>
+                          <Table dataSource={getFilteredData(quotes)} columns={quoteColumns} rowKey="id" pagination={{ pageSize: 8 }} />
+                      </>
+                  ) 
+              }
           ]} />
       </Card>
 
-      <SalesOrderDetail 
-        open={detailModalOpen} onClose={()=>setDetailModalOpen(false)} onSuccess={fetchData}
-        initialData={editingOrder} isQuotation={isQuotationMode} customers={allCustomers} products={products}
-      />
-
+      <SalesOrderDetail open={detailModalOpen} onClose={()=>setDetailModalOpen(false)} onSuccess={fetchData} initialData={editingOrder} isQuotation={isQuotationMode} customers={allCustomers} products={products} />
       <Modal title="Xem Trước" open={isPreviewOpen} onCancel={()=>setIsPreviewOpen(false)} footer={null} width={900}>
           <div id="printableArea"><QuotationTemplate data={editingOrder} /></div>
           <div style={{textAlign:'center', marginTop:20}}><Button type="primary" onClick={()=>{ const c = document.getElementById('printableArea'); const w = window.open(); if(w && c) { w.document.write(c.innerHTML); w.print(); } }}>In Ngay</Button></div>
       </Modal>
+      <QuickTaskModal open={taskModalOpen} onClose={() => setTaskModalOpen(false)} initialValues={taskInitialValues} />
 
-      {/* --- MỚI: Modal Quick Task --- */}
-      <QuickTaskModal 
-          open={taskModalOpen} 
-          onClose={() => setTaskModalOpen(false)} 
-          initialValues={taskInitialValues} 
-      />
-      {/* --------------------------- */}
-
-      <Modal title={editingLeadId ? "Cập nhật Lead" : "Tạo Lead"} open={isLeadModalOpen} onCancel={() => { setIsLeadModalOpen(false); formLead.resetFields(); setIsNewCustomerMode(false); setEditingLeadId(null); }} onOk={() => formLead.submit()}>
-          <Form form={formLead} layout="vertical" onFinish={handleSaveLead} initialValues={{ code: `LEAD-${dayjs().format('YYMMDD')}-${Math.floor(Math.random()*1000)}` }}>
-              <Form.Item name="code" label="Mã Lead" rules={[{ required: true }]}><Input disabled /></Form.Item>
-              
+      <Modal title={editingLeadId ? "Cập nhật Lead" : "Tạo Lead"} open={isLeadModalOpen} onCancel={() => { setIsLeadModalOpen(false); formLead.resetFields(); }} onOk={() => formLead.submit()}>
+          <Form form={formLead} layout="vertical" onFinish={handleSaveLead}>
+              <Form.Item name="code" label="Mã Lead"><Input disabled /></Form.Item>
               {!isNewCustomerMode ? (
-                  <Form.Item label="Khách hàng (Tìm kiếm hoặc Thêm mới)" name="customer_id" rules={[{ required: !isNewCustomerMode, message: 'Vui lòng chọn khách hàng có sẵn.' }]}>
-                      <Select showSearch placeholder="Tìm kiếm theo Mã, Tên hoặc SĐT" optionFilterProp="label" filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())} options={customerOptionsForLead} onChange={(value) => { const s = allCustomers.find(c => c.id === value); if (s) formLead.setFieldsValue({ name: s.name, phone: s.phone }); else formLead.setFieldsValue({ name: undefined, phone: undefined }); }} allowClear />
+                  <Form.Item label="Khách hàng có sẵn" name="customer_id" rules={[{ required: !isNewCustomerMode }]}>
+                      <Select showSearch placeholder="Tìm theo tên/sđt" optionFilterProp="label" options={customerOptionsForLead} allowClear />
                   </Form.Item>
               ) : (
                   <>
-                      <Divider orientation="left">{editingLeadId ? "Cập nhật thông tin" : "Thông tin Khách hàng MỚI"}</Divider>
-                      <Form.Item name="name" label="Tên Khách hàng" rules={[{ required: isNewCustomerMode, message: 'Vui lòng nhập Tên KH' }]}><Input placeholder="Tên khách hàng mới" /></Form.Item>
-                      <Form.Item name="phone" label="SĐT" rules={[{ required: isNewCustomerMode, message: 'Vui lòng nhập SĐT' }]}><Input placeholder="SĐT liên hệ" /></Form.Item>
+                      <Divider orientation="left">KH Mới</Divider>
+                      <Form.Item name="name" label="Tên KH" rules={[{ required: isNewCustomerMode }]}><Input /></Form.Item>
+                      <Form.Item name="phone" label="SĐT" rules={[{ required: isNewCustomerMode }]}><Input /></Form.Item>
                   </>
               )}
-              
-              {!editingLeadId && (
-                  <Row justify={isNewCustomerMode ? 'end' : 'start'} style={{marginTop: 10}}>
-                      <Col>{!isNewCustomerMode ? (<Button type="dashed" onClick={() => { setIsNewCustomerMode(true); formLead.resetFields(['customer_id']); }} icon={<PlusOutlined />}>Thêm Khách hàng Mới</Button>) : (<Button type="link" onClick={() => { setIsNewCustomerMode(false); formLead.resetFields(['name', 'phone']); }}>Chọn KH có sẵn</Button>)}</Col>
-                  </Row>
-              )}
+              <Button type="link" onClick={() => { setIsNewCustomerMode(!isNewCustomerMode); formLead.resetFields(['name','phone','customer_id']); }}>
+                  {isNewCustomerMode ? "Chọn KH có sẵn" : "+ Thêm KH Mới"}
+              </Button>
           </Form>
       </Modal>
       
-      <Drawer title={`Chăm sóc: ${currentCustomer?.name}`} open={followDrawerOpen} onClose={()=>setFollowDrawerOpen(false)} footer={<Button type="primary" block onClick={handleCreateQuoteFromFollow}>Tạo Báo Giá Ngay</Button>}>
-          <div style={{marginBottom:20}}><Input.TextArea rows={3} value={followNote} onChange={e=>setFollowNote(e.target.value)} placeholder="Ghi chú..." /><Button block type="primary" style={{marginTop:10}} onClick={handleFollowLead}>Lưu</Button></div>
-          <Divider>Lịch sử</Divider>
-          <Timeline mode="left">{currentCustomer?.history?.map((h:any,i:number)=><Timeline.Item key={i} label={<span style={{fontSize:11}}>{dayjs(h.date).format('DD/MM HH:mm')}</span>}>{h.note}</Timeline.Item>)}</Timeline>
+      <Drawer title={`Chăm sóc: ${currentCustomer?.name}`} width={400} open={followDrawerOpen} onClose={()=>setFollowDrawerOpen(false)} footer={<Button type="primary" block onClick={()=>{setFollowDrawerOpen(false); setEditingOrder({ customer_id: currentCustomer.id }); setIsQuotationMode(true); setDetailModalOpen(true);}}>Tạo Báo Giá Ngay</Button>}>
+          <div style={{marginBottom:20}}><Input.TextArea rows={3} value={followNote} onChange={e=>setFollowNote(e.target.value)} placeholder="Nhập nội dung trao đổi..." /><Button block type="primary" style={{marginTop:10}} onClick={handleFollowLead}>Lưu Ghi Chú</Button></div>
+          <Divider>Lịch sử tương tác</Divider>
+          <Timeline mode="left">{currentCustomer?.history?.map((h:any,i:number)=><Timeline.Item key={i} color="blue" label={<span style={{fontSize:11, color:'#999'}}>{dayjs(h.date).format('DD/MM HH:mm')}</span>}>{h.note}</Timeline.Item>)}</Timeline>
       </Drawer>
     </div>
   );
