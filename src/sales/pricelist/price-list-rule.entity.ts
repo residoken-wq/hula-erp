@@ -30,4 +30,14 @@ export class PriceListRule {
 
   @Column('decimal', { precision: 5, scale: 2, nullable: true })
   max_margin: number;
+
+  // --- GIÁ BÁN SỈ (TIERED PRICING) ---
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  price_100: number; // Giá bán cho SL 100 (Giá Tham Khảo)
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  price_50: number; // Giá bán cho SL 50
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  price_30: number; // Giá bán cho SL 30
 }
