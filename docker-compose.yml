@@ -14,14 +14,16 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U hula_user -d hula_db"]
+      test: [ "CMD-SHELL", "pg_isready -U hula_user -d hula_db" ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 10s
 
   app:
-    build: .
+    build:
+      context: .
+      target: development # Use Dev Stage (No Build)
     container_name: hula_app
     restart: always
     command: npm run start:dev # Chạy chế độ Dev (Hot Reload)
@@ -38,28 +40,27 @@ services:
         condition: service_healthy
     volumes:
       # Mapping source code gốc vào container (QUAN TRỌNG cho Hot Reload)
-      - ./src:/app/src 
-      # Mapping dist và node_modules để tăng tốc Rebuild
-      - ./dist:/app/dist
+      - ./src:/app/src
+      # Mapping node_modules để tránh xung đột
       - /app/node_modules
       # Mapping tsconfig.json để NestJS biết cách biên dịch
       - ./tsconfig.json:/app/tsconfig.json
-      
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: development # Use Dev Stage (Vite Server)
     container_name: hula_frontend
     restart: always
     # FIX: Map cổng Dev Server (thường là 5173 hoặc 3000) sang cổng 80 của host
     ports:
-      - "80:80" # Giả định Vite chạy cổng 5173
+      - "80:5173" # Vite (5173) -> Host 80
     depends_on:
       - app
     volumes:
       # QUAN TRỌNG: Mapping Source Code để HMR hoạt động
-      - ./frontend/src:/app/src 
-      - ./frontend/package.json:/app/package.json
+      - ./frontend:/app
       # Không cache node_modules từ host
       - /app/node_modules
 

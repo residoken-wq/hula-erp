@@ -1,33 +1,25 @@
-# Stage 1: Build Stage
-FROM node:18-alpine AS build
-
+# Stage 1: Base (Dependency)
+FROM node:18-alpine AS base
 WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
-
 RUN npm install
 
-# COPY . . (Lệnh này copy cả src và các file khác)
-COPY . . 
+# Stage 2: Development (Fast Start)
+FROM base AS development
+COPY . .
+CMD ["npm", "run", "start:dev"]
 
+# Stage 3: Build (Production Build)
+FROM base AS build
+COPY . .
 RUN npm run build
 
-# Stage 2: Production/Development Stage
-FROM node:18-alpine
-
+# Stage 4: Production (Run App)
+FROM node:18-alpine AS production
 WORKDIR /app
 COPY package*.json ./
-COPY tsconfig.json ./
-
-# Copy node_modules từ stage build (Quan trọng)
-COPY --from=build /app/node_modules ./node_modules
-# Copy file build (JS code)
+# Only install production deps
+RUN npm install --only=production
 COPY --from=build /app/dist ./dist
-
-# --- FIX: BỎ HOÀN TOÀN DÒNG LỖI ---
-# Loại bỏ dòng này vì đã có Volume Mapping trong docker-compose.yml:
-# COPY --from=build /app/src ./src # Cần thiết cho start:dev
-# ------------------------------------
-
-# Thay đổi lệnh chạy: Chuyển sang chế độ Watch (Development)
-CMD ["npm", "run", "start:dev"]
+CMD ["node", "dist/main"]
