@@ -1,322 +1,317 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Divider, Button, message, Typography, Space, Tag, DatePicker, Tooltip, Card } from 'antd';
-import { PlusOutlined, DeleteOutlined, ExperimentOutlined, FileImageOutlined, CheckCircleOutlined, BankOutlined, CarOutlined, PrinterOutlined, FileTextOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, DatePicker, Button, Table, Tabs, Row, Col, InputNumber, Divider, message, Tag, Space, Popconfirm } from 'antd';
+import { PlusOutlined, DeleteOutlined, SaveOutlined, PrinterOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 
-// Import Sub-Components
+// Import Sub-components (Bạn đã có các file này)
 import SalesPayments from './sales/SalesPayments';
 import SalesDeliveries from './sales/SalesDeliveries';
 import SalesComments from './sales/SalesComments';
 
-const { Text } = Typography;
+const { Option } = Select;
 
-interface Props { open: boolean; onClose: () => void; onSuccess: () => void; initialData?: any; isQuotation: boolean; customers: any[]; products: any[]; }
+interface Props {
+    open: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+    initialData?: any;
+    customers: any[];
+    products: any[];
+    isQuotation?: boolean; // True: Báo giá, False: Đơn hàng
+}
 
-// DEFAULT TERMS
-const DEFAULT_TERMS = `- Báo giá có hiệu lực trong vòng 07 ngày.\n- Thời gian giao hàng: 3-5 ngày (hoặc theo thỏa thuận).\n- Thanh toán: Tạm ứng 50% ngay khi xác nhận đơn, 50% còn lại trước khi giao hàng.`;
-
-const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, isQuotation, customers, products }) => {
+const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, customers, products, isQuotation = false }) => {
     const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('1');
-    const [infoTabKey, setInfoTabKey] = useState('VAT');
-    const [isSampleModalOpen, setIsSampleModalOpen] = useState(false);
-    const [currentSampleIdx, setCurrentSampleIdx] = useState<number | null>(null);
-    const [sampleForm] = Form.useForm();
-
-    const items = Form.useWatch('items', form) || [];
-    const vatRate = Form.useWatch('vat_rate', form) || 0;
-    const shippingFee = Form.useWatch('shipping_fee', form) || 0;
-
-    const subTotal = items.reduce((sum: number, item: any) => sum + (Number(item?.quantity || 0) * Number(item?.price || 0)), 0);
-    const vatAmount = subTotal * (vatRate / 100);
-    const totalAmount = subTotal + vatAmount + Number(shippingFee);
     
-    const canEdit = !initialData || isQuotation || initialData.status === 'QUOTATION' || initialData.status === 'SO_PENDING';
-    const hasData = initialData && initialData.id; 
+    // State cho danh sách sản phẩm trong đơn
+    const [orderItems, setOrderItems] = useState<any[]>([]);
+    
+    // State tổng tiền
+    const [totalAmount, setTotalAmount] = useState(0);
 
-    // --- LOGIC MỚI: KIỂM TRA GIÁ KHI THAY ĐỔI ---
-    const handlePriceChange = async (newPrice: number | null, itemSku: string, itemIndex: number) => {
-        if (!itemSku || !newPrice || newPrice <= 0 || !canEdit) return;
-
-        // Xóa cảnh báo cũ
-        form.setFields([
-            { name: ['items', itemIndex, 'price'], errors: [] }
-        ]);
-        
-        try {
-            // NOTE: Giả định UserId = 1 (cần thay bằng User ID thực tế của Sales)
-            await axios.get(`${API_URL}/sales/validate-price`, {
-                params: { sku: itemSku, unitPrice: newPrice, userId: 1 } 
-            });
-        } catch (e: any) {
-            const errorMessage = e.response?.data?.message || 'Giá bán không hợp lệ.';
-            message.warning(errorMessage);
-
-            // Hiển thị lỗi ngay trên trường Price
-            form.setFields([
-                { name: ['items', itemIndex, 'price'], errors: [errorMessage] }
-            ]);
-        }
-    };
-    // ---------------------------------------------
-
+    // Load dữ liệu khi mở Modal
     useEffect(() => {
-        if (open && initialData) {
-            form.setFieldsValue({
-                ...initialData,
-                customer_id: initialData.customer?.id || initialData.customer_id,
-                delivery_date: initialData.delivery_date ? dayjs(initialData.delivery_date) : null,
-                items: (initialData.items || []).map((i: any) => ({ ...i, quantity: Number(i.quantity), price: Number(i.unit_price) })),
-                terms_content: initialData.terms_content || DEFAULT_TERMS
-            });
-        } else if (open) {
-            form.resetFields();
-            form.setFieldsValue({ order_code: `QUOTE-${dayjs().format('YYMMDD')}-${Math.floor(Math.random() * 1000)}`, items: [{}], vat_rate: 0, terms_content: DEFAULT_TERMS });
-        }
-        setActiveTab('1');
-        setInfoTabKey('VAT');
-    }, [open, initialData, form]);
-
-    const handleSave = async (values: any) => {
-        try {
-            const validItems = (values.items || []).filter((i: any) => i && i.sku);
-            const payload = { ...values, isQuotation, items: validItems.map((i: any) => ({ ...i, quantity: Number(i.quantity) || 0, price: Number(i.price) || 0 })) };
-            
-            if (initialData?.id) {
-                await axios.put(`${API_URL}/sales/quote/${initialData.id}`, payload);
+        if (open) {
+            if (initialData) {
+                // Edit Mode
+                form.setFieldsValue({
+                    ...initialData,
+                    customer_id: initialData.customer?.id,
+                    order_date: initialData.order_date ? dayjs(initialData.order_date) : dayjs(),
+                    delivery_date: initialData.delivery_date ? dayjs(initialData.delivery_date) : null
+                });
+                
+                // Parse items
+                const items = initialData.items?.map((i: any) => ({
+                    ...i,
+                    sku: i.product?.sku || i.sku, // Đảm bảo có SKU
+                    unit_price: Number(i.unit_price),
+                    total_price: Number(i.total_price)
+                })) || [];
+                setOrderItems(items);
+                calculateTotal(items);
             } else {
-                await axios.post(`${API_URL}/sales/create`, { ...payload, isQuotation: isQuotation });
+                // Create Mode
+                form.resetFields();
+                form.setFieldsValue({ 
+                    order_code: isQuotation ? 'AUTO-QUOTE' : 'AUTO-SO',
+                    order_date: dayjs(),
+                    status: isQuotation ? 'QUOTATION' : 'SO_PENDING'
+                });
+                setOrderItems([]);
+                setTotalAmount(0);
             }
-            message.success('Đã lưu thành công'); 
-            onSuccess(); 
-            onClose();
-        } catch (e: any) { message.error(e.response?.data?.message || 'Lỗi'); }
+            setActiveTab('1');
+        }
+    }, [open, initialData, isQuotation]);
+
+    const calculateTotal = (items: any[]) => {
+        const total = items.reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.unit_price || 0)), 0);
+        setTotalAmount(total);
     };
 
-    const handleProductChange = (val: string, idx: number) => {
-        const p = products.find((x: any) => x.value === val);
-        if (p) {
-            const current = form.getFieldValue('items');
-            current[idx].price = p.price;
-            form.setFieldsValue({ items: [...current] });
-             // Kích hoạt kiểm tra giá sau khi chọn sản phẩm
-            handlePriceChange(p.price, val, idx);
+    // --- XỬ LÝ SẢN PHẨM TRONG ĐƠN ---
+    const handleAddItem = () => {
+        setOrderItems([...orderItems, { key: Date.now(), sku: undefined, quantity: 1, unit_price: 0, total_price: 0 }]);
+    };
+
+    const handleItemChange = (index: number, field: string, value: any) => {
+        const newItems = [...orderItems];
+        const item = { ...newItems[index], [field]: value };
+
+        // Nếu chọn sản phẩm -> Tự điền giá
+        if (field === 'sku') {
+            const prod = products.find(p => p.value === value);
+            if (prod) {
+                item.unit_price = prod.price;
+                item.unit = prod.unit;
+            }
+        }
+
+        // Tính lại thành tiền
+        if (field === 'quantity' || field === 'unit_price' || field === 'sku') {
+            item.total_price = Number(item.quantity || 0) * Number(item.unit_price || 0);
+        }
+
+        newItems[index] = item;
+        setOrderItems(newItems);
+        calculateTotal(newItems);
+    };
+
+    const handleRemoveItem = (index: number) => {
+        const newItems = orderItems.filter((_, i) => i !== index);
+        setOrderItems(newItems);
+        calculateTotal(newItems);
+    };
+
+    // --- LƯU ĐƠN HÀNG ---
+    const handleSave = async () => {
+        try {
+            const values = await form.validateFields();
+            setLoading(true);
+
+            const payload = {
+                ...values,
+                total_amount: totalAmount,
+                items: orderItems.map(i => ({
+                    sku: i.sku,
+                    quantity: i.quantity,
+                    unit_price: i.unit_price,
+                    total_price: i.total_price
+                }))
+            };
+
+            if (initialData?.id) {
+                await axios.put(`${API_URL}/sales/${initialData.id}`, payload);
+                message.success('Cập nhật thành công');
+            } else {
+                await axios.post(`${API_URL}/sales`, {
+                    ...payload,
+                    is_quotation: isQuotation // Cờ để backend biết tạo Quote hay SO
+                });
+                message.success(isQuotation ? 'Tạo báo giá thành công' : 'Tạo đơn hàng thành công');
+            }
+            
+            onSuccess();
+            onClose();
+        } catch (e) {
+            message.error('Lỗi lưu đơn hàng');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleCustomerChange = (val: number) => {
-        const c = customers.find(x => x.id === val);
-        if (c) form.setFieldsValue({ customer_name: c.name, vat_company_name: c.name, vat_tax_code: c.tax_code, vat_address: c.address, receiver_name: c.name, receiver_phone: c.phone, shipping_address: c.address });
+    const handleCompleteOrder = async () => {
+        if (!initialData?.id) return;
+        try {
+            await axios.put(`${API_URL}/sales/${initialData.id}`, { status: 'COMPLETED' });
+            message.success('Đã hoàn tất đơn hàng');
+            onSuccess();
+            onClose();
+        } catch(e) { message.error('Lỗi'); }
     };
 
-    const handleComplete = () => {
-        Modal.confirm({
-            title: 'Hoàn tất đơn hàng?',
-            onOk: async () => { await axios.post(`${API_URL}/sales/${initialData.id}/complete`); message.success('Đã hoàn tất'); onSuccess(); onClose(); }
-        });
-    };
-
-    const handlePrint = () => {
-        if(initialData?.uuid) { window.open(`/portal/quote/${initialData.uuid}`, '_blank'); } else { message.warning('Vui lòng lưu đơn hàng trước khi in'); }
-    };
-
-    const handleSampleAction = (idx: number) => { setCurrentSampleIdx(idx); sampleForm.setFieldsValue(form.getFieldValue(['items', idx])); setIsSampleModalOpen(true); };
-    const saveSampleInfo = () => {
-        const items = form.getFieldValue('items');
-        items[currentSampleIdx!] = { ...items[currentSampleIdx!], ...sampleForm.getFieldsValue() };
-        form.setFieldsValue({ items }); setIsSampleModalOpen(false);
-    };
-    const approveAllSamples = async () => {
-        if(initialData?.id) { await axios.post(`${API_URL}/sales/${initialData.id}/approve-samples`); onSuccess(); onClose(); }
-    };
+    // --- UI COLUMNS ---
+    const itemColumns = [
+        {
+            title: 'Sản phẩm', dataIndex: 'sku', width: 250,
+            render: (text: any, record: any, index: number) => (
+                <Select 
+                    showSearch 
+                    placeholder="Chọn SP" 
+                    optionFilterProp="label"
+                    style={{ width: '100%' }}
+                    value={text}
+                    onChange={(val) => handleItemChange(index, 'sku', val)}
+                    options={products}
+                />
+            )
+        },
+        {
+            title: 'Đơn giá', dataIndex: 'unit_price', width: 120,
+            render: (text: any, record: any, index: number) => (
+                <InputNumber 
+                    min={0} 
+                    style={{ width: '100%' }} 
+                    value={text}
+                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    onChange={(val) => handleItemChange(index, 'unit_price', val)} 
+                />
+            )
+        },
+        {
+            title: 'SL', dataIndex: 'quantity', width: 80,
+            render: (text: any, record: any, index: number) => (
+                <InputNumber min={1} value={text} onChange={(val) => handleItemChange(index, 'quantity', val)} style={{ width: '100%' }} />
+            )
+        },
+        {
+            title: 'Thành tiền', dataIndex: 'total_price', align: 'right' as const, width: 120,
+            render: (val: any) => <b>{Number(val).toLocaleString()}</b>
+        },
+        {
+            title: '', width: 50, align: 'center' as const,
+            render: (_: any, r: any, index: number) => <DeleteOutlined onClick={() => handleRemoveItem(index)} style={{ color: 'red', cursor: 'pointer' }} />
+        }
+    ];
 
     return (
-        <Modal
-            title={
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginRight: 30}}>
-                    <div style={{display:'flex', gap:10, alignItems:'center'}}>
-                        <Text strong style={{fontSize: 18}}>{isQuotation?"Báo Giá":"Đơn Hàng (SO)"} &nbsp; #{initialData?.order_code || 'Tạo Mới'}</Text>
-                        {!canEdit && <Tag color="orange">Đã khóa</Tag>}
-                        {initialData?.status==='COMPLETED'&&<Tag color="green">HOÀN TẤT</Tag>}
-                    </div>
-                    {hasData && <Button icon={<PrinterOutlined />} onClick={handlePrint}>In Đơn Hàng</Button>}
-                </div>
-            }
-            open={open} onCancel={onClose} onOk={() => form.submit()} width={1200} style={{ top: 10 }} okText="Lưu Thông Tin">
-            
-            {/* Action Bar */}
-            <div style={{textAlign:'right', marginBottom:10}}>
-                {!isQuotation && initialData?.status!=='COMPLETED' && <Button danger type="primary" onClick={handleComplete}>Hoàn tất đơn hàng</Button>}
-            </div>
-            
-            <Form form={form} layout="vertical" onFinish={handleSave}>
-                <Form.Item name="order_code" hidden><Input /></Form.Item>
-                <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
-                    {
-                        key: '1', label: '1. Thông tin & Sản phẩm', children: (
-                            <Row gutter={24}>
-                                {/* Cột Trái: Thông tin chung & Items */}
-                                <Col span={16} style={{borderRight:'1px solid #f0f0f0'}}>
-                                    
-                                    <Card title="Thông tin chung" size="small" style={{marginBottom: 16}}>
-                                        <Row gutter={16}>
-                                            <Col span={12}>
-                                                <Form.Item name="customer_id" label="Khách Hàng" rules={[{required:true}]}>
-                                                    <Select showSearch optionFilterProp="label" options={customers.map(c=>({label:`${c.code} - ${c.name}`,value:c.id}))} onChange={handleCustomerChange} disabled={!canEdit && initialData} placeholder="Chọn Khách hàng" />
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={12}>
-                                                <Form.Item name="order_code" label="Mã Đơn">
-                                                    <Input disabled style={{fontWeight:'bold', color:'#1890ff'}}/>
-                                                </Form.Item>
-                                            </Col>
-                                        </Row>
-                                    </Card>
-                                    
-                                    {/* Khối Duyệt Mẫu chung */}
-                                    {!isQuotation && <div style={{background:'#e6f7ff', padding:10, borderRadius:6, marginBottom:16}}><Row gutter={16}><Col span={12}><Form.Item name="sample_image_url" label="Ảnh Mẫu Chung" style={{marginBottom: 0}}><Input prefix={<FileImageOutlined/>}/></Form.Item></Col><Col span={12}><Form.Item name="sample_note" label="Ghi chú kỹ thuật" style={{marginBottom: 0}}><Input.TextArea rows={1}/></Form.Item></Col></Row></div>}
-                                    
-                                    <Card title="Danh sách Sản phẩm" size="small">
-                                        
-                                        {/* FIX HEADER: Tăng span Sản phẩm lên 12, đảm bảo hiển thị full tên sản phẩm */}
-                                        <Row gutter={8} style={{marginBottom:5, fontWeight:'bold', borderBottom:'2px solid #ddd', paddingBottom: 5}}>
-                                            <Col span={12}>Sản phẩm</Col>
-                                            <Col span={2}>Màu/Biến thể</Col>
-                                            <Col span={2}>SL</Col>
-                                            <Col span={1}>ĐVT</Col>
-                                            <Col span={3}>Giá</Col>
-                                            <Col span={2}>Thành tiền</Col>
-                                            <Col span={2}>Mẫu</Col>
-                                        </Row>
-                                        
-                                        <Form.List name="items">{(fields,{add,remove})=>(<div style={{maxHeight:300, overflowY:'auto', paddingRight: 5}}>{fields.map(({key,name,...rest})=>(
-                                            <Row key={key} gutter={8} style={{marginBottom:8, borderBottom:'1px dashed #eee', paddingBottom: 8}} align="middle">
-                                                
-                                                {/* FIX ITEM ROW: Tăng span Sản phẩm lên 12 */}
-                                                <Col span={12}>
-                                                    <Form.Item {...rest} name={[name,'sku']} noStyle rules={[{required:true}]}>
-                                                        <Select 
-                                                            options={products} 
-                                                            onChange={(v)=>handleProductChange(v,name)} 
-                                                            disabled={!canEdit} 
-                                                            placeholder="Chọn Sản phẩm/SKU trong danh sách sản phẩm"
-                                                            showSearch 
-                                                            optionFilterProp="label" 
-                                                            filterOption={(input, option) =>
-                                                                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                                                            } 
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={2}><Form.Item {...rest} name={[name,'variant_color']} noStyle><Input placeholder="Màu..." disabled={!canEdit}/></Form.Item></Col>
-                                                <Col span={2}><Form.Item {...rest} name={[name,'quantity']} noStyle rules={[{required:true}]}>
-                                                    <InputNumber min={1} style={{width:'100%'}} disabled={!canEdit}/>
-                                                </Form.Item></Col>
-                                                <Col span={1} style={{textAlign:'center'}}><Text type="secondary" style={{fontSize: 12}}>Cái</Text></Col>
-                                                <Col span={3}>
-                                                    <Form.Item {...rest} name={[name,'price']} noStyle rules={[{required:true}]}>
-                                                        <InputNumber 
-                                                            style={{width:'100%'}} 
-                                                            formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} 
-                                                            disabled={!canEdit}
-                                                            // --- MỚI: KÍCH HOẠT KIỂM TRA GIÁ KHI BLUR (THAY ĐỔI) ---
-                                                            onBlur={(e) => handlePriceChange(Number(e.target.value.replace(/,/g, '')), form.getFieldValue(['items', name, 'sku']), name)}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={2} style={{textAlign:'right'}}><Text strong style={{fontSize: 13}}>{((items[name]?.quantity||0)*(items[name]?.price||0)).toLocaleString()}</Text></Col>
-                                                <Col span={2} style={{textAlign:'center'}}><Space><Tooltip title="Duyệt mẫu"><Button size="small" icon={<ExperimentOutlined/>} style={{color:items[name]?.is_sample_approved?'green':'orange'}} onClick={()=>handleSampleAction(name)}/></Tooltip>{canEdit && <DeleteOutlined onClick={()=>remove(name)} style={{color:'red'}}/>}</Space></Col>
-                                            </Row>
-                                        ))}{canEdit && <Button type="dashed" onClick={()=>add()} block icon={<PlusOutlined/>}>Thêm dòng</Button>}</div>)}</Form.List>
-                                        
-                                        <Divider style={{margin:'15px 0 10px 0'}}/>
-                                        
-                                        {/* --- GIAO DIỆN TỔNG TIỀN (MODERN/CLEAN) --- */}
-                                        <Row justify="space-between" align="bottom">
-                                            <Col span={10}>
-                                                {!isQuotation && initialData?.status === 'SO_PENDING' && <Button type="primary" ghost icon={<CheckCircleOutlined/>} onClick={approveAllSamples}>Duyệt Mẫu (All)</Button>}
-                                            </Col>
-                                            <Col span={14}>
-                                                <div style={{background: '#e6f7ff', padding: '15px', borderRadius: 8, border: '1px solid #91d5ff'}}>
-                                                    <div style={{display:'flex', justifyContent:'space-between', marginBottom: 8}}>
-                                                        <Text type="secondary">Cộng tiền hàng:</Text>
-                                                        <Text strong>{subTotal.toLocaleString()}</Text>
-                                                    </div>
-                                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 8}}>
-                                                        <Text type="secondary">Thuế VAT:</Text>
-                                                        <Space>
-                                                            <Form.Item name="vat_rate" noStyle><Select size="small" style={{width: 70}} options={[{label:'0%',value:0},{label:'8%',value:8},{label:'10%',value:10}]} disabled={!canEdit}/></Form.Item>
-                                                            <Text>{vatAmount.toLocaleString()}</Text>
-                                                        </Space>
-                                                    </div>
-                                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: 12}}>
-                                                        <Text type="secondary">Phí vận chuyển:</Text>
-                                                        <Form.Item name="shipping_fee" noStyle><InputNumber size="small" style={{width: 100, textAlign: 'right'}} formatter={v=>`${v}`.replace(/\B(?=(\d{3})+(?!\d))/g,',')} disabled={!canEdit}/></Form.Item>
-                                                    </div>
-                                                    <Divider style={{margin: '10px 0'}} />
-                                                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                                                        <Text strong style={{fontSize: 18, color: '#0050b3'}}>TỔNG CỘNG:</Text>
-                                                        <Text strong style={{fontSize: 24, color: '#cf1322'}}>{totalAmount.toLocaleString()} ₫</Text>
-                                                    </div>
-                                                </div>
-                                            </Col>
-                                        </Row>
-                                    </Card>
-                                </Col>
-                                
-                                {/* Cột Phải: Hóa đơn, Giao nhận, Điều khoản (Giữ nguyên cấu trúc Tabs cũ) */}
-                                <Col span={8}>
-                                    
-                                    <Card title={<Space><BankOutlined/> Hóa Đơn & Giao Nhận</Space>} size="small" style={{marginBottom: 16}}>
-                                        <Form.Item name="vat_company_name" label="Tên Đơn vị"><Input disabled={!canEdit}/></Form.Item>
-                                        <Row gutter={8}>
-                                            <Col span={10}><Form.Item name="vat_tax_code" label="MST"><Input disabled={!canEdit}/></Form.Item></Col>
-                                            <Col span={14}><Form.Item name="vat_address" label="Địa chỉ"><Input disabled={!canEdit}/></Form.Item></Col>
-                                        </Row>
-                                        <Divider orientation="left" plain style={{margin: '10px 0'}}><CarOutlined/> Giao nhận</Divider>
-                                        <Form.Item name="delivery_date" label="Ngày Giao"><DatePicker style={{width:'100%'}} disabled={!canEdit}/></Form.Item>
-                                        <Form.Item name="shipping_address" label="ĐC Nhận"><Input.TextArea rows={2} disabled={!canEdit}/></Form.Item>
-                                        <Row gutter={8}>
-                                            <Col span={12}><Form.Item name="shipping_carrier" label="Hãng VC"><Input disabled={!canEdit}/></Form.Item></Col>
-                                            <Col span={12}><Form.Item name="receiver_phone" label="SĐT Nhận"><Input disabled={!canEdit}/></Form.Item></Col>
-                                        </Row>
-                                    </Card>
-                                    
-                                    {/* --- GHI CHÚ & ĐIỀU KHOẢN --- */}
-                                    <Card title={<Space style={{color:'#d48806'}}><FileTextOutlined/> Điều khoản & Ghi chú</Space>} size="small" headStyle={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
-                                        <div style={{textAlign: 'right'}}><Button size="small" type="link" onClick={() => form.setFieldValue('terms_content', DEFAULT_TERMS)}>Mặc định</Button></div>
-                                        <Form.Item name="terms_content" noStyle>
-                                            <Input.TextArea 
-                                                rows={5} 
-                                                placeholder="Nhập điều khoản báo giá..." 
-                                                style={{fontSize: 12, lineHeight: 1.5, background: '#fff'}}
-                                                disabled={!canEdit}
-                                            />
-                                        </Form.Item>
-                                    </Card>
-                                </Col>
-                            </Row>
-                        )
-                    },
-                    !isQuotation && { key: '2', label: '2. Thanh toán', children: hasData ? <SalesPayments orderId={initialData.id} orderCode={initialData.order_code} totalAmount={totalAmount} paidAmount={Number(initialData.paid_amount)} onSuccess={onSuccess} /> : <div>Đang tải dữ liệu...</div> },
-                    !isQuotation && { key: '3', label: '3. Giao hàng', children: hasData ? <SalesDeliveries orderId={initialData.id} orderItems={items} onSuccess={onSuccess} /> : <div>Đang tải dữ liệu...</div> },
-                    !isQuotation && { key: '4', label: '4. Trao đổi', children: hasData ? <SalesComments orderId={initialData.id} /> : <div>Đang tải dữ liệu...</div> }
-                ].filter(Boolean) as any} />
-            </Form>
-            
-            {/* Modal Duyệt Mẫu */}
-            <Modal title="Chi tiết Duyệt Mẫu" open={isSampleModalOpen} onCancel={()=>setIsSampleModalOpen(false)} onOk={saveSampleInfo}>
-                <Form form={sampleForm} layout="vertical">
-                    <Form.Item name="sample_image" label="Link Ảnh"><Input prefix={<FileImageOutlined/>}/></Form.Item>
-                    <Form.Item name="sample_note" label="Note"><Input.TextArea/></Form.Item>
-                    <Form.Item name="is_sample_approved" valuePropName="checked">
-                        <div style={{display:'flex', gap:10}}><input type="checkbox"/> <span style={{color:'green', fontWeight:'bold'}}>ĐÃ DUYỆT</span></div>
-                    </Form.Item>
-                </Form>
-            </Modal>
+        <Modal 
+            title={<span>{isQuotation ? 'Báo Giá' : 'Đơn Hàng (SO)'} #{initialData?.order_code} {initialData?.status === 'COMPLETED' && <Tag color="green">Hoàn tất</Tag>}</span>}
+            open={open} 
+            onCancel={onClose}
+            width={1000}
+            footer={[
+                <Button key="close" onClick={onClose}>Đóng</Button>,
+                <Button key="save" type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu Thông Tin</Button>,
+                (!isQuotation && initialData) && <Button key="complete" type="primary" danger icon={<CheckCircleOutlined/>} onClick={handleCompleteOrder}>Hoàn tất đơn hàng</Button>
+            ]}
+            style={{ top: 20 }}
+        >
+            <Tabs activeKey={activeTab} onChange={setActiveTab}>
+                <Tabs.TabPane tab="1. Thông tin & Sản phẩm" key="1">
+                    <Form form={form} layout="vertical">
+                        <Row gutter={16}>
+                            <Col span={8}>
+                                <Form.Item name="order_code" label="Mã đơn hàng"><Input disabled /></Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item name="customer_id" label="Khách hàng" rules={[{ required: true }]}>
+                                    <Select 
+                                        showSearch 
+                                        optionFilterProp="label" 
+                                        options={customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))} 
+                                    />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item name="order_date" label="Ngày đặt" rules={[{ required: true }]}>
+                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                        
+                        <Row gutter={16}>
+                            <Col span={8}>
+                                <Form.Item name="status" label="Trạng thái">
+                                    <Select>
+                                        {isQuotation ? (
+                                            <Option value="QUOTATION">Báo Giá</Option>
+                                        ) : (
+                                            <>
+                                                <Option value="SO_PENDING">Chờ Duyệt Mẫu</Option>
+                                                <Option value="SAMPLE_APPROVED">Đã Duyệt Mẫu</Option>
+                                                <Option value="DEPOSITED">Đã Cọc / Sản Xuất</Option>
+                                                <Option value="DELIVERED">Đã Giao Hàng</Option>
+                                                <Option value="COMPLETED">Hoàn Thành</Option>
+                                            </>
+                                        )}
+                                        <Option value="CANCELLED">Đã Hủy</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item name="delivery_date" label="Ngày giao dự kiến">
+                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+
+                        <Divider orientation="left">Danh sách sản phẩm</Divider>
+                        <Table 
+                            dataSource={orderItems} 
+                            columns={itemColumns} 
+                            pagination={false} 
+                            rowKey="key" 
+                            size="small"
+                            bordered
+                            summary={() => (
+                                <Table.Summary.Row>
+                                    <Table.Summary.Cell index={0} colSpan={3} align="right"><b>TỔNG CỘNG:</b></Table.Summary.Cell>
+                                    <Table.Summary.Cell index={1} align="right">
+                                        <b style={{ color: 'red', fontSize: 16 }}>{totalAmount.toLocaleString()} ₫</b>
+                                    </Table.Summary.Cell>
+                                    <Table.Summary.Cell index={2} />
+                                </Table.Summary.Row>
+                            )}
+                        />
+                        <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>
+                            Thêm sản phẩm
+                        </Button>
+                    </Form>
+                </Tabs.TabPane>
+
+                {/* --- CHỈ HIỆN CÁC TAB SAU KHI ĐÃ LƯU ĐƠN HÀNG --- */}
+                {initialData && !isQuotation && (
+                    <>
+                        <Tabs.TabPane tab="2. Thanh toán" key="2">
+                            <SalesPayments 
+                                orderId={initialData.id} 
+                                orderCode={initialData.order_code} 
+                                totalAmount={totalAmount} 
+                                paidAmount={initialData.paid_amount || 0}
+                                onSuccess={onSuccess} 
+                            />
+                        </Tabs.TabPane>
+                        <Tabs.TabPane tab="3. Giao hàng" key="3">
+                            <SalesDeliveries 
+                                orderId={initialData.id} 
+                                orderItems={orderItems} 
+                                onSuccess={onSuccess} 
+                            />
+                        </Tabs.TabPane>
+                        <Tabs.TabPane tab="4. Trao đổi" key="4">
+                            <SalesComments orderId={initialData.id} />
+                        </Tabs.TabPane>
+                    </>
+                )}
+            </Tabs>
         </Modal>
     );
 };
+
 export default SalesOrderDetail;

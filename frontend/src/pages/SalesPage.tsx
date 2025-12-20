@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, message, Card, Modal, Input, Select, DatePicker, Row, Col, Tabs, Progress, Tooltip, Space, Badge, Statistic } from 'antd';
-import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, CheckCircleOutlined, UnorderedListOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import { Table, Tag, Button, message, Card, Input, Select, DatePicker, Row, Col, Tabs, Progress, Tooltip, Space, Badge, Statistic } from 'antd';
+import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, CheckCircleOutlined, UnorderedListOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, PrinterOutlined, CopyOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import QuickTaskModal from '../components/QuickTaskModal';
+import SalesOrderDetail from '../components/SalesOrderDetail'; // <--- QUAN TRỌNG: Import lại
 
 const SalesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,22 +15,41 @@ const SalesPage: React.FC = () => {
   
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
 
-  // --- STATE CHO TASK MODAL ---
+  // --- STATE MODALS ---
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskInitialValues, setTaskInitialValues] = useState<any>({});
+
+  const [detailModalOpen, setDetailModalOpen] = useState(false); // <--- State Modal Detail
+  const [editingOrder, setEditingOrder] = useState<any>(null);   // <--- Data Order đang sửa
 
   const fetchData = async () => {
     setLoading(true);
     try {
-        const res = await axios.get(`${API_URL}/sales`);
-        setData(Array.isArray(res.data) ? res.data : []);
+        const [resSales, resProd, resCust] = await Promise.all([
+            axios.get(`${API_URL}/sales`),
+            axios.get(`${API_URL}/products`),
+            axios.get(`${API_URL}/customers`)
+        ]);
+        
+        setData(Array.isArray(resSales.data) ? resSales.data : []);
+        
+        if(Array.isArray(resProd.data)) {
+            setProducts(resProd.data.map((p:any) => ({
+                label: p.name, value: p.sku, price: Number(p.base_price) || 0, unit: p.unit
+            })));
+        }
+        setCustomers(Array.isArray(resCust.data) ? resCust.data : []);
+
     } catch(e) { message.error('Lỗi tải dữ liệu'); }
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
 
+  // --- ACTIONS ---
   const handleCreateTask = (record: any) => {
       setTaskInitialValues({
           title: `Theo dõi đơn: ${record.order_code}`,
@@ -40,10 +60,29 @@ const SalesPage: React.FC = () => {
       setTaskModalOpen(true);
   };
 
+  const openDetailModal = async (record?: any) => {
+      if (record) {
+          try {
+              // Gọi API lấy chi tiết đầy đủ (items, history...)
+              const res = await axios.get(`${API_URL}/sales/${record.order_code}`);
+              setEditingOrder(res.data);
+          } catch(e) { message.error('Không tải được chi tiết đơn'); return; }
+      } else {
+          setEditingOrder(null); // Tạo mới
+      }
+      setDetailModalOpen(true);
+  };
+
+  const handleCopyLink = (uuid: string) => {
+      if (!uuid) return message.warning('Chưa có Link');
+      const link = `${window.location.protocol}//${window.location.host}/portal/quote/${uuid}`;
+      navigator.clipboard.writeText(link).then(() => message.success('Copied Link!')).catch(() => {});
+  };
+
   const columns = [
       { 
           title: 'Mã Đơn', dataIndex: 'order_code', 
-          render: (t:any) => <Tag color="geekblue" style={{fontSize:13}}>#{t}</Tag> 
+          render: (t:any, r:any) => <a onClick={()=>openDetailModal(r)}><b>{t}</b></a> 
       },
       { 
           title: 'Khách Hàng', dataIndex: 'customer_name',
@@ -85,16 +124,18 @@ const SalesPage: React.FC = () => {
           }
       },
       {
-          title: '', key: 'act', width: 80, align: 'right' as const,
+          title: '', key: 'act', width: 140, align: 'right' as const,
           render: (r: any) => (
               <Space size="small">
+                  <Tooltip title="Copy Link"><Button size="small" icon={<LinkOutlined/>} onClick={() => handleCopyLink(r.uuid)} /></Tooltip>
+                  <Tooltip title="Chi tiết / Sửa"><Button size="small" icon={<EditOutlined/>} onClick={() => openDetailModal(r)} /></Tooltip>
                   <Tooltip title="Tạo nhắc nhở"><Button size="small" icon={<BellOutlined/>} onClick={() => handleCreateTask(r)} /></Tooltip>
               </Space>
           )
       }
   ];
 
-  // Lọc dữ liệu theo Tab và Search
+  // Lọc dữ liệu
   const filteredData = data.filter((x:any) => {
       const matchTab = activeTab === 'ALL' ? true : x.status === activeTab;
       const matchSearch = x.order_code?.toLowerCase().includes(searchText.toLowerCase()) 
@@ -120,6 +161,7 @@ const SalesPage: React.FC = () => {
             } 
             extra={
                 <Space>
+                    <Button type="primary" icon={<PlusOutlined/>} onClick={() => openDetailModal(null)}>Tạo Đơn Hàng</Button>
                     <Button icon={<UnorderedListOutlined />} onClick={() => navigate('/sales/pricelist')}>Bảng Giá</Button>
                     <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
                 </Space>
@@ -146,7 +188,19 @@ const SalesPage: React.FC = () => {
                 pagination={{ pageSize: 10, showSizeChanger: true }} 
             />
 
+            {/* --- MODAL TASK --- */}
             <QuickTaskModal open={taskModalOpen} onClose={() => setTaskModalOpen(false)} initialValues={taskInitialValues} />
+            
+            {/* --- MODAL CHI TIẾT ĐƠN HÀNG (CORE UI) --- */}
+            <SalesOrderDetail 
+                open={detailModalOpen} 
+                onClose={() => setDetailModalOpen(false)} 
+                onSuccess={fetchData} 
+                initialData={editingOrder} 
+                customers={customers} 
+                products={products}
+                isQuotation={false} // Mặc định là đơn hàng, nếu tạo từ Quote thì logic khác
+            />
         </Card>
     </div>
   );
