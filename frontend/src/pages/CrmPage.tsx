@@ -111,8 +111,6 @@ const CrmPage: React.FC = () => {
         formLead.setFieldsValue({
             code: record.code,
             name: record.name,
-            code: record.code,
-            name: record.name,
             phone: record.phone,
             lead_status: record.lead_status,
             potential_value: record.potential_value
