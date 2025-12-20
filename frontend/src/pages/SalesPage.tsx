@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Tag, Button, message, Card, Input, Space, Row, Col, Tabs, Progress, Tooltip, Statistic, DatePicker } from 'antd';
-// --- FIX: Thêm PlusOutlined vào đây ---
+// --- FIX: Thêm PlusOutlined đã bị thiếu trước đó ---
 import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, FileTextOutlined, CalendarOutlined, WalletOutlined, AuditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
@@ -111,7 +111,10 @@ const SalesPage: React.FC = () => {
   const metrics = useMemo(() => {
       const validOrders = filteredData.filter(x => x.status !== 'QUOTATION' && x.status !== 'CANCELLED');
       const totalRevenue = validOrders.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0);
+      
+      // FIX: Lấy paid_amount từ API (đã được fix ở Backend để tính tổng Transaction)
       const totalPaid = validOrders.reduce((acc, curr) => acc + Number(curr.paid_amount || 0), 0);
+      
       const totalRemaining = totalRevenue - totalPaid;
       const processingCount = validOrders.filter(x => ['SO_PENDING', 'SAMPLE_APPROVED', 'DEPOSITED'].includes(x.status)).length;
 
@@ -160,7 +163,8 @@ const SalesPage: React.FC = () => {
           render: (t:any, r:any) => {
               const total = Number(r.total_amount) || 0;
               const paid = Number(r.paid_amount) || 0;
-              const pct = total > 0 ? Math.round((paid/total)*100) : 0;
+              const pct = total > 0 ? Math.min(Math.round((paid/total)*100), 100) : 0;
+              
               return (
                   <Tooltip title={`Đã trả: ${paid.toLocaleString()} / ${total.toLocaleString()}`}>
                       <div style={{display:'flex', alignItems:'center', gap:5}}>
