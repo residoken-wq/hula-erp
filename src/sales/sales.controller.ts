@@ -6,7 +6,7 @@ export class SalesController {
   constructor(private readonly s: SalesService) {}
 
   // ============================================================
-  // KHU VỰC API PRICE LIST
+  // KHU VỰC API PRICE LIST (GIỮ NGUYÊN)
   // ============================================================
   @Post('price-lists') 
   createPriceList(@Body() body: any) { return this.s.createPriceList(body); }
@@ -26,48 +26,52 @@ export class SalesController {
   }
 
   // ============================================================
-  // KHU VỰC API TRAO ĐỔI / COMMENT (FIX LỖI 404)
+  // KHU VỰC API TRAO ĐỔI / COMMENT
   // ============================================================
-  
-  // 1. Lấy danh sách trao đổi
   @Get(':id/comments')
-  getComments(@Param('id') id: number) {
-      return this.s.getComments(id);
-  }
+  getComments(@Param('id') id: number) { return this.s.getComments(id); }
 
-  // 2. Gửi tin nhắn mới (Đây là API bị lỗi 404)
   @Post(':id/comment')
-  addComment(@Param('id') id: number, @Body() body: any) {
-      return this.s.addComment(id, body.content, body.sender, body.name);
-  }
+  addComment(@Param('id') id: number, @Body() body: any) { return this.s.addComment(id, body.content, body.sender, body.name); }
 
-  // 3. Ẩn/Hiện tin nhắn (Dành cho KH xem hay không)
   @Post('comment/:id/toggle')
-  toggleComment(@Param('id') id: number) {
-      return this.s.toggleCommentVisibility(id);
-  }
+  toggleComment(@Param('id') id: number) { return this.s.toggleCommentVisibility(id); }
 
   // ============================================================
   // KHU VỰC API SALES ORDER
   // ============================================================
 
-  @Post('create') create(@Body() b: any) { return this.s.createOrder(b); }
+  @Post() // Tạo đơn hàng
+  create(@Body() b: any) { return this.s.createOrder(b); }
   
-  @Get() findAll() { return this.s.findAll(); }
+  @Get() // Lấy danh sách
+  findAll() { return this.s.findAll(); }
 
-  // API lấy chi tiết đơn hàng (Đặt sau các API custom path để tránh xung đột)
-  @Get(':code') getOne(@Param('code') c: string) { return this.s.getOrder(c); }
+  @Get(':idOrCode') // Lấy chi tiết (ID hoặc Code)
+  findOne(@Param('idOrCode') idOrCode: string) { return this.s.findOne(idOrCode); }
+
+  // --- FIX LỖI 404: THÊM API CẬP NHẬT ĐƠN HÀNG ---
+  @Put(':id') 
+  update(@Param('id') id: number, @Body() b: any) { 
+      return this.s.update(Number(id), b); 
+  }
+  // -----------------------------------------------
   
   @Get('samples/all') getAllSamples() { return this.s.sampleRepo.find({ order: { created_at: 'DESC' } }); }
+  
   @Post(':id/convert') convert(@Param('id') id: number, @Body('accepted') accepted: boolean) { return this.s.convertQuoteToSo(id, accepted); }
-  @Put('quote/:id') updateQuote(@Param('id') id: number, @Body() b: any) { return this.s.updateQuote(id, b); }
+  
+  // API xóa quote (giữ nguyên để tương thích code cũ nếu có)
   @Delete('quote/:id') deleteQuote(@Param('id') id: number) { return this.s.deleteQuote(id); }
   
+  // Logistics APIs
   @Get(':id/deliveries') getDeliveries(@Param('id') id: number) { return this.s.getDeliveryHistory(id); }
   @Post(':id/delivery') createDelivery(@Param('id') id: number, @Body() b: any) { return this.s.createDelivery(id, b); }
   
+  // Payment APIs
   @Get(':code/payments') getPayments(@Param('code') code: string) { return this.s.getPaymentHistory(code); }
   
+  // Portal APIs
   @Get('portal/:uuid') getPortal(@Param('uuid') uuid: string) { return this.s.getQuoteByUuid(uuid); }
   @Post('portal/:uuid/action') customerAction(@Param('uuid') uuid: string, @Body() body: any) { return this.s.customerAction(uuid, body.action); }
   
