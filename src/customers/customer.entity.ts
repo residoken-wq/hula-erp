@@ -13,7 +13,7 @@ export class Customer {
   id: number;
 
   @Column({ unique: true })
-  code: string; 
+  code: string;
 
   @Column()
   name: string;
@@ -24,6 +24,14 @@ export class Customer {
     default: CustomerType.LEAD
   })
   type: CustomerType;
+
+  // --- CRM FIELDS ---
+  @Column({ nullable: true })
+  lead_status: string; // NEW, CONTACTED, QUALIFIED, NEGOTIATION, WON, LOST
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  potential_value: number;
+  // ------------------
 
   // --- QUAN HỆ KHÁCH HÀNG (CHA - CON) ---
   @ManyToOne(() => Customer, (customer) => customer.children, { nullable: true })
@@ -58,7 +66,7 @@ export class Customer {
   address: string;
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  credit_limit: number; 
+  credit_limit: number;
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   current_debt: number;
