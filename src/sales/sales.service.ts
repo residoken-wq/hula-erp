@@ -61,20 +61,25 @@ export class SalesService {
         const validItems = (data.items || []).filter((i: any) => i.sku);
         let itemsTotal = 0;
 
-        order.items = validItems.map((itemData: any) => {
+        const orderItems = await Promise.all(validItems.map(async (itemData: any) => {
             const qty = Number(itemData.quantity) || 0;
             const price = Number(itemData.unit_price || itemData.price) || 0;
             const sub = qty * price;
             itemsTotal += sub;
 
+            const product = await this.productsService.findOneBySku(itemData.sku);
+
             return this.orderRepo.manager.create(SalesOrderItem, {
                 sku: itemData.sku,
+                product: product,
                 quantity: qty,
                 unit_price: price,
                 subtotal: sub,
                 variant_color: itemData.variant_color
             });
-        });
+        }));
+
+        order.items = orderItems;
 
         const subtotal = itemsTotal;
         const discountAmount = order.discount_amount; // Đã chốt số tiền giảm từ FE hoặc tính toán trước
@@ -157,21 +162,24 @@ export class SalesService {
             const validItems = data.items.filter((i: any) => i.sku);
             let itemsTotal = 0;
 
-            const newItems = validItems.map((itemData: any) => {
+            const newItems = await Promise.all(validItems.map(async (itemData: any) => {
                 const qty = Number(itemData.quantity) || 0;
                 const price = Number(itemData.unit_price) || 0;
                 const sub = qty * price;
                 itemsTotal += sub;
 
+                const product = await this.productsService.findOneBySku(itemData.sku);
+
                 return this.itemRepo.create({
                     order,
                     sku: itemData.sku,
+                    product: product,
                     quantity: qty,
                     unit_price: price,
                     subtotal: sub,
                     variant_color: itemData.variant_color,
                 });
-            });
+            }));
 
             await this.itemRepo.save(newItems);
 
@@ -204,6 +212,13 @@ export class SalesService {
             relations: ['customer', 'items', 'items.product', 'comments', 'deliveries', 'deliveries.items']
         });
         if (!order) throw new NotFoundException('Quote not found');
+
+        // FIX: Ensure product relationship for items if missing (for legacy data)
+        for (const item of order.items) {
+            if (!item.product && item.sku) {
+                item.product = await this.productsService.findOneBySku(item.sku);
+            }
+        }
 
         // Fetch Payments manually
         const transactions = await this.transRepo.find({
