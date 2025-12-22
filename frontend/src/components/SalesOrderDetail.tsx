@@ -273,6 +273,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             </Col>
                             <Col span={8}><Form.Item name="delivery_date" label="Ngày giao dự kiến"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                         </Row>
+
+                        {/* HIDDEN FIELDS TO REGISTER VALUES */}
+                        <Form.Item name="discount_rate" hidden><InputNumber /></Form.Item>
+                        <Form.Item name="discount_amount" hidden><InputNumber /></Form.Item>
+                        <Form.Item name="vat_rate" hidden><InputNumber /></Form.Item>
+                        <Form.Item name="shipping_fee" hidden><InputNumber /></Form.Item>
+
                         <Divider orientation="left">Danh sách sản phẩm</Divider>
                         <Table
                             dataSource={orderItems}
