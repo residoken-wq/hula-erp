@@ -83,10 +83,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     const calculateTotal = (items: any[]) => {
         const subtotal = items.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-        // Lấy giá trị từ form (Vì các field này nằm ngoài list items)
-        const discountAmt = form.getFieldValue('discount_amount') || 0;
-        const vatRate = form.getFieldValue('vat_rate') || 0;
-        const shipping = form.getFieldValue('shipping_fee') || 0;
+
+        const discountAmt = Number(form.getFieldValue('discount_amount')) || 0;
+        const vatRate = Number(form.getFieldValue('vat_rate')) || 0;
+        const shipping = Number(form.getFieldValue('shipping_fee')) || 0;
 
         const taxable = Math.max(0, subtotal - discountAmt);
         const total = taxable * (1 + vatRate / 100) + shipping;
@@ -283,15 +283,15 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             bordered
                             summary={() => {
                                 const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-                                const discountAmt = form.getFieldValue('discount_amount') || 0;
-                                const vatRate = form.getFieldValue('vat_rate') || 0;
-                                const shipping = form.getFieldValue('shipping_fee') || 0;
+                                const discountAmt = Number(form.getFieldValue('discount_amount')) || 0;
+                                const vatRate = Number(form.getFieldValue('vat_rate')) || 0;
+                                const shipping = Number(form.getFieldValue('shipping_fee')) || 0;
 
                                 const taxable = Math.max(0, subtotal - discountAmt);
                                 const total = taxable * (1 + vatRate / 100) + shipping;
 
-                                // Update totalAmount state for display and save
-                                if (totalAmount !== total) setTotalAmount(total);
+                                // Note: We do NOT set state here anymore to avoid render loops.
+                                // calculateTotal() is triggered by onChange of inputs.
 
                                 return (
                                     <>
