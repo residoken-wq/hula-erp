@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository } from 'typeorm';
 import { SalesOrder, SalesOrderStatus } from './sales-order.entity';
 import { SalesOrderItem } from './sales-order-item.entity';
 import { ProductSample } from './product-sample.entity';
@@ -206,7 +206,7 @@ export class SalesService {
         if (!order) throw new NotFoundException('Quote not found');
 
         // Fetch Payments manually
-        const transactions = await this.connection.getRepository('Transaction').find({
+        const transactions = await this.transRepo.find({
             where: { reference_code: order.order_code, reference_type: 'SALES' },
             order: { date: 'DESC' }
         });
