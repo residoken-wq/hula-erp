@@ -54,7 +54,7 @@ export class SalesService {
             shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone, shipping_carrier: data.shipping_carrier, shipping_fee: Number(data.shipping_fee) || 0,
             discount_rate: Number(data.discount_rate) || 0,
             discount_amount: Number(data.discount_amount) || 0,
-            payment_note: data.payment_note, terms_content: data.terms_content,
+            payment_note: data.payment_note, terms_content: data.terms_content, note: data.note,
             paid_amount: 0 // Init
         });
 
@@ -142,7 +142,9 @@ export class SalesService {
         if (data.customer_id) order.customer = { id: data.customer_id } as any;
         if (data.order_date) order.order_date = data.order_date;
         if (data.delivery_date) order.delivery_date = data.delivery_date;
+        if (data.delivery_date) order.delivery_date = data.delivery_date;
         if (data.status) order.status = data.status;
+        if (data.note !== undefined) order.note = data.note;
 
         order.vat_rate = Number(data.vat_rate) || 0;
         order.shipping_fee = Number(data.shipping_fee) || 0;
@@ -199,7 +201,7 @@ export class SalesService {
     async getQuoteByUuid(uuid: string) {
         const order = await this.orderRepo.findOne({
             where: { uuid },
-            relations: ['customer', 'items', 'items.product']
+            relations: ['customer', 'items', 'items.product', 'comments']
         });
         if (!order) throw new NotFoundException('Quote not found');
         const paid = await this.calculatePaidAmount(order.order_code);

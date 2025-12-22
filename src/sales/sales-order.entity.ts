@@ -57,6 +57,10 @@ export class SalesOrder {
   @Column({ nullable: true }) tracking_code: string;
   @Column('decimal', { default: 0 }) shipping_fee: number;
 
+  @Column('decimal', { default: 0 }) shipping_fee: number;
+
+  @Column('text', { nullable: true }) note: string; // --- NEW NOTE FIELD ---
+
   // --- ALLOW DISCOUNT ---
   @Column('float', { default: 0 }) discount_rate: number; // %
   @Column('decimal', { precision: 15, scale: 2, default: 0 }) discount_amount: number; // Fixed Amount

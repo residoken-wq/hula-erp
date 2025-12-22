@@ -109,98 +109,104 @@ const PortalQuotePage: React.FC = () => {
                                 <Descriptions.Item label="SĐT">{data.receiver_phone}</Descriptions.Item>
                                 <Descriptions.Item label="Địa chỉ giao">{data.shipping_address}</Descriptions.Item>
                             </Descriptions>
+                        </Descriptions>
+                    </Card>
+                    {data.note && (
+                        <Card title={<span><InfoCircleOutlined /> Ghi chú từ người bán</span>} style={{ marginBottom: 20, background: '#fffbe6' }}>
+                            <div style={{ whiteSpace: 'pre-line' }}>{data.note}</div>
                         </Card>
-                        <Card title={<span><ShopOutlined /> Thông tin Xuất Hóa Đơn (VAT)</span>} style={{ marginBottom: 20 }}>
-                            <Descriptions column={1} size="small" bordered>
-                                <Descriptions.Item label="Công ty">{data.vat_company_name || '-'}</Descriptions.Item>
-                                <Descriptions.Item label="MST">{data.vat_tax_code || '-'}</Descriptions.Item>
-                                <Descriptions.Item label="Địa chỉ">{data.vat_address || '-'}</Descriptions.Item>
-                            </Descriptions>
-                        </Card>
-                        <Card title={<span><DollarOutlined /> Thông tin Thanh toán</span>} style={{ marginBottom: 20 }}>
-                            <div style={{ background: '#f6ffed', padding: 10, borderRadius: 4, border: '1px solid #b7eb8f', textAlign: 'center', marginBottom: 10 }}>
-                                <div style={{ color: '#666' }}>Số tiền còn lại phải thanh toán:</div>
-                                <div style={{ fontSize: 20, fontWeight: 'bold', color: '#cf1322' }}>{(Number(data.total_amount) - Number(data.paid_amount)).toLocaleString()} ₫</div>
-                            </div>
-                            <div style={{ textAlign: 'center', margin: '15px 0' }}><img src={`https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(Number(data.total_amount) - Number(data.paid_amount))}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`} alt="VietQR" style={{ maxWidth: '100%', border: '1px solid #eee', borderRadius: 8 }} /><div style={{ fontSize: 12, color: '#999', marginTop: 5 }}>Mở App Ngân hàng để quét</div></div>
-                            <p><b>Ngân hàng:</b> ACB - Chi nhánh TP.HCM</p><p><b>Số TK:</b> 141847859</p><p><b>Chủ TK:</b> CTY TNHH TM DV TƯỜNG LINH</p><p><b>Nội dung:</b> {data.order_code}</p>
-                        </Card>
-                        <Card title="💬 Trao đổi / Ghi chú" className="comment-widget">
-                            <div style={{ maxHeight: 400, overflowY: 'auto', paddingRight: 5 }}>
-                                <List dataSource={visibleComments} renderItem={(item: any) => (<List.Item style={{ padding: '10px 0' }}><List.Item.Meta avatar={<Avatar style={{ backgroundColor: item.sender_type === 'CUSTOMER' ? '#87d068' : '#1890ff' }} icon={item.sender_type === 'CUSTOMER' ? <UserOutlined /> : <SolutionOutlined />} />} title={<div style={{ fontSize: 12, color: '#999' }}>{item.sender_name} - {dayjs(item.created_at).format('DD/MM HH:mm')}</div>} description={<div style={{ color: '#333', background: '#f5f5f5', padding: 8, borderRadius: 6 }}>{item.content}</div>} /></List.Item>)} />
-                            </div>
-                            <Divider style={{ margin: '10px 0' }} />
-                            <div style={{ display: 'flex', gap: 5 }}><Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Nhập tin nhắn..." onPressEnter={(e) => { if (!e.shiftKey) { e.preventDefault(); handleSendComment() } }} /><Button type="primary" icon={<SendOutlined />} onClick={handleSendComment} /></div>
-                        </Card>
-                    </Col>
+                    )}
+                    <Card title={<span><ShopOutlined /> Thông tin Xuất Hóa Đơn (VAT)</span>} style={{ marginBottom: 20 }}>
+                        <Descriptions column={1} size="small" bordered>
+                            <Descriptions.Item label="Công ty">{data.vat_company_name || '-'}</Descriptions.Item>
+                            <Descriptions.Item label="MST">{data.vat_tax_code || '-'}</Descriptions.Item>
+                            <Descriptions.Item label="Địa chỉ">{data.vat_address || '-'}</Descriptions.Item>
+                        </Descriptions>
+                    </Card>
+                    <Card title={<span><DollarOutlined /> Thông tin Thanh toán</span>} style={{ marginBottom: 20 }}>
+                        <div style={{ background: '#f6ffed', padding: 10, borderRadius: 4, border: '1px solid #b7eb8f', textAlign: 'center', marginBottom: 10 }}>
+                            <div style={{ color: '#666' }}>Số tiền còn lại phải thanh toán:</div>
+                            <div style={{ fontSize: 20, fontWeight: 'bold', color: '#cf1322' }}>{(Number(data.total_amount) - Number(data.paid_amount)).toLocaleString()} ₫</div>
+                        </div>
+                        <div style={{ textAlign: 'center', margin: '15px 0' }}><img src={`https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(Number(data.total_amount) - Number(data.paid_amount))}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`} alt="VietQR" style={{ maxWidth: '100%', border: '1px solid #eee', borderRadius: 8 }} /><div style={{ fontSize: 12, color: '#999', marginTop: 5 }}>Mở App Ngân hàng để quét</div></div>
+                        <p><b>Ngân hàng:</b> ACB - Chi nhánh TP.HCM</p><p><b>Số TK:</b> 141847859</p><p><b>Chủ TK:</b> CTY TNHH TM DV TƯỜNG LINH</p><p><b>Nội dung:</b> {data.order_code}</p>
+                    </Card>
+                    <Card title="💬 Trao đổi / Ghi chú" className="comment-widget">
+                        <div style={{ maxHeight: 400, overflowY: 'auto', paddingRight: 5 }}>
+                            <List dataSource={visibleComments} renderItem={(item: any) => (<List.Item style={{ padding: '10px 0' }}><List.Item.Meta avatar={<Avatar style={{ backgroundColor: item.sender_type === 'CUSTOMER' ? '#87d068' : '#1890ff' }} icon={item.sender_type === 'CUSTOMER' ? <UserOutlined /> : <SolutionOutlined />} />} title={<div style={{ fontSize: 12, color: '#999' }}>{item.sender_name} - {dayjs(item.created_at).format('DD/MM HH:mm')}</div>} description={<div style={{ color: '#333', background: '#f5f5f5', padding: 8, borderRadius: 6 }}>{item.content}</div>} /></List.Item>)} />
+                        </div>
+                        <Divider style={{ margin: '10px 0' }} />
+                        <div style={{ display: 'flex', gap: 5 }}><Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Nhập tin nhắn..." onPressEnter={(e) => { if (!e.shiftKey) { e.preventDefault(); handleSendComment() } }} /><Button type="primary" icon={<SendOutlined />} onClick={handleSendComment} /></div>
+                    </Card>
+                </Col>
 
-                    {/* SỬ DỤNG TABLE TRỰC TIẾP THAY VÌ COMPONENT ĐỂ DỄ CẤU HÌNH CỘT MÔ TẢ */}
-                    <Col span={16} xs={24} md={16}>
-                        <Card title="📄 Chi Tiết Báo Giá / Đơn Hàng" style={{ marginBottom: 20 }}>
-                            <div style={{ padding: 10 }}>
-                                <Table
-                                    dataSource={data.items}
-                                    columns={columns}
-                                    rowKey="id"
-                                    pagination={false}
-                                    bordered
-                                    summary={() => {
-                                        const vatRate = data.vat_rate || 0;
-                                        const subTotal = data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0);
-                                        const discountAmount = Number(data.discount_amount || 0);
-                                        const taxable = Math.max(0, subTotal - discountAmount);
+                {/* SỬ DỤNG TABLE TRỰC TIẾP THAY VÌ COMPONENT ĐỂ DỄ CẤU HÌNH CỘT MÔ TẢ */}
+                <Col span={16} xs={24} md={16}>
+                    <Card title="📄 Chi Tiết Báo Giá / Đơn Hàng" style={{ marginBottom: 20 }}>
+                        <div style={{ padding: 10 }}>
+                            <Table
+                                dataSource={data.items}
+                                columns={columns}
+                                rowKey="id"
+                                pagination={false}
+                                bordered
+                                summary={() => {
+                                    const vatRate = data.vat_rate || 0;
+                                    const subTotal = data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0);
+                                    const discountAmount = Number(data.discount_amount || 0);
+                                    const taxable = Math.max(0, subTotal - discountAmount);
 
-                                        const vatAmount = taxable * (vatRate / 100);
-                                        const total = taxable + vatAmount + Number(data.shipping_fee || 0);
+                                    const vatAmount = taxable * (vatRate / 100);
+                                    const total = taxable + vatAmount + Number(data.shipping_fee || 0);
 
-                                        return (
-                                            <>
+                                    return (
+                                        <>
+                                            <Table.Summary.Row>
+                                                <Table.Summary.Cell index={0} colSpan={5} align="right"><b>Tổng tiền hàng:</b></Table.Summary.Cell>
+                                                <Table.Summary.Cell index={1} align="right">{subTotal.toLocaleString()}</Table.Summary.Cell>
+                                            </Table.Summary.Row>
+                                            {discountAmount > 0 && (
                                                 <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><b>Tổng tiền hàng:</b></Table.Summary.Cell>
-                                                    <Table.Summary.Cell index={1} align="right">{subTotal.toLocaleString()}</Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={0} colSpan={5} align="right">Giảm giá ({data.discount_rate}%):</Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right">-{discountAmount.toLocaleString()}</Table.Summary.Cell>
                                                 </Table.Summary.Row>
-                                                {discountAmount > 0 && (
-                                                    <Table.Summary.Row>
-                                                        <Table.Summary.Cell index={0} colSpan={5} align="right">Giảm giá ({data.discount_rate}%):</Table.Summary.Cell>
-                                                        <Table.Summary.Cell index={1} align="right">-{discountAmount.toLocaleString()}</Table.Summary.Cell>
-                                                    </Table.Summary.Row>
-                                                )}
-                                                <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right">Thuế VAT ({vatRate}%):</Table.Summary.Cell>
-                                                    <Table.Summary.Cell index={1} align="right">{vatAmount.toLocaleString()}</Table.Summary.Cell>
-                                                </Table.Summary.Row>
-                                                <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right">Phí vận chuyển:</Table.Summary.Cell>
-                                                    <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee || 0).toLocaleString()}</Table.Summary.Cell>
-                                                </Table.Summary.Row>
-                                                <Table.Summary.Row style={{ background: '#fafafa' }}>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><b style={{ fontSize: 16, color: '#1890ff' }}>TỔNG CỘNG:</b></Table.Summary.Cell>
-                                                    <Table.Summary.Cell index={1} align="right"><b style={{ fontSize: 16, color: '#cf1322' }}>{total.toLocaleString()} ₫</b></Table.Summary.Cell>
-                                                </Table.Summary.Row>
-                                            </>
-                                        );
-                                    }}
-                                />
+                                            )}
+                                            <Table.Summary.Row>
+                                                <Table.Summary.Cell index={0} colSpan={5} align="right">Thuế VAT ({vatRate}%):</Table.Summary.Cell>
+                                                <Table.Summary.Cell index={1} align="right">{vatAmount.toLocaleString()}</Table.Summary.Cell>
+                                            </Table.Summary.Row>
+                                            <Table.Summary.Row>
+                                                <Table.Summary.Cell index={0} colSpan={5} align="right">Phí vận chuyển:</Table.Summary.Cell>
+                                                <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee || 0).toLocaleString()}</Table.Summary.Cell>
+                                            </Table.Summary.Row>
+                                            <Table.Summary.Row style={{ background: '#fafafa' }}>
+                                                <Table.Summary.Cell index={0} colSpan={5} align="right"><b style={{ fontSize: 16, color: '#1890ff' }}>TỔNG CỘNG:</b></Table.Summary.Cell>
+                                                <Table.Summary.Cell index={1} align="right"><b style={{ fontSize: 16, color: '#cf1322' }}>{total.toLocaleString()} ₫</b></Table.Summary.Cell>
+                                            </Table.Summary.Row>
+                                        </>
+                                    );
+                                }}
+                            />
 
-                                {/* Điều khoản */}
-                                {data.terms_content && (
-                                    <div style={{ marginTop: 20, background: '#fffbe6', padding: 15, borderRadius: 6, border: '1px dashed #ffe58f' }}>
-                                        <div style={{ fontWeight: 600, marginBottom: 5 }}>Điều khoản & Ghi chú:</div>
-                                        <div style={{ whiteSpace: 'pre-line', fontSize: 13 }}>{data.terms_content}</div>
-                                    </div>
-                                )}
-                            </div>
+                            {/* Điều khoản */}
+                            {data.terms_content && (
+                                <div style={{ marginTop: 20, background: '#fffbe6', padding: 15, borderRadius: 6, border: '1px dashed #ffe58f' }}>
+                                    <div style={{ fontWeight: 600, marginBottom: 5 }}>Điều khoản & Ghi chú:</div>
+                                    <div style={{ whiteSpace: 'pre-line', fontSize: 13 }}>{data.terms_content}</div>
+                                </div>
+                            )}
+                        </div>
+                    </Card>
+
+                    {data.deliveries && data.deliveries.length > 0 && (
+                        <Card title="📦 Lịch Sử Giao Hàng">
+                            <Table dataSource={data.deliveries} rowKey="id" pagination={false} size="small" columns={[{ title: 'Ngày giao', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YYYY') }, { title: 'Mã phiếu', dataIndex: 'code' }, { title: 'Ghi chú', dataIndex: 'note' }, { title: 'Chi tiết', render: (r: any) => r.items.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') }]} />
                         </Card>
-
-                        {data.deliveries && data.deliveries.length > 0 && (
-                            <Card title="📦 Lịch Sử Giao Hàng">
-                                <Table dataSource={data.deliveries} rowKey="id" pagination={false} size="small" columns={[{ title: 'Ngày giao', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YYYY') }, { title: 'Mã phiếu', dataIndex: 'code' }, { title: 'Ghi chú', dataIndex: 'note' }, { title: 'Chi tiết', render: (r: any) => r.items.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') }]} />
-                            </Card>
-                        )}
-                    </Col>
-                </Row>
-            </div>
+                    )}
+                </Col>
+            </Row>
         </div>
+        </div >
     );
 };
 export default PortalQuotePage;
