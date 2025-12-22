@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { SalesOrder, SalesOrderStatus } from './sales-order.entity';
 import { SalesOrderItem } from './sales-order-item.entity';
 import { ProductSample } from './product-sample.entity';
@@ -201,11 +201,18 @@ export class SalesService {
     async getQuoteByUuid(uuid: string) {
         const order = await this.orderRepo.findOne({
             where: { uuid },
-            relations: ['customer', 'items', 'items.product', 'comments']
+            relations: ['customer', 'items', 'items.product', 'comments', 'deliveries', 'deliveries.items', 'deliveries.items.product']
         });
         if (!order) throw new NotFoundException('Quote not found');
+
+        // Fetch Payments manually
+        const transactions = await this.connection.getRepository('Transaction').find({
+            where: { reference_code: order.order_code, reference_type: 'SALES' },
+            order: { date: 'DESC' }
+        });
+
         const paid = await this.calculatePaidAmount(order.order_code);
-        return { ...order, paid_amount: paid };
+        return { ...order, paid_amount: paid, payments: transactions };
     }
     async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT') { const q = await this.getQuoteByUuid(uuid); if (q) return this.convertQuoteToSo(q.id, action === 'ACCEPT'); }
     async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }

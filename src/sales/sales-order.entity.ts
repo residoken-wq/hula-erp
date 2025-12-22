@@ -92,6 +92,10 @@ export class SalesOrder {
   @OneToMany(() => SalesComment, (comment) => comment.order, { cascade: true })
   comments: SalesComment[];
 
+  // --- RELATION FOR DELIVERY ---
+  @OneToMany('SalesDelivery', (delivery: any) => delivery.sales_order)
+  deliveries: any[];
+
   @CreateDateColumn() order_date: Date;
   @UpdateDateColumn() updated_at: Date;
 }

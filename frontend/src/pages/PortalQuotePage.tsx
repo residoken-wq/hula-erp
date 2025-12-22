@@ -197,6 +197,23 @@ const PortalQuotePage: React.FC = () => {
                             </div>
                         </Card>
 
+                        {data.payments && data.payments.length > 0 && (
+                            <Card title="💰 Lịch Sử Thanh Toán" style={{ marginTop: 20 }}>
+                                <Table
+                                    dataSource={data.payments}
+                                    rowKey="id"
+                                    pagination={false}
+                                    size="small"
+                                    columns={[
+                                        { title: 'Ngày', render: (r: any) => dayjs(r.date).format('DD/MM/YYYY') },
+                                        { title: 'Loại', render: (r: any) => <Tag color={r.type === 'INCOME' ? 'green' : 'red'}>{r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền'}</Tag> },
+                                        { title: 'Số tiền', align: 'right', render: (r: any) => <b style={{ color: r.type === 'INCOME' ? 'green' : 'red' }}>{Number(r.amount).toLocaleString()} ₫</b> },
+                                        { title: 'Ghi chú', dataIndex: 'description' }
+                                    ]}
+                                />
+                            </Card>
+                        )}
+
                         {data.deliveries && data.deliveries.length > 0 && (
                             <Card title="📦 Lịch Sử Giao Hàng">
                                 <Table dataSource={data.deliveries} rowKey="id" pagination={false} size="small" columns={[{ title: 'Ngày giao', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YYYY') }, { title: 'Mã phiếu', dataIndex: 'code' }, { title: 'Ghi chú', dataIndex: 'note' }, { title: 'Chi tiết', render: (r: any) => r.items.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') }]} />
