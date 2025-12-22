@@ -213,7 +213,23 @@ const CrmPage: React.FC = () => {
     const handleCopyLink = (uuid: string) => {
         if (!uuid) return message.warning('Chưa có Link');
         const link = `${window.location.protocol}//${window.location.host}/portal/quote/${uuid}`;
-        navigator.clipboard.writeText(link).then(() => message.success('Copied!')).catch(() => { });
+
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(link).then(() => message.success('Copied!')).catch(() => { });
+        } else {
+            // Fallback
+            const textArea = document.createElement("textarea");
+            textArea.value = link;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                message.success('Copied!');
+            } catch (err) {
+                message.error('Oops, unable to copy');
+            }
+            document.body.removeChild(textArea);
+        }
     };
 
     // --- COLUMNS DEFINITION ---

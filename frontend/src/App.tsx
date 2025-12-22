@@ -32,6 +32,7 @@ import FinancePage from './pages/FinancePage';
 import TasksPage from './pages/TasksPage';
 import PurchasingPage from './pages/PurchasingPage';
 import SalesPage from './pages/SalesPage'; // <--- QUAN TRỌNG: Import trang Đơn hàng
+import SystemSettingsPage from './pages/SystemSettingsPage';
 
 // Import Components
 import HeaderNotifications from './components/HeaderNotifications';
@@ -146,6 +147,7 @@ const App: React.FC = () => {
             items.push(getItem('Hệ thống & Phân quyền', 'sub_sys', <SettingOutlined />, [
                 getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
                 getItem(<Link to="/users/groups">Nhóm & Phân quyền</Link>, 'group_perm'),
+                getItem(<Link to="/system/settings">Cấu hình Email (SMTP)</Link>, 'sys_smtp'),
             ]));
         }
 
@@ -235,6 +237,7 @@ const App: React.FC = () => {
                                                 <>
                                                     <Route path="/users" element={<UsersPage />} />
                                                     <Route path="/users/groups" element={<UserGroupsPage />} />
+                                                    <Route path="/system/settings" element={<SystemSettingsPage />} />
                                                 </>
                                             )}
 

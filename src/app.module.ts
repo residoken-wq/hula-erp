@@ -21,6 +21,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { TasksModule } from './tasks/tasks.module'; // <--- MỚI
 import { NotificationsModule } from './notifications/notifications.module'; // <--- MỚI
+import { SystemModule } from './system/system.module';
 
 // Entities
 import { Product } from './products/product.entity';
@@ -70,6 +71,7 @@ import { Category } from './categories/category.entity';
 import { User } from './users/entities/user.entity';
 import { UserGroup } from './users/entities/user-group.entity';
 import { GroupPermission } from './users/entities/group-permission.entity';
+import { SystemConfig } from './system/system-config.entity';
 
 @Module({
   imports: [
@@ -96,7 +98,8 @@ import { GroupPermission } from './users/entities/group-permission.entity';
           Supplier, SupplierMaterial, SupplierContact,
           Customer, CustomerContact,
           ProductionPlan, Process, Category,
-          User, UserGroup, GroupPermission
+          User, UserGroup, GroupPermission,
+          SystemConfig
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production', // Disable in production
       }),
@@ -106,7 +109,7 @@ import { GroupPermission } from './users/entities/group-permission.entity';
     UsersModule, AuthModule,
     ProductsModule, MaterialsModule, BomModule, SalesModule,
     InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
-    TasksModule, NotificationsModule, // <--- ĐĂNG KÝ MODULE MỚI
+    TasksModule, NotificationsModule, SystemModule, // <--- ĐĂNG KÝ MODULE MỚI
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
     ProcessesModule, CategoriesModule,
   ],
