@@ -196,7 +196,15 @@ export class SalesService {
     async convertQuoteToSo(id: number, accepted: boolean) { const order = await this.orderRepo.findOne({ where: { id } }); if (!order) throw new NotFoundException(); order.status = accepted ? SalesOrderStatus.SO_PENDING : SalesOrderStatus.CANCELLED; return this.orderRepo.save(order); }
     async approveAllSamples(id: number) { const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] }); if (!order) throw new NotFoundException(); for (const item of order.items) { item.is_sample_approved = true; await this.orderRepo.manager.save(item); } if (order.status === SalesOrderStatus.SO_PENDING) order.status = SalesOrderStatus.SAMPLE_APPROVED; return this.orderRepo.save(order); }
     async deleteQuote(id: number) { return this.orderRepo.delete(id); }
-    async getQuoteByUuid(uuid: string) { return this.findOne(uuid); }
+    async getQuoteByUuid(uuid: string) {
+        const order = await this.orderRepo.findOne({
+            where: { uuid },
+            relations: ['customer', 'items', 'items.product']
+        });
+        if (!order) throw new NotFoundException('Quote not found');
+        const paid = await this.calculatePaidAmount(order.order_code);
+        return { ...order, paid_amount: paid };
+    }
     async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT') { const q = await this.getQuoteByUuid(uuid); if (q) return this.convertQuoteToSo(q.id, action === 'ACCEPT'); }
     async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
     async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
