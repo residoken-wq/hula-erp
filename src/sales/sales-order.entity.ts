@@ -57,7 +57,7 @@ export class SalesOrder {
   @Column({ nullable: true }) tracking_code: string;
   @Column('decimal', { default: 0 }) shipping_fee: number;
 
-  @Column('decimal', { default: 0 }) shipping_fee: number;
+
 
   @Column('text', { nullable: true }) note: string; // --- NEW NOTE FIELD ---
 
