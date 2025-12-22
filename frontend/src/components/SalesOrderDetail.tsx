@@ -36,17 +36,21 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     ...initialData,
                     customer_id: initialData.customer?.id,
                     order_date: initialData.order_date ? dayjs(initialData.order_date) : dayjs(),
-                    delivery_date: initialData.delivery_date ? dayjs(initialData.delivery_date) : null
+                    delivery_date: initialData.delivery_date ? dayjs(initialData.delivery_date) : null,
+                    discount_rate: initialData.discount_rate || 0,
+                    discount_amount: initialData.discount_amount || 0,
+                    vat_rate: initialData.vat_rate || 0,
+                    shipping_fee: initialData.shipping_fee || 0
                 });
-                
+
                 // FIX LỖI: Map dữ liệu từ Backend (subtotal) sang Frontend (total_price)
                 const items = initialData.items?.map((i: any) => {
                     const qty = Number(i.quantity) || 0;
                     const price = Number(i.unit_price) || 0;
-                    
+
                     // Ưu tiên tính toán lại: SL * Đơn giá. Nếu không thì lấy subtotal từ DB.
                     const calculatedTotal = qty * price;
-                    
+
                     return {
                         ...i,
                         sku: i.product?.sku || i.sku,
@@ -61,10 +65,14 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             } else {
                 // --- CREATE MODE ---
                 form.resetFields();
-                form.setFieldsValue({ 
+                form.setFieldsValue({
                     order_code: isQuotation ? 'AUTO-QUOTE' : 'AUTO-SO',
                     order_date: dayjs(),
-                    status: isQuotation ? 'QUOTATION' : 'SO_PENDING'
+                    status: isQuotation ? 'QUOTATION' : 'SO_PENDING',
+                    discount_rate: 0,
+                    discount_amount: 0,
+                    vat_rate: 0,
+                    shipping_fee: 0
                 });
                 setOrderItems([]);
                 setTotalAmount(0);
@@ -74,7 +82,15 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     }, [open, initialData, isQuotation]);
 
     const calculateTotal = (items: any[]) => {
-        const total = items.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+        const subtotal = items.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+        // Lấy giá trị từ form (Vì các field này nằm ngoài list items)
+        const discountAmt = form.getFieldValue('discount_amount') || 0;
+        const vatRate = form.getFieldValue('vat_rate') || 0;
+        const shipping = form.getFieldValue('shipping_fee') || 0;
+
+        const taxable = Math.max(0, subtotal - discountAmt);
+        const total = taxable * (1 + vatRate / 100) + shipping;
+
         setTotalAmount(total);
     };
 
@@ -138,7 +154,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             }
             onSuccess();
             onClose();
-        } catch (e) { message.error('Lỗi lưu đơn hàng'); } 
+        } catch (e) { message.error('Lỗi lưu đơn hàng'); }
         finally { setLoading(false); }
     };
 
@@ -147,7 +163,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         try {
             await axios.put(`${API_URL}/sales/${initialData.id}`, { status: 'COMPLETED' });
             message.success('Đã hoàn tất đơn hàng'); onSuccess(); onClose();
-        } catch(e) { message.error('Lỗi'); }
+        } catch (e) { message.error('Lỗi'); }
     };
 
     const itemColumns = [
@@ -157,9 +173,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 const prodInfo = products.find(p => p.value === text);
                 return (
                     <div>
-                        <Select 
-                            showSearch 
-                            placeholder="Chọn SP" 
+                        <Select
+                            showSearch
+                            placeholder="Chọn SP"
                             optionFilterProp="label"
                             style={{ width: '100%' }}
                             value={text}
@@ -167,9 +183,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             options={products}
                         />
                         {prodInfo && (
-                            <div style={{marginTop: 4, lineHeight: '1.2'}}>
-                                {prodInfo.type === 'COMBO' && <Tag color="purple" style={{fontSize:10, marginRight:4}}><GiftOutlined/> Combo</Tag>}
-                                <span style={{fontSize: 11, color: '#666', fontStyle: 'italic'}}>
+                            <div style={{ marginTop: 4, lineHeight: '1.2' }}>
+                                {prodInfo.type === 'COMBO' && <Tag color="purple" style={{ fontSize: 10, marginRight: 4 }}><GiftOutlined /> Combo</Tag>}
+                                <span style={{ fontSize: 11, color: '#666', fontStyle: 'italic' }}>
                                     {prodInfo.description || 'Chưa có mô tả'}
                                 </span>
                             </div>
@@ -181,13 +197,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         {
             title: 'Đơn giá', dataIndex: 'unit_price', width: 140,
             render: (text: any, record: any, index: number) => (
-                <InputNumber 
-                    min={0} 
-                    style={{ width: '100%' }} 
+                <InputNumber
+                    min={0}
+                    style={{ width: '100%' }}
                     value={text}
                     formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '')}
-                    onChange={(val) => handleItemChange(index, 'unit_price', val)} 
+                    onChange={(val) => handleItemChange(index, 'unit_price', val)}
                 />
             )
         },
@@ -208,15 +224,15 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     ];
 
     return (
-        <Modal 
+        <Modal
             title={<span>{isQuotation ? 'Báo Giá' : 'Đơn Hàng (SO)'} #{initialData?.order_code} {initialData?.status === 'COMPLETED' && <Tag color="green">Hoàn tất</Tag>}</span>}
-            open={open} 
+            open={open}
             onCancel={onClose}
             width={1100}
             footer={[
                 <Button key="close" onClick={onClose}>Đóng</Button>,
                 <Button key="save" type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu Thông Tin</Button>,
-                (!isQuotation && initialData) && <Button key="complete" type="primary" danger icon={<CheckCircleOutlined/>} onClick={handleCompleteOrder}>Hoàn tất đơn hàng</Button>
+                (!isQuotation && initialData) && <Button key="complete" type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>Hoàn tất đơn hàng</Button>
             ]}
             style={{ top: 20 }}
         >
@@ -227,10 +243,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             <Col span={8}><Form.Item name="order_code" label="Mã đơn hàng"><Input disabled /></Form.Item></Col>
                             <Col span={8}>
                                 <Form.Item name="customer_id" label="Khách hàng" rules={[{ required: true }]}>
-                                    <Select 
-                                        showSearch 
-                                        optionFilterProp="label" 
-                                        options={customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))} 
+                                    <Select
+                                        showSearch
+                                        optionFilterProp="label"
+                                        options={customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))}
                                     />
                                 </Form.Item>
                             </Col>
@@ -258,22 +274,108 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             <Col span={8}><Form.Item name="delivery_date" label="Ngày giao dự kiến"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                         </Row>
                         <Divider orientation="left">Danh sách sản phẩm</Divider>
-                        <Table 
-                            dataSource={orderItems} 
-                            columns={itemColumns} 
-                            pagination={false} 
-                            rowKey="key" 
+                        <Table
+                            dataSource={orderItems}
+                            columns={itemColumns}
+                            pagination={false}
+                            rowKey="key"
                             size="small"
                             bordered
-                            summary={() => (
-                                <Table.Summary.Row>
-                                    <Table.Summary.Cell index={0} colSpan={3} align="right"><b>TỔNG CỘNG:</b></Table.Summary.Cell>
-                                    <Table.Summary.Cell index={1} align="right">
-                                        <b style={{ color: 'red', fontSize: 16 }}>{totalAmount.toLocaleString()} ₫</b>
-                                    </Table.Summary.Cell>
-                                    <Table.Summary.Cell index={2} />
-                                </Table.Summary.Row>
-                            )}
+                            summary={() => {
+                                const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+                                const discountAmt = form.getFieldValue('discount_amount') || 0;
+                                const vatRate = form.getFieldValue('vat_rate') || 0;
+                                const shipping = form.getFieldValue('shipping_fee') || 0;
+
+                                const taxable = Math.max(0, subtotal - discountAmt);
+                                const total = taxable * (1 + vatRate / 100) + shipping;
+
+                                // Update totalAmount state for display and save
+                                if (totalAmount !== total) setTotalAmount(total);
+
+                                return (
+                                    <>
+                                        <Table.Summary.Row>
+                                            <Table.Summary.Cell index={0} colSpan={2} align="right">Tổng tiền hàng:</Table.Summary.Cell>
+                                            <Table.Summary.Cell index={1} align="right">{subtotal.toLocaleString()} ₫</Table.Summary.Cell>
+                                            <Table.Summary.Cell index={2} />
+                                        </Table.Summary.Row>
+                                        <Table.Summary.Row>
+                                            <Table.Summary.Cell index={0} colSpan={2} align="right">
+                                                Giảm giá:
+                                                <InputNumber
+                                                    size="small"
+                                                    min={0}
+                                                    max={100}
+                                                    formatter={v => `${v}%`}
+                                                    parser={v => v!.replace('%', '')}
+                                                    placeholder="%"
+                                                    style={{ width: 60, marginLeft: 10 }}
+                                                    value={form.getFieldValue('discount_rate')}
+                                                    onChange={(val) => {
+                                                        const rate = Number(val);
+                                                        const amt = Math.floor(subtotal * rate / 100);
+                                                        form.setFieldsValue({ discount_rate: rate, discount_amount: amt });
+                                                        calculateTotal(orderItems); // Re-trigger
+                                                    }}
+                                                />
+                                            </Table.Summary.Cell>
+                                            <Table.Summary.Cell index={1} align="right">
+                                                <InputNumber
+                                                    size="small"
+                                                    style={{ width: '100%' }}
+                                                    value={form.getFieldValue('discount_amount')}
+                                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                    parser={v => v!.replace(/\$\s?|(,*)/g, '')}
+                                                    onChange={(val) => {
+                                                        const amt = Number(val);
+                                                        // Tính ngược lại % (chỉ mang tính tham khảo)
+                                                        const rate = subtotal > 0 ? Number((amt / subtotal * 100).toFixed(2)) : 0;
+                                                        form.setFieldsValue({ discount_amount: amt, discount_rate: rate });
+                                                        calculateTotal(orderItems);
+                                                    }}
+                                                />
+                                            </Table.Summary.Cell>
+                                            <Table.Summary.Cell index={2} />
+                                        </Table.Summary.Row>
+                                        <Table.Summary.Row>
+                                            <Table.Summary.Cell index={0} colSpan={2} align="right">
+                                                VAT (%):
+                                                <InputNumber size="small" min={0} max={100} style={{ width: 60, marginLeft: 10 }}
+                                                    value={form.getFieldValue('vat_rate')}
+                                                    onChange={(v) => { form.setFieldsValue({ vat_rate: v }); calculateTotal(orderItems); }}
+                                                />
+                                            </Table.Summary.Cell>
+                                            <Table.Summary.Cell index={1} align="right">
+                                                {vatRate > 0 ? (taxable * vatRate / 100).toLocaleString() : '0'} ₫
+                                            </Table.Summary.Cell>
+                                            <Table.Summary.Cell index={2} />
+                                        </Table.Summary.Row>
+                                        <Table.Summary.Row>
+                                            <Table.Summary.Cell index={0} colSpan={2} align="right">Phí vận chuyển:</Table.Summary.Cell>
+                                            <Table.Summary.Cell index={1} align="right">
+                                                <InputNumber
+                                                    size="small"
+                                                    min={0}
+                                                    style={{ width: '100%' }}
+                                                    value={form.getFieldValue('shipping_fee')}
+                                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                    parser={v => v!.replace(/\$\s?|(,*)/g, '')}
+                                                    onChange={(v) => { form.setFieldsValue({ shipping_fee: v }); calculateTotal(orderItems); }}
+                                                />
+                                            </Table.Summary.Cell>
+                                            <Table.Summary.Cell index={2} />
+                                        </Table.Summary.Row>
+                                        <Table.Summary.Row>
+                                            <Table.Summary.Cell index={0} colSpan={2} align="right"><b>TỔNG CỘNG:</b></Table.Summary.Cell>
+                                            <Table.Summary.Cell index={1} align="right">
+                                                <b style={{ color: 'red', fontSize: 16 }}>{total.toLocaleString()} ₫</b>
+                                            </Table.Summary.Cell>
+                                            <Table.Summary.Cell index={2} />
+                                        </Table.Summary.Row>
+                                    </>
+                                );
+                            }}
                         />
                         <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>Thêm sản phẩm</Button>
                     </Form>

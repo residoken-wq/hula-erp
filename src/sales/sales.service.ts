@@ -52,6 +52,8 @@ export class SalesService {
             uuid: uuidv4(),
             vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate) || 0,
             shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone, shipping_carrier: data.shipping_carrier, shipping_fee: Number(data.shipping_fee) || 0,
+            discount_rate: Number(data.discount_rate) || 0,
+            discount_amount: Number(data.discount_amount) || 0,
             payment_note: data.payment_note, terms_content: data.terms_content,
             paid_amount: 0 // Init
         });
@@ -74,7 +76,11 @@ export class SalesService {
             });
         });
 
-        order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
+        const subtotal = itemsTotal;
+        const discountAmount = order.discount_amount; // Đã chốt số tiền giảm từ FE hoặc tính toán trước
+        // Công thức: (Subtotal - Discount) * (1 + VAT) + Shipping
+        const taxable = Math.max(0, subtotal - discountAmount);
+        order.total_amount = taxable * (1 + order.vat_rate / 100) + order.shipping_fee;
         return this.orderRepo.save(order);
     }
 
@@ -141,6 +147,9 @@ export class SalesService {
         order.vat_rate = Number(data.vat_rate) || 0;
         order.shipping_fee = Number(data.shipping_fee) || 0;
 
+        if (data.discount_rate !== undefined) order.discount_rate = Number(data.discount_rate);
+        if (data.discount_amount !== undefined) order.discount_amount = Number(data.discount_amount);
+
         if (data.items) {
             await this.itemRepo.delete({ order: { id: id } });
             const validItems = data.items.filter((i: any) => i.sku);
@@ -163,7 +172,12 @@ export class SalesService {
             });
 
             await this.itemRepo.save(newItems);
-            order.total_amount = itemsTotal * (1 + order.vat_rate / 100) + order.shipping_fee;
+
+            // Recalculate Total
+            const subtotal = itemsTotal;
+            const discount = Number(order.discount_amount) || 0;
+            const taxable = Math.max(0, subtotal - discount);
+            order.total_amount = taxable * (1 + order.vat_rate / 100) + order.shipping_fee;
         }
 
         const saved = await this.orderRepo.save(order);
