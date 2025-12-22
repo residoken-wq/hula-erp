@@ -62,7 +62,7 @@ const PortalQuotePage: React.FC = () => {
             key: 'product',
             render: (r: any) => (
                 <div>
-                    <div style={{ fontWeight: 600 }}>{r.product_name_real || r.sku}</div>
+                    <div style={{ fontWeight: 600 }}>{r.product_name_real || r.product?.name || r.sku}</div>
                     <div style={{ fontSize: 12, color: '#666' }}>SKU: {r.sku} {r.variant_color ? `- ${r.variant_color}` : ''}</div>
                 </div>
             )
@@ -70,9 +70,9 @@ const PortalQuotePage: React.FC = () => {
         // --- CỘT MỚI: MÔ TẢ SẢN PHẨM ---
         {
             title: 'Mô tả chi tiết',
-            dataIndex: 'product_desc',
+            dataIndex: 'product_desc', // Giữ nguyên key nếu cần, nhưng render logic thay đổi
             width: '30%',
-            render: (t: string) => <div style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#555' }}>{t || '-'}</div>
+            render: (_: any, r: any) => <div style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#555' }}>{r.product?.customer_description || '-'}</div>
         },
         // -------------------------------
         { title: 'ĐVT', dataIndex: 'unit', width: 80, align: 'center' as const, render: () => 'Cái' },
