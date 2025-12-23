@@ -58,36 +58,37 @@ const CrmPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const resCust = await axios.get(`${API_URL}/customers`);
+            const [resCust, resSales, resProd, resUsers] = await Promise.all([
+                axios.get(`${API_URL}/customers`).catch(e => ({ data: [] })),
+                axios.get(`${API_URL}/sales`).catch(e => ({ data: [] })),
+                axios.get(`${API_URL}/products`).catch(e => ({ data: [] })),
+                axios.get(`${API_URL}/users`).catch(e => ({ data: [] }))
+            ]);
+
+            // Customers
             const custData = Array.isArray(resCust.data) ? resCust.data : [];
             setAllCustomers(custData);
-            // Lấy tất cả khách hàng có type là LEAD hoặc chưa phân loại rõ ràng nhưng mới tạo
-            setLeads(custData.filter((c: any) => c.type === 'LEAD').sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())); // Sort mới nhất
+            setLeads(custData.filter((c: any) => c.type === 'LEAD').sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
 
-            try {
-                const resSales = await axios.get(`${API_URL}/sales`);
-                const salesData = Array.isArray(resSales.data) ? resSales.data : [];
-                setQuotes(salesData.filter((s: any) => s.status === 'QUOTATION' || s.status === 'CANCELLED'));
-                setOrders(salesData.filter((s: any) => !['QUOTATION', 'CANCELLED'].includes(s.status)));
-            } catch (e) { }
+            // Sales
+            const salesData = Array.isArray(resSales.data) ? resSales.data : [];
+            setQuotes(salesData.filter((s: any) => s.status === 'QUOTATION' || s.status === 'CANCELLED'));
+            setOrders(salesData.filter((s: any) => !['QUOTATION', 'CANCELLED'].includes(s.status)));
 
-            const resProd = await axios.get(`${API_URL}/products`);
+            // Products
             if (Array.isArray(resProd.data)) {
                 setProducts(resProd.data.map((p: any) => ({
                     label: p.name, value: p.sku, price: Number(p.base_price) || 0, unit: p.unit
                 })));
             }
-            if (Array.isArray(resProd.data)) {
-                setProducts(resProd.data.map((p: any) => ({
-                    label: p.name, value: p.sku, price: Number(p.base_price) || 0, unit: p.unit
-                })));
-            }
-            // Fetch users
-            const resUsers = await axios.get(`${API_URL}/users`);
+
+            // Users
             setUsers(Array.isArray(resUsers.data) ? resUsers.data : []);
-            setLoading(false);
+
         } catch (error) {
-            console.error(error);
+            console.error("Error fetching data:", error);
+            message.error("Có lỗi khi tải dữ liệu.");
+        } finally {
             setLoading(false);
         }
     };
