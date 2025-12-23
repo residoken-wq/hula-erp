@@ -1,16 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge, Tabs, InputNumber } from 'antd'; // <--- Đã thêm Tabs
+import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge, Tabs, InputNumber, Typography } from 'antd'; // <--- Đã thêm Tabs
 import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined, SearchOutlined, FilterOutlined, RiseOutlined, TagOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import dayjs from 'dayjs';
-import { API_URL } from '../config';
 import QuotationTemplate from '../components/QuotationTemplate';
 import SalesOrderDetail from '../components/SalesOrderDetail';
 import QuickTaskModal from '../components/QuickTaskModal';
 
-const { Text } = Typography; // Lưu ý: Typography chưa được import, tôi sẽ thêm vào import luôn để tránh lỗi tiếp theo
-import { Typography } from 'antd'; // Bổ sung import Typography riêng cho chắc chắn
+const { Text } = Typography;
 
 const CrmPage: React.FC = () => {
     const navigate = useNavigate();
@@ -59,10 +57,10 @@ const CrmPage: React.FC = () => {
         setLoading(true);
         try {
             const [resCust, resSales, resProd, resUsers] = await Promise.all([
-                axios.get(`${API_URL}/customers`).catch(e => ({ data: [] })),
-                axios.get(`${API_URL}/sales`).catch(e => ({ data: [] })),
-                axios.get(`${API_URL}/products`).catch(e => ({ data: [] })),
-                axios.get(`${API_URL}/users`).catch(e => ({ data: [] }))
+                api.get('/customers').catch(e => ({ data: [] })),
+                api.get('/sales').catch(e => ({ data: [] })),
+                api.get('/products').catch(e => ({ data: [] })),
+                api.get('/users').catch(e => ({ data: [] }))
             ]);
 
             // Customers
@@ -126,7 +124,6 @@ const CrmPage: React.FC = () => {
             name: record.name,
             phone: record.phone,
             lead_status: record.lead_status,
-            lead_status: record.lead_status,
             potential_value: record.potential_value,
             assigned_to_id: record.assigned_to?.id // Map user
         });
@@ -135,7 +132,7 @@ const CrmPage: React.FC = () => {
 
     const handleDeleteLead = async (id: number) => {
         try {
-            await axios.delete(`${API_URL}/customers/${id}`);
+            await api.delete(`/customers/${id}`);
             message.success('Đã xóa Lead'); fetchData();
         } catch (e: any) { message.error('Không thể xóa'); }
     };
@@ -160,16 +157,16 @@ const CrmPage: React.FC = () => {
             };
 
             if (editingLeadId) {
-                await axios.put(`${API_URL}/customers/${editingLeadId}`, payload);
+                await api.put(`/customers/${editingLeadId}`, payload);
                 message.success('Cập nhật thành công!');
             } else {
                 if (isNewCustomerMode) {
                     if (!name || !phone) { message.error('Nhập Tên và SĐT'); return; }
-                    await axios.post(`${API_URL}/customers`, { code, type: 'LEAD', ...payload });
+                    await api.post('/customers', { code, type: 'LEAD', ...payload });
                 } else {
                     if (!customer_id) { message.error('Chọn khách hàng'); return; }
-                    await axios.put(`${API_URL}/customers/${customer_id}`, { type: 'LEAD', ...payload }); // Update existing cust to LEAD
-                    await axios.post(`${API_URL}/customers/${customer_id}/follow`, { note: `Lead created` });
+                    await api.put(`/customers/${customer_id}`, { type: 'LEAD', ...payload }); // Update existing cust to LEAD
+                    await api.post(`/customers/${customer_id}/follow`, { note: `Lead created` });
                 }
                 message.success('Tạo Lead thành công!');
             }
@@ -180,9 +177,9 @@ const CrmPage: React.FC = () => {
     const handleFollowLead = async () => {
         if (!followNote) return;
         try {
-            await axios.post(`${API_URL}/customers/${currentCustomer.id}/follow`, { note: followNote });
+            await api.post(`/customers/${currentCustomer.id}/follow`, { note: followNote });
             message.success('Đã lưu ghi chú'); setFollowNote('');
-            const res = await axios.get(`${API_URL}/customers/${currentCustomer.id}`);
+            const res = await api.get(`/customers/${currentCustomer.id}`);
             setCurrentCustomer(res.data); fetchData();
         } catch (e) { message.error('Lỗi'); }
     };
@@ -190,7 +187,7 @@ const CrmPage: React.FC = () => {
     // --- Quick Status Change ---
     const handleChangeStatus = async (id: number, status: string) => {
         try {
-            await axios.put(`${API_URL}/customers/${id}`, { lead_status: status });
+            await api.put(`/customers/${id}`, { lead_status: status });
             message.success('Đã cập nhật trạng thái');
             fetchData();
         } catch (e) { message.error('Lỗi'); }
@@ -205,20 +202,20 @@ const CrmPage: React.FC = () => {
 
     const handleConvertQuote = async (id: number, accepted: boolean) => {
         try {
-            await axios.post(`${API_URL}/sales/${id}/convert`, { accepted });
+            await api.post(`/sales/${id}/convert`, { accepted });
             message.success(accepted ? 'Đã chốt báo giá!' : 'Đã hủy'); fetchData();
         } catch (e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message }); }
     };
 
     const handleDeleteQuote = async (id: number) => {
-        try { await axios.delete(`${API_URL}/sales/quote/${id}`); message.success('Đã xóa'); fetchData(); }
+        try { await api.delete(`/sales/quote/${id}`); message.success('Đã xóa'); fetchData(); }
         catch (e: any) { message.error('Không thể xóa'); }
     };
 
     const openDetailModal = async (record?: any, isQuote = false) => {
         if (record) {
             try {
-                const res = await axios.get(`${API_URL}/sales/${record.order_code}`);
+                const res = await api.get(`/sales/${record.order_code}`);
                 setEditingOrder(res.data);
             } catch (e) { }
         } else { setEditingOrder(null); }
