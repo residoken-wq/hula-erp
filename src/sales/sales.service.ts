@@ -75,7 +75,8 @@ export class SalesService {
                 quantity: qty,
                 unit_price: price,
                 subtotal: sub,
-                variant_color: itemData.variant_color
+                variant_color: itemData.variant_color,
+                vat_content: itemData.vat_content
             });
         }));
 
@@ -178,7 +179,9 @@ export class SalesService {
                     quantity: qty,
                     unit_price: price,
                     subtotal: sub,
+                    subtotal: sub,
                     variant_color: itemData.variant_color,
+                    vat_content: itemData.vat_content
                 });
             }));
 

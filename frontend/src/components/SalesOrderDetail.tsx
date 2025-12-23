@@ -109,6 +109,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 item.unit = prod.unit;
                 item._description = prod.description;
                 item._type = prod.type;
+                // Auto-fill Description if empty
+                if (!item.vat_content && prod.description) {
+                    item.vat_content = prod.description;
+                }
             }
         }
 
@@ -141,6 +145,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     sku: i.sku,
                     quantity: i.quantity,
                     unit_price: i.unit_price,
+                    sku: i.sku,
+                    quantity: i.quantity,
+                    unit_price: i.unit_price,
+                    vat_content: i.vat_content,
                     total_price: i.total_price // Frontend gửi total_price, Backend sẽ map vào subtotal
                 }))
             };
@@ -193,228 +201,243 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     </div>
                 );
             }
+                );
+            }
         },
-        {
-            title: 'Đơn giá', dataIndex: 'unit_price', width: 140,
-            render: (text: any, record: any, index: number) => (
-                <InputNumber
-                    min={0}
-                    style={{ width: '100%' }}
-                    value={text}
-                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '')}
-                    onChange={(val) => handleItemChange(index, 'unit_price', val)}
-                />
-            )
-        },
-        {
-            title: 'SL', dataIndex: 'quantity', width: 80,
-            render: (text: any, record: any, index: number) => (
-                <InputNumber min={1} value={text} onChange={(val) => handleItemChange(index, 'quantity', val)} style={{ width: '100%' }} />
-            )
-        },
-        {
-            title: 'Thành tiền', dataIndex: 'total_price', align: 'right' as const, width: 140,
-            render: (val: any) => <b>{Number(val).toLocaleString()}</b>
-        },
-        {
-            title: '', width: 50, align: 'center' as const,
-            render: (_: any, r: any, index: number) => <DeleteOutlined onClick={() => handleRemoveItem(index)} style={{ color: 'red', cursor: 'pointer' }} />
-        }
+{
+    title: 'Mô tả VAT (HĐ đơn)',
+        dataIndex: 'vat_content',
+            width: 200,
+                render: (text: any, record: any, index: number) => (
+                    <Input.TextArea
+                        rows={2}
+                        placeholder="Mô tả khi xuất hóa đơn..."
+                        value={text}
+                        onChange={e => handleItemChange(index, 'vat_content', e.target.value)}
+                    />
+                )
+},
+{
+    title: 'Đơn giá', dataIndex: 'unit_price', width: 140,
+        render: (text: any, record: any, index: number) => (
+            <InputNumber
+                min={0}
+                style={{ width: '100%' }}
+                value={text}
+                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '')}
+                onChange={(val) => handleItemChange(index, 'unit_price', val)}
+            />
+        )
+},
+{
+    title: 'SL', dataIndex: 'quantity', width: 80,
+        render: (text: any, record: any, index: number) => (
+            <InputNumber min={1} value={text} onChange={(val) => handleItemChange(index, 'quantity', val)} style={{ width: '100%' }} />
+        )
+},
+{
+    title: 'Thành tiền', dataIndex: 'total_price', align: 'right' as const, width: 140,
+        render: (val: any) => <b>{Number(val).toLocaleString()}</b>
+},
+{
+    title: '', width: 50, align: 'center' as const,
+        render: (_: any, r: any, index: number) => <DeleteOutlined onClick={() => handleRemoveItem(index)} style={{ color: 'red', cursor: 'pointer' }} />
+}
     ];
 
-    return (
-        <Modal
-            title={<span>{isQuotation ? 'Báo Giá' : 'Đơn Hàng (SO)'} #{initialData?.order_code} {initialData?.status === 'COMPLETED' && <Tag color="green">Hoàn tất</Tag>}</span>}
-            open={open}
-            onCancel={onClose}
-            width={1100}
-            footer={[
-                <Button key="close" onClick={onClose}>Đóng</Button>,
-                <Button key="save" type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu Thông Tin</Button>,
-                (!isQuotation && initialData) && <Button key="complete" type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>Hoàn tất đơn hàng</Button>
-            ]}
-            style={{ top: 20 }}
-        >
-            <Tabs activeKey={activeTab} onChange={setActiveTab}>
-                <Tabs.TabPane tab="1. Thông tin & Sản phẩm" key="1">
-                    <Form form={form} layout="vertical">
-                        <Row gutter={16}>
-                            <Col span={8}><Form.Item name="order_code" label="Mã đơn hàng"><Input disabled /></Form.Item></Col>
-                            <Col span={8}>
-                                <Form.Item name="customer_id" label="Khách hàng" rules={[{ required: true }]}>
-                                    <Select
-                                        showSearch
-                                        optionFilterProp="label"
-                                        options={customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))}
-                                    />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}><Form.Item name="order_date" label="Ngày đặt" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
-                        </Row>
-                        <Row gutter={16}>
-                            <Col span={8}>
-                                <Form.Item name="status" label="Trạng thái">
-                                    <Select>
-                                        {isQuotation ? (
-                                            <Option value="QUOTATION">Báo Giá</Option>
-                                        ) : (
-                                            <>
-                                                <Option value="SO_PENDING">Chờ Duyệt Mẫu</Option>
-                                                <Option value="SAMPLE_APPROVED">Đã Duyệt Mẫu</Option>
-                                                <Option value="DEPOSITED">Đã Cọc / Sản Xuất</Option>
-                                                <Option value="DELIVERED">Đã Giao Hàng</Option>
-                                                <Option value="COMPLETED">Hoàn Thành</Option>
-                                            </>
-                                        )}
-                                        <Option value="CANCELLED">Đã Hủy</Option>
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}><Form.Item name="delivery_date" label="Ngày giao dự kiến"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
-                            <Col span={8}>
-                                <Form.Item name="assigned_to_id" label="Nhân sự phụ trách">
-                                    <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} placeholder="Chọn nhân viên" />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col span={24}>
-                                <Form.Item name="note" label="Ghi chú nội bộ (Hiển thị trên Portal)">
-                                    <Input.TextArea rows={2} placeholder="Nhập ghi chú cho khách hàng..." />
-                                </Form.Item>
-                            </Col>
-                        </Row>
+return (
+    <Modal
+        title={<span>{isQuotation ? 'Báo Giá' : 'Đơn Hàng (SO)'} #{initialData?.order_code} {initialData?.status === 'COMPLETED' && <Tag color="green">Hoàn tất</Tag>}</span>}
+        open={open}
+        onCancel={onClose}
+        width={1100}
+        footer={[
+            <Button key="close" onClick={onClose}>Đóng</Button>,
+            <Button key="save" type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu Thông Tin</Button>,
+            (!isQuotation && initialData) && <Button key="complete" type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>Hoàn tất đơn hàng</Button>
+        ]}
+        style={{ top: 20 }}
+    >
+        <Tabs activeKey={activeTab} onChange={setActiveTab}>
+            <Tabs.TabPane tab="1. Thông tin & Sản phẩm" key="1">
+                <Form form={form} layout="vertical">
+                    <Row gutter={16}>
+                        <Col span={8}><Form.Item name="order_code" label="Mã đơn hàng"><Input disabled /></Form.Item></Col>
+                        <Col span={8}>
+                            <Form.Item name="customer_id" label="Khách hàng" rules={[{ required: true }]}>
+                                <Select
+                                    showSearch
+                                    optionFilterProp="label"
+                                    options={customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))}
+                                />
+                            </Form.Item>
+                        </Col>
+                        <Col span={8}><Form.Item name="order_date" label="Ngày đặt" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
+                    </Row>
+                    <Row gutter={16}>
+                        <Col span={8}>
+                            <Form.Item name="status" label="Trạng thái">
+                                <Select>
+                                    {isQuotation ? (
+                                        <Option value="QUOTATION">Báo Giá</Option>
+                                    ) : (
+                                        <>
+                                            <Option value="SO_PENDING">Chờ Duyệt Mẫu</Option>
+                                            <Option value="SAMPLE_APPROVED">Đã Duyệt Mẫu</Option>
+                                            <Option value="DEPOSITED">Đã Cọc / Sản Xuất</Option>
+                                            <Option value="DELIVERED">Đã Giao Hàng</Option>
+                                            <Option value="COMPLETED">Hoàn Thành</Option>
+                                        </>
+                                    )}
+                                    <Option value="CANCELLED">Đã Hủy</Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={8}><Form.Item name="delivery_date" label="Ngày giao dự kiến"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
+                        <Col span={8}>
+                            <Form.Item name="assigned_to_id" label="Nhân sự phụ trách">
+                                <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} placeholder="Chọn nhân viên" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col span={24}>
+                            <Form.Item name="note" label="Ghi chú nội bộ (Hiển thị trên Portal)">
+                                <Input.TextArea rows={2} placeholder="Nhập ghi chú cho khách hàng..." />
+                            </Form.Item>
+                        </Col>
+                    </Row>
 
-                        {/* HIDDEN FIELDS TO REGISTER VALUES */}
-                        <Form.Item name="discount_rate" hidden><InputNumber /></Form.Item>
-                        <Form.Item name="discount_amount" hidden><InputNumber /></Form.Item>
-                        <Form.Item name="vat_rate" hidden><InputNumber /></Form.Item>
-                        <Form.Item name="shipping_fee" hidden><InputNumber /></Form.Item>
+                    {/* HIDDEN FIELDS TO REGISTER VALUES */}
+                    <Form.Item name="discount_rate" hidden><InputNumber /></Form.Item>
+                    <Form.Item name="discount_amount" hidden><InputNumber /></Form.Item>
+                    <Form.Item name="vat_rate" hidden><InputNumber /></Form.Item>
+                    <Form.Item name="shipping_fee" hidden><InputNumber /></Form.Item>
 
-                        <Divider orientation="left">Danh sách sản phẩm</Divider>
-                        <Table
-                            dataSource={orderItems}
-                            columns={itemColumns}
-                            pagination={false}
-                            rowKey="key"
-                            size="small"
-                            bordered
-                            summary={() => {
-                                const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-                                const discountAmt = Number(form.getFieldValue('discount_amount')) || 0;
-                                const vatRate = Number(form.getFieldValue('vat_rate')) || 0;
-                                const shipping = Number(form.getFieldValue('shipping_fee')) || 0;
+                    <Divider orientation="left">Danh sách sản phẩm</Divider>
+                    <Table
+                        dataSource={orderItems}
+                        columns={itemColumns}
+                        pagination={false}
+                        rowKey="key"
+                        size="small"
+                        bordered
+                        summary={() => {
+                            const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+                            const discountAmt = Number(form.getFieldValue('discount_amount')) || 0;
+                            const vatRate = Number(form.getFieldValue('vat_rate')) || 0;
+                            const shipping = Number(form.getFieldValue('shipping_fee')) || 0;
 
-                                const taxable = Math.max(0, subtotal - discountAmt);
-                                const total = taxable * (1 + vatRate / 100) + shipping;
+                            const taxable = Math.max(0, subtotal - discountAmt);
+                            const total = taxable * (1 + vatRate / 100) + shipping;
 
-                                // Note: We do NOT set state here anymore to avoid render loops.
-                                // calculateTotal() is triggered by onChange of inputs.
+                            // Note: We do NOT set state here anymore to avoid render loops.
+                            // calculateTotal() is triggered by onChange of inputs.
 
-                                return (
-                                    <>
-                                        <Table.Summary.Row>
-                                            <Table.Summary.Cell index={0} colSpan={2} align="right">Tổng tiền hàng:</Table.Summary.Cell>
-                                            <Table.Summary.Cell index={1} align="right">{subtotal.toLocaleString()} ₫</Table.Summary.Cell>
-                                            <Table.Summary.Cell index={2} />
-                                        </Table.Summary.Row>
-                                        <Table.Summary.Row>
-                                            <Table.Summary.Cell index={0} colSpan={2} align="right">
-                                                Giảm giá:
-                                                <InputNumber
-                                                    size="small"
-                                                    min={0}
-                                                    max={100}
-                                                    formatter={v => `${v}%`}
-                                                    parser={v => v!.replace('%', '')}
-                                                    placeholder="%"
-                                                    style={{ width: 60, marginLeft: 10 }}
-                                                    value={form.getFieldValue('discount_rate')}
-                                                    onChange={(val) => {
-                                                        const rate = Number(val);
-                                                        const amt = Math.floor(subtotal * rate / 100);
-                                                        form.setFieldsValue({ discount_rate: rate, discount_amount: amt });
-                                                        calculateTotal(orderItems); // Re-trigger
-                                                    }}
-                                                />
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={1} align="right">
-                                                <InputNumber
-                                                    size="small"
-                                                    style={{ width: '100%' }}
-                                                    value={form.getFieldValue('discount_amount')}
-                                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                    parser={v => v!.replace(/\$\s?|(,*)/g, '')}
-                                                    onChange={(val) => {
-                                                        const amt = Number(val);
-                                                        // Tính ngược lại % (chỉ mang tính tham khảo)
-                                                        const rate = subtotal > 0 ? Number((amt / subtotal * 100).toFixed(2)) : 0;
-                                                        form.setFieldsValue({ discount_amount: amt, discount_rate: rate });
-                                                        calculateTotal(orderItems);
-                                                    }}
-                                                />
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={2} />
-                                        </Table.Summary.Row>
-                                        <Table.Summary.Row>
-                                            <Table.Summary.Cell index={0} colSpan={2} align="right">
-                                                VAT (%):
-                                                <InputNumber size="small" min={0} max={100} style={{ width: 60, marginLeft: 10 }}
-                                                    value={form.getFieldValue('vat_rate')}
-                                                    onChange={(v) => { form.setFieldsValue({ vat_rate: v }); calculateTotal(orderItems); }}
-                                                />
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={1} align="right">
-                                                {vatRate > 0 ? (taxable * vatRate / 100).toLocaleString() : '0'} ₫
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={2} />
-                                        </Table.Summary.Row>
-                                        <Table.Summary.Row>
-                                            <Table.Summary.Cell index={0} colSpan={2} align="right">Phí vận chuyển:</Table.Summary.Cell>
-                                            <Table.Summary.Cell index={1} align="right">
-                                                <InputNumber
-                                                    size="small"
-                                                    min={0}
-                                                    style={{ width: '100%' }}
-                                                    value={form.getFieldValue('shipping_fee')}
-                                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                    parser={v => v!.replace(/\$\s?|(,*)/g, '')}
-                                                    onChange={(v) => { form.setFieldsValue({ shipping_fee: v }); calculateTotal(orderItems); }}
-                                                />
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={2} />
-                                        </Table.Summary.Row>
-                                        <Table.Summary.Row>
-                                            <Table.Summary.Cell index={0} colSpan={2} align="right"><b>TỔNG CỘNG:</b></Table.Summary.Cell>
-                                            <Table.Summary.Cell index={1} align="right">
-                                                <b style={{ color: 'red', fontSize: 16 }}>{total.toLocaleString()} ₫</b>
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={2} />
-                                        </Table.Summary.Row>
-                                    </>
-                                );
-                            }}
-                        />
-                        <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>Thêm sản phẩm</Button>
-                    </Form>
-                </Tabs.TabPane>
-                {initialData && !isQuotation && (
-                    <>
-                        <Tabs.TabPane tab="2. Thanh toán" key="2">
-                            <SalesPayments orderId={initialData.id} orderCode={initialData.order_code} totalAmount={totalAmount} paidAmount={initialData.paid_amount || 0} onSuccess={onSuccess} />
-                        </Tabs.TabPane>
-                        <Tabs.TabPane tab="3. Giao hàng" key="3">
-                            <SalesDeliveries orderId={initialData.id} orderItems={orderItems} onSuccess={onSuccess} />
-                        </Tabs.TabPane>
-                        <Tabs.TabPane tab="4. Trao đổi" key="4">
-                            <SalesComments orderId={initialData.id} />
-                        </Tabs.TabPane>
-                    </>
-                )}
-            </Tabs>
-        </Modal>
-    );
+                            return (
+                                <>
+                                    <Table.Summary.Row>
+                                        <Table.Summary.Cell index={0} colSpan={2} align="right">Tổng tiền hàng:</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={1} align="right">{subtotal.toLocaleString()} ₫</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={2} />
+                                    </Table.Summary.Row>
+                                    <Table.Summary.Row>
+                                        <Table.Summary.Cell index={0} colSpan={2} align="right">
+                                            Giảm giá:
+                                            <InputNumber
+                                                size="small"
+                                                min={0}
+                                                max={100}
+                                                formatter={v => `${v}%`}
+                                                parser={v => v!.replace('%', '')}
+                                                placeholder="%"
+                                                style={{ width: 60, marginLeft: 10 }}
+                                                value={form.getFieldValue('discount_rate')}
+                                                onChange={(val) => {
+                                                    const rate = Number(val);
+                                                    const amt = Math.floor(subtotal * rate / 100);
+                                                    form.setFieldsValue({ discount_rate: rate, discount_amount: amt });
+                                                    calculateTotal(orderItems); // Re-trigger
+                                                }}
+                                            />
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={1} align="right">
+                                            <InputNumber
+                                                size="small"
+                                                style={{ width: '100%' }}
+                                                value={form.getFieldValue('discount_amount')}
+                                                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                parser={v => v!.replace(/\$\s?|(,*)/g, '')}
+                                                onChange={(val) => {
+                                                    const amt = Number(val);
+                                                    // Tính ngược lại % (chỉ mang tính tham khảo)
+                                                    const rate = subtotal > 0 ? Number((amt / subtotal * 100).toFixed(2)) : 0;
+                                                    form.setFieldsValue({ discount_amount: amt, discount_rate: rate });
+                                                    calculateTotal(orderItems);
+                                                }}
+                                            />
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={2} />
+                                    </Table.Summary.Row>
+                                    <Table.Summary.Row>
+                                        <Table.Summary.Cell index={0} colSpan={2} align="right">
+                                            VAT (%):
+                                            <InputNumber size="small" min={0} max={100} style={{ width: 60, marginLeft: 10 }}
+                                                value={form.getFieldValue('vat_rate')}
+                                                onChange={(v) => { form.setFieldsValue({ vat_rate: v }); calculateTotal(orderItems); }}
+                                            />
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={1} align="right">
+                                            {vatRate > 0 ? (taxable * vatRate / 100).toLocaleString() : '0'} ₫
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={2} />
+                                    </Table.Summary.Row>
+                                    <Table.Summary.Row>
+                                        <Table.Summary.Cell index={0} colSpan={2} align="right">Phí vận chuyển:</Table.Summary.Cell>
+                                        <Table.Summary.Cell index={1} align="right">
+                                            <InputNumber
+                                                size="small"
+                                                min={0}
+                                                style={{ width: '100%' }}
+                                                value={form.getFieldValue('shipping_fee')}
+                                                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                parser={v => v!.replace(/\$\s?|(,*)/g, '')}
+                                                onChange={(v) => { form.setFieldsValue({ shipping_fee: v }); calculateTotal(orderItems); }}
+                                            />
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={2} />
+                                    </Table.Summary.Row>
+                                    <Table.Summary.Row>
+                                        <Table.Summary.Cell index={0} colSpan={2} align="right"><b>TỔNG CỘNG:</b></Table.Summary.Cell>
+                                        <Table.Summary.Cell index={1} align="right">
+                                            <b style={{ color: 'red', fontSize: 16 }}>{total.toLocaleString()} ₫</b>
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={2} />
+                                    </Table.Summary.Row>
+                                </>
+                            );
+                        }}
+                    />
+                    <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>Thêm sản phẩm</Button>
+                </Form>
+            </Tabs.TabPane>
+            {initialData && !isQuotation && (
+                <>
+                    <Tabs.TabPane tab="2. Thanh toán" key="2">
+                        <SalesPayments orderId={initialData.id} orderCode={initialData.order_code} totalAmount={totalAmount} paidAmount={initialData.paid_amount || 0} onSuccess={onSuccess} />
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab="3. Giao hàng" key="3">
+                        <SalesDeliveries orderId={initialData.id} orderItems={orderItems} onSuccess={onSuccess} />
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab="4. Trao đổi" key="4">
+                        <SalesComments orderId={initialData.id} />
+                    </Tabs.TabPane>
+                </>
+            )}
+        </Tabs>
+    </Modal>
+);
 };
 
 export default SalesOrderDetail;
