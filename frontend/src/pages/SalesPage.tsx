@@ -36,10 +36,10 @@ const SalesPage: React.FC = () => {
         setLoading(true);
         try {
             const [resSales, resProd, resCust, resUsers] = await Promise.all([
-                axios.get(`${API_URL}/sales`),
-                axios.get(`${API_URL}/products`),
-                axios.get(`${API_URL}/customers`),
-                axios.get(`${API_URL}/users`)
+                axios.get(`${API_URL}/sales`).catch(e => ({ data: [] })),
+                axios.get(`${API_URL}/products`).catch(e => ({ data: [] })),
+                axios.get(`${API_URL}/customers`).catch(e => ({ data: [] })),
+                axios.get(`${API_URL}/users`).catch(e => ({ data: [] }))
             ]);
 
             setData(Array.isArray(resSales.data) ? resSales.data : []);
@@ -56,8 +56,12 @@ const SalesPage: React.FC = () => {
             }
             setCustomers(Array.isArray(resCust.data) ? resCust.data : []);
             setUsers(Array.isArray(resUsers.data) ? resUsers.data : []);
-        } catch (e) { message.error('Lỗi tải dữ liệu'); }
-        setLoading(false);
+        } catch (e) {
+            console.error("Error fetching data:", e);
+            message.error('Lỗi tải dữ liệu');
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => { fetchData(); }, []);
