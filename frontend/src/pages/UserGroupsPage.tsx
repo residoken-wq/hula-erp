@@ -11,6 +11,7 @@ const SYSTEM_MODULES = [
     { code: 'INVENTORY', name: 'Kho & Tồn kho' },
     { code: 'PURCHASE', name: 'Mua hàng (PO)' },
     { code: 'PRODUCTION', name: 'Sản xuất (MRP)' },
+    { code: 'FINANCE', name: 'Tài chính (Thu/Chi)' },
     { code: 'USERS', name: 'Hệ thống & User' },
 ];
 

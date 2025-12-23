@@ -133,7 +133,8 @@ const App: React.FC = () => {
         }
 
         // 7. Tài chính
-        if (hasPerm('FINANCE') || hasPerm('SALES')) {
+        // 7. Tài chính
+        if (hasPerm('FINANCE')) {
             items.push(getItem(<Link to="/finance">Tài chính (Thu/Chi)</Link>, 'finance', <BankOutlined />));
         }
 
@@ -227,7 +228,7 @@ const App: React.FC = () => {
                                                 </>
                                             )}
 
-                                            {(hasPerm('FINANCE') || hasPerm('SALES')) && (
+                                            {hasPerm('FINANCE') && (
                                                 <Route path="/finance" element={<FinancePage />} />
                                             )}
 
