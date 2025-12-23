@@ -99,7 +99,7 @@ export class SalesService {
     async findAll() {
         const orders = await this.orderRepo.find({
             order: { order_date: 'DESC' }, // Sắp xếp theo ngày tạo mới nhất
-            relations: ['customer']
+            relations: ['customer', 'assigned_to']
         });
 
         // Map qua từng order để tính tiền đã trả từ bảng Transaction
@@ -123,6 +123,7 @@ export class SalesService {
         try {
             const query = this.orderRepo.createQueryBuilder('order')
                 .leftJoinAndSelect('order.customer', 'customer')
+                .leftJoinAndSelect('order.assigned_to', 'assigned_to')
                 .leftJoinAndSelect('order.items', 'items')
                 .leftJoinAndSelect('items.product', 'product')
                 .where(where);
