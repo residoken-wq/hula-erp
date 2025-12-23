@@ -14,6 +14,7 @@ export class GroupPermission {
   @Column({ default: false }) can_create: boolean;
   @Column({ default: false }) can_update: boolean;
   @Column({ default: false }) can_delete: boolean;
+  @Column({ default: false }) view_cost_price: boolean; // Quyền xem giá vốn
 
   @ManyToOne(() => UserGroup, (group) => group.permissions, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'group_id' })

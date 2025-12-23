@@ -47,6 +47,7 @@ const UserGroupsPage: React.FC = () => {
                 can_create: exist?.can_create || false,
                 can_update: exist?.can_update || false,
                 can_delete: exist?.can_delete || false,
+                view_cost_price: exist?.view_cost_price || false, // Thêm dòng này
             };
         });
         setPermissions(initialPerms);
@@ -116,7 +117,8 @@ const UserGroupsPage: React.FC = () => {
                             <Col span={4} style={{ textAlign: 'center' }}>Xem (View)</Col>
                             <Col span={4} style={{ textAlign: 'center' }}>Tạo (Create)</Col>
                             <Col span={4} style={{ textAlign: 'center' }}>Sửa (Update)</Col>
-                            <Col span={4} style={{ textAlign: 'center' }}>Xóa (Delete)</Col>
+                            <Col span={3} style={{ textAlign: 'center' }}>Xóa (Delete)</Col>
+                            <Col span={3} style={{ textAlign: 'center' }}>Xem Giá Vốn</Col> {/* Thêm Header */}
                         </Row>
                         {permissions.map((p: any) => (
                             <Row key={p.module_code} style={{ marginBottom: 8, borderBottom: '1px dashed #eee', paddingBottom: 5 }} align="middle">
@@ -124,7 +126,8 @@ const UserGroupsPage: React.FC = () => {
                                 <Col span={4} style={{ textAlign: 'center' }}><Checkbox checked={p.can_view} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_view', e.target.checked)} /></Col>
                                 <Col span={4} style={{ textAlign: 'center' }}><Checkbox checked={p.can_create} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_create', e.target.checked)} /></Col>
                                 <Col span={4} style={{ textAlign: 'center' }}><Checkbox checked={p.can_update} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_update', e.target.checked)} /></Col>
-                                <Col span={4} style={{ textAlign: 'center' }}><Checkbox checked={p.can_delete} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_delete', e.target.checked)} /></Col>
+                                <Col span={3} style={{ textAlign: 'center' }}><Checkbox checked={p.can_delete} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_delete', e.target.checked)} /></Col>
+                                <Col span={3} style={{ textAlign: 'center' }}><Checkbox checked={p.view_cost_price} onChange={(e: any) => handlePermissionChange(p.module_code, 'view_cost_price', e.target.checked)} /></Col> {/* Thêm Checkbox */}
                             </Row>
                         ))}
                     </div>

@@ -14,6 +14,23 @@ const CombosPage: React.FC = () => {
     const [editingItem, setEditingItem] = useState<any>(null);
     const [form] = Form.useForm();
 
+    // Permission State
+    const [canViewCost, setCanViewCost] = useState(false);
+
+    useEffect(() => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            const perms = user.permissions || [];
+            const prodPerm = perms.find((p: any) => p.module_code === 'PRODUCT');
+            if (user.username === 'admin') {
+                setCanViewCost(true);
+            } else if (prodPerm && (prodPerm.view_cost_price === true || prodPerm.view_cost_price === 1)) {
+                setCanViewCost(true);
+            }
+        }
+    }, []);
+
     // --- STATE METRICS (Chỉ số tài chính) ---
     const [metrics, setMetrics] = useState({
         totalRefCost: 0,    // Tổng giá vốn (từ SP con)
@@ -174,7 +191,7 @@ const CombosPage: React.FC = () => {
     const columns = [
         { title: 'Mã Combo', dataIndex: 'sku', render: (t: any) => <b>{t}</b> },
         { title: 'Tên Combo', dataIndex: 'name' },
-        { title: 'Giá vốn', dataIndex: 'cost_price', align: 'right' as const, render: (v: any) => <span style={{ color: 'red' }}>{Number(v).toLocaleString()} ₫</span> },
+        { title: 'Giá vốn', dataIndex: 'cost_price', align: 'right' as const, render: (v: any) => <span style={{ color: 'red' }}>{Number(v).toLocaleString()} ₫</span>, hidden: !canViewCost },
         { title: 'Giá bán', dataIndex: 'base_price', align: 'right' as const, render: (v: any) => <Tag color="green" style={{ fontSize: 14 }}>{Number(v).toLocaleString()} ₫</Tag> },
         {
             title: '', key: 'act', width: 100, align: 'center' as const,
@@ -238,7 +255,7 @@ const CombosPage: React.FC = () => {
                                                     <Select placeholder="Chọn sản phẩm con" options={products} showSearch optionFilterProp="label" style={{ width: '100%' }} />
                                                 </Form.Item>
                                                 <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
-                                                    Giá vốn: {info.cost.toLocaleString()} | Giá bán lẻ: {info.price.toLocaleString()}
+                                                    {canViewCost && <span>Giá vốn: {info.cost.toLocaleString()} | </span>} Giá bán lẻ: {info.price.toLocaleString()}
                                                 </div>
                                             </Col>
                                             <Col span={4}>
@@ -266,13 +283,21 @@ const CombosPage: React.FC = () => {
                     <div style={{ background: '#f6ffed', padding: 16, borderRadius: 8, border: '1px solid #b7eb8f' }}>
                         <Row gutter={24} style={{ textAlign: 'center' }}>
                             <Col span={6}>
-                                <Statistic
-                                    title="3. Tổng Giá Vốn (Tham Khảo)"
-                                    value={metrics.totalRefCost}
-                                    prefix={<CalculatorOutlined />}
-                                    valueStyle={{ fontSize: 18 }}
-                                />
-                                <div style={{ fontSize: 11, color: '#888' }}>(Tổng giá vốn SP con)</div>
+                                {canViewCost ? (
+                                    <>
+                                        <Statistic
+                                            title="3. Tổng Giá Vốn (Tham Khảo)"
+                                            value={metrics.totalRefCost}
+                                            prefix={<CalculatorOutlined />}
+                                            valueStyle={{ fontSize: 18 }}
+                                        />
+                                        <div style={{ fontSize: 11, color: '#888' }}>(Tổng giá vốn SP con)</div>
+                                    </>
+                                ) : (
+                                    <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}>
+                                        <i>-- Ẩn (Không có quyền) --</i>
+                                    </div>
+                                )}
                             </Col>
 
                             <Col span={6} style={{ borderLeft: '1px solid #d9d9d9' }}>
@@ -295,13 +320,21 @@ const CombosPage: React.FC = () => {
                             </Col>
 
                             <Col span={6} style={{ borderLeft: '1px solid #d9d9d9', background: '#fff7e6' }}>
-                                <Statistic
-                                    title="4. Lợi Nhuận Dự Kiến"
-                                    value={metrics.profit}
-                                    prefix={<DollarOutlined />}
-                                    valueStyle={{ color: metrics.profit > 0 ? '#d46b08' : 'red', fontSize: 20, fontWeight: 'bold' }}
-                                />
-                                <div style={{ fontSize: 11, color: '#888' }}>(Giá chính thức - Giá vốn)</div>
+                                {canViewCost ? (
+                                    <>
+                                        <Statistic
+                                            title="4. Lợi Nhuận Dự Kiến"
+                                            value={metrics.profit}
+                                            prefix={<DollarOutlined />}
+                                            valueStyle={{ color: metrics.profit > 0 ? '#d46b08' : 'red', fontSize: 20, fontWeight: 'bold' }}
+                                        />
+                                        <div style={{ fontSize: 11, color: '#888' }}>(Giá chính thức - Giá vốn)</div>
+                                    </>
+                                ) : (
+                                    <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}>
+                                        <i>-- Ẩn --</i>
+                                    </div>
+                                )}
                             </Col>
                         </Row>
                     </div>
