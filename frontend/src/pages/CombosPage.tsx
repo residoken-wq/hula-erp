@@ -86,7 +86,7 @@ const CombosPage: React.FC = () => {
 
     const fetchComboDetail = async (comboSku: string) => {
         try {
-            const res = await axios.get(`${API_URL}/products/combo/${comboSku}`);
+            const res = await axios.get(`${API_URL}/products/combo/${encodeURIComponent(comboSku)}`);
             return (res.data || []).map((comp: any) => ({
                 sku: comp.child_product?.sku,
                 quantity: comp.quantity,

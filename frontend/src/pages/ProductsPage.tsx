@@ -103,7 +103,7 @@ const ProductsPage: React.FC = () => {
             const res = await axios.get(`${API_URL}/products/${id}`);
             const product = res.data;
 
-            const resBOM = await axios.get(`${API_URL}/products/${product.sku}/boms`);
+            const resBOM = await axios.get(`${API_URL}/products/${encodeURIComponent(product.sku)}/boms`);
             setBoms(resBOM.data || []);
 
             const resRouting = await axios.get(`${API_URL}/products/${id}/routings`);
@@ -113,7 +113,7 @@ const ProductsPage: React.FC = () => {
             const resLogistics = await axios.get(`${API_URL}/products/${id}/logistics`);
             setLogistics(resLogistics.data || []);
 
-            const resComp = await axios.get(`${API_URL}/products/combo/${product.sku}`);
+            const resComp = await axios.get(`${API_URL}/products/combo/${encodeURIComponent(product.sku)}`);
             setComponents(resComp.data || []);
 
         } catch (e) { message.error('Lỗi tải chi tiết'); }
@@ -211,7 +211,7 @@ const ProductsPage: React.FC = () => {
 
     const handleCalculateCost = async (sku: string) => {
         try {
-            const res = await axios.get(`${API_URL}/products/calculate-cost/${sku}`);
+            const res = await axios.get(`${API_URL}/products/calculate-cost/${encodeURIComponent(sku)}`);
             message.success(`Giá vốn mới: ${Number(res.data.new_cost_price).toLocaleString()} ₫`);
             fetchData();
             if (editingItem) {
