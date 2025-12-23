@@ -113,21 +113,21 @@ const UserGroupsPage: React.FC = () => {
 
                     <div style={{ background: '#fafafa', padding: 10, borderRadius: 8 }}>
                         <Row style={{ fontWeight: 'bold', marginBottom: 10, borderBottom: '1px solid #ddd', paddingBottom: 5 }}>
-                            <Col span={8}>Chức năng (Module)</Col>
-                            <Col span={4} style={{ textAlign: 'center' }}>Xem (View)</Col>
-                            <Col span={4} style={{ textAlign: 'center' }}>Tạo (Create)</Col>
-                            <Col span={4} style={{ textAlign: 'center' }}>Sửa (Update)</Col>
+                            <Col span={7}>Chức năng (Module)</Col>
+                            <Col span={3} style={{ textAlign: 'center' }}>Xem (View)</Col>
+                            <Col span={3} style={{ textAlign: 'center' }}>Tạo (Create)</Col>
+                            <Col span={3} style={{ textAlign: 'center' }}>Sửa (Update)</Col>
                             <Col span={3} style={{ textAlign: 'center' }}>Xóa (Delete)</Col>
-                            <Col span={3} style={{ textAlign: 'center' }}>Xem Giá Vốn</Col> {/* Thêm Header */}
+                            <Col span={5} style={{ textAlign: 'center' }}>Xem Giá Vốn</Col> {/* Thêm Header */}
                         </Row>
                         {permissions.map((p: any) => (
                             <Row key={p.module_code} style={{ marginBottom: 8, borderBottom: '1px dashed #eee', paddingBottom: 5 }} align="middle">
-                                <Col span={8}><b>{p.module_name}</b></Col>
-                                <Col span={4} style={{ textAlign: 'center' }}><Checkbox checked={p.can_view} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_view', e.target.checked)} /></Col>
-                                <Col span={4} style={{ textAlign: 'center' }}><Checkbox checked={p.can_create} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_create', e.target.checked)} /></Col>
-                                <Col span={4} style={{ textAlign: 'center' }}><Checkbox checked={p.can_update} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_update', e.target.checked)} /></Col>
+                                <Col span={7}><b>{p.module_name}</b></Col>
+                                <Col span={3} style={{ textAlign: 'center' }}><Checkbox checked={p.can_view} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_view', e.target.checked)} /></Col>
+                                <Col span={3} style={{ textAlign: 'center' }}><Checkbox checked={p.can_create} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_create', e.target.checked)} /></Col>
+                                <Col span={3} style={{ textAlign: 'center' }}><Checkbox checked={p.can_update} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_update', e.target.checked)} /></Col>
                                 <Col span={3} style={{ textAlign: 'center' }}><Checkbox checked={p.can_delete} onChange={(e: any) => handlePermissionChange(p.module_code, 'can_delete', e.target.checked)} /></Col>
-                                <Col span={3} style={{ textAlign: 'center' }}><Checkbox checked={p.view_cost_price} onChange={(e: any) => handlePermissionChange(p.module_code, 'view_cost_price', e.target.checked)} /></Col> {/* Thêm Checkbox */}
+                                <Col span={5} style={{ textAlign: 'center' }}><Checkbox checked={p.view_cost_price} onChange={(e: any) => handlePermissionChange(p.module_code, 'view_cost_price', e.target.checked)} /></Col> {/* Thêm Checkbox */}
                             </Row>
                         ))}
                     </div>
