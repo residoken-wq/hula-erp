@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Button, Table, Tabs, Row, Col, InputNumber, Divider, message, Tag, Space, Popconfirm } from 'antd';
-import { PlusOutlined, DeleteOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined, GiftOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, DatePicker, Button, Table, Tabs, Row, Col, InputNumber, Divider, message, Tag, Space, Popconfirm, Upload } from 'antd';
+import { PlusOutlined, DeleteOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined, GiftOutlined, UploadOutlined, LoadingOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import SalesPayments from './sales/SalesPayments';
@@ -195,6 +195,29 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 </span>
                             </div>
                         )}
+                        {/* IMAGE UPLOAD */}
+                        <div style={{ marginTop: 5 }}>
+                            <Upload
+                                name="file"
+                                action={`${api.defaults.baseURL}/upload/image`}
+                                showUploadList={false}
+                                onChange={(info) => {
+                                    if (info.file.status === 'done') {
+                                        const url = info.file.response.url;
+                                        handleItemChange(index, 'sample_image', url);
+                                        message.success('Upload ảnh thành công');
+                                    } else if (info.file.status === 'error') {
+                                        message.error('Upload thất bại');
+                                    }
+                                }}
+                            >
+                                {record.sample_image ? (
+                                    <img src={`${api.defaults.baseURL}${record.sample_image}`} alt="sample" style={{ height: 40, border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer' }} />
+                                ) : (
+                                    <Button size="small" icon={<UploadOutlined />} style={{ fontSize: 10 }}>Up ảnh</Button>
+                                )}
+                            </Upload>
+                        </div>
                     </div>
                 );
             }

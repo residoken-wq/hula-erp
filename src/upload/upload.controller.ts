@@ -5,13 +5,20 @@ import { Response } from 'express';
 
 @Controller('upload')
 export class UploadController {
-  constructor(private readonly uploadService: UploadService) {}
+  constructor(private readonly uploadService: UploadService) { }
 
   @Post('materials')
   @UseInterceptors(FileInterceptor('file'))
   async uploadMaterials(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Chua chon file!');
     return this.uploadService.importMaterials(file.buffer);
+  }
+
+  @Post('image')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Chua chon file!');
+    return this.uploadService.uploadImage(file);
   }
 
   @Post('products')
@@ -47,7 +54,7 @@ export class UploadController {
   @Get('template/:type')
   async downloadTemplate(@Param('type') type: string, @Res() res: Response) {
     const buffer = this.uploadService.getTemplate(type);
-    
+
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': 'attachment; filename=' + type + '_template.xlsx',

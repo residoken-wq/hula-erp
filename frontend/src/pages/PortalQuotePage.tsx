@@ -85,10 +85,26 @@ const PortalQuotePage: React.FC = () => {
         <div style={{ background: '#f0f2f5', minHeight: '100vh', paddingBottom: 40 }}>
             <div style={{ background: '#fff', padding: '15px 40px', boxShadow: '0 2px 8px #f0f1f2', position: 'sticky', top: 0, zIndex: 100 }}>
                 <Row justify="space-between" align="middle">
-                    <Col><Title level={4} style={{ margin: 0, color: '#1890ff' }}>HULA ERP PORTAL</Title><Text type="secondary">Mã đơn: <b>{data.order_code}</b></Text></Col>
-                    <Col><Button icon={<PrinterOutlined />} onClick={() => window.print()}>In Đơn Hàng</Button></Col>
+                    <Col><Text type="secondary">Mã đơn: <b>{data.order_code}</b></Text></Col>
+                    <Col>
+                        <Space>
+                            <Button icon={<LinkOutlined />} onClick={() => {
+                                navigator.clipboard.writeText(window.location.href);
+                                message.success('Đã copy link báo giá!');
+                            }}>Copy Link</Button>
+                            <Button icon={<PrinterOutlined />} onClick={() => window.print()}>In Đơn Hàng</Button>
+                        </Space>
+                    </Col>
                 </Row>
                 <div style={{ marginTop: 20, maxWidth: 900, margin: '20px auto 0' }}>
+                    {/* SAMPLE STATUS NOTIFICATION */}
+                    {data.status === 'SAMPLE_APPROVED' && (
+                        <div style={{ marginBottom: 20, textAlign: 'center' }}>
+                            <Tag color="success" style={{ fontSize: 16, padding: '5px 15px' }}>
+                                <CheckCircleOutlined /> Mẫu sản phẩm đã được duyệt
+                            </Tag>
+                        </div>
+                    )}
                     <Steps current={currentStep} size="small" items={[{ title: 'Báo Giá', icon: <SolutionOutlined /> }, { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> }, { title: 'Đặt Cọc', icon: <DollarOutlined /> }, { title: 'Giao Hàng', icon: <CarOutlined /> }, { title: 'Hoàn Tất', icon: <CheckCircleOutlined /> }]} />
                 </div>
             </div>
