@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, DatePicker, Button, Table, Tabs, Row, Col, InputNumber, Divider, message, Tag, Space, Popconfirm } from 'antd';
 import { PlusOutlined, DeleteOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined, GiftOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../utils/api';
 import dayjs from 'dayjs';
-import { API_URL } from '../config';
-
 import SalesPayments from './sales/SalesPayments';
 import SalesDeliveries from './sales/SalesDeliveries';
 import SalesComments from './sales/SalesComments';
@@ -148,10 +146,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             };
 
             if (initialData?.id) {
-                await axios.put(`${API_URL}/sales/${initialData.id}`, payload);
+                await api.put(`/sales/${initialData.id}`, payload);
                 message.success('Cập nhật thành công');
             } else {
-                await axios.post(`${API_URL}/sales`, { ...payload, is_quotation: isQuotation });
+                await api.post('/sales', { ...payload, is_quotation: isQuotation });
                 message.success(isQuotation ? 'Tạo báo giá thành công' : 'Tạo đơn hàng thành công');
             }
             onSuccess();
@@ -163,7 +161,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const handleCompleteOrder = async () => {
         if (!initialData?.id) return;
         try {
-            await axios.put(`${API_URL}/sales/${initialData.id}`, { status: 'COMPLETED' });
+            await api.put(`/sales/${initialData.id}`, { status: 'COMPLETED' });
             message.success('Đã hoàn tất đơn hàng'); onSuccess(); onClose();
         } catch (e) { message.error('Lỗi'); }
     };
