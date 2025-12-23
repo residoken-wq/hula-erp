@@ -3,6 +3,7 @@ import { SalesOrderItem } from './sales-order-item.entity';
 import { Customer } from '../customers/customer.entity';
 import { ProductionPlan } from '../planning/production-plan.entity';
 import { SalesComment } from './sales-comment.entity';
+import { User } from '../users/entities/user.entity';
 
 export enum SalesOrderStatus {
   QUOTATION = 'QUOTATION',
@@ -60,6 +61,13 @@ export class SalesOrder {
 
 
   @Column('text', { nullable: true }) note: string; // --- NEW NOTE FIELD ---
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'assigned_to_id' })
+  assigned_to: User;
+
+  @Column({ nullable: true })
+  assigned_to_id: number;
 
   // --- ALLOW DISCOUNT ---
   @Column('float', { default: 0 }) discount_rate: number; // %

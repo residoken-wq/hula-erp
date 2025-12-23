@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { SalesOrder } from '../sales/sales-order.entity';
 import { CustomerContact } from './customer-contact.entity';
+import { User } from '../users/entities/user.entity';
 
 export enum CustomerType {
   LEAD = 'LEAD',
@@ -31,6 +32,13 @@ export class Customer {
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   potential_value: number;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'assigned_to_id' })
+  assigned_to: User;
+
+  @Column({ nullable: true })
+  assigned_to_id: number;
   // ------------------
 
   // --- QUAN HỆ KHÁCH HÀNG (CHA - CON) ---

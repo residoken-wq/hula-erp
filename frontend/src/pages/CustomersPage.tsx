@@ -8,250 +8,270 @@ import { API_URL } from '../config';
 const { Option } = Select;
 
 const CustomersPage: React.FC = () => {
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [filteredData, setFilteredData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchText, setSearchText] = useState('');
-  
-  // State Modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  
-  // State History Orders
-  const [historyOrders, setHistoryOrders] = useState<any[]>([]);
-  const [filterYear, setFilterYear] = useState<dayjs.Dayjs>(dayjs()); // Mặc định năm nay
+    const [customers, setCustomers] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]); // New State
+    const [filteredData, setFilteredData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [searchText, setSearchText] = useState('');
 
-  const [form] = Form.useForm();
+    // State Modal
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState<any>(null);
 
-  // Fetch Data
-  const fetchData = async () => {
-    setLoading(true);
-    try { 
-        const res = await axios.get(`${API_URL}/customers`); 
-        setCustomers(res.data);
-        setFilteredData(res.data);
-    } catch (e) { message.error('Lỗi tải dữ liệu'); }
-    setLoading(false);
-  };
+    // State History Orders
+    const [historyOrders, setHistoryOrders] = useState<any[]>([]);
+    const [filterYear, setFilterYear] = useState<dayjs.Dayjs>(dayjs()); // Mặc định năm nay
 
-  useEffect(() => { fetchData(); }, []);
+    const [form] = Form.useForm();
 
-  // Fetch Orders khi mở Modal Edit
-  const fetchOrders = async (customerId: number) => {
-      try {
-          const res = await axios.get(`${API_URL}/customers/${customerId}/orders`);
-          setHistoryOrders(res.data);
-      } catch (e) { setHistoryOrders([]); }
-  };
+    // Fetch Data
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [res, resUsers] = await Promise.all([
+                axios.get(`${API_URL}/customers`),
+                axios.get(`${API_URL}/users`)
+            ]);
+            setCustomers(res.data);
+            setUsers(resUsers.data);
+            setFilteredData(res.data);
+        } catch (e) { message.error('Lỗi tải dữ liệu'); }
+        setLoading(false);
+    };
 
-  // Search Logic
-  useEffect(() => {
-      const lower = searchText.toLowerCase();
-      const filtered = customers.filter(c => 
-          (c.name && c.name.toLowerCase().includes(lower)) ||
-          (c.code && c.code.toLowerCase().includes(lower)) ||
-          (c.phone && c.phone.includes(lower))
-      );
-      setFilteredData(filtered);
-  }, [searchText, customers]);
+    useEffect(() => { fetchData(); }, []);
 
-  // Logic Filter & Calculate Revenue theo Năm
-  const { filteredOrders, revenueStats } = useMemo(() => {
-      if (!filterYear) return { filteredOrders: historyOrders, revenueStats: { total: 0, paid: 0, debt: 0 } };
-      
-      const year = filterYear.year();
-      const list = historyOrders.filter(o => dayjs(o.order_date).year() === year);
-      
-      const stats = list.reduce((acc, curr) => ({
-          total: acc.total + Number(curr.total_amount),
-          paid: acc.paid + Number(curr.paid_amount),
-          debt: acc.debt + (Number(curr.total_amount) - Number(curr.paid_amount))
-      }), { total: 0, paid: 0, debt: 0 });
+    // Fetch Orders khi mở Modal Edit
+    const fetchOrders = async (customerId: number) => {
+        try {
+            const res = await axios.get(`${API_URL}/customers/${customerId}/orders`);
+            setHistoryOrders(res.data);
+        } catch (e) { setHistoryOrders([]); }
+    };
 
-      return { filteredOrders: list, revenueStats: stats };
-  }, [historyOrders, filterYear]);
+    // Search Logic
+    useEffect(() => {
+        const lower = searchText.toLowerCase();
+        const filtered = customers.filter(c =>
+            (c.name && c.name.toLowerCase().includes(lower)) ||
+            (c.code && c.code.toLowerCase().includes(lower)) ||
+            (c.phone && c.phone.includes(lower))
+        );
+        setFilteredData(filtered);
+    }, [searchText, customers]);
 
-  // Save
-  const handleSave = async (values: any) => {
-    try {
-      if (editingItem) {
-          await axios.put(`${API_URL}/customers/${editingItem.id}`, values);
-          message.success('Cập nhật thành công');
-      } else {
-          await axios.post(`${API_URL}/customers`, values);
-          message.success('Thêm mới thành công');
-      }
-      setIsModalOpen(false); 
-      fetchData();
-    } catch (e: any) { 
-        message.error(e.response?.data?.message || 'Có lỗi xảy ra'); 
-    }
-  };
+    // Logic Filter & Calculate Revenue theo Năm
+    const { filteredOrders, revenueStats } = useMemo(() => {
+        if (!filterYear) return { filteredOrders: historyOrders, revenueStats: { total: 0, paid: 0, debt: 0 } };
 
-  // Delete
-  const handleDelete = async (id: number) => {
-    try { await axios.delete(`${API_URL}/customers/${id}`); message.success('Đã xóa'); fetchData(); } 
-    catch (e) { message.error('Không thể xóa (KH đã có dữ liệu ràng buộc)'); }
-  };
+        const year = filterYear.year();
+        const list = historyOrders.filter(o => dayjs(o.order_date).year() === year);
 
-  const columns = [
-    { title: 'Mã KH', dataIndex: 'code', width: 100, render: (t:any) => <b>{t}</b> },
-    { 
-        title: 'Tên Khách Hàng', dataIndex: 'name',
-        render: (t:any, r:any) => (
-            <div>
-                <div style={{fontWeight:500, color:'#1890ff'}}>{t}</div>
-                {r.parent && <Tag icon={<BranchesOutlined />} color="purple" style={{marginTop:4}}>Thuộc: {r.parent.name}</Tag>}
-                <div style={{color:'#888', fontSize:12}}>{r.address}</div>
-            </div>
-        )
-    },
-    { 
-        title: 'Phân Loại', dataIndex: 'type', width: 100, align: 'center' as const,
-        render: (t:any) => t === 'CUSTOMER' ? <Tag color="blue">Khách Hàng</Tag> : <Tag color="orange">Tiềm Năng</Tag>
-    },
-    { 
-        title: 'Liên Hệ', key: 'contact', width: 200,
-        render: (_:any, r:any) => {
-            if (r.contacts && r.contacts.length > 0) {
-                return (
-                    <div>
-                        <UserOutlined /> {r.contacts[0].full_name} <br/>
-                        <small>{r.contacts[0].phone || r.contacts[0].email}</small>
-                        {r.contacts.length > 1 && <Tag style={{marginLeft:5}}>+{r.contacts.length-1}</Tag>}
-                    </div>
-                )
+        const stats = list.reduce((acc, curr) => ({
+            total: acc.total + Number(curr.total_amount),
+            paid: acc.paid + Number(curr.paid_amount),
+            debt: acc.debt + (Number(curr.total_amount) - Number(curr.paid_amount))
+        }), { total: 0, paid: 0, debt: 0 });
+
+        return { filteredOrders: list, revenueStats: stats };
+    }, [historyOrders, filterYear]);
+
+    // Save
+    const handleSave = async (values: any) => {
+        try {
+            if (editingItem) {
+                await axios.put(`${API_URL}/customers/${editingItem.id}`, values);
+                message.success('Cập nhật thành công');
+            } else {
+                await axios.post(`${API_URL}/customers`, values);
+                message.success('Thêm mới thành công');
             }
-            return <div><UserOutlined /> {r.phone}</div>
+            setIsModalOpen(false);
+            fetchData();
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Có lỗi xảy ra');
         }
-    },
-    { 
-        title: 'Công Nợ', dataIndex: 'current_debt', align: 'right' as const, width: 120,
-        render: (v:any) => <span style={{color: v>0?'red':'green'}}>{Number(v).toLocaleString()}</span>
-    },
-    { 
-      title: '', key: 'action', width: 80, align: 'right' as const,
-      render: (_: any, r: any) => (
-        <Space>
-          <Button icon={<EditOutlined />} size="small" onClick={() => { 
-              setEditingItem(r); 
-              form.setFieldsValue(r); 
-              setIsModalOpen(true); 
-              fetchOrders(r.id); // Load lịch sử mua hàng
-          }} />
-          <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+    };
 
-  const historyColumns = [
-      { title: 'Ngày Đơn', dataIndex: 'order_date', render: (t:any) => dayjs(t).format('DD/MM/YYYY') },
-      { title: 'Mã Đơn', dataIndex: 'order_code', render: (t:any) => <b>{t}</b> },
-      { title: 'Trạng Thái', dataIndex: 'status', render: (t:any) => <Tag>{t}</Tag> },
-      { title: 'Tổng Tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v:any) => <b>{Number(v).toLocaleString()}</b> },
-      { title: 'Đã Thanh Toán', dataIndex: 'paid_amount', align: 'right' as const, render: (v:any) => <span style={{color:'green'}}>{Number(v).toLocaleString()}</span> },
-  ];
+    // Delete
+    const handleDelete = async (id: number) => {
+        try { await axios.delete(`${API_URL}/customers/${id}`); message.success('Đã xóa'); fetchData(); }
+        catch (e) { message.error('Không thể xóa (KH đã có dữ liệu ràng buộc)'); }
+    };
 
-  return (
-    <div>
-      <Card 
-        title="Danh Mục Khách Hàng & Đối Tác" 
-        extra={
-            <Space>
-                <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }}>Thêm Mới</Button>
-                <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
-            </Space>
-        }
-      >
-        <div style={{marginBottom: 16}}>
-            <Input placeholder="Tìm kiếm..." prefix={<SearchOutlined style={{color:'#ccc'}}/>} style={{width: 300}} value={searchText} onChange={e => setSearchText(e.target.value)} allowClear />
-        </div>
-        <Table columns={columns} dataSource={filteredData} rowKey="id" loading={loading} bordered pagination={{pageSize: 10}} />
-      </Card>
+    const columns = [
+        { title: 'Mã KH', dataIndex: 'code', width: 100, render: (t: any) => <b>{t}</b> },
+        {
+            title: 'Tên Khách Hàng', dataIndex: 'name',
+            render: (t: any, r: any) => (
+                <div>
+                    <div style={{ fontWeight: 500, color: '#1890ff' }}>{t}</div>
+                    {r.parent && <Tag icon={<BranchesOutlined />} color="purple" style={{ marginTop: 4 }}>Thuộc: {r.parent.name}</Tag>}
+                    <div style={{ color: '#888', fontSize: 12 }}>{r.address}</div>
+                </div>
+            )
+        },
+        {
+            title: 'Phân Loại', dataIndex: 'type', width: 100, align: 'center' as const,
+            render: (t: any) => t === 'CUSTOMER' ? <Tag color="blue">Khách Hàng</Tag> : <Tag color="orange">Tiềm Năng</Tag>
+        },
+        {
+            title: 'Liên Hệ', key: 'contact', width: 200,
+            render: (_: any, r: any) => {
+                if (r.contacts && r.contacts.length > 0) {
+                    return (
+                        <div>
+                            <UserOutlined /> {r.contacts[0].full_name} <br />
+                            <small>{r.contacts[0].phone || r.contacts[0].email}</small>
+                            {r.contacts.length > 1 && <Tag style={{ marginLeft: 5 }}>+{r.contacts.length - 1}</Tag>}
+                        </div>
+                    )
+                }
+                return <div><UserOutlined /> {r.phone}</div>
+            }
+        },
+        {
+            title: 'Công Nợ', dataIndex: 'current_debt', align: 'right' as const, width: 120,
+            render: (v: any) => <span style={{ color: v > 0 ? 'red' : 'green' }}>{Number(v).toLocaleString()}</span>
+        },
+        {
+            title: 'Phụ trách', dataIndex: 'assigned_to', width: 120,
+            render: (u: any) => u ? <Tag color="blue">{u.full_name || u.username}</Tag> : '-'
+        },
+        {
+            title: '', key: 'action', width: 80, align: 'right' as const,
+            render: (_: any, r: any) => (
+                <Space>
+                    <Button icon={<EditOutlined />} size="small" onClick={() => {
+                        setEditingItem(r);
+                        setEditingItem(r);
+                        form.setFieldsValue({
+                            ...r,
+                            assigned_to_id: r.assigned_to?.id // Map assigned user
+                        });
+                        setIsModalOpen(true);
+                        fetchOrders(r.id); // Load lịch sử mua hàng
+                    }} />
+                    <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
+                </Space>
+            ),
+        },
+    ];
 
-      <Modal 
-        title={editingItem ? `Sửa: ${editingItem.name}` : "Thêm Khách Hàng"} 
-        open={isModalOpen} 
-        onCancel={() => setIsModalOpen(false)} 
-        onOk={() => form.submit()} 
-        width={800}
-        style={{top: 20}}
-      >
-        <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ type: 'LEAD', credit_limit: 0 }}>
-          <Tabs defaultActiveKey="1" items={[
-              {
-                  key: '1', label: 'Thông tin chung',
-                  children: (
-                      <>
-                        <Row gutter={16}>
-                            <Col span={8}><Form.Item name="code" label="Mã KH" rules={[{ required: true }]}><Input disabled={!!editingItem} /></Form.Item></Col>
-                            <Col span={16}><Form.Item name="name" label="Tên Khách Hàng" rules={[{ required: true }]}><Input /></Form.Item></Col>
-                        </Row>
-                        <Row gutter={16}><Col span={12}><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Col><Col span={12}><Form.Item name="email" label="Email"><Input /></Form.Item></Col></Row>
-                        <Form.Item name="address" label="Địa Chỉ"><Input /></Form.Item>
-                        <Row gutter={16}>
-                            <Col span={12}><Form.Item name="parent_id" label="Công ty mẹ"><Select allowClear showSearch optionFilterProp="children" options={customers.filter(c => c.id !== editingItem?.id).map(c => ({label: c.name, value: c.id}))} /></Form.Item></Col>
-                            <Col span={12}><Form.Item name="credit_limit" label="Hạn Mức Nợ"><InputNumber style={{width:'100%'}} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
-                        </Row>
-                        <Row gutter={16}>
-                            <Col span={12}><Form.Item name="tax_code" label="MST"><Input prefix={<AuditOutlined />} /></Form.Item></Col>
-                            <Col span={12}><Form.Item name="type" label="Phân Loại"><Select><Option value="LEAD">Tiềm Năng</Option><Option value="CUSTOMER">Khách Hàng</Option></Select></Form.Item></Col>
-                        </Row>
-                      </>
-                  )
-              },
-              {
-                  key: '2', label: 'Liên hệ',
-                  children: (
-                      <Form.List name="contacts">
-                        {(fields, { add, remove }) => (
-                            <>
-                                {fields.map(({ key, name, ...restField }) => (
-                                    <Row key={key} gutter={8} align="middle" style={{marginBottom: 8, borderBottom:'1px dashed #eee', paddingBottom:5}}>
-                                        <Col span={8}><Form.Item {...restField} name={[name, 'full_name']} noStyle rules={[{required:true}]}><Input placeholder="Họ Tên" prefix={<UserOutlined />} /></Form.Item></Col>
-                                        <Col span={6}><Form.Item {...restField} name={[name, 'job_title']} noStyle><Input placeholder="Chức danh" /></Form.Item></Col>
-                                        <Col span={8}><Form.Item {...restField} name={[name, 'phone']} noStyle><Input placeholder="SĐT/Email" /></Form.Item></Col>
-                                        <Col span={2}><MinusCircleOutlined onClick={() => remove(name)} style={{color:'red'}} /></Col>
+    const historyColumns = [
+        { title: 'Ngày Đơn', dataIndex: 'order_date', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
+        { title: 'Mã Đơn', dataIndex: 'order_code', render: (t: any) => <b>{t}</b> },
+        { title: 'Trạng Thái', dataIndex: 'status', render: (t: any) => <Tag>{t}</Tag> },
+        { title: 'Tổng Tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
+        { title: 'Đã Thanh Toán', dataIndex: 'paid_amount', align: 'right' as const, render: (v: any) => <span style={{ color: 'green' }}>{Number(v).toLocaleString()}</span> },
+    ];
+
+    return (
+        <div>
+            <Card
+                title="Danh Mục Khách Hàng & Đối Tác"
+                extra={
+                    <Space>
+                        <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }}>Thêm Mới</Button>
+                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
+                    </Space>
+                }
+            >
+                <div style={{ marginBottom: 16 }}>
+                    <Input placeholder="Tìm kiếm..." prefix={<SearchOutlined style={{ color: '#ccc' }} />} style={{ width: 300 }} value={searchText} onChange={e => setSearchText(e.target.value)} allowClear />
+                </div>
+                <Table columns={columns} dataSource={filteredData} rowKey="id" loading={loading} bordered pagination={{ pageSize: 10 }} />
+            </Card>
+
+            <Modal
+                title={editingItem ? `Sửa: ${editingItem.name}` : "Thêm Khách Hàng"}
+                open={isModalOpen}
+                onCancel={() => setIsModalOpen(false)}
+                onOk={() => form.submit()}
+                width={800}
+                style={{ top: 20 }}
+            >
+                <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ type: 'LEAD', credit_limit: 0 }}>
+                    <Tabs defaultActiveKey="1" items={[
+                        {
+                            key: '1', label: 'Thông tin chung',
+                            children: (
+                                <>
+                                    <Row gutter={16}>
+                                        <Col span={8}><Form.Item name="code" label="Mã KH" rules={[{ required: true }]}><Input disabled={!!editingItem} /></Form.Item></Col>
+                                        <Col span={16}><Form.Item name="name" label="Tên Khách Hàng" rules={[{ required: true }]}><Input /></Form.Item></Col>
                                     </Row>
-                                ))}
-                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm liên hệ</Button>
-                            </>
-                        )}
-                      </Form.List>
-                  )
-              },
-              {
-                  key: '3', label: <span style={{color: '#1890ff'}}><HistoryOutlined /> Lịch sử Mua Hàng</span>,
-                  disabled: !editingItem, // Chỉ hiện khi sửa
-                  children: (
-                      <div>
-                          <div style={{marginBottom: 16, background:'#f5f5f5', padding: 10, borderRadius: 8}}>
-                              <Space size={20} align="center">
-                                  <span>Lọc theo năm:</span>
-                                  <DatePicker picker="year" value={filterYear} onChange={setFilterYear} allowClear={false} />
-                                  <Divider type="vertical" />
-                                  <Statistic title="Doanh Thu" value={revenueStats.total} prefix={<DollarOutlined />} valueStyle={{fontSize: 16, color:'#1890ff'}} />
-                                  <Statistic title="Đã Thu" value={revenueStats.paid} valueStyle={{fontSize: 16, color:'green'}} />
-                                  <Statistic title="Công Nợ" value={revenueStats.debt} valueStyle={{fontSize: 16, color:'red'}} />
-                              </Space>
-                          </div>
-                          <Table 
-                            columns={historyColumns} 
-                            dataSource={filteredOrders} 
-                            rowKey="id" 
-                            size="small" 
-                            pagination={{pageSize: 5}} 
-                            scroll={{y: 200}}
-                          />
-                      </div>
-                  )
-              }
-          ]} />
-        </Form>
-      </Modal>
-    </div>
-  );
+                                    <Row gutter={16}><Col span={12}><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Col><Col span={12}><Form.Item name="email" label="Email"><Input /></Form.Item></Col></Row>
+                                    <Form.Item name="address" label="Địa Chỉ"><Input /></Form.Item>
+                                    <Row gutter={16}>
+                                        <Col span={12}><Form.Item name="parent_id" label="Công ty mẹ"><Select allowClear showSearch optionFilterProp="children" options={customers.filter(c => c.id !== editingItem?.id).map(c => ({ label: c.name, value: c.id }))} /></Form.Item></Col>
+                                        <Col span={12}><Form.Item name="credit_limit" label="Hạn Mức Nợ"><InputNumber style={{ width: '100%' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
+                                    </Row>
+                                    <Row gutter={16}>
+                                        <Col span={12}><Form.Item name="tax_code" label="MST"><Input prefix={<AuditOutlined />} /></Form.Item></Col>
+                                        <Col span={12}><Form.Item name="type" label="Phân Loại"><Select><Option value="LEAD">Tiềm Năng</Option><Option value="CUSTOMER">Khách Hàng</Option></Select></Form.Item></Col>
+                                    </Row>
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Form.Item name="assigned_to_id" label="Nhân viên phụ trách">
+                                                <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                </>
+                            )
+                        },
+                        {
+                            key: '2', label: 'Liên hệ',
+                            children: (
+                                <Form.List name="contacts">
+                                    {(fields, { add, remove }) => (
+                                        <>
+                                            {fields.map(({ key, name, ...restField }) => (
+                                                <Row key={key} gutter={8} align="middle" style={{ marginBottom: 8, borderBottom: '1px dashed #eee', paddingBottom: 5 }}>
+                                                    <Col span={8}><Form.Item {...restField} name={[name, 'full_name']} noStyle rules={[{ required: true }]}><Input placeholder="Họ Tên" prefix={<UserOutlined />} /></Form.Item></Col>
+                                                    <Col span={6}><Form.Item {...restField} name={[name, 'job_title']} noStyle><Input placeholder="Chức danh" /></Form.Item></Col>
+                                                    <Col span={8}><Form.Item {...restField} name={[name, 'phone']} noStyle><Input placeholder="SĐT/Email" /></Form.Item></Col>
+                                                    <Col span={2}><MinusCircleOutlined onClick={() => remove(name)} style={{ color: 'red' }} /></Col>
+                                                </Row>
+                                            ))}
+                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm liên hệ</Button>
+                                        </>
+                                    )}
+                                </Form.List>
+                            )
+                        },
+                        {
+                            key: '3', label: <span style={{ color: '#1890ff' }}><HistoryOutlined /> Lịch sử Mua Hàng</span>,
+                            disabled: !editingItem, // Chỉ hiện khi sửa
+                            children: (
+                                <div>
+                                    <div style={{ marginBottom: 16, background: '#f5f5f5', padding: 10, borderRadius: 8 }}>
+                                        <Space size={20} align="center">
+                                            <span>Lọc theo năm:</span>
+                                            <DatePicker picker="year" value={filterYear} onChange={setFilterYear} allowClear={false} />
+                                            <Divider type="vertical" />
+                                            <Statistic title="Doanh Thu" value={revenueStats.total} prefix={<DollarOutlined />} valueStyle={{ fontSize: 16, color: '#1890ff' }} />
+                                            <Statistic title="Đã Thu" value={revenueStats.paid} valueStyle={{ fontSize: 16, color: 'green' }} />
+                                            <Statistic title="Công Nợ" value={revenueStats.debt} valueStyle={{ fontSize: 16, color: 'red' }} />
+                                        </Space>
+                                    </div>
+                                    <Table
+                                        columns={historyColumns}
+                                        dataSource={filteredOrders}
+                                        rowKey="id"
+                                        size="small"
+                                        pagination={{ pageSize: 5 }}
+                                        scroll={{ y: 200 }}
+                                    />
+                                </div>
+                            )
+                        }
+                    ]} />
+                </Form>
+            </Modal>
+        </div>
+    );
 };
 
 export default CustomersPage;

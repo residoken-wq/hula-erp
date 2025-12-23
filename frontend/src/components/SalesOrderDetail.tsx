@@ -18,10 +18,11 @@ interface Props {
     initialData?: any;
     customers: any[];
     products: any[];
+    users?: any[];
     isQuotation?: boolean;
 }
 
-const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, customers, products, isQuotation = false }) => {
+const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, customers, products, users = [], isQuotation = false }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('1');
@@ -35,6 +36,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 form.setFieldsValue({
                     ...initialData,
                     customer_id: initialData.customer?.id,
+                    assigned_to_id: initialData.assigned_to?.id, // Map assigned user
                     order_date: initialData.order_date ? dayjs(initialData.order_date) : dayjs(),
                     delivery_date: initialData.delivery_date ? dayjs(initialData.delivery_date) : null,
                     discount_rate: initialData.discount_rate || 0,
@@ -272,6 +274,11 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 </Form.Item>
                             </Col>
                             <Col span={8}><Form.Item name="delivery_date" label="Ngày giao dự kiến"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
+                            <Col span={8}>
+                                <Form.Item name="assigned_to_id" label="Nhân sự phụ trách">
+                                    <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} placeholder="Chọn nhân viên" />
+                                </Form.Item>
+                            </Col>
                         </Row>
                         <Row>
                             <Col span={24}>
