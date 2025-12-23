@@ -3,10 +3,9 @@ import { Table, Tag, Button, message, Card, Input, Space, Row, Col, Tabs, Progre
 // --- FIX: Thêm PlusOutlined đã bị thiếu trước đó ---
 import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, FileTextOutlined, CalendarOutlined, WalletOutlined, AuditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/api';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import { API_URL } from '../config';
 import QuickTaskModal from '../components/QuickTaskModal';
 import SalesOrderDetail from '../components/SalesOrderDetail';
 
@@ -36,10 +35,10 @@ const SalesPage: React.FC = () => {
         setLoading(true);
         try {
             const [resSales, resProd, resCust, resUsers] = await Promise.all([
-                axios.get(`${API_URL}/sales`).catch(e => ({ data: [] })),
-                axios.get(`${API_URL}/products`).catch(e => ({ data: [] })),
-                axios.get(`${API_URL}/customers`).catch(e => ({ data: [] })),
-                axios.get(`${API_URL}/users`).catch(e => ({ data: [] }))
+                api.get('/sales').catch(e => ({ data: [] })),
+                api.get('/products').catch(e => ({ data: [] })),
+                api.get('/customers').catch(e => ({ data: [] })),
+                api.get('/users').catch(e => ({ data: [] }))
             ]);
 
             setData(Array.isArray(resSales.data) ? resSales.data : []);
@@ -80,7 +79,7 @@ const SalesPage: React.FC = () => {
     const openDetailModal = async (record?: any) => {
         if (record) {
             try {
-                const res = await axios.get(`${API_URL}/sales/${record.order_code}`);
+                const res = await api.get(`/sales/${record.order_code}`);
                 setEditingOrder(res.data);
             } catch (e) { message.error('Không tải được chi tiết đơn'); return; }
         } else {
