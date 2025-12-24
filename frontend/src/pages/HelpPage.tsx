@@ -220,13 +220,39 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'finance-guide':
+                return (
+                    <div>
+                        <Tag color="green" style={{ marginBottom: 16 }}>Modules: Finance</Tag>
+                        <Title level={2}>💰 Quản lý Tài chính & Thu Chi</Title>
+                        <Paragraph>
+                            Phân hệ Tài chính giúp theo dõi dòng tiền, công nợ và sổ quỹ tiền mặt.
+                        </Paragraph>
+
+                        <Card title="1. Lập Phiếu Thu / Chi" size="small" style={{ marginBottom: 16 }}>
+                            <ul>
+                                <li><b>Tự động:</b> Khi tạo Đơn hàng (Sales), phiếu thu Cọc/Thanh toán sẽ tự động được tạo.</li>
+                                <li><b>Thủ công:</b> Vào menu Tài chính ➔ Nhấn "Lập Phiếu Thu/Chi" để ghi nhận các khoản chi ngoài (Tiền điện, nước, lương...).</li>
+                            </ul>
+                        </Card>
+
+                        <Card title="2. Tìm kiếm Giao dịch" size="small" style={{ marginBottom: 16 }}>
+                            <Paragraph>Người dùng có thể tìm kiếm nhanh giao dịch bằng thanh tìm kiếm ở góc phải:</Paragraph>
+                            <ul>
+                                <li>Tìm theo <b>Tên khách hàng / Nhà cung cấp</b>.</li>
+                                <li>Tìm theo <b>Mã đơn hàng (SO-..., PO-...)</b>.</li>
+                                <li>Tìm theo <b>Nội dung diễn giải</b>.</li>
+                            </ul>
+                        </Card>
+                    </div>
+                );
             case 'sales-approval':
                 return (
                     <div>
                         <Tag color="gold" style={{ marginBottom: 16 }}>Quy trình kiểm soát chất lượng</Tag>
-                        <Title level={2}>✅ Quy trình Duyệt Mẫu (Sample Approval)</Title>
+                        <Title level={2}>✅ Quy trình Duyệt Mẫu & Giao Hàng</Title>
                         <Paragraph>
-                            Đối với các đơn hàng B2B hoặc sản xuất theo yêu cầu, bước Duyệt Mẫu là bắt buộc để đảm bảo sản phẩm sản xuất ra đúng với yêu cầu của khách hàng.
+                            Quy trình từ lúc chốt mẫu cho đến khi giao hàng hoàn tất.
                         </Paragraph>
 
                         <Steps
@@ -235,31 +261,29 @@ const HelpPage: React.FC = () => {
                             items={[
                                 {
                                     title: 'Bước 1: Gửi mẫu & Chờ phản hồi',
-                                    description: 'Sau khi Báo giá được xác nhận, đơn hàng sẽ ở trạng thái "Chờ Duyệt Mẫu" (SO_PENDING). Sale gửi mẫu vật lý hoặc hình ảnh cho khách.',
+                                    description: 'Đơn hàng ở trạng thái "Chờ Duyệt Mẫu" (SO_PENDING). Sale gửi mẫu cho khách.',
                                 },
                                 {
                                     title: 'Bước 2: Khách hàng chốt mẫu',
-                                    description: 'Khách hàng xác nhận mẫu đạt yêu cầu (qua Email, Zalo hoặc trực tiếp).',
+                                    description: 'Khách xác nhận mẫu đạt yêu cầu.',
                                     icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
                                 },
                                 {
                                     title: 'Bước 3: Xác nhận trên hệ thống',
+                                    description: 'Sale nhấn nút "Duyệt Mẫu" trên đơn hàng.',
+                                },
+                                {
+                                    title: 'Bước 4: Giao hàng (1 phần hoặc toàn bộ)',
                                     description: (
                                         <div>
-                                            <Paragraph>Nhân viên Sale mở chi tiết đơn hàng và nhấn nút <Tag color="success">Duyệt Mẫu</Tag>.</Paragraph>
-                                            <Alert
-                                                message="Tác vụ tự động"
-                                                description="Hệ thống sẽ tự động cập nhật trạng thái đơn hàng sang 'Đã Duyệt Mẫu' và đánh dấu tất cả sản phẩm trong đơn là đạt chuẩn để chuyển sang sản xuất."
-                                                type="success"
-                                                showIcon
-                                            />
+                                            <Paragraph>Trong quá trình giao hàng, bạn có thể cập nhật trạng thái:</Paragraph>
+                                            <ul>
+                                                <li><b>Giao 1 Phần (Partial Delivery):</b> Khi chỉ giao trước một số lượng nhỏ. Đơn hàng sẽ hiện ở tab "Đã giao" để dễ theo dõi.</li>
+                                                <li><b>Hoàn tất:</b> Khi đã giao đủ và thu đủ tiền.</li>
+                                            </ul>
                                         </div>
                                     ),
                                     status: 'process',
-                                },
-                                {
-                                    title: 'Bước 4: Chuyển sang Sản xuất/Đặt cọc',
-                                    description: 'Sau khi duyệt mẫu, quy trình tiếp theo thường là Thu tiền cọc hoặc Lên kế hoạch sản xuất (Production Plan).',
                                 }
                             ]}
                         />
@@ -452,6 +476,14 @@ const HelpPage: React.FC = () => {
                             icon: <UserOutlined />,
                             children: [
                                 { key: 'customers', label: 'Danh sách khách hàng' },
+                            ]
+                        },
+                        {
+                            key: 'sub3',
+                            label: 'Phân hệ Tài Chính',
+                            icon: <DollarOutlined />,
+                            children: [
+                                { key: 'finance-guide', label: 'Quản lý Thu/Chi' },
                             ]
                         }
                     ]}

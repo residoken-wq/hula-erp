@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import DocsPage from './pages/DocsPage'; // Import DocsPage
+// ...
+// Inside Routes:
+                                            <Route path="/tasks" element={<TasksPage />} />
+                                            <Route path="/help" element={<HelpPage />} />
+                                            <Route path="/docs" element={<DocsPage />} /> {/* Route for Docs */ }
 import { Layout, Menu, theme, Button, Avatar, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
     DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
-    SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined
+    SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import api from './utils/api';
@@ -33,6 +38,7 @@ import TasksPage from './pages/TasksPage';
 import PurchasingPage from './pages/PurchasingPage';
 import SalesPage from './pages/SalesPage'; // <--- QUAN TRỌNG: Import trang Đơn hàng
 import HelpPage from './pages/HelpPage'; // Import HelpPage
+import DocsPage from './pages/DocsPage'; // <--- Import DocsPage
 import SystemSettingsPage from './pages/SystemSettingsPage';
 
 // Import Components
@@ -143,6 +149,7 @@ const App: React.FC = () => {
         if (isAuthenticated) {
             items.push(getItem(<Link to="/tasks">Công việc & Nhắc nhở</Link>, '/tasks', <CalendarOutlined />));
             items.push(getItem(<Link to="/help">Hướng dẫn sử dụng</Link>, '/help', <QuestionCircleOutlined />));
+            items.push(getItem(<Link to="/docs">Dev Docs (Technical)</Link>, '/docs', <CodeOutlined />));
         }
 
         // 9. Hệ thống
@@ -236,6 +243,7 @@ const App: React.FC = () => {
 
                                             <Route path="/tasks" element={<TasksPage />} />
                                             <Route path="/help" element={<HelpPage />} /> {/* Added by user instruction */}
+                                            <Route path="/docs" element={<DocsPage />} /> {/* <--- MỚI: Trang Docs kỹ thuật */}
 
                                             {hasPerm('USERS') && (
                                                 <>

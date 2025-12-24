@@ -145,6 +145,20 @@ const FinancePage: React.FC = () => {
         }
     ];
 
+    // --- FILTER ---
+    const [searchText, setSearchText] = useState('');
+
+    const filteredTransactions = transactions.filter(t => {
+        if (!searchText) return true;
+        const s = searchText.toLowerCase();
+        return (
+            t.description?.toLowerCase().includes(s) ||
+            t.partner_name?.toLowerCase().includes(s) ||
+            t.reference_code?.toLowerCase().includes(s) ||
+            t.category?.name?.toLowerCase().includes(s)
+        );
+    });
+
     return (
         <div style={{ paddingBottom: 20 }}>
             {/* TOP CARDS */}
