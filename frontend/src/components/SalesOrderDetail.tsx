@@ -185,7 +185,121 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     };
 
     const itemColumns = [
-        // ... (omitted columns) ...
+        {
+            title: 'Sản phẩm', dataIndex: 'sku', width: 300,
+            render: (text: any, record: any, index: number) => {
+                const prodInfo = products.find(p => p.value === text);
+                return (
+                    <div>
+                        <Select
+                            showSearch
+                            placeholder="Chọn SP"
+                            optionFilterProp="label"
+                            style={{ width: '100%' }}
+                            value={text}
+                            onChange={(val) => handleItemChange(index, 'sku', val)}
+                            options={products}
+                        />
+                        {prodInfo && (
+                            <div style={{ marginTop: 4, lineHeight: '1.2' }}>
+                                {prodInfo.type === 'COMBO' && <Tag color="purple" style={{ fontSize: 10, marginRight: 4 }}><GiftOutlined /> Combo</Tag>}
+                                <span style={{ fontSize: 11, color: '#666', fontStyle: 'italic' }}>
+                                    {prodInfo.description || 'Chưa có mô tả'}
+                                </span>
+                            </div>
+                        )}
+                        {/* IMAGE UPLOAD */}
+                        <div style={{ marginTop: 5 }}>
+                            <Upload
+                                name="file"
+                                action={`${api.defaults.baseURL}/upload/image`}
+                                showUploadList={false}
+                                onChange={(info) => {
+                                    if (info.file.status === 'done') {
+                                        const url = info.file.response.url;
+                                        handleItemChange(index, 'sample_image', url);
+                                        message.success('Upload ảnh thành công');
+                                    } else if (info.file.status === 'error') {
+                                        message.error('Upload thất bại');
+                                    }
+                                }}
+                            >
+                                {record.sample_image ? (
+                                    <Tooltip title="Click để thay đổi ảnh">
+                                        <div style={{ position: 'relative', display: 'inline-block', cursor: 'pointer' }}>
+                                            <img src={`${api.defaults.baseURL}${record.sample_image}`} alt="sample" style={{ height: 40, width: 40, objectFit: 'cover', border: '1px solid #ddd', borderRadius: 4 }} />
+                                            <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, opacity: 0, transition: 'opacity 0.2s' }} onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.opacity = '1'} onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.opacity = '0'}>
+                                                <UploadOutlined style={{ color: '#fff' }} />
+                                            </div>
+                                        </div>
+                                    </Tooltip>
+                                ) : (
+                                    <Button size="small" icon={<UploadOutlined />} style={{ fontSize: 10 }}>Up ảnh</Button>
+                                )}
+                            </Upload>
+                            {record.sample_image && (
+                                <DeleteOutlined
+                                    style={{ color: 'red', marginLeft: 5, cursor: 'pointer', fontSize: 12 }}
+                                    onClick={() => handleItemChange(index, 'sample_image', null)}
+                                    title="Xóa ảnh"
+                                />
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+        },
+        {
+            title: 'Mô tả VAT (HĐ đơn)',
+            dataIndex: 'vat_content',
+            width: 200,
+            render: (text: any, record: any, index: number) => (
+                <Input.TextArea
+                    rows={2}
+                    placeholder="Mô tả khi xuất hóa đơn..."
+                    value={text} // Bind directly to vat_content
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleItemChange(index, 'vat_content', e.target.value)}
+                />
+            )
+        },
+        {
+            title: 'Đơn giá', dataIndex: 'unit_price', width: 140,
+            render: (text: any, record: any, index: number) => {
+                const prod = products.find(p => p.value === record.sku);
+                const basePrice = prod ? prod.price : 0;
+                return (
+                    <div>
+                        {prod && (
+                            <div style={{ fontSize: 10, color: '#999', marginBottom: 2, textAlign: 'right' }}>
+                                Giá gốc: {basePrice.toLocaleString()}
+                            </div>
+                        )}
+                        <InputNumber
+                            min={0}
+                            style={{ width: '100%' }}
+                            value={text}
+                            formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                            parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '')}
+                            onChange={(val) => handleItemChange(index, 'unit_price', val)}
+                        />
+                    </div>
+                );
+            }
+        },
+        {
+            title: 'SL', dataIndex: 'quantity', width: 80,
+            render: (text: any, record: any, index: number) => (
+                <InputNumber min={1} value={text} onChange={(val) => handleItemChange(index, 'quantity', val)} style={{ width: '100%' }} />
+            )
+        },
+        {
+            title: 'Thành tiền', dataIndex: 'total_price', align: 'right' as const, width: 140,
+            render: (val: any) => <b>{Number(val).toLocaleString()}</b>
+        },
+        {
+            title: '', width: 50, align: 'center' as const,
+            render: (_: any, r: any, index: number) => <DeleteOutlined onClick={() => handleRemoveItem(index)} style={{ color: 'red', cursor: 'pointer' }} />
+        }
     ];
 
     return (
