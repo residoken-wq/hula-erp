@@ -316,6 +316,97 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'price-list':
+                return (
+                    <div>
+                        <Tag color="magenta" style={{ marginBottom: 16 }}>Kiểm soát & Chiến lược</Tag>
+                        <Title level={2}>💲 Chính sách giá & Kiểm soát lợi nhuận</Title>
+                        <Paragraph>
+                            Module PriceList giúp doanh nghiệp thiết lập các quy tắc về giá bán để đảm bảo biên lợi nhuận (Margin) và cung cấp chính sách giá sỉ (Tiered Pricing) nhất quán cho nhân viên kinh doanh.
+                        </Paragraph>
+
+                        <Divider orientation="left">I. Cấu trúc bảng giá</Divider>
+                        <Row gutter={[24, 24]}>
+                            <Col span={12}>
+                                <Card title="1. Thông tin chung (Header)" size="small" bordered>
+                                    <ul>
+                                        <li><b>Tên bảng giá:</b> Ví dụ "Bảng giá Đại lý cấp 1", "Giá bán lẻ 2024".</li>
+                                        <li><b>Hiệu lực:</b> Thiết lập ngày bắt đầu và kết thúc (Valid From - To).</li>
+                                        <li><b>Nhóm khách hàng:</b> Áp dụng bảng giá cụ thể cho từng nhóm đối tượng.</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card title="2. Quy tắc chi tiết (Rules)" size="small" bordered>
+                                    <ul>
+                                        <li><b>Theo SKU:</b> Mỗi dòng hàng có quy tắc riêng.</li>
+                                        <li><b>Giá sàn (Min Price):</b> Mức giá thấp nhất nhân viên được phép bán.</li>
+                                        <li><b>Giới hạn Margin:</b> Cảnh báo nếu biên lợi nhuận thấp hơn mức quy định (VD: dưới 15%).</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Divider orientation="left">II. Các tính năng chính</Divider>
+
+                        <Card title={<span style={{ fontWeight: 'bold', color: '#cf1322' }}>🛑 1. Kiểm soát giá sàn (Floor Price Control)</span>} style={{ marginBottom: 20 }}>
+                            <Paragraph>
+                                Hệ thống sẽ tự động chặn hoặc cảnh báo khi nhân viên kinh doanh nhập đơn giá thấp hơn mức quy định.
+                            </Paragraph>
+                            <Alert
+                                message="Cơ chế hoạt động"
+                                description={
+                                    <ul style={{ marginBottom: 0 }}>
+                                        <li>Nếu <b>Giá bán &lt; Min Price</b>: Hệ thống báo lỗi và không cho lưu đơn hàng.</li>
+                                        <li>Nếu <b>Lợi nhuận gộp (Margin) &lt; Min Margin %</b>: Cần xin phê duyệt từ quản lý (Tính năng nâng cao).</li>
+                                    </ul>
+                                }
+                                type="error"
+                            />
+                        </Card>
+
+                        <Card title={<span style={{ fontWeight: 'bold', color: '#52c41a' }}>📊 2. Bảng giá theo số lượng (Tiered Pricing)</span>} style={{ marginBottom: 20 }}>
+                            <Paragraph>
+                                Hỗ trợ nhân viên báo giá nhanh dựa trên mốc số lượng đặt hàng chuẩn.
+                            </Paragraph>
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #f0f0f0' }}>
+                                    <thead>
+                                        <tr style={{ background: '#fafafa' }}>
+                                            <th style={{ padding: 10, border: '1px solid #f0f0f0' }}>SKU</th>
+                                            <th style={{ padding: 10, border: '1px solid #f0f0f0', color: '#666' }}>Giá SL 30</th>
+                                            <th style={{ padding: 10, border: '1px solid #f0f0f0', color: '#1890ff' }}>Giá SL 50</th>
+                                            <th style={{ padding: 10, border: '1px solid #f0f0f0', color: '#52c41a' }}>Giá SL 100+</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style={{ padding: 10, border: '1px solid #f0f0f0', fontWeight: 'bold' }}>IPHONE-15-PRO</td>
+                                            <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>28.500.000</td>
+                                            <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>28.200.000</td>
+                                            <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>27.900.000</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style={{ marginTop: 10, fontSize: 13, color: '#888', fontStyle: 'italic' }}>
+                                * Hệ thống gợi ý giá này khi tạo báo giá, nhân viên có thể điều chỉnh nhưng không được thấp hơn giá sàn.
+                            </div>
+                        </Card>
+
+                        <Divider />
+                        <Title level={4}>Hướng dẫn thiết lập</Title>
+                        <Steps
+                            current={-1}
+                            items={[
+                                { title: 'Bước 1', description: 'Vào menu Sales ➔ Price List.' },
+                                { title: 'Bước 2', description: 'Tạo bảng giá mới (Header).' },
+                                { title: 'Bước 3', description: 'Import file Excel danh sách quy tắc hoặc nhập tay từng SKU.' },
+                                { title: 'Bước 4', description: 'Kích hoạt "Active" để áp dụng ngay lập tức.' },
+                            ]}
+                        />
+                    </div>
+                );
             case 'customers':
                 return (
                     <div>
@@ -352,6 +443,7 @@ const HelpPage: React.FC = () => {
                                 { key: 'sales-create', label: 'Tạo đơn mới' },
                                 { key: 'sales-approval', label: 'Duyệt mẫu' },
                                 { key: 'sales-portal', label: 'Customer Portal' },
+                                { key: 'price-list', label: 'Chính sách giá' },
                             ]
                         },
                         {
