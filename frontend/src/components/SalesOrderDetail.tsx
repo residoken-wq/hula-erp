@@ -598,7 +598,14 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 {initialData && !isQuotation && (
                     <>
                         <Tabs.TabPane tab="2. Thanh toán" key="2">
-                            <SalesPayments orderId={initialData.id} orderCode={initialData.order_code} totalAmount={totalAmount} paidAmount={initialData.paid_amount || 0} onSuccess={onSuccess} />
+                            <SalesPayments
+                                orderId={initialData.id}
+                                orderCode={initialData.order_code}
+                                totalAmount={totalAmount}
+                                paidAmount={initialData.paid_amount || 0}
+                                customerName={initialData?.customer?.name || initialData?.customer_name}
+                                onSuccess={onSuccess}
+                            />
                         </Tabs.TabPane>
                         <Tabs.TabPane tab="3. Giao hàng" key="3">
                             <SalesDeliveries order={initialData} products={products} onSuccess={onSuccess} />
