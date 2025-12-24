@@ -91,16 +91,19 @@ const PortalQuotePage: React.FC = () => {
                 return (
                     <div style={{ textAlign: 'center' }}>
                         {isImage ? (
-                            <Button
-                                type="text"
-                                size="small"
-                                icon={<EyeOutlined style={{ fontSize: 18, color: '#1890ff' }} />}
+                            {
+                                isImage?(
+                            <img
+                                src = { imgUrl! }
+                                alt = "product"
+                                style = {{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee' }}
                                 onClick={() => handlePreview(imgUrl!)}
                             />
                         ) : (
-                            <a href={imgUrl} target="_blank" rel="noopener noreferrer">
-                                <LinkOutlined style={{ fontSize: 18, color: '#1890ff' }} />
-                            </a>
+                        ) : (
+                        <a href={imgUrl} target="_blank" rel="noopener noreferrer">
+                            <LinkOutlined style={{ fontSize: 18, color: '#1890ff' }} />
+                        </a>
                         )}
                     </div>
                 );
