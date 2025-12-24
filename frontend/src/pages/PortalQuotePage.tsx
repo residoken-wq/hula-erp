@@ -234,18 +234,18 @@ const PortalQuotePage: React.FC = () => {
                         <Card title={<span><UserOutlined /> Thông Tin Khách Hàng</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
                             <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
                                 <Descriptions.Item label="Đơn vị">{data.customer_name || data.customer?.name || 'Khách lẻ'}</Descriptions.Item>
-                                <Descriptions.Item label="Người nhận">{data.receiver_name}</Descriptions.Item>
-                                <Descriptions.Item label="SĐT">{data.receiver_phone}</Descriptions.Item>
-                                <Descriptions.Item label="Địa chỉ">{data.shipping_address}</Descriptions.Item>
+                                <Descriptions.Item label="Người nhận">{data.receiver_name || data.customer?.name || '-'}</Descriptions.Item>
+                                <Descriptions.Item label="SĐT">{data.receiver_phone || data.customer?.phone || '-'}</Descriptions.Item>
+                                <Descriptions.Item label="Địa chỉ">{data.shipping_address || data.customer?.address || '-'}</Descriptions.Item>
                             </Descriptions>
                         </Card>
 
                         {/* VAT INFO */}
                         <Card title={<span><ShopOutlined /> Thông Tin Xuất Hóa Đơn</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
                             <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
-                                <Descriptions.Item label="Công ty">{data.vat_company_name || '-'}</Descriptions.Item>
-                                <Descriptions.Item label="MST">{data.vat_tax_code || '-'}</Descriptions.Item>
-                                <Descriptions.Item label="Địa chỉ">{data.vat_address || '-'}</Descriptions.Item>
+                                <Descriptions.Item label="Công ty">{data.vat_company_name || data.customer?.name || '-'}</Descriptions.Item>
+                                <Descriptions.Item label="MST">{data.vat_tax_code || data.customer?.tax_code || '-'}</Descriptions.Item>
+                                <Descriptions.Item label="Địa chỉ">{data.vat_address || data.customer?.address || '-'}</Descriptions.Item>
                             </Descriptions>
                         </Card>
 
@@ -335,6 +335,7 @@ const PortalQuotePage: React.FC = () => {
                                 rowKey="id"
                                 pagination={false}
                                 bordered={false}
+                                scroll={{ x: 1000 }} // FIX LAYOUT OVERFLOW
                                 className="quote-table"
                                 summary={() => {
                                     const vatRate = data.vat_rate || 0;
