@@ -113,7 +113,11 @@ const SalesPage: React.FC = () => {
     // --- FILTERING LOGIC ---
     const filteredData = useMemo(() => {
         return data.filter((x: any) => {
-            const matchTab = activeTab === 'ALL' ? true : x.status === activeTab;
+            const matchTab = activeTab === 'ALL'
+                ? true
+                : activeTab === 'DELIVERED'
+                    ? (x.status === 'DELIVERED' || x.status === 'PARTIAL_DELIVERY')
+                    : x.status === activeTab;
             const matchSearch = x.order_code?.toLowerCase().includes(searchText.toLowerCase())
                 || x.customer_name?.toLowerCase().includes(searchText.toLowerCase())
                 || x.customer?.name?.toLowerCase().includes(searchText.toLowerCase());
