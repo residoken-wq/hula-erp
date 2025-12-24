@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Button, Table, Tabs, Row, Col, InputNumber, Divider, message, Tag, Space, Popconfirm, Upload, Tooltip } from 'antd';
-import { PlusOutlined, DeleteOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined, GiftOutlined, UploadOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, DatePicker, Button, Table, Tabs, Row, Col, InputNumber, Divider, message, Tag, Space, Popconfirm, Tooltip, Popover } from 'antd';
+import { PlusOutlined, DeleteOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined, GiftOutlined, UploadOutlined, LoadingOutlined, LinkOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import SalesPayments from './sales/SalesPayments';
@@ -208,42 +208,43 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 </span>
                             </div>
                         )}
-                        {/* IMAGE UPLOAD */}
+                        {/* IMAGE URL INPUT */}
                         <div style={{ marginTop: 5 }}>
-                            <Upload
-                                name="file"
-                                action={`${api.defaults.baseURL}/upload/image`}
-                                showUploadList={false}
-                                onChange={(info) => {
-                                    if (info.file.status === 'done') {
-                                        const url = info.file.response.url;
-                                        handleItemChange(index, 'sample_image', url);
-                                        message.success('Upload ảnh thành công');
-                                    } else if (info.file.status === 'error') {
-                                        message.error('Upload thất bại');
-                                    }
-                                }}
+                            <Popover
+                                trigger="click"
+                                content={
+                                    <div style={{ padding: 8 }}>
+                                        <Input
+                                            placeholder="Paste Image/Drive URL..."
+                                            value={record.sample_image}
+                                            onChange={(e) => handleItemChange(index, 'sample_image', e.target.value)}
+                                            style={{ width: 300, marginBottom: 8 }}
+                                        />
+                                        <div style={{ fontSize: 11, color: '#999' }}>
+                                            Hỗ trợ link ảnh trực tiếp (jpg, png) hoặc Google Drive.
+                                        </div>
+                                    </div>
+                                }
+                                title="HULA Drive Link"
                             >
                                 {record.sample_image ? (
-                                    <Tooltip title="Click để thay đổi ảnh">
-                                        <div style={{ position: 'relative', display: 'inline-block', cursor: 'pointer' }}>
-                                            <img src={`${api.defaults.baseURL}${record.sample_image}`} alt="sample" style={{ height: 40, width: 40, objectFit: 'cover', border: '1px solid #ddd', borderRadius: 4 }} />
-                                            <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, opacity: 0, transition: 'opacity 0.2s' }} onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.opacity = '1'} onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.opacity = '0'}>
-                                                <UploadOutlined style={{ color: '#fff' }} />
+                                    <div style={{ position: 'relative', display: 'inline-block', cursor: 'pointer' }}>
+                                        {/* Basic check if it looks like an image, otherwise generic icon */}
+                                        {record.sample_image.match(/\.(jpeg|jpg|gif|png)$/i) || record.sample_image.startsWith('data:image') ? (
+                                            <img src={`${record.sample_image.startsWith('http') ? '' : api.defaults.baseURL}${record.sample_image}`} alt="sample" style={{ height: 40, width: 40, objectFit: 'cover', border: '1px solid #ddd', borderRadius: 4 }} />
+                                        ) : (
+                                            <div style={{ height: 40, width: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: 4, background: '#f0f0f0', color: '#1890ff', fontSize: 20 }}>
+                                                <LinkOutlined />
                                             </div>
+                                        )}
+                                        <div style={{ position: 'absolute', top: -5, right: -5 }}>
+                                            <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleItemChange(index, 'sample_image', null); }} />
                                         </div>
-                                    </Tooltip>
+                                    </div>
                                 ) : (
-                                    <Button size="small" icon={<UploadOutlined />} style={{ fontSize: 10 }}>Up ảnh</Button>
+                                    <Button size="small" icon={<LinkOutlined />} style={{ fontSize: 10 }}>Link Ảnh</Button>
                                 )}
-                            </Upload>
-                            {record.sample_image && (
-                                <DeleteOutlined
-                                    style={{ color: 'red', marginLeft: 5, cursor: 'pointer', fontSize: 12 }}
-                                    onClick={() => handleItemChange(index, 'sample_image', null)}
-                                    title="Xóa ảnh"
-                                />
-                            )}
+                            </Popover>
                         </div>
                     </div>
                 );
@@ -311,11 +312,23 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             footer={[
                 <Button key="close" onClick={onClose}>Đóng</Button>,
                 <Button key="save" type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu Thông Tin</Button>,
-                (!isQuotation && initialData?.status === 'SO_PENDING') && (
-                    <Button key="approve" type="primary" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }} icon={<CheckCircleOutlined />} onClick={handleApproveSamples}>
-                        Duyệt Mẫu
-                    </Button>
+
+                {/* BUTTON DUYỆT MẪU (CHỈ HIỆN KHI CÓ DATA) */ }
+                { initialData && (
+                    <Tooltip title={isQuotation ? "Vui lòng chuyển thành Đơn hàng (SO) để duyệt mẫu" : "Xác nhận mẫu sản phẩm đã đạt yêu cầu"}>
+                        <Button
+                            key="approve"
+                            type="primary"
+                            style={{ backgroundColor: isQuotation ? '#d9d9d9' : '#52c41a', borderColor: isQuotation ? '#d9d9d9' : '#52c41a' }}
+                            icon={<CheckCircleOutlined />}
+                            onClick={handleApproveSamples}
+                            disabled={isQuotation || initialData?.status !== 'SO_PENDING'}
+                        >
+                            Duyệt Mẫu
+                        </Button>
+                    </Tooltip>
                 ),
+
                 (!isQuotation && initialData) && <Button key="complete" type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>Hoàn tất đơn hàng</Button>
             ]}
             style={{ top: 20 }}
