@@ -58,6 +58,25 @@ export class Customer {
   contacts: CustomerContact[];
   // -------------------------
 
+  // --- PHÁP NHÂN ---
+  @Column({ nullable: true })
+  legal_name: string;
+
+  @Column({ nullable: true })
+  legal_address: string;
+
+  @Column({ nullable: true })
+  legal_representative: string; // Người đại diện
+
+  @Column({ nullable: true })
+  einvoice_email: string; // Email nhận hóa đơn
+  // -----------------
+
+  // --- THÔNG TIN GIAO HÀNG (MANG TÍNH CHẤT LIST CHI NHÁNH) ---
+  @Column('jsonb', { nullable: true, default: [] })
+  delivery_addresses: any[]; // [{ name: 'CN1', address: '...' }]
+  // -----------------------------------------------------------
+
   @Column('jsonb', { nullable: true, default: [] })
   history: any;
 

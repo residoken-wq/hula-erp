@@ -194,7 +194,7 @@ const CustomersPage: React.FC = () => {
                 <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ type: 'LEAD', credit_limit: 0 }}>
                     <Tabs defaultActiveKey="1" items={[
                         {
-                            key: '1', label: 'Thông tin chung',
+                            key: '1', label: 'Thông tin khách hàng',
                             children: (
                                 <>
                                     <Row gutter={16}>
@@ -202,16 +202,13 @@ const CustomersPage: React.FC = () => {
                                         <Col span={16}><Form.Item name="name" label="Tên Khách Hàng" rules={[{ required: true }]}><Input /></Form.Item></Col>
                                     </Row>
                                     <Row gutter={16}><Col span={12}><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Col><Col span={12}><Form.Item name="email" label="Email"><Input /></Form.Item></Col></Row>
-                                    <Form.Item name="address" label="Địa Chỉ"><Input /></Form.Item>
+                                    <Form.Item name="address" label="Địa Chỉ (Trụ sở chính)"><Input /></Form.Item>
                                     <Row gutter={16}>
                                         <Col span={12}><Form.Item name="parent_id" label="Công ty mẹ"><Select allowClear showSearch optionFilterProp="children" options={customers.filter(c => c.id !== editingItem?.id).map(c => ({ label: c.name, value: c.id }))} /></Form.Item></Col>
                                         <Col span={12}><Form.Item name="credit_limit" label="Hạn Mức Nợ"><InputNumber style={{ width: '100%' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
                                     </Row>
                                     <Row gutter={16}>
-                                        <Col span={12}><Form.Item name="tax_code" label="MST"><Input prefix={<AuditOutlined />} /></Form.Item></Col>
                                         <Col span={12}><Form.Item name="type" label="Phân Loại"><Select><Option value="LEAD">Tiềm Năng</Option><Option value="CUSTOMER">Khách Hàng</Option></Select></Form.Item></Col>
-                                    </Row>
-                                    <Row gutter={16}>
                                         <Col span={12}>
                                             <Form.Item name="assigned_to_id" label="Nhân viên phụ trách">
                                                 <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} />
@@ -242,8 +239,46 @@ const CustomersPage: React.FC = () => {
                             )
                         },
                         {
-                            key: '3', label: <span style={{ color: '#1890ff' }}><HistoryOutlined /> Lịch sử Mua Hàng</span>,
-                            disabled: !editingItem, // Chỉ hiện khi sửa
+                            key: '3', label: 'Pháp nhân',
+                            children: (
+                                <>
+                                    <Form.Item name="legal_name" label="Tên Pháp Nhân (Trên Hóa Đơn)"><Input /></Form.Item>
+                                    <Form.Item name="legal_address" label="Địa Chỉ Pháp Lý"><Input /></Form.Item>
+                                    <Row gutter={16}>
+                                        <Col span={12}><Form.Item name="tax_code" label="Mã Số Thuế"><Input /></Form.Item></Col>
+                                        <Col span={12}><Form.Item name="legal_representative" label="Người Đại Diện"><Input /></Form.Item></Col>
+                                    </Row>
+                                    <Form.Item name="einvoice_email" label="Email Nhận Hóa Đơn eInvoice"><Input /></Form.Item>
+                                </>
+                            )
+                        },
+                        {
+                            key: '4', label: 'Thông tin giao hàng',
+                            children: (
+                                <Form.List name="delivery_addresses">
+                                    {(fields, { add, remove }) => (
+                                        <>
+                                            {fields.map(({ key, name, ...restField }) => (
+                                                <div key={key} style={{ marginBottom: 12, border: '1px solid #f0f0f0', padding: 10, borderRadius: 5, background: '#fafafa' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                                                        <b>Chi nhánh / Kho {name + 1}</b>
+                                                        <MinusCircleOutlined onClick={() => remove(name)} style={{ color: 'red', cursor: 'pointer' }} />
+                                                    </div>
+                                                    <Row gutter={8}>
+                                                        <Col span={8}><Form.Item {...restField} name={[name, 'name']} label="Tên Chi Nhánh / Kho" rules={[{ required: true }]}><Input placeholder="Vd: Kho HCM..." /></Form.Item></Col>
+                                                        <Col span={16}><Form.Item {...restField} name={[name, 'address']} label="Địa chỉ giao hàng" rules={[{ required: true }]}><Input placeholder="Số nhà, đường..." /></Form.Item></Col>
+                                                    </Row>
+                                                </div>
+                                            ))}
+                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm Chi nhánh / Địa chỉ</Button>
+                                        </>
+                                    )}
+                                </Form.List>
+                            )
+                        },
+                        {
+                            key: '5', label: <span style={{ color: '#1890ff' }}><HistoryOutlined /> Lịch sử Mua Hàng</span>,
+                            disabled: !editingItem,
                             children: (
                                 <div>
                                     <div style={{ marginBottom: 16, background: '#f5f5f5', padding: 10, borderRadius: 8 }}>
