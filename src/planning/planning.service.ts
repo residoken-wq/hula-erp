@@ -73,8 +73,52 @@ export class PlanningService {
         const materialDemand = new Map<number, number>();
         const outsourcingDemand = []; // --- MỚI: Danh sách nhu cầu gia công
 
-        // 2. Phân tích BOM & ROUTING cho từng sản phẩm
+        // 2. Phân tích BOM & ROUTING
+        // --- FIX: Phân giải Combos (BOM đa cấp cho Product Components) ---
+        const totalProductDemand = new Map<string, number>(); // SKU -> Qty (Bao gồm cả Parent và Child)
+        const processingQueue = [];
+
+        // Init queue
         for (const [sku, qty] of productDemand.entries()) {
+            processingQueue.push({ sku, qty });
+        }
+
+        let safetyCounter = 0;
+        const MAX_ITERATIONS = 20000;
+
+        while (processingQueue.length > 0) {
+            if (safetyCounter++ > MAX_ITERATIONS) {
+                console.warn('MRP Loop Limit Reached - Possible Cycle in Product Components');
+                break;
+            }
+
+            const { sku, qty } = processingQueue.shift();
+
+            // Cộng dồn nhu cầu cho SKU này
+            totalProductDemand.set(sku, (totalProductDemand.get(sku) || 0) + qty);
+
+            // Đảm bảo có ID để query Routing
+            if (!productInfoMap.has(sku)) {
+                const prod = await this.productsService.findOneBySku(sku);
+                if (prod) productInfoMap.set(sku, prod.id);
+            }
+
+            // Kiểm tra xem có phải Combo không (có components con)
+            // Lưu ý: getComboComponents trả về components mà parent là SKU này
+            const components = await this.productsService.getComboComponents(sku);
+
+            if (components && components.length > 0) {
+                for (const comp of components) {
+                    if (comp.child_product) {
+                        const childQty = qty * Number(comp.quantity);
+                        processingQueue.push({ sku: comp.child_product.sku, qty: childQty });
+                    }
+                }
+            }
+        }
+
+        // --- Loop qua danh sách đã mở rộng ---
+        for (const [sku, qty] of totalProductDemand.entries()) {
             const prodId = productInfoMap.get(sku);
             if (!prodId) continue;
 
