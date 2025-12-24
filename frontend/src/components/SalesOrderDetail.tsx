@@ -209,16 +209,45 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             </div>
                         )}
                         {/* IMAGE URL INPUT */}
-                        <div style={{ marginTop: 5 }}>
+                        <div style={{ marginTop: 5, display: 'flex', alignItems: 'center' }}>
+                            {/* 1. Image Preview (Fixed) */}
+                            {record.sample_image && (
+                                <div style={{ marginRight: 8, position: 'relative' }}>
+                                    {/* Basic check if it looks like an image, otherwise generic icon */}
+                                    {record.sample_image.match(/\.(jpeg|jpg|gif|png)$/i) || record.sample_image.startsWith('data:image') ? (
+                                        <img
+                                            src={`${record.sample_image.startsWith('http') ? '' : api.defaults.baseURL}${record.sample_image}`}
+                                            alt="sample"
+                                            style={{ height: 40, width: 40, objectFit: 'cover', border: '1px solid #ddd', borderRadius: 4 }}
+                                        />
+                                    ) : (
+                                        <div style={{ height: 40, width: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: 4, background: '#f0f0f0', color: '#1890ff', fontSize: 20 }}>
+                                            <LinkOutlined />
+                                        </div>
+                                    )}
+                                    <div style={{ position: 'absolute', top: -8, right: -8 }}>
+                                        <Button
+                                            type="text"
+                                            danger
+                                            size="small"
+                                            icon={<DeleteOutlined style={{ fontSize: 10 }} />}
+                                            onClick={() => handleItemChange(index, 'sample_image', null)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 2. Link Trigger (Stable) */}
                             <Popover
                                 trigger="click"
                                 content={
                                     <div style={{ padding: 8 }}>
                                         <Input
                                             placeholder="Paste Image/Drive URL..."
-                                            value={record.sample_image}
+                                            value={record.sample_image || ''}
                                             onChange={(e) => handleItemChange(index, 'sample_image', e.target.value)}
                                             style={{ width: 300, marginBottom: 8 }}
+                                            autoFocus
                                         />
                                         <div style={{ fontSize: 11, color: '#999' }}>
                                             Hỗ trợ link ảnh trực tiếp (jpg, png) hoặc Google Drive.
@@ -227,23 +256,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 }
                                 title="HULA Drive Link"
                             >
-                                {record.sample_image ? (
-                                    <div style={{ position: 'relative', display: 'inline-block', cursor: 'pointer' }}>
-                                        {/* Basic check if it looks like an image, otherwise generic icon */}
-                                        {record.sample_image.match(/\.(jpeg|jpg|gif|png)$/i) || record.sample_image.startsWith('data:image') ? (
-                                            <img src={`${record.sample_image.startsWith('http') ? '' : api.defaults.baseURL}${record.sample_image}`} alt="sample" style={{ height: 40, width: 40, objectFit: 'cover', border: '1px solid #ddd', borderRadius: 4 }} />
-                                        ) : (
-                                            <div style={{ height: 40, width: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: 4, background: '#f0f0f0', color: '#1890ff', fontSize: 20 }}>
-                                                <LinkOutlined />
-                                            </div>
-                                        )}
-                                        <div style={{ position: 'absolute', top: -5, right: -5 }}>
-                                            <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); handleItemChange(index, 'sample_image', null); }} />
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <Button size="small" icon={<LinkOutlined />} style={{ fontSize: 10 }}>Link Ảnh</Button>
-                                )}
+                                <Button size="small" icon={<LinkOutlined />} style={{ fontSize: 10 }}>
+                                    {record.sample_image ? 'Sửa Link' : 'Dán Link'}
+                                </Button>
                             </Popover>
                         </div>
                     </div>

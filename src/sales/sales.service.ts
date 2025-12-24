@@ -161,6 +161,8 @@ export class SalesService {
         if (data.discount_amount !== undefined) order.discount_amount = Number(data.discount_amount);
 
         if (data.items) {
+            console.log('--- UPDATING ITEMS ---');                    // DEBUG
+            console.log(JSON.stringify(data.items, null, 2));         // DEBUG
             await this.itemRepo.delete({ order: { id: id } });
             const validItems = data.items.filter((i: any) => i.sku);
             let itemsTotal = 0;
