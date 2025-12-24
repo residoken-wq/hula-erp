@@ -216,7 +216,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                     <Tooltip title="Click để thay đổi ảnh">
                                         <div style={{ position: 'relative', display: 'inline-block', cursor: 'pointer' }}>
                                             <img src={`${api.defaults.baseURL}${record.sample_image}`} alt="sample" style={{ height: 40, width: 40, objectFit: 'cover', border: '1px solid #ddd', borderRadius: 4 }} />
-                                            <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, opacity: 0, transition: 'opacity 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '1'} onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}>
+                                            <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, opacity: 0, transition: 'opacity 0.2s' }} onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.opacity = '1'} onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => e.currentTarget.style.opacity = '0'}>
                                                 <UploadOutlined style={{ color: '#fff' }} />
                                             </div>
                                         </div>
@@ -246,7 +246,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     rows={2}
                     placeholder="Mô tả khi xuất hóa đơn..."
                     value={text} // Bind directly to vat_content
-                    onChange={e => handleItemChange(index, 'vat_content', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleItemChange(index, 'vat_content', e.target.value)}
                 />
             )
         },

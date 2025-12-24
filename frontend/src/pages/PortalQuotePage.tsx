@@ -298,7 +298,18 @@ const PortalQuotePage: React.FC = () => {
                             </div>
                             <div style={{ padding: 15, background: '#fff', borderTop: '1px solid #f0f0f0' }}>
                                 <div style={{ display: 'flex', gap: 10 }}>
-                                    <Input.TextArea autoSize={{ minRows: 1, maxRows: 3 }} value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Nhập tin nhắn..." onPressEnter={(e) => { if (!e.shiftKey) { e.preventDefault(); handleSendComment() } }} />
+                                    <Input.TextArea
+                                        autoSize={{ minRows: 1, maxRows: 3 }}
+                                        value={commentText}
+                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCommentText(e.target.value)}
+                                        placeholder="Nhập tin nhắn..."
+                                        onPressEnter={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                                            if (!e.shiftKey) {
+                                                e.preventDefault();
+                                                handleSendComment();
+                                            }
+                                        }}
+                                    />
                                     <Button type="primary" icon={<SendOutlined />} onClick={handleSendComment} />
                                 </div>
                             </div>
