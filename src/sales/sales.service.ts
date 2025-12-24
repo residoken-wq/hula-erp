@@ -248,19 +248,42 @@ export class SalesService {
         const savedDelivery = await this.deliveryRepo.save(delivery);
 
         // --- TRIGGER INVENTORY EXPORT ---
+        // --- TRIGGER INVENTORY EXPORT ---
         for (const item of savedDelivery.items) {
             const product = await this.productsService.findOneBySku(item.sku);
             if (product) {
                 try {
-                    await this.inventoryService.adjustStock(
-                        'EXPORT',
-                        'PRODUCT',
-                        product.id,
-                        Number(item.quantity),
-                        savedDelivery.code,
-                        `Giao hàng đơn ${order.order_code}`,
-                        'KHO_TP' // Mặc định xuất từ Kho Thành Phẩm
-                    );
+                    // Check if Combo (has components)
+                    const components = await this.productsService.getComboComponents(item.sku);
+
+                    if (components && components.length > 0) {
+                        // Is Combo -> Deduct Components
+                        for (const comp of components) {
+                            if (comp.child_product) {
+                                await this.inventoryService.adjustStock(
+                                    'EXPORT',
+                                    'PRODUCT',
+                                    comp.child_product.id,
+                                    Number(item.quantity) * Number(comp.quantity), // Qty * Component Qty
+                                    savedDelivery.code,
+                                    `Xuất Combo ${item.sku} (Đơn ${order.order_code})`,
+                                    'KHO_TP'
+                                );
+                            }
+                        }
+                    } else {
+                        // Is Single Product -> Deduct Itself
+                        await this.inventoryService.adjustStock(
+                            'EXPORT',
+                            'PRODUCT',
+                            product.id,
+                            Number(item.quantity),
+                            savedDelivery.code,
+                            `Giao hàng đơn ${order.order_code}`,
+                            'KHO_TP' // Mặc định xuất từ Kho Thành Phẩm
+                        );
+                    }
+
                 } catch (e) {
                     this.logger.error(`Failed to export stock for ${item.sku}: ${e.message}`);
                     // Có thể throw lỗi để rollback nếu cần chặt chẽ
