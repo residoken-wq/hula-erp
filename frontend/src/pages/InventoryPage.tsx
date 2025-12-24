@@ -37,6 +37,47 @@ const InventoryPage: React.FC = () => {
     const adjustmentType = Form.useWatch('type', form);
     const itemType = Form.useWatch('itemType', form);
 
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [pRes, mRes, sRes, hRes] = await Promise.all([
+                axios.get(`${API_URL}/products`),
+                axios.get(`${API_URL}/materials`),
+                axios.get(`${API_URL}/inventory/stocks`),
+                axios.get(`${API_URL}/inventory/history`)
+            ]);
+            setProducts(pRes.data);
+            setMaterials(mRes.data);
+            setStocks(sRes.data);
+            setHistory(hRes.data);
+        } catch (error) {
+            message.error('Lỗi tải dữ liệu');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const handleAdjust = async (values: any) => {
+        try {
+            await axios.post(`${API_URL}/inventory/adjust`, values);
+            message.success('Điều chỉnh thành công');
+            setIsModalOpen(false);
+            form.resetFields();
+            fetchData();
+        } catch (error) {
+            message.error('Lỗi điều chỉnh kho');
+        }
+    };
+
+    const getStockQty = (type: string, id: number, whCode: string) => {
+        const record = stocks.find(s => s.item_type === type && Number(s.item_id) === id && s.warehouse_code === whCode);
+        return record ? Number(record.quantity) : 0;
+    };
+
     // --- PREPARE DATA TỔNG HỢP ---
     const masterData = useMemo(() => {
         const prodList = products.map(p => ({ ...p, item_type: 'PRODUCT', key: `P_${p.id}` }));
