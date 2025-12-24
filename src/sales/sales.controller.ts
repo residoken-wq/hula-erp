@@ -69,6 +69,7 @@ export class SalesController {
     // Dùng chung 1 API để tìm theo ID hoặc CODE
     @Get(':idOrCode')
     findOne(@Param('idOrCode') idOrCode: string) {
+        console.log('--- GET /sales/:idOrCode ---', idOrCode); // Debug
         return this.s.findOne(idOrCode);
     }
 

@@ -155,12 +155,14 @@ export class SalesService {
 
     // --- FIND ONE (FIX: Tính tổng tiền đã trả) ---
     async findOne(idOrCode: string | number) {
+        console.log('Service findOne input:', idOrCode);
         let where: any = {};
         if (typeof idOrCode === 'number' || !isNaN(Number(idOrCode))) {
             where = { id: Number(idOrCode) };
         } else {
             where = { order_code: String(idOrCode) };
         }
+        console.log('Query WHERE:', where);
 
         try {
             const query = this.orderRepo.createQueryBuilder('order')
