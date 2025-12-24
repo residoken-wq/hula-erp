@@ -7,6 +7,47 @@ import SalesPayments from './sales/SalesPayments';
 import SalesDeliveries from './sales/SalesDeliveries';
 import SalesComments from './sales/SalesComments';
 
+import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import { MenuOutlined } from '@ant-design/icons';
+
+interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+    'data-row-key': string;
+}
+
+const DraggableRow = ({ children, ...props }: RowProps) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: props['data-row-key'],
+    });
+
+    const style: React.CSSProperties = {
+        ...props.style,
+        transform: CSS.Transform.toString(transform && { ...transform, scaleY: 1 }),
+        transition,
+        cursor: 'move',
+        ...(isDragging ? { position: 'relative', zIndex: 9999 } : {}),
+    };
+
+    return (
+        <tr {...props} ref={setNodeRef} style={style} {...attributes}>
+            {React.Children.map(children, (child) => {
+                if ((child as React.ReactElement).key === 'sort') {
+                    return React.cloneElement(child as React.ReactElement, {
+                        children: (
+                            <div {...listeners} style={{ touchAction: 'none', cursor: 'grab' }}>
+                                <MenuOutlined style={{ color: '#999' }} />
+                            </div>
+                        ),
+                    });
+                }
+                return child;
+            })}
+        </tr>
+    );
+};
+
 const { Option } = Select;
 
 interface Props {
@@ -138,6 +179,20 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         calculateTotal(newItems);
     };
 
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 1 } })
+    );
+
+    const onDragEnd = ({ active, over }: DragEndEvent) => {
+        if (active.id !== over?.id) {
+            setOrderItems((prev) => {
+                const activeIndex = prev.findIndex((i) => i.key === active.id);
+                const overIndex = prev.findIndex((i) => i.key === over?.id);
+                return arrayMove(prev, activeIndex, overIndex);
+            });
+        }
+    };
+
     const handleSave = async () => {
         try {
             const values = await form.validateFields();
@@ -203,6 +258,11 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     };
 
     const itemColumns = [
+        {
+            key: 'sort',
+            width: 30,
+            render: () => <MenuOutlined style={{ cursor: 'grab', color: '#999' }} />,
+        },
         {
             title: 'Sản phẩm', dataIndex: 'sku', width: 300,
             render: (text: any, record: any, index: number) => {
