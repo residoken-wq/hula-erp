@@ -85,8 +85,8 @@ const PortalQuotePage: React.FC = () => {
 
                 if (!imgUrl) return <div style={{ color: '#ccc', fontSize: 10, textAlign: 'center' }}>No Img</div>;
 
-                // Simple check for "Link" vs "Image"
-                const isImage = r.sample_image.match(/\.(jpeg|jpg|gif|png)$/i) || r.sample_image.startsWith('data:image');
+                // Check for image extensions (ignoring query params) or data URI
+                const isImage = r.sample_image.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || r.sample_image.startsWith('data:image');
 
                 return (
                     <div style={{ textAlign: 'center' }}>
