@@ -51,6 +51,9 @@ export class SalesController {
     @Get(':code/payments')
     getPayments(@Param('code') code: string) { return this.s.getPaymentHistory(code); }
 
+    @Get(':code/payment-history')
+    getPaymentHistory(@Param('code') code: string) { return this.s.getPaymentHistory(code); }
+
     // Portal APIs
     @Get('portal/:uuid') getPortal(@Param('uuid') uuid: string) { return this.s.getQuoteByUuid(uuid); }
     @Post('portal/:uuid/action') customerAction(@Param('uuid') uuid: string, @Body() body: any) { return this.s.customerAction(uuid, body.action); }
