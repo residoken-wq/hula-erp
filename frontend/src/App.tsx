@@ -32,6 +32,7 @@ import FinancePage from './pages/FinancePage';
 import TasksPage from './pages/TasksPage';
 import PurchasingPage from './pages/PurchasingPage';
 import SalesPage from './pages/SalesPage'; // <--- QUAN TRỌNG: Import trang Đơn hàng
+import HelpPage from './pages/HelpPage'; // Import HelpPage
 import SystemSettingsPage from './pages/SystemSettingsPage';
 
 // Import Components
@@ -138,9 +139,10 @@ const App: React.FC = () => {
             items.push(getItem(<Link to="/finance">Tài chính (Thu/Chi)</Link>, 'finance', <BankOutlined />));
         }
 
-        // 8. Công việc
+        // 8. Công việc & Hướng dẫn
         if (isAuthenticated) {
             items.push(getItem(<Link to="/tasks">Công việc & Nhắc nhở</Link>, 'tasks', <CalendarOutlined />));
+            items.push(getItem(<Link to="/help">Hướng dẫn sử dụng</Link>, 'help', <QuestionCircleOutlined />));
         }
 
         // 9. Hệ thống
@@ -233,6 +235,7 @@ const App: React.FC = () => {
                                             )}
 
                                             <Route path="/tasks" element={<TasksPage />} />
+                                            <Route path="/help" element={<HelpPage />} /> {/* Added by user instruction */}
 
                                             {hasPerm('USERS') && (
                                                 <>

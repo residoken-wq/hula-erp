@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag, Empty } from 'antd';
-import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined } from '@ant-design/icons';
+import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined } from '@ant-design/icons';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
 
@@ -13,6 +13,13 @@ const PortalQuotePage: React.FC = () => {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [commentText, setCommentText] = useState('');
+    const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [previewVisible, setPreviewVisible] = useState(false);
+
+    const handlePreview = (imageUrl: string) => {
+        setPreviewImage(imageUrl);
+        setPreviewVisible(true);
+    };
 
     const fetchQuote = async () => {
         try {
@@ -66,26 +73,43 @@ const PortalQuotePage: React.FC = () => {
             render: (_: any, __: any, index: number) => <span style={{ color: '#999' }}>{index + 1}</span>
         },
         {
-            title: 'Sản Phẩm',
-            key: 'product_details',
-            width: 300,
+            title: 'Hình',
+            key: 'image',
+            width: 60,
+            align: 'center' as const,
             render: (_: any, r: any) => {
                 const imgUrl = r.sample_image ? `${API_URL}${r.sample_image}` : null;
+                if (!imgUrl) return <div style={{ color: '#ccc', fontSize: 10, textAlign: 'center' }}>No Img</div>;
+
                 return (
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                        {imgUrl ? (
-                            <img
-                                src={imgUrl}
-                                alt="product"
-                                style={{ width: 50, height: 50, objectFit: 'contain', border: '1px solid #f0f0f0', borderRadius: 4, flexShrink: 0 }}
-                            />
-                        ) : (
-                            <div style={{ width: 50, height: 50, background: '#f5f5f5', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', flexShrink: 0, fontSize: 10 }}>No Img</div>
+                    <div style={{ textAlign: 'center' }}>
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<EyeOutlined style={{ fontSize: 18, color: '#1890ff' }} />}
+                            onClick={() => handlePreview(imgUrl)}
+                        />
+                    </div>
+                );
+            }
+        },
+        {
+            title: 'Sản Phẩm',
+            key: 'product_details',
+            width: 250,
+            render: (_: any, r: any) => {
+                const customerDesc = r.product?.customer_description;
+                return (
+                    <div>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: '#1f1f1f', lineHeight: 1.2, marginBottom: 4 }}>
+                            {r.product_name_real || r.product?.name || r.sku}
+                        </div>
+                        {customerDesc && (
+                            <div style={{ fontSize: 12, color: '#666', fontStyle: 'italic', marginBottom: 4, whiteSpace: 'pre-wrap', background: '#fafafa', padding: 5, borderRadius: 4, border: '1px dashed #e8e8e8' }}>
+                                {customerDesc}
+                            </div>
                         )}
                         <div>
-                            <div style={{ fontWeight: 600, fontSize: 14, color: '#1f1f1f', lineHeight: 1.2, marginBottom: 3 }}>
-                                {r.product_name_real || r.product?.name || r.sku}
-                            </div>
                             <Tag style={{ fontSize: 10, margin: 0, padding: '0 4px' }}>{r.sku}</Tag>
                             {r.variant_color && <Tag color="blue" style={{ fontSize: 10, margin: 0, padding: '0 4px', marginLeft: 4 }}>{r.variant_color}</Tag>}
                         </div>
@@ -97,16 +121,17 @@ const PortalQuotePage: React.FC = () => {
             title: 'Mô Tả Sản Phẩm (VAT)',
             dataIndex: 'vat_content',
             key: 'vat_content',
-            render: (_: any, r: any) => {
-                const desc = r.vat_content || r.product?.customer_description;
+            width: 300,
+            render: (text: string) => {
                 return (
                     <div style={{
                         fontSize: 13,
                         color: '#555',
                         whiteSpace: 'pre-wrap',
-                        lineHeight: 1.5
+                        lineHeight: 1.5,
+                        minWidth: 200
                     }}>
-                        {desc || '-'}
+                        {text || '-'}
                     </div>
                 );
             }
@@ -373,6 +398,24 @@ const PortalQuotePage: React.FC = () => {
             <div style={{ textAlign: 'center', padding: '20px 0', color: '#ccc', fontSize: 12 }}>
                 Powered by HULA ERP Technology
             </div>
+
+            <Modal
+                open={previewVisible}
+                footer={null}
+                onCancel={() => setPreviewVisible(false)}
+                width={800}
+                centered
+                styles={{ body: { padding: 0, background: 'transparent' } }}
+                closeIcon={<span style={{ color: '#fff', fontSize: 20 }}>×</span>}
+            >
+                {previewImage && (
+                    <img
+                        alt="preview"
+                        style={{ width: '100%', borderRadius: 8 }}
+                        src={previewImage}
+                    />
+                )}
+            </Modal>
         </div >
     );
 };
