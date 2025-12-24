@@ -381,24 +381,47 @@ const PortalQuotePage: React.FC = () => {
                     </Col>
 
                     <Col xs={24} md={12}>
-                        {data.payments && data.payments.length > 0 && (
-                            <Card title="Lịch Sử Thanh Toán" size="small" style={{ marginBottom: 20, height: '100%' }}>
+                        {/* --- DELIVERY HISTORY --- */}
+                        {data.deliveries && data.deliveries.length > 0 && (
+                            <Card title={<span><CarOutlined /> Lịch Sử Giao Hàng</span>} size="small" style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                                <Table
+                                    dataSource={data.deliveries}
+                                    rowKey="id"
+                                    pagination={false}
+                                    size="small"
+                                    columns={[
+                                        { title: 'Ngày', width: 100, render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YY') },
+                                        { title: 'Mã Phiếu', width: 120, dataIndex: 'code', render: (t: string) => <b>{t}</b> },
+                                        { title: 'Ghi chú', dataIndex: 'note', ellipsis: true },
+                                    ]}
+                                />
+                            </Card>
+                        )}
+
+                        {/* --- PAYMENT HISTORY & QR --- */}
+                        <Card title={<span><DollarOutlined /> Thanh Toán & Lịch Sử</span>} size="small" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                            <div style={{ textAlign: 'center', marginBottom: 20, padding: 10, background: '#fcfcfc', borderRadius: 8 }}>
+                                <div style={{ fontSize: 12, color: '#999', marginBottom: 8 }}>Quét mã để thanh toán</div>
+                                <img src={`https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(Number(data.total_amount) - Number(data.paid_amount))}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`} alt="VietQR" style={{ width: 160 }} />
+                            </div>
+
+                            <Divider orientation="left" style={{ fontSize: 12, color: '#bbb' }}>Chi tiết giao dịch</Divider>
+
+                            {data.payments && data.payments.length > 0 ? (
                                 <Table
                                     dataSource={data.payments}
                                     rowKey="id"
                                     pagination={false}
+                                    size="small"
                                     columns={[
                                         { title: 'Ngày', render: (r: any) => dayjs(r.date).format('DD/MM/YYYY') },
                                         { title: 'Loại', render: (r: any) => <Tag color={r.type === 'INCOME' ? 'success' : 'red'}>{r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền'}</Tag> },
                                         { title: 'Số tiền', align: 'right', render: (r: any) => <b>{Number(r.amount).toLocaleString()}</b> },
                                     ]}
                                 />
-                            </Card>
-                        )}
-                        <Card title="QR Thanh Toán" size="small">
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <img src={`https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(Number(data.total_amount) - Number(data.paid_amount))}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`} alt="VietQR" style={{ width: 140 }} />
-                            </div>
+                            ) : (
+                                <Empty description="Chưa có giao dịch nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                            )}
                         </Card>
                     </Col>
                 </Row>
