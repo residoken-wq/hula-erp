@@ -58,6 +58,13 @@ const PortalQuotePage: React.FC = () => {
     const columns = [
         { title: 'STT', key: 'index', width: 50, align: 'center' as const, render: (_: any, __: any, index: number) => index + 1 },
         {
+            title: 'Ảnh',
+            dataIndex: 'sample_image',
+            width: 80,
+            align: 'center' as const,
+            render: (url: string) => url ? <img src={`${API_URL}${url}`} alt="sample" style={{ width: 50, height: 50, objectFit: 'contain', border: '1px solid #eee', borderRadius: 4 }} /> : '-'
+        },
+        {
             title: 'Sản phẩm',
             key: 'product',
             render: (r: any) => (
@@ -72,7 +79,10 @@ const PortalQuotePage: React.FC = () => {
             title: 'Mô tả chi tiết',
             dataIndex: 'product_desc', // Giữ nguyên key nếu cần, nhưng render logic thay đổi
             width: '30%',
-            render: (_: any, r: any) => <div style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#555' }}>{r.product?.customer_description || '-'}</div>
+            render: (_: any, r: any) => <div style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#555' }}>
+                {/* Ưu tiên hiển thị vat_content nếu có, sau đó đến customer_description */}
+                {r.vat_content || r.product?.customer_description || '-'}
+            </div>
         },
         // -------------------------------
         { title: 'ĐVT', dataIndex: 'unit', width: 80, align: 'center' as const, render: () => 'Cái' },

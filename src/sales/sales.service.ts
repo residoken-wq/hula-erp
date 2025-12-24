@@ -76,7 +76,8 @@ export class SalesService {
                 unit_price: price,
                 subtotal: sub,
                 variant_color: itemData.variant_color,
-                vat_content: itemData.vat_content
+                vat_content: itemData.vat_content,
+                sample_image: itemData.sample_image
             });
         }));
 
