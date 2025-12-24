@@ -472,7 +472,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             <SalesPayments orderId={initialData.id} orderCode={initialData.order_code} totalAmount={totalAmount} paidAmount={initialData.paid_amount || 0} onSuccess={onSuccess} />
                         </Tabs.TabPane>
                         <Tabs.TabPane tab="3. Giao hàng" key="3">
-                            <SalesDeliveries orderId={initialData.id} orderItems={orderItems} onSuccess={onSuccess} />
+                            <SalesDeliveries order={initialData} products={products} onSuccess={onSuccess} />
                         </Tabs.TabPane>
                         <Tabs.TabPane tab="4. Trao đổi" key="4">
                             <SalesComments orderId={initialData.id} />

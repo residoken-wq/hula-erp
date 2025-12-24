@@ -390,9 +390,26 @@ const PortalQuotePage: React.FC = () => {
                                     pagination={false}
                                     size="small"
                                     columns={[
-                                        { title: 'Ngày', width: 100, render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YY') },
-                                        { title: 'Mã Phiếu', width: 120, dataIndex: 'code', render: (t: string) => <b>{t}</b> },
-                                        { title: 'Ghi chú', dataIndex: 'note', ellipsis: true },
+                                        { title: 'Ngày', width: 90, align: 'center', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YY') },
+                                        { title: 'Mã Phiếu', width: 100, dataIndex: 'code', render: (t: string) => <div style={{ fontWeight: 700, color: '#1890ff' }}>{t}</div> },
+                                        {
+                                            title: 'Chi tiết sản phẩm',
+                                            render: (r: any) => (
+                                                <div style={{ fontSize: 12 }}>
+                                                    {r.items?.map((item: any, idx: number) => {
+                                                        const p = data.items.find((x: any) => x.sku === item.sku);
+                                                        const name = p ? (p.product_name_real || p.product?.name) : item.sku;
+                                                        return (
+                                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #f0f0f0', padding: '3px 0' }}>
+                                                                <span style={{ color: '#444', marginRight: 5 }}>{name}</span>
+                                                                <b>x{item.quantity}</b>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {r.note && <div style={{ color: '#999', fontStyle: 'italic', marginTop: 4 }}>Example: {r.note}</div>}
+                                                </div>
+                                            )
+                                        },
                                     ]}
                                 />
                             </Card>

@@ -1,19 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Input, Modal, message, InputNumber } from 'antd';
-import { CarOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Modal, message, InputNumber, Tooltip } from 'antd';
+import { CarOutlined, CheckCircleOutlined, PrinterOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-// FIX: Đường dẫn import config
 import { API_URL } from '../../config';
 
 interface Props {
-    orderId: number;
-    orderItems: any[]; 
+    order: any;
+    products: any[];
     onSuccess: () => void;
 }
 
-const SalesDeliveries: React.FC<Props> = ({ orderId, orderItems, onSuccess }) => {
-    // FIX: Thêm <any[]>
+const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
     const [history, setHistory] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [shipNote, setShipNote] = useState('');
@@ -21,14 +19,15 @@ const SalesDeliveries: React.FC<Props> = ({ orderId, orderItems, onSuccess }) =>
 
     const fetchHistory = async () => {
         try {
-            const res = await axios.get(`${API_URL}/sales/${orderId}/deliveries`);
+            const res = await axios.get(`${API_URL}/sales/${order.id}/deliveries`);
             setHistory(Array.isArray(res.data) ? res.data : []);
-        } catch (e) {}
+        } catch (e) { }
     };
 
-    useEffect(() => { if (orderId) fetchHistory(); }, [orderId]);
+    useEffect(() => { if (order?.id) fetchHistory(); }, [order?.id]);
 
-    const summaryData = orderItems.map((item: any) => {
+    // Use order.items for ordered quantities
+    const summaryData = (order.items || []).map((item: any) => {
         const ordered = Number(item.quantity) || 0;
         let delivered = 0;
         history.forEach((d: any) => {
@@ -48,15 +47,152 @@ const SalesDeliveries: React.FC<Props> = ({ orderId, orderItems, onSuccess }) =>
 
     const handleShip = async () => {
         try {
-            await axios.post(`${API_URL}/sales/${orderId}/delivery`, {
-                code: `DO-${dayjs().format('YYMMDD')}-${Math.floor(Math.random() * 100)}`,
+            await axios.post(`${API_URL}/sales/${order.id}/delivery`, {
+                code: `PXK-${dayjs().format('DDMMYY')}-${Math.floor(1000 + Math.random() * 9000)}`,
                 date: new Date(),
                 note: shipNote,
-                items: shipItems
+                items: shipItems.filter(i => i.quantity > 0)
             });
             message.success('Đã xuất kho');
             setIsModalOpen(false); fetchHistory(); onSuccess();
         } catch (e) { message.error('Lỗi xuất kho'); }
+    };
+
+    const handlePrint = (delivery: any) => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        // Map Items for Print
+        const printItems = (delivery.items || []).map((di: any, idx: number) => {
+            const product = products.find(p => p.value === di.sku);
+            // Fallback for color/variant if stored in order items (need to find in order.items)
+            const orderItem = order?.items?.find((oi: any) => oi.sku === di.sku);
+
+            return {
+                index: idx + 1,
+                name: product ? (product.label || product.name) : di.sku, // Prefer product name, fallback SKU
+                unit: product?.unit || 'Cái',
+                qty: di.quantity,
+                note: orderItem?.variant_color || di.note || '' // Try to show variant color/note
+            };
+        });
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>In Phiếu Xuất Kho - ${delivery.code}</title>
+                <style>
+                    body { font-family: 'Times New Roman', Times, serif; padding: 20px; font-size: 14px; }
+                    .header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #0050b3; padding-bottom: 10px; }
+                    .company-info { width: 60%; }
+                    .company-info h1 { margin: 0; color: #0050b3; font-size: 24px; text-transform: uppercase; }
+                    .company-info p { margin: 2px 0; font-size: 13px; }
+                    .title-section { text-align: center; width: 40%; }
+                    .title-section h2 { margin: 10px 0 5px; font-size: 26px; text-transform: uppercase; }
+                    .info-grid { margin-bottom: 20px; }
+                    .info-row { display: flex; margin-bottom: 8px; }
+                    .info-label { width: 130px; font-weight: bold; }
+                    .info-val { flex: 1; }
+                    
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                    th, td { border: 1px solid #000; padding: 8px; text-align: center; }
+                    th { background-color: #fce4d6; font-weight: bold; }
+                    
+                    .footer { display: flex; justify-content: space-between; text-align: center; margin-top: 50px; }
+                    .footer-col { width: 30%; }
+                    .footer-col .role { font-weight: bold; margin-bottom: 80px; }
+                    .note-bottom { font-style: italic; font-size: 12px; margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="company-info">
+                        <h1>HULA ERP</h1>
+                        <p style="font-weight:bold; font-size:14px; margin-top:5px;">NỆM MẦM NON HULA</p>
+                        <p>📍 29 đường 12, P. An Phú, Q.2, TP.HCM</p>
+                        <p>📞 0983.882210 - 0983.796654</p>
+                        <p style="font-weight:bold; color:#0050b3; margin-top:5px;">CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</p>
+                    </div>
+                    <div class="title-section">
+                        <h2>PHIẾU XUẤT KHO</h2>
+                        <div style="font-style:italic;">Ngày ${dayjs(delivery.delivery_date).format('DD')} tháng ${dayjs(delivery.delivery_date).format('MM')} năm ${dayjs(delivery.delivery_date).format('YYYY')}</div>
+                        <div style="margin-top:10px; text-align:right; font-size:12px; font-style:italic;">Số PXK: <b>${delivery.code}</b></div>
+                    </div>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-row">
+                        <div class="info-label">Khách hàng:</div>
+                        <div class="info-val" style="text-transform:uppercase; font-weight:bold;">${order.customer_name || order.customer?.name}</div>
+                        <div style="font-size:12px;">Số BG: <b>${order.order_code}</b></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Địa chỉ giao hàng:</div>
+                        <div class="info-val">${order.shipping_address || order.customer?.address || '-'}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Liên hệ:</div>
+                        <div class="info-val">${order.receiver_name ? `${order.receiver_name} - ${order.receiver_phone}` : (order.customer?.phone || '-')}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Xuất tại kho:</div>
+                        <div class="info-val">Kho Thành Phẩm (Trung tâm)</div>
+                    </div>
+                    ${delivery.note ? `<div class="info-row"><div class="info-label">Ghi chú phiếu:</div><div class="info-val">${delivery.note}</div></div>` : ''}
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">STT</th>
+                            <th>Tên Sản phẩm</th>
+                            <th style="width: 80px;">ĐVT</th>
+                            <th style="width: 80px;">Số lượng</th>
+                            <th style="width: 150px;">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${printItems.map((item: any) => `
+                        <tr>
+                            <td>${item.index}</td>
+                            <td style="text-align:left; font-weight:bold;">${item.name}</td>
+                            <td>${item.unit}</td>
+                            <td>${item.qty}</td>
+                            <td style="text-align:left;">${item.note}</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <div class="footer">
+                    <div class="footer-col">
+                        <div class="role">Người nhận hàng</div>
+                        <div>(Ký và ghi rõ họ tên)</div>
+                    </div>
+                    <div class="footer-col">
+                        <div class="role">Người lập phiếu</div>
+                        <div style="margin-top:70px; font-weight:bold;">${order.assigned_to?.full_name || 'Admin'}</div>
+                    </div>
+                    <div class="footer-col">
+                        <div class="role">Thủ kho</div>
+                        <div>(Ký xác nhận)</div>
+                    </div>
+                </div>
+
+                <div class="note-bottom">
+                    Quý khách vui lòng kiểm tra kỹ số lượng và chất lượng hàng hóa khi nhận hàng.
+                </div>
+                
+                <script>
+                    window.onload = function() { window.print(); }
+                </script>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
     };
 
     return (
@@ -75,13 +211,20 @@ const SalesDeliveries: React.FC<Props> = ({ orderId, orderItems, onSuccess }) =>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                 <b>Lịch sử phiếu giao:</b>
-                <Button type="primary" icon={<CarOutlined />} onClick={openModal}>Tạo Phiếu Giao</Button>
+                <Button type="primary" icon={<CarOutlined />} onClick={openModal}>Tạo Phiếu Xuất Kho</Button>
             </div>
             <Table dataSource={history} rowKey="id" pagination={false} size="small" bordered columns={[
                 { title: 'Mã phiếu', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
                 { title: 'Ngày giao', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YYYY') },
                 { title: 'Ghi chú', dataIndex: 'note' },
-                { title: 'Chi tiết', render: (r: any) => r.items?.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') }
+                { title: 'Chi tiết', width: '30%', render: (r: any) => r.items?.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') },
+                {
+                    title: '', width: 60, align: 'center', render: (_: any, r: any) => (
+                        <Tooltip title="In Phiếu Xuất Kho">
+                            <Button size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
+                        </Tooltip>
+                    )
+                }
             ]} />
 
             <Modal title="Tạo Phiếu Xuất Kho" open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={handleShip} width={600}>
