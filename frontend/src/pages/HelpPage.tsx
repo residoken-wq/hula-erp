@@ -160,14 +160,14 @@ const HelpPage: React.FC = () => {
                             items={[
                                 {
                                     title: 'Bước 1: Truy cập giao diện',
-                                    description: 'Vào menu "Bán hàng (CRM)" -> "Sales Orders". Nhấn nút "Thêm Mới" ở góc phải.',
+                                    description: <span>Vào menu <b>Bán hàng (CRM)</b> ➔ <b>Sales Orders</b>. Nhấn nút <b>"Thêm Mới" <PlusOutlined /></b> ở góc phải.</span>,
                                 },
                                 {
                                     title: 'Bước 2: Điền thông tin Khách hàng',
                                     description: (
                                         <ul>
-                                            <li>Tìm kiếm khách hàng bằng Tên hoặc Số điện thoại.</li>
-                                            <li>Nếu chưa có, nhấn icon (+) để tạo nhanh khách hàng mới.</li>
+                                            <li>Tìm kiếm khách hàng bằng Tên hoặc SĐT tại ô <SearchOutlined />.</li>
+                                            <li>Nếu chưa có, nhấn icon <b>(+) <PlusOutlined /></b> để tạo nhanh khách hàng mới.</li>
                                             <li>Hệ thống sẽ tự động điền địa chỉ giao hàng và thông tin VAT mặc định.</li>
                                         </ul>
                                     )
@@ -177,9 +177,9 @@ const HelpPage: React.FC = () => {
                                     description: (
                                         <ul>
                                             <li>Gõ tên sản phẩm hoặc SKU vào ô tìm kiếm dòng hàng.</li>
-                                            <li><b>Đơn giá:</b> Có thể chỉnh sửa (Hệ thống hiển thị giá gốc tham chiếu).</li>
-                                            <li><b>Mô tả VAT:</b> Tùy chỉnh tên hiển thị trên hóa đơn đỏ.</li>
-                                            <li><b>Hình ảnh:</b> Upload ảnh mẫu thực tế nếu sản phẩm có tùy biến.</li>
+                                            <li><b>Đơn giá:</b> Có thể chỉnh sửa trực tiếp <EditOutlined /> (Hệ thống hiển thị giá gốc tham chiếu).</li>
+                                            <li><b>Mô tả VAT:</b> Nhấn vào ô text để sửa tên hiển thị trên hóa đơn đỏ.</li>
+                                            <li><b>Hình ảnh:</b> Nhấn icon <UploadOutlined /> để upload ảnh mẫu thực tế nếu sản phẩm có tùy biến.</li>
                                         </ul>
                                     )
                                 },
@@ -189,9 +189,29 @@ const HelpPage: React.FC = () => {
                                 },
                                 {
                                     title: 'Bước 5: Lưu & Gửi',
-                                    description: 'Nhấn "Lưu" để tạo đơn. Sau đó copy Link Portal gửi cho khách.',
+                                    description: <span>Nhấn <b>"Lưu" <SaveOutlined /></b> để tạo đơn. Sau đó copy Link Portal gửi cho khách.</span>,
                                 }
                             ]}
+                        />
+
+                        <Divider orientation="left">💡 Mẹo: Tùy biến sản phẩm (Variants)</Divider>
+                        <Alert
+                            message="Tạo sản phẩm 'Custom' cho từng khách hàng"
+                            description={
+                                <div>
+                                    <Paragraph>
+                                        Bạn có thể bán một sản phẩm với quy cách/ngoại quan khác biệt cho từng khách mà <b>không cần tạo mã SKU mới</b> trong kho.
+                                    </Paragraph>
+                                    <ul style={{ marginBottom: 0 }}>
+                                        <li><b>Sửa tên hiển thị (VAT Content):</b> Thay đổi tên sản phẩm trên báo giá/hóa đơn để khách dễ hiểu (VD: <i>"Bàn học A"</i> ➔ <i>"Bàn học A (Màu hồng, Họa tiết mèo)"</i>).</li>
+                                        <li><b>Upload ảnh thực tế:</b> Nhấn vào icon ảnh nhỏ <UploadOutlined /> ở đầu dòng để tải lên hình ảnh mẫu hoặc bản vẽ kỹ thuật riêng cho đơn hàng này. Hình ảnh này sẽ hiện trên Portal của khách.</li>
+                                        <li><b>Giá bán flexible:</b> Nhập giá bán thỏa thuận trực tiếp tại cột "Đơn giá".</li>
+                                    </ul>
+                                </div>
+                            }
+                            type="info"
+                            showIcon
+                            icon={<RocketOutlined />}
                         />
                     </div>
                 );
