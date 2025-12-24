@@ -313,8 +313,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 <Button key="close" onClick={onClose}>Đóng</Button>,
                 <Button key="save" type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu Thông Tin</Button>,
 
-                {/* BUTTON DUYỆT MẪU (CHỈ HIỆN KHI CÓ DATA) */ }
-                { initialData && (
+                /* BUTTON DUYỆT MẪU (CHỈ HIỆN KHI CÓ DATA) */
+                initialData && (
                     <Tooltip title={isQuotation ? "Vui lòng chuyển thành Đơn hàng (SO) để duyệt mẫu" : "Xác nhận mẫu sản phẩm đã đạt yêu cầu"}>
                         <Button
                             key="approve"
