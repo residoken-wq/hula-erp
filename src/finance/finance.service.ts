@@ -47,13 +47,13 @@ export class FinanceService {
     // Payment Sales (Thu tiền)
     async createPayment(data: any) {
         const trans = this.transRepo.create({
-            date: new Date().toISOString().split('T')[0],
+            date: data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             type: data.type || 'INCOME',
             amount: Number(data.amount),
             reference_code: data.refCode,
             reference_type: 'SALES',
             description: data.note,
-            partner_name: data.customerName // Mapped from FE usually
+            partner_name: data.customerName || data.partnerName // Support both keys
         });
         return this.transRepo.save(trans);
     }
