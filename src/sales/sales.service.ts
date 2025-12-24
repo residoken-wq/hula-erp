@@ -243,8 +243,31 @@ export class SalesService {
     async createDelivery(orderId: number, data: any) {
         const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
         if (!order) throw new NotFoundException('Not found');
+
         const delivery = this.deliveryRepo.create({ code: data.code, delivery_date: data.date, note: data.note, sales_order: order, items: data.items });
-        await this.deliveryRepo.save(delivery);
+        const savedDelivery = await this.deliveryRepo.save(delivery);
+
+        // --- TRIGGER INVENTORY EXPORT ---
+        for (const item of savedDelivery.items) {
+            const product = await this.productsService.findOneBySku(item.sku);
+            if (product) {
+                try {
+                    await this.inventoryService.adjustStock(
+                        'EXPORT',
+                        'PRODUCT',
+                        product.id,
+                        Number(item.quantity),
+                        savedDelivery.code,
+                        `Giao hàng đơn ${order.order_code}`,
+                        'KHO_TP' // Mặc định xuất từ Kho Thành Phẩm
+                    );
+                } catch (e) {
+                    this.logger.error(`Failed to export stock for ${item.sku}: ${e.message}`);
+                    // Có thể throw lỗi để rollback nếu cần chặt chẽ
+                }
+            }
+        }
+
         return this.orderRepo.save(order);
     }
 }
