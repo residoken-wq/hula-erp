@@ -217,7 +217,7 @@ export class SalesService {
     async getQuoteByUuid(uuid: string) {
         const order = await this.orderRepo.findOne({
             where: { uuid },
-            relations: ['customer', 'items', 'items.product', 'comments', 'deliveries', 'deliveries.items']
+            relations: ['customer', 'customer.contacts', 'items', 'items.product', 'comments', 'deliveries', 'deliveries.items']
         });
         if (!order) throw new NotFoundException('Quote not found');
 

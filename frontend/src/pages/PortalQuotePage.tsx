@@ -227,97 +227,46 @@ const PortalQuotePage: React.FC = () => {
                     />
                 </Card>
 
-                <Row gutter={24}>
-                    {/* LEFT COLUMN: INFO CARDS */}
+                {/* --- INFO ROW: CUSTOMER / VAT / PAYMENT --- */}
+                <Row gutter={24} style={{ marginBottom: 24 }}>
                     <Col xs={24} md={8}>
-                        {/* CUSTOMER INFO */}
-                        <Card title={<span><UserOutlined /> Thông Tin Khách Hàng</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                        <Card title={<span><UserOutlined /> Thông Tin Khách Hàng</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
                             <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
                                 <Descriptions.Item label="Đơn vị">{data.customer_name || data.customer?.name || 'Khách lẻ'}</Descriptions.Item>
-                                <Descriptions.Item label="Người nhận">{data.receiver_name || data.customer?.name || '-'}</Descriptions.Item>
+                                <Descriptions.Item label="Người nhận">{data.receiver_name || data.customer?.contacts?.[0]?.full_name || data.customer?.name || '-'}</Descriptions.Item>
                                 <Descriptions.Item label="SĐT">{data.receiver_phone || data.customer?.phone || '-'}</Descriptions.Item>
                                 <Descriptions.Item label="Địa chỉ">{data.shipping_address || data.customer?.address || '-'}</Descriptions.Item>
                             </Descriptions>
                         </Card>
-
-                        {/* VAT INFO */}
-                        <Card title={<span><ShopOutlined /> Thông Tin Xuất Hóa Đơn</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                    </Col>
+                    <Col xs={24} md={8}>
+                        <Card title={<span><ShopOutlined /> Thông Tin Xuất Hóa Đơn</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
                             <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
                                 <Descriptions.Item label="Công ty">{data.vat_company_name || data.customer?.name || '-'}</Descriptions.Item>
                                 <Descriptions.Item label="MST">{data.vat_tax_code || data.customer?.tax_code || '-'}</Descriptions.Item>
                                 <Descriptions.Item label="Địa chỉ">{data.vat_address || data.customer?.address || '-'}</Descriptions.Item>
                             </Descriptions>
                         </Card>
-
-                        {/* PAYMENT INFO */}
-                        <Card title={<span><CreditCardOutlined /> Thông Tin Thanh Toán</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                            <div style={{ background: '#f6ffed', padding: 15, borderRadius: 8, border: '1px solid #b7eb8f', textAlign: 'center', marginBottom: 15 }}>
-                                <div style={{ color: '#52c41a', fontSize: 12, textTransform: 'uppercase', fontWeight: 600 }}>Số tiền cần thanh toán</div>
-                                <div style={{ fontSize: 24, fontWeight: '800', color: '#389e0d', marginTop: 5 }}>{(Number(data.total_amount) - Number(data.paid_amount)).toLocaleString()} ₫</div>
+                    </Col>
+                    <Col xs={24} md={8}>
+                        <Card title={<span><CreditCardOutlined /> Thông Tin Thanh Toán</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                            <div style={{ background: '#f6ffed', padding: 10, borderRadius: 8, border: '1px solid #b7eb8f', textAlign: 'center', marginBottom: 10 }}>
+                                <div style={{ color: '#52c41a', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Cần thanh toán</div>
+                                <div style={{ fontSize: 20, fontWeight: '800', color: '#389e0d' }}>{(Number(data.total_amount) - Number(data.paid_amount)).toLocaleString()} ₫</div>
                             </div>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <div style={{ padding: 10, border: '1px solid #eee', borderRadius: 8, background: '#fff' }}>
-                                    <img src={`https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(Number(data.total_amount) - Number(data.paid_amount))}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`} alt="VietQR" style={{ width: 180 }} />
-                                </div>
-                                <p style={{ fontSize: 12, color: '#999', marginTop: 8 }}>Mở App Ngân hàng để quét mã QR</p>
-                            </div>
-
-                            <Divider style={{ margin: '15px 0' }} />
-                            <div style={{ fontSize: 13, lineHeight: 1.8 }}>
-                                <div><b>Ngân hàng:</b> ACB - Chi nhánh TP.HCM</div>
-                                <div><b>Số TK:</b> <span style={{ fontFamily: 'monospace', fontSize: 14, background: '#f0f0f0', padding: '0 4px', borderRadius: 3 }}>141847859</span></div>
-                                <div><b>Chủ TK:</b> CTY TNHH TM DV TƯỜNG LINH</div>
-                                <div><b>Nội dung CK:</b> {data.order_code}</div>
-                            </div>
-                        </Card>
-
-                        {/* COMMENTS */}
-                        <Card title="💬 Thảo Luận" bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12, overflow: 'hidden' }}>
-                            <div style={{ height: 350, overflowY: 'auto', padding: 20, background: '#f9f9f9' }}>
-                                <List dataSource={visibleComments} renderItem={(item: any) => (
-                                    <div style={{ display: 'flex', gap: 10, marginBottom: 15, flexDirection: item.sender_type === 'CUSTOMER' ? 'row-reverse' : 'row' }}>
-                                        <Avatar style={{ backgroundColor: item.sender_type === 'CUSTOMER' ? '#87d068' : '#1890ff' }} icon={item.sender_type === 'CUSTOMER' ? <UserOutlined /> : <SolutionOutlined />} />
-                                        <div style={{ maxWidth: '80%' }}>
-                                            <div style={{ fontSize: 11, color: '#999', marginBottom: 2, textAlign: item.sender_type === 'CUSTOMER' ? 'right' : 'left' }}>
-                                                {item.sender_name} • {dayjs(item.created_at).format('HH:mm DD/MM')}
-                                            </div>
-                                            <div style={{
-                                                padding: '8px 12px',
-                                                background: item.sender_type === 'CUSTOMER' ? '#d9f7be' : '#fff',
-                                                borderRadius: 8,
-                                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                                color: '#333'
-                                            }}>
-                                                {item.content}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )} />
-                                {visibleComments.length === 0 && <Empty description="Chưa có tin nhắn nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
-                            </div>
-                            <div style={{ padding: 15, background: '#fff', borderTop: '1px solid #f0f0f0' }}>
-                                <div style={{ display: 'flex', gap: 10 }}>
-                                    <Input.TextArea
-                                        autoSize={{ minRows: 1, maxRows: 3 }}
-                                        value={commentText}
-                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCommentText(e.target.value)}
-                                        placeholder="Nhập tin nhắn..."
-                                        onPressEnter={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                                            if (!e.shiftKey) {
-                                                e.preventDefault();
-                                                handleSendComment();
-                                            }
-                                        }}
-                                    />
-                                    <Button type="primary" icon={<SendOutlined />} onClick={handleSendComment} />
-                                </div>
+                            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+                                <div><b>ACB - TP.HCM</b></div>
+                                <div>STK: <span style={{ fontFamily: 'monospace', background: '#f0f0f0', padding: '0 4px' }}>141847859</span></div>
+                                <div>Chủ TK: CTY TNHH TM DV TƯỜNG LINH</div>
+                                <div>Nội dung: <b>{data.order_code}</b></div>
                             </div>
                         </Card>
                     </Col>
+                </Row>
 
-                    {/* RIGHT COLUMN: MAIN DETAILS */}
-                    <Col xs={24} md={16}>
+                {/* --- DETAILS ROW: TABLE --- */}
+                <Row gutter={24}>
+                    <Col span={24}>
                         <Card title={<span style={{ fontWeight: 700, fontSize: 16 }}>📋 Chi Tiết Đơn Hàng</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
                             {data.note && (
                                 <div style={{ display: 'flex', gap: 10, marginBottom: 20, background: '#fff7e6', padding: 15, borderRadius: 8, border: '1px solid #ffec3d' }}>
@@ -335,7 +284,7 @@ const PortalQuotePage: React.FC = () => {
                                 rowKey="id"
                                 pagination={false}
                                 bordered={false}
-                                scroll={{ x: 1000 }} // FIX LAYOUT OVERFLOW
+                                scroll={{ x: '100%' }}
                                 className="quote-table"
                                 summary={() => {
                                     const vatRate = data.vat_rate || 0;
@@ -382,27 +331,75 @@ const PortalQuotePage: React.FC = () => {
                                 </div>
                             )}
                         </Card>
+                    </Col>
+                </Row>
 
-                        {/* Recent History */}
-                        <Row gutter={20}>
-                            {data.payments && data.payments.length > 0 && (
-                                <Col span={24}>
-                                    <Card title="Lịch Sử Thanh Toán" size="small" style={{ marginBottom: 20 }}>
-                                        <Table
-                                            dataSource={data.payments}
-                                            rowKey="id"
-                                            pagination={false}
-                                            columns={[
-                                                { title: 'Ngày', render: (r: any) => dayjs(r.date).format('DD/MM/YYYY') },
-                                                { title: 'Loại', render: (r: any) => <Tag color={r.type === 'INCOME' ? 'success' : 'red'}>{r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền'}</Tag> },
-                                                { title: 'Số tiền', align: 'right', render: (r: any) => <b>{Number(r.amount).toLocaleString()}</b> },
-                                            ]}
-                                        />
-                                    </Card>
-                                </Col>
-                            )}
-                        </Row>
+                {/* --- BOTTOM ROW: COMMENTS & HISTORY --- */}
+                <Row gutter={24}>
+                    <Col xs={24} md={12}>
+                        <Card title="💬 Thảo Luận" bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12, overflow: 'hidden', height: '100%' }}>
+                            <div style={{ height: 300, overflowY: 'auto', padding: 20, background: '#f9f9f9' }}>
+                                <List dataSource={visibleComments} renderItem={(item: any) => (
+                                    <div style={{ display: 'flex', gap: 10, marginBottom: 15, flexDirection: item.sender_type === 'CUSTOMER' ? 'row-reverse' : 'row' }}>
+                                        <Avatar style={{ backgroundColor: item.sender_type === 'CUSTOMER' ? '#87d068' : '#1890ff' }} icon={item.sender_type === 'CUSTOMER' ? <UserOutlined /> : <SolutionOutlined />} />
+                                        <div style={{ maxWidth: '80%' }}>
+                                            <div style={{ fontSize: 11, color: '#999', marginBottom: 2, textAlign: item.sender_type === 'CUSTOMER' ? 'right' : 'left' }}>
+                                                {item.sender_name} • {dayjs(item.created_at).format('HH:mm DD/MM')}
+                                            </div>
+                                            <div style={{
+                                                padding: '8px 12px',
+                                                background: item.sender_type === 'CUSTOMER' ? '#d9f7be' : '#fff',
+                                                borderRadius: 8,
+                                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                                color: '#333'
+                                            }}>
+                                                {item.content}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )} />
+                                {visibleComments.length === 0 && <Empty description="Chưa có tin nhắn nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+                            </div>
+                            <div style={{ padding: 15, background: '#fff', borderTop: '1px solid #f0f0f0' }}>
+                                <div style={{ display: 'flex', gap: 10 }}>
+                                    <Input.TextArea
+                                        autoSize={{ minRows: 1, maxRows: 3 }}
+                                        value={commentText}
+                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCommentText(e.target.value)}
+                                        placeholder="Nhập tin nhắn..."
+                                        onPressEnter={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                                            if (!e.shiftKey) {
+                                                e.preventDefault();
+                                                handleSendComment();
+                                            }
+                                        }}
+                                    />
+                                    <Button type="primary" icon={<SendOutlined />} onClick={handleSendComment} />
+                                </div>
+                            </div>
+                        </Card>
+                    </Col>
 
+                    <Col xs={24} md={12}>
+                        {data.payments && data.payments.length > 0 && (
+                            <Card title="Lịch Sử Thanh Toán" size="small" style={{ marginBottom: 20, height: '100%' }}>
+                                <Table
+                                    dataSource={data.payments}
+                                    rowKey="id"
+                                    pagination={false}
+                                    columns={[
+                                        { title: 'Ngày', render: (r: any) => dayjs(r.date).format('DD/MM/YYYY') },
+                                        { title: 'Loại', render: (r: any) => <Tag color={r.type === 'INCOME' ? 'success' : 'red'}>{r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền'}</Tag> },
+                                        { title: 'Số tiền', align: 'right', render: (r: any) => <b>{Number(r.amount).toLocaleString()}</b> },
+                                    ]}
+                                />
+                            </Card>
+                        )}
+                        <Card title="QR Thanh Toán" size="small">
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <img src={`https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(Number(data.total_amount) - Number(data.paid_amount))}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`} alt="VietQR" style={{ width: 140 }} />
+                            </div>
+                        </Card>
                     </Col>
                 </Row>
             </div>
