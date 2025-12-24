@@ -220,6 +220,51 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'sales-approval':
+                return (
+                    <div>
+                        <Tag color="gold" style={{ marginBottom: 16 }}>Quy trình kiểm soát chất lượng</Tag>
+                        <Title level={2}>✅ Quy trình Duyệt Mẫu (Sample Approval)</Title>
+                        <Paragraph>
+                            Đối với các đơn hàng B2B hoặc sản xuất theo yêu cầu, bước Duyệt Mẫu là bắt buộc để đảm bảo sản phẩm sản xuất ra đúng với yêu cầu của khách hàng.
+                        </Paragraph>
+
+                        <Steps
+                            direction="vertical"
+                            current={1}
+                            items={[
+                                {
+                                    title: 'Bước 1: Gửi mẫu & Chờ phản hồi',
+                                    description: 'Sau khi Báo giá được xác nhận, đơn hàng sẽ ở trạng thái "Chờ Duyệt Mẫu" (SO_PENDING). Sale gửi mẫu vật lý hoặc hình ảnh cho khách.',
+                                },
+                                {
+                                    title: 'Bước 2: Khách hàng chốt mẫu',
+                                    description: 'Khách hàng xác nhận mẫu đạt yêu cầu (qua Email, Zalo hoặc trực tiếp).',
+                                    icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+                                },
+                                {
+                                    title: 'Bước 3: Xác nhận trên hệ thống',
+                                    description: (
+                                        <div>
+                                            <Paragraph>Nhân viên Sale mở chi tiết đơn hàng và nhấn nút <Tag color="success">Duyệt Mẫu</Tag>.</Paragraph>
+                                            <Alert
+                                                message="Tác vụ tự động"
+                                                description="Hệ thống sẽ tự động cập nhật trạng thái đơn hàng sang 'Đã Duyệt Mẫu' và đánh dấu tất cả sản phẩm trong đơn là đạt chuẩn để chuyển sang sản xuất."
+                                                type="success"
+                                                showIcon
+                                            />
+                                        </div>
+                                    ),
+                                    status: 'process',
+                                },
+                                {
+                                    title: 'Bước 4: Chuyển sang Sản xuất/Đặt cọc',
+                                    description: 'Sau khi duyệt mẫu, quy trình tiếp theo thường là Thu tiền cọc hoặc Lên kế hoạch sản xuất (Production Plan).',
+                                }
+                            ]}
+                        />
+                    </div>
+                );
             case 'sales-portal':
                 return (
                     <div>
@@ -305,6 +350,7 @@ const HelpPage: React.FC = () => {
                             children: [
                                 { key: 'sales-process', label: 'Quy trình chuẩn' },
                                 { key: 'sales-create', label: 'Tạo đơn mới' },
+                                { key: 'sales-approval', label: 'Duyệt mẫu' },
                                 { key: 'sales-portal', label: 'Customer Portal' },
                             ]
                         },
