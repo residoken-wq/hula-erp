@@ -62,6 +62,9 @@ export class SalesOrder {
 
   @Column('text', { nullable: true }) note: string; // --- NEW NOTE FIELD ---
 
+  @Column('text', { nullable: true })
+  cancel_reason: string;
+
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'assigned_to_id' })
   assigned_to: User;

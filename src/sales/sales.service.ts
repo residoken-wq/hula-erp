@@ -41,9 +41,39 @@ export class SalesService {
     async createPriceListRule(id: number, data: any) { return this.priceListRuleRepo.save(this.priceListRuleRepo.create({ ...data, price_list_id: id })); }
     async getPriceListRules(id: number) { return this.priceListRuleRepo.find({ where: { price_list_id: id } }); }
 
+    // --- HELPER: GENERATE ORDER CODE ---
+    async generateOrderCode(type: 'SO' | 'QUOTE'): Promise<string> {
+        const prefix = type === 'SO' ? 'SO' : 'BG'; // BG = Báo Giá
+        const now = new Date();
+        const year = String(now.getFullYear()).slice(-2);
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const codePrefix = `${prefix}-${year}${month}-`;
+
+        // Tìm mã lớn nhất trong tháng hiện tại để tăng số thứ tự
+        const lastOrder = await this.orderRepo.createQueryBuilder('order')
+            .where('order.order_code LIKE :code', { code: `${codePrefix}%` })
+            .orderBy('order.id', 'DESC')
+            .getOne();
+
+        let sequence = 1;
+        if (lastOrder) {
+            const parts = lastOrder.order_code.split('-');
+            const lastSeq = parseInt(parts[parts.length - 1]);
+            if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+        }
+
+        return `${codePrefix}${String(sequence).padStart(4, '0')}`;
+    }
+
     async createOrder(data: any) {
+        // --- AUTO GENERATE CODE IF NEEDED ---
+        let orderCode = data.order_code;
+        if (!orderCode || orderCode.startsWith('AUTO-')) {
+            orderCode = await this.generateOrderCode(data.is_quotation ? 'QUOTE' : 'SO');
+        }
+
         const order = this.orderRepo.create({
-            order_code: data.order_code,
+            order_code: orderCode,
             customer: data.customer_id ? { id: data.customer_id } : null,
             customer_name: data.customer_name,
             order_date: data.order_date,
@@ -88,6 +118,15 @@ export class SalesService {
         // Công thức: (Subtotal - Discount) * (1 + VAT) + Shipping
         const taxable = Math.max(0, subtotal - discountAmount);
         order.total_amount = taxable * (1 + order.vat_rate / 100) + order.shipping_fee;
+        return this.orderRepo.save(order);
+    }
+
+    // --- CANCEL ORDER ---
+    async cancelOrder(id: number, reason: string) {
+        const order = await this.orderRepo.findOne({ where: { id } });
+        if (!order) throw new NotFoundException('Order not found');
+        order.status = SalesOrderStatus.CANCELLED;
+        order.cancel_reason = reason;
         return this.orderRepo.save(order);
     }
 
