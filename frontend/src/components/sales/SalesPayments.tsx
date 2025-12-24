@@ -21,11 +21,22 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
     const [type, setType] = useState('DEPOSIT');
     const [note, setNote] = useState('');
 
-    // ... (fetchHistory keeps same)
+    const fetchHistory = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/sales/${orderCode}/payment-history`);
+            setHistory(res.data);
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
-    // ... (useEffect keeps same)
+    useEffect(() => {
+        fetchHistory();
+    }, [orderCode]);
 
-    // ... (realTimePaidAmount keeps same)
+    const realTimePaidAmount = useMemo(() => {
+        return history.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    }, [history]);
 
     const remainingAmount = totalAmount - realTimePaidAmount;
 
