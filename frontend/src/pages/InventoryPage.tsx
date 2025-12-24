@@ -29,6 +29,14 @@ const InventoryPage: React.FC = () => {
 
     const [searchText, setSearchText] = useState('');
 
+    const [activeTab, setActiveTab] = useState('ALL_STOCKS'); // Tab chính
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [form] = Form.useForm();
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const adjustmentType = Form.useWatch('type', form);
+    const itemType = Form.useWatch('itemType', form);
+
     // --- PREPARE DATA TỔNG HỢP ---
     const masterData = useMemo(() => {
         const prodList = products.map(p => ({ ...p, item_type: 'PRODUCT', key: `P_${p.id}` }));

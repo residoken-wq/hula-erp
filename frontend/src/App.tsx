@@ -141,8 +141,8 @@ const App: React.FC = () => {
 
         // 8. Công việc & Hướng dẫn
         if (isAuthenticated) {
-            items.push(getItem(<Link to="/tasks">Công việc & Nhắc nhở</Link>, 'tasks', <CalendarOutlined />));
-            items.push(getItem(<Link to="/help">Hướng dẫn sử dụng</Link>, 'help', <QuestionCircleOutlined />));
+            items.push(getItem(<Link to="/tasks">Công việc & Nhắc nhở</Link>, '/tasks', <CalendarOutlined />));
+            items.push(getItem(<Link to="/help">Hướng dẫn sử dụng</Link>, '/help', <QuestionCircleOutlined />));
         }
 
         // 9. Hệ thống

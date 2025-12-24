@@ -157,7 +157,7 @@ const HelpPage: React.FC = () => {
     };
 
     return (
-        <Layout style={{ minHeight: '100vh', background: '#fff' }}>
+        <Layout style={{ height: '100%', background: '#fff' }}>
             <Sider width={250} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
                 <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: 10 }}>
                     <BookOutlined style={{ fontSize: 24, color: '#1890ff' }} />
