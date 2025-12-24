@@ -98,6 +98,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
                     return {
                         ...i,
+                        key: i.id || `temp-${Date.now()}-${Math.random()}`, // Ensure KEY exists for DragDrop
                         sku: i.product?.sku || i.sku,
                         unit_price: price,
                         quantity: qty,
@@ -489,109 +490,118 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         <Form.Item name="shipping_fee" hidden><InputNumber /></Form.Item>
 
                         <Divider orientation="left">Danh sách sản phẩm</Divider>
-                        <Table
-                            dataSource={orderItems}
-                            columns={itemColumns}
-                            pagination={false}
-                            rowKey="key"
-                            size="small"
-                            bordered
-                            summary={() => {
-                                const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-                                const discountAmt = Number(form.getFieldValue('discount_amount')) || 0;
-                                const vatRate = Number(form.getFieldValue('vat_rate')) || 0;
-                                const shipping = Number(form.getFieldValue('shipping_fee')) || 0;
+                        <DndContext sensors={sensors} modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
+                            <SortableContext items={orderItems.map((i) => i.key)} strategy={verticalListSortingStrategy}>
+                                <Table
+                                    components={{
+                                        body: {
+                                            row: DraggableRow,
+                                        },
+                                    }}
+                                    dataSource={orderItems}
+                                    columns={itemColumns}
+                                    pagination={false}
+                                    rowKey="key"
+                                    size="small"
+                                    bordered
+                                    summary={() => {
+                                        const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+                                        const discountAmt = Number(form.getFieldValue('discount_amount')) || 0;
+                                        const vatRate = Number(form.getFieldValue('vat_rate')) || 0;
+                                        const shipping = Number(form.getFieldValue('shipping_fee')) || 0;
 
-                                const taxable = Math.max(0, subtotal - discountAmt);
-                                const total = taxable * (1 + vatRate / 100) + shipping;
+                                        const taxable = Math.max(0, subtotal - discountAmt);
+                                        const total = taxable * (1 + vatRate / 100) + shipping;
 
-                                // Note: We do NOT set state here anymore to avoid render loops.
-                                // calculateTotal() is triggered by onChange of inputs.
+                                        // Note: We do NOT set state here anymore to avoid render loops.
+                                        // calculateTotal() is triggered by onChange of inputs.
 
-                                return (
-                                    <>
-                                        <Table.Summary.Row>
-                                            <Table.Summary.Cell index={0} colSpan={2} align="right">Tổng tiền hàng:</Table.Summary.Cell>
-                                            <Table.Summary.Cell index={1} align="right">{subtotal.toLocaleString()} ₫</Table.Summary.Cell>
-                                            <Table.Summary.Cell index={2} />
-                                        </Table.Summary.Row>
-                                        <Table.Summary.Row>
-                                            <Table.Summary.Cell index={0} colSpan={2} align="right">
-                                                Giảm giá:
-                                                <InputNumber
-                                                    size="small"
-                                                    min={0}
-                                                    max={100}
-                                                    formatter={v => `${v}%`}
-                                                    parser={v => v!.replace('%', '')}
-                                                    placeholder="%"
-                                                    style={{ width: 60, marginLeft: 10 }}
-                                                    value={form.getFieldValue('discount_rate')}
-                                                    onChange={(val) => {
-                                                        const rate = Number(val);
-                                                        const amt = Math.floor(subtotal * rate / 100);
-                                                        form.setFieldsValue({ discount_rate: rate, discount_amount: amt });
-                                                        calculateTotal(orderItems); // Re-trigger
-                                                    }}
-                                                />
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={1} align="right">
-                                                <InputNumber
-                                                    size="small"
-                                                    style={{ width: '100%' }}
-                                                    value={form.getFieldValue('discount_amount')}
-                                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                    parser={v => v!.replace(/\$\s?|(,*)/g, '')}
-                                                    onChange={(val) => {
-                                                        const amt = Number(val);
-                                                        // Tính ngược lại % (chỉ mang tính tham khảo)
-                                                        const rate = subtotal > 0 ? Number((amt / subtotal * 100).toFixed(2)) : 0;
-                                                        form.setFieldsValue({ discount_amount: amt, discount_rate: rate });
-                                                        calculateTotal(orderItems);
-                                                    }}
-                                                />
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={2} />
-                                        </Table.Summary.Row>
-                                        <Table.Summary.Row>
-                                            <Table.Summary.Cell index={0} colSpan={2} align="right">
-                                                VAT (%):
-                                                <InputNumber size="small" min={0} max={100} style={{ width: 60, marginLeft: 10 }}
-                                                    value={form.getFieldValue('vat_rate')}
-                                                    onChange={(v) => { form.setFieldsValue({ vat_rate: v }); calculateTotal(orderItems); }}
-                                                />
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={1} align="right">
-                                                {vatRate > 0 ? (taxable * vatRate / 100).toLocaleString() : '0'} ₫
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={2} />
-                                        </Table.Summary.Row>
-                                        <Table.Summary.Row>
-                                            <Table.Summary.Cell index={0} colSpan={2} align="right">Phí vận chuyển:</Table.Summary.Cell>
-                                            <Table.Summary.Cell index={1} align="right">
-                                                <InputNumber
-                                                    size="small"
-                                                    min={0}
-                                                    style={{ width: '100%' }}
-                                                    value={form.getFieldValue('shipping_fee')}
-                                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                    parser={v => v!.replace(/\$\s?|(,*)/g, '')}
-                                                    onChange={(v) => { form.setFieldsValue({ shipping_fee: v }); calculateTotal(orderItems); }}
-                                                />
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={2} />
-                                        </Table.Summary.Row>
-                                        <Table.Summary.Row>
-                                            <Table.Summary.Cell index={0} colSpan={2} align="right"><b>TỔNG CỘNG:</b></Table.Summary.Cell>
-                                            <Table.Summary.Cell index={1} align="right">
-                                                <b style={{ color: 'red', fontSize: 16 }}>{total.toLocaleString()} ₫</b>
-                                            </Table.Summary.Cell>
-                                            <Table.Summary.Cell index={2} />
-                                        </Table.Summary.Row>
-                                    </>
-                                );
-                            }}
-                        />
+                                        return (
+                                            <>
+                                                <Table.Summary.Row>
+                                                    <Table.Summary.Cell index={0} colSpan={2} align="right">Tổng tiền hàng:</Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right">{subtotal.toLocaleString()} ₫</Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={2} />
+                                                </Table.Summary.Row>
+                                                <Table.Summary.Row>
+                                                    <Table.Summary.Cell index={0} colSpan={2} align="right">
+                                                        Giảm giá:
+                                                        <InputNumber
+                                                            size="small"
+                                                            min={0}
+                                                            max={100}
+                                                            formatter={v => `${v}%`}
+                                                            parser={v => v!.replace('%', '')}
+                                                            placeholder="%"
+                                                            style={{ width: 60, marginLeft: 10 }}
+                                                            value={form.getFieldValue('discount_rate')}
+                                                            onChange={(val) => {
+                                                                const rate = Number(val);
+                                                                const amt = Math.floor(subtotal * rate / 100);
+                                                                form.setFieldsValue({ discount_rate: rate, discount_amount: amt });
+                                                                calculateTotal(orderItems); // Re-trigger
+                                                            }}
+                                                        />
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right">
+                                                        <InputNumber
+                                                            size="small"
+                                                            style={{ width: '100%' }}
+                                                            value={form.getFieldValue('discount_amount')}
+                                                            formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                            parser={v => v!.replace(/\$\s?|(,*)/g, '')}
+                                                            onChange={(val) => {
+                                                                const amt = Number(val);
+                                                                // Tính ngược lại % (chỉ mang tính tham khảo)
+                                                                const rate = subtotal > 0 ? Number((amt / subtotal * 100).toFixed(2)) : 0;
+                                                                form.setFieldsValue({ discount_amount: amt, discount_rate: rate });
+                                                                calculateTotal(orderItems);
+                                                            }}
+                                                        />
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={2} />
+                                                </Table.Summary.Row>
+                                                <Table.Summary.Row>
+                                                    <Table.Summary.Cell index={0} colSpan={2} align="right">
+                                                        VAT (%):
+                                                        <InputNumber size="small" min={0} max={100} style={{ width: 60, marginLeft: 10 }}
+                                                            value={form.getFieldValue('vat_rate')}
+                                                            onChange={(v) => { form.setFieldsValue({ vat_rate: v }); calculateTotal(orderItems); }}
+                                                        />
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right">
+                                                        {vatRate > 0 ? (taxable * vatRate / 100).toLocaleString() : '0'} ₫
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={2} />
+                                                </Table.Summary.Row>
+                                                <Table.Summary.Row>
+                                                    <Table.Summary.Cell index={0} colSpan={2} align="right">Phí vận chuyển:</Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right">
+                                                        <InputNumber
+                                                            size="small"
+                                                            min={0}
+                                                            style={{ width: '100%' }}
+                                                            value={form.getFieldValue('shipping_fee')}
+                                                            formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                            parser={v => v!.replace(/\$\s?|(,*)/g, '')}
+                                                            onChange={(v) => { form.setFieldsValue({ shipping_fee: v }); calculateTotal(orderItems); }}
+                                                        />
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={2} />
+                                                </Table.Summary.Row>
+                                                <Table.Summary.Row>
+                                                    <Table.Summary.Cell index={0} colSpan={2} align="right"><b>TỔNG CỘNG:</b></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right">
+                                                        <b style={{ color: 'red', fontSize: 16 }}>{total.toLocaleString()} ₫</b>
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={2} />
+                                                </Table.Summary.Row>
+                                            </>
+                                        );
+                                    }}
+                                />
+                            </SortableContext>
+                        </DndContext>
                         <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>Thêm sản phẩm</Button>
                     </Form>
                 </Tabs.TabPane>
