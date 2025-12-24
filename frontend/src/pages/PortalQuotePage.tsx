@@ -61,53 +61,52 @@ const PortalQuotePage: React.FC = () => {
         {
             title: '#',
             key: 'index',
-            width: 50,
+            width: 40,
             align: 'center' as const,
             render: (_: any, __: any, index: number) => <span style={{ color: '#999' }}>{index + 1}</span>
         },
         {
-            title: 'Sản Phẩm & Mô Tả Chi Tiết',
+            title: 'Sản Phẩm',
             key: 'product_details',
-            // Không set width cứng để cột này tự giãn
+            width: 300,
             render: (_: any, r: any) => {
                 const imgUrl = r.sample_image ? `${API_URL}${r.sample_image}` : null;
-                const desc = r.vat_content || r.product?.customer_description;
                 return (
-                    <div style={{ display: 'flex', gap: 15, padding: '5px 0' }}>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                         {imgUrl ? (
                             <img
                                 src={imgUrl}
                                 alt="product"
-                                style={{ width: 80, height: 80, objectFit: 'contain', border: '1px solid #f0f0f0', borderRadius: 6, flexShrink: 0 }}
+                                style={{ width: 50, height: 50, objectFit: 'contain', border: '1px solid #f0f0f0', borderRadius: 4, flexShrink: 0 }}
                             />
                         ) : (
-                            <div style={{ width: 80, height: 80, background: '#f5f5f5', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', flexShrink: 0 }}>No Image</div>
+                            <div style={{ width: 50, height: 50, background: '#f5f5f5', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', flexShrink: 0, fontSize: 10 }}>No Img</div>
                         )}
-                        <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 700, fontSize: 15, color: '#1f1f1f', marginBottom: 4 }}>
+                        <div>
+                            <div style={{ fontWeight: 600, fontSize: 14, color: '#1f1f1f', lineHeight: 1.2, marginBottom: 3 }}>
                                 {r.product_name_real || r.product?.name || r.sku}
                             </div>
-                            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>
-                                <Tag>SKU: {r.sku}</Tag>
-                                {r.variant_color && <Tag color="blue">{r.variant_color}</Tag>}
-                            </div>
-                            {desc ? (
-                                <div style={{
-                                    fontSize: 13,
-                                    color: '#555',
-                                    background: '#f9f9f9',
-                                    padding: '8px 12px',
-                                    borderRadius: 6,
-                                    border: '1px dashed #e8e8e8',
-                                    whiteSpace: 'pre-wrap',
-                                    lineHeight: 1.6
-                                }}>
-                                    {desc}
-                                </div>
-                            ) : (
-                                <div style={{ fontStyle: 'italic', color: '#ccc', fontSize: 12 }}>Chưa có mô tả chi tiết</div>
-                            )}
+                            <Tag style={{ fontSize: 10, margin: 0, padding: '0 4px' }}>{r.sku}</Tag>
+                            {r.variant_color && <Tag color="blue" style={{ fontSize: 10, margin: 0, padding: '0 4px', marginLeft: 4 }}>{r.variant_color}</Tag>}
                         </div>
+                    </div>
+                );
+            }
+        },
+        {
+            title: 'Mô Tả Sản Phẩm (VAT)',
+            dataIndex: 'vat_content',
+            key: 'vat_content',
+            render: (_: any, r: any) => {
+                const desc = r.vat_content || r.product?.customer_description;
+                return (
+                    <div style={{
+                        fontSize: 13,
+                        color: '#555',
+                        whiteSpace: 'pre-wrap',
+                        lineHeight: 1.5
+                    }}>
+                        {desc || '-'}
                     </div>
                 );
             }
@@ -115,30 +114,30 @@ const PortalQuotePage: React.FC = () => {
         {
             title: 'ĐVT',
             dataIndex: 'unit',
-            width: 60,
+            width: 50,
             align: 'center' as const,
             render: () => <span style={{ color: '#666' }}>Cái</span>
         },
         {
             title: 'SL',
             dataIndex: 'quantity',
-            width: 70,
+            width: 50,
             align: 'center' as const,
             render: (v: any) => <b style={{ fontSize: 14 }}>{Number(v)}</b>
         },
         {
             title: 'Đơn Giá',
             dataIndex: 'unit_price',
-            width: 110,
+            width: 100,
             align: 'right' as const,
             render: (v: any) => <span style={{ color: '#555' }}>{Number(v).toLocaleString()}</span>
         },
         {
             title: 'Thành Tiền',
             dataIndex: 'subtotal',
-            width: 130,
+            width: 110,
             align: 'right' as const,
-            render: (v: any) => <b style={{ fontSize: 15, color: '#1f1f1f' }}>{Number(v).toLocaleString()}</b>
+            render: (v: any) => <b style={{ fontSize: 14, color: '#1f1f1f' }}>{Number(v).toLocaleString()}</b>
         }
     ];
 
@@ -218,15 +217,11 @@ const PortalQuotePage: React.FC = () => {
 
                         {/* VAT INFO */}
                         <Card title={<span><ShopOutlined /> Thông Tin Xuất Hóa Đơn</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                            {data.vat_company_name ? (
-                                <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
-                                    <Descriptions.Item label="Công ty">{data.vat_company_name}</Descriptions.Item>
-                                    <Descriptions.Item label="MST">{data.vat_tax_code}</Descriptions.Item>
-                                    <Descriptions.Item label="Địa chỉ">{data.vat_address}</Descriptions.Item>
-                                </Descriptions>
-                            ) : (
-                                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không xuất hóa đơn VAT" />
-                            )}
+                            <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
+                                <Descriptions.Item label="Công ty">{data.vat_company_name || '-'}</Descriptions.Item>
+                                <Descriptions.Item label="MST">{data.vat_tax_code || '-'}</Descriptions.Item>
+                                <Descriptions.Item label="Địa chỉ">{data.vat_address || '-'}</Descriptions.Item>
+                            </Descriptions>
                         </Card>
 
                         {/* PAYMENT INFO */}
