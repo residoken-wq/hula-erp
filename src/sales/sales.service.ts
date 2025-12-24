@@ -188,6 +188,9 @@ export class SalesService {
 
             await this.itemRepo.save(newItems);
 
+            // --- QUAN TRỌNG: Cập nhật lại relation trong object Order để save(order) ko bị cascade lại items cũ ---
+            order.items = newItems;
+
             // Recalculate Total
             const subtotal = itemsTotal;
             const discount = Number(order.discount_amount) || 0;
