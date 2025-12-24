@@ -10,7 +10,12 @@ import {
     CarOutlined,
     CheckCircleOutlined,
     QuestionCircleOutlined,
-    RocketOutlined
+    RocketOutlined,
+    PlusOutlined,
+    SearchOutlined,
+    EditOutlined,
+    UploadOutlined,
+    SaveOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
