@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Popconfirm, Space, Tag, Row, Col, Select, Tabs, Divider, DatePicker, Statistic } from 'antd';
 import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined, AuditOutlined, MinusCircleOutlined, BranchesOutlined, HistoryOutlined, DollarOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../utils/api'; // Changed from axios to api
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 
@@ -29,8 +29,8 @@ const CustomersPage: React.FC = () => {
         setLoading(true);
         try {
             const [res, resUsers] = await Promise.all([
-                axios.get(`${API_URL}/customers`),
-                axios.get(`${API_URL}/users`)
+                api.get('/customers'),
+                api.get('/users')
             ]);
             setCustomers(res.data);
             setUsers(resUsers.data);
@@ -44,7 +44,7 @@ const CustomersPage: React.FC = () => {
     // Fetch Orders khi mở Modal Edit
     const fetchOrders = async (customerId: number) => {
         try {
-            const res = await axios.get(`${API_URL}/customers/${customerId}/orders`);
+            const res = await api.get(`/customers/${customerId}/orders`);
             setHistoryOrders(res.data);
         } catch (e) { setHistoryOrders([]); }
     };
@@ -80,10 +80,10 @@ const CustomersPage: React.FC = () => {
     const handleSave = async (values: any) => {
         try {
             if (editingItem) {
-                await axios.put(`${API_URL}/customers/${editingItem.id}`, values);
+                await api.put(`/customers/${editingItem.id}`, values);
                 message.success('Cập nhật thành công');
             } else {
-                await axios.post(`${API_URL}/customers`, values);
+                await api.post('/customers', values);
                 message.success('Thêm mới thành công');
             }
             setIsModalOpen(false);
@@ -95,7 +95,7 @@ const CustomersPage: React.FC = () => {
 
     // Delete
     const handleDelete = async (id: number) => {
-        try { await axios.delete(`${API_URL}/customers/${id}`); message.success('Đã xóa'); fetchData(); }
+        try { await api.delete(`/customers/${id}`); message.success('Đã xóa'); fetchData(); }
         catch (e) { message.error('Không thể xóa (KH đã có dữ liệu ràng buộc)'); }
     };
 
