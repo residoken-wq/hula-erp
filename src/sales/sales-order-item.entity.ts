@@ -49,6 +49,7 @@ export class SalesOrderItem {
   @Column({ nullable: true })
   sample_note: string;
 
+
   @Column('text', { nullable: true })
   vat_content: string;
 }
