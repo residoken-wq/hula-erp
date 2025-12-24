@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, Statistic, Row, Col, Divider, Modal, Form, InputNumber, Radio, Input, message } from 'antd';
+import { Table, Button, Statistic, Row, Col, Divider, Modal, Form, InputNumber, Radio, Input, message, DatePicker } from 'antd';
 import { DollarOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -20,6 +20,7 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
     const [amount, setAmount] = useState<number>(0);
     const [type, setType] = useState('DEPOSIT');
     const [note, setNote] = useState('');
+    const [date, setDate] = useState(dayjs());
 
     const fetchHistory = async () => {
         try {
@@ -52,13 +53,15 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                 amount,
                 refCode: orderCode,
                 note: finalNote,
-                customerName: customerName // <--- Pass to backend
+                customerName: customerName,
+                date: date // <--- Pass custom date
             });
 
             message.success('Đã lưu thanh toán!');
             setIsModalOpen(false);
             setAmount(0);
             setNote('');
+            setDate(dayjs());
 
             await fetchHistory(); // Load lại history -> Tự động update realTimePaidAmount
             onSuccess(); // Báo cho parent reload nếu cần
@@ -131,6 +134,15 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
 
             <Modal title="Thêm Đợt Thanh Toán" open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={handlePayment}>
                 <Form layout="vertical">
+                    <Form.Item label="Ngày thanh toán">
+                        <DatePicker
+                            showTime
+                            format="DD/MM/YYYY HH:mm"
+                            value={date}
+                            onChange={(d) => setDate(d || dayjs())}
+                            style={{ width: '100%' }}
+                        />
+                    </Form.Item>
                     <Form.Item label="Số tiền">
                         <InputNumber
                             style={{ width: '100%' }}

@@ -460,6 +460,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                 <Option value="SO_PENDING">Chờ Duyệt Mẫu</Option>
                                                 <Option value="SAMPLE_APPROVED">Đã Duyệt Mẫu</Option>
                                                 <Option value="DEPOSITED">Đã Cọc / Sản Xuất</Option>
+                                                <Option value="PARTIAL_DELIVERY">Giao 1 Phần</Option>
                                                 <Option value="DELIVERED">Đã Giao Hàng</Option>
                                                 <Option value="COMPLETED">Hoàn Thành</Option>
                                             </>
