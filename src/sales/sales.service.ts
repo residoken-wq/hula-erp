@@ -85,6 +85,7 @@ export class SalesService {
             discount_rate: Number(data.discount_rate) || 0,
             discount_amount: Number(data.discount_amount) || 0,
             payment_note: data.payment_note, terms_content: data.terms_content, note: data.note,
+            assigned_to: data.assigned_to_id ? { id: data.assigned_to_id } as any : null,
             paid_amount: 0 // Init
         });
 
@@ -195,6 +196,7 @@ export class SalesService {
 
         if (data.discount_rate !== undefined) order.discount_rate = Number(data.discount_rate);
         if (data.discount_amount !== undefined) order.discount_amount = Number(data.discount_amount);
+        if (data.assigned_to_id !== undefined) order.assigned_to = data.assigned_to_id ? { id: data.assigned_to_id } as any : null;
 
         if (data.items) {
             console.log('--- UPDATING ITEMS ---');                    // DEBUG
