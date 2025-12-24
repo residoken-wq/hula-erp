@@ -144,6 +144,108 @@ const HelpPage: React.FC = () => {
                         </Paragraph>
                     </div>
                 );
+            case 'sales-create':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Hướng dẫn thao tác</Tag>
+                        <Title level={2}>📝 Tạo Đơn Hàng Mới</Title>
+                        <Paragraph>
+                            Chức năng này dùng để tạo Báo giá (Quote) hoặc Đơn hàng bán (Sales Order) mới.
+                            Mọi đơn hàng đều bắt đầu từ bước này.
+                        </Paragraph>
+
+                        <Steps
+                            direction="vertical"
+                            current={-1}
+                            items={[
+                                {
+                                    title: 'Bước 1: Truy cập giao diện',
+                                    description: 'Vào menu "Bán hàng (CRM)" -> "Sales Orders". Nhấn nút "Thêm Mới" ở góc phải.',
+                                },
+                                {
+                                    title: 'Bước 2: Điền thông tin Khách hàng',
+                                    description: (
+                                        <ul>
+                                            <li>Tìm kiếm khách hàng bằng Tên hoặc Số điện thoại.</li>
+                                            <li>Nếu chưa có, nhấn icon (+) để tạo nhanh khách hàng mới.</li>
+                                            <li>Hệ thống sẽ tự động điền địa chỉ giao hàng và thông tin VAT mặc định.</li>
+                                        </ul>
+                                    )
+                                },
+                                {
+                                    title: 'Bước 3: Thêm sản phẩm',
+                                    description: (
+                                        <ul>
+                                            <li>Gõ tên sản phẩm hoặc SKU vào ô tìm kiếm dòng hàng.</li>
+                                            <li><b>Đơn giá:</b> Có thể chỉnh sửa (Hệ thống hiển thị giá gốc tham chiếu).</li>
+                                            <li><b>Mô tả VAT:</b> Tùy chỉnh tên hiển thị trên hóa đơn đỏ.</li>
+                                            <li><b>Hình ảnh:</b> Upload ảnh mẫu thực tế nếu sản phẩm có tùy biến.</li>
+                                        </ul>
+                                    )
+                                },
+                                {
+                                    title: 'Bước 4: Cấu hình Thanh toán & VAT',
+                                    description: 'Nhập % Thuế VAT (8% hoặc 10%) và chọn phương thức thanh toán. Hệ thống tự động tính Tổng tiền.',
+                                },
+                                {
+                                    title: 'Bước 5: Lưu & Gửi',
+                                    description: 'Nhấn "Lưu" để tạo đơn. Sau đó copy Link Portal gửi cho khách.',
+                                }
+                            ]}
+                        />
+                    </div>
+                );
+            case 'sales-portal':
+                return (
+                    <div>
+                        <Tag color="purple" style={{ marginBottom: 16 }}>Tính năng nâng cao</Tag>
+                        <Title level={2}>🌐 Customer Portal (Cổng Khách Hàng)</Title>
+                        <Paragraph>
+                            Customer Portal là trang web dành riêng cho khách hàng để xem chi tiết báo giá và tương tác với doanh nghiệp mà không cần đăng nhập.
+                        </Paragraph>
+
+                        <Divider orientation="left">Cách truy cập</Divider>
+                        <Paragraph>
+                            Mỗi đơn hàng có một đường dẫn (Link) duy nhất và bảo mật.
+                            Bạn có thể lấy link này bằng cách nhấn nút <b>"Copy Link"</b> hoặc <b>"Xem Portal"</b> trên chi tiết đơn hàng.
+                        </Paragraph>
+
+                        <Divider orientation="left">Các tính năng chính</Divider>
+                        <Row gutter={[16, 16]}>
+                            <Col span={8}>
+                                <Card title="1. Xem Báo Giá Online" bordered={false} style={{ background: '#f0f5ff' }}>
+                                    <Paragraph>
+                                        Hiển thị bảng báo giá chuyên nghiệp với đầy đủ hình ảnh, mô tả kỹ thuật và giá tiền.
+                                        Tương thích tốt trên cả điện thoại và máy tính.
+                                    </Paragraph>
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card title="2. Tương Tác Hai Chiều" bordered={false} style={{ background: '#f6ffed' }}>
+                                    <Paragraph>
+                                        Khách hàng có thể để lại bình luận/câu hỏi ngay trên từng báo giá.
+                                        Nút <b>"Đồng ý"</b> hoặc <b>"Từ chối"</b> giúp chốt đơn nhanh chóng.
+                                    </Paragraph>
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card title="3. Thanh Toán QR" bordered={false} style={{ background: '#fff7e6' }}>
+                                    <Paragraph>
+                                        Tích hợp mã QR VietQR động. Khách hàng chỉ cần mở app ngân hàng quét mã để chuyển khoản chính xác số tiền.
+                                    </Paragraph>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Title level={4} style={{ marginTop: 30 }}>Lưu ý quan trọng</Title>
+                        <Alert
+                            message="Bảo mật liên kết"
+                            description="Link Portal chứa thông tin cá nhân của khách hàng. Chỉ chia sẻ link này cho đúng người mua hàng."
+                            type="warning"
+                            showIcon
+                        />
+                    </div>
+                );
             case 'customers':
                 return (
                     <div>
