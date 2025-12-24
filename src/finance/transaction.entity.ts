@@ -25,6 +25,9 @@ export class Transaction {
   @Column({ nullable: true })
   description: string;
 
+  @Column({ nullable: true })
+  partner_name: string; // Khách hàng hoặc Nhà cung cấp
+
   // --- LIÊN KẾT TỰ ĐỘNG ---
   @Column({ nullable: true })
   reference_code: string; // Mã đơn hàng (PO-..., SO-...)
