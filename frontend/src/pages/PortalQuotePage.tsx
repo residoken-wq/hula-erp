@@ -94,7 +94,7 @@ const PortalQuotePage: React.FC = () => {
                             <img
                                 src={imgUrl!}
                                 alt="product"
-                                style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee' }}
+                                style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee' }}
                                 onClick={() => handlePreview(imgUrl!)}
                             />
                         ) : (
