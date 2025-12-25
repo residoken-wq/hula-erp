@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true, // Cho phep Docker map port
-    port: 5173
+    port: 5173,
+    allowedHosts: ['erp.nemmamnon.com']
   }
 })
