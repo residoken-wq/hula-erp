@@ -21,28 +21,32 @@ import { ProductsModule } from '../products/products.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { CustomersModule } from '../customers/customers.module';
 import { FinanceModule } from '../finance/finance.module';
+import { SystemModule } from '../system/system.module';
+import { SalesOrderVersion } from './sales-order-version.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-        SalesOrder, 
-        SalesOrderItem, 
-        ProductSample, 
-        SalesDelivery, 
-        SalesDeliveryItem,
-        SalesComment, 
-        Transaction,
-        PriceList, 
-        PriceListRule,
-        User
+      SalesOrder,
+      SalesOrderVersion,
+      SalesOrderItem,
+      ProductSample,
+      SalesDelivery,
+      SalesDeliveryItem,
+      SalesComment,
+      Transaction,
+      PriceList,
+      PriceListRule,
+      User
     ]),
     ProductsModule,
     InventoryModule,
     CustomersModule,
+    SystemModule,
     forwardRef(() => FinanceModule)
   ],
   controllers: [SalesController],
   providers: [SalesService],
   exports: [SalesService],
 })
-export class SalesModule {}
+export class SalesModule { }

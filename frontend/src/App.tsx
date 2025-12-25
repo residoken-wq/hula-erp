@@ -35,6 +35,7 @@ import SalesPage from './pages/SalesPage'; // <--- QUAN TRỌNG: Import trang Đ
 import HelpPage from './pages/HelpPage'; // Import HelpPage
 import DocsPage from './pages/DocsPage'; // <--- Import DocsPage
 import SystemSettingsPage from './pages/SystemSettingsPage';
+import ActivityLogPage from './pages/ActivityLogPage'; // <--- Import ActivityLogPage
 
 // Import Components
 import HeaderNotifications from './components/HeaderNotifications';
@@ -153,6 +154,7 @@ const App: React.FC = () => {
                 getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
                 getItem(<Link to="/users/groups">Nhóm & Phân quyền</Link>, 'group_perm'),
                 getItem(<Link to="/system/settings">Cấu hình Email (SMTP)</Link>, 'sys_smtp'),
+                getItem(<Link to="/system/logs">Nhật ký hoạt động</Link>, 'sys_logs'), // <--- Activity Log Menu
             ]));
         }
 
@@ -245,6 +247,7 @@ const App: React.FC = () => {
                                                     <Route path="/users" element={<UsersPage />} />
                                                     <Route path="/users/groups" element={<UserGroupsPage />} />
                                                     <Route path="/system/settings" element={<SystemSettingsPage />} />
+                                                    <Route path="/system/logs" element={<ActivityLogPage />} /> {/* <--- Activity Log Route */}
                                                 </>
                                             )}
 

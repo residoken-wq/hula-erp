@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import SalesPayments from './sales/SalesPayments';
 import SalesDeliveries from './sales/SalesDeliveries';
 import SalesComments from './sales/SalesComments';
+import { HistoryOutlined, CopyOutlined } from '@ant-design/icons'; // Import icons
 
 import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -72,6 +73,17 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const [cancelModalOpen, setCancelModalOpen] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
 
+    // Revisions State
+    const [revisions, setRevisions] = useState<any[]>([]);
+    const [revisionModalOpen, setRevisionModalOpen] = useState(false);
+
+    const fetchRevisions = async (id: number) => {
+        try {
+            const res = await api.get(`/sales/${id}/revisions`);
+            setRevisions(res.data);
+        } catch (e) { console.error('Failed to load revisions'); }
+    }
+
     useEffect(() => {
         if (open) {
             if (initialData) {
@@ -108,6 +120,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
                 setOrderItems(items);
                 calculateTotal(items);
+
+                // Fetch Revisions
+                fetchRevisions(initialData.id);
             } else {
                 // --- CREATE MODE ---
                 form.resetFields();
@@ -258,6 +273,19 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     };
 
+    const handleCreateRevision = async () => {
+        if (!initialData?.id) return;
+        try {
+            await api.post(`/sales/${initialData.id}/revision`, {}); // User info handled by interceptor/token
+            message.success('Đã tạo phiên bản mới');
+            // Reload data
+            onSuccess();
+            onClose();
+        } catch (e) {
+            message.error('Lỗi tạo revision');
+        }
+    };
+
     const itemColumns = [
         {
             key: 'sort',
@@ -399,13 +427,27 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     return (
         <Modal
-            title={<span>{isQuotation ? 'Báo Giá' : 'Đơn Hàng (SO)'} #{initialData?.order_code} {initialData?.status === 'COMPLETED' && <Tag color="green">Hoàn tất</Tag>}</span>}
+            title={
+                <span>
+                    {isQuotation ? 'Báo Giá' : 'Đơn Hàng (SO)'} #{initialData?.order_code}
+                    {initialData?.version > 1 && <Tag color="orange" style={{ marginLeft: 5 }}>v{initialData?.version}</Tag>}
+                    {initialData?.status === 'COMPLETED' && <Tag color="green" style={{ marginLeft: 5 }}>Hoàn tất</Tag>}
+                </span>
+            }
             open={open}
             onCancel={onClose}
             width={1100}
             footer={[
                 <Button key="close" onClick={onClose}>Đóng</Button>,
                 <Button key="save" type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu Thông Tin</Button>,
+
+                isQuotation && initialData && (
+                    <Button key="revision" icon={<CopyOutlined />} onClick={handleCreateRevision}>Tạo Version Mới</Button>
+                ),
+
+                isQuotation && initialData && (
+                    <Button key="history" icon={<HistoryOutlined />} onClick={() => setRevisionModalOpen(true)}>Lịch sử</Button>
+                ),
 
                 /* BUTTON DUYỆT MẪU (CHỈ HIỆN KHI CÓ DATA) */
                 initialData && (
@@ -648,6 +690,29 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         />
                     </Form.Item>
                 </Form>
+            </Modal>
+
+            {/* REVISION HISTORY MODELS */}
+            <Modal title="Lịch sử phiên bản" open={revisionModalOpen} onCancel={() => setRevisionModalOpen(false)} footer={null} width={800}>
+                <Table
+                    dataSource={revisions}
+                    rowKey="id"
+                    columns={[
+                        { title: 'Version', dataIndex: 'version_number', render: (v) => <Tag>v{v}</Tag> },
+                        { title: 'Ngày tạo', dataIndex: 'created_at', render: (t) => dayjs(t).format('DD/MM/YYYY HH:mm') },
+                        { title: 'Người tạo', dataIndex: 'created_by' },
+                        {
+                            title: 'Action', render: (r) => <Button size="small" onClick={() => {
+                                // View Snapshot logic here - for now just alert
+                                Modal.info({
+                                    title: `Chi tiết version ${r.version_number}`,
+                                    width: 800,
+                                    content: <pre style={{ maxHeight: 400, overflow: 'auto' }}>{JSON.stringify(r.data_snapshot, null, 2)}</pre>
+                                })
+                            }}>Xem chi tiết</Button>
+                        }
+                    ]}
+                />
             </Modal>
         </Modal >
     );

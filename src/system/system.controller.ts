@@ -14,4 +14,9 @@ export class SystemController {
     saveSmtpConfig(@Body() body: any) {
         return this.s.saveSmtpConfig(body);
     }
+
+    @Get('logs')
+    getLogs() {
+        return this.s.getLogs();
+    }
 }

@@ -14,6 +14,8 @@ import { PriceList } from './pricelist/price-list.entity';
 import { PriceListRule } from './pricelist/price-list-rule.entity';
 import { User } from '../users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { SalesOrderVersion } from './sales-order-version.entity';
+import { SystemService } from '../system/system.service';
 
 @Injectable()
 export class SalesService {
@@ -29,9 +31,11 @@ export class SalesService {
         @InjectRepository(PriceList) private priceListRepo: Repository<PriceList>,
         @InjectRepository(PriceListRule) private priceListRuleRepo: Repository<PriceListRule>,
         @InjectRepository(User) private userRepo: Repository<User>,
+        @InjectRepository(SalesOrderVersion) private versionRepo: Repository<SalesOrderVersion>,
         private productsService: ProductsService,
         private inventoryService: InventoryService,
         private customersService: CustomersService,
+        private systemService: SystemService,
     ) { }
 
     // ... (Price List Functions - Giữ nguyên) ...
@@ -120,7 +124,10 @@ export class SalesService {
         // Công thức: (Subtotal - Discount) * (1 + VAT) + Shipping
         const taxable = Math.max(0, subtotal - discountAmount);
         order.total_amount = taxable * (1 + order.vat_rate / 100) + order.shipping_fee;
-        return this.orderRepo.save(order);
+        const saved = await this.orderRepo.save(order);
+
+        await this.systemService.logAction('SALES', 'CREATE_ORDER', `Created Order/Quote ${saved.order_code}`, data.user_id, data.username, saved.order_code);
+        return saved;
     }
 
     // --- CANCEL ORDER ---
@@ -240,8 +247,39 @@ export class SalesService {
         }
 
         const saved = await this.orderRepo.save(order);
+        // Log Update
+        await this.systemService.logAction('SALES', 'UPDATE_ORDER', `Updated Order ${saved.order_code}`, data.user_id, data.username, saved.order_code);
         // Return fresh data with payment info
         return this.findOne(saved.id);
+    }
+
+    // --- REVISIONS ---
+    async createRevision(orderId: number, userId?: number, username?: string) {
+        const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items', 'items.product'] });
+        if (!order) throw new NotFoundException('Order not found');
+
+        // Snapshot current data
+        const snapshot = { ...order };
+        delete snapshot.id; // Avoid ID conflict in snapshot if strictly used
+
+        const version = this.versionRepo.create({
+            order,
+            version_number: order.version,
+            data_snapshot: snapshot,
+            created_by: username || String(userId)
+        });
+        await this.versionRepo.save(version);
+
+        // Increment Order Version
+        order.version = (order.version || 1) + 1;
+        await this.orderRepo.save(order);
+
+        await this.systemService.logAction('SALES', 'CREATE_REVISION', `Created Version ${order.version - 1} for ${order.order_code}`, userId, username, order.order_code);
+        return this.getRevisions(orderId);
+    }
+
+    async getRevisions(orderId: number) {
+        return this.versionRepo.find({ where: { order: { id: orderId } }, order: { version_number: 'DESC' } });
     }
 
     async updateQuote(id: number, b: any) { return this.update(id, b); }

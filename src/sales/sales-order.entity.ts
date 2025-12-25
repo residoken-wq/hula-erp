@@ -35,6 +35,9 @@ export class SalesOrder {
   @Column({ unique: true })
   order_code: string;
 
+  @Column('int', { default: 1 })
+  version: number;
+
   @ManyToOne(() => Customer, { nullable: true })
   @JoinColumn({ name: 'customer_id' })
   customer: Customer;

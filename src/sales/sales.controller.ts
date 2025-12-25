@@ -100,4 +100,13 @@ export class SalesController {
 
     @Post(':id/cancel')
     cancel(@Param('id') id: number, @Body('reason') reason: string) { return this.s.cancelOrder(id, reason); }
+
+    // --- REVISIONS ---
+    @Post(':id/revision')
+    createRevision(@Param('id') id: number, @Body() body: any) {
+        return this.s.createRevision(id, body.userId, body.username);
+    }
+
+    @Get(':id/revisions')
+    getRevisions(@Param('id') id: number) { return this.s.getRevisions(id); }
 }
