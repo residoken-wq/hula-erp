@@ -599,21 +599,22 @@ const HelpPage: React.FC = () => {
                                 { key: 'price-list', label: 'Chính sách giá' },
                             ]
                         },
-                        key: 'sub2',
-                label: 'Phân hệ Khách Hàng',
-                icon: <UserOutlined />,
-                children: [
-                {key: 'customers', label: 'Danh Sách & Công Nợ' },
-                {key: 'reminders', label: 'Nhắc Việc & Chăm Sóc' },
-                ]
+                        {
+                            key: 'sub2',
+                            label: 'Phân hệ Khách Hàng',
+                            icon: <UserOutlined />,
+                            children: [
+                                { key: 'customers', label: 'Danh Sách & Công Nợ' },
+                                { key: 'reminders', label: 'Nhắc Việc & Chăm Sóc' },
+                            ]
                         },
-                {
-                    key: 'sub3',
-                label: 'Phân hệ Tài Chính',
-                icon: <DollarOutlined />,
-                children: [
-                {key: 'finance-guide', label: 'Quản lý Thu/Chi' },
-                ]
+                        {
+                            key: 'sub3',
+                            label: 'Phân hệ Tài Chính',
+                            icon: <DollarOutlined />,
+                            children: [
+                                { key: 'finance-guide', label: 'Quản lý Thu/Chi' },
+                            ]
                         }
                     ]}
                 />
