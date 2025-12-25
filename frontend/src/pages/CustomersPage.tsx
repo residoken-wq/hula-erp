@@ -99,6 +99,20 @@ const CustomersPage: React.FC = () => {
         catch (e) { message.error('Không thể xóa (KH đã có dữ liệu ràng buộc)'); }
     };
 
+    // Helper to mask phone
+    const renderMaskedPhone = (phone: string) => {
+        if (!phone) return '';
+        if (phone.includes('@')) return phone; // Email
+        if (phone.length <= 3) return phone;
+        const visible = phone.slice(-3);
+        const masked = '*'.repeat(phone.length - 3) + visible;
+        return (
+            <Tooltip title={phone}>
+                <span style={{ cursor: 'pointer' }}>{masked}</span>
+            </Tooltip>
+        );
+    };
+
     const columns = [
         { title: 'Mã KH', dataIndex: 'code', width: 100, render: (t: any) => <b>{t}</b> },
         {
@@ -119,15 +133,16 @@ const CustomersPage: React.FC = () => {
             title: 'Liên Hệ', key: 'contact', width: 200,
             render: (_: any, r: any) => {
                 if (r.contacts && r.contacts.length > 0) {
+                    const c = r.contacts[0];
                     return (
                         <div>
-                            <UserOutlined /> {r.contacts[0].full_name} <br />
-                            <small>{r.contacts[0].phone || r.contacts[0].email}</small>
+                            <UserOutlined /> {c.full_name} <br />
+                            <small>{c.phone ? renderMaskedPhone(c.phone) : c.email}</small>
                             {r.contacts.length > 1 && <Tag style={{ marginLeft: 5 }}>+{r.contacts.length - 1}</Tag>}
                         </div>
                     )
                 }
-                return <div><UserOutlined /> {r.phone}</div>
+                return <div><UserOutlined /> {renderMaskedPhone(r.phone)}</div>
             }
         },
         {
