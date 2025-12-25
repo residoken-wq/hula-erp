@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Input, Modal, message, InputNumber, Tooltip, Select } from 'antd';
+import { Table, Button, Input, Modal, message, InputNumber, Tooltip, Select, DatePicker } from 'antd';
 import { CarOutlined, CheckCircleOutlined, PrinterOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -19,6 +19,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const [shipItems, setShipItems] = useState<any[]>([]);
 
     // Additional Ship Info state
+    const [shipDate, setShipDate] = useState<any>(dayjs());
     const [shipAddress, setShipAddress] = useState<string>('');
     const [shipContactName, setShipContactName] = useState<string>('');
     const [shipContactPhone, setShipContactPhone] = useState<string>('');
@@ -54,6 +55,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         setShipNote('');
 
         // Auto-fill defaults
+        setShipDate(dayjs());
         setShipAddress(order.shipping_address || fullCustomer?.address || '');
         setShipContactName(order.receiver_name || contactList[0]?.full_name || fullCustomer?.name || '');
         setShipContactPhone(order.receiver_phone || contactList[0]?.phone || fullCustomer?.phone || '');
@@ -64,8 +66,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const handleShip = async () => {
         try {
             await axios.post(`${API_URL}/sales/${order.id}/delivery`, {
-                code: `PXK-${dayjs().format('DDMMYY')}-${Math.floor(1000 + Math.random() * 9000)}`,
-                date: new Date(),
+                code: `PXK-${dayjs(shipDate).format('DDMMYY')}-${Math.floor(1000 + Math.random() * 9000)}`,
+                date: shipDate ? shipDate.toDate() : new Date(),
                 note: shipNote,
                 delivery_address: shipAddress,
                 contact_name: shipContactName,
@@ -98,8 +100,12 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
         // Resolve Info
         const dAddr = delivery.delivery_address || (order.shipping_address || order.customer?.address || '-');
+
+        // IMPORTANT: Must use delivery specific contact first, usually saved in delivery.contact_name
         const dContactName = delivery.contact_name || (order.receiver_name || order.customer?.name || '-');
         const dContactPhone = delivery.contact_phone || (order.receiver_phone || order.customer?.phone || '');
+
+        // Format: Name - Phone
         const fullContact = dContactPhone ? `${dContactName} - ${dContactPhone}` : dContactName;
 
         const html = `
@@ -119,11 +125,11 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                     .info-row { display: flex; margin-bottom: 8px; }
                     .info-label { width: 130px; font-weight: bold; }
                     .info-val { flex: 1; }
-                    
+
                     table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
                     th, td { border: 1px solid #000; padding: 8px; text-align: center; }
                     th { background-color: #fce4d6; font-weight: bold; }
-                    
+
                     .footer { display: flex; justify-content: space-between; text-align: center; margin-top: 50px; }
                     .footer-col { width: 30%; }
                     .footer-col .role { font-weight: bold; margin-bottom: 80px; }
@@ -208,7 +214,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 <div class="note-bottom">
                     Quý khách vui lòng kiểm tra kỹ số lượng và chất lượng hàng hóa khi nhận hàng.
                 </div>
-                
+
                 <script>
                     window.onload = function() { window.print(); }
                 </script>
@@ -253,6 +259,12 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             ]} />
 
             <Modal title="Tạo Phiếu Xuất Kho" open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={handleShip} width={600}>
+                {/* DATE SELECTION */}
+                <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 500 }}>Ngày xuất kho:</div>
+                    <DatePicker format="DD/MM/YYYY" value={shipDate} onChange={setShipDate} style={{ width: '100%' }} />
+                </div>
+
                 {/* ADDRESS SELECTION */}
                 <div style={{ marginBottom: 10 }}>
                     <div style={{ fontWeight: 500 }}>Chọn Chi Nhánh / Địa chỉ giao hàng:</div>
