@@ -5,9 +5,9 @@ import {
     AppstoreOutlined, ArrowUpOutlined, ArrowDownOutlined,
     InboxOutlined, ShopOutlined, AlertOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../utils/api';
 import dayjs from 'dayjs';
-import { API_URL } from '../config';
+
 
 const { Option } = Select;
 
@@ -41,10 +41,10 @@ const InventoryPage: React.FC = () => {
         setLoading(true);
         try {
             const [pRes, mRes, sRes, hRes] = await Promise.all([
-                axios.get(`${API_URL}/products`),
-                axios.get(`${API_URL}/materials`),
-                axios.get(`${API_URL}/inventory/stocks`),
-                axios.get(`${API_URL}/inventory/history`)
+                api.get('/products'),
+                api.get('/materials'),
+                api.get('/inventory/stocks'),
+                api.get('/inventory/history')
             ]);
             setProducts(pRes.data);
             setMaterials(mRes.data);
@@ -63,7 +63,7 @@ const InventoryPage: React.FC = () => {
 
     const handleAdjust = async (values: any) => {
         try {
-            await axios.post(`${API_URL}/inventory/adjust`, values);
+            await api.post('/inventory/adjust', values);
             message.success('Điều chỉnh thành công');
             setIsModalOpen(false);
             form.resetFields();
