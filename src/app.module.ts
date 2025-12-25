@@ -40,6 +40,7 @@ import { SalesDeliveryItem } from './sales/sales-delivery-item.entity';
 import { SalesComment } from './sales/sales-comment.entity';
 import { PriceList } from './sales/pricelist/price-list.entity';
 import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
+import { SalesOrderVersion } from './sales/sales-order-version.entity'; // <--- NEW
 
 import { StockHistory } from './inventory/stock-history.entity';
 import { InventoryStock } from './inventory/inventory-stock.entity';
@@ -72,6 +73,7 @@ import { User } from './users/entities/user.entity';
 import { UserGroup } from './users/entities/user-group.entity';
 import { GroupPermission } from './users/entities/group-permission.entity';
 import { SystemConfig } from './system/system-config.entity';
+import { ActivityLog } from './system/entities/activity-log.entity'; // <--- NEW
 
 @Module({
   imports: [
@@ -89,7 +91,7 @@ import { SystemConfig } from './system/system-config.entity';
         entities: [
           Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern,
           SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
-          PriceList, PriceListRule,
+          PriceList, PriceListRule, SalesOrderVersion, // <--- NEW
           PurchaseOrder, PurchaseOrderItem, GoodsReceipt,
           StockHistory, InventoryStock,
           ProductionOrder,
@@ -99,7 +101,7 @@ import { SystemConfig } from './system/system-config.entity';
           Customer, CustomerContact,
           ProductionPlan, Process, Category,
           User, UserGroup, GroupPermission,
-          SystemConfig
+          SystemConfig, ActivityLog // <--- NEW
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production', // Disable in production
       }),
