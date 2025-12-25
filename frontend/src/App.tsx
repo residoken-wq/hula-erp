@@ -1,9 +1,4 @@
-import DocsPage from './pages/DocsPage'; // Import DocsPage
-// ...
-// Inside Routes:
-                                            <Route path="/tasks" element={<TasksPage />} />
-                                            <Route path="/help" element={<HelpPage />} />
-                                            <Route path="/docs" element={<DocsPage />} /> {/* Route for Docs */ }
+import React, { useState, useEffect, useMemo } from 'react';
 import { Layout, Menu, theme, Button, Avatar, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
