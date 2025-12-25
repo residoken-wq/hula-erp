@@ -29,6 +29,9 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
+  // Enable /api prefix
+  app.setGlobalPrefix('api');
+
   // Cho phep ket noi tu moi nguon (CORS)
   app.enableCors();
 
