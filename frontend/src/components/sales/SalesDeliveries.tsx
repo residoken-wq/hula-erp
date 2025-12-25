@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Input, Modal, message, InputNumber, Tooltip } from 'antd';
+import { Table, Button, Input, Modal, message, InputNumber, Tooltip, Select } from 'antd';
 import { CarOutlined, CheckCircleOutlined, PrinterOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -16,6 +16,11 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [shipNote, setShipNote] = useState('');
     const [shipItems, setShipItems] = useState<any[]>([]);
+
+    // Additional Ship Info state
+    const [shipAddress, setShipAddress] = useState<string>('');
+    const [shipContactName, setShipContactName] = useState<string>('');
+    const [shipContactPhone, setShipContactPhone] = useState<string>('');
 
     const fetchHistory = async () => {
         try {
@@ -42,6 +47,12 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
             sku: d.sku, max: d.remaining, quantity: d.remaining > 0 ? d.remaining : 0
         })));
         setShipNote('');
+
+        // Auto-fill defaults
+        setShipAddress(order.shipping_address || order.customer?.address || '');
+        setShipContactName(order.receiver_name || order.customer?.contacts?.[0]?.full_name || order.customer?.name || '');
+        setShipContactPhone(order.receiver_phone || order.customer?.contacts?.[0]?.phone || order.customer?.phone || '');
+
         setIsModalOpen(true);
     };
 
@@ -51,6 +62,9 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
                 code: `PXK-${dayjs().format('DDMMYY')}-${Math.floor(1000 + Math.random() * 9000)}`,
                 date: new Date(),
                 note: shipNote,
+                delivery_address: shipAddress,
+                contact_name: shipContactName,
+                contact_phone: shipContactPhone,
                 items: shipItems.filter(i => i.quantity > 0)
             });
             message.success('Đã xuất kho');
@@ -65,7 +79,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
         // Map Items for Print
         const printItems = (delivery.items || []).map((di: any, idx: number) => {
             const product = products.find(p => p.value === di.sku);
-            // Fallback for color/variant if stored in order items (need to find in order.items)
+            // Fallback for color/variant if stored in order items
             const orderItem = order?.items?.find((oi: any) => oi.sku === di.sku);
 
             return {
@@ -76,6 +90,12 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
                 note: orderItem?.variant_color || di.note || '' // Try to show variant color/note
             };
         });
+
+        // Resolve Info
+        const dAddr = delivery.delivery_address || (order.shipping_address || order.customer?.address || '-');
+        const dContactName = delivery.contact_name || (order.receiver_name || order.customer?.name || '-');
+        const dContactPhone = delivery.contact_phone || (order.receiver_phone || order.customer?.phone || '');
+        const fullContact = dContactPhone ? `${dContactName} - ${dContactPhone}` : dContactName;
 
         const html = `
             <!DOCTYPE html>
@@ -129,11 +149,11 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
                     </div>
                     <div class="info-row">
                         <div class="info-label">Địa chỉ giao hàng:</div>
-                        <div class="info-val">${order.shipping_address || order.customer?.address || '-'}</div>
+                        <div class="info-val">${dAddr}</div>
                     </div>
                     <div class="info-row">
                         <div class="info-label">Liên hệ:</div>
-                        <div class="info-val">${order.receiver_name ? `${order.receiver_name} - ${order.receiver_phone}` : (order.customer?.phone || '-')}</div>
+                        <div class="info-val">${fullContact}</div>
                     </div>
                     <div class="info-row">
                         <div class="info-label">Xuất tại kho:</div>
@@ -216,7 +236,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
             <Table dataSource={history} rowKey="id" pagination={false} size="small" bordered columns={[
                 { title: 'Mã phiếu', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
                 { title: 'Ngày giao', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YYYY') },
-                { title: 'Ghi chú', dataIndex: 'note' },
+                { title: 'Người công trình', render: (r) => (r.contact_name ? <span>{r.contact_name} <br /><small>{r.contact_phone}</small></span> : '-') },
                 { title: 'Chi tiết', width: '30%', render: (r: any) => r.items?.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') },
                 {
                     title: '', width: 60, align: 'center', render: (_: any, r: any) => (
@@ -228,7 +248,57 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
             ]} />
 
             <Modal title="Tạo Phiếu Xuất Kho" open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={handleShip} width={600}>
-                <Input placeholder="Ghi chú giao hàng..." value={shipNote} onChange={e => setShipNote(e.target.value)} style={{ marginBottom: 10 }} />
+                {/* ADDRESS SELECTION */}
+                <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 500 }}>Chọn Chi Nhánh / Địa chỉ giao hàng:</div>
+                    <Select
+                        style={{ width: '100%' }}
+                        value={shipAddress}
+                        onChange={setShipAddress}
+                        placeholder="Chọn địa chỉ giao hàng"
+                        options={[
+                            { value: order.customer?.address || '', label: `Mặc định: ${order.customer?.address || 'Chưa cập nhật'}` },
+                            ...(order.customer?.delivery_addresses || []).map((addr: any) => ({
+                                value: addr.address, label: `${addr.name || 'CN'} - ${addr.address}`
+                            }))
+                        ]}
+                    />
+                    <Input
+                        style={{ marginTop: 5 }}
+                        placeholder="Hoặc nhập địa chỉ khác..."
+                        value={shipAddress}
+                        onChange={e => setShipAddress(e.target.value)}
+                    />
+                </div>
+
+                {/* CONTACT SELECTION */}
+                <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 500 }}>Người liên hệ nhận hàng:</div>
+                    <Select
+                        style={{ width: '100%' }}
+                        placeholder="Chọn người liên hệ"
+                        value={shipContactName}
+                        onChange={(val) => {
+                            // Find contact to auto-fill Phone
+                            const contact = (order.customer?.contacts || []).find((c: any) => c.full_name === val);
+                            setShipContactName(val);
+                            if (contact) setShipContactPhone(contact.phone);
+                        }}
+                        options={[
+                            ...(order.customer?.contacts || []).map((c: any) => ({
+                                value: c.full_name, label: `${c.full_name} - ${c.position || ''} (${c.phone})`
+                            }))
+                        ]}
+                    />
+                    <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
+                        <Input placeholder="Tên người nhận" value={shipContactName} onChange={e => setShipContactName(e.target.value)} />
+                        <Input placeholder="SĐT Liên hệ" value={shipContactPhone} onChange={e => setShipContactPhone(e.target.value)} />
+                    </div>
+                </div>
+
+                <Input.TextArea rows={2} placeholder="Ghi chú giao hàng..." value={shipNote} onChange={e => setShipNote(e.target.value)} style={{ marginBottom: 10 }} />
+
+                <div style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 5 }}>Danh sách xuất:</div>
                 <Table dataSource={shipItems} rowKey="sku" pagination={false} size="small" columns={[
                     { title: 'SKU', dataIndex: 'sku' },
                     { title: 'SL Còn', dataIndex: 'max' },

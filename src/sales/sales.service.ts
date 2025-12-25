@@ -324,7 +324,16 @@ export class SalesService {
         const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
         if (!order) throw new NotFoundException('Not found');
 
-        const delivery = this.deliveryRepo.create({ code: data.code, delivery_date: data.date, note: data.note, sales_order: order, items: data.items });
+        const delivery = this.deliveryRepo.create({
+            code: data.code,
+            delivery_date: data.date,
+            note: data.note,
+            delivery_address: data.delivery_address,
+            contact_name: data.contact_name,
+            contact_phone: data.contact_phone,
+            sales_order: order,
+            items: data.items
+        });
         const savedDelivery = await this.deliveryRepo.save(delivery);
 
         // --- TRIGGER INVENTORY EXPORT ---

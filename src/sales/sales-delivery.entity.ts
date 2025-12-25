@@ -23,6 +23,15 @@ export class SalesDelivery {
   @Column({ nullable: true })
   note: string;
 
+  @Column({ nullable: true })
+  delivery_address: string;
+
+  @Column({ nullable: true })
+  contact_name: string;
+
+  @Column({ nullable: true })
+  contact_phone: string;
+
   @OneToMany(() => SalesDeliveryItem, (item) => item.delivery, { cascade: true })
   items: SalesDeliveryItem[];
 
