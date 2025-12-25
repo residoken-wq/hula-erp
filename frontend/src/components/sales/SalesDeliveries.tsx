@@ -8,10 +8,11 @@ import { API_URL } from '../../config';
 interface Props {
     order: any;
     products: any[];
+    customers?: any[];
     onSuccess: () => void;
 }
 
-const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
+const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onSuccess }) => {
     const [history, setHistory] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [shipNote, setShipNote] = useState('');
@@ -21,6 +22,10 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
     const [shipAddress, setShipAddress] = useState<string>('');
     const [shipContactName, setShipContactName] = useState<string>('');
     const [shipContactPhone, setShipContactPhone] = useState<string>('');
+
+    // RESOLVE FULL CUSTOMER (to get contacts)
+    const fullCustomer = customers.find(c => c.id === order?.customer?.id || c.id === order?.customer_id) || order?.customer || {};
+    const contactList = fullCustomer?.contacts || [];
 
     const fetchHistory = async () => {
         try {
@@ -49,9 +54,9 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
         setShipNote('');
 
         // Auto-fill defaults
-        setShipAddress(order.shipping_address || order.customer?.address || '');
-        setShipContactName(order.receiver_name || order.customer?.contacts?.[0]?.full_name || order.customer?.name || '');
-        setShipContactPhone(order.receiver_phone || order.customer?.contacts?.[0]?.phone || order.customer?.phone || '');
+        setShipAddress(order.shipping_address || fullCustomer?.address || '');
+        setShipContactName(order.receiver_name || contactList[0]?.full_name || fullCustomer?.name || '');
+        setShipContactPhone(order.receiver_phone || contactList[0]?.phone || fullCustomer?.phone || '');
 
         setIsModalOpen(true);
     };
@@ -257,8 +262,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
                         onChange={setShipAddress}
                         placeholder="Chọn địa chỉ giao hàng"
                         options={[
-                            { value: order.customer?.address || '', label: `Mặc định: ${order.customer?.address || 'Chưa cập nhật'}` },
-                            ...(order.customer?.delivery_addresses || []).map((addr: any) => ({
+                            { value: fullCustomer?.address || '', label: `Mặc định: ${fullCustomer?.address || 'Chưa cập nhật'}` },
+                            ...(fullCustomer?.delivery_addresses || []).map((addr: any) => ({
                                 value: addr.address, label: `${addr.name || 'CN'} - ${addr.address}`
                             }))
                         ]}
@@ -280,12 +285,12 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, onSuccess }) => {
                         value={shipContactName}
                         onChange={(val) => {
                             // Find contact to auto-fill Phone
-                            const contact = (order.customer?.contacts || []).find((c: any) => c.full_name === val);
+                            const contact = contactList.find((c: any) => c.full_name === val);
                             setShipContactName(val);
                             if (contact) setShipContactPhone(contact.phone);
                         }}
                         options={[
-                            ...(order.customer?.contacts || []).map((c: any) => ({
+                            ...(contactList).map((c: any) => ({
                                 value: c.full_name, label: `${c.full_name} - ${c.position || ''} (${c.phone})`
                             }))
                         ]}
