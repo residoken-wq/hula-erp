@@ -27,23 +27,25 @@ services:
     container_name: hula_app
     restart: always
     command: npm run start:dev # Chạy chế độ Dev (Hot Reload)
-    ports:
-      - "3000:3000"
+    # ports:
+    #   - "3000:3000" # Disable port mapping (Use Proxy instead)
+    expose:
+      - "3000" # Expose to internal network only
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USERNAME: hula_user
-      DB_PASSWORD: hula_password
-      DB_DATABASE: hula_db
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USERNAME=hula_user
+      - DB_PASSWORD=hula_password
+      - DB_DATABASE=hula_db
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - default
+      - proxy_net
     volumes:
-      # Mapping source code gốc vào container (QUAN TRỌNG cho Hot Reload)
       - ./src:/app/src
-      # Mapping node_modules để tránh xung đột
       - /app/node_modules
-      # Mapping tsconfig.json để NestJS biết cách biên dịch
       - ./tsconfig.json:/app/tsconfig.json
 
   frontend:
@@ -53,16 +55,26 @@ services:
       target: development # Use Dev Stage (Vite Server)
     container_name: hula_frontend
     restart: always
-    # FIX: Map cổng Dev Server (thường là 5173 hoặc 3000) sang cổng 80 của host
-    ports:
-      - "80:5173" # Vite (5173) -> Host 80
+    # FIX: Remove port 80 mapping to avoid conflict with Nginx Proxy Manager
+    # ports:
+    #   - "80:5173"
+    expose:
+      - "5173" # Vite default port
     depends_on:
       - app
+    networks:
+      - default
+      - proxy_net
     volumes:
-      # QUAN TRỌNG: Mapping Source Code để HMR hoạt động
       - ./frontend:/app
-      # Không cache node_modules từ host
       - /app/node_modules
 
 volumes:
   postgres_data:
+
+
+networks:
+  default:
+    driver: bridge
+  proxy_net:
+    external: true # Join the Nginx Proxy Manager network
