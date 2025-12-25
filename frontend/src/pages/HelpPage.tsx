@@ -17,7 +17,8 @@ import {
     UploadOutlined,
     SaveOutlined,
     HistoryOutlined,
-    CopyOutlined
+    CopyOutlined,
+    BellOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
@@ -489,10 +490,81 @@ const HelpPage: React.FC = () => {
             case 'customers':
                 return (
                     <div>
+                        <Tag color="geekblue" style={{ marginBottom: 16 }}>CRM & Công Nợ</Tag>
                         <Title level={2}>👥 Quản lý Khách hàng</Title>
-                        <Paragraph>Coming soon...</Paragraph>
+                        <Paragraph>
+                            Phân hệ Khách hàng giúp lưu trữ tập trung thông tin đối tác, lịch sử mua hàng và theo dõi công nợ chi tiết.
+                        </Paragraph>
+
+                        <Divider orientation="left">Thông tin chi tiết</Divider>
+                        <Row gutter={[16, 16]}>
+                            <Col span={12}>
+                                <Card title="1. Hồ sơ khách hàng" size="small" bordered>
+                                    <ul>
+                                        <li><b>Thông tin cơ bản:</b> Tên công ty, MST, Địa chỉ, SĐT.</li>
+                                        <li><b>Người liên hệ:</b> Danh sách nhiều người liên hệ (Kế toán, Mua hàng...) để tiện gửi mail/gọi điện.</li>
+                                        <li><b>Ghi chú nội bộ:</b> Lưu lại các đặc thù của khách (VD: "Khách khó tính", "Chỉ giao giờ hành chính").</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card title="2. Theo dõi Công nợ" size="small" bordered>
+                                    <ul>
+                                        <li><b>Hạn mức nợ (Credit Limit):</b> Cảnh báo khi khách mua vượt mức tín dụng cho phép.</li>
+                                        <li><b>Số ngày được nợ (Payment Terms):</b> Quy định thời hạn thanh toán (VD: Net 30).</li>
+                                        <li><b>Lịch sử:</b> Xem lại toàn bộ đơn hàng và phiếu thu của khách đó.</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <div style={{ marginTop: 20 }}>
+                            <Alert
+                                message="Mẹo quản lý"
+                                description="Bạn nên nhập đầy đủ thông tin 'Người liên hệ' (Email/Zalo) để hệ thống có thể tự động gửi thông báo hoặc Báo giá sau này."
+                                type="info"
+                                showIcon
+                            />
+                        </div>
                     </div>
-                )
+                );
+            case 'reminders':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Chăm sóc khách hàng</Tag>
+                        <Title level={2}>⏰ Nhắc việc & Trao đổi nội bộ</Title>
+                        <Paragraph>
+                            Tính năng giúp bạn không bỏ lỡ các đầu việc quan trọng với khách hàng (Gọi điện, Gửi mẫu, Đòi nợ...).
+                        </Paragraph>
+
+                        <Steps
+                            direction="vertical"
+                            current={-1}
+                            items={[
+                                {
+                                    title: 'Bước 1: Tạo nhắc nhở',
+                                    description: 'Tại màn hình chi tiết Khách hàng hoặc Đơn hàng, nhấn vào tab "Hoạt động / Activity". Chọn "Thêm nhắc nhở".',
+                                    icon: <PlusOutlined />
+                                },
+                                {
+                                    title: 'Bước 2: Thiết lập thời gian',
+                                    description: 'Chọn ngày giờ cụ thể và nội dung công việc (VD: "Gọi lại chốt đơn lúc 14h").',
+                                    icon: <HistoryOutlined />
+                                },
+                                {
+                                    title: 'Bước 3: Nhận thông báo',
+                                    description: 'Đến giờ hẹn, hệ thống sẽ hiện thông báo (Notification) trên thanh menu để nhắc bạn.',
+                                    icon: <BellOutlined />
+                                },
+                                {
+                                    title: 'Bước 4: Đánh dấu hoàn thành',
+                                    description: 'Sau khi thực hiện xong, hãy tích vào ô "Hoàn thành" để đóng nhắc nhở.',
+                                    icon: <CheckCircleOutlined />
+                                }
+                            ]}
+                        />
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -527,21 +599,21 @@ const HelpPage: React.FC = () => {
                                 { key: 'price-list', label: 'Chính sách giá' },
                             ]
                         },
-                        {
-                            key: 'sub2',
-                            label: 'Phân hệ Khách Hàng',
-                            icon: <UserOutlined />,
-                            children: [
-                                { key: 'customers', label: 'Danh sách khách hàng' },
-                            ]
+                        key: 'sub2',
+                label: 'Phân hệ Khách Hàng',
+                icon: <UserOutlined />,
+                children: [
+                {key: 'customers', label: 'Danh Sách & Công Nợ' },
+                {key: 'reminders', label: 'Nhắc Việc & Chăm Sóc' },
+                ]
                         },
-                        {
-                            key: 'sub3',
-                            label: 'Phân hệ Tài Chính',
-                            icon: <DollarOutlined />,
-                            children: [
-                                { key: 'finance-guide', label: 'Quản lý Thu/Chi' },
-                            ]
+                {
+                    key: 'sub3',
+                label: 'Phân hệ Tài Chính',
+                icon: <DollarOutlined />,
+                children: [
+                {key: 'finance-guide', label: 'Quản lý Thu/Chi' },
+                ]
                         }
                     ]}
                 />
