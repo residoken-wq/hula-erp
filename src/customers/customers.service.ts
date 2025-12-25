@@ -38,10 +38,43 @@ export class CustomersService {
     }
 
     async findAll() {
-        return this.customerRepo.find({
+        const customers = await this.customerRepo.find({
             order: { id: 'DESC' },
-            relations: ['parent', 'contacts', 'assigned_to']
+            relations: ['parent', 'contacts', 'assigned_to', 'orders'] // Load orders
         });
+
+        // Calculate Revenue and Debt
+        // Note: For better performance with large data, use aggregation query instead of map
+        return Promise.all(customers.map(async (c) => {
+            let revenue = 0;
+            let paid = 0;
+
+            // Ensure orders is loaded
+            if (c.orders && c.orders.length > 0) {
+                for (const order of c.orders) {
+                    // Only count non-cancelled, non-quotation (or maybe count quotation potential? No, usually revenue = sold)
+                    // Let's assume Valid orders are NOT Cancelled and NOT Quotation
+                    if (order.status !== 'CANCELLED' && order.status !== 'QUOTATION') {
+                        revenue += Number(order.total_amount || 0);
+
+                        // Fetch payments for this order
+                        // We can optimize this by batch loading, but for now loop is simpler for logic
+                        const payments = await this.transRepo.find({ where: { reference_code: order.order_code, reference_type: 'SALES' } });
+                        const paidAmt = payments.reduce((acc, p) => acc + Number(p.amount), 0);
+                        paid += paidAmt;
+                    }
+                }
+            }
+
+            // Update runtime values (not saving to DB to avoid overhead, or should we?)
+            // User requested "Updated Value".
+            // We return enriched object.
+            return {
+                ...c,
+                total_revenue: revenue,
+                current_debt: revenue - paid
+            };
+        }));
     }
 
     async findOne(id: number) {

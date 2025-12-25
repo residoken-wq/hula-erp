@@ -131,6 +131,10 @@ const CustomersPage: React.FC = () => {
             }
         },
         {
+            title: 'Doanh Thu', dataIndex: 'total_revenue', align: 'right' as const, width: 120,
+            render: (v: any) => <b>{Number(v || 0).toLocaleString()}</b>
+        },
+        {
             title: 'Công Nợ', dataIndex: 'current_debt', align: 'right' as const, width: 120,
             render: (v: any) => <span style={{ color: v > 0 ? 'red' : 'green' }}>{Number(v).toLocaleString()}</span>
         },
