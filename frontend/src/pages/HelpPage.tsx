@@ -15,7 +15,10 @@ import {
     SearchOutlined,
     EditOutlined,
     UploadOutlined,
-    SaveOutlined
+    UploadOutlined,
+    SaveOutlined,
+    HistoryOutlined,
+    CopyOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
@@ -431,81 +434,137 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
-            case 'customers':
-                return (
-                    <div>
-                        <Title level={2}>👥 Quản lý Khách hàng</Title>
-                        <Paragraph>Coming soon...</Paragraph>
-                    </div>
                 )
+            case 'sales-revisions':
+return (
+    <div>
+        <Tag color="orange" style={{ marginBottom: 16 }}>Tính năng mới</Tag>
+        <Title level={2}>🕒 Quản lý Phiên bản Báo giá (Revisions)</Title>
+        <Paragraph>
+            Tính năng này giúp nhân viên kinh doanh lưu lại lịch sử các lần thay đổi báo giá gửi cho khách hàng.
+            Bạn có thể tạo nhiều phiên bản (Version) cho cùng một mã báo giá mà không cần tạo đơn mới.
+        </Paragraph>
+
+        <Divider orientation="left">Quy trình thực hiện</Divider>
+        <Steps
+            current={-1}
+            direction="vertical"
+            items={[
+                {
+                    title: 'Bước 1: Tạo Báo Giá (Draft)',
+                    description: 'Tạo báo giá như bình thường. Trạng thái là "QUOTATION".',
+                    icon: <SolutionOutlined />,
+                },
+                {
+                    title: 'Bước 2: Tạo Phiên bản mới (Snapshot)',
+                    description: (
+                        <div>
+                            <Paragraph>
+                                Khi cần chỉnh sửa (VD: Khách muốn đổi số lượng hoặc thêm sản phẩm):
+                            </Paragraph>
+                            <ul>
+                                <li>Nhấn nút <b>"Tạo Version Mới" <CopyOutlined /></b> trên giao diện chi tiết đơn hàng.</li>
+                                <li>Hệ thống sẽ lưu lại toàn bộ dữ liệu hiện tại vào "Lịch sử".</li>
+                                <li>Số phiên bản (Version) sẽ tự động tăng lên (v1 ➔ v2).</li>
+                            </ul>
+                        </div>
+                    ),
+                    icon: <CopyOutlined />,
+                },
+                {
+                    title: 'Bước 3: Xem lại lịch sử',
+                    description: 'Nhấn nút "Lịch sử" <HistoryOutlined /> để xem lại thông tin cũ. Bạn có thể xem chi tiết từng phiên bản để đối chiếu.',
+                    icon: <HistoryOutlined />,
+                }
+            ]}
+        />
+
+        <Alert
+            message="Lưu ý quan trọng"
+            description="Chỉ có thể tạo Revision khi đơn hàng đang ở trạng thái Báo Giá (Quotation). Khi đã chuyển thành Đơn hàng (SO) huỷ hoặc hoàn tất, tính năng này sẽ bị khóa để đảm bảo tính toàn vẹn dữ liệu."
+            type="warning"
+            showIcon
+            style={{ marginTop: 24 }}
+        />
+    </div>
+);
+            case 'customers':
+return (
+    <div>
+        <Title level={2}>👥 Quản lý Khách hàng</Title>
+        <Paragraph>Coming soon...</Paragraph>
+    </div>
+)
             default:
-                return <div>Select a topic</div>;
+return <div>Select a topic</div>;
         }
     };
 
-    return (
-        <Layout style={{ height: '100%', background: '#fff' }}>
-            <Sider width={250} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
-                <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <BookOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-                    <span style={{ fontSize: 18, fontWeight: 'bold' }}>HULA Docs</span>
-                </div>
-                <Menu
-                    mode="inline"
-                    selectedKeys={[selectedKey]}
-                    onClick={(e) => setSelectedKey(e.key)}
-                    style={{ borderRight: 0 }}
-                    items={[
-                        { key: 'intro', icon: <RocketOutlined />, label: 'Giới thiệu chung' },
-                        { type: 'divider' },
-                        {
-                            key: 'sub1',
-                            label: 'Phân hệ Bán Hàng',
-                            icon: <ShopOutlined />,
-                            children: [
-                                { key: 'sales-process', label: 'Quy trình chuẩn' },
-                                { key: 'sales-create', label: 'Tạo đơn mới' },
-                                { key: 'sales-approval', label: 'Duyệt mẫu' },
-                                { key: 'sales-portal', label: 'Customer Portal' },
-                                { key: 'price-list', label: 'Chính sách giá' },
-                            ]
-                        },
-                        {
-                            key: 'sub2',
-                            label: 'Phân hệ Khách Hàng',
-                            icon: <UserOutlined />,
-                            children: [
-                                { key: 'customers', label: 'Danh sách khách hàng' },
-                            ]
-                        },
-                        {
-                            key: 'sub3',
-                            label: 'Phân hệ Tài Chính',
-                            icon: <DollarOutlined />,
-                            children: [
-                                { key: 'finance-guide', label: 'Quản lý Thu/Chi' },
-                            ]
-                        }
-                    ]}
-                />
-            </Sider>
-            <Layout style={{ padding: '0 24px 24px' }}>
-                <Breadcrumb style={{ margin: '16px 0' }} items={[{ title: 'Knowledge Base' }, { title: selectedKey }]} />
-                <Content
-                    style={{
-                        padding: 24,
-                        margin: 0,
-                        minHeight: 280,
-                        background: '#fff',
-                        borderRadius: 8,
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                    }}
-                >
-                    {renderContent()}
-                </Content>
-            </Layout>
+return (
+    <Layout style={{ height: '100%', background: '#fff' }}>
+        <Sider width={250} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
+            <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <BookOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+                <span style={{ fontSize: 18, fontWeight: 'bold' }}>HULA Docs</span>
+            </div>
+            <Menu
+                mode="inline"
+                selectedKeys={[selectedKey]}
+                onClick={(e) => setSelectedKey(e.key)}
+                style={{ borderRight: 0 }}
+                items={[
+                    { key: 'intro', icon: <RocketOutlined />, label: 'Giới thiệu chung' },
+                    { type: 'divider' },
+                    {
+                        key: 'sub1',
+                        label: 'Phân hệ Bán Hàng',
+                        icon: <ShopOutlined />,
+                        children: [
+                            { key: 'sales-process', label: 'Quy trình chuẩn' },
+                            { key: 'sales-create', label: 'Tạo đơn mới' },
+                            { key: 'sales-approval', label: 'Duyệt mẫu' },
+                            { key: 'sales-approval', label: 'Duyệt mẫu' },
+                            { key: 'sales-revisions', label: 'Quản lý version (Báo giá)' }, // <--- NEW
+                            { key: 'sales-portal', label: 'Customer Portal' },
+                            { key: 'price-list', label: 'Chính sách giá' },
+                        ]
+                    },
+                    {
+                        key: 'sub2',
+                        label: 'Phân hệ Khách Hàng',
+                        icon: <UserOutlined />,
+                        children: [
+                            { key: 'customers', label: 'Danh sách khách hàng' },
+                        ]
+                    },
+                    {
+                        key: 'sub3',
+                        label: 'Phân hệ Tài Chính',
+                        icon: <DollarOutlined />,
+                        children: [
+                            { key: 'finance-guide', label: 'Quản lý Thu/Chi' },
+                        ]
+                    }
+                ]}
+            />
+        </Sider>
+        <Layout style={{ padding: '0 24px 24px' }}>
+            <Breadcrumb style={{ margin: '16px 0' }} items={[{ title: 'Knowledge Base' }, { title: selectedKey }]} />
+            <Content
+                style={{
+                    padding: 24,
+                    margin: 0,
+                    minHeight: 280,
+                    background: '#fff',
+                    borderRadius: 8,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
+            >
+                {renderContent()}
+            </Content>
         </Layout>
-    );
+    </Layout>
+);
 };
 
 export default HelpPage;
