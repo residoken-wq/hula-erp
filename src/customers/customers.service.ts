@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { Customer, CustomerType } from './customer.entity';
 import { CustomerContact } from './customer-contact.entity';
 
+import { Transaction } from '../finance/transaction.entity';
+
 @Injectable()
 export class CustomersService {
     constructor(
@@ -11,6 +13,8 @@ export class CustomersService {
         private customerRepo: Repository<Customer>,
         @InjectRepository(CustomerContact)
         private contactRepo: Repository<CustomerContact>,
+        @InjectRepository(Transaction) // <--- INJECT
+        private transRepo: Repository<Transaction>,
     ) { }
 
     async create(data: any) {
@@ -55,8 +59,15 @@ export class CustomersService {
         });
         if (!customer) throw new NotFoundException('Khách hàng không tồn tại');
 
+        // Calculate Paid Amount for each order
+        const ordersWithPayment = await Promise.all(customer.orders.map(async (order: any) => {
+            const payments = await this.transRepo.find({ where: { reference_code: order.order_code, reference_type: 'SALES' } });
+            const paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+            return { ...order, paid_amount: paid };
+        }));
+
         // Sắp xếp đơn mới nhất lên đầu
-        return customer.orders.sort((a: any, b: any) =>
+        return ordersWithPayment.sort((a: any, b: any) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
     }

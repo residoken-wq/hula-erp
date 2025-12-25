@@ -5,10 +5,12 @@ import { CustomerContact } from './customer-contact.entity'; // <-- MOI
 import { CustomersController } from './customers.controller';
 import { CustomersService } from './customers.service';
 
+import { Transaction } from '../finance/transaction.entity'; // <--- NEW
+
 @Module({
-  imports: [TypeOrmModule.forFeature([Customer, CustomerContact])], // <-- THEM VAO DAY
+  imports: [TypeOrmModule.forFeature([Customer, CustomerContact, Transaction])], // <--- ADD Transaction
   controllers: [CustomersController],
   providers: [CustomersService],
   exports: [CustomersService],
 })
-export class CustomersModule {}
+export class CustomersModule { }

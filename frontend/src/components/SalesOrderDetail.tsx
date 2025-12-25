@@ -446,6 +446,19 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 ),
 
                 isQuotation && initialData && (
+                    <Popconfirm title="Bạn có chắc chắn muốn xóa báo giá này không?" onConfirm={async () => {
+                        try {
+                            await api.delete(`/sales/quote/${initialData.id}`);
+                            message.success('Đã xóa báo giá');
+                            onSuccess();
+                            onClose();
+                        } catch (e) { message.error('Không thể xóa báo giá'); }
+                    }}>
+                        <Button key="delete-quote" danger icon={<DeleteOutlined />}>Xóa Báo Giá</Button>
+                    </Popconfirm>
+                ),
+
+                isQuotation && initialData && (
                     <Button key="history" icon={<HistoryOutlined />} onClick={() => setRevisionModalOpen(true)}>Lịch sử</Button>
                 ),
 
