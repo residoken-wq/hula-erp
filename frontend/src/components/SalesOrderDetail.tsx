@@ -674,7 +674,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             />
                         </Tabs.TabPane>
                         <Tabs.TabPane tab="3. Giao hàng" key="3">
-                            <SalesDeliveries order={initialData} products={products} onSuccess={onSuccess} />
+                            <SalesDeliveries order={initialData} products={products} customers={customers} onSuccess={onSuccess} />
                         </Tabs.TabPane>
                         <Tabs.TabPane tab="4. Trao đổi" key="4">
                             <SalesComments orderId={initialData.id} />
