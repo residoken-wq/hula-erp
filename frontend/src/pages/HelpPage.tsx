@@ -629,7 +629,6 @@ const HelpPage: React.FC = () => {
                                 { key: 'sales-process', label: 'Quy trình chuẩn' },
                                 { key: 'sales-create', label: 'Tạo đơn mới' },
                                 { key: 'sales-approval', label: 'Duyệt mẫu' },
-                                { key: 'sales-approval', label: 'Duyệt mẫu' },
                                 { key: 'sales-revisions', label: 'Quản lý version (Báo giá)' }, // <--- NEW
                                 { key: 'sales-portal', label: 'Customer Portal' },
                                 { key: 'price-list', label: 'Chính sách giá' },
