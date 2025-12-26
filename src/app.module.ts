@@ -19,8 +19,8 @@ import { ProcessesModule } from './processes/processes.module';
 import { CategoriesModule } from './categories/categories.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { TasksModule } from './tasks/tasks.module'; // <--- MỚI
-import { NotificationsModule } from './notifications/notifications.module'; // <--- MỚI
+import { TasksModule } from './tasks/tasks.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { SystemModule } from './system/system.module';
 
 // Entities
@@ -40,7 +40,7 @@ import { SalesDeliveryItem } from './sales/sales-delivery-item.entity';
 import { SalesComment } from './sales/sales-comment.entity';
 import { PriceList } from './sales/pricelist/price-list.entity';
 import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
-import { SalesOrderVersion } from './sales/sales-order-version.entity'; // <--- NEW
+import { SalesOrderVersion } from './sales/sales-order-version.entity';
 
 import { StockHistory } from './inventory/stock-history.entity';
 import { InventoryStock } from './inventory/inventory-stock.entity';
@@ -55,7 +55,7 @@ import { ProductionOrder } from './production/entities/production-order.entity';
 import { Transaction } from './finance/transaction.entity';
 import { TransactionCategory } from './finance/transaction-category.entity';
 
-// Task & Notification Entities (MỚI)
+// Task & Notification Entities
 import { Task } from './tasks/task.entity';
 import { Notification } from './notifications/notification.entity';
 
@@ -73,7 +73,9 @@ import { User } from './users/entities/user.entity';
 import { UserGroup } from './users/entities/user-group.entity';
 import { GroupPermission } from './users/entities/group-permission.entity';
 import { SystemConfig } from './system/system-config.entity';
-import { ActivityLog } from './system/entities/activity-log.entity'; // <--- NEW
+import { ActivityLog } from './system/entities/activity-log.entity';
+
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -91,7 +93,7 @@ import { ActivityLog } from './system/entities/activity-log.entity'; // <--- NEW
         entities: [
           Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern,
           SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
-          PriceList, PriceListRule, SalesOrderVersion, // <--- NEW
+          PriceList, PriceListRule, SalesOrderVersion,
           PurchaseOrder, PurchaseOrderItem, GoodsReceipt,
           StockHistory, InventoryStock,
           ProductionOrder,
@@ -101,25 +103,18 @@ import { ActivityLog } from './system/entities/activity-log.entity'; // <--- NEW
           Customer, CustomerContact,
           ProductionPlan, Process, Category,
           User, UserGroup, GroupPermission,
-          SystemConfig, ActivityLog // <--- NEW
+          SystemConfig, ActivityLog
         ],
-        synchronize: configService.get<string>('NODE_ENV') !== 'production', // Disable in production
+        synchronize: configService.get<string>('NODE_ENV') !== 'production',
       }),
     }),
-
-import { AppController } from './app.controller'; // <--- IMPORT
-
-@Module({
-      imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
-        // ... (imports)
-        UsersModule, AuthModule,
-        ProductsModule, MaterialsModule, BomModule, SalesModule,
-        InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
-        TasksModule, NotificationsModule, SystemModule,
-        UploadModule, SuppliersModule, CustomersModule, PlanningModule,
-        ProcessesModule, CategoriesModule,
-      ],
-      controllers: [AppController] // <--- ADD CONTROLLER
-    })
-  export class AppModule { }
+    UsersModule, AuthModule,
+    ProductsModule, MaterialsModule, BomModule, // SalesModule, <--- DISABLED
+    InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
+    TasksModule, NotificationsModule, SystemModule,
+    UploadModule, SuppliersModule, CustomersModule, PlanningModule,
+    ProcessesModule, CategoriesModule,
+  ],
+  controllers: [AppController]
+})
+export class AppModule { }
