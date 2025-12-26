@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, DatePicker, Row, Col, message, Button } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../utils/api';
 import dayjs from 'dayjs';
-import { API_URL } from '../config';
 
 const { Option } = Select;
 
@@ -23,7 +22,7 @@ interface QuickTaskModalProps {
 const QuickTaskModal: React.FC<QuickTaskModalProps> = ({ open, onClose, initialValues, onSuccess }) => {
     const [form] = Form.useForm();
     const [users, setUsers] = useState<any[]>([]);
-    
+
     // Lấy user hiện tại để mặc định giao cho chính mình
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -41,12 +40,12 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({ open, onClose, initialV
     }, [open, initialValues]);
 
     const fetchUsers = async () => {
-        try { const res = await axios.get(`${API_URL}/users`); setUsers(res.data); } catch (e) {}
+        try { const res = await api.get('/users'); setUsers(res.data); } catch (e) { }
     };
 
     const handleSave = async (values: any) => {
         try {
-            await axios.post(`${API_URL}/tasks`, {
+            await api.post('/tasks', {
                 ...values,
                 creator_id: currentUser.id,
                 due_date: values.due_date ? values.due_date.toISOString() : null
@@ -60,22 +59,22 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({ open, onClose, initialV
     };
 
     return (
-        <Modal 
-            title={<span><ClockCircleOutlined /> Tạo Nhắc Nhở / Công Việc Nhanh</span>} 
-            open={open} 
-            onCancel={onClose} 
+        <Modal
+            title={<span><ClockCircleOutlined /> Tạo Nhắc Nhở / Công Việc Nhanh</span>}
+            open={open}
+            onCancel={onClose}
             onOk={() => form.submit()}
             okText="Lưu Nhắc Nhở"
         >
             <Form form={form} layout="vertical" onFinish={handleSave}>
-                <Form.Item name="title" label="Tiêu đề công việc" rules={[{required: true}]}>
+                <Form.Item name="title" label="Tiêu đề công việc" rules={[{ required: true }]}>
                     <Input placeholder="Vd: Gọi lại cho khách, Kiểm tra kho..." />
                 </Form.Item>
-                
+
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item name="reference_code" label="Mã tham chiếu">
-                            <Input disabled style={{fontWeight:'bold', color: '#1890ff'}} />
+                            <Input disabled style={{ fontWeight: 'bold', color: '#1890ff' }} />
                         </Form.Item>
                     </Col>
                     <Col span={12}>
@@ -103,8 +102,8 @@ const QuickTaskModal: React.FC<QuickTaskModalProps> = ({ open, onClose, initialV
                         </Form.Item>
                     </Col>
                     <Col span={12}>
-                        <Form.Item name="due_date" label="Hạn chót (Deadline)" rules={[{required: true}]}>
-                            <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{width:'100%'}} />
+                        <Form.Item name="due_date" label="Hạn chót (Deadline)" rules={[{ required: true }]}>
+                            <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
                         </Form.Item>
                     </Col>
                 </Row>
