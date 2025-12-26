@@ -134,14 +134,15 @@ const SalesPage: React.FC = () => {
 
     // --- METRICS ---
     const metrics = useMemo(() => {
-        const validOrders = filteredData.filter(x => x.status !== 'QUOTATION' && x.status !== 'CANCELLED');
+        // FIX: Include QUOTATION in metrics so the user sees the value of what is listed
+        const validOrders = filteredData.filter(x => x.status !== 'CANCELLED');
         const totalRevenue = validOrders.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0);
 
         // FIX: Lấy paid_amount từ API (đã được fix ở Backend để tính tổng Transaction)
         const totalPaid = validOrders.reduce((acc, curr) => acc + Number(curr.paid_amount || 0), 0);
 
         const totalRemaining = totalRevenue - totalPaid;
-        const processingCount = validOrders.filter(x => ['SO_PENDING', 'SAMPLE_APPROVED', 'DEPOSITED'].includes(x.status)).length;
+        const processingCount = validOrders.filter(x => ['SO_PENDING', 'SAMPLE_APPROVED', 'DEPOSITED', 'QUOTATION'].includes(x.status)).length; // Include QUOTATION in processing? Or just count?
 
         return { totalRevenue, totalPaid, totalRemaining, count: validOrders.length, processingCount };
     }, [filteredData]);
@@ -237,7 +238,7 @@ const SalesPage: React.FC = () => {
                 <Row gutter={16}>
                     <Col span={5}>
                         <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#f9f0ff', border: '1px solid #d3adf7' }}>
-                            <Statistic title="Doanh Thu" value={metrics.totalRevenue} precision={0} suffix="₫" prefix={<DollarOutlined style={{ color: '#722ed1' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold' }} />
+                            <Statistic title="Tổng Giá Trị" value={metrics.totalRevenue} precision={0} suffix="₫" prefix={<DollarOutlined style={{ color: '#722ed1' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold' }} />
                         </Card>
                     </Col>
                     <Col span={5}>
