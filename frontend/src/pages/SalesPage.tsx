@@ -170,6 +170,19 @@ const SalesPage: React.FC = () => {
             render: (v: any) => <b style={{ color: '#cf1322' }}>{Number(v).toLocaleString()}</b>
         },
         {
+            title: 'Đã Thu', dataIndex: 'paid_amount', align: 'right' as const, width: 130,
+            render: (v: any) => <span style={{ color: '#389e0d' }}>{Number(v).toLocaleString()}</span>
+        },
+        {
+            title: 'Còn Lại', key: 'remaining', align: 'right' as const, width: 130,
+            render: (r: any) => {
+                const total = Number(r.total_amount) || 0;
+                const paid = Number(r.paid_amount) || 0;
+                const remain = total - paid;
+                return <span style={{ color: remain > 0 ? '#fa541c' : '#999' }}>{remain.toLocaleString()}</span>
+            }
+        },
+        {
             title: 'Nhân sự', dataIndex: 'assigned_to', width: 120,
             render: (u: any) => u ? <Tag color="blue">{u.full_name || u.username}</Tag> : '-'
         },
