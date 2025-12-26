@@ -282,7 +282,16 @@ const CrmPage: React.FC = () => {
                     </Avatar>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <a onClick={() => { setCurrentCustomer(r); setFollowDrawerOpen(true) }} style={{ fontWeight: 500 }}>{t}</a>
-                        <small style={{ color: '#888' }}>{r.code} - {r.phone}</small>
+                        <small style={{ color: '#888' }}>
+                            {r.code} -
+                            <Tooltip title={r.phone}>
+                                <span style={{ cursor: 'pointer' }}>
+                                    {r.phone && r.phone.length > 3
+                                        ? '*******' + r.phone.slice(-3)
+                                        : r.phone}
+                                </span>
+                            </Tooltip>
+                        </small>
                     </div>
                 </Space>
             )
