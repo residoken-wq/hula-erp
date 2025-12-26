@@ -103,6 +103,12 @@ const ProductsPage: React.FC = () => {
             const res = await axios.get(`${API_URL}/products/${id}`);
             const product = res.data;
 
+            // Cập nhật lại form với đầy đủ dữ liệu (vì danh sách chỉ load vắn tắt)
+            if (editingItem && editingItem.id === id) {
+                setEditingItem(product);
+                form.setFieldsValue(product);
+            }
+
             const resBOM = await axios.get(`${API_URL}/products/${encodeURIComponent(product.sku)}/boms`);
             setBoms(resBOM.data || []);
 
@@ -137,6 +143,7 @@ const ProductsPage: React.FC = () => {
                 setEditingItem(savedProduct);
                 form.setFieldsValue(savedProduct);
                 setActiveTab('2');
+                // Gọi fetchDetailData để load các tab khác (dù mới tạo chưa có gì nhưng để đồng bộ logic)
                 fetchDetailData(savedProduct.id);
                 fetchData();
             }

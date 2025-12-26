@@ -4,10 +4,15 @@ import { Notification } from './notification.entity';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 
+import { AuthModule } from '../auth/auth.module'; // <--- IMPORT
+
 @Module({
-  imports: [TypeOrmModule.forFeature([Notification])],
+  imports: [
+    TypeOrmModule.forFeature([Notification]),
+    AuthModule // <--- IMPORT AUTH MODULE
+  ],
   controllers: [NotificationsController],
   providers: [NotificationsService],
-  exports: [NotificationsService], // Export Service để TasksModule có thể gọi
+  exports: [NotificationsService],
 })
-export class NotificationsModule {}
+export class NotificationsModule { }
