@@ -83,7 +83,7 @@ import { ActivityLog } from './system/entities/activity-log.entity'; // <--- NEW
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('DB_HOST') || 'db',
+        host: configService.get<string>('DB_HOST') || 'hula_db',
         port: configService.get<number>('DB_PORT') || 5432,
         username: configService.get<string>('DB_USERNAME') || 'hula_user',
         password: configService.get<string>('DB_PASSWORD') || 'hula_password',

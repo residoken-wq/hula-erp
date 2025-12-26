@@ -34,7 +34,7 @@ services:
     expose:
       - "3000" # Expose to internal network only
     environment:
-      - DB_HOST=db
+      - DB_HOST=hula_db
       - DB_PORT=5432
       - DB_USERNAME=hula_user
       - DB_PASSWORD=hula_password
