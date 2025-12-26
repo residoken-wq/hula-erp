@@ -337,7 +337,7 @@ const PortalQuotePage: React.FC = () => {
                                             {discountAmount > 0 && (
                                                 <Table.Summary.Row>
                                                     <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Giảm giá ({data.discount_rate}%)</span></Table.Summary.Cell>
-                                                    <Table.Summary.Cell index={1} align="right" style={{ color: '#52c41a' }}>-{discountAmount.toLocaleString()}</Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right"><span style={{ color: '#52c41a' }}>-{discountAmount.toLocaleString()}</span></Table.Summary.Cell>
                                                 </Table.Summary.Row>
                                             )}
                                             <Table.Summary.Row>

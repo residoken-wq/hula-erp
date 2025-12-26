@@ -735,7 +735,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
                                             <Table
                                                 dataSource={snapItems}
-                                                rowKey={(rec) => rec.sku || Math.random()}
+                                                rowKey={(rec: any) => rec?.sku || rec || Math.random()}
                                                 pagination={false}
                                                 size="small"
                                                 bordered
@@ -766,7 +766,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                             {Number(snapshot.discount_amount) > 0 && (
                                                                 <Table.Summary.Row>
                                                                     <Table.Summary.Cell index={0} colSpan={3} align="right">Giảm giá</Table.Summary.Cell>
-                                                                    <Table.Summary.Cell index={1} align="right" style={{ color: 'green' }}>-{Number(snapshot.discount_amount).toLocaleString()}</Table.Summary.Cell>
+                                                                    <Table.Summary.Cell index={1} align="right"><span style={{ color: 'green' }}>-{Number(snapshot.discount_amount).toLocaleString()}</span></Table.Summary.Cell>
                                                                 </Table.Summary.Row>
                                                             )}
                                                             {Number(snapshot.vat_rate) > 0 && (

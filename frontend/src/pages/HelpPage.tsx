@@ -46,14 +46,14 @@ const HelpPage: React.FC = () => {
                         <Divider />
                         <Row gutter={16}>
                             <Col span={8}>
-                                <Card padding="small" className="feature-card">
+                                <Card size="small" className="feature-card">
                                     <RocketOutlined style={{ fontSize: 32, color: '#1890ff' }} />
                                     <Title level={4}>Bắt đầu nhanh</Title>
                                     <Text type="secondary">Làm quen với giao diện và các tính năng cơ bản.</Text>
                                 </Card>
                             </Col>
                             <Col span={8}>
-                                <Card padding="small" className="feature-card">
+                                <Card size="small" className="feature-card">
                                     <ShopOutlined style={{ fontSize: 32, color: '#52c41a' }} />
                                     <Title level={4}>Quy trình Bán hàng</Title>
                                     <Text type="secondary">Từ Báo giá đến Chốt đơn và Giao hàng.</Text>
