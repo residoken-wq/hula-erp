@@ -28,6 +28,7 @@ const FinancePage: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState('1');
     const [filterMonth, setFilterMonth] = useState(dayjs());
+    const [pageSize, setPageSize] = useState<number>(10); // <--- State for Page Size
 
     const [formTrans] = Form.useForm();
     const [formCat] = Form.useForm();
@@ -247,6 +248,18 @@ const FinancePage: React.FC = () => {
                                 <DatePicker picker="month" value={filterMonth} onChange={v => v && setFilterMonth(v)} allowClear={false} />
                             </>
                         )}
+                        <Select
+                            value={pageSize}
+                            style={{ width: 110 }}
+                            onChange={(v) => setPageSize(v)}
+                            options={[
+                                { value: 10, label: '10 dòng' },
+                                { value: 20, label: '20 dòng' },
+                                { value: 50, label: '50 dòng' },
+                                { value: 100, label: '100 dòng' },
+                                { value: 999999, label: 'Tất cả' },
+                            ]}
+                        />
                         <Button icon={<ReloadOutlined />} onClick={fetchData} />
                     </div>
                 }
@@ -264,7 +277,7 @@ const FinancePage: React.FC = () => {
                                     dataSource={filteredTransactions.filter(t => t.type === 'INCOME')}
                                     columns={columnsTrans('INCOME')}
                                     rowKey="id" loading={loading}
-                                    pagination={{ pageSize: 10 }}
+                                    pagination={pageSize >= 999999 ? false : { pageSize: pageSize, showSizeChanger: false }}
                                 />
                             </>
                         )
@@ -281,7 +294,7 @@ const FinancePage: React.FC = () => {
                                     dataSource={filteredTransactions.filter(t => t.type === 'EXPENSE')}
                                     columns={columnsTrans('EXPENSE')}
                                     rowKey="id" loading={loading}
-                                    pagination={{ pageSize: 10 }}
+                                    pagination={pageSize >= 999999 ? false : { pageSize: pageSize, showSizeChanger: false }}
                                 />
                             </>
                         )
@@ -299,6 +312,8 @@ const FinancePage: React.FC = () => {
                                     </Select>
                                     <DatePicker picker={reportType === 'MONTH' ? 'month' : 'year'} value={reportFilter} onChange={v => v && setReportFilter(v)} allowClear={false} />
                                     <Button type="primary" onClick={fetchReport} icon={<ReloadOutlined />}>Xem BC</Button>
+                                    <div style={{ flex: 1 }}></div>
+                                    <Button onClick={() => { /* In báo cáo? */ }} disabled>Xuất Excel (Coming soon)</Button>
                                 </div>
 
                                 <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -311,7 +326,7 @@ const FinancePage: React.FC = () => {
                                     dataSource={reportData.transactions}
                                     columns={columnsReport}
                                     rowKey="id"
-                                    pagination={{ pageSize: 20 }}
+                                    pagination={pageSize >= 999999 ? false : { pageSize: pageSize, showSizeChanger: false }}
                                     summary={() => (
                                         <Table.Summary fixed>
                                             <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
