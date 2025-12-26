@@ -19,6 +19,8 @@ const FinancePage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
+    const [customers, setCustomers] = useState<any[]>([]); // <--- New State
+    const [suppliers, setSuppliers] = useState<any[]>([]); // <--- New State
     const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
 
     // UI State
@@ -34,6 +36,8 @@ const FinancePage: React.FC = () => {
     const [formCat] = Form.useForm();
 
     const currentTransType = Form.useWatch('type', formTrans);
+    const isRetail = Form.useWatch('is_retail', formTrans); // <--- Watch checkbox Income
+    const isOtherExpense = Form.useWatch('is_other_expense', formTrans); // <--- Watch checkbox Expense
 
     // --- REPORT STATE ---
     const [reportData, setReportData] = useState<any>({ transactions: [], summary: { income: 0, expense: 0, profit: 0 } });
@@ -47,14 +51,18 @@ const FinancePage: React.FC = () => {
         setLoading(true);
         try {
             const monthStr = filterMonth.format('YYYY-MM');
-            const [resTrans, resCat, resSum] = await Promise.all([
+            const [resTrans, resCat, resSum, resCust, resSup] = await Promise.all([
                 axios.get(`${API_URL}/finance/transactions?month=${monthStr}`),
                 axios.get(`${API_URL}/finance/categories`),
-                axios.get(`${API_URL}/finance/summary`)
+                axios.get(`${API_URL}/finance/summary`),
+                axios.get(`${API_URL}/customers`), // <--- Fetch Customers
+                axios.get(`${API_URL}/suppliers`)  // <--- Fetch Suppliers
             ]);
             setTransactions(Array.isArray(resTrans.data) ? resTrans.data : []);
             setCategories(Array.isArray(resCat.data) ? resCat.data : []);
             setSummary(resSum.data || { income: 0, expense: 0, balance: 0 });
+            setCustomers(Array.isArray(resCust.data) ? resCust.data : []);
+            setSuppliers(Array.isArray(resSup.data) ? resSup.data : []);
         } catch (e) { message.error('Lỗi tải dữ liệu'); }
         setLoading(false);
     };
@@ -76,10 +84,26 @@ const FinancePage: React.FC = () => {
     // --- ACTIONS ---
     const handleSaveTrans = async (values: any) => {
         try {
+            // Logic xử lý tên đối tác
+            let finalPartnerName = values.partner_name;
+
+            // Nếu là Thu + Chọn khách hàng (không phải khách lẻ)
+            if (values.type === 'INCOME' && !values.is_retail && values.customer_id) {
+                const cust = customers.find(c => c.id === values.customer_id);
+                if (cust) finalPartnerName = cust.name;
+            }
+
+            // Nếu là Chi + Chọn NCC (không phải chi khác)
+            if (values.type === 'EXPENSE' && !values.is_other_expense && values.supplier_id) {
+                const sup = suppliers.find(s => s.id === values.supplier_id);
+                if (sup) finalPartnerName = sup.name;
+            }
+
             const payload = {
                 ...values,
                 date: values.date.format('YYYY-MM-DD'),
-                type: values.type
+                type: values.type,
+                partner_name: finalPartnerName // Override partner_name
             };
             await axios.post(`${API_URL}/finance/transactions`, payload);
             message.success('Đã lưu giao dịch');
@@ -403,6 +427,59 @@ const FinancePage: React.FC = () => {
                         </Radio.Group>
                     </Form.Item>
 
+                    {/* SELECT CUSTOMER/SUPPLIER Logic */}
+                    <div style={{ background: '#f0f2f5', padding: 12, borderRadius: 6, marginBottom: 16 }}>
+                        {currentTransType === 'INCOME' && (
+                            <>
+                                <Form.Item name="is_retail" valuePropName="checked" style={{ marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <input type="checkbox" id="retail" style={{ width: 16, height: 16 }} onChange={e => formTrans.setFieldValue('is_retail', e.target.checked)} />
+                                        <label htmlFor="retail" style={{ fontWeight: 500 }}>Khách lẻ / Vãng lai</label>
+                                    </div>
+                                </Form.Item>
+                                {isRetail ? (
+                                    <Form.Item name="partner_name" label="Tên khách hàng" rules={[{ required: true, message: 'Nhập tên khách' }]}>
+                                        <Input placeholder="Nhập tên khách..." />
+                                    </Form.Item>
+                                ) : (
+                                    <Form.Item name="customer_id" label="Chọn khách hàng từ hệ thống" rules={[{ required: true, message: 'Chọn khách hàng' }]}>
+                                        <Select placeholder="Tìm kiếm khách hàng" showSearch optionFilterProp="children">
+                                            {customers.map(c => (
+                                                <Option key={c.id} value={c.id}>{c.name} ({c.phone})</Option>
+                                            ))}
+                                        </Select>
+                                    </Form.Item>
+                                )}
+                            </>
+                        )}
+
+                        {currentTransType === 'EXPENSE' && (
+                            <>
+                                <Form.Item name="is_other_expense" valuePropName="checked" style={{ marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <input type="checkbox" id="other_exp" style={{ width: 16, height: 16 }} onChange={e => formTrans.setFieldValue('is_other_expense', e.target.checked)} />
+                                        <label htmlFor="other_exp" style={{ fontWeight: 500 }}>Chi khác / Nội bộ (Không có NCC)</label>
+                                    </div>
+                                </Form.Item>
+                                {isOtherExpense ? (
+                                    <Form.Item name="partner_name" label="Tên đơn vị / Người nhận" rules={[{ required: true, message: 'Nhập tên người nhận' }]}>
+                                        <Input placeholder="Vd: Điện lực, Tiền nước, Lương..." />
+                                    </Form.Item>
+                                ) : (
+                                    <Form.Item name="supplier_id" label="Chọn Nhà Cung Cấp / NGC" rules={[{ required: true, message: 'Chọn nhà cung cấp' }]}>
+                                        <Select placeholder="Tìm kiếm NCC" showSearch optionFilterProp="children">
+                                            {suppliers.map(s => (
+                                                <Option key={s.id} value={s.id}>
+                                                    {s.name} - <Tag>{s.type}</Tag>
+                                                </Option>
+                                            ))}
+                                        </Select>
+                                    </Form.Item>
+                                )}
+                            </>
+                        )}
+                    </div>
+
                     <Row gutter={16}>
                         <Col span={12}><Form.Item name="date" label="Ngày giao dịch" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                         <Col span={12}>
@@ -434,7 +511,6 @@ const FinancePage: React.FC = () => {
                     </Form.Item>
 
                     <Form.Item name="description" label="Diễn giải / Lý do"><Input.TextArea rows={3} /></Form.Item>
-                    <Form.Item name="partner_name" label="Đối tượng (Khách hàng / NCC)"><Input placeholder="VD: Công ty ABC..." /></Form.Item>
                     <Form.Item name="reference_code" label="Mã tham chiếu (Optional)"><Input placeholder="VD: SO-1234, PO-5678" /></Form.Item>
 
                     <Button type="primary" htmlType="submit" block size="large">Lưu Phiếu</Button>
