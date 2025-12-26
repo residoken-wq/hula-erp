@@ -34,7 +34,8 @@ async function bootstrap() {
     app.setGlobalPrefix('api');
     app.enableCors();
 
-    await app.listen(3000, '0.0.0.0');
+    const port = process.env.PORT || 3000;
+    await app.listen(port, '0.0.0.0');
     console.log(`Application is running on: ${await app.getUrl()}`);
   } catch (err) {
     console.error('FATAL STARTUP ERROR:', err);
