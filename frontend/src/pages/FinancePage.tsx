@@ -34,6 +34,14 @@ const FinancePage: React.FC = () => {
 
     const currentTransType = Form.useWatch('type', formTrans);
 
+    // --- REPORT STATE ---
+    const [reportData, setReportData] = useState<any>({ transactions: [], summary: { income: 0, expense: 0, profit: 0 } });
+    const [reportType, setReportType] = useState<'MONTH' | 'YEAR'>('MONTH');
+    const [reportFilter, setReportFilter] = useState(dayjs());
+    const [isAccountingModalOpen, setIsAccountingModalOpen] = useState(false);
+    const [accountingTrans, setAccountingTrans] = useState<any>(null);
+    const [formAccounting] = Form.useForm();
+
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -50,7 +58,19 @@ const FinancePage: React.FC = () => {
         setLoading(false);
     };
 
+    const fetchReport = async () => {
+        try {
+            let query = '';
+            if (reportType === 'MONTH') query = `month=${reportFilter.format('YYYY-MM')}`;
+            if (reportType === 'YEAR') query = `year=${reportFilter.format('YYYY')}`;
+
+            const res = await axios.get(`${API_URL}/finance/report?${query}`);
+            setReportData(res.data || { transactions: [], summary: { income: 0, expense: 0, profit: 0 } });
+        } catch (e) { message.error('Lỗi tải báo cáo'); }
+    }
+
     useEffect(() => { fetchData(); }, [filterMonth]);
+    useEffect(() => { if (activeTab === 'REPORT') fetchReport(); }, [activeTab, reportType, reportFilter]);
 
     // --- ACTIONS ---
     const handleSaveTrans = async (values: any) => {
@@ -95,6 +115,25 @@ const FinancePage: React.FC = () => {
         setEditingCategory(null);
         formCat.resetFields();
     };
+
+    const handleOpenAccounting = (record: any) => {
+        setAccountingTrans(record);
+        formAccounting.setFieldsValue({
+            is_accounting: record.is_accounting || true, // Default checked
+            accounting_invoice_code: record.accounting_invoice_code,
+            accounting_note: record.accounting_note
+        });
+        setIsAccountingModalOpen(true);
+    };
+
+    const handleSaveAccounting = async (values: any) => {
+        try {
+            await axios.put(`${API_URL}/finance/transactions/${accountingTrans.id}`, values);
+            message.success('Đã hạch toán');
+            setIsAccountingModalOpen(false);
+            fetchData(); // Refresh list
+        } catch (e) { message.error('Lỗi hạch toán'); }
+    };
     // -------------------------------------------------------
 
     const handleDelete = async (endpoint: string, id: number) => {
@@ -103,12 +142,8 @@ const FinancePage: React.FC = () => {
     };
 
     // --- COMPONENTS ---
-    const columnsTrans = [
+    const columnsTrans = (type: 'INCOME' | 'EXPENSE') => [
         { title: 'Ngày', dataIndex: 'date', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
-        {
-            title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 80,
-            render: (t: string) => t === 'INCOME' ? <Tag color="green"><ArrowUpOutlined /> Thu</Tag> : <Tag color="red"><ArrowDownOutlined /> Chi</Tag>
-        },
         {
             title: 'Danh mục', dataIndex: 'category',
             render: (c: any) => c ? <Tag color={c.color || 'default'}>{c.name}</Tag> : <span style={{ color: '#999' }}>Khác</span>
@@ -121,9 +156,29 @@ const FinancePage: React.FC = () => {
             render: (v: any, r: any) => <b style={{ color: r.type === 'INCOME' ? 'green' : 'red' }}>{r.type === 'INCOME' ? '+' : '-'}{Number(v).toLocaleString()}</b>
         },
         {
+            title: 'Hạch Toán', align: 'center' as const,
+            render: (_: any, r: any) => r.is_accounting
+                ? <Tag color="blue" icon={<FileTextOutlined />}>Đã HT</Tag>
+                : <Button size="small" icon={<FileTextOutlined />} onClick={() => handleOpenAccounting(r)}>Hạch toán</Button>
+        },
+        {
             title: '', key: 'act', width: 50,
-            render: (_: any, r: any) => <Popconfirm title="Xóa?" onConfirm={() => handleDelete('transactions', r.id)}><Button size="small" danger icon={<DeleteOutlined />} type="text" /></Popconfirm>
+            render: (_: any, r: any) => (
+                <Space>
+                    <Button size="small" icon={<EditOutlined style={{ color: 'orange' }} />} onClick={() => handleOpenAccounting(r)} />
+                    <Popconfirm title="Xóa?" onConfirm={() => handleDelete('transactions', r.id)}><Button size="small" danger icon={<DeleteOutlined />} type="text" /></Popconfirm>
+                </Space>
+            )
         }
+    ];
+
+    const columnsReport = [
+        { title: 'Ngày', dataIndex: 'date', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
+        { title: 'Loại', dataIndex: 'type', render: (t: string) => t === 'INCOME' ? <Tag color="green">Thu</Tag> : <Tag color="red">Chi</Tag> },
+        { title: 'Số Hóa Đơn', dataIndex: 'accounting_invoice_code', render: (t: any) => t ? <b>{t}</b> : '-' },
+        { title: 'Diễn giải', dataIndex: 'description' },
+        { title: 'Ghi chú', dataIndex: 'accounting_note' },
+        { title: 'Số tiền', dataIndex: 'amount', align: 'right' as const, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
     ];
 
     const columnsCat = [
@@ -183,39 +238,99 @@ const FinancePage: React.FC = () => {
 
 
             <Card
-                title={<span><WalletOutlined /> Sổ Quỹ Tiền Mặt</span>}
+                title={<span><WalletOutlined /> Quản Lý Tài Chính</span>}
                 extra={
                     <div style={{ display: 'flex', gap: 10 }}>
-                        <Input
-                            prefix={<SearchOutlined />}
-                            placeholder="Tìm nội dung, đối tác, mã..."
-                            value={searchText}
-                            onChange={e => setSearchText(e.target.value)}
-                            style={{ width: 250 }}
-                            allowClear
-                        />
-                        <DatePicker picker="month" value={filterMonth} onChange={v => v && setFilterMonth(v)} allowClear={false} />
+                        {activeTab !== 'REPORT' && (
+                            <>
+                                <Input prefix={<SearchOutlined />} placeholder="Tìm kiếm..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 200 }} allowClear />
+                                <DatePicker picker="month" value={filterMonth} onChange={v => v && setFilterMonth(v)} allowClear={false} />
+                            </>
+                        )}
                         <Button icon={<ReloadOutlined />} onClick={fetchData} />
                     </div>
                 }
             >
                 <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" items={[
                     {
-                        key: '1',
-                        label: <span><FileTextOutlined /> Danh sách Giao dịch</span>,
+                        key: 'INCOME',
+                        label: <span><ArrowUpOutlined /> Thu</span>,
                         children: (
                             <>
                                 <div style={{ marginBottom: 16, textAlign: 'right' }}>
-                                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { formTrans.resetFields(); setIsTransModalOpen(true) }}>Lập Phiếu Thu/Chi</Button>
+                                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { formTrans.resetFields(); formTrans.setFieldsValue({ type: 'INCOME' }); setIsTransModalOpen(true) }}>Tạo Phiếu Thu</Button>
                                 </div>
-                                <Table dataSource={filteredTransactions} columns={columnsTrans} rowKey="id" loading={loading} pagination={{ pageSize: 10 }} />
+                                <Table
+                                    dataSource={filteredTransactions.filter(t => t.type === 'INCOME')}
+                                    columns={columnsTrans('INCOME')}
+                                    rowKey="id" loading={loading}
+                                    pagination={{ pageSize: 10 }}
+                                />
                             </>
                         )
                     },
-                    // ... (Keep existing Categories Tab logic) ...
                     {
-                        key: '2',
-                        label: <span><PieChartOutlined /> Quản lý Danh mục Thu/Chi</span>,
+                        key: 'EXPENSE',
+                        label: <span><ArrowDownOutlined /> Chi</span>,
+                        children: (
+                            <>
+                                <div style={{ marginBottom: 16, textAlign: 'right' }}>
+                                    <Button type="primary" danger icon={<PlusOutlined />} onClick={() => { formTrans.resetFields(); formTrans.setFieldsValue({ type: 'EXPENSE' }); setIsTransModalOpen(true) }}>Tạo Phiếu Chi</Button>
+                                </div>
+                                <Table
+                                    dataSource={filteredTransactions.filter(t => t.type === 'EXPENSE')}
+                                    columns={columnsTrans('EXPENSE')}
+                                    rowKey="id" loading={loading}
+                                    pagination={{ pageSize: 10 }}
+                                />
+                            </>
+                        )
+                    },
+                    {
+                        key: 'REPORT',
+                        label: <span><PieChartOutlined /> Báo Cáo Tài Chính</span>,
+                        children: (
+                            <div>
+                                <div style={{ marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center', background: '#f5f5f5', padding: 10, borderRadius: 6 }}>
+                                    <b>Lọc Theo:</b>
+                                    <Select value={reportType} onChange={setReportType} style={{ width: 100 }}>
+                                        <Option value="MONTH">Tháng</Option>
+                                        <Option value="YEAR">Năm</Option>
+                                    </Select>
+                                    <DatePicker picker={reportType === 'MONTH' ? 'month' : 'year'} value={reportFilter} onChange={v => v && setReportFilter(v)} allowClear={false} />
+                                    <Button type="primary" onClick={fetchReport} icon={<ReloadOutlined />}>Xem BC</Button>
+                                </div>
+
+                                <Row gutter={16} style={{ marginBottom: 16 }}>
+                                    <Col span={8}><Statistic title="Tổng Thu (Hạch toán)" value={reportData.summary.income} precision={0} valueStyle={{ color: '#3f8600' }} prefix={<ArrowUpOutlined />} /></Col>
+                                    <Col span={8}><Statistic title="Tổng Chi (Hạch toán)" value={reportData.summary.expense} precision={0} valueStyle={{ color: '#cf1322' }} prefix={<ArrowDownOutlined />} /></Col>
+                                    <Col span={8}><Statistic title="Lợi Nhuận" value={reportData.summary.profit} precision={0} valueStyle={{ color: reportData.summary.profit >= 0 ? '#3f8600' : '#cf1322' }} prefix={<WalletOutlined />} /></Col>
+                                </Row>
+
+                                <Table
+                                    dataSource={reportData.transactions}
+                                    columns={columnsReport}
+                                    rowKey="id"
+                                    pagination={{ pageSize: 20 }}
+                                    summary={() => (
+                                        <Table.Summary fixed>
+                                            <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
+                                                <Table.Summary.Cell index={0} colSpan={5}>Tổng Cộng</Table.Summary.Cell>
+                                                <Table.Summary.Cell index={1} align="right">
+                                                    <span style={{ color: reportData.summary.profit >= 0 ? 'green' : 'red' }}>
+                                                        {Number(reportData.summary.profit).toLocaleString()}
+                                                    </span>
+                                                </Table.Summary.Cell>
+                                            </Table.Summary.Row>
+                                        </Table.Summary>
+                                    )}
+                                />
+                            </div>
+                        )
+                    },
+                    {
+                        key: 'CATEGORIES',
+                        label: <span><FileTextOutlined /> Danh Mục</span>,
                         children: (
                             <Row gutter={24}>
                                 <Col span={16}>
@@ -245,9 +360,23 @@ const FinancePage: React.FC = () => {
                 ]} />
             </Card>
 
+            <Modal title="Hạch Toán Giao Dịch" open={isAccountingModalOpen} onCancel={() => setIsAccountingModalOpen(false)} footer={null}>
+                <Form form={formAccounting} layout="vertical" onFinish={handleSaveAccounting}>
+                    <Form.Item name="is_accounting" valuePropName="checked" wrapperCol={{ span: 24 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 10, border: '1px solid #d9d9d9', borderRadius: 4, background: '#f6ffed' }}>
+                            <input type="checkbox" id="acc_chk" defaultChecked style={{ width: 20, height: 20 }} onChange={e => formAccounting.setFieldValue('is_accounting', e.target.checked)} />
+                            <label htmlFor="acc_chk" style={{ fontWeight: 600, fontSize: 16 }}>Xác nhận Hạch toán vào BCTC</label>
+                        </div>
+                    </Form.Item>
+                    <Form.Item name="accounting_invoice_code" label="Số Hóa Đơn VAT / Chứng Từ" rules={[{ required: true, message: 'Nhập số hóa đơn' }]}><Input placeholder="VD: 0012345" /></Form.Item>
+                    <Form.Item name="accounting_note" label="Ghi chú hạch toán"><Input.TextArea rows={3} /></Form.Item>
+                    <Button type="primary" htmlType="submit" block size="large">Lưu Hạch Toán</Button>
+                </Form>
+            </Modal>
+
             {/* ... (Keep existing Modal) ... */}
             <Modal title="Lập Phiếu Thu / Chi" open={isTransModalOpen} onCancel={() => setIsTransModalOpen(false)} footer={null}>
-                <Form form={formTrans} layout="vertical" onFinish={handleSaveTrans} initialValues={{ date: dayjs(), type: 'EXPENSE' }}>
+                <Form form={formTrans} layout="vertical" onFinish={handleSaveTrans} initialValues={{ date: dayjs(), type: activeTab === 'EXPENSE' ? 'EXPENSE' : 'INCOME' }}>
 
                     <Form.Item name="type" label="Loại phiếu" rules={[{ required: true }]}>
                         <Radio.Group

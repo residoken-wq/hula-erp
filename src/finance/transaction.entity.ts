@@ -43,6 +43,17 @@ export class Transaction {
   vat_invoice_url: string; // Link ảnh/file hóa đơn
   // ---------------------------------
 
+  // --- MỚI: HẠCH TOÁN BÁO CÁO TÀI CHÍNH ---
+  @Column({ default: false })
+  is_accounting: boolean; // Đã hạch toán vào BCTC chưa?
+
+  @Column({ nullable: true })
+  accounting_invoice_code: string; // Mã hóa đơn (khi hạch toán)
+
+  @Column({ nullable: true })
+  accounting_note: string; // Ghi chú hạch toán
+  // ----------------------------------------
+
   @CreateDateColumn()
   created_at: Date;
 }

@@ -87,6 +87,36 @@ export class FinanceService {
 
     async deleteTransaction(id: number) { return this.transRepo.delete(id); }
 
+    async updateTransaction(id: number, data: any) {
+        await this.transRepo.update(id, data);
+        return this.transRepo.findOne({ where: { id } });
+    }
+
+    async getFinancialReport(month?: string, year?: string) {
+        let where: any = { is_accounting: true };
+
+        if (month) {
+            const [y, m] = month.split('-');
+            const start = new Date(Number(y), Number(m) - 1, 1);
+            const end = new Date(Number(y), Number(m), 0);
+            where.date = Between(start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+        } else if (year) {
+            const start = new Date(Number(year), 0, 1);
+            const end = new Date(Number(year), 11, 31);
+            where.date = Between(start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+        }
+
+        const transactions = await this.transRepo.find({ where, order: { date: 'ASC' } });
+
+        const income = transactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + Number(t.amount), 0);
+        const expense = transactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + Number(t.amount), 0);
+
+        return {
+            transactions,
+            summary: { income, expense, profit: income - expense }
+        };
+    }
+
     async getSummary() {
         const all = await this.transRepo.find();
         const income = all.filter(t => t.type === 'INCOME').reduce((s, t) => s + Number(t.amount), 0);
