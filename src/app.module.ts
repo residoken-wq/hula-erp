@@ -109,7 +109,7 @@ import { AppController } from './app.controller';
       }),
     }),
     UsersModule, AuthModule,
-    ProductsModule, MaterialsModule, BomModule, // SalesModule, <--- DISABLED
+    ProductsModule, MaterialsModule, BomModule, SalesModule,
     InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
     TasksModule, NotificationsModule, SystemModule,
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,

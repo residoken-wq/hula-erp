@@ -29,11 +29,13 @@ services:
     container_name: hula_app
     restart: always
     command: npm run start:dev # Chạy chế độ Dev (Hot Reload)
-    # ports:
-    #   - "3000:3000" # Disable port mapping (Use Proxy instead)
+    ports:
+      - "3000:3000" # Expose to Public for Debugging
     expose:
       - "3000" # Expose to internal network only
     environment:
+      - VIRTUAL_HOST=erp.nemmamnon.com
+      - VIRTUAL_PORT=3000
       - DB_HOST=hula_db
       - DB_PORT=5432
       - DB_USERNAME=hula_user
