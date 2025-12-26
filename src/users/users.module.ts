@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { UserGroup } from './entities/user-group.entity';
@@ -11,7 +11,7 @@ import { AuthModule } from '../auth/auth.module'; // <--- IMPORT
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, UserGroup, GroupPermission]),
-    AuthModule // <--- Fix: Import AuthModule để dùng Guard
+    forwardRef(() => AuthModule) // <--- Fix: Circular Dependency
   ],
   controllers: [UsersController],
   providers: [UsersService],
