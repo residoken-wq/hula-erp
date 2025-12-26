@@ -14,7 +14,9 @@ import { join } from 'path';
 
 async function bootstrap() {
   try {
-    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+      logger: ['error', 'warn', 'log', 'debug', 'verbose'], // Bật full logs
+    });
 
     // Create uploads folder if not exists
     const fs = await import('fs');
@@ -33,10 +35,9 @@ async function bootstrap() {
     app.enableCors();
 
     await app.listen(3000, '0.0.0.0');
+    console.log(`Application is running on: ${await app.getUrl()}`);
   } catch (err) {
-    const fs = await import('fs');
-    fs.writeFileSync(join(__dirname, 'startup-err.txt'), `Startup Error: ${err.message}\nStack: ${err.stack}`);
-    console.error('Startup Error:', err);
+    console.error('FATAL STARTUP ERROR:', err);
     process.exit(1);
   }
 }
