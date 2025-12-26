@@ -107,13 +107,19 @@ import { ActivityLog } from './system/entities/activity-log.entity'; // <--- NEW
       }),
     }),
 
-    // Modules Registry
-    UsersModule, AuthModule,
-    ProductsModule, MaterialsModule, BomModule, SalesModule,
-    InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
-    TasksModule, NotificationsModule, SystemModule, // <--- ĐĂNG KÝ MODULE MỚI
-    UploadModule, SuppliersModule, CustomersModule, PlanningModule,
-    ProcessesModule, CategoriesModule,
-  ],
-})
-export class AppModule { }
+import { AppController } from './app.controller'; // <--- IMPORT
+
+@Module({
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        // ... (imports)
+        UsersModule, AuthModule,
+        ProductsModule, MaterialsModule, BomModule, SalesModule,
+        InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
+        TasksModule, NotificationsModule, SystemModule,
+        UploadModule, SuppliersModule, CustomersModule, PlanningModule,
+        ProcessesModule, CategoriesModule,
+      ],
+      controllers: [AppController] // <--- ADD CONTROLLER
+    })
+  export class AppModule { }
