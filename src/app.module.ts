@@ -109,7 +109,7 @@ import { ActivityLog } from './system/entities/activity-log.entity'; // <--- NEW
 
     // Modules Registry
     UsersModule, AuthModule,
-    ProductsModule, MaterialsModule, BomModule, SalesModule,
+    ProductsModule, MaterialsModule, BomModule, // SalesModule, <--- DISABLED FOR DEBUGGING
     InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
     TasksModule, NotificationsModule, SystemModule, // <--- ĐĂNG KÝ MODULE MỚI
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
