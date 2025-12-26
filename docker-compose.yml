@@ -54,22 +54,16 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: development # Use Dev Stage (Vite Server)
+      target: production # Use Production Stage (Nginx)
     container_name: hula_frontend
     restart: always
-    # FIX: Remove port 80 mapping to avoid conflict with Nginx Proxy Manager
-    # ports:
-    #   - "80:5173"
     expose:
-      - "5173" # Vite default port
+      - "80" # Nginx default port
     depends_on:
       - app
     networks:
       - default
       - proxy_net
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
 
 volumes:
   postgres_data:
