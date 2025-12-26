@@ -230,21 +230,57 @@ const HelpPage: React.FC = () => {
                         <Title level={2}>💰 Quản lý Tài chính & Thu Chi</Title>
                         <Paragraph>
                             Phân hệ Tài chính giúp theo dõi dòng tiền, công nợ và sổ quỹ tiền mặt.
+                            Bao gồm 4 Tab chính: <b>Thu, Chi, Báo Cáo Tài Chính</b> và <b>Danh Mục</b>.
                         </Paragraph>
 
-                        <Card title="1. Lập Phiếu Thu / Chi" size="small" style={{ marginBottom: 16 }}>
-                            <ul>
-                                <li><b>Tự động:</b> Khi tạo Đơn hàng (Sales), phiếu thu Cọc/Thanh toán sẽ tự động được tạo.</li>
-                                <li><b>Thủ công:</b> Vào menu Tài chính ➔ Nhấn "Lập Phiếu Thu/Chi" để ghi nhận các khoản chi ngoài (Tiền điện, nước, lương...).</li>
-                            </ul>
+                        <Divider orientation="left">I. Quản lý Thu / Chi</Divider>
+                        <Row gutter={[16, 16]}>
+                            <Col span={12}>
+                                <Card title="1. Tab Thu (Income)" size="small" bordered style={{ borderColor: '#b7eb8f' }}>
+                                    <ul>
+                                        <li>Quản lý danh sách các phiếu thu tiền.</li>
+                                        <li><b>Tự động:</b> Khi khách hàng thanh toán cho đơn hàng (Sales Order).</li>
+                                        <li><b>Thủ công:</b> Tạo phiếu thu khác (VD: Thu tiền thanh lý tài sản...).</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card title="2. Tab Chi (Expense)" size="small" bordered style={{ borderColor: '#ffa39e' }}>
+                                    <ul>
+                                        <li>Quản lý danh sách các phiếu chi tiền.</li>
+                                        <li><b>Tự động:</b> Khi thanh toán cho nhà cung cấp (Purchase Order).</li>
+                                        <li><b>Thủ công:</b> Tạo phiếu chi nội bộ (Tiền điện, nước, lương, tiếp khách...).</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Divider orientation="left">II. Hạch Toán & Báo Cáo</Divider>
+
+                        <Card title={<span style={{ fontWeight: 'bold', color: '#1890ff' }}>📝 1. Quy trình Hạch toán (Accounting)</span>} style={{ marginBottom: 20 }}>
+                            <Paragraph>
+                                Để đảm bảo số liệu chính xác cho kế toán thuế và báo cáo lợi nhuận, các giao dịch cần được "Hạch toán".
+                            </Paragraph>
+                            <Steps
+                                progressDot
+                                current={-1}
+                                items={[
+                                    { title: 'Bước 1', description: 'Kế toán kiểm tra giao dịch tại Tab Thu hoặc Chi.' },
+                                    { title: 'Bước 2', description: 'Nhấn nút "Hạch toán" trên dòng giao dịch.' },
+                                    { title: 'Bước 3', description: 'Nhập "Số Hóa Đơn / Chứng Từ" và Ghi chú.' },
+                                    { title: 'Hoàn tất', description: 'Giao dịch chuyển sang trạng thái "Đã HT" (Đã hạch toán).' },
+                                ]}
+                            />
                         </Card>
 
-                        <Card title="2. Tìm kiếm Giao dịch" size="small" style={{ marginBottom: 16 }}>
-                            <Paragraph>Người dùng có thể tìm kiếm nhanh giao dịch bằng thanh tìm kiếm ở góc phải:</Paragraph>
+                        <Card title={<span style={{ fontWeight: 'bold', color: '#722ed1' }}>📊 2. Báo Cáo Tài Chính (Financial Report)</span>} style={{ marginBottom: 20 }}>
+                            <Paragraph>
+                                Tab "Báo Cáo Tài Chính" tổng hợp tất cả các giao dịch <b>ĐÃ ĐƯỢC HẠCH TOÁN</b>.
+                            </Paragraph>
                             <ul>
-                                <li>Tìm theo <b>Tên khách hàng / Nhà cung cấp</b>.</li>
-                                <li>Tìm theo <b>Mã đơn hàng (SO-..., PO-...)</b>.</li>
-                                <li>Tìm theo <b>Nội dung diễn giải</b>.</li>
+                                <li><b>Bộ lọc linh hoạt:</b> Xem báo cáo theo <b>Tháng</b> hoặc <b>Năm</b>.</li>
+                                <li><b>Chỉ số quan trọng:</b> Tự động tính toán <b>Tổng Thu</b>, <b>Tổng Chi</b> và <b>Lợi Nhuận (Profit)</b>.</li>
+                                <li><b>Chi tiết:</b> Bảng kê chi tiết từng hóa đơn, chứng từ đã hạch toán.</li>
                             </ul>
                         </Card>
                     </div>
