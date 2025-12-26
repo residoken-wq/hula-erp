@@ -78,50 +78,50 @@ const PortalQuotePage: React.FC = () => {
             width: 60,
             align: 'center' as const,
             render: (_: any, r: any) => {
-                let imgUrl = null;
+                const rawUrl = r.sample_image || r.product?.image_url;
+                if (!rawUrl) return <div style={{ color: '#ccc', fontSize: 10, textAlign: 'center' }}>No Img</div>;
+
+                let finalSrc = rawUrl;
                 let isImage = false;
 
-                if (r.sample_image) {
-                    // 1. Handle Google Drive Links
-                    const driveMatch = r.sample_image.match(/\/d\/(.+?)\//);
-                    if (driveMatch && driveMatch[1]) {
-                        imgUrl = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
-                        isImage = true; // Always treat Drive links as images
-                    } else {
-                        // 2. Handle Normal Links
-                        imgUrl = r.sample_image.startsWith('http') ? r.sample_image : `${API_URL}${r.sample_image}`;
-
-                        // Check for image extensions or data URI
-                        isImage = !!(r.sample_image.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || r.sample_image.startsWith('data:image'));
+                // 1. Handle Google Drive
+                if (rawUrl.includes('drive.google.com') && rawUrl.includes('/d/')) {
+                    const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                    if (match && match[1]) {
+                        finalSrc = `https://lh3.googleusercontent.com/d/${match[1]}`;
+                        isImage = true;
                     }
                 }
+                // 2. Handle Google User Content (already direct)
+                else if (rawUrl.includes('googleusercontent.com')) {
+                    isImage = true;
+                }
+                // 3. Handle Normal Images
+                else {
+                    if (!rawUrl.startsWith('http') && !rawUrl.startsWith('data:')) finalSrc = `${API_URL}${rawUrl}`;
+                    isImage = !!(rawUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || rawUrl.startsWith('data:image'));
+                }
 
-                if (!imgUrl) return <div style={{ color: '#ccc', fontSize: 10, textAlign: 'center' }}>No Img</div>;
+                // Force isImage true if we detected Drive link
+                if (rawUrl.includes('drive.google.com')) isImage = true;
 
                 return (
                     <div style={{ textAlign: 'center' }}>
                         {isImage ? (
                             <img
-                                src={imgUrl!}
+                                src={finalSrc}
                                 alt="product"
                                 style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee' }}
-                                onClick={() => handlePreview(imgUrl!)}
+                                onClick={() => handlePreview(finalSrc)}
                                 onError={(e) => {
-                                    // Fallback if Drive link fails or is not an image
                                     (e.target as HTMLImageElement).style.display = 'none';
                                     (e.target as HTMLImageElement).onerror = null;
                                 }}
                             />
                         ) : (
-                            <a href={imgUrl} target="_blank" rel="noopener noreferrer">
+                            <a href={finalSrc} target="_blank" rel="noopener noreferrer">
                                 <LinkOutlined style={{ fontSize: 18, color: '#1890ff' }} />
                             </a>
-                        )}
-                        {/* If image failed to load but we want to show link */}
-                        {isImage && (
-                            <div style={{ display: 'none' }}>
-                                <a href={imgUrl} target="_blank" rel="noopener noreferrer">Fallback</a>
-                            </div>
                         )}
                     </div>
                 );
@@ -130,8 +130,25 @@ const PortalQuotePage: React.FC = () => {
         {
             title: 'Sản Phẩm',
             key: 'product_details',
-            width: 250,
+            width: 80,
             render: (_: any, r: any) => {
+                const imgUrl = r.sample_image || r.product?.image_url;
+                const isImage = imgUrl && (imgUrl.match(/\.(jpeg|jpg|gif|png)$/i) || imgUrl.includes('drive.google.com') || imgUrl.includes('googleusercontent.com'));
+
+                // Helper to convert Google Drive link to Direct Link
+                const getDirectLink = (url: string) => {
+                    if (!url) return '';
+                    if (url.includes('drive.google.com') && url.includes('/d/')) {
+                        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                        if (match && match[1]) {
+                            return `https://lh3.googleusercontent.com/d/${match[1]}`;
+                        }
+                    }
+                    return url;
+                };
+
+                const finalSrc = getDirectLink(imgUrl!);
+
                 const customerDesc = r.product?.customer_description;
                 return (
                     <div>
