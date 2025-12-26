@@ -1,22 +1,24 @@
-import { Controller, Get, Post, Param, Body, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('notifications')
+@UseGuards(JwtAuthGuard) // <--- SECURE ENDPOINT
 export class NotificationsController {
-  constructor(private readonly service: NotificationsService) {}
+    constructor(private readonly service: NotificationsService) { }
 
-  @Get() // GET /notifications?user_id=1
-  findAll(@Query('user_id') userId: number) {
-      return this.service.findByUser(userId);
-  }
+    @Get()
+    findAll(@Request() req: any) {
+        return this.service.findByUser(req.user.id); // <--- Use ID from Token
+    }
 
-  @Post(':id/read')
-  read(@Param('id') id: number) {
-      return this.service.markAsRead(id);
-  }
+    @Post(':id/read')
+    read(@Param('id') id: number) {
+        return this.service.markAsRead(id);
+    }
 
-  @Post('read-all')
-  readAll(@Body() body: any) {
-      return this.service.markAllRead(body.user_id);
-  }
+    @Post('read-all')
+    readAll(@Request() req: any) {
+        return this.service.markAllRead(req.user.id);
+    }
 }

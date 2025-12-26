@@ -8,40 +8,41 @@ import {
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import api from './utils/api';
 
-// Import Pages
-import ProductsPage from './pages/ProductsPage';
-import CombosPage from './pages/CombosPage';
-import UploadPage from './pages/UploadPage';
-import MaterialsPage from './pages/MaterialsPage';
-import SuppliersPage from './pages/SuppliersPage';
-import CrmPage from './pages/CrmPage';
-import CustomersPage from './pages/CustomersPage';
-import PlanningPage from './pages/PlanningPage';
-import ManufacturersPage from './pages/ManufacturersPage';
-import ProductionRoutePage from './pages/ProductionRoutePage';
-import ProcessesPage from './pages/ProcessesPage';
-import CategoriesPage from './pages/CategoriesPage';
-import PortalQuotePage from './pages/PortalQuotePage';
-import PortalPurchasePage from './pages/PortalPurchasePage';
-import PriceListsPage from './pages/PriceListPage';
-import UsersPage from './pages/UsersPage';
-import UserGroupsPage from './pages/UserGroupsPage';
-import LoginPage from './pages/LoginPage';
-import InventoryPage from './pages/InventoryPage';
-import FinancePage from './pages/FinancePage';
-import TasksPage from './pages/TasksPage';
-import PurchasingPage from './pages/PurchasingPage';
-import SalesPage from './pages/SalesPage'; // <--- QUAN TRỌNG: Import trang Đơn hàng
-import HelpPage from './pages/HelpPage'; // Import HelpPage
-import DocsPage from './pages/DocsPage'; // <--- Import DocsPage
-import SystemSettingsPage from './pages/SystemSettingsPage';
-import ActivityLogPage from './pages/ActivityLogPage'; // <--- Import ActivityLogPage
-
 // Import Components
 import HeaderNotifications from './components/HeaderNotifications';
+import LoadingDisplay from './components/LoadingDisplay'; // We will create this
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
+
+// Lazy Load Pages
+const ProductsPage = React.lazy(() => import('./pages/ProductsPage'));
+const CombosPage = React.lazy(() => import('./pages/CombosPage'));
+const UploadPage = React.lazy(() => import('./pages/UploadPage'));
+const MaterialsPage = React.lazy(() => import('./pages/MaterialsPage'));
+const SuppliersPage = React.lazy(() => import('./pages/SuppliersPage'));
+const CrmPage = React.lazy(() => import('./pages/CrmPage'));
+const CustomersPage = React.lazy(() => import('./pages/CustomersPage'));
+const PlanningPage = React.lazy(() => import('./pages/PlanningPage'));
+const ManufacturersPage = React.lazy(() => import('./pages/ManufacturersPage'));
+const ProductionRoutePage = React.lazy(() => import('./pages/ProductionRoutePage'));
+const ProcessesPage = React.lazy(() => import('./pages/ProcessesPage'));
+const CategoriesPage = React.lazy(() => import('./pages/CategoriesPage'));
+const PortalQuotePage = React.lazy(() => import('./pages/PortalQuotePage'));
+const PortalPurchasePage = React.lazy(() => import('./pages/PortalPurchasePage'));
+const PriceListsPage = React.lazy(() => import('./pages/PriceListPage'));
+const UsersPage = React.lazy(() => import('./pages/UsersPage'));
+const UserGroupsPage = React.lazy(() => import('./pages/UserGroupsPage'));
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const InventoryPage = React.lazy(() => import('./pages/InventoryPage'));
+const FinancePage = React.lazy(() => import('./pages/FinancePage'));
+const TasksPage = React.lazy(() => import('./pages/TasksPage'));
+const PurchasingPage = React.lazy(() => import('./pages/PurchasingPage'));
+const SalesPage = React.lazy(() => import('./pages/SalesPage'));
+const HelpPage = React.lazy(() => import('./pages/HelpPage'));
+const DocsPage = React.lazy(() => import('./pages/DocsPage'));
+const SystemSettingsPage = React.lazy(() => import('./pages/SystemSettingsPage'));
+const ActivityLogPage = React.lazy(() => import('./pages/ActivityLogPage'));
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
     return { key, icon, children, label } as MenuItem;
@@ -194,65 +195,67 @@ const App: React.FC = () => {
                                 </Header>
                                 <Content style={{ margin: '0 16px' }}>
                                     <div style={{ padding: 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG, marginTop: 16 }}>
-                                        <Routes>
-                                            <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
+                                        <React.Suspense fallback={<LoadingDisplay />}>
+                                            <Routes>
+                                                <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
 
-                                            {(hasPerm('PRODUCT') || hasPerm('INVENTORY')) && <Route path="/upload" element={<UploadPage />} />}
+                                                {(hasPerm('PRODUCT') || hasPerm('INVENTORY')) && <Route path="/upload" element={<UploadPage />} />}
 
-                                            {hasPerm('PRODUCT') && (
-                                                <>
-                                                    <Route path="/products" element={<ProductsPage />} />
-                                                    <Route path="/combos" element={<CombosPage />} />
-                                                    <Route path="/categories" element={<CategoriesPage />} />
-                                                </>
-                                            )}
+                                                {hasPerm('PRODUCT') && (
+                                                    <>
+                                                        <Route path="/products" element={<ProductsPage />} />
+                                                        <Route path="/combos" element={<CombosPage />} />
+                                                        <Route path="/categories" element={<CategoriesPage />} />
+                                                    </>
+                                                )}
 
-                                            {hasPerm('INVENTORY') && (
-                                                <>
-                                                    <Route path="/materials" element={<MaterialsPage />} />
-                                                    <Route path="/suppliers" element={<SuppliersPage />} />
-                                                    <Route path="/manufacturers" element={<ManufacturersPage />} />
-                                                    <Route path="/inventory" element={<InventoryPage />} />
-                                                </>
-                                            )}
+                                                {hasPerm('INVENTORY') && (
+                                                    <>
+                                                        <Route path="/materials" element={<MaterialsPage />} />
+                                                        <Route path="/suppliers" element={<SuppliersPage />} />
+                                                        <Route path="/manufacturers" element={<ManufacturersPage />} />
+                                                        <Route path="/inventory" element={<InventoryPage />} />
+                                                    </>
+                                                )}
 
-                                            {hasPerm('SALES') && (
-                                                <>
-                                                    <Route path="/sales" element={<CrmPage />} /> {/* CRM Page */}
-                                                    <Route path="/orders" element={<SalesPage />} /> {/* <--- MỚI: Route cho trang Đơn hàng */}
-                                                    <Route path="/customers" element={<CustomersPage />} />
-                                                    <Route path="/sales/pricelist" element={<PriceListsPage />} />
-                                                </>
-                                            )}
+                                                {hasPerm('SALES') && (
+                                                    <>
+                                                        <Route path="/sales" element={<CrmPage />} /> {/* CRM Page */}
+                                                        <Route path="/orders" element={<SalesPage />} /> {/* <--- MỚI: Route cho trang Đơn hàng */}
+                                                        <Route path="/customers" element={<CustomersPage />} />
+                                                        <Route path="/sales/pricelist" element={<PriceListsPage />} />
+                                                    </>
+                                                )}
 
-                                            {hasPerm('PRODUCTION') && (
-                                                <>
-                                                    <Route path="/planning" element={<PlanningPage />} />
-                                                    <Route path="/routes" element={<ProductionRoutePage />} />
-                                                    <Route path="/processes" element={<ProcessesPage />} />
-                                                    <Route path="/purchasing" element={<PurchasingPage />} />
-                                                </>
-                                            )}
+                                                {hasPerm('PRODUCTION') && (
+                                                    <>
+                                                        <Route path="/planning" element={<PlanningPage />} />
+                                                        <Route path="/routes" element={<ProductionRoutePage />} />
+                                                        <Route path="/processes" element={<ProcessesPage />} />
+                                                        <Route path="/purchasing" element={<PurchasingPage />} />
+                                                    </>
+                                                )}
 
-                                            {hasPerm('FINANCE') && (
-                                                <Route path="/finance" element={<FinancePage />} />
-                                            )}
+                                                {hasPerm('FINANCE') && (
+                                                    <Route path="/finance" element={<FinancePage />} />
+                                                )}
 
-                                            <Route path="/tasks" element={<TasksPage />} />
-                                            <Route path="/help" element={<HelpPage />} /> {/* Added by user instruction */}
-                                            <Route path="/docs" element={<DocsPage />} /> {/* <--- MỚI: Trang Docs kỹ thuật */}
+                                                <Route path="/tasks" element={<TasksPage />} />
+                                                <Route path="/help" element={<HelpPage />} /> {/* Added by user instruction */}
+                                                <Route path="/docs" element={<DocsPage />} /> {/* <--- MỚI: Trang Docs kỹ thuật */}
 
-                                            {hasPerm('USERS') && (
-                                                <>
-                                                    <Route path="/users" element={<UsersPage />} />
-                                                    <Route path="/users/groups" element={<UserGroupsPage />} />
-                                                    <Route path="/system/settings" element={<SystemSettingsPage />} />
-                                                    <Route path="/system/logs" element={<ActivityLogPage />} /> {/* <--- Activity Log Route */}
-                                                </>
-                                            )}
+                                                {hasPerm('USERS') && (
+                                                    <>
+                                                        <Route path="/users" element={<UsersPage />} />
+                                                        <Route path="/users/groups" element={<UserGroupsPage />} />
+                                                        <Route path="/system/settings" element={<SystemSettingsPage />} />
+                                                        <Route path="/system/logs" element={<ActivityLogPage />} /> {/* <--- Activity Log Route */}
+                                                    </>
+                                                )}
 
-                                            <Route path="*" element={<h2>Không tìm thấy trang hoặc bạn không có quyền truy cập.</h2>} />
-                                        </Routes>
+                                                <Route path="*" element={<h2>Không tìm thấy trang hoặc bạn không có quyền truy cập.</h2>} />
+                                            </Routes>
+                                        </React.Suspense>
                                     </div>
                                 </Content>
                                 <Footer style={{ textAlign: 'center' }}>Hula ERP ©2025 Created by AI</Footer>
