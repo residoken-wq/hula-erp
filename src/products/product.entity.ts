@@ -64,6 +64,10 @@ export class Product {
   @OneToMany('ProductComponent', (pc: any) => pc.parent_product)
   components: any[];
 
+  // --- MỚI: Relation với BOM (Material) ---
+  @OneToMany('BOM', (bom: any) => bom.product)
+  boms: any[];
+
   @CreateDateColumn()
   created_at: Date;
 
