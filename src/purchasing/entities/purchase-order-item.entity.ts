@@ -44,4 +44,13 @@ export class PurchaseOrderItem {
 
   @Column('decimal', { precision: 15, scale: 2 })
   subtotal: number;
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  raw_quantity: number; // Tổng Cần (Gốc)
+
+  @Column('decimal', { precision: 5, scale: 2, default: 0 })
+  wastage_rate: number; // % Hao hụt
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  total_quantity: number; // Tổng (+Hao hụt) - This might be redundant with `quantity` but good for explicit storage
 }
