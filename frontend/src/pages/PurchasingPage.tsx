@@ -11,9 +11,11 @@ const PurchasingPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('ALL');
     const [searchText, setSearchText] = useState('');
 
-    // Detail Modal
+    // Detail Modal State
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [currentPO, setCurrentPO] = useState<any>(null);
+    const [editingItems, setEditingItems] = useState<any[]>([]);
+    const [poDeliveryInfo, setPoDeliveryInfo] = useState<any>({});
 
     // Payment Modal (Nâng cấp)
     const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -55,6 +57,10 @@ const PurchasingPage: React.FC = () => {
 
     const viewDetail = (record: any) => {
         setCurrentPO(record);
+        // Clone items for editing
+        setEditingItems(record.items ? record.items.map((i: any) => ({ ...i })) : []);
+        // Set delivery info
+        setPoDeliveryInfo(record.delivery_info || {});
         setIsDetailOpen(true);
     };
 
@@ -210,6 +216,23 @@ const PurchasingPage: React.FC = () => {
             fetchRequirements(); // Refresh list
         } catch (e) { message.error('Lỗi tạo PO'); }
     }
+
+    const handleSavePOChanges = async () => {
+        try {
+            await axios.put(`${API_URL}/purchasing/${currentPO.id}`, {
+                items: editingItems,
+                delivery_info: poDeliveryInfo
+            });
+            message.success('Đã lưu thay đổi PO');
+            fetchData(); // Refresh global list
+            // Update local currentPO to reflect changes safely
+            const updatedPO = { ...currentPO, items: editingItems, delivery_info: poDeliveryInfo };
+            // Recalc total
+            const newTotal = editingItems.reduce((acc, i) => acc + (i.subtotal || 0), 0);
+            updatedPO.total_amount = newTotal;
+            setCurrentPO(updatedPO);
+        } catch (e) { message.error('Lỗi lưu PO'); }
+    };
 
     // ----------------------------------
 

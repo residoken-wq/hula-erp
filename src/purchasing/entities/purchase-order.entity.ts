@@ -5,15 +5,15 @@ import { Supplier } from '../../suppliers/supplier.entity';
 
 export enum POStatus {
   DRAFT = 'DRAFT',
-  SENT = 'SENT',           
-  CONFIRMED = 'CONFIRMED', 
-  COMPLETED = 'COMPLETED', 
+  SENT = 'SENT',
+  CONFIRMED = 'CONFIRMED',
+  COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED'
 }
 
 export enum POType {
-  MATERIAL = 'MATERIAL',       
-  OUTSOURCING = 'OUTSOURCING'  
+  MATERIAL = 'MATERIAL',
+  OUTSOURCING = 'OUTSOURCING'
 }
 
 @Entity('purchase_orders')
@@ -22,7 +22,7 @@ export class PurchaseOrder {
   id: number;
 
   @Column({ unique: true })
-  po_code: string; 
+  po_code: string;
 
   @Column({ generated: 'uuid' })
   uuid: string;
@@ -67,7 +67,15 @@ export class PurchaseOrder {
   // --- MỚI: Thông tin vận chuyển NPL sang Gia công ---
   // Lưu dạng JSON: { sent_date: '...', vehicle: '...', status: 'SENT/RECEIVED', note: '...' }
   @Column({ type: 'jsonb', nullable: true })
-  outsourcing_delivery_info: any; 
+  outsourcing_delivery_info: any;
+
+  @Column({ type: 'jsonb', nullable: true })
+  delivery_info: any;
+
+  // --- MỚI: Chi tiết Đóng gói (Tab 3 - Dạng Matrix) ---
+  @Column({ type: 'jsonb', nullable: true })
+  packing_list_details: any[]; // Array of rows
+  // --------------------------------------------------
   // --------------------------------------------------
 
   @OneToMany(() => PurchaseOrderItem, (item) => item.purchase_order, { cascade: true })

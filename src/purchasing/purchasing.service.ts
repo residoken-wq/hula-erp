@@ -61,14 +61,34 @@ export class PurchasingService {
     }
 
     async updatePO(id: number, data: any) {
-        const po = await this.poRepo.findOne({ where: { id } });
+        const po = await this.poRepo.findOne({ where: { id }, relations: ['items'] });
         if (!po) throw new NotFoundException();
 
-        if (data.outsourcing_delivery_info) {
-            po.outsourcing_delivery_info = data.outsourcing_delivery_info;
-        }
-
+        if (data.outsourcing_delivery_info) po.outsourcing_delivery_info = data.outsourcing_delivery_info;
+        if (data.delivery_info) po.delivery_info = data.delivery_info;
+        if (data.packing_list_details) po.packing_list_details = data.packing_list_details; // New
         if (data.status) po.status = data.status;
+
+        // --- MỚI: Update Items logic ---
+        if (data.items && Array.isArray(data.items)) {
+            for (const itemDTO of data.items) {
+                const poItem = po.items.find(i => i.id === itemDTO.id);
+                if (poItem) {
+                    // Update Item fields
+                    if (itemDTO.quantity !== undefined) poItem.quantity = Number(itemDTO.quantity);
+                    if (itemDTO.unit_price !== undefined) poItem.unit_price = Number(itemDTO.unit_price);
+
+                    // Recalculate Subtotal
+                    poItem.subtotal = Number(poItem.quantity) * Number(poItem.unit_price);
+                }
+            }
+            // Save updated items
+            await this.poItemRepo.save(po.items);
+
+            // Recalculate PO Total
+            po.total_amount = po.items.reduce((sum, i) => sum + Number(i.subtotal), 0);
+        }
+        // -------------------------------
 
         return this.poRepo.save(po);
     }
