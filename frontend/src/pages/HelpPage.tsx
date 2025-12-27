@@ -704,7 +704,7 @@ const HelpPage: React.FC = () => {
                                                         key: '0-0-2',
                                                         icon: <TagsOutlined />,
                                                         children: [
-                                                            { title: NIKE, key: '0-0-2-0' },
+                                                            { title: 'NIKE', key: '0-0-2-0' },
                                                             { title: 'ADIDAS', key: '0-0-2-1' },
                                                         ],
                                                     },
