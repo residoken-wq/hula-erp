@@ -347,6 +347,7 @@ export class PlanningService {
         const createdPos = [];
         for (const [suppName, items] of Object.entries(supplierGroups)) {
             // Xác định loại PO dựa trên item đầu tiên (có material_id => NPL, không => Gia công)
+            if (!items || (items as any[]).length === 0) continue;
             const isMaterial = (items as any)[0].material_id !== undefined;
 
             const po = this.poRepo.create({
@@ -369,14 +370,14 @@ export class PlanningService {
                     ? i.material_name
                     : `${i.step_name} (${i.product_sku})`;
 
-                return this.poItemRepo.create({
-                    material_id: isMaterial ? i.material_id : null,
-                    description: desc,
-                    quantity: i.qtyToBuy,
-                    unit_price: price,
-                    subtotal: sub,
-                    plan_id: planId // --- MỚI: Link item to Plan ---
-                } as any) as unknown as PurchaseOrderItem;
+                const poItem = new PurchaseOrderItem();
+                poItem.quantity = i.qtyToBuy;
+                poItem.unit_price = price;
+                poItem.subtotal = sub;
+                poItem.description = desc;
+                if (isMaterial) poItem.material_id = i.material_id;
+                poItem.plan_id = planId;
+                return poItem;
             });
 
             po.total_amount = total;
