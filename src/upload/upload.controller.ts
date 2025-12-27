@@ -63,4 +63,8 @@ export class UploadController {
 
     res.end(buffer);
   }
+  @Get('files/:filename')
+  async serveFile(@Param('filename') filename: string, @Res() res: Response) {
+    return this.uploadService.serveFile(filename, res);
+  }
 }
