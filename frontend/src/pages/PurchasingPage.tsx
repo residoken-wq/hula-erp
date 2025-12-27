@@ -302,53 +302,38 @@ const PurchasingPage: React.FC = () => {
     }, [activeTab]);
 
     const handleCreatePooledPO = async () => {
-        if (selectedReqs.length === 0) return message.warning('Chọn ít nhất 1 dòng');
+        if (selectedReqs.length === 0) return message.warning('Chọn ít nhất 1 PO');
+        // Check types
+        const types = new Set(selectedReqs.map(r => r.type));
+        if (types.size > 1) return message.error('Không thể gộp NPL và Gia công chung 1 đơn');
 
-        // Check if all selected items (with supplier_name) have the same supplier
-        // Note: `supplier_name` is essentially descriptive here, but we need `supplier_id`.
-        // The backend `getPendingRequirements` returns string supplier_name.
-        // We might need strict validation or just allow user to pick a supplier?
-
-        // For simplicity: Group by Supplier Name, if multiple, warn
-        const suppliers = [...new Set(selectedReqs.map(r => r.supplier_name).filter(Boolean))];
+        // Check vendors (Optional warning)
+        const suppliers = [...new Set(selectedReqs.map(r => r.supplier?.name).filter(Boolean))];
         if (suppliers.length > 1) {
             Modal.confirm({
-                title: 'Cảnh báo đa nhà cung cấp',
-                content: `Bạn đang chọn vật tư của nhiều NCC: ${suppliers.join(', ')}. Hệ thống sẽ tạo PO tạm chưa gán NCC hoặc bạn cần tách ra. Tiếp tục?`,
-                onOk: () => proceedCreatePooled(null) // Null supplier logic
+                title: 'Khác Nhà Cung Cấp',
+                content: `Các PO đã chọn thuộc nhiều NCC khác nhau (${suppliers.join(', ')}). Bạn có chắc muốn gộp chung?`,
+                onOk: () => setIsSelectSupplierOpen(true)
             });
         } else {
-            // Try to find supplier ID? Actually we don't have ID in requirement list, only name.
-            // So we prompt user to SELECT Supplier for this PO.
             setIsSelectSupplierOpen(true);
         }
     };
 
-    // Auxiliary state for selecting supplier
-    const [isSelectSupplierOpen, setIsSelectSupplierOpen] = useState(false);
-    const [targetSupplierId, setTargetSupplierId] = useState<number | null>(null);
-    const [suppliers, setSuppliers] = useState<any[]>([]);
-
-    useEffect(() => {
-        axios.get(`${API_URL}/suppliers`).then(res => setSuppliers(res.data));
-    }, []);
+    // ... (keep state vars)
 
     const proceedCreatePooled = async (supId: number | null) => {
         try {
             await axios.post(`${API_URL}/purchasing/create-pooled`, {
                 supplier_id: supId,
-                items: selectedReqs.map(r => ({
-                    material_id: r.material_id,
-                    quantity: r.remaining_qty, // Mua số lượng còn thiếu
-                    unit_price: r.reference_price,
-                    plan_id: r.plan_id // Quan Trọng
-                }))
+                po_ids: selectedReqs.map(r => r.id) // Send ID list
             });
-            message.success('Tạo PO gộp thành công!');
+            message.success('Gộp PO thành công!');
             setIsSelectSupplierOpen(false);
             setSelectedReqs([]);
             fetchRequirements(); // Refresh list
-        } catch (e) { message.error('Lỗi tạo PO'); }
+            fetchData(); // Refresh main list
+        } catch (e) { message.error('Lỗi gộp PO'); }
     }
 
     const handleSavePOChanges = async () => {
