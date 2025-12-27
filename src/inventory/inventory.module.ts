@@ -21,7 +21,10 @@ import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.en
       Product,
       Material,
       GoodsReceipt, // <--- New
-      GoodsReceiptItem // <--- New
+      GoodsReceiptItem, // <--- New
+      Supplier,
+      PurchaseOrder,
+      PurchaseOrderItem
     ]),
   ],
   controllers: [InventoryController],
