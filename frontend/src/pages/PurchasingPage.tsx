@@ -683,6 +683,16 @@ const PurchasingPage: React.FC = () => {
                                             }} />
                                         },
                                         {
+                                            title: 'Tổng Nhập', width: 80, render: (t, r) => {
+                                                const total =
+                                                    Number(r.n1 || 0) + Number(r.n2 || 0) +
+                                                    Number(r.c1 || 0) + Number(r.c2 || 0) +
+                                                    Number(r.g1 || 0) + Number(r.g2 || 0) +
+                                                    Number(r.odd || 0) + Number(r.border || 0);
+                                                return <b>{total}</b>;
+                                            }
+                                        },
+                                        {
                                             title: 'Ghi chú', render: (t, r, idx) => <Input value={r.note} onChange={e => {
                                                 const list = [...packingList]; list[idx].note = e.target.value; setPackingList(list);
                                             }} />
