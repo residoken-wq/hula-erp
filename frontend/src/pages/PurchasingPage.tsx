@@ -590,7 +590,8 @@ const PurchasingPage: React.FC = () => {
                             </Form>
                         )
                     },
-                    {
+                    // Only show Packing Matrix for MATERIAL POs
+                    ...(currentPO?.po_type !== 'OUTSOURCING' ? [{
                         key: '3', label: 'Chi tiết Đóng gói (Matrix)', children: (
                             <div>
                                 <div style={{ marginBottom: 10 }}>
@@ -686,7 +687,7 @@ const PurchasingPage: React.FC = () => {
                             </div>
                         )
                     }
-                ]} />
+                    ]} />
             </Modal>
 
 
