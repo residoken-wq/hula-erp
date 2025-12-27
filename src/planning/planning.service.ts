@@ -365,7 +365,7 @@ export class PlanningService {
 
             // 2. Create and Save Items
             const poItems = (items as any[]).map(i => {
-                const price = isMaterial ? i.cost : i.unit_price;
+                const price = isMaterial ? (i.reference_price || 0) : (i.unit_price || 0);
                 const sub = i.qtyToBuy * price;
 
                 const desc = isMaterial
