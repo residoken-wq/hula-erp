@@ -169,17 +169,28 @@ const PlanningPage: React.FC = () => {
                         key: '1', label: '1. Nhu Cầu Nguyên Liệu (MRP)',
                         children: (
                             <div>
-                                <Table dataSource={mrpData.mrp_result} rowKey="material_id" pagination={false} size="small" scroll={{ y: 300 }}
+                                <Table dataSource={mrpData.mrp_result} rowKey="material_id" pagination={false} size="middle" scroll={{ x: 1600, y: 450 }}
                                     columns={[
-                                        { title: 'Nguyên Liệu', dataIndex: 'material_name', render: (t: any, r: any) => <div><b>{r.material_code}</b><br />{t}</div> },
-                                        { title: 'Tổng Cần (Gốc)', dataIndex: 'gross_raw', align: 'center' as const, width: 80, render: (v: any) => Number(v || 0).toLocaleString() },
-                                        { title: '% Hao hụt', dataIndex: 'wastage_percent', align: 'center' as const, width: 70, render: (v: any) => <Tag color="orange">{v}%</Tag> },
-                                        { title: 'Tổng (+Hao hụt)', dataIndex: 'gross_requirement', align: 'center' as const, width: 90, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
-                                        { title: 'Tồn Kho', dataIndex: 'available_stock', align: 'center' as const, width: 80 },
+                                        {
+                                            title: 'Nguyên Liệu',
+                                            dataIndex: 'material_name',
+                                            width: 250,
+                                            fixed: 'left',
+                                            render: (t: any, r: any) => (
+                                                <div style={{ wordWrap: 'break-word', whiteSpace: 'normal' }}>
+                                                    <div style={{ color: '#096dd9', fontWeight: 'bold' }}>{r.material_code}</div>
+                                                    <div>{t}</div>
+                                                </div>
+                                            )
+                                        },
+                                        { title: 'Tổng Cần (Gốc)', dataIndex: 'gross_raw', align: 'center' as const, width: 100, render: (v: any) => Number(v || 0).toLocaleString() },
+                                        { title: '% Hao hụt', dataIndex: 'wastage_percent', align: 'center' as const, width: 90, render: (v: any) => <Tag color="orange">{v}%</Tag> },
+                                        { title: 'Tổng (+Hao hụt)', dataIndex: 'gross_requirement', align: 'center' as const, width: 110, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
+                                        { title: 'Tồn Kho', dataIndex: 'available_stock', align: 'center' as const, width: 100 },
                                         {
                                             title: 'Cần Mua (SL)',
                                             dataIndex: 'net_requirement',
-                                            width: 120,
+                                            width: 130,
                                             render: (v: any, r: any, i: number) => (
                                                 <InputNumber
                                                     value={v}
@@ -190,16 +201,17 @@ const PlanningPage: React.FC = () => {
                                                 />
                                             )
                                         },
-                                        { title: 'ĐVT', align: 'center' as const, dataIndex: 'unit', width: 60 },
+                                        { title: 'ĐVT', align: 'center' as const, dataIndex: 'unit', width: 70 },
                                         {
                                             title: 'Nhà Cung Cấp',
                                             dataIndex: 'supplier_name',
-                                            width: 180,
+                                            width: 220,
                                             render: (v: any, r: any, i: number) => (
                                                 <Select
                                                     value={v}
                                                     style={{ width: '100%' }}
                                                     showSearch
+                                                    placeholder="Chọn NCC"
                                                     filterOption={(input, option) =>
                                                         (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
                                                     }
@@ -211,7 +223,7 @@ const PlanningPage: React.FC = () => {
                                         {
                                             title: 'Đơn giá tham khảo',
                                             dataIndex: 'reference_price',
-                                            width: 120,
+                                            width: 140,
                                             render: (v: any, r: any, i: number) => (
                                                 <InputNumber
                                                     value={v}
@@ -231,7 +243,8 @@ const PlanningPage: React.FC = () => {
                                         },
                                         {
                                             title: 'Ghi chú PO',
-                                            render: (t: any, r: any, i: number) => <Input size="small" value={r.note} onChange={(e) => handleDataChange('MATERIAL', i, 'note', e.target.value)} placeholder="Note..." />
+                                            width: 150,
+                                            render: (t: any, r: any, i: number) => <Input value={r.note} onChange={(e) => handleDataChange('MATERIAL', i, 'note', e.target.value)} placeholder="Note..." />
                                         }
                                     ]} />
                                 <div style={{ marginTop: 15, textAlign: 'right' }}><Button type="primary" icon={<AppstoreAddOutlined />} onClick={() => handleGeneratePOs('MATERIAL')}>Tạo PO Nguyên Liệu</Button></div>
