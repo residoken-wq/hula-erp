@@ -18,12 +18,9 @@ import {
     SaveOutlined,
     HistoryOutlined,
     CopyOutlined,
-    HistoryOutlined,
-    CopyOutlined,
     BellOutlined,
     ProjectOutlined,
     AppstoreAddOutlined,
-
     ExperimentOutlined
 
 } from '@ant-design/icons';
