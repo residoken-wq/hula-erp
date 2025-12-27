@@ -41,6 +41,23 @@ const PurchasingPage: React.FC = () => {
 
     useEffect(() => { fetchData(); }, []);
 
+    const handleStatusChange = async (id: number, status: string) => {
+        try {
+            await axios.put(`${API_URL}/purchasing/${id}/status`, { status });
+            message.success('Cập nhật trạng thái thành công');
+            fetchData();
+            if (currentPO && currentPO.id === id) setCurrentPO({ ...currentPO, status });
+        } catch (e) { message.error('Lỗi cập nhật'); }
+    };
+
+    const handleDelete = async (id: number) => {
+        try {
+            await axios.delete(`${API_URL}/purchasing/${id}`);
+            message.success('Đã xóa PO');
+            fetchData();
+        } catch (e) { message.error('Lỗi xóa PO'); }
+    };
+
     const viewDetail = async (record: any) => {
         setCurrentPO(record);
         // Clone items for editing
@@ -56,7 +73,7 @@ const PurchasingPage: React.FC = () => {
         if (record.items && record.items.length > 0 && record.items[0].plan_id) {
             try {
                 const planId = record.items[0].plan_id;
-                const pRes = await api.get(`/planning/${planId}`);
+                const pRes = await axios.get(`${API_URL}/planning/${planId}`);
                 const plan = pRes.data;
                 // Extract unique products from sales orders
                 const prods = new Map();
