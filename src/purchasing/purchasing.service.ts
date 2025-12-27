@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { PurchaseOrder, POType } from './entities/purchase-order.entity';
 import { PurchaseOrderItem } from './entities/purchase-order-item.entity';
 import { GoodsReceipt } from './entities/goods-receipt.entity';
@@ -57,7 +57,53 @@ export class PurchasingService {
     }
 
     async getPODetail(id: number) {
-        return this.poRepo.findOne({ where: { id }, relations: ['supplier', 'items', 'items.material', 'items.product'] });
+    async getPODetail(id: number) {
+            const po = await this.poRepo.findOne({ where: { id }, relations: ['supplier', 'items', 'items.material', 'items.product'] });
+            if (!po || !po.items) return po;
+
+            // --- MỚI: Enrich Item Data from Plan if missing ---
+            const planIds = new Set(po.items.map(i => i.plan_id).filter(Boolean));
+            if (planIds.size > 0) {
+                const plans = await this.planningService.planRepo.find({ where: { id: In(Array.from(planIds)) } });
+                const planMap = new Map(plans.map(p => [p.id, p]));
+
+                for (const item of po.items) {
+                    // Chỉ điền nếu dữ liệu đang bằng 0
+                    if (item.plan_id && planMap.has(item.plan_id)) {
+                        const plan = planMap.get(item.plan_id);
+
+                        // A. Material Logic
+                        if (item.material_id) {
+                            let mrpResult = [];
+                            if (typeof plan.mrp_data === 'string') { try { mrpResult = JSON.parse(plan.mrp_data); } catch (e) { } }
+                            else { mrpResult = plan.mrp_data || []; }
+
+                            const match = mrpResult.find((m: any) => m.material_id === item.material_id);
+                            if (match) {
+                                if (!item.raw_quantity) item.raw_quantity = match.gross_raw || 0;
+                                if (!item.wastage_rate) item.wastage_rate = match.wastage_percent || 0;
+                                if (!item.total_quantity) item.total_quantity = match.gross_requirement || 0;
+                            }
+                        }
+                        // B. Outsourcing Logic
+                        else {
+                            let outResult = [];
+                            if (typeof plan.outsourcing_data === 'string') { try { outResult = JSON.parse(plan.outsourcing_data); } catch (e) { } }
+                            else { outResult = plan.outsourcing_data || []; }
+
+                            // Match by Description approx
+                            const match = outResult.find((m: any) => item.description?.includes(m.product_sku));
+                            if (match) {
+                                if (!item.raw_quantity) item.raw_quantity = match.quantity || 0; // Gross
+                                if (!item.total_quantity) item.total_quantity = match.quantity || 0;
+                            }
+                        }
+                    }
+                }
+            }
+            // ------------------------------------------------
+            return po;
+        }
     }
 
     async updatePO(id: number, data: any) {
