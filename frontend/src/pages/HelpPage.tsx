@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography, Card, Steps, Divider, Tag, Alert, Row, Col, Button, Breadcrumb } from 'antd';
+import { Layout, Menu, Typography, Card, Steps, Divider, Tag, Alert, Row, Col, Button, Breadcrumb, Tree } from 'antd';
 import {
     BookOutlined,
     ShopOutlined,
@@ -21,8 +21,11 @@ import {
     BellOutlined,
     ProjectOutlined,
     AppstoreAddOutlined,
-    ExperimentOutlined
-
+    ExperimentOutlined,
+    BranchesOutlined,
+    DatabaseOutlined,
+    TagsOutlined,
+    GiftOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
@@ -654,6 +657,133 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'product-guide':
+                return (
+                    <div>
+                        <Tag color="geekblue" style={{ marginBottom: 16 }}>Kho & Sản Phẩm</Tag>
+                        <Title level={2}>🧬 Cấu trúc Sản phẩm & Biến thể</Title>
+                        <Paragraph>
+                            HULA ERP sử dụng mô hình sản phẩm cha-con (Master-Variant) để quản lý hàng hóa có nhiều thuộc tính (Màu sắc, kích thước...).
+                        </Paragraph>
+
+                        <Row gutter={24}>
+                            <Col span={12}>
+                                <Card title="Mô hình phân cấp (Hierarchy)" size="small">
+                                    <Tree
+                                        showLine
+                                        showIcon
+                                        defaultExpandAll
+                                        treeData={[
+                                            {
+                                                title: <Text strong>Áo Thun Basic (Master Product)</Text>,
+                                                key: '0-0',
+                                                icon: <DatabaseOutlined />,
+                                                children: [
+                                                    {
+                                                        title: 'Thuộc tính: Màu sắc (Color)',
+                                                        key: '0-0-0',
+                                                        icon: <TagsOutlined />,
+                                                        children: [
+                                                            { title: 'Đỏ (Red)', key: '0-0-0-0' },
+                                                            { title: 'Xanh (Blue)', key: '0-0-0-1' },
+                                                        ],
+                                                    },
+                                                    {
+                                                        title: 'Thuộc tính: Size',
+                                                        key: '0-0-1',
+                                                        icon: <TagsOutlined />,
+                                                        children: [
+                                                            { title: 'Size M', key: '0-0-1-0' },
+                                                            { title: 'Size L', key: '0-0-1-1' },
+                                                        ],
+                                                    },
+                                                    {
+                                                        title: <Text type="success" strong>Biến thể (Variants - SKU)</Text>,
+                                                        key: '0-0-2',
+                                                        icon: <BranchesOutlined />,
+                                                        children: [
+                                                            { title: 'Áo Thun - Đỏ - Size M (AT-RED-M)', key: '0-0-2-0', isLeaf: true },
+                                                            { title: 'Áo Thun - Đỏ - Size L (AT-RED-L)', key: '0-0-2-1', isLeaf: true },
+                                                            { title: 'Áo Thun - Xanh - Size M (AT-BLUE-M)', key: '0-0-2-2', isLeaf: true },
+                                                        ],
+                                                    },
+                                                ],
+                                            },
+                                        ]}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Alert
+                                    message="Giải thích thuật ngữ"
+                                    description={
+                                        <ul>
+                                            <li><b>Master Product:</b> Sản phẩm đại diện, chứa thông tin chung (Tên, Mô tả, Quy trình). Không dùng để bán/tồn kho trực tiếp.</li>
+                                            <li><b>Attributes:</b> Các thuộc tính biến đổi (Màu, Size, Chất liệu).</li>
+                                            <li><b>Variant (SKU):</b> Sản phẩm thực tế được sinh ra từ việc tổ hợp các thuộc tính. Đây là đối tượng để quản lý Tồn kho và Giá bán.</li>
+                                        </ul>
+                                    }
+                                    type="info"
+                                    showIcon
+                                />
+                            </Col>
+                        </Row>
+                    </div>
+                );
+            case 'combo-guide':
+                return (
+                    <div>
+                        <Tag color="purple" style={{ marginBottom: 16 }}>Chiến lược bán hàng</Tag>
+                        <Title level={2}>🎁 Cấu trúc & Quy trình Combo</Title>
+                        <Paragraph>
+                            Combo (Gói sản phẩm) là một mã hàng ảo, được cấu thành từ nhiều sản phẩm đơn lẻ khác nhau.
+                            Khi bán Combo, kho sẽ trừ tồn của các sản phẩm thành phần.
+                        </Paragraph>
+
+                        <Divider orientation="left">Sơ đồ cấu tạo</Divider>
+                        <div style={{ textAlign: 'center', padding: 20, background: '#f5f5f5', borderRadius: 8 }}>
+                            <Row align="middle" justify="center" gutter={16}>
+                                <Col>
+                                    <Card size="small" style={{ width: 180, borderColor: '#722ed1' }}>
+                                        <GiftOutlined style={{ fontSize: 24, color: '#722ed1', marginBottom: 8 }} />
+                                        <div><b>Combo Tết 2024</b></div>
+                                        <div style={{ fontSize: 12, color: '#888' }}>(SKU: CBT24)</div>
+                                    </Card>
+                                </Col>
+                                <Col>
+                                    <BranchesOutlined style={{ fontSize: 24, color: '#999', transform: 'rotate(90deg)' }} />
+                                </Col>
+                                <Col>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        <Card size="small" style={{ width: 200 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span>Bánh Quy (x2)</span>
+                                                <Tag color="blue">SKU: BQ01</Tag>
+                                            </div>
+                                        </Card>
+                                        <Card size="small" style={{ width: 200 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span>Rượu Vang (x1)</span>
+                                                <Tag color="blue">SKU: RV01</Tag>
+                                            </div>
+                                        </Card>
+                                    </div>
+                                </Col>
+                            </Row>
+                        </div>
+
+                        <Divider orientation="left">Lưu ý khi vận hành</Divider>
+                        <Steps
+                            current={-1}
+                            items={[
+                                { title: 'Tạo Combo', description: 'Vào menu Sản phẩm -> Tạo mới -> Chọn loại "Combo".' },
+                                { title: 'Chọn thành phần', description: 'Add các SKU đơn lẻ và số lượng tương ứng.' },
+                                { title: 'Giá vốn (COGS)', description: 'Tự động tính bằng Tổng giá vốn các thành phần.' },
+                                { title: 'Tồn kho', description: 'Combo không có tồn kho riêng. Số lượng khả dụng = Min(Tồn kho thành phần / Định mức).' },
+                            ]}
+                        />
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -710,6 +840,8 @@ const HelpPage: React.FC = () => {
                             icon: <ExperimentOutlined />,
                             children: [
                                 { key: 'mrp-guide', label: 'Lập Kế Hoạch (MRP)' },
+                                { key: 'product-guide', label: 'Cấu trúc Sản phẩm' },
+                                { key: 'combo-guide', label: 'Quản lý Combo' },
                             ]
                         }
                     ]}
