@@ -216,10 +216,21 @@ export class PlanningService {
 
                 if (mat.supplier_prices && mat.supplier_prices.length > 0) {
                     // Sắp xếp: Preferred lên đầu, sau đó đến Giá thấp nhất
+                    // Sắp xếp: Có giá > 0 lên đầu, sau đó đến Preferred, sau đó đến Giá thấp nhất
                     const sortedPrices = mat.supplier_prices.sort((a, b) => {
+                        const priceA = Number(a.price || 0);
+                        const priceB = Number(b.price || 0);
+
+                        // 1. Ưu tiên có giá > 0
+                        if (priceA > 0 && priceB <= 0) return -1;
+                        if (priceA <= 0 && priceB > 0) return 1;
+
+                        // 2. Nếu cùng có giá (hoặc cùng không), ưu tiên Preferred
                         if (a.is_preferred && !b.is_preferred) return -1;
                         if (!a.is_preferred && b.is_preferred) return 1;
-                        return Number(a.price) - Number(b.price);
+
+                        // 3. Giá thấp nhất
+                        return priceA - priceB;
                     });
 
                     const bestOption = sortedPrices[0];
