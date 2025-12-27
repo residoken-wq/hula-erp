@@ -105,300 +105,300 @@ export class PurchasingService {
         // ------------------------------------------------
         return po;
     }
-}
+
 
     async updatePO(id: number, data: any) {
-    const po = await this.poRepo.findOne({ where: { id }, relations: ['items'] });
-    if (!po) throw new NotFoundException();
+        const po = await this.poRepo.findOne({ where: { id }, relations: ['items'] });
+        if (!po) throw new NotFoundException();
 
-    if (data.outsourcing_delivery_info) po.outsourcing_delivery_info = data.outsourcing_delivery_info;
-    if (data.delivery_info) po.delivery_info = data.delivery_info;
-    if (data.packing_list_details) po.packing_list_details = data.packing_list_details;
-    if (data.status) po.status = data.status;
-    if (data.supplier_id) po.supplier = { id: data.supplier_id } as any; // Update Supplier relation
+        if (data.outsourcing_delivery_info) po.outsourcing_delivery_info = data.outsourcing_delivery_info;
+        if (data.delivery_info) po.delivery_info = data.delivery_info;
+        if (data.packing_list_details) po.packing_list_details = data.packing_list_details;
+        if (data.status) po.status = data.status;
+        if (data.supplier_id) po.supplier = { id: data.supplier_id } as any; // Update Supplier relation
 
-    // --- MỚI: Update Items logic ---
-    if (data.items && Array.isArray(data.items)) {
-        for (const itemDTO of data.items) {
-            const poItem = po.items.find(i => i.id === itemDTO.id);
-            if (poItem) {
-                // Update Item fields
-                if (itemDTO.quantity !== undefined) poItem.quantity = Number(itemDTO.quantity);
-                if (itemDTO.unit_price !== undefined) poItem.unit_price = Number(itemDTO.unit_price);
+        // --- MỚI: Update Items logic ---
+        if (data.items && Array.isArray(data.items)) {
+            for (const itemDTO of data.items) {
+                const poItem = po.items.find(i => i.id === itemDTO.id);
+                if (poItem) {
+                    // Update Item fields
+                    if (itemDTO.quantity !== undefined) poItem.quantity = Number(itemDTO.quantity);
+                    if (itemDTO.unit_price !== undefined) poItem.unit_price = Number(itemDTO.unit_price);
 
-                // Recalculate Subtotal
-                poItem.subtotal = Number(poItem.quantity) * Number(poItem.unit_price);
+                    // Recalculate Subtotal
+                    poItem.subtotal = Number(poItem.quantity) * Number(poItem.unit_price);
+                }
             }
+            // Save updated items
+            await this.poItemRepo.save(po.items);
+
+            // Recalculate PO Total
+            po.total_amount = po.items.reduce((sum, i) => sum + Number(i.subtotal), 0);
         }
-        // Save updated items
-        await this.poItemRepo.save(po.items);
+        // -------------------------------
 
-        // Recalculate PO Total
-        po.total_amount = po.items.reduce((sum, i) => sum + Number(i.subtotal), 0);
+
+        const savedPO = await this.poRepo.save(po);
+
+        // --- MỚI: Sync Price to Planning if Ordered ---
+        if (data.status === 'ORDERED' && savedPO.plan_id) {
+            await this.planningService.syncPoPrices(savedPO.plan_id);
+        }
+
+        return savedPO;
     }
-    // -------------------------------
-
-
-    const savedPO = await this.poRepo.save(po);
-
-    // --- MỚI: Sync Price to Planning if Ordered ---
-    if (data.status === 'ORDERED' && savedPO.plan_id) {
-        await this.planningService.syncPoPrices(savedPO.plan_id);
-    }
-
-    return savedPO;
-}
 
     async updatePayment(poCode: string, amount: number) {
-    const po = await this.poRepo.findOne({ where: { po_code: poCode } });
-    if (po) {
-        po.paid_amount = Number(po.paid_amount || 0) + Number(amount);
-        await this.poRepo.save(po);
+        const po = await this.poRepo.findOne({ where: { po_code: poCode } });
+        if (po) {
+            po.paid_amount = Number(po.paid_amount || 0) + Number(amount);
+            await this.poRepo.save(po);
+        }
     }
-}
 
     async updatePaymentById(id: number, amount: number) {
-    const po = await this.poRepo.findOne({ where: { id } });
-    if (po) {
-        po.paid_amount = Number(po.paid_amount || 0) + Number(amount);
+        const po = await this.poRepo.findOne({ where: { id } });
+        if (po) {
+            po.paid_amount = Number(po.paid_amount || 0) + Number(amount);
 
-        // Auto Update Status
-        if (po.paid_amount >= po.total_amount) {
-            // Determine logic: keep existing status or move to COMPLETED?
-            // Usually COMPLETED implies both received and paid.
-            // For now, let's strictly handle payment amount.
+            // Auto Update Status
+            if (po.paid_amount >= po.total_amount) {
+                // Determine logic: keep existing status or move to COMPLETED?
+                // Usually COMPLETED implies both received and paid.
+                // For now, let's strictly handle payment amount.
+            }
+
+            await this.poRepo.save(po);
         }
-
-        await this.poRepo.save(po);
     }
-}
 
     // --- TÍNH TOÁN NPL CẦN THIẾT CHO ĐƠN GIA CÔNG ---
     async getOutsourcingMaterials(poId: number) {
-    const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items', 'items.product'] });
-    if (!po || po.type !== POType.OUTSOURCING) return [];
+        const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items', 'items.product'] });
+        if (!po || po.type !== POType.OUTSOURCING) return [];
 
-    const materialNeeds = new Map<number, any>();
+        const materialNeeds = new Map<number, any>();
 
-    for (const item of po.items) {
-        if (item.product_id && item.product?.sku) {
-            const boms = await this.productsService.getBomByProductSku(item.product.sku);
-            for (const bom of boms) {
-                if (bom.material) {
-                    const matId = bom.material.id;
-                    const needQty = Number(bom.quantity) * Number(item.quantity) * (1 + Number(bom.waste_percent) / 100);
+        for (const item of po.items) {
+            if (item.product_id && item.product?.sku) {
+                const boms = await this.productsService.getBomByProductSku(item.product.sku);
+                for (const bom of boms) {
+                    if (bom.material) {
+                        const matId = bom.material.id;
+                        const needQty = Number(bom.quantity) * Number(item.quantity) * (1 + Number(bom.waste_percent) / 100);
 
-                    if (materialNeeds.has(matId)) {
-                        const exist = materialNeeds.get(matId);
-                        exist.quantity += needQty;
-                    } else {
-                        materialNeeds.set(matId, {
-                            material_id: matId,
-                            code: bom.material.code, // FIX: Chỉ dùng code, bỏ sku
-                            name: bom.material.name,
-                            unit: bom.material.unit,
-                            quantity: needQty,
-                            stock: Number(bom.material.quantity_in_stock || 0),
-                            // image: bom.material.image_url // FIX: Bỏ image_url vì không tồn tại trong Material entity
-                        });
+                        if (materialNeeds.has(matId)) {
+                            const exist = materialNeeds.get(matId);
+                            exist.quantity += needQty;
+                        } else {
+                            materialNeeds.set(matId, {
+                                material_id: matId,
+                                code: bom.material.code, // FIX: Chỉ dùng code, bỏ sku
+                                name: bom.material.name,
+                                unit: bom.material.unit,
+                                quantity: needQty,
+                                stock: Number(bom.material.quantity_in_stock || 0),
+                                // image: bom.material.image_url // FIX: Bỏ image_url vì không tồn tại trong Material entity
+                            });
+                        }
                     }
                 }
             }
         }
+        return Array.from(materialNeeds.values());
     }
-    return Array.from(materialNeeds.values());
-}
     // ------------------------------------------------------
 
     async remove(id: number) {
-    return this.poRepo.delete(id);
-}
+        return this.poRepo.delete(id);
+    }
 
     async createGoodsReceipt(poId: number, data: any) {
-    const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items'] });
-    if (!po) throw new NotFoundException('PO not found');
+        const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items'] });
+        if (!po) throw new NotFoundException('PO not found');
 
-    const gr = this.grRepo.create({
-        code: data.code, purchase_order: po, received_date: data.date, note: data.note
-    });
-    await this.grRepo.save(gr);
+        const gr = this.grRepo.create({
+            code: data.code, purchase_order: po, received_date: data.date, note: data.note
+        });
+        await this.grRepo.save(gr);
 
-    for (const item of data.items) {
-        const poItem = po.items.find(pi => pi.id === item.po_item_id);
-        if (!poItem) continue;
-        if (poItem.material_id) {
-            await this.inventoryService.adjustStock('IMPORT', 'MATERIAL', poItem.material_id, Number(item.quantity), data.code, 'Nhập từ PO ' + po.po_code, 'KHO_NPL');
-        } else if (poItem.product_id) {
-            await this.inventoryService.adjustStock('IMPORT', 'PRODUCT', poItem.product_id, Number(item.quantity), data.code, 'Nhập từ PO ' + po.po_code, 'KHO_TP');
+        for (const item of data.items) {
+            const poItem = po.items.find(pi => pi.id === item.po_item_id);
+            if (!poItem) continue;
+            if (poItem.material_id) {
+                await this.inventoryService.adjustStock('IMPORT', 'MATERIAL', poItem.material_id, Number(item.quantity), data.code, 'Nhập từ PO ' + po.po_code, 'KHO_NPL');
+            } else if (poItem.product_id) {
+                await this.inventoryService.adjustStock('IMPORT', 'PRODUCT', poItem.product_id, Number(item.quantity), data.code, 'Nhập từ PO ' + po.po_code, 'KHO_TP');
+            }
         }
+        po.status = 'COMPLETED' as any;
+        return this.poRepo.save(po);
     }
-    po.status = 'COMPLETED' as any;
-    return this.poRepo.save(po);
-}
 
     async getByUuid(uuid: string) { return this.poRepo.findOne({ where: { uuid }, relations: ['supplier', 'items'] }); }
-    async supplierAction(uuid: string, action: string, note ?: string) { return null; }
+    async supplierAction(uuid: string, action: string, note?: string) { return null; }
 
     // --- MỚI: TỔNG HỢP NHU CẦU MUA HÀNG (PO GỘP) ---
     async getPendingRequirements() {
-    console.log('Start getPendingRequirements');
-    try {
-        // 1. Load tất cả Plan đang ở trạng thái CALCULATED
-        const plans = await this.planningService.findAll();
-        console.log('Found plans:', plans.length);
-        const calcPlans = plans.filter(p => p.status === 'CALCULATED');
-        console.log('Calc plans:', calcPlans.length);
+        console.log('Start getPendingRequirements');
+        try {
+            // 1. Load tất cả Plan đang ở trạng thái CALCULATED
+            const plans = await this.planningService.findAll();
+            console.log('Found plans:', plans.length);
+            const calcPlans = plans.filter(p => p.status === 'CALCULATED');
+            console.log('Calc plans:', calcPlans.length);
 
-        // 2. Load tất cả Item đã đặt hàng (Active)
-        const allPoItems = await this.poItemRepo.find({ relations: ['purchase_order'] });
-        console.log('Found PO items:', allPoItems.length);
-        const activePoItems = allPoItems.filter(i => i.purchase_order && i.purchase_order.status !== 'CANCELLED');
-        console.log('Active PO items:', activePoItems.length);
+            // 2. Load tất cả Item đã đặt hàng (Active)
+            const allPoItems = await this.poItemRepo.find({ relations: ['purchase_order'] });
+            console.log('Found PO items:', allPoItems.length);
+            const activePoItems = allPoItems.filter(i => i.purchase_order && i.purchase_order.status !== 'CANCELLED');
+            console.log('Active PO items:', activePoItems.length);
 
-        const orderedQtyMap = new Map<string, number>(); // key: planId_type_idOrRef
+            const orderedQtyMap = new Map<string, number>(); // key: planId_type_idOrRef
 
-        for (const item of activePoItems) {
-            if (item.plan_id) { // Chỉ quan tâm item có link đến Plan
-                // Nếu là Material
-                if (item.material_id) {
-                    const key = `${item.plan_id}_MAT_${item.material_id}`;
-                    orderedQtyMap.set(key, (orderedQtyMap.get(key) || 0) + Number(item.quantity));
-                } else {
-                    // Nếu là Outsourcing (Dựa vào Description match)
-                    // Format: "StepName (SKU)"
-                    const key = `${item.plan_id}_OUT_${item.description}`;
-                    orderedQtyMap.set(key, (orderedQtyMap.get(key) || 0) + Number(item.quantity));
-                }
-            }
-        }
-
-        const pendingItems = [];
-
-        for (const plan of calcPlans) {
-            // A. Parse mrp_data (Material)
-            let mrpResult = [];
-            if (typeof plan.mrp_data === 'string') { try { mrpResult = JSON.parse(plan.mrp_data); } catch (e) { } }
-            else { mrpResult = plan.mrp_data || []; }
-
-            if (Array.isArray(mrpResult)) {
-                for (const item of mrpResult) {
-                    const key = `${plan.id}_MAT_${item.material_id}`;
-                    const ordered = orderedQtyMap.get(key) || 0;
-                    const needed = Number(item.net_requirement || 0);
-                    const remaining = needed - ordered;
-
-                    if (remaining > 0) {
-                        pendingItems.push({
-                            type: 'MATERIAL',
-                            plan_id: plan.id,
-                            plan_code: plan.code,
-                            material_id: item.material_id, // Quan trọng
-                            material_code: item.material_code,
-                            material_name: item.material_name,
-                            supplier_name: item.supplier_name,
-                            unit: item.unit,
-                            reference_price: item.reference_price,
-                            needed_qty: needed,
-                            ordered_qty: ordered,
-                            remaining_qty: remaining,
-
-                            description: item.material_name,
-                            // --- MỚI: Truyền dữ liệu gốc/hao hụt ---
-                            raw_quantity: item.gross_raw || 0,
-                            wastage_rate: item.wastage_percent || 0,
-                            total_quantity: item.gross_requirement || 0
-                            // ---------------------------------------
-                        });
+            for (const item of activePoItems) {
+                if (item.plan_id) { // Chỉ quan tâm item có link đến Plan
+                    // Nếu là Material
+                    if (item.material_id) {
+                        const key = `${item.plan_id}_MAT_${item.material_id}`;
+                        orderedQtyMap.set(key, (orderedQtyMap.get(key) || 0) + Number(item.quantity));
+                    } else {
+                        // Nếu là Outsourcing (Dựa vào Description match)
+                        // Format: "StepName (SKU)"
+                        const key = `${item.plan_id}_OUT_${item.description}`;
+                        orderedQtyMap.set(key, (orderedQtyMap.get(key) || 0) + Number(item.quantity));
                     }
                 }
             }
 
-            // B. Parse outsourcing_data (Gia Công)
-            let outResult = [];
-            if (typeof plan.outsourcing_data === 'string') { try { outResult = JSON.parse(plan.outsourcing_data); } catch (e) { } }
-            else { outResult = plan.outsourcing_data || []; }
+            const pendingItems = [];
 
-            if (Array.isArray(outResult)) {
-                for (const item of outResult) {
-                    const desc = `${item.step_name} (${item.product_sku})`;
-                    const key = `${plan.id}_OUT_${desc}`;
-                    const ordered = orderedQtyMap.get(key) || 0;
-                    const needed = Number(item.quantity || 0);
-                    const remaining = needed - ordered;
+            for (const plan of calcPlans) {
+                // A. Parse mrp_data (Material)
+                let mrpResult = [];
+                if (typeof plan.mrp_data === 'string') { try { mrpResult = JSON.parse(plan.mrp_data); } catch (e) { } }
+                else { mrpResult = plan.mrp_data || []; }
 
-                    if (remaining > 0) {
-                        pendingItems.push({
-                            type: 'OUTSOURCING',
-                            plan_id: plan.id,
-                            plan_code: plan.code,
-                            material_id: null,
-                            material_code: item.product_sku,
-                            material_name: item.step_name, // Display as Name
-                            supplier_name: item.supplier_name,
-                            supplier_id: item.supplier_id, // Outsourcing often has Supplier ID
-                            unit: 'Unit',
-                            reference_price: item.unit_price,
-                            needed_qty: needed,
-                            ordered_qty: ordered,
-                            remaining_qty: remaining,
-                            description: desc // Quan trong để link PO
-                        });
+                if (Array.isArray(mrpResult)) {
+                    for (const item of mrpResult) {
+                        const key = `${plan.id}_MAT_${item.material_id}`;
+                        const ordered = orderedQtyMap.get(key) || 0;
+                        const needed = Number(item.net_requirement || 0);
+                        const remaining = needed - ordered;
+
+                        if (remaining > 0) {
+                            pendingItems.push({
+                                type: 'MATERIAL',
+                                plan_id: plan.id,
+                                plan_code: plan.code,
+                                material_id: item.material_id, // Quan trọng
+                                material_code: item.material_code,
+                                material_name: item.material_name,
+                                supplier_name: item.supplier_name,
+                                unit: item.unit,
+                                reference_price: item.reference_price,
+                                needed_qty: needed,
+                                ordered_qty: ordered,
+                                remaining_qty: remaining,
+
+                                description: item.material_name,
+                                // --- MỚI: Truyền dữ liệu gốc/hao hụt ---
+                                raw_quantity: item.gross_raw || 0,
+                                wastage_rate: item.wastage_percent || 0,
+                                total_quantity: item.gross_requirement || 0
+                                // ---------------------------------------
+                            });
+                        }
+                    }
+                }
+
+                // B. Parse outsourcing_data (Gia Công)
+                let outResult = [];
+                if (typeof plan.outsourcing_data === 'string') { try { outResult = JSON.parse(plan.outsourcing_data); } catch (e) { } }
+                else { outResult = plan.outsourcing_data || []; }
+
+                if (Array.isArray(outResult)) {
+                    for (const item of outResult) {
+                        const desc = `${item.step_name} (${item.product_sku})`;
+                        const key = `${plan.id}_OUT_${desc}`;
+                        const ordered = orderedQtyMap.get(key) || 0;
+                        const needed = Number(item.quantity || 0);
+                        const remaining = needed - ordered;
+
+                        if (remaining > 0) {
+                            pendingItems.push({
+                                type: 'OUTSOURCING',
+                                plan_id: plan.id,
+                                plan_code: plan.code,
+                                material_id: null,
+                                material_code: item.product_sku,
+                                material_name: item.step_name, // Display as Name
+                                supplier_name: item.supplier_name,
+                                supplier_id: item.supplier_id, // Outsourcing often has Supplier ID
+                                unit: 'Unit',
+                                reference_price: item.unit_price,
+                                needed_qty: needed,
+                                ordered_qty: ordered,
+                                remaining_qty: remaining,
+                                description: desc // Quan trong để link PO
+                            });
+                        }
                     }
                 }
             }
-        }
 
-        return pendingItems;
-    } catch (err) {
-        console.error('Error in getPendingRequirements:', err);
-        throw err;
+            return pendingItems;
+        } catch (err) {
+            console.error('Error in getPendingRequirements:', err);
+            throw err;
+        }
     }
-}
 
     async createPooledPO(dto: any) {
-    // DTO: { supplier_id, items: [{ material_id, quantity, unit_price, plan_id, description, type }] }
-    const isOutsourcing = dto.items.some(i => i.type === 'OUTSOURCING');
+        // DTO: { supplier_id, items: [{ material_id, quantity, unit_price, plan_id, description, type }] }
+        const isOutsourcing = dto.items.some(i => i.type === 'OUTSOURCING');
 
-    const po = this.poRepo.create({
-        po_code: `PO-${Date.now()}`,
-        uuid: uuidv4(),
-        supplier_id: dto.supplier_id,
-        note: `PO Gộp (${isOutsourcing ? 'Gia Công' : 'NPL'})`,
-        status: 'DRAFT' as any,
-        type: (isOutsourcing ? 'OUTSOURCING' : 'MATERIAL') as any, // Quan trọng
-    });
+        const po = this.poRepo.create({
+            po_code: `PO-${Date.now()}`,
+            uuid: uuidv4(),
+            supplier_id: dto.supplier_id,
+            note: `PO Gộp (${isOutsourcing ? 'Gia Công' : 'NPL'})`,
+            status: 'DRAFT' as any,
+            type: (isOutsourcing ? 'OUTSOURCING' : 'MATERIAL') as any, // Quan trọng
+        });
 
-    let total = 0;
-    po.items = [];
+        let total = 0;
+        po.items = [];
 
-    for (const i of dto.items) {
-        const item = new PurchaseOrderItem();
-        item.plan_id = i.plan_id;
-        item.quantity = Number(i.quantity);
-        item.unit_price = Number(i.unit_price);
-        item.quantity = Number(i.quantity);
-        item.unit_price = Number(i.unit_price);
-        item.subtotal = item.quantity * item.unit_price;
+        for (const i of dto.items) {
+            const item = new PurchaseOrderItem();
+            item.plan_id = i.plan_id;
+            item.quantity = Number(i.quantity);
+            item.unit_price = Number(i.unit_price);
+            item.quantity = Number(i.quantity);
+            item.unit_price = Number(i.unit_price);
+            item.subtotal = item.quantity * item.unit_price;
 
-        // --- MỚI: Map các trường bổ sung ---
-        item.raw_quantity = Number(i.raw_quantity || 0);
-        item.wastage_rate = Number(i.wastage_rate || 0);
-        item.total_quantity = Number(i.total_quantity || 0);
-        // ----------------------------------
+            // --- MỚI: Map các trường bổ sung ---
+            item.raw_quantity = Number(i.raw_quantity || 0);
+            item.wastage_rate = Number(i.wastage_rate || 0);
+            item.total_quantity = Number(i.total_quantity || 0);
+            // ----------------------------------
 
-        if (i.type === 'OUTSOURCING') {
-            item.description = i.description; // e.g. "Son (SKU-01)"
-        } else {
-            item.material_id = i.material_id;
-            item.description = i.material_name || i.description;
+            if (i.type === 'OUTSOURCING') {
+                item.description = i.description; // e.g. "Son (SKU-01)"
+            } else {
+                item.material_id = i.material_id;
+                item.description = i.material_name || i.description;
+            }
+
+            total += item.subtotal;
+            po.items.push(item);
         }
 
-        total += item.subtotal;
-        po.items.push(item);
+        po.total_amount = total;
+        return this.poRepo.save(po);
     }
-
-    po.total_amount = total;
-    return this.poRepo.save(po);
-}
     // ----------------------------------------------------
 }

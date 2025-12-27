@@ -12,6 +12,7 @@ import { GoodsReceipt } from './entities/goods-receipt.entity';
 import { InventoryModule } from '../inventory/inventory.module';
 import { ProductsModule } from '../products/products.module';
 import { SuppliersModule } from '../suppliers/suppliers.module';
+import { PlanningModule } from '../planning/planning.module';
 import { PlanningModule } from '../planning/planning.module'; // --- MỚI ---
 
 @Module({
@@ -25,6 +26,7 @@ import { PlanningModule } from '../planning/planning.module'; // --- MỚI ---
     ProductsModule,
 
     SuppliersModule,
+    PlanningModule
     PlanningModule // --- MỚI: Import PlanningModule ---
   ],
   controllers: [PurchasingController],
