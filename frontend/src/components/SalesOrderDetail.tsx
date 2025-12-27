@@ -97,7 +97,11 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     discount_rate: initialData.discount_rate || 0,
                     discount_amount: initialData.discount_amount || 0,
                     vat_rate: initialData.vat_rate || 0,
-                    shipping_fee: initialData.shipping_fee || 0
+                    vat_rate: initialData.vat_rate || 0,
+                    shipping_fee: initialData.shipping_fee || 0,
+                    vat_company_name: initialData.vat_company_name,
+                    vat_tax_code: initialData.vat_tax_code,
+                    vat_address: initialData.vat_address
                 });
 
                 // FIX LỖI: Map dữ liệu từ Backend (subtotal) sang Frontend (total_price)
@@ -157,6 +161,23 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     const handleAddItem = () => {
         setOrderItems([...orderItems, { key: Date.now(), sku: undefined, quantity: 1, unit_price: 0, total_price: 0 }]);
+    };
+
+    const handleFormValuesChange = (changedValues: any) => {
+        if (changedValues.customer_id) {
+            handleCustomerChange(changedValues.customer_id);
+        }
+    };
+
+    const handleCustomerChange = (customerId: number) => {
+        const customer = customers.find(c => c.id === customerId);
+        if (customer) {
+            form.setFieldsValue({
+                vat_company_name: customer.legal_name || customer.name || '',
+                vat_tax_code: customer.tax_code || '',
+                vat_address: customer.legal_address || customer.address || ''
+            });
+        }
     };
 
     const handleItemChange = (index: number, field: string, value: any) => {
@@ -490,13 +511,14 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         >
             <Tabs activeKey={activeTab} onChange={setActiveTab}>
                 <Tabs.TabPane tab="1. Thông tin & Sản phẩm" key="1">
-                    <Form form={form} layout="vertical">
+                    <Form form={form} layout="vertical" onValuesChange={handleFormValuesChange}>
                         <Row gutter={16}>
                             <Col span={8}><Form.Item name="order_code" label="Mã đơn hàng"><Input disabled placeholder="Tự động sinh mã" /></Form.Item></Col>
                             <Col span={8}>
                                 <Form.Item name="customer_id" label="Khách hàng" rules={[{ required: true }]}>
                                     <Select
                                         showSearch
+                                        placeholder="Chọn khách hàng"
                                         optionFilterProp="label"
                                         options={customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))}
                                     />
@@ -659,6 +681,34 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             </SortableContext>
                         </DndContext>
                         <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>Thêm sản phẩm</Button>
+                    </Form>
+                </Tabs.TabPane>
+                <Tabs.TabPane tab="2. Xuất Hóa Đơn & VAT" key="invoice">
+                    <Form form={form} layout="vertical">
+                        <div style={{ padding: 10, background: '#f5f5f5', borderRadius: 4, marginBottom: 15 }}>
+                            <div style={{ fontStyle: 'italic', color: '#666', marginBottom: 10 }}>
+                                <InfoCircleOutlined /> Thông tin này được lấy mặc định từ phần "Pháp Nhân" của khách hàng. Bạn có thể chỉnh sửa cho đơn hàng này.
+                            </div>
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item name="vat_company_name" label="Tên đơn vị (Xuất HĐ)">
+                                        <Input placeholder="Công ty TNHH..." />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item name="vat_tax_code" label="Mã số thuế">
+                                        <Input placeholder="VD: 031..." />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                            <Row gutter={16}>
+                                <Col span={24}>
+                                    <Form.Item name="vat_address" label="Địa chỉ xuất HĐ">
+                                        <Input placeholder="Địa chỉ theo ĐKKD" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </div>
                     </Form>
                 </Tabs.TabPane>
                 {initialData && !isQuotation && (

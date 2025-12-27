@@ -198,6 +198,11 @@ export class SalesService {
         if (data.status) order.status = data.status;
         if (data.note !== undefined) order.note = data.note;
 
+        // --- INVOICE INFO ---
+        if (data.vat_company_name !== undefined) order.vat_company_name = data.vat_company_name;
+        if (data.vat_tax_code !== undefined) order.vat_tax_code = data.vat_tax_code;
+        if (data.vat_address !== undefined) order.vat_address = data.vat_address;
+
         order.vat_rate = Number(data.vat_rate) || 0;
         order.shipping_fee = Number(data.shipping_fee) || 0;
 
