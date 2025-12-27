@@ -49,4 +49,9 @@ export class ProductsController {
   }
 
   @Get('calculate-cost/:sku') calculateCost(@Param('sku') sku: string) { return this.service.calculateCostPrice(sku); }
+
+  @Post('calculate-all-costs')
+  async calculateAllCosts() {
+    return this.service.calculateAllCosts();
+  }
 }

@@ -318,6 +318,29 @@ export class ProductsService {
         return { message: `Đã sao chép ${newBoms.length} dòng BOM từ ${sourceSku} sang ${targetSku}` };
     }
 
+    // --- BULK UPDATE PRICE ---
+    async calculateAllCosts() {
+        const products = await this.productRepo.find();
+        let count = 0;
+
+        // 1. Prioritize Standard Products first (Components)
+        const standards = products.filter(p => p.product_type !== 'COMBO');
+        for (const p of standards) {
+            await this.calculateCostPrice(p.sku);
+            count++;
+        }
+
+        // 2. Update Combos (depend on Standard Products)
+        const combos = products.filter(p => p.product_type === 'COMBO');
+        for (const c of combos) {
+            await this.calculateCostPrice(c.sku);
+            count++;
+        }
+
+        return { message: `Updated ${count} products`, count };
+    }
+    // -------------------------
+
     private calculateSellingPrice(cost: number, marginPercent: number): number {
         if (marginPercent >= 100 || marginPercent < 0) return cost;
         const marginDecimal = marginPercent / 100;
