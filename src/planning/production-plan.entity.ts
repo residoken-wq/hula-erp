@@ -35,6 +35,9 @@ export class ProductionPlan {
   mrp_data: any;
 
   @Column({ type: 'simple-json', nullable: true })
+  mrp_result: any;
+
+  @Column({ type: 'simple-json', nullable: true })
   outsourcing_data: any;
 
   @Column({ type: 'simple-json', nullable: true })
