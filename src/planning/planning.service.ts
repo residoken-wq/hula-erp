@@ -206,18 +206,24 @@ export class PlanningService {
                 let selectedSupplier = mat.supplier_name;
                 let selectedCost = Number(mat.cost_per_unit);
 
+                // --- MỚI: Lọc các giá hợp lệ (còn hiệu lực) ---
+                const now = new Date();
+                const validPrices = mat.supplier_prices?.filter(sp => {
+                    if (sp.valid_to && new Date(sp.valid_to) < now) return false;
+                    return true;
+                }) || [];
+
                 // --- MỚI: Danh sách NCC khả dĩ để FE lookup giá ---
-                const possibleSuppliers = mat.supplier_prices?.map(sp => ({
+                const possibleSuppliers = validPrices.map(sp => ({
                     supplier_name: sp.supplier?.name,
                     price: Number(sp.price),
                     is_preferred: sp.is_preferred
-                })) || [];
+                }));
                 // ------------------------------------------------
 
-                if (mat.supplier_prices && mat.supplier_prices.length > 0) {
-                    // Sắp xếp: Preferred lên đầu, sau đó đến Giá thấp nhất
+                if (validPrices.length > 0) {
                     // Sắp xếp: Có giá > 0 lên đầu, sau đó đến Preferred, sau đó đến Giá thấp nhất
-                    const sortedPrices = mat.supplier_prices.sort((a, b) => {
+                    const sortedPrices = validPrices.sort((a, b) => {
                         const priceA = Number(a.price || 0);
                         const priceB = Number(b.price || 0);
 
