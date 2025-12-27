@@ -122,7 +122,7 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
                 <Card title="Sơ đồ Rập (Marker)" size="small">
                     <div style={{ textAlign: 'center', marginBottom: 20 }}>
                         {imageUrl ? (
-                            <img src={imageUrl} alt="Sơ đồ" style={{ maxWidth: '100%', maxHeight: 300, border: '1px dashed #ccc', borderRadius: 8 }} />
+                            <img src={imageUrl.startsWith('http') ? imageUrl : `${API_URL.replace('/api', '')}${imageUrl}`} alt="Sơ đồ" style={{ maxWidth: '100%', maxHeight: 300, border: '1px dashed #ccc', borderRadius: 8 }} />
                         ) : (
                             <div style={{ height: 200, background: '#fafafa', border: '1px dashed #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>Chưa có hình ảnh</div>
                         )}
