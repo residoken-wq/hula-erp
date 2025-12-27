@@ -489,7 +489,32 @@ const PortalQuotePage: React.FC = () => {
                                     size="small"
                                     columns={[
                                         { title: 'Ngày', render: (r: any) => dayjs(r.date).format('DD/MM/YYYY') },
-                                        { title: 'Loại', render: (r: any) => <Tag color={r.type === 'INCOME' ? 'success' : 'red'}>{r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền'}</Tag> },
+                                        {
+                                            title: 'Loại',
+                                            render: (r: any) => {
+                                                let text = r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền';
+                                                let color = r.type === 'INCOME' ? 'success' : 'red';
+                                                let desc = r.description || '';
+
+                                                // Try to parse [TYPE] from description (saved in SalesPayments.tsx)
+                                                // Format: [ĐẶT CỌC] Note...
+                                                const match = desc.match(/^\[(.*?)\]/);
+                                                if (match) {
+                                                    text = match[1]; // e.g. "ĐẶT CỌC", "TẤT TOÁN"
+                                                    desc = desc.replace(match[0], '').trim();
+                                                    if (text.includes('ĐẶT CỌC')) color = 'orange';
+                                                    if (text.includes('TẤT TOÁN')) color = 'blue';
+                                                    if (text.includes('THANH TOÁN')) color = 'green';
+                                                }
+
+                                                return (
+                                                    <div>
+                                                        <Tag color={color}>{text}</Tag>
+                                                        {desc && <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{desc}</div>}
+                                                    </div>
+                                                );
+                                            }
+                                        },
                                         { title: 'Số tiền', align: 'right', render: (r: any) => <b>{Number(r.amount).toLocaleString()}</b> },
                                     ]}
                                 />
