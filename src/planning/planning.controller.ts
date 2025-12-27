@@ -8,6 +8,7 @@ export class PlanningController {
   @Get('suggestion') getSuggestion() { return this.s.getSuggestion(); }
   @Post('create') create(@Body() b: any) { return this.s.createPlan(b); }
   @Get() findAll() { return this.s.findAll(); }
+  @Get(':id') getOne(@Param('id') id: number) { return this.s.findOne(id); }
   @Delete(':id') delete(@Param('id') id: number) { return this.s.deletePlan(id); }
 
   @Post('mrp/:id') runMrp(@Param('id') id: number) { return this.s.calculateMaterialNeeds(id); }

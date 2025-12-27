@@ -46,7 +46,15 @@ export class PlanningService {
         });
         const saved = await this.planRepo.save(plan);
         await this.orderRepo.update({ id: In(orders.map(o => o.id)) }, { plan_id: saved.id, status: SalesOrderStatus.PLANNED });
+        await this.orderRepo.update({ id: In(orders.map(o => o.id)) }, { plan_id: saved.id, status: SalesOrderStatus.PLANNED });
         return saved;
+    }
+
+    async findOne(id: number) {
+        return this.planRepo.findOne({
+            where: { id },
+            relations: ['sales_orders', 'sales_orders.items']
+        });
     }
 
     // --- LOGIC PHÂN TÍCH KẾ HOẠCH (MRP & GIA CÔNG) ---
