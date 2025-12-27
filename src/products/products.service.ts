@@ -28,7 +28,7 @@ export class ProductsService {
 
     async findAll() {
         return this.productRepo.find({
-            select: ['id', 'sku', 'name', 'category_id', 'cost_price', 'base_price', 'quantity_in_stock', 'profit_margin', 'is_active', 'unit', 'customer_description'],
+            select: ['id', 'sku', 'name', 'category_id', 'product_type', 'cost_price', 'base_price', 'quantity_in_stock', 'profit_margin', 'is_active', 'unit', 'customer_description'],
             order: { id: 'DESC' },
             relations: ['category_link']
         });
@@ -289,6 +289,58 @@ export class ProductsService {
         return { message: 'Synced' };
     }
 
+    async copyBom(sourceSku: string, targetSku: string) {
+        const source = await this.productRepo.findOne({ where: { sku: sourceSku } });
+        const target = await this.productRepo.findOne({ where: { sku: targetSku } });
+
+        if (!source || !target) throw new NotFoundException('Không tìm thấy sản phẩm nguồn hoặc đích.');
+
+        // 1. Lấy BOM nguồn
+        const sourceBoms = await this.bomRepo.find({ where: { product_id: source.id } });
+        if (!sourceBoms.length) throw new BadRequestException(`Sản phẩm nguồn ${sourceSku} chưa có BOM.`);
+
+        // 2. Xóa BOM cũ của đích
+        await this.bomRepo.delete({ product_id: target.id });
+
+        // 3. Sao chép sang đích
+        const newBoms = sourceBoms.map(b => this.bomRepo.create({
+            product_id: target.id,
+            material_id: b.material_id,
+            quantity: b.quantity,
+            waste_percent: b.waste_percent
+        }));
+
+        await this.bomRepo.save(newBoms as any);
+
+        // 4. Tính lại giá vốn
+        await this.calculateCostPrice(target.sku);
+
+        return { message: `Đã sao chép ${newBoms.length} dòng BOM từ ${sourceSku} sang ${targetSku}` };
+    }
+
+    // --- BULK UPDATE PRICE ---
+    async calculateAllCosts() {
+        const products = await this.productRepo.find();
+        let count = 0;
+
+        // 1. Prioritize Standard Products first (Components)
+        const standards = products.filter(p => p.product_type !== 'COMBO');
+        for (const p of standards) {
+            await this.calculateCostPrice(p.sku);
+            count++;
+        }
+
+        // 2. Update Combos (depend on Standard Products)
+        const combos = products.filter(p => p.product_type === 'COMBO');
+        for (const c of combos) {
+            await this.calculateCostPrice(c.sku);
+            count++;
+        }
+
+        return { message: `Updated ${count} products`, count };
+    }
+    // -------------------------
+
     private calculateSellingPrice(cost: number, marginPercent: number): number {
         if (marginPercent >= 100 || marginPercent < 0) return cost;
         const marginDecimal = marginPercent / 100;
@@ -310,7 +362,7 @@ export class ProductsService {
 
         if (components.length > 0) {
             for (const comp of components) {
-                totalCost += Number(comp.child_product?.base_price ?? 0) * Number(comp.quantity);
+                totalCost += Number(comp.child_product?.cost_price ?? 0) * Number(comp.quantity);
             }
         } else {
             // BOM

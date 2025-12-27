@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography, Card, Steps, Divider, Tag, Alert, Row, Col, Button, Breadcrumb } from 'antd';
+import { Layout, Menu, Typography, Card, Steps, Divider, Tag, Alert, Row, Col, Button, Breadcrumb, Tree, Descriptions } from 'antd';
 import {
     BookOutlined,
     ShopOutlined,
@@ -18,7 +18,16 @@ import {
     SaveOutlined,
     HistoryOutlined,
     CopyOutlined,
-    BellOutlined
+    BellOutlined,
+    ProjectOutlined,
+    AppstoreAddOutlined,
+    ExperimentOutlined,
+    BranchesOutlined,
+    DatabaseOutlined,
+    TagsOutlined,
+    GiftOutlined,
+    ContainerOutlined,
+    CalculatorOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
@@ -601,6 +610,268 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'mrp-guide':
+                return (
+                    <div>
+                        <Tag color="volcano" style={{ marginBottom: 16 }}>Sản Xuất & Kho</Tag>
+                        <Title level={2}>🏭 Quản lý Nhu Cầu Nguyên Liệu (MRP)</Title>
+                        <Paragraph>
+                            Phân hệ Planning giúp tính toán tự động nhu cầu nguyên vật liệu dựa trên các đơn hàng bán (Sales Orders).
+                        </Paragraph>
+
+                        <Divider orientation="left">Quy trình vận hành</Divider>
+                        <Steps
+                            current={-1}
+                            direction="vertical"
+                            items={[
+                                {
+                                    title: 'Bước 1: Gom đơn hàng (Planning)',
+                                    description: 'Chọn các đơn hàng cần sản xuất trong tuần/tháng để lập thành một Kế hoạch (Plan).',
+                                    icon: <ProjectOutlined />
+                                },
+                                {
+                                    title: 'Bước 2: Phân tích MRP',
+                                    description: (
+                                        <ul>
+                                            <li>Hệ thống tự động phân tích BOM (Định mức) của từng sản phẩm.</li>
+                                            <li>Tính toán tổng lượng nguyên liệu cần thiết.</li>
+                                            <li><b>Cân đối kho:</b> Trừ đi lượng tồn kho thực tế để ra số lượng Cần Mua (Net Requirement).</li>
+                                        </ul>
+                                    ),
+                                    icon: <ExperimentOutlined />
+                                },
+                                {
+                                    title: 'Bước 3: Xử lý Hao hụt',
+                                    description: (
+                                        <ul>
+                                            <li>Hệ thống hiển thị <b>% Hao hụt</b> (theo định mức kỹ thuật).</li>
+                                            <li>Bạn có thể tham khảo cột <b>"Tổng nhu cầu (+Hao hụt)"</b> để biết số liệu an toàn.</li>
+                                            <li>Tại cột <b>"Cần Mua"</b>, bạn có thể điều chỉnh số lượng cuối cùng trước khi đặt hàng.</li>
+                                        </ul>
+                                    )
+                                },
+                                {
+                                    title: 'Bước 4: Tạo đơn mua hàng (PO)',
+                                    description: 'Nhấn nút "Tạo PO Nguyên Liệu". Hệ thống sẽ tự động tách PO theo từng Nhà cung cấp.',
+                                    icon: <AppstoreAddOutlined />
+                                }
+                            ]}
+                        />
+                    </div>
+                );
+            case 'product-guide':
+                return (
+                    <div>
+                        <Tag color="geekblue" style={{ marginBottom: 16 }}>Kho & Sản Phẩm</Tag>
+                        <Title level={2}>🧬 Cấu trúc Sản phẩm & Biến thể</Title>
+                        <Paragraph>
+                            HULA ERP sử dụng mô hình sản phẩm cha-con (Master-Variant) để quản lý hàng hóa có nhiều thuộc tính (Màu sắc, kích thước...).
+                        </Paragraph>
+
+                        <Row gutter={24}>
+                            <Col span={12}>
+                                <Card title="Mô hình phân cấp (Hierarchy)" size="small">
+                                    <Tree
+                                        showLine
+                                        showIcon
+                                        defaultExpandAll
+                                        treeData={[
+                                            {
+                                                title: <Text strong>Áo Thun Basic (Master Product)</Text>,
+                                                key: '0-0',
+                                                icon: <DatabaseOutlined />,
+                                                children: [
+                                                    {
+                                                        title: 'Thuộc tính: Màu sắc (Color)',
+                                                        key: '0-0-0',
+                                                        icon: <TagsOutlined />,
+                                                        children: [
+                                                            { title: 'Đỏ (Red)', key: '0-0-0-0' },
+                                                            { title: 'Xanh (Blue)', key: '0-0-0-1' },
+                                                        ],
+                                                    },
+                                                    {
+                                                        title: 'Thuộc tính: Size',
+                                                        key: '0-0-1',
+                                                        icon: <TagsOutlined />,
+                                                        children: [
+                                                            { title: 'Size M', key: '0-0-1-0' },
+                                                            { title: 'Size L', key: '0-0-1-1' },
+                                                        ],
+                                                    },
+                                                    {
+                                                        title: 'Thuộc tính: Logo',
+                                                        key: '0-0-2',
+                                                        icon: <TagsOutlined />,
+                                                        children: [
+                                                            { title: 'NIKE', key: '0-0-2-0' },
+                                                            { title: 'ADIDAS', key: '0-0-2-1' },
+                                                        ],
+                                                    },
+                                                    {
+                                                        title: <Text type="success" strong>Biến thể (Variants - SKU)</Text>,
+                                                        key: '0-0-3',
+                                                        icon: <BranchesOutlined />,
+                                                        children: [
+                                                            { title: 'Áo Thun - Đỏ - Size M (AT-RED-M)', key: '0-0-3-0', isLeaf: true },
+                                                            { title: 'Áo Thun - Đỏ - Size L (AT-RED-L)', key: '0-0-3-1', isLeaf: true },
+                                                            { title: 'Áo Thun - Xanh - Size M (AT-BLUE-M)', key: '0-0-3-2', isLeaf: true },
+                                                        ],
+                                                    },
+                                                ],
+                                            },
+                                        ]}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Alert
+                                    message="Giải thích thuật ngữ"
+                                    description={
+                                        <ul>
+                                            <li><b>Master Product:</b> Sản phẩm đại diện, chứa thông tin chung (Tên, Mô tả, Quy trình). Không dùng để bán/tồn kho trực tiếp.</li>
+                                            <li><b>Attributes:</b> Các thuộc tính biến đổi (Màu, Size, Chất liệu).</li>
+                                            <li><b>Variant (SKU):</b> Sản phẩm thực tế được sinh ra từ việc tổ hợp các thuộc tính. Đây là đối tượng để quản lý Tồn kho và Giá bán.</li>
+                                        </ul>
+                                    }
+                                    type="info"
+                                    showIcon
+                                />
+                            </Col>
+                        </Row>
+                    </div>
+                );
+            case 'combo-guide':
+                return (
+                    <div>
+                        <Tag color="purple" style={{ marginBottom: 16 }}>Chiến lược bán hàng</Tag>
+                        <Title level={2}>🎁 Cấu trúc & Quy trình Combo</Title>
+                        <Paragraph>
+                            Combo (Gói sản phẩm) là một mã hàng ảo, được cấu thành từ nhiều sản phẩm đơn lẻ khác nhau.
+                            Khi bán Combo, kho sẽ trừ tồn của các sản phẩm thành phần.
+                        </Paragraph>
+
+                        <Divider orientation="left">Sơ đồ cấu tạo</Divider>
+                        <div style={{ textAlign: 'center', padding: 20, background: '#f5f5f5', borderRadius: 8 }}>
+                            <Row align="middle" justify="center" gutter={16}>
+                                <Col>
+                                    <Card size="small" style={{ width: 180, borderColor: '#722ed1' }}>
+                                        <GiftOutlined style={{ fontSize: 24, color: '#722ed1', marginBottom: 8 }} />
+                                        <div><b>Combo Tết 2024</b></div>
+                                        <div style={{ fontSize: 12, color: '#888' }}>(SKU: CBT24)</div>
+                                    </Card>
+                                </Col>
+                                <Col>
+                                    <BranchesOutlined style={{ fontSize: 24, color: '#999', transform: 'rotate(90deg)' }} />
+                                </Col>
+                                <Col>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        <Card size="small" style={{ width: 200 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span>Bánh Quy (x2)</span>
+                                                <Tag color="blue">SKU: BQ01</Tag>
+                                            </div>
+                                        </Card>
+                                        <Card size="small" style={{ width: 200 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span>Rượu Vang (x1)</span>
+                                                <Tag color="blue">SKU: RV01</Tag>
+                                            </div>
+                                        </Card>
+                                    </div>
+                                </Col>
+                            </Row>
+                        </div>
+
+                        <Divider orientation="left">Lưu ý khi vận hành</Divider>
+                        <Steps
+                            current={-1}
+                            items={[
+                                { title: 'Tạo Combo', description: 'Vào menu Sản phẩm -> Tạo mới -> Chọn loại "Combo".' },
+                                { title: 'Chọn thành phần', description: 'Add các SKU đơn lẻ và số lượng tương ứng.' },
+                                { title: 'Giá vốn (COGS)', description: 'Tự động tính bằng Tổng giá vốn các thành phần.' },
+                                { title: 'Tồn kho', description: 'Combo không có tồn kho riêng. Số lượng khả dụng = Min(Tồn kho thành phần / Định mức).' },
+                            ]}
+                        />
+                    </div>
+                );
+            case 'inventory-guide':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Quản lý Kho</Tag>
+                        <Title level={2}>📦 Quản lý Kho & Quy đổi Đơn vị (Unit Conversion)</Title>
+                        <Paragraph>
+                            HULA ERP hỗ trợ quản lý đa đơn vị tính cho Nguyên vật liệu (NPL), giúp doanh nghiệp dễ dàng nhập kho theo quy cách mua hàng và xuất kho theo quy cách sản xuất.
+                        </Paragraph>
+
+                        <Divider orientation="left">I. Khái niệm cơ bản</Divider>
+                        <Row gutter={16} style={{ marginBottom: 20 }}>
+                            <Col span={8}>
+                                <Card title="Đơn vị Cơ sở (Base Unit)" size="small" bordered>
+                                    <Text type="secondary">Là đơn vị nhỏ nhất dùng để tính toán tồn kho và BOM.</Text>
+                                    <div style={{ marginTop: 8 }}><b>Ví dụ:</b> Mét (m), Gram (g), Cái (pcs).</div>
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card title="Đơn vị Mua (Purchase Unit)" size="small" bordered>
+                                    <Text type="secondary">Là đơn vị khi đặt hàng từ nhà cung cấp.</Text>
+                                    <div style={{ marginTop: 8 }}><b>Ví dụ:</b> Cây (Roll), Bao (Bag), Thùng.</div>
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card title="Hệ số Quy đổi (Factor)" size="small" bordered>
+                                    <Text type="secondary">Tỷ lệ chuyển đổi giữa đơn vị mua và đơn vị cơ sở.</Text>
+                                    <div style={{ marginTop: 8 }}><b>Ví dụ:</b> 1 Cây = 50 Mét <br />(Factor = 50).</div>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Divider orientation="left">II. Công thức quy đổi (Formula)</Divider>
+                        <Alert
+                            message="Nguyên tắc tính toán"
+                            description={
+                                <div>
+                                    <Paragraph>
+                                        Hệ thống luôn quy đổi mọi giao dịch về <b>Đơn vị Cơ sở</b> để ghi nhận vào kho.
+                                    </Paragraph>
+                                    <ul style={{ listStyleType: 'none', padding: 0 }}>
+                                        <li style={{ marginBottom: 10 }}>
+                                            <CalculatorOutlined style={{ color: '#eb2f96', marginRight: 8 }} />
+                                            <b>Số lượng Tồn kho (Base)</b> = <Text code>Số lượng Nhập (Mua)</Text> × <Text code>Hệ số quy đổi</Text>
+                                        </li>
+                                        <li>
+                                            <DollarOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                                            <b>Giá vốn (Base Cost)</b> = <Text code>Giá mua (Đơn vị mua)</Text> ÷ <Text code>Hệ số quy đổi</Text>
+                                        </li>
+                                    </ul>
+                                </div>
+                            }
+                            type="success"
+                            showIcon
+                            icon={<ExperimentOutlined />}
+                        />
+
+                        <Divider orientation="left">III. Ví dụ minh họa</Divider>
+                        <Card style={{ background: '#fafafa' }}>
+                            <Descriptions title="Nhập kho Vải Thun (Mã: V01)" bordered column={1}>
+                                <Descriptions.Item label="Thiết lập Ban đầu">
+                                    Đơn vị cơ sở: <b>Mét (m)</b> <br />
+                                    Đơn vị mua: <b>Cây (Roll)</b> <br />
+                                    Hệ số (Conversion Factor): <b>40</b> (Tức là 1 Cây = 40 Mét)
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Giao dịch Nhập hàng">
+                                    Nhập: <b>10 Cây</b> <br />
+                                    Đơn giá mua: <b>100.000đ / Cây</b>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Kết quả trong Kho">
+                                    Tồn kho tăng thêm: 10 * 40 = <b>400 Mét</b> <br />
+                                    Giá vốn bình quân: 100.000 / 40 = <b>2.500đ / Mét</b>
+                                </Descriptions.Item>
+                            </Descriptions>
+                        </Card>
+
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -629,7 +900,6 @@ const HelpPage: React.FC = () => {
                                 { key: 'sales-process', label: 'Quy trình chuẩn' },
                                 { key: 'sales-create', label: 'Tạo đơn mới' },
                                 { key: 'sales-approval', label: 'Duyệt mẫu' },
-                                { key: 'sales-approval', label: 'Duyệt mẫu' },
                                 { key: 'sales-revisions', label: 'Quản lý version (Báo giá)' }, // <--- NEW
                                 { key: 'sales-portal', label: 'Customer Portal' },
                                 { key: 'price-list', label: 'Chính sách giá' },
@@ -650,6 +920,24 @@ const HelpPage: React.FC = () => {
                             icon: <DollarOutlined />,
                             children: [
                                 { key: 'finance-guide', label: 'Quản lý Thu/Chi' },
+                            ]
+                        },
+                        {
+                            key: 'sub4',
+                            label: 'Phân hệ Sản Xuất',
+                            icon: <ExperimentOutlined />,
+                            children: [
+                                { key: 'mrp-guide', label: 'Lập Kế Hoạch (MRP)' },
+                                { key: 'product-guide', label: 'Cấu trúc Sản phẩm' },
+                                { key: 'combo-guide', label: 'Quản lý Combo' },
+                            ]
+                        },
+                        {
+                            key: 'sub5',
+                            label: 'Phân hệ Kho Vận',
+                            icon: <ContainerOutlined />,
+                            children: [
+                                { key: 'inventory-guide', label: 'Kho & Quy đổi Đơn vị' },
                             ]
                         }
                     ]}

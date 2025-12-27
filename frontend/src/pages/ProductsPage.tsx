@@ -300,12 +300,36 @@ const ProductsPage: React.FC = () => {
         }
     };
 
+    const handleCalculateAllCosts = () => {
+        Modal.confirm({
+            title: 'Cập nhật giá toàn bộ sản phẩm?',
+            content: 'Hệ thống sẽ tính toán lại giá vốn cho TẤT CẢ sản phẩm (bao gồm cả Combo). Quá trình này có thể mất vài phút.',
+            okText: 'Đồng ý cập nhật',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                const hide = message.loading('Đang tính toán lại toàn bộ giá...', 0);
+                try {
+                    const res = await axios.post(`${API_URL}/products/calculate-all-costs`);
+                    hide();
+                    message.success(`Cập nhật thành công! Đã xử lý ${res.data.count} sản phẩm.`);
+                    fetchData();
+                } catch (e) {
+                    hide();
+                    message.error('Lỗi khi cập nhật giá hàng loạt.');
+                }
+            }
+        });
+    };
+
     return (
         <Card
             title="Quản Lý Sản Phẩm (SKU)"
             extra={
                 <Space>
                     <Input placeholder="Tìm kiếm SKU/Tên..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} allowClear />
+                    {canViewCost && (
+                        <Button icon={<SyncOutlined />} onClick={handleCalculateAllCosts}>Cập nhật tất cả giá</Button>
+                    )}
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1') }}>Thêm Mới</Button>
                 </Space>
             }

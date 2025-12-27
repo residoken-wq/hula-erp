@@ -31,7 +31,8 @@ export class UploadService {
     const fs = require('fs');
     const path = require('path');
 
-    const uploadDir = path.join(__dirname, '..', '..', 'frontend', 'public', 'uploads');
+    // Save to backend 'uploads' directory
+    const uploadDir = path.join(__dirname, '..', '..', 'uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -43,8 +44,21 @@ export class UploadService {
 
     fs.writeFileSync(filePath, file.buffer);
 
-    // Return relative URL (compatible with frontend which serves public folder)
-    return { url: `/uploads/${filename}` };
+    // Return backend API URL
+    return { url: `/api/upload/files/${filename}` };
+  }
+
+  // Helper to serve file
+  async serveFile(filename: string, res: any) {
+    const fs = require('fs');
+    const path = require('path');
+    const filePath = path.join(__dirname, '..', '..', 'uploads', filename);
+
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).send('File not found');
+    }
   }
 
   // 1. IMPORT NGUYEN LIEU

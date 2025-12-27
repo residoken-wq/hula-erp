@@ -12,6 +12,8 @@ import { Transaction } from '../finance/transaction.entity';
 import { PriceList } from './pricelist/price-list.entity';
 import { PriceListRule } from './pricelist/price-list-rule.entity';
 
+import { AiSuggestionService } from './ai-suggestion.service';
+
 // User Entity
 import { User } from '../users/entities/user.entity';
 
@@ -46,7 +48,7 @@ import { SalesOrderVersion } from './sales-order-version.entity';
     forwardRef(() => FinanceModule)
   ],
   controllers: [SalesController],
-  providers: [SalesService],
+  providers: [SalesService, AiSuggestionService],
   exports: [SalesService],
 })
 export class SalesModule { }
