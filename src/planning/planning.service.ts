@@ -438,4 +438,66 @@ export class PlanningService {
         await this.planRepo.remove(plan);
         return { message: 'Đã xóa kế hoạch sản xuất' };
     }
+
+    async syncPoPrices(planId: number) {
+        const plan = await this.planRepo.findOne({ where: { id: planId } });
+        if (!plan) return;
+
+        // Fetch valid POs (Ordered or Completed or Confirmed)
+        // Assuming ORDERED is the status where price is finalized
+        const pos = await this.poRepo.find({
+            where: {
+                plan_id: planId,
+                status: In([POStatus.CONFIRMED, POStatus.COMPLETED, 'ORDERED' as POStatus]) // Handle both enum values if needed
+            },
+            relations: ['items']
+        });
+
+        const priceMap = new Map<number, number>(); // MaterialID -> Price
+        const outsourcePriceMap = new Map<string, number>(); // Description -> Price
+
+        for (const po of pos) {
+            for (const item of po.items) {
+                if (item.material_id) {
+                    priceMap.set(item.material_id, Number(item.unit_price));
+                } else {
+                    outsourcePriceMap.set(item.description, Number(item.unit_price));
+                }
+            }
+        }
+
+        // Update MRP Result
+        let changed = false;
+        if (plan.mrp_result && Array.isArray(plan.mrp_result)) {
+            plan.mrp_result = plan.mrp_result.map((item: any) => {
+                if (item.material_id && priceMap.has(item.material_id)) {
+                    const newPrice = priceMap.get(item.material_id);
+                    if (item.purchase_price !== newPrice) {
+                        changed = true;
+                        return { ...item, purchase_price: newPrice };
+                    }
+                }
+                return item;
+            });
+        }
+
+        // Update Outsourcing Result (Best effort match by description)
+        if (plan.outsourcing_result && Array.isArray(plan.outsourcing_result)) {
+            plan.outsourcing_result = plan.outsourcing_result.map((item: any) => {
+                const desc = `${item.step_name} (${item.product_sku})`; // Logic used in creation
+                if (outsourcePriceMap.has(desc)) {
+                    const newPrice = outsourcePriceMap.get(desc);
+                    if (item.unit_price !== newPrice) {
+                        changed = true;
+                        return { ...item, unit_price: newPrice, total_cost: Number(item.quantity) * Number(newPrice) };
+                    }
+                }
+                return item;
+            });
+        }
+
+        if (changed) {
+            await this.planRepo.save(plan);
+        }
+    }
 }

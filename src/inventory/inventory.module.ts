@@ -8,6 +8,9 @@ import { InventoryService } from './inventory.service';
 import { InventoryController } from './inventory.controller';
 import { Product } from '../products/product.entity';
 import { Material } from '../materials/material.entity';
+import { Supplier } from '../suppliers/supplier.entity';
+import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
+import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 
 @Module({
   imports: [

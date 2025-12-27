@@ -7,6 +7,7 @@ export enum POStatus {
   DRAFT = 'DRAFT',
   SENT = 'SENT',
   CONFIRMED = 'CONFIRMED',
+  ORDERED = 'ORDERED', // Mới
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED'
 }
@@ -29,17 +30,19 @@ export class PurchaseOrder {
 
   @Column({
     type: 'enum',
+    enum: POStatus,
+    default: POStatus.DRAFT
+  })
+  status: POStatus;
+
+  @Column({
+    type: 'enum',
     enum: POType,
     default: POType.MATERIAL
   })
   type: POType;
 
-  @Column({
-    type: 'enum',
-    enum: POStatus,
-    default: POStatus.DRAFT
-  })
-  status: POStatus;
+
 
   @ManyToOne(() => Supplier, { nullable: true })
   @JoinColumn({ name: 'supplier_id' })

@@ -15,7 +15,7 @@ const PurchasingPage: React.FC = () => {
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [currentPO, setCurrentPO] = useState<any>(null);
     const [editingItems, setEditingItems] = useState<any[]>([]);
-    const [poDeliveryInfo, setPoDeliveryInfo] = useState<any>({});
+
     const [packingList, setPackingList] = useState<any[]>([]); // Matrix data
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false); // Print Selection Modal
     const [planProducts, setPlanProducts] = useState<any[]>([]); // Products in related Plan
@@ -61,7 +61,7 @@ const PurchasingPage: React.FC = () => {
         // Clone items for editing
         setEditingItems(record.items ? record.items.map((i: any) => ({ ...i })) : []);
         // Set delivery info
-        setPoDeliveryInfo(record.delivery_info || {});
+
         // Set packing list
         // Set packing list: If empty, auto-generate from Items
         if (record.packing_list_details && record.packing_list_details.length > 0) {
@@ -277,14 +277,14 @@ const PurchasingPage: React.FC = () => {
         try {
             await axios.put(`${API_URL}/purchasing/${currentPO.id}`, {
                 items: editingItems,
-                delivery_info: poDeliveryInfo,
                 packing_list_details: packingList,
-                supplier_id: currentPO.supplier?.id // Include Supplier ID
+                supplier_id: currentPO.supplier?.id, // Include Supplier ID
+                status: currentPO.status
             });
             message.success('Đã lưu thay đổi PO');
             fetchData(); // Refresh global list
             // Update local currentPO to reflect changes safely
-            const updatedPO = { ...currentPO, items: editingItems, delivery_info: poDeliveryInfo, packing_list_details: packingList };
+            const updatedPO = { ...currentPO, items: editingItems, packing_list_details: packingList };
             // Recalc total
             const newTotal = editingItems.reduce((acc, i) => acc + (i.subtotal || 0), 0);
             updatedPO.total_amount = newTotal;
@@ -500,6 +500,18 @@ const PurchasingPage: React.FC = () => {
                             onChange={(id) => setCurrentPO({ ...currentPO, supplier: { ...currentPO.supplier, id: id, name: suppliers.find(s => s.id === id)?.name } })}
                             options={suppliers.map((s: any) => ({ label: s.name, value: s.id }))}
                             optionFilterProp="label"
+                        />
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Trạng thái">
+                        <Select
+                            style={{ width: 150 }}
+                            value={currentPO?.status || 'DRAFT'}
+                            onChange={(v) => setCurrentPO({ ...currentPO, status: v })}
+                            options={[
+                                { value: 'DRAFT', label: 'Nháp' },
+                                { value: 'ORDERED', label: 'Đặt hàng' },
+                                { value: 'COMPLETED', label: 'Đã Thanh toán' }, // Mapping 'COMPLETED' to 'Đã Thanh toán'
+                            ]}
                         />
                     </Descriptions.Item>
                     <Descriptions.Item label="Tổng tiền"><b style={{ fontSize: 16 }}>{Number(currentPO?.total_amount).toLocaleString()} ₫</b></Descriptions.Item>

@@ -7,6 +7,9 @@ import { GoodsReceipt, GoodsReceiptStatus } from './entities/goods-receipt.entit
 import { GoodsReceiptItem } from './entities/goods-receipt-item.entity';
 import { Product } from '../products/product.entity';
 import { Material } from '../materials/material.entity';
+import { Supplier } from '../suppliers/supplier.entity';
+import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
+import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 
 @Injectable()
 export class InventoryService {
@@ -17,6 +20,9 @@ export class InventoryService {
     @InjectRepository(Material) private materialRepo: Repository<Material>,
     @InjectRepository(GoodsReceipt) private receiptRepo: Repository<GoodsReceipt>,
     @InjectRepository(GoodsReceiptItem) private receiptItemRepo: Repository<GoodsReceiptItem>,
+    @InjectRepository(Supplier) private supplierRepo: Repository<Supplier>,
+    @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
+    @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
   ) { }
 
   // Lấy chi tiết tồn kho của tất cả item
@@ -177,12 +183,14 @@ export class InventoryService {
   async confirmReceipt(id: number, warehouseCode: string = 'KHO_NPL') {
     const receipt = await this.receiptRepo.findOne({
       where: { id },
-      relations: ['items']
+      relations: ['items', 'purchase_order']
     });
     if (!receipt) throw new BadRequestException('Phiếu nhập không tồn tại');
     if (receipt.status !== GoodsReceiptStatus.DRAFT) throw new BadRequestException('Phiếu đã xử lý');
 
     // 1. Loop items and import to stock
+    let totalValue = 0;
+
     for (const item of receipt.items) {
       if (item.material_id) {
         await this.adjustStock(
@@ -194,10 +202,27 @@ export class InventoryService {
           `Nhập kho từ PO ${receipt.po_id ? '#' + receipt.po_id : ''}`,
           warehouseCode
         );
+
+        // Calculate Debt: Find PO Price
+        if (receipt.po_id && item.po_item_id) {
+          const poItem = await this.poItemRepo.findOne({ where: { id: item.po_item_id } });
+          if (poItem) {
+            totalValue += Number(item.quantity) * Number(poItem.unit_price);
+          }
+        }
       }
     }
 
-    // 2. Update Status
+    // 2. Update Supplier Debt
+    if (receipt.purchase_order && receipt.purchase_order.supplier_id && totalValue > 0) {
+      const supplier = await this.supplierRepo.findOne({ where: { id: receipt.purchase_order.supplier_id } });
+      if (supplier) {
+        supplier.debt = Number(supplier.debt || 0) + totalValue;
+        await this.supplierRepo.save(supplier);
+      }
+    }
+
+    // 3. Update Status
     receipt.status = GoodsReceiptStatus.COMPLETED;
     receipt.delivery_date = new Date().toISOString();
     await this.receiptRepo.save(receipt);

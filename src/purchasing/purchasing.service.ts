@@ -91,7 +91,15 @@ export class PurchasingService {
         }
         // -------------------------------
 
-        return this.poRepo.save(po);
+
+        const savedPO = await this.poRepo.save(po);
+
+        // --- MỚI: Sync Price to Planning if Ordered ---
+        if (data.status === 'ORDERED' && savedPO.plan_id) {
+            await this.planningService.syncPoPrices(savedPO.plan_id);
+        }
+
+        return savedPO;
     }
 
     async updatePayment(poCode: string, amount: number) {

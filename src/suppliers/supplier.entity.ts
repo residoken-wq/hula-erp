@@ -4,9 +4,9 @@ import { SupplierContact } from './supplier-contact.entity';
 import { ProductRouting } from '../products/product-routing.entity'; // Import
 
 export enum SupplierType {
-  MATERIAL = 'MATERIAL',       
-  PROCESSING = 'PROCESSING',   
-  MIX = 'MIX'                  
+  MATERIAL = 'MATERIAL',
+  PROCESSING = 'PROCESSING',
+  MIX = 'MIX'
 }
 
 @Entity('suppliers')
@@ -19,6 +19,9 @@ export class Supplier {
 
   @Column()
   name: string;
+
+  @Column('decimal', { default: 0 })
+  debt: number;
 
   @Column({ type: 'enum', enum: SupplierType, default: SupplierType.MATERIAL })
   type: SupplierType;
