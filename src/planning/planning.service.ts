@@ -53,7 +53,13 @@ export class PlanningService {
     async findOne(id: number) {
         return this.planRepo.findOne({
             where: { id },
-            relations: ['sales_orders', 'sales_orders.items']
+            relations: [
+                'sales_orders',
+                'sales_orders.items',
+                'sales_orders.items.product',
+                'sales_orders.items.product.components',
+                'sales_orders.items.product.components.child_product'
+            ]
         });
     }
 

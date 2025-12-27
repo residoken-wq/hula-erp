@@ -62,7 +62,29 @@ const PurchasingPage: React.FC = () => {
         // Set delivery info
         setPoDeliveryInfo(record.delivery_info || {});
         // Set packing list
-        setPackingList(record.packing_list_details || []);
+        // Set packing list: If empty, auto-generate from Items
+        if (record.packing_list_details && record.packing_list_details.length > 0) {
+            setPackingList(record.packing_list_details);
+        } else {
+            // Auto generate rows from unique Materials in PO Items
+            const uniqueMaterials = new Map();
+            if (record.items) {
+                record.items.forEach((item: any) => {
+                    // Check if item has material info (name)
+                    const matName = item.material?.name || item.reference_name || item.sku;
+                    // Group by Material Name to avoid duplicates if split items exist
+                    if (!uniqueMaterials.has(matName)) {
+                        uniqueMaterials.set(matName, {
+                            id: Date.now() + Math.random(),
+                            po_form_code: '', // Will be index + 1
+                            material_name: matName,
+                            n1: '', n2: '', c1: '', c2: '', g1: '', g2: '', odd: '', border: '', note: ''
+                        });
+                    }
+                });
+            }
+            setPackingList(Array.from(uniqueMaterials.values()));
+        }
         setIsDetailOpen(true);
 
         // Fetch Plan Products
@@ -70,6 +92,9 @@ const PurchasingPage: React.FC = () => {
         if (record.items && record.items.length > 0 && record.items[0].plan_id) {
             try {
                 const planId = record.items[0].plan_id;
+                // Identify target material IDs from PO
+                const targetMaterialIds = new Set(record.items.map((i: any) => i.material?.id).filter(Boolean));
+
                 const pRes = await axios.get(`${API_URL}/planning/${planId}`);
                 const plan = pRes.data;
                 // Extract unique products from sales orders
@@ -78,14 +103,37 @@ const PurchasingPage: React.FC = () => {
                     plan.sales_orders.forEach((so: any) => {
                         so.items?.forEach((item: any) => {
                             if (!prods.has(item.sku)) {
-                                prods.set(item.sku, { sku: item.sku, name: item.product_name, quantity: 0 }); // Sum qty later if needed
+                                prods.set(item.sku, {
+                                    sku: item.sku,
+                                    name: item.product_name,
+                                    quantity: 0,
+                                    product: item.product // Keep ref to product data
+                                });
                             }
                             const p = prods.get(item.sku);
                             p.quantity += Number(item.quantity);
                         });
                     });
                 }
-                setPlanProducts(Array.from(prods.values()));
+
+                // Calculate Norms for each aggregated product
+                const finalProducts = Array.from(prods.values()).map((p: any) => {
+                    let unitNorm = 0;
+                    if (p.product && p.product.components) {
+                        p.product.components.forEach((comp: any) => {
+                            if (comp.child_product && targetMaterialIds.has(comp.child_product.id)) {
+                                unitNorm += Number(comp.quantity || 0);
+                            }
+                        });
+                    }
+                    return {
+                        ...p,
+                        unit_norm: unitNorm,
+                        total_norm: unitNorm * p.quantity
+                    };
+                });
+
+                setPlanProducts(finalProducts);
             } catch (e) { console.error('Error fetching plan', e); }
         }
     };
@@ -546,11 +594,7 @@ const PurchasingPage: React.FC = () => {
                         key: '3', label: 'Chi tiết Đóng gói (Matrix)', children: (
                             <div>
                                 <div style={{ marginBottom: 10 }}>
-                                    <Button size="small" onClick={() => {
-                                        const newRow = { id: Date.now(), po_form_code: '', material_name: '', n1: '', n2: '', c1: '', c2: '', g1: '', g2: '', odd: '', border: '', note: '' };
-                                        setPackingList([...packingList, newRow]);
-                                    }}>+ Thêm Dòng</Button>
-                                    <span style={{ marginLeft: 10, color: '#888' }}>Nhập thông tin đóng gói (Matrix)</span>
+                                    <span style={{ marginLeft: 10, color: '#888' }}>Thông tin đóng gói được tạo tự động từ danh sách NPL</span>
                                 </div>
                                 <Table
                                     dataSource={packingList}
@@ -560,14 +604,10 @@ const PurchasingPage: React.FC = () => {
                                     scroll={{ x: 1200 }}
                                     columns={[
                                         {
-                                            title: 'Mã PO Form', width: 120, render: (t, r, idx) => <Input value={r.po_form_code} onChange={e => {
-                                                const list = [...packingList]; list[idx].po_form_code = e.target.value; setPackingList(list);
-                                            }} />
+                                            title: 'Mã PO Form', width: 100, align: 'center', render: (t, r, idx) => <b>{idx + 1}</b>
                                         },
                                         {
-                                            title: 'Tên NPL', width: 150, render: (t, r, idx) => <Input value={r.material_name} onChange={e => {
-                                                const list = [...packingList]; list[idx].material_name = e.target.value; setPackingList(list);
-                                            }} />
+                                            title: 'Tên NPL', width: 250, render: (t, r, idx) => <span>{r.material_name}</span>
                                         },
                                         {
                                             title: 'N1', width: 60, render: (t, r, idx) => <Input value={r.n1} onChange={e => {
@@ -631,6 +671,8 @@ const PurchasingPage: React.FC = () => {
                                     columns={[
                                         { title: 'SKU', dataIndex: 'sku', width: 150 },
                                         { title: 'Tên sản phẩm', dataIndex: 'name' },
+                                        { title: 'ĐM (Cái)', dataIndex: 'unit_norm', width: 100, align: 'right', render: v => v ? Number(v).toLocaleString() : '-' },
+                                        { title: 'Tổng ĐM', dataIndex: 'total_norm', width: 100, align: 'right', render: v => v ? Number(v).toLocaleString() : '-' },
                                         { title: 'Tổng SL', dataIndex: 'quantity', width: 100, align: 'right', render: v => Number(v).toLocaleString() }
                                     ]}
                                 />

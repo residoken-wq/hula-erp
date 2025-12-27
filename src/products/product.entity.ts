@@ -60,6 +60,10 @@ export class Product {
   @OneToMany(() => ProductRouting, (routing) => routing.product)
   routings: ProductRouting[];
 
+  // --- MỚI: Relation với ProductComponent (BOM) ---
+  @OneToMany('ProductComponent', (pc: any) => pc.parent_product)
+  components: any[];
+
   @CreateDateColumn()
   created_at: Date;
 
