@@ -799,9 +799,29 @@ const PurchasingPage: React.FC = () => {
                                         { title: 'Mã PO Form', dataIndex: 'po_form_code', width: 80, align: 'center', render: (t: any, r: any, idx: number) => <b>{idx + 1}</b> },
                                         { title: 'Tên NPL', dataIndex: 'material_name', width: 200 },
                                         {
-                                            title: 'Tổng SL', width: 80, align: 'right', render: (t, r, idx) => {
+                                            title: 'Tổng SL ĐM', width: 80, align: 'right', render: (t, r, idx) => {
                                                 const matchingItem = currentPO?.items?.find((i: any) => (i.material?.name || i.reference_name || i.sku) === r.material_name);
                                                 return <b>{matchingItem ? Number(matchingItem.quantity).toLocaleString() : '-'}</b>;
+                                            }
+                                        },
+                                        {
+                                            title: 'Tổng SL đặt', width: 80, align: 'right', render: (t, r) => {
+                                                const total =
+                                                    Number(r.n1 || 0) + Number(r.n2 || 0) +
+                                                    Number(r.c1 || 0) + Number(r.c2 || 0) +
+                                                    Number(r.g1 || 0) + Number(r.g2 || 0) +
+                                                    Number(r.odd || 0) + Number(r.border || 0);
+                                                return <b>{total}</b>
+                                            }
+                                        },
+                                        {
+                                            title: 'Tổng SL giao', width: 80, align: 'right', render: (t, r) => {
+                                                const total =
+                                                    Number(r.n1_input || 0) + Number(r.n2_input || 0) +
+                                                    Number(r.c1_input || 0) + Number(r.c2_input || 0) +
+                                                    Number(r.g1_input || 0) + Number(r.g2_input || 0) +
+                                                    Number(r.odd_input || 0) + Number(r.border_input || 0);
+                                                return <b style={{ color: total > 0 ? 'green' : 'inherit' }}>{total}</b>
                                             }
                                         },
                                         {
