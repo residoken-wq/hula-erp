@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber } from 'antd';
-import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined, TruckOutlined } from '@ant-design/icons';
+import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined, TruckOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -135,6 +135,24 @@ const PlanningPage: React.FC = () => {
         setLoading(false);
     };
     // --------------------------------------------------
+    const handleDeletePlan = (id: number) => {
+        Modal.confirm({
+            title: 'Xóa kế hoạch',
+            content: 'Bạn có chắc muốn xóa kế hoạch này?',
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                try {
+                    await axios.delete(`${API_URL}/planning/${id}`);
+                    message.success('Đã xóa kế hoạch');
+                    fetchData();
+                } catch (e: any) {
+                    message.error(e.response?.data?.message || 'Lỗi xóa kế hoạch');
+                }
+            }
+        });
+    };
 
     const pendingColumns = [
         { title: 'Mã Đơn', dataIndex: 'order_code', render: (t: any) => <b>{t}</b> },
@@ -149,7 +167,14 @@ const PlanningPage: React.FC = () => {
         { title: 'Tên Đợt', dataIndex: 'name' },
         { title: 'Thời Gian', render: (r: any) => <small>{dayjs(r.start_date).format('DD/MM')} - {dayjs(r.end_date).format('DD/MM')}</small> },
         { title: 'Trạng Thái', dataIndex: 'status', align: 'center' as const, render: (t: any) => t === 'CALCULATED' ? <Tag color="green">Đã tính MRP</Tag> : <Tag>Mới</Tag> },
-        { title: 'Hành động', key: 'act', align: 'right' as const, render: (_: any, r: any) => <Button type="primary" size="small" icon={<ExperimentOutlined />} onClick={() => handleRunMrp(r.id)}>Phân Tích</Button> }
+        {
+            title: 'Hành động', key: 'act', align: 'right' as const, render: (_: any, r: any) => (
+                <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+                    <Button type="primary" size="small" icon={<ExperimentOutlined />} onClick={() => handleRunMrp(r.id)}>Phân Tích</Button>
+                    <Button danger size="small" icon={<DeleteOutlined />} onClick={() => handleDeletePlan(r.id)} />
+                </div>
+            )
+        }
     ];
 
     const renderDashboard = () => {

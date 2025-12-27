@@ -387,4 +387,25 @@ export class PlanningService {
     }
 
     async findAll() { return this.planRepo.find({ order: { id: 'DESC' }, relations: ['sales_orders'] }); }
+
+    async deletePlan(id: number) {
+        // 1. Check if plan exists
+        const plan = await this.planRepo.findOne({ where: { id }, relations: ['sales_orders'] });
+        if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
+
+        // 2. Check if any PO created
+        const existingPos = await this.poRepo.count({ where: { plan_id: id } });
+        if (existingPos > 0) {
+            throw new BadRequestException('Không thể xóa kế hoạch đã tạo Đơn mua hàng (PO)');
+        }
+
+        // 3. Reset Sales Orders status (optional but recommended)
+        if (plan.sales_orders && plan.sales_orders.length > 0) {
+            await this.orderRepo.update({ production_plan: { id } }, { production_plan: null });
+        }
+
+        // 4. Delete
+        await this.planRepo.remove(plan);
+        return { message: 'Đã xóa kế hoạch sản xuất' };
+    }
 }

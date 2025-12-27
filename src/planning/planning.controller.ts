@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Delete } from '@nestjs/common';
 import { PlanningService } from './planning.service';
 
 @Controller('planning')
@@ -8,6 +8,7 @@ export class PlanningController {
   @Get('suggestion') getSuggestion() { return this.s.getSuggestion(); }
   @Post('create') create(@Body() b: any) { return this.s.createPlan(b); }
   @Get() findAll() { return this.s.findAll(); }
+  @Delete(':id') delete(@Param('id') id: number) { return this.s.deletePlan(id); }
 
   @Post('mrp/:id') runMrp(@Param('id') id: number) { return this.s.calculateMaterialNeeds(id); }
   @Post('save/:id') save(@Param('id') id: number, @Body() b: any) { return this.s.saveAnalysis(id, b.mrp_result, b.outsourcing_result, b.logistics_result); }
