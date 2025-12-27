@@ -320,7 +320,14 @@ const PurchasingPage: React.FC = () => {
         }
     };
 
-    // ... (keep state vars)
+    // Auxiliary state for selecting supplier
+    const [isSelectSupplierOpen, setIsSelectSupplierOpen] = useState(false);
+    const [targetSupplierId, setTargetSupplierId] = useState<number | null>(null);
+    const [suppliers, setSuppliers] = useState<any[]>([]);
+
+    useEffect(() => {
+        axios.get(`${API_URL}/suppliers`).then(res => setSuppliers(res.data));
+    }, []);
 
     const proceedCreatePooled = async (supId: number | null) => {
         try {
