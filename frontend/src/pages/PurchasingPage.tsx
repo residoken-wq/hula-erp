@@ -20,10 +20,7 @@ const PurchasingPage: React.FC = () => {
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false); // Print Selection Modal
     const [planProducts, setPlanProducts] = useState<any[]>([]); // Products in related Plan
 
-    // Payment Modal (Nâng cấp)
-    const [isPayModalOpen, setIsPayModalOpen] = useState(false);
-    const [paymentHistory, setPaymentHistory] = useState<any[]>([]); // Danh sách các đợt đã trả
-    const [payForm] = Form.useForm(); // Sử dụng Form Instance
+
 
     // Monitor Modal
     const [isMonitorOpen, setIsMonitorOpen] = useState(false);
@@ -112,50 +109,7 @@ const PurchasingPage: React.FC = () => {
         } catch (e) { message.error('Lỗi lưu'); }
     };
 
-    // --- LOGIC THANH TOÁN (CẬP NHẬT MỚI) ---
-    const openPaymentModal = async () => {
-        if (!currentPO) return;
 
-        // 1. Reset Form
-        const remain = Number(currentPO.total_amount) - Number(currentPO.paid_amount);
-        payForm.setFieldsValue({
-            amount: remain > 0 ? remain : 0,
-            date: dayjs(), // Mặc định hôm nay
-            note: '',
-            vatCode: '',
-            vatUrl: ''
-        });
-
-        // 2. Load lịch sử thanh toán
-        try {
-            const res = await axios.get(`${API_URL}/finance/history/${currentPO.po_code}`);
-            setPaymentHistory(res.data);
-        } catch (e) { setPaymentHistory([]); }
-
-        setIsPayModalOpen(true);
-    };
-
-    const handlePaymentSubmit = async (values: any) => {
-        if (values.amount <= 0) return message.warning('Nhập số tiền hợp lệ');
-        try {
-            await axios.post(`${API_URL}/finance/payment/po`, {
-                poCode: currentPO.po_code,
-                amount: values.amount,
-                note: values.note,
-                date: values.date ? values.date.toISOString() : null, // Gửi ngày
-                vatCode: values.vatCode, // Gửi mã hóa đơn
-                vatUrl: values.vatUrl,    // Gửi link hóa đơn
-                partnerName: currentPO.supplier?.name // <--- Fix: Gửi tên NCC sang Finance
-            });
-            message.success('Thanh toán thành công!');
-            setIsPayModalOpen(false);
-
-            // Reload data
-            fetchData();
-            // Update UI modal detail nếu đang mở
-            setCurrentPO({ ...currentPO, paid_amount: Number(currentPO.paid_amount) + Number(values.amount) });
-        } catch (e) { message.error('Lỗi thanh toán'); }
-    };
     // ----------------------------------------
 
     const columns = [
@@ -457,7 +411,6 @@ const PurchasingPage: React.FC = () => {
                     <Button key="print" icon={<PrinterOutlined />} onClick={() => setIsPrintModalOpen(true)}>In PO</Button>,
                     <Button key="receipt" icon={<ImportOutlined />} type="dashed" onClick={handleCreateReceipt}>Tạo Phiếu Kho</Button>,
                     <Button key="save" type="primary" onClick={handleSavePOChanges}>Lưu Thay Đổi</Button>,
-                    <Button key="pay" icon={<DollarOutlined />} onClick={openPaymentModal}>Thanh Toán</Button>,
                     <Button key="close" onClick={() => setIsDetailOpen(false)}>Đóng</Button>
                 ]}
             >
@@ -677,36 +630,7 @@ const PurchasingPage: React.FC = () => {
                 ]} />
             </Modal>
 
-            {/* MODAL THANH TOÁN (NÂNG CẤP) */}
-            <Modal title="Thanh Toán & Hóa Đơn" open={isPayModalOpen} onCancel={() => setIsPayModalOpen(false)} onOk={() => payForm.submit()} width={700}>
-                <Row gutter={24}>
-                    <Col span={10}>
-                        <Divider orientation="left" style={{ marginTop: 0 }}>Lập Phiếu Chi Mới</Divider>
-                        <Form form={payForm} layout="vertical" onFinish={handlePaymentSubmit}>
-                            <Form.Item name="date" label="Ngày thanh toán" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item>
-                            <Form.Item name="amount" label="Số tiền" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} addonAfter="₫" /></Form.Item>
-                            <Form.Item name="vatCode" label="Mã Hóa đơn VAT"><Input placeholder="Số hóa đơn..." /></Form.Item>
-                            <Form.Item name="vatUrl" label="Link Hóa đơn (Ảnh/Drive)"><Input prefix={<LinkOutlined />} placeholder="URL..." /></Form.Item>
-                            <Form.Item name="note" label="Ghi chú"><Input.TextArea rows={2} /></Form.Item>
-                        </Form>
-                    </Col>
-                    <Col span={14} style={{ borderLeft: '1px solid #f0f0f0' }}>
-                        <Divider orientation="left" style={{ marginTop: 0 }}>Lịch Sử Đã Thanh Toán</Divider>
-                        <Table
-                            dataSource={paymentHistory}
-                            rowKey="id"
-                            size="small"
-                            pagination={false}
-                            scroll={{ y: 300 }}
-                            columns={[
-                                { title: 'Ngày', dataIndex: 'date', width: 90, render: (t: string) => dayjs(t).format('DD/MM') },
-                                { title: 'Số tiền', dataIndex: 'amount', align: 'right', width: 100, render: (v: number) => <b style={{ color: 'green' }}>{v.toLocaleString()}</b> },
-                                { title: 'HĐ VAT', dataIndex: 'vat_invoice_code', render: (t: string, r: any) => r.vat_invoice_url ? <a href={r.vat_invoice_url} target="_blank" rel="noreferrer">{t || 'Link'}</a> : t || '-' }
-                            ]}
-                        />
-                    </Col>
-                </Row>
-            </Modal>
+
             {/* MODAL PRINT SELECTION */}
             <Modal title="Chọn Mẫu In PO" open={isPrintModalOpen} onCancel={() => setIsPrintModalOpen(false)} footer={null}>
                 <Space direction="vertical" style={{ width: '100%' }}>

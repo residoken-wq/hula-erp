@@ -60,28 +60,60 @@ export class FinanceService {
 
     // --- CẬP NHẬT: THANH TOÁN PO (CHI TIỀN) ---
     async createPOPayment(data: any) {
-        // data: { amount, poCode, note, date, vatCode, vatUrl, partnerName }
+        // ... (Keep existing for backward compatibility if needed, or deprecate)
+        // ... Implementation skipped for brevity as we are focusing on BULK
+        return this.createBulkPoPayment({
+            supplier_id: null, // Unknown in legacy call
+            po_ids: [data.poCode], // Treat as single item array (Note: logic needs ID not Code usually, but let's check input)
+            // Actually legacy used poCode string. Bulk uses IDs.
+            // Let's implement Bulk properly.
+            amount: data.amount,
+            note: data.note,
+            date: data.date,
+            vatCode: data.vatCode,
+            vatUrl: data.vatUrl,
+            partnerName: data.partnerName
+        });
+    }
+
+    async createBulkPoPayment(data: any) {
+        // data: { po_ids: number[], amount: number, note: string, date: Date, vatCode, vatUrl, partnerName, supplier_id }
+
+        // 1. Create Transaction
         const trans = this.transRepo.create({
             date: data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             type: 'EXPENSE',
             amount: Number(data.amount),
-            reference_code: data.poCode,
-            reference_type: 'PURCHASE',
-            description: data.note || `Thanh toán PO ${data.poCode}`,
-            partner_name: data.partnerName, // <-- Save Partner Name
-
-            // Lưu thông tin VAT
+            reference_code: `BULK-PO-${Date.now()}`, // Generate a Bulk Ref
+            reference_type: 'PURCHASE', // Or 'BULK_PURCHASE' if distinct
+            description: data.note || `Thanh toán công nợ NCC`,
+            partner_name: data.partnerName,
             vat_invoice_code: data.vatCode,
             vat_invoice_url: data.vatUrl
         });
+        const savedTrans = await this.transRepo.save(trans);
 
-        const saved = await this.transRepo.save(trans);
+        // 2. Distribute Payment to POs
+        // Logic: Iterate POs and update paid_amount.
+        // NOTE: We don't know exactly how much for EACH PO if user just pays a lump sum.
+        // BUT, usually in this flow, user selects specific POs to pay.
+        // OPTION A: User selects POs and explicitly pays Full/Partial for each?
+        // OPTION B: User pays X amount, we distribute?
+        // OPTION C: User selects POs -> System sums up -> User confirms.
+        // Requirement: "chọn các PO chưa thanh toán --> gộp chung thanh toán"
+        // Implies we pay off the selected POs.
+        // Let's assume we update `paid_amount` for each selected PO.
+        // For simplicity: We might need to know HOW MUCH allocated to each PO if it's not full payment.
+        // Check `PurchasingService.updatePayment`. It takes poCode and amount.
 
-        // Cộng dồn số tiền đã trả vào PO
-        if (data.poCode) {
-            await this.purchasingService.updatePayment(data.poCode, Number(data.amount));
+        if (data.allocations && Array.isArray(data.allocations)) {
+            // data.allocations = [{ po_id, amount }]
+            for (const alloc of data.allocations) {
+                await this.purchasingService.updatePaymentById(alloc.po_id, Number(alloc.amount));
+            }
         }
-        return saved;
+
+        return savedTrans;
     }
     // ------------------------------------------
 

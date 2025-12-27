@@ -101,6 +101,22 @@ export class PurchasingService {
         }
     }
 
+    async updatePaymentById(id: number, amount: number) {
+        const po = await this.poRepo.findOne({ where: { id } });
+        if (po) {
+            po.paid_amount = Number(po.paid_amount || 0) + Number(amount);
+
+            // Auto Update Status
+            if (po.paid_amount >= po.total_amount) {
+                // Determine logic: keep existing status or move to COMPLETED?
+                // Usually COMPLETED implies both received and paid.
+                // For now, let's strictly handle payment amount.
+            }
+
+            await this.poRepo.save(po);
+        }
+    }
+
     // --- TÍNH TOÁN NPL CẦN THIẾT CHO ĐƠN GIA CÔNG ---
     async getOutsourcingMaterials(poId: number) {
         const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items', 'items.product'] });

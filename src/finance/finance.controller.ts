@@ -37,4 +37,9 @@ export class FinanceController {
     // b includes: amount, poCode, note, date, vatCode, vatUrl
     return this.s.createPOPayment(b);
   }
+
+  @Post('payment/bulk-po')
+  createBulkPOPayment(@Body() b: any) {
+    return this.s.createBulkPoPayment(b);
+  }
 }
