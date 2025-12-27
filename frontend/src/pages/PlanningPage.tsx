@@ -178,6 +178,10 @@ const PlanningPage: React.FC = () => {
                                                 <Select
                                                     value={v}
                                                     style={{ width: '100%' }}
+                                                    showSearch
+                                                    filterOption={(input, option) =>
+                                                        (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+                                                    }
                                                     onChange={(val) => handleDataChange('MATERIAL', i, 'supplier_name', val)}
                                                     options={suppliers.filter(s => s.type !== 'MANUFACTURER').map(s => ({ label: s.name, value: s.name }))}
                                                 />
@@ -223,6 +227,10 @@ const PlanningPage: React.FC = () => {
                                                     value={v}
                                                     style={{ width: '100%' }}
                                                     placeholder="Chọn Nhà GC"
+                                                    showSearch
+                                                    filterOption={(input, option) =>
+                                                        (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
+                                                    }
                                                     onChange={(val) => handleDataChange('OUTSOURCING', i, 'supplier_name', val)}
                                                     options={suppliers.filter(s => s.type !== 'MATERIAL').map(s => ({ label: s.name, value: s.name }))}
                                                 />
