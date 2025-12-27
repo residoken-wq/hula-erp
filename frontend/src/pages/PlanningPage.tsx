@@ -90,9 +90,13 @@ const PlanningPage: React.FC = () => {
         if (type === 'MATERIAL') {
             const newData = [...mrpData.mrp_result];
             newData[index] = { ...newData[index], [field]: value };
-            // Nếu đổi NCC, cập nhật luôn tên NCC để hiển thị (Logic backend group theo tên)
+
+            // Nếu đổi NCC, tự động lấy lại Đơn giá tham khảo từ possible_suppliers
             if (field === 'supplier_name') {
-                // value ở đây là tên NCC (Select option value)
+                const supplierInfo = newData[index].possible_suppliers?.find((s: any) => s.supplier_name === value);
+                if (supplierInfo) {
+                    newData[index].reference_price = supplierInfo.price;
+                }
             }
             setMrpData({ ...mrpData, mrp_result: newData });
         } else {
@@ -107,6 +111,67 @@ const PlanningPage: React.FC = () => {
             setOutsourcingList(newData);
         }
     };
+
+    const handleSaveAnalysis = async () => {
+        if (!mrpData) return;
+        setLoading(true);
+        try {
+            await axios.post(`${API_URL}/planning/save/${mrpData.plan_info.id}`, {
+                mrp_result: mrpData.mrp_result,
+                outsourcing_result: outsourcingList
+            });
+            message.success('Đã lưu kết quả phân tích');
+        } catch (e) {
+            message.error('Lỗi khi lưu dữ liệu');
+        }
+        setLoading(false);
+    };
+    // --------------------------------------------------
+
+    const pendingColumns = [
+        { title: 'Mã Đơn', dataIndex: 'order_code', render: (t: any) => <a>{t}</a> },
+        { title: 'Khách Hàng', dataIndex: 'customer_name' },
+        { title: 'Ngày Giao', dataIndex: 'delivery_date', render: (d: any) => d ? dayjs(d).format('DD/MM/YYYY') : '' },
+        { title: 'Trạng Thái', dataIndex: 'status', render: (s: any) => <Tag color={s === 'SO_PENDING' ? 'orange' : 'blue'}>{s}</Tag> }
+    ];
+
+    const planColumns = [
+        { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
+        { title: 'Tên Đợt', dataIndex: 'name' },
+        { title: 'Ngày BĐ', dataIndex: 'start_date', render: (d: any) => d ? dayjs(d).format('DD/MM/YYYY') : '' },
+        { title: 'Trạng Thái', dataIndex: 'status', render: (s: string) => <Tag color={s === 'DRAFT' ? 'default' : s === 'CALCULATED' ? 'processing' : 'success'}>{s}</Tag> },
+        {
+            title: 'Hành Động',
+            render: (v: any, r: any) => (
+                <div>
+                    <Button size="small" type="link" icon={<ExperimentOutlined />} onClick={() => handleViewMrp(r.id)}>Phân Tích</Button>
+                </div>
+            )
+        }
+    ];
+
+    return (
+        <div>
+            {/* Same as before... */}
+        </div>
+    );
+     * / / / Wait, I must simply replace the `handleDataChange` and the columns part.I chose a large chunk.
+    // Let's replace specifically the `handleDataChange` to `renderDashboard` table columns part.
+
+    // RE-READING `PlanningPage.tsx` content (from previous turn 2186):
+    // Lines 99-106 is handleDataChange. 
+    // Lines 167-223 is columns.
+
+    // Steps: 
+    // 1. Replace handleDataChange.
+    // 2. Replace Columns array.
+    // Trying to do both in one REPLACE is risky if line numbers are far apart. They are lines 99 and 167. 
+    // Actually lines 99 is `handleDataChange` definition.
+    // I will split this into two edits for safety. Or Use ONE MultiReplace.
+
+    // EDIT 1: `handleDataChange`
+    // EDIT 2: Table Columns
+
 
     const handleSaveAnalysis = async () => {
         if (!mrpData) return;
@@ -203,18 +268,25 @@ const PlanningPage: React.FC = () => {
                                             )
                                         },
                                         {
-                                            title: 'Đơn Giá',
-                                            dataIndex: 'cost',
+                                            title: 'Đơn giá tham khảo',
+                                            dataIndex: 'reference_price',
                                             width: 120,
                                             render: (v: any, r: any, i: number) => (
                                                 <InputNumber
                                                     value={v}
                                                     min={0}
                                                     formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                    onChange={(val) => handleDataChange('MATERIAL', i, 'cost', val)}
+                                                    onChange={(val) => handleDataChange('MATERIAL', i, 'reference_price', val)}
                                                     style={{ width: '100%' }}
                                                 />
                                             )
+                                        },
+                                        {
+                                            title: 'Giá mua',
+                                            dataIndex: 'purchase_price',
+                                            align: 'right' as const,
+                                            width: 120,
+                                            render: (v: any) => <b style={{ color: '#096dd9' }}>{Number(v || 0).toLocaleString()}</b>
                                         },
                                         {
                                             title: 'Ghi chú PO',

@@ -179,22 +179,69 @@ export class PlanningService {
 
         // 3. Kết quả MRP (NPL)
         const mrpResult = [];
+
+        // --- MỚI: Lấy giá mua thực tế từ các PO đã tạo cho Plan này ---
+        const existingPos = await this.poRepo.find({ where: { plan_id: planId }, relations: ['items'] });
+        const purchasePriceMap = new Map<number, number>(); // MaterialID -> Price
+        for (const po of existingPos) {
+            for (const item of po.items) {
+                if (item.material_id) {
+                    purchasePriceMap.set(item.material_id, Number(item.unit_price));
+                }
+            }
+        }
+        // -------------------------------------------------------------
+
         for (const [matId, gross] of materialDemand.entries()) {
-            const mat = await this.materialsService.materialRepo.findOne({ where: { id: matId } });
+            const mat = await this.materialsService.materialRepo.findOne({
+                where: { id: matId },
+                relations: ['supplier_prices', 'supplier_prices.supplier']
+            });
+
             if (mat) {
                 const net = Math.max(0, Math.ceil(gross - Number(mat.quantity_in_stock)));
+
+                // Logic chọn Supplier mặc định (Ưu tiên is_preferred = true)
+                let selectedSupplier = mat.supplier_name;
+                let selectedCost = Number(mat.cost_per_unit);
+
+                // --- MỚI: Danh sách NCC khả dĩ để FE lookup giá ---
+                const possibleSuppliers = mat.supplier_prices?.map(sp => ({
+                    supplier_name: sp.supplier?.name,
+                    price: Number(sp.price),
+                    is_preferred: sp.is_preferred
+                })) || [];
+                // ------------------------------------------------
+
+                if (mat.supplier_prices && mat.supplier_prices.length > 0) {
+                    // Sắp xếp: Preferred lên đầu, sau đó đến Giá thấp nhất
+                    const sortedPrices = mat.supplier_prices.sort((a, b) => {
+                        if (a.is_preferred && !b.is_preferred) return -1;
+                        if (!a.is_preferred && b.is_preferred) return 1;
+                        return Number(a.price) - Number(b.price);
+                    });
+
+                    const bestOption = sortedPrices[0];
+                    if (bestOption && bestOption.supplier) {
+                        selectedSupplier = bestOption.supplier.name;
+                        selectedCost = Number(bestOption.price);
+                    }
+                }
+
                 mrpResult.push({
                     material_id: mat.id,
                     material_code: mat.code,
                     material_name: mat.name,
-                    supplier_name: mat.supplier_name,
+                    supplier_name: selectedSupplier,
                     gross_requirement: Math.ceil(gross),
                     available_stock: Number(mat.quantity_in_stock),
                     net_requirement: net,
                     unit: mat.unit,
-                    cost: mat.cost_per_unit,
+                    reference_price: selectedCost, // Đã đổi tên từ cost -> reference_price
+                    purchase_price: purchasePriceMap.get(mat.id) || 0, // --- MỚI: Giá mua từ PO ---
+                    possible_suppliers: possibleSuppliers, // --- MỚI: Danh sách giá ---
 
-                    note: '', // Placeholder cho FE nhập
+                    note: '',
                     wastage_percent: materialWastageMap.get(mat.id) || 0,
                     gross_raw: Math.ceil(materialDemandRaw.get(mat.id) || 0)
                 });
