@@ -98,6 +98,7 @@ const PurchasingPage: React.FC = () => {
                 const pRes = await axios.get(`${API_URL}/planning/${planId}`);
                 const plan = pRes.data;
                 // Extract unique products from sales orders
+                const prods = new Map();
                 const addProductToMap = (product: any, qty: number) => {
                     // Check if it's a Combo based on type OR components existence
                     const isCombo = product.product_type === 'COMBO' || (product.components && product.components.length > 0);
