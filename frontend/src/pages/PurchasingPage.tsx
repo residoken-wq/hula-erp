@@ -863,6 +863,46 @@ const PurchasingPage: React.FC = () => {
                                                     }} />
                                                 }
                                             ]
+                                        },
+                                        {
+                                            title: 'G1', children: [
+                                                { title: 'Đặt', width: 50, dataIndex: 'g1', align: 'center', render: v => v || '-' },
+                                                {
+                                                    title: 'Giao', width: 60, align: 'center', render: (v, r: any, idx) => <Input size="small" style={{ textAlign: 'center', color: 'green' }} placeholder="0" value={r.g1_input} onChange={(e) => {
+                                                        const list = [...packingList]; list[idx].g1_input = e.target.value; setPackingList(list);
+                                                    }} />
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            title: 'G2', children: [
+                                                { title: 'Đặt', width: 50, dataIndex: 'g2', align: 'center', render: v => v || '-' },
+                                                {
+                                                    title: 'Giao', width: 60, align: 'center', render: (v, r: any, idx) => <Input size="small" style={{ textAlign: 'center', color: 'green' }} placeholder="0" value={r.g2_input} onChange={(e) => {
+                                                        const list = [...packingList]; list[idx].g2_input = e.target.value; setPackingList(list);
+                                                    }} />
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            title: 'Kiện lẻ', children: [
+                                                { title: 'Đặt', width: 50, dataIndex: 'odd', align: 'center', render: v => v || '-' },
+                                                {
+                                                    title: 'Giao', width: 60, align: 'center', render: (v, r: any, idx) => <Input size="small" style={{ textAlign: 'center', color: 'green' }} placeholder="0" value={r.odd_input} onChange={(e) => {
+                                                        const list = [...packingList]; list[idx].odd_input = e.target.value; setPackingList(list);
+                                                    }} />
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            title: 'Kiện viền', children: [
+                                                { title: 'Đặt', width: 50, dataIndex: 'border', align: 'center', render: v => v || '-' },
+                                                {
+                                                    title: 'Giao', width: 60, align: 'center', render: (v, r: any, idx) => <Input size="small" style={{ textAlign: 'center', color: 'green' }} placeholder="0" value={r.border_input} onChange={(e) => {
+                                                        const list = [...packingList]; list[idx].border_input = e.target.value; setPackingList(list);
+                                                    }} />
+                                                }
+                                            ]
                                         }
                                     ]}
                                 />
