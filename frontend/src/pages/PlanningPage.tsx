@@ -159,8 +159,8 @@ const PlanningPage: React.FC = () => {
         // Tính lại tổng chi phí realtime dựa trên dữ liệu đang edit
         const estMaterialCost = mrpData.mrp_result.reduce((s: number, i: any) => {
             // Logic Toggle Cost Basis
-            const price = costBasis === 'REFERENCE' ? Number(i.reference_price) : Number(i.purchase_price);
-            return s + (Number(i.net_requirement) * price);
+            const price = costBasis === 'REFERENCE' ? Number(i.reference_price || 0) : Number(i.purchase_price || 0);
+            return s + (Number(i.net_requirement || 0) * price);
         }, 0);
 
         const estOutsourceCost = outsourcingList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
