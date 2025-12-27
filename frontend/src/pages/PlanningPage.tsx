@@ -112,43 +112,7 @@ const PlanningPage: React.FC = () => {
         }
     };
 
-    const handleSaveAnalysis = async () => {
-        if (!mrpData) return;
-        setLoading(true);
-        try {
-            await axios.post(`${API_URL}/planning/save/${mrpData.plan_info.id}`, {
-                mrp_result: mrpData.mrp_result,
-                outsourcing_result: outsourcingList
-            });
-            message.success('Đã lưu kết quả phân tích');
-        } catch (e) {
-            message.error('Lỗi khi lưu dữ liệu');
-        }
-        setLoading(false);
-    };
-    // --------------------------------------------------
 
-    const pendingColumns = [
-        { title: 'Mã Đơn', dataIndex: 'order_code', render: (t: any) => <a>{t}</a> },
-        { title: 'Khách Hàng', dataIndex: 'customer_name' },
-        { title: 'Ngày Giao', dataIndex: 'delivery_date', render: (d: any) => d ? dayjs(d).format('DD/MM/YYYY') : '' },
-        { title: 'Trạng Thái', dataIndex: 'status', render: (s: any) => <Tag color={s === 'SO_PENDING' ? 'orange' : 'blue'}>{s}</Tag> }
-    ];
-
-    const planColumns = [
-        { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
-        { title: 'Tên Đợt', dataIndex: 'name' },
-        { title: 'Ngày BĐ', dataIndex: 'start_date', render: (d: any) => d ? dayjs(d).format('DD/MM/YYYY') : '' },
-        { title: 'Trạng Thái', dataIndex: 'status', render: (s: string) => <Tag color={s === 'DRAFT' ? 'default' : s === 'CALCULATED' ? 'processing' : 'success'}>{s}</Tag> },
-        {
-            title: 'Hành Động',
-            render: (v: any, r: any) => (
-                <div>
-                    <Button size="small" type="link" icon={<ExperimentOutlined />} onClick={() => handleViewMrp(r.id)}>Phân Tích</Button>
-                </div>
-            )
-        }
-    ];
 
     const handleSaveAnalysis = async () => {
         if (!mrpData) return;
