@@ -99,9 +99,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     vat_rate: initialData.vat_rate || 0,
 
                     shipping_fee: initialData.shipping_fee || 0,
-                    vat_company_name: initialData.vat_company_name,
-                    vat_tax_code: initialData.vat_tax_code,
-                    vat_address: initialData.vat_address
+                    vat_company_name: initialData.vat_company_name || initialData.customer?.legal_name || initialData.customer?.name || '',
+                    vat_tax_code: initialData.vat_tax_code || initialData.customer?.tax_code || '',
+                    vat_address: initialData.vat_address || initialData.customer?.legal_address || initialData.customer?.address || ''
                 });
 
                 // FIX LỖI: Map dữ liệu từ Backend (subtotal) sang Frontend (total_price)
@@ -713,7 +713,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 </Tabs.TabPane>
                 {initialData && !isQuotation && (
                     <>
-                        <Tabs.TabPane tab="2. Thanh toán" key="2">
+                        <Tabs.TabPane tab="3. Thanh toán" key="2">
                             <SalesPayments
                                 orderId={initialData.id}
                                 orderCode={initialData.order_code}
@@ -723,10 +723,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 onSuccess={onSuccess}
                             />
                         </Tabs.TabPane>
-                        <Tabs.TabPane tab="3. Giao hàng" key="3">
+                        <Tabs.TabPane tab="4. Giao hàng" key="3">
                             <SalesDeliveries order={initialData} products={products} customers={customers} onSuccess={onSuccess} />
                         </Tabs.TabPane>
-                        <Tabs.TabPane tab="4. Trao đổi" key="4">
+                        <Tabs.TabPane tab="5. Trao đổi" key="4">
                             <SalesComments orderId={initialData.id} />
                         </Tabs.TabPane>
                     </>
