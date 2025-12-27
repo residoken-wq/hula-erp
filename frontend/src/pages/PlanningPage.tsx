@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber } from 'antd';
-import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined } from '@ant-design/icons';
+import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined, TruckOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -20,6 +20,8 @@ const PlanningPage: React.FC = () => {
     // Analysis Data (Editable)
     const [mrpData, setMrpData] = useState<any>(null);
     const [outsourcingList, setOutsourcingList] = useState<any[]>([]);
+    const [logisticsList, setLogisticsList] = useState<any[]>([]); // <--- MỚI
+    const [costBasis, setCostBasis] = useState<'REFERENCE' | 'PURCHASE'>('REFERENCE'); // <--- MỚI
 
     // UI State
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -33,7 +35,7 @@ const PlanningPage: React.FC = () => {
             const [resSuggest, resPlans, resSupp] = await Promise.all([
                 axios.get(`${API_URL}/planning/suggestion`),
                 axios.get(`${API_URL}/planning`),
-                axios.get(`${API_URL}/suppliers`) // <--- Load Suppliers
+                axios.get(`${API_URL}/suppliers`)
             ]);
             setPendingOrders(Array.isArray(resSuggest.data) ? resSuggest.data : []);
             setPlans(Array.isArray(resPlans.data) ? resPlans.data : []);
@@ -65,6 +67,7 @@ const PlanningPage: React.FC = () => {
             const res = await axios.post(`${API_URL}/planning/mrp/${planId}`);
             setMrpData(res.data);
             setOutsourcingList(res.data.outsourcing_result || []);
+            setLogisticsList(res.data.logistics_result || []); // <--- MỚI
             setIsDashboardOpen(true);
             fetchData();
         } catch (e) { message.error('Lỗi chạy MRP'); }
@@ -92,23 +95,14 @@ const PlanningPage: React.FC = () => {
             newData[index] = { ...newData[index], [field]: value };
 
             // Nếu đổi NCC, tự động lấy lại Đơn giá tham khảo từ possible_suppliers
-            // Nếu đổi NCC, tự động lấy lại Đơn giá tham khảo từ possible_suppliers
             if (field === 'supplier_name') {
-                console.log('🔍 Đang tìm giá cho NCC:', value);
-                console.log('📋 Danh sách NCC có giá:', newData[index].possible_suppliers);
                 const supplierInfo = newData[index].possible_suppliers?.find(
                     (s: any) => s.supplier_name?.trim().toLowerCase() === String(value).trim().toLowerCase()
                 );
-
-                console.log('✅ Tìm thấy:', supplierInfo);
-
                 if (supplierInfo) {
                     newData[index].reference_price = supplierInfo.price;
-                    console.log('💰 Cập nhật giá tham khảo:', supplierInfo.price);
                 } else {
-                    // Nếu NCC này chưa có trong danh sách giá, reset về 0 để user tự nhập
                     newData[index].reference_price = 0;
-                    console.log('⚠️ Không tìm thấy giá cho NCC này, reset về 0');
                 }
             }
             setMrpData({ ...mrpData, mrp_result: newData });
@@ -125,15 +119,14 @@ const PlanningPage: React.FC = () => {
         }
     };
 
-
-
     const handleSaveAnalysis = async () => {
         if (!mrpData) return;
         setLoading(true);
         try {
             await axios.post(`${API_URL}/planning/save/${mrpData.plan_info.id}`, {
                 mrp_result: mrpData.mrp_result,
-                outsourcing_result: outsourcingList
+                outsourcing_result: outsourcingList,
+                logistics_result: logisticsList
             });
             message.success('Đã lưu kết quả phân tích');
         } catch (e) {
@@ -164,18 +157,37 @@ const PlanningPage: React.FC = () => {
         const totalRevenue = mrpData.plan_info.sales_orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
 
         // Tính lại tổng chi phí realtime dựa trên dữ liệu đang edit
-        const estMaterialCost = mrpData.mrp_result.reduce((s: number, i: any) => s + (Number(i.net_requirement) * Number(i.reference_price)), 0);
+        const estMaterialCost = mrpData.mrp_result.reduce((s: number, i: any) => {
+            // Logic Toggle Cost Basis
+            const price = costBasis === 'REFERENCE' ? Number(i.reference_price) : Number(i.purchase_price);
+            return s + (Number(i.net_requirement) * price);
+        }, 0);
+
         const estOutsourceCost = outsourcingList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
+        const estLogisticsCost = logisticsList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
 
         return (
             <div>
                 <div style={{ marginBottom: 20, background: '#f5f7fa', padding: 15, borderRadius: 8 }}>
+                    <div style={{ textAlign: 'right', marginBottom: 10 }}>
+                        <span>Cơ sở tính giá: </span>
+                        <Select value={costBasis} onChange={setCostBasis} style={{ width: 180 }}>
+                            <Option value="REFERENCE">Giá Tham Khảo (NCC)</Option>
+                            <Option value="PURCHASE">Giá Đặt Hàng (PO)</Option>
+                        </Select>
+                    </div>
                     <Row gutter={24} style={{ textAlign: 'center' }}>
                         <Col span={6}><Statistic title="Doanh Thu" value={totalRevenue} prefix={<DollarOutlined />} suffix="đ" valueStyle={{ fontSize: 16 }} /></Col>
-                        <Col span={6}><Statistic title="CP Nguyên Liệu" value={estMaterialCost} prefix={<ShoppingCartOutlined />} suffix="đ" valueStyle={{ color: '#cf1322', fontSize: 16 }} /></Col>
+                        <Col span={6}>
+                            <Statistic title="CP Nguyên Liệu" value={estMaterialCost} prefix={<ShoppingCartOutlined />} suffix="đ" valueStyle={{ color: '#cf1322', fontSize: 16 }} />
+                            <small style={{ color: '#888' }}>({costBasis === 'REFERENCE' ? 'Theo giá NCC' : 'Theo PO'})</small>
+                        </Col>
                         <Col span={6}><Statistic title="CP Gia Công" value={estOutsourceCost} prefix={<ScissorOutlined />} suffix="đ" valueStyle={{ color: '#d46b08', fontSize: 16 }} /></Col>
-                        <Col span={6}><Statistic title="Lợi Nhuận Gộp (Dự kiến)" value={totalRevenue - estMaterialCost - estOutsourceCost} prefix={<BarChartOutlined />} suffix="đ" valueStyle={{ color: 'green', fontSize: 16 }} /></Col>
+                        <Col span={6}><Statistic title="CP Logistics" value={estLogisticsCost} prefix={<TruckOutlined />} suffix="đ" valueStyle={{ color: '#096dd9', fontSize: 16 }} /></Col>
                     </Row>
+                    <div style={{ marginTop: 10, textAlign: 'center', fontWeight: 'bold', fontSize: 16, color: (totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost) > 0 ? 'green' : 'red' }}>
+                        Lợi Nhuận Gộp (Dự kiến): {(totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost).toLocaleString()} đ
+                    </div>
                 </div>
                 <Tabs defaultActiveKey="1" items={[
                     {
@@ -248,11 +260,11 @@ const PlanningPage: React.FC = () => {
                                             )
                                         },
                                         {
-                                            title: 'Giá mua',
+                                            title: 'Giá mua (PO)',
                                             dataIndex: 'purchase_price',
                                             align: 'right' as const,
                                             width: 120,
-                                            render: (v: any) => <b style={{ color: '#096dd9' }}>{Number(v || 0).toLocaleString()}</b>
+                                            render: (v: any) => <b style={{ color: costBasis === 'PURCHASE' ? '#cf1322' : '#888' }}>{Number(v || 0).toLocaleString()}</b>
                                         },
                                         {
                                             title: 'Ghi chú PO',
@@ -265,7 +277,7 @@ const PlanningPage: React.FC = () => {
                         )
                     },
                     {
-                        key: '2', label: '2. Nhu Cầu Gia Công (Outsource)',
+                        key: '2', label: '2. Nhu Cầu Gia Công',
                         children: (
                             <div>
                                 <Table dataSource={outsourcingList} rowKey={(r, i) => i || 0} pagination={false} size="small" scroll={{ y: 300 }}
@@ -328,7 +340,35 @@ const PlanningPage: React.FC = () => {
                         )
                     },
                     {
-                        key: '3', label: '3. Tiến Độ (Gantt)',
+                        key: '3', label: '3. Chi Phí Vận Chuyển',
+                        children: (
+                            <div>
+                                <div style={{ marginBottom: 10 }}>Dữ liệu lấy từ mục <b>Logistics</b> của từng sản phẩm.</div>
+                                <Table dataSource={logisticsList} rowKey={(r, i) => i || 0} pagination={false} size="small"
+                                    columns={[
+                                        { title: 'Sản Phẩm', dataIndex: 'product_sku', render: (t: any) => <b>{t}</b> },
+                                        { title: 'Khoản Mục', dataIndex: 'name' },
+                                        { title: 'Đơn Giá', dataIndex: 'cost', align: 'right' as const, render: (v: any) => Number(v).toLocaleString() },
+                                        { title: 'Số Lượng', dataIndex: 'quantity', align: 'center' as const },
+                                        { title: 'Thành Tiền', dataIndex: 'total_cost', align: 'right' as const, render: (v: any) => <b style={{ color: '#096dd9' }}>{Number(v).toLocaleString()}</b> },
+                                        { title: 'Ghi chú', dataIndex: 'note' }
+                                    ]}
+                                    summary={(pageData) => {
+                                        const total = pageData.reduce((prev, current) => prev + Number(current.total_cost), 0);
+                                        return (
+                                            <Table.Summary.Row>
+                                                <Table.Summary.Cell index={0} colSpan={4} align="right"><b>Tổng:</b></Table.Summary.Cell>
+                                                <Table.Summary.Cell index={1} align="right"><b>{total.toLocaleString()}</b></Table.Summary.Cell>
+                                                <Table.Summary.Cell index={2} />
+                                            </Table.Summary.Row>
+                                        );
+                                    }}
+                                />
+                            </div>
+                        )
+                    },
+                    {
+                        key: '4', label: '4. Tiến Độ (Gantt)',
                         children: (
                             <div>
                                 {mrpData?.gantt_data?.map((task: any) => (
@@ -341,7 +381,7 @@ const PlanningPage: React.FC = () => {
                         )
                     }
                 ]} />
-            </div>
+            </Modal>
         );
     };
 

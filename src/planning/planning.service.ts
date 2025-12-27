@@ -66,6 +66,7 @@ export class PlanningService {
                 plan_info: plan,
                 mrp_result: plan.mrp_data,
                 outsourcing_result: plan.outsourcing_data,
+                logistics_result: plan.logistics_data || [],
                 gantt_data: ganttData,
                 is_saved: true
             };
@@ -252,6 +253,26 @@ export class PlanningService {
         // Ở đây ta trả về list raw để FE hiển thị, gom nhóm khi tạo PO
         const outsourcingResult = outsourcingDemand;
 
+        // 5. Kết quả Logistics (Vận chuyển & Chi phí khác) --- MỚI ---
+        // Tổng hợp từ ProductLogistics của tất cả sản phẩm trong đơn hàng
+        const logisticsResult = [];
+        for (const [sku, qty] of totalProductDemand.entries()) {
+            const prodId = productInfoMap.get(sku);
+            if (prodId) {
+                const logs = await this.productsService.getLogistics(prodId);
+                for (const l of logs) {
+                    logisticsResult.push({
+                        product_sku: sku,
+                        name: l.name,
+                        cost: Number(l.cost),
+                        quantity: qty,
+                        total_cost: Number(l.cost) * qty,
+                        note: l.note
+                    });
+                }
+            }
+        }
+
         const ganttData = plan.sales_orders.map(so => ({
             id: so.order_code, name: `SX ${so.order_code}`, start: plan.start_date, end: so.delivery_date || plan.end_date, progress: 0
         }));
@@ -261,6 +282,7 @@ export class PlanningService {
         // --- NEW: Lưu kết quả phân tích vào DB lần đầu ---
         plan.mrp_data = mrpResult;
         plan.outsourcing_data = outsourcingResult;
+        plan.logistics_data = logisticsResult;
         // ------------------------------------------------
 
         await this.planRepo.save(plan);
@@ -268,16 +290,18 @@ export class PlanningService {
         return {
             plan_info: plan,
             mrp_result: mrpResult,
-            outsourcing_result: outsourcingResult, // <--- Trả về dữ liệu gia công
+            outsourcing_result: outsourcingResult,
+            logistics_result: logisticsResult,
             gantt_data: ganttData
         };
     }
 
-    async saveAnalysis(id: number, mrpData: any, outsourcingData: any) {
+    async saveAnalysis(id: number, mrpData: any, outsourcingData: any, logisticsData: any) {
         const plan = await this.planRepo.findOneBy({ id });
         if (!plan) throw new NotFoundException();
         plan.mrp_data = mrpData;
         plan.outsourcing_data = outsourcingData;
+        if (logisticsData) plan.logistics_data = logisticsData;
         await this.planRepo.save(plan);
         return { message: 'Đã lưu kết quả phân tích' };
     }

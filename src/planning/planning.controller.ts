@@ -10,7 +10,7 @@ export class PlanningController {
   @Get() findAll() { return this.s.findAll(); }
 
   @Post('mrp/:id') runMrp(@Param('id') id: number) { return this.s.calculateMaterialNeeds(id); }
-  @Post('save/:id') save(@Param('id') id: number, @Body() b: any) { return this.s.saveAnalysis(id, b.mrp_result, b.outsourcing_result); }
+  @Post('save/:id') save(@Param('id') id: number, @Body() b: any) { return this.s.saveAnalysis(id, b.mrp_result, b.outsourcing_result, b.logistics_result); }
 
   // Endpoint chung để tạo PO (cho cả NPL và Gia công)
   @Post(':id/generate-pos')
