@@ -59,6 +59,8 @@ export class PlanningService {
                 'sales_orders.items.product',
                 'sales_orders.items.product.components',
                 'sales_orders.items.product.components.child_product',
+                'sales_orders.items.product.components.child_product.boms',
+                'sales_orders.items.product.components.child_product.boms.material',
                 'sales_orders.items.product.boms',
                 'sales_orders.items.product.boms.material'
             ]
