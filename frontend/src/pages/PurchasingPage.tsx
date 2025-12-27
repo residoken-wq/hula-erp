@@ -16,6 +16,8 @@ const PurchasingPage: React.FC = () => {
     const [currentPO, setCurrentPO] = useState<any>(null);
     const [editingItems, setEditingItems] = useState<any[]>([]);
     const [poDeliveryInfo, setPoDeliveryInfo] = useState<any>({});
+    const [packingList, setPackingList] = useState<any[]>([]); // Matrix data
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false); // Print Selection Modal
 
     // Payment Modal (Nâng cấp)
     const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -61,6 +63,8 @@ const PurchasingPage: React.FC = () => {
         setEditingItems(record.items ? record.items.map((i: any) => ({ ...i })) : []);
         // Set delivery info
         setPoDeliveryInfo(record.delivery_info || {});
+        // Set packing list
+        setPackingList(record.packing_list_details || []);
         setIsDetailOpen(true);
     };
 
@@ -221,17 +225,131 @@ const PurchasingPage: React.FC = () => {
         try {
             await axios.put(`${API_URL}/purchasing/${currentPO.id}`, {
                 items: editingItems,
-                delivery_info: poDeliveryInfo
+                delivery_info: poDeliveryInfo,
+                packing_list_details: packingList
             });
             message.success('Đã lưu thay đổi PO');
             fetchData(); // Refresh global list
             // Update local currentPO to reflect changes safely
-            const updatedPO = { ...currentPO, items: editingItems, delivery_info: poDeliveryInfo };
+            const updatedPO = { ...currentPO, items: editingItems, delivery_info: poDeliveryInfo, packing_list_details: packingList };
             // Recalc total
             const newTotal = editingItems.reduce((acc, i) => acc + (i.subtotal || 0), 0);
             updatedPO.total_amount = newTotal;
             setCurrentPO(updatedPO);
         } catch (e) { message.error('Lỗi lưu PO'); }
+    };
+
+    const handlePrint = (template: string) => {
+        const w = window.open('', '_blank');
+        if (!w) return;
+
+        let content = '';
+        const dateStr = dayjs().format('DD/MM/YYYY');
+        const poCode = currentPO?.po_code || 'PO-XXXX';
+        const supplierName = currentPO?.supplier?.name || '';
+
+        // CSS Common
+        const style = `
+            <style>
+                body { font-family: 'Times New Roman', serif; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                th, td { border: 1px solid #000; padding: 5px; text-align: center; }
+                .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                .title { text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 20px; }
+                .left-align { text-align: left; }
+                .bold { font-weight: bold; }
+                @media print { .no-print { display: none; } }
+            </style>
+        `;
+
+        if (template === 'STANDARD') {
+            const rows = currentPO?.items?.map((i: any, idx: number) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td class="left-align">${i.description}</td>
+                    <td>${Number(i.quantity).toLocaleString()}</td>
+                    <td>${Number(i.unit_price).toLocaleString()}</td>
+                    <td>${Number(i.subtotal).toLocaleString()}</td>
+                </tr>
+            `).join('');
+
+            content = `
+                ${style}
+                <div class="header">
+                    <div><b>Date:</b> ${dateStr}</div>
+                    <div><b>PO No:</b> ${poCode}</div>
+                </div>
+                <div class="title">PURCHASE ORDER</div>
+                <p><b>Supplier:</b> ${supplierName}</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Description</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" style="text-align:right; font-weight:bold;">Total</td>
+                            <td style="font-weight:bold;">${Number(currentPO?.total_amount).toLocaleString()}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            `;
+        } else if (template === 'CARA' || template === 'HQ') {
+            const list = packingList.length > 0 ? packingList : [{ po_form_code: '', material_name: '' }];
+            const rows = list.map((r: any, idx: number) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td class="left-align">${r.po_form_code || ''}</td>
+                    <td class="left-align">${r.material_name || ''}</td>
+                    <td>${r.n1 || '-'}</td>
+                    <td>${r.n2 || '-'}</td>
+                    <td>${r.c1 || '-'}</td>
+                    <td>${r.c2 || '-'}</td>
+                    <td>-</td><td>-</td><td>-</td><td>-</td>
+                    <td>${r.note || ''}</td>
+                </tr>
+            `).join('');
+
+            content = `
+                ${style}
+                <style>th { background-color: #f0f0f0; }</style>
+                <div class="header">
+                    <div><b>Ngày:</b> ${dateStr}</div>
+                    <div><b>Mã PO:</b> ${poCode}</div>
+                </div>
+                <div class="title">ĐƠN ĐẶT HÀNG</div>
+                 <table>
+                    <thead>
+                        <tr>
+                            <th rowspan="2">STT</th>
+                            <th rowspan="2">Mã PO Form</th>
+                            <th rowspan="2">Mã Vải / Tên NPL</th>
+                            <th colspan="2">N</th>
+                            <th colspan="2">C</th>
+                            <th colspan="2">G</th>
+                            <th rowspan="2">Kiện lẻ</th>
+                            <th rowspan="2">Kiện viền</th>
+                            <th rowspan="2">Ghi chú</th>
+                        </tr>
+                        <tr>
+                            <th>N1</th><th>N2</th><th>C1</th><th>C2</th><th>G1</th><th>G2</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        w.document.write(`<html><head><title>Print PO ${poCode}</title></head><body>${content}</body></html>`);
+        w.document.close();
+        w.focus();
+        setTimeout(() => w.print(), 500);
     };
 
     // ----------------------------------
@@ -355,6 +473,14 @@ const PurchasingPage: React.FC = () => {
                         />
                     </Col>
                 </Row>
+            </Modal>
+            {/* MODAL PRINT SELECTION */}
+            <Modal title="Chọn Mẫu In PO" open={isPrintModalOpen} onCancel={() => setIsPrintModalOpen(false)} footer={null}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                    <Button block onClick={() => handlePrint('STANDARD')}>Mẫu Tiêu Chuẩn (Đơn hàng)</Button>
+                    <Button block onClick={() => handlePrint('CARA')}>Mẫu Đóng Gói (Cara Style)</Button>
+                    <Button block onClick={() => handlePrint('HQ')}>Mẫu Đóng Gói (HQ Style)</Button>
+                </Space>
             </Modal>
         </div>
     );
