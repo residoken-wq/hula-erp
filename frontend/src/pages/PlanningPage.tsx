@@ -107,6 +107,21 @@ const PlanningPage: React.FC = () => {
             setOutsourcingList(newData);
         }
     };
+
+    const handleSaveAnalysis = async () => {
+        if (!mrpData) return;
+        setLoading(true);
+        try {
+            await axios.post(`${API_URL}/planning/save/${mrpData.plan_info.id}`, {
+                mrp_result: mrpData.mrp_result,
+                outsourcing_result: outsourcingList
+            });
+            message.success('Đã lưu kết quả phân tích');
+        } catch (e) {
+            message.error('Lỗi khi lưu dữ liệu');
+        }
+        setLoading(false);
+    };
     // --------------------------------------------------
 
     const pendingColumns = [
@@ -300,7 +315,21 @@ const PlanningPage: React.FC = () => {
                     { key: 'PLANS', label: '2. Danh Sách Kế Hoạch', children: <Table dataSource={plans} columns={planColumns} rowKey="id" /> }
                 ]} />
             </Card>
-            <Modal title={`Phân Tích Kế Hoạch: ${mrpData?.plan_info?.name || ''}`} open={isDashboardOpen} onCancel={() => setIsDashboardOpen(false)} footer={null} width={1100} style={{ top: 20 }}>{renderDashboard()}</Modal>
+            <Modal
+                title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 30 }}>
+                        <span>Phân Tích Kế Hoạch: {mrpData?.plan_info?.name || ''}</span>
+                        <Button type="primary" onClick={handleSaveAnalysis} icon={<SaveOutlined />} loading={loading}>Lưu Kết Quả</Button>
+                    </div>
+                }
+                open={isDashboardOpen}
+                onCancel={() => setIsDashboardOpen(false)}
+                footer={null}
+                width={1100}
+                style={{ top: 20 }}
+            >
+                {renderDashboard()}
+            </Modal>
             <Modal title="Thiết Lập Kế Hoạch" open={isCreateModalOpen} onCancel={() => setIsCreateModalOpen(false)} onOk={() => form.submit()}><Form form={form} layout="vertical" onFinish={handleCreatePlan}><Form.Item name="code" label="Mã KH" rules={[{ required: true }]}><Input /></Form.Item><Form.Item name="name" label="Tên Đợt" rules={[{ required: true }]}><Input /></Form.Item><Form.Item name="dateRange" label="Thời Gian" rules={[{ required: true }]}><RangePicker style={{ width: '100%' }} /></Form.Item></Form></Modal>
         </div>
     );
