@@ -358,30 +358,41 @@ export class PlanningService {
                 note: `Tự động từ Kế hoạch ${planId}. NCC: ${suppName}`
             });
 
-            let total = 0;
 
-            po.items = (items as any[]).map(i => {
+
+            // 1. Save PO Header first
+            await this.poRepo.save(po);
+
+            // 2. Create and Save Items
+            const poItems = (items as any[]).map(i => {
                 const price = isMaterial ? i.cost : i.unit_price;
                 const sub = i.qtyToBuy * price;
-                total += sub;
 
-                // Ghép ghi chú từ FE vào mô tả item hoặc PO
                 const desc = isMaterial
                     ? i.material_name
                     : `${i.step_name} (${i.product_sku})`;
 
-                const poItem = new PurchaseOrderItem();
-                poItem.quantity = i.qtyToBuy;
-                poItem.unit_price = price;
-                poItem.subtotal = sub;
-                poItem.description = desc;
+                const poItem = this.poItemRepo.create({
+                    purchase_order: po, // Explicit link
+                    description: desc,
+                    quantity: i.qtyToBuy,
+                    unit_price: price,
+                    subtotal: sub,
+                    plan_id: planId
+                });
+
                 if (isMaterial) poItem.material_id = i.material_id;
-                poItem.plan_id = planId;
+
                 return poItem;
             });
 
-            po.total_amount = total;
+            await this.poItemRepo.save(poItems);
+
+            // 3. Update total amount
+            const totalAmount = poItems.reduce((acc, item) => acc + item.subtotal, 0);
+            po.total_amount = totalAmount;
             await this.poRepo.save(po);
+
             createdPos.push(po.po_code);
         }
         return { message: `Đã tạo ${createdPos.length} Đơn đặt hàng`, pos: createdPos };
