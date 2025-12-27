@@ -150,29 +150,6 @@ const PlanningPage: React.FC = () => {
         }
     ];
 
-    return (
-        <div>
-            {/* Same as before... */}
-        </div>
-    );
-     * / / / Wait, I must simply replace the `handleDataChange` and the columns part.I chose a large chunk.
-    // Let's replace specifically the `handleDataChange` to `renderDashboard` table columns part.
-
-    // RE-READING `PlanningPage.tsx` content (from previous turn 2186):
-    // Lines 99-106 is handleDataChange. 
-    // Lines 167-223 is columns.
-
-    // Steps: 
-    // 1. Replace handleDataChange.
-    // 2. Replace Columns array.
-    // Trying to do both in one REPLACE is risky if line numbers are far apart. They are lines 99 and 167. 
-    // Actually lines 99 is `handleDataChange` definition.
-    // I will split this into two edits for safety. Or Use ONE MultiReplace.
-
-    // EDIT 1: `handleDataChange`
-    // EDIT 2: Table Columns
-
-
     const handleSaveAnalysis = async () => {
         if (!mrpData) return;
         setLoading(true);
