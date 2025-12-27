@@ -612,7 +612,7 @@ const PurchasingPage: React.FC = () => {
                                         {
                                             title: 'Tổng SL', width: 100, align: 'right', render: (t, r, idx) => {
                                                 // Find matching item in PO items to get quantity
-                                                const matchingItem = record?.items?.find((i: any) => (i.material?.name || i.reference_name || i.sku) === r.material_name);
+                                                const matchingItem = currentPO?.items?.find((i: any) => (i.material?.name || i.reference_name || i.sku) === r.material_name);
                                                 return <b>{matchingItem ? Number(matchingItem.quantity).toLocaleString() : '-'}</b>;
                                             }
                                         },
