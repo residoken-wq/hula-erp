@@ -11,6 +11,9 @@ export class PurchasingController {
   @Get()
   findAll() { return this.s.getAllPOs(); }
 
+  @Get('requirements') getRequirements() { return this.s.getPendingRequirements(); }
+  @Post('create-pooled') createPooled(@Body() b: any) { return this.s.createPooledPO(b); }
+
   @Get(':id')
   findOne(@Param('id') id: number) { return this.s.getPODetail(id); }
 
@@ -40,6 +43,5 @@ export class PurchasingController {
   @Post('portal/:uuid/action')
   portalAction(@Param('uuid') uuid: string, @Body() b: any) { return this.s.supplierAction(uuid, b.action, b.note); }
 
-  @Get('requirements') getRequirements() { return this.s.getPendingRequirements(); }
-  @Post('create-pooled') createPooled(@Body() b: any) { return this.s.createPooledPO(b); }
+
 }
