@@ -12,20 +12,23 @@ import { GoodsReceipt } from './entities/goods-receipt.entity';
 import { InventoryModule } from '../inventory/inventory.module';
 import { ProductsModule } from '../products/products.module';
 import { SuppliersModule } from '../suppliers/suppliers.module';
+import { PlanningModule } from '../planning/planning.module'; // --- MỚI ---
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-        PurchaseOrder, 
-        PurchaseOrderItem, 
-        GoodsReceipt // <--- Đảm bảo đã đăng ký
+      PurchaseOrder,
+      PurchaseOrderItem,
+      GoodsReceipt // <--- Đảm bảo đã đăng ký
     ]),
     InventoryModule,
     ProductsModule,
-    SuppliersModule
+    ProductsModule,
+    SuppliersModule,
+    PlanningModule // --- MỚI: Import PlanningModule ---
   ],
   controllers: [PurchasingController],
   providers: [PurchasingService],
   exports: [PurchasingService]
 })
-export class PurchasingModule {}
+export class PurchasingModule { }

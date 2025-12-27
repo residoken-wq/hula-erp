@@ -375,7 +375,7 @@ export class PlanningService {
                     quantity: i.qtyToBuy,
                     unit_price: price,
                     subtotal: sub,
-                    note: i.note // <--- Lưu ghi chú dòng
+                    plan_id: id // --- MỚI: Link item to Plan ---
                 } as any) as unknown as PurchaseOrderItem;
             });
 

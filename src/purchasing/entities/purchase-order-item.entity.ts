@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { PurchaseOrder } from './purchase-order.entity'; 
-import { Material } from '../../materials/material.entity'; 
-import { Product } from '../../products/product.entity';   
+import { PurchaseOrder } from './purchase-order.entity';
+import { Material } from '../../materials/material.entity';
+import { Product } from '../../products/product.entity';
 
 @Entity('purchase_order_items')
 export class PurchaseOrderItem {
@@ -13,6 +13,11 @@ export class PurchaseOrderItem {
   @JoinColumn({ name: 'po_id' })
   purchase_order: PurchaseOrder;
   // ---------------------------------------------
+
+  // --- MỚI: Traceability - Link Item to specific Plan ---
+  @Column({ nullable: true })
+  plan_id: number;
+  // -----------------------------------------------------
 
   @ManyToOne(() => Material, { nullable: true })
   @JoinColumn({ name: 'material_id' })

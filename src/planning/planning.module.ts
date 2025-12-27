@@ -17,5 +17,6 @@ import { MaterialsModule } from '../materials/materials.module';
   ],
   controllers: [PlanningController],
   providers: [PlanningService],
+  exports: [PlanningService] // --- MỚI: Export để Purchasing dùng ---
 })
-export class PlanningModule {}
+export class PlanningModule { }
