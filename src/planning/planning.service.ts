@@ -71,6 +71,9 @@ export class PlanningService {
         }
 
         const materialDemand = new Map<number, number>();
+        const materialDemandRaw = new Map<number, number>(); // Nhu cầu gốc (Chưa hao hụt)
+        const materialWastageMap = new Map<number, number>(); // Lưu % hao hụt lớn nhất tìm thấy
+
         const outsourcingDemand = []; // --- MỚI: Danh sách nhu cầu gia công
 
         // 2. Phân tích BOM & ROUTING
@@ -126,8 +129,16 @@ export class PlanningService {
             const boms = await this.productsService.getBomByProductSku(sku);
             for (const bom of boms) {
                 if (bom.material_id) {
-                    const req = qty * Number(bom.quantity) * (1 + Number(bom.waste_percent) / 100);
+                    const rawReq = qty * Number(bom.quantity);
+                    const wastage = Number(bom.waste_percent) || 0;
+                    const req = rawReq * (1 + wastage / 100);
+
                     materialDemand.set(bom.material_id, (materialDemand.get(bom.material_id) || 0) + req);
+                    materialDemandRaw.set(bom.material_id, (materialDemandRaw.get(bom.material_id) || 0) + rawReq);
+
+                    // Lưu % hao hụt (Ưu tiên lấy max nếu có nhiều)
+                    const currentWastage = materialWastageMap.get(bom.material_id) || 0;
+                    if (wastage > currentWastage) materialWastageMap.set(bom.material_id, wastage);
                 }
             }
 
@@ -165,7 +176,10 @@ export class PlanningService {
                     net_requirement: net,
                     unit: mat.unit,
                     cost: mat.cost_per_unit,
-                    note: '' // Placeholder cho FE nhập
+
+                    note: '', // Placeholder cho FE nhập
+                    wastage_percent: materialWastageMap.get(mat.id) || 0,
+                    gross_raw: Math.ceil(materialDemandRaw.get(mat.id) || 0)
                 });
             }
         }

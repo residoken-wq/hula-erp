@@ -18,7 +18,14 @@ import {
     SaveOutlined,
     HistoryOutlined,
     CopyOutlined,
-    BellOutlined
+    HistoryOutlined,
+    CopyOutlined,
+    BellOutlined,
+    ProjectOutlined,
+    AppstoreAddOutlined,
+
+    ExperimentOutlined
+
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
@@ -601,6 +608,55 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'mrp-guide':
+                return (
+                    <div>
+                        <Tag color="volcano" style={{ marginBottom: 16 }}>Sản Xuất & Kho</Tag>
+                        <Title level={2}>🏭 Quản lý Nhu Cầu Nguyên Liệu (MRP)</Title>
+                        <Paragraph>
+                            Phân hệ Planning giúp tính toán tự động nhu cầu nguyên vật liệu dựa trên các đơn hàng bán (Sales Orders).
+                        </Paragraph>
+
+                        <Divider orientation="left">Quy trình vận hành</Divider>
+                        <Steps
+                            current={-1}
+                            direction="vertical"
+                            items={[
+                                {
+                                    title: 'Bước 1: Gom đơn hàng (Planning)',
+                                    description: 'Chọn các đơn hàng cần sản xuất trong tuần/tháng để lập thành một Kế hoạch (Plan).',
+                                    icon: <ProjectOutlined />
+                                },
+                                {
+                                    title: 'Bước 2: Phân tích MRP',
+                                    description: (
+                                        <ul>
+                                            <li>Hệ thống tự động phân tích BOM (Định mức) của từng sản phẩm.</li>
+                                            <li>Tính toán tổng lượng nguyên liệu cần thiết.</li>
+                                            <li><b>Cân đối kho:</b> Trừ đi lượng tồn kho thực tế để ra số lượng Cần Mua (Net Requirement).</li>
+                                        </ul>
+                                    ),
+                                    icon: <ExperimentOutlined />
+                                },
+                                {
+                                    title: 'Bước 3: Xử lý Hao hụt',
+                                    description: (
+                                        <ul>
+                                            <li>Hệ thống hiển thị <b>% Hao hụt</b> (theo định mức kỹ thuật).</li>
+                                            <li>Bạn có thể tham khảo cột <b>"Tổng nhu cầu (+Hao hụt)"</b> để biết số liệu an toàn.</li>
+                                            <li>Tại cột <b>"Cần Mua"</b>, bạn có thể điều chỉnh số lượng cuối cùng trước khi đặt hàng.</li>
+                                        </ul>
+                                    )
+                                },
+                                {
+                                    title: 'Bước 4: Tạo đơn mua hàng (PO)',
+                                    description: 'Nhấn nút "Tạo PO Nguyên Liệu". Hệ thống sẽ tự động tách PO theo từng Nhà cung cấp.',
+                                    icon: <AppstoreAddOutlined />
+                                }
+                            ]}
+                        />
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -649,6 +705,14 @@ const HelpPage: React.FC = () => {
                             icon: <DollarOutlined />,
                             children: [
                                 { key: 'finance-guide', label: 'Quản lý Thu/Chi' },
+                            ]
+                        },
+                        {
+                            key: 'sub4',
+                            label: 'Phân hệ Sản Xuất',
+                            icon: <ExperimentOutlined />,
+                            children: [
+                                { key: 'mrp-guide', label: 'Lập Kế Hoạch (MRP)' },
                             ]
                         }
                     ]}
