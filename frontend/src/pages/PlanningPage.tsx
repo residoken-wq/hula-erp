@@ -381,7 +381,7 @@ const PlanningPage: React.FC = () => {
                         )
                     }
                 ]} />
-            </Modal>
+            </div>
         );
     };
 
