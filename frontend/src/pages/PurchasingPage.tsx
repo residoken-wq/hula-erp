@@ -205,7 +205,8 @@ const PurchasingPage: React.FC = () => {
             await axios.put(`${API_URL}/purchasing/${currentPO.id}`, {
                 items: editingItems,
                 delivery_info: poDeliveryInfo,
-                packing_list_details: packingList
+                packing_list_details: packingList,
+                supplier_id: currentPO.supplier?.id // Include Supplier ID
             });
             message.success('Đã lưu thay đổi PO');
             fetchData(); // Refresh global list
@@ -415,7 +416,16 @@ const PurchasingPage: React.FC = () => {
                 ]}
             >
                 <Descriptions size="small" bordered column={2} style={{ marginBottom: 16 }}>
-                    <Descriptions.Item label="NCC">{currentPO?.supplier?.name}</Descriptions.Item>
+                    <Descriptions.Item label="NCC">
+                        <Select
+                            showSearch
+                            style={{ width: 250 }}
+                            value={currentPO?.supplier?.id}
+                            onChange={(id) => setCurrentPO({ ...currentPO, supplier: { ...currentPO.supplier, id: id, name: suppliers.find(s => s.id === id)?.name } })}
+                            options={suppliers.map((s: any) => ({ label: s.name, value: s.id }))}
+                            optionFilterProp="label"
+                        />
+                    </Descriptions.Item>
                     <Descriptions.Item label="Tổng tiền"><b style={{ fontSize: 16 }}>{Number(currentPO?.total_amount).toLocaleString()} ₫</b></Descriptions.Item>
                     <Descriptions.Item label="Đã trả" contentStyle={{ color: 'green', fontWeight: 'bold' }}>{Number(currentPO?.paid_amount).toLocaleString()} ₫</Descriptions.Item>
                     <Descriptions.Item label="Còn lại" contentStyle={{ color: 'red' }}>{Number((currentPO?.total_amount || 0) - (currentPO?.paid_amount || 0)).toLocaleString()} ₫</Descriptions.Item>

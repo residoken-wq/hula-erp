@@ -66,8 +66,9 @@ export class PurchasingService {
 
         if (data.outsourcing_delivery_info) po.outsourcing_delivery_info = data.outsourcing_delivery_info;
         if (data.delivery_info) po.delivery_info = data.delivery_info;
-        if (data.packing_list_details) po.packing_list_details = data.packing_list_details; // New
+        if (data.packing_list_details) po.packing_list_details = data.packing_list_details;
         if (data.status) po.status = data.status;
+        if (data.supplier_id) po.supplier = { id: data.supplier_id } as any; // Update Supplier relation
 
         // --- MỚI: Update Items logic ---
         if (data.items && Array.isArray(data.items)) {
