@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Typography, Card, Steps, Divider, Tag, Alert, Row, Col, Button, Breadcrumb, Tree } from 'antd';
+import { Layout, Menu, Typography, Card, Steps, Divider, Tag, Alert, Row, Col, Button, Breadcrumb, Tree, Descriptions } from 'antd';
 import {
     BookOutlined,
     ShopOutlined,
@@ -25,7 +25,9 @@ import {
     BranchesOutlined,
     DatabaseOutlined,
     TagsOutlined,
-    GiftOutlined
+    GiftOutlined,
+    ContainerOutlined,
+    CalculatorOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
@@ -698,13 +700,22 @@ const HelpPage: React.FC = () => {
                                                         ],
                                                     },
                                                     {
-                                                        title: <Text type="success" strong>Biến thể (Variants - SKU)</Text>,
+                                                        title: 'Thuộc tính: Logo',
                                                         key: '0-0-2',
+                                                        icon: <TagsOutlined />,
+                                                        children: [
+                                                            { title: NIKE, key: '0-0-2-0' },
+                                                            { title: 'ADIDAS', key: '0-0-2-1' },
+                                                        ],
+                                                    },
+                                                    {
+                                                        title: <Text type="success" strong>Biến thể (Variants - SKU)</Text>,
+                                                        key: '0-0-3',
                                                         icon: <BranchesOutlined />,
                                                         children: [
-                                                            { title: 'Áo Thun - Đỏ - Size M (AT-RED-M)', key: '0-0-2-0', isLeaf: true },
-                                                            { title: 'Áo Thun - Đỏ - Size L (AT-RED-L)', key: '0-0-2-1', isLeaf: true },
-                                                            { title: 'Áo Thun - Xanh - Size M (AT-BLUE-M)', key: '0-0-2-2', isLeaf: true },
+                                                            { title: 'Áo Thun - Đỏ - Size M (AT-RED-M)', key: '0-0-3-0', isLeaf: true },
+                                                            { title: 'Áo Thun - Đỏ - Size L (AT-RED-L)', key: '0-0-3-1', isLeaf: true },
+                                                            { title: 'Áo Thun - Xanh - Size M (AT-BLUE-M)', key: '0-0-3-2', isLeaf: true },
                                                         ],
                                                     },
                                                 ],
@@ -784,6 +795,83 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'inventory-guide':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Quản lý Kho</Tag>
+                        <Title level={2}>📦 Quản lý Kho & Quy đổi Đơn vị (Unit Conversion)</Title>
+                        <Paragraph>
+                            HULA ERP hỗ trợ quản lý đa đơn vị tính cho Nguyên vật liệu (NPL), giúp doanh nghiệp dễ dàng nhập kho theo quy cách mua hàng và xuất kho theo quy cách sản xuất.
+                        </Paragraph>
+
+                        <Divider orientation="left">I. Khái niệm cơ bản</Divider>
+                        <Row gutter={16} style={{ marginBottom: 20 }}>
+                            <Col span={8}>
+                                <Card title="Đơn vị Cơ sở (Base Unit)" size="small" bordered>
+                                    <Text type="secondary">Là đơn vị nhỏ nhất dùng để tính toán tồn kho và BOM.</Text>
+                                    <div style={{ marginTop: 8 }}><b>Ví dụ:</b> Mét (m), Gram (g), Cái (pcs).</div>
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card title="Đơn vị Mua (Purchase Unit)" size="small" bordered>
+                                    <Text type="secondary">Là đơn vị khi đặt hàng từ nhà cung cấp.</Text>
+                                    <div style={{ marginTop: 8 }}><b>Ví dụ:</b> Cây (Roll), Bao (Bag), Thùng.</div>
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card title="Hệ số Quy đổi (Factor)" size="small" bordered>
+                                    <Text type="secondary">Tỷ lệ chuyển đổi giữa đơn vị mua và đơn vị cơ sở.</Text>
+                                    <div style={{ marginTop: 8 }}><b>Ví dụ:</b> 1 Cây = 50 Mét <br />(Factor = 50).</div>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Divider orientation="left">II. Công thức quy đổi (Formula)</Divider>
+                        <Alert
+                            message="Nguyên tắc tính toán"
+                            description={
+                                <div>
+                                    <Paragraph>
+                                        Hệ thống luôn quy đổi mọi giao dịch về <b>Đơn vị Cơ sở</b> để ghi nhận vào kho.
+                                    </Paragraph>
+                                    <ul style={{ listStyleType: 'none', padding: 0 }}>
+                                        <li style={{ marginBottom: 10 }}>
+                                            <CalculatorOutlined style={{ color: '#eb2f96', marginRight: 8 }} />
+                                            <b>Số lượng Tồn kho (Base)</b> = <Text code>Số lượng Nhập (Mua)</Text> × <Text code>Hệ số quy đổi</Text>
+                                        </li>
+                                        <li>
+                                            <DollarOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                                            <b>Giá vốn (Base Cost)</b> = <Text code>Giá mua (Đơn vị mua)</Text> ÷ <Text code>Hệ số quy đổi</Text>
+                                        </li>
+                                    </ul>
+                                </div>
+                            }
+                            type="success"
+                            showIcon
+                            icon={<ExperimentOutlined />}
+                        />
+
+                        <Divider orientation="left">III. Ví dụ minh họa</Divider>
+                        <Card style={{ background: '#fafafa' }}>
+                            <Descriptions title="Nhập kho Vải Thun (Mã: V01)" bordered column={1}>
+                                <Descriptions.Item label="Thiết lập Ban đầu">
+                                    Đơn vị cơ sở: <b>Mét (m)</b> <br />
+                                    Đơn vị mua: <b>Cây (Roll)</b> <br />
+                                    Hệ số (Conversion Factor): <b>40</b> (Tức là 1 Cây = 40 Mét)
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Giao dịch Nhập hàng">
+                                    Nhập: <b>10 Cây</b> <br />
+                                    Đơn giá mua: <b>100.000đ / Cây</b>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Kết quả trong Kho">
+                                    Tồn kho tăng thêm: 10 * 40 = <b>400 Mét</b> <br />
+                                    Giá vốn bình quân: 100.000 / 40 = <b>2.500đ / Mét</b>
+                                </Descriptions.Item>
+                            </Descriptions>
+                        </Card>
+
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -842,6 +930,14 @@ const HelpPage: React.FC = () => {
                                 { key: 'mrp-guide', label: 'Lập Kế Hoạch (MRP)' },
                                 { key: 'product-guide', label: 'Cấu trúc Sản phẩm' },
                                 { key: 'combo-guide', label: 'Quản lý Combo' },
+                            ]
+                        },
+                        {
+                            key: 'sub5',
+                            label: 'Phân hệ Kho Vận',
+                            icon: <ContainerOutlined />,
+                            children: [
+                                { key: 'inventory-guide', label: 'Kho & Quy đổi Đơn vị' },
                             ]
                         }
                     ]}
