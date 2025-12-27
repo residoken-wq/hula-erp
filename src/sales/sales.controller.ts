@@ -1,9 +1,13 @@
 import { Controller, Post, Get, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { SalesService } from './sales.service';
+import { AiSuggestionService } from './ai-suggestion.service';
 
 @Controller('sales')
 export class SalesController {
-    constructor(private readonly s: SalesService) { }
+    constructor(
+        private readonly s: SalesService,
+        private readonly ai: AiSuggestionService
+    ) { }
 
     // ============================================================
     // 1. CÁC API TĨNH (STATIC ROUTES) - ĐẶT LÊN ĐẦU ĐỂ TRÁNH CONFLICT
@@ -11,6 +15,9 @@ export class SalesController {
 
     @Post('price-lists')
     createPriceList(@Body() body: any) { return this.s.createPriceList(body); }
+
+    @Post('price-lists/ai-suggest')
+    aiSuggest(@Body() body: any) { return this.ai.generatePriceSuggestions(body); }
 
     @Get('price-lists')
     getAllPriceLists() { return this.s.getAllPriceLists(); }

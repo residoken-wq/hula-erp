@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Select, Tag, Drawer, Row, Col, InputNumber, Divider, Space, Typography } from 'antd';
-import { PlusOutlined, SettingOutlined, CalendarOutlined, RiseOutlined, FallOutlined, TeamOutlined } from '@ant-design/icons';
+import { PlusOutlined, SettingOutlined, CalendarOutlined, RiseOutlined, FallOutlined, TeamOutlined, RobotOutlined, BulbOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 // API_URL is handled by api client baseURL
@@ -21,7 +21,15 @@ const PriceListsPage: React.FC = () => {
     const [currentPriceList, setCurrentPriceList] = useState<any>(null);
     const [currentRules, setCurrentRules] = useState<any[]>([]);
     const [formRule] = Form.useForm();
+
     const [loadingRules, setLoadingRules] = useState(false);
+
+    // AI States
+    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiResult, setAiResult] = useState<any>(null);
+    const [selectedScenario, setSelectedScenario] = useState('Chung');
+
 
     // Load Data
     const fetchData = async () => {
@@ -83,6 +91,54 @@ const PriceListsPage: React.FC = () => {
             formRule.resetFields();
             fetchRules(currentPriceList.id);
         } catch (e: any) { message.error(e.response?.data?.message || 'Lỗi thêm quy tắc'); }
+    };
+
+    // AI Handlers
+    const handleAiSuggest = async () => {
+        setAiLoading(true);
+        try {
+            // Chuẩn bị danh sách sản phẩm mẫu để AI gợi ý (Lấy top 5 hoặc toàn bộ tùy ý)
+            // Ở đây mình lấy danh sách products đã load
+            const prodsForAi = products.map(p => ({
+                sku: p.value,
+                name: p.label,
+                price: 100000 // Mock base price nếu không có
+            }));
+
+            const res = await api.post('/sales/price-lists/ai-suggest', {
+                scenario: selectedScenario,
+                products: prodsForAi
+            });
+
+            setAiResult(res.data);
+        } catch (e) {
+            message.error('Lỗi khi gọi AI Assistant');
+        }
+        setAiLoading(false);
+    };
+
+    const handleApplyAiRules = async () => {
+        if (!aiResult || !aiResult.suggested_rules) return;
+        setAiLoading(true);
+        try {
+            // Apply từng rule (Thực tế nên có API bulk insert)
+            let count = 0;
+            for (const rule of aiResult.suggested_rules) {
+                try {
+                    await api.post(`/sales/price-lists/${currentPriceList.id}/rules`, rule);
+                    count++;
+                } catch (e) {
+                    // Ignore duplicate or error individual
+                }
+            }
+            message.success(`Đã áp dụng thành công ${count} quy tắc giá từ AI!`);
+            setIsAiModalOpen(false);
+            setAiResult(null);
+            fetchRules(currentPriceList.id); // Reload list
+        } catch (e) {
+            message.error('Lỗi khi áp dụng gợi ý');
+        }
+        setAiLoading(false);
     };
 
     const listColumns = [
@@ -177,7 +233,10 @@ const PriceListsPage: React.FC = () => {
             {/* DRAWER RULES */}
             <Drawer title={currentPriceList ? `Cấu hình chi tiết: ${currentPriceList.name}` : 'Chi tiết Bảng Giá'} width={800} open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} bodyStyle={{ paddingTop: 10, background: '#f0f2f5' }}>
                 <div style={{ background: '#fff', padding: 20, borderRadius: 8, marginBottom: 15, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                    <div style={{ fontWeight: 600, marginBottom: 15, color: '#0050b3', textTransform: 'uppercase', fontSize: 13 }}>Thêm / Cập nhật Giá Sỉ</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                        <div style={{ fontWeight: 600, color: '#0050b3', textTransform: 'uppercase', fontSize: 13 }}>Thêm / Cập nhật Giá Sỉ</div>
+                        <Button type="dashed" icon={<RobotOutlined />} onClick={() => setIsAiModalOpen(true)} style={{ color: '#722ed1', borderColor: '#722ed1' }}>AI Consultant</Button>
+                    </div>
                     <Form form={formRule} layout="vertical" onFinish={handleAddRule}>
                         <Row gutter={16}>
                             <Col span={16}>
@@ -223,6 +282,66 @@ const PriceListsPage: React.FC = () => {
                 </div>
                 <Table dataSource={currentRules} columns={ruleColumns} rowKey="id" loading={loadingRules} size="small" pagination={{ pageSize: 10 }} style={{ background: '#fff', borderRadius: 8 }} />
             </Drawer>
+
+            {/* AI MODAL */}
+            <Modal
+                title={<span><RobotOutlined style={{ marginRight: 8, color: '#722ed1' }} />AI Price Consultant</span>}
+                open={isAiModalOpen}
+                onCancel={() => setIsAiModalOpen(false)}
+                footer={[
+                    <Button key="close" onClick={() => setIsAiModalOpen(false)}>Đóng</Button>,
+                    <Button key="apply" type="primary" onClick={handleApplyAiRules} disabled={!aiResult} loading={aiLoading} icon={<BulbOutlined />}>Áp dụng Gợi ý</Button>
+                ]}
+                width={700}
+            >
+                <Card style={{ marginBottom: 20 }} size="small">
+                    <Row gutter={16} align="middle">
+                        <Col span={16}>
+                            <span style={{ marginRight: 10 }}>Chọn Bối cảnh/Kịch bản:</span>
+                            <Select
+                                defaultValue="Chung"
+                                style={{ width: 200 }}
+                                onChange={setSelectedScenario}
+                                options={[
+                                    { value: 'Chung', label: 'Thị trường Chung' },
+                                    { value: 'Mua He', label: 'Chiến dịch Mùa Hè' },
+                                    { value: 'Khách VIP', label: 'Khách hàng Doanh Nghiệp/VIP' },
+                                ]}
+                            />
+                        </Col>
+                        <Col span={8} style={{ textAlign: 'right' }}>
+                            <Button type="primary" onClick={handleAiSuggest} loading={aiLoading}>Phân tích ngay</Button>
+                        </Col>
+                    </Row>
+                </Card>
+
+                {aiResult && (
+                    <div style={{ animation: 'fadeIn 0.5s' }}>
+                        <div style={{ background: '#f9f0ff', padding: 15, borderRadius: 8, border: '1px solid #d3adf7', marginBottom: 20 }}>
+                            <h4 style={{ color: '#531dab', marginTop: 0 }}><RiseOutlined /> Phân tích Thị trường & Đối thủ</h4>
+                            <div style={{ whiteSpace: 'pre-line', fontSize: 13 }}>{aiResult.market_analysis}</div>
+                            <Divider style={{ margin: '10px 0' }} />
+                            <div style={{ fontWeight: 600, color: '#722ed1' }}><BulbOutlined /> Lời khuyên: {aiResult.general_advice}</div>
+                        </div>
+
+                        <h4>Dự kiến Giá đề xuất ({aiResult.suggested_rules?.length} sản phẩm):</h4>
+                        <div style={{ maxHeight: 300, overflowY: 'auto', background: '#fafafa', padding: 10, borderRadius: 4 }}>
+                            <Table
+                                dataSource={aiResult.suggested_rules}
+                                size="small"
+                                pagination={false}
+                                rowKey="product_sku"
+                                columns={[
+                                    { title: 'SKU', dataIndex: 'product_sku', width: 100 },
+                                    { title: 'Giá 100', dataIndex: 'price_100', render: (v: any) => Number(v).toLocaleString() },
+                                    { title: 'Margin Min', dataIndex: 'min_margin', render: (v: any) => `${v}%` },
+                                    { title: 'Lý do', dataIndex: 'reason', ellipsis: true }
+                                ]}
+                            />
+                        </div>
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 };
