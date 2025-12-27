@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Select, Tag, Drawer, Row, Col, InputNumber, Divider, Space, Typography } from 'antd';
-import { PlusOutlined, SettingOutlined, CalendarOutlined, RiseOutlined, FallOutlined, TeamOutlined } from '@ant-design/icons';
+import { PlusOutlined, SettingOutlined, CalendarOutlined, RiseOutlined, FallOutlined, TeamOutlined, RobotOutlined } from '@ant-design/icons';
 import api from '../utils/api';
+import AiPricingModal from '../components/AiPricingModal';
 import dayjs from 'dayjs';
 // API_URL is handled by api client baseURL
 
@@ -174,57 +175,110 @@ const PriceListsPage: React.FC = () => {
                 </Form>
             </Modal>
 
-            {/* DRAWER RULES */}
-            <Drawer title={currentPriceList ? `Cấu hình chi tiết: ${currentPriceList.name}` : 'Chi tiết Bảng Giá'} width={800} open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} bodyStyle={{ paddingTop: 10, background: '#f0f2f5' }}>
-                <div style={{ background: '#fff', padding: 20, borderRadius: 8, marginBottom: 15, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
-                    <div style={{ fontWeight: 600, marginBottom: 15, color: '#0050b3', textTransform: 'uppercase', fontSize: 13 }}>Thêm / Cập nhật Giá Sỉ</div>
-                    <Form form={formRule} layout="vertical" onFinish={handleAddRule}>
-                        <Row gutter={16}>
-                            <Col span={16}>
-                                <Form.Item name="product_sku" label="Sản phẩm áp dụng" rules={[{ required: true }]}>
-                                    <Select
-                                        showSearch
-                                        options={products}
-                                        placeholder="Tìm kiếm SKU hoặc Tên sản phẩm..."
-                                        optionFilterProp="label"
-                                        filterOption={(input: string, option: any) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
-                                    />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}><Form.Item label=" " colon={false}><Button type="primary" htmlType="submit" icon={<PlusOutlined />} block>Lưu Cấu Hình</Button></Form.Item></Col>
-                        </Row>
+            const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+            const [aiProduct, setAiProduct] = useState<any>(null);
 
-                        <Divider orientation="left" style={{ margin: '5px 0 15px 0', fontSize: 13, color: '#fa541c' }}>Bảng Giá Sỉ (Đề xuất)</Divider>
-                        <Row gutter={16}>
-                            <Col span={8}>
-                                <Form.Item name="price_100" label="Giá (SL 100) - Giá Gốc" rules={[{ required: true }]}>
-                                    <InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
-                                </Form.Item>
-                                <div style={{ fontSize: 11, color: '#888', marginTop: -5 }}>Đây là giá tham chiếu gốc</div>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item name="price_50" label="Giá (SL 50)">
-                                    <InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item name="price_30" label="Giá (SL 30)">
-                                    <InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
-                                </Form.Item>
-                            </Col>
-                        </Row>
+    const openAiModal = () => {
+        // Lấy thông tin sản phẩm đang chọn trong form
+        const sku = formRule.getFieldValue('product_sku');
+                if (!sku) return message.warning('Vui lòng chọn sản phẩm trước');
+        
+        const prod = products.find(p => p.value === sku);
+                if (!prod) return message.error('Không tìm thấy thông tin sản phẩm');
 
-                        <Divider orientation="left" style={{ margin: '15px 0 15px 0', fontSize: 12 }}>Giới hạn (Tùy chọn)</Divider>
-                        <Row gutter={16}>
-                            <Col span={6}><Form.Item name="min_price" label="Giá Min (₫)"><InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="Thấp nhất" /></Form.Item></Col>
-                            <Col span={6}><Form.Item name="min_margin" label="Margin Min (%)"><InputNumber style={{ width: '100%' }} placeholder="Lãi min" /></Form.Item></Col>
-                        </Row>
-                    </Form>
+                // Cần lấy giá vốn (cost_price) từ backend nếu trong products chưa có đủ info
+                // Ở đây giả định fetch lại hoặc products đã có (đã map ở fetchData)
+                // Tuy nhiên products state hiện tại chỉ có label/value. Cần check lại fetchData.
+                // Để nhanh, ta lấy tạm giá từ list products full nếu có, hoặc fetch detail.
+                // Tối ưu: fetchData nên lưu full list sản phẩm.
+
+                // FIX: Fetch product detail để lấy cost_price chính xác
+                api.get(`/products/${prod.value}/sku`).then(res => {
+                    setAiProduct(res.data);
+                setIsAiModalOpen(true);
+        }).catch(() => message.error('Lỗi lấy giá vốn sản phẩm'));
+    };
+
+    const handleAiApply = (prices: any) => {
+                    formRule.setFieldsValue({
+                        price_100: prices.price_100,
+                        price_50: prices.price_50,
+                        price_30: prices.price_30,
+                        min_price: prices.min_price
+                    });
+                message.success('Đã áp dụng giá đề xuất');
+    };
+
+                // ... (keep existing code)
+
+                return (
+                <div style={{ paddingBottom: 20 }}>
+                    {/* ... (keep existing code) */}
+
+                    {/* DRAWER RULES */}
+                    <Drawer title={currentPriceList ? `Cấu hình chi tiết: ${currentPriceList.name}` : 'Chi tiết Bảng Giá'} width={800} open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} bodyStyle={{ paddingTop: 10, background: '#f0f2f5' }}>
+                        <div style={{ background: '#fff', padding: 20, borderRadius: 8, marginBottom: 15, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                                <div style={{ fontWeight: 600, color: '#0050b3', textTransform: 'uppercase', fontSize: 13 }}>Thêm / Cập nhật Giá Sỉ</div>
+                                <Button type="dashed" size="small" icon={<RobotOutlined style={{ color: '#1890ff' }} />} onClick={openAiModal}>AI Trợ Giá</Button>
+                            </div>
+
+                            <Form form={formRule} layout="vertical" onFinish={handleAddRule}>
+                                {/* ... (keep existing form items) */}
+                                <Row gutter={16}>
+                                    <Col span={16}>
+                                        <Form.Item name="product_sku" label="Sản phẩm áp dụng" rules={[{ required: true }]}>
+                                            <Select
+                                                showSearch
+                                                options={products}
+                                                placeholder="Tìm kiếm SKU hoặc Tên sản phẩm..."
+                                                optionFilterProp="label"
+                                                filterOption={(input: string, option: any) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={8}><Form.Item label=" " colon={false}><Button type="primary" htmlType="submit" icon={<PlusOutlined />} block>Lưu Cấu Hình</Button></Form.Item></Col>
+                                </Row>
+
+                                <Divider orientation="left" style={{ margin: '5px 0 15px 0', fontSize: 13, color: '#fa541c' }}>Bảng Giá Sỉ (Đề xuất)</Divider>
+                                <Row gutter={16}>
+                                    <Col span={8}>
+                                        <Form.Item name="price_100" label="Giá (SL 100) - Giá Gốc" rules={[{ required: true }]}>
+                                            <InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
+                                        </Form.Item>
+                                        <div style={{ fontSize: 11, color: '#888', marginTop: -5 }}>Đây là giá tham chiếu gốc</div>
+                                    </Col>
+                                    <Col span={8}>
+                                        <Form.Item name="price_50" label="Giá (SL 50)">
+                                            <InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={8}>
+                                        <Form.Item name="price_30" label="Giá (SL 30)">
+                                            <InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="0" />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+
+                                <Divider orientation="left" style={{ margin: '15px 0 15px 0', fontSize: 12 }}>Giới hạn (Tùy chọn)</Divider>
+                                <Row gutter={16}>
+                                    <Col span={6}><Form.Item name="min_price" label="Giá Min (₫)"><InputNumber style={{ width: '100%' }} formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} placeholder="Thấp nhất" /></Form.Item></Col>
+                                    <Col span={6}><Form.Item name="min_margin" label="Margin Min (%)"><InputNumber style={{ width: '100%' }} placeholder="Lãi min" /></Form.Item></Col>
+                                </Row>
+                            </Form>
+                        </div>
+                        <Table dataSource={currentRules} columns={ruleColumns} rowKey="id" loading={loadingRules} size="small" pagination={{ pageSize: 10 }} style={{ background: '#fff', borderRadius: 8 }} />
+                    </Drawer>
+
+                    <AiPricingModal
+                        open={isAiModalOpen}
+                        onClose={() => setIsAiModalOpen(false)}
+                        productName={aiProduct?.name}
+                        costPrice={Number(aiProduct?.cost_price) || 0}
+                        onApply={handleAiApply}
+                    />
                 </div>
-                <Table dataSource={currentRules} columns={ruleColumns} rowKey="id" loading={loadingRules} size="small" pagination={{ pageSize: 10 }} style={{ background: '#fff', borderRadius: 8 }} />
-            </Drawer>
-        </div>
-    );
+                );
 };
 
-export default PriceListsPage;
+                export default PriceListsPage;

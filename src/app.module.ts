@@ -77,6 +77,8 @@ import { ActivityLog } from './system/entities/activity-log.entity';
 
 import { AppController } from './app.controller';
 
+import { AiModule } from './ai/ai.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -113,7 +115,7 @@ import { AppController } from './app.controller';
     InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
     TasksModule, NotificationsModule, SystemModule,
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
-    ProcessesModule, CategoriesModule,
+    ProcessesModule, CategoriesModule, AiModule,
   ],
   controllers: [AppController]
 })
