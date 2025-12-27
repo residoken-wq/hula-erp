@@ -59,7 +59,7 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
         // Giả sử hiệu suất giác sơ đồ (Marker Efficiency) khoảng 85% - 90% (Hệ số hao hụt)
         // Công thức ước lượng: (Tổng diện tích / Khổ vải) * Hệ số hao hụt (1.15)
         // Đổi đơn vị: Area (cm2), Width (cm) => Length (cm) => (m)
-        
+
         const efficiency = 0.85; // Hiệu suất sử dụng vải trung bình
         const estimatedLengthCm = (totalArea / width) / efficiency;
         const estimatedLengthM = estimatedLengthCm / 100;
@@ -85,28 +85,28 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
     // Lưu ý: Đây là Mock upload, thực tế cần API upload file trả về URL
     const uploadProps = {
         name: 'file',
-        action: `${API_URL}/upload`, // Giả định có API upload
+        action: `${API_URL}/upload/image`, // Correct API Endpoint
         showUploadList: false,
         onChange(info: any) {
             if (info.file.status === 'done') {
-                // Giả sử API trả về { url: '...' }
-                // setImageUrl(info.file.response.url); 
-                // Demo Local:
-                const reader = new FileReader();
-                reader.onload = (e) => setImageUrl(e.target?.result as string);
-                reader.readAsDataURL(info.file.originFileObj);
-                message.success('Upload ảnh thành công');
+                // API returns { url: '/uploads/filename.ext' }
+                if (info.file.response && info.file.response.url) {
+                    setImageUrl(info.file.response.url);
+                    message.success('Upload ảnh thành công');
+                }
+            } else if (info.file.status === 'error') {
+                message.error(`${info.file.name} upload thất bại.`);
             }
         },
     };
 
     // --- TABLE CHI TIẾT ---
     const columns = [
-        { title: 'Tên chi tiết', dataIndex: 'name', render: (t:any, r:any, i:number) => <Input value={t} onChange={e => updateDetail(i, 'name', e.target.value)} placeholder="Vd: Thân trước" /> },
-        { title: 'Dài (cm)', dataIndex: 'length', width: 100, render: (t:any, r:any, i:number) => <InputNumber min={0} value={t} onChange={v => updateDetail(i, 'length', v)} /> },
-        { title: 'Rộng (cm)', dataIndex: 'width', width: 100, render: (t:any, r:any, i:number) => <InputNumber min={0} value={t} onChange={v => updateDetail(i, 'width', v)} /> },
-        { title: 'Số lượng', dataIndex: 'quantity', width: 80, render: (t:any, r:any, i:number) => <InputNumber min={1} value={t} onChange={v => updateDetail(i, 'quantity', v)} /> },
-        { title: 'Xóa', width: 50, render: (_:any, __:any, i:number) => <Button danger icon={<DeleteOutlined />} size="small" onClick={() => { const n=[...details]; n.splice(i,1); setDetails(n); }} /> }
+        { title: 'Tên chi tiết', dataIndex: 'name', render: (t: any, r: any, i: number) => <Input value={t} onChange={e => updateDetail(i, 'name', e.target.value)} placeholder="Vd: Thân trước" /> },
+        { title: 'Dài (cm)', dataIndex: 'length', width: 100, render: (t: any, r: any, i: number) => <InputNumber min={0} value={t} onChange={v => updateDetail(i, 'length', v)} /> },
+        { title: 'Rộng (cm)', dataIndex: 'width', width: 100, render: (t: any, r: any, i: number) => <InputNumber min={0} value={t} onChange={v => updateDetail(i, 'width', v)} /> },
+        { title: 'Số lượng', dataIndex: 'quantity', width: 80, render: (t: any, r: any, i: number) => <InputNumber min={1} value={t} onChange={v => updateDetail(i, 'quantity', v)} /> },
+        { title: 'Xóa', width: 50, render: (_: any, __: any, i: number) => <Button danger icon={<DeleteOutlined />} size="small" onClick={() => { const n = [...details]; n.splice(i, 1); setDetails(n); }} /> }
     ];
 
     const updateDetail = (index: number, field: string, value: any) => {
@@ -138,7 +138,7 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
                         <Form.Item name="fabric_width" label="Khổ vải (cm)" rules={[{ required: true }]}>
                             <InputNumber style={{ width: '100%' }} suffix="cm" placeholder="Vd: 150" />
                         </Form.Item>
-                        
+
                         <div style={{ background: '#e6f7ff', padding: 15, borderRadius: 8, border: '1px solid #91d5ff', marginBottom: 20 }}>
                             <Form.Item name="fabric_yield" label={<span style={{ fontWeight: 'bold', color: '#0050b3' }}>Định mức tiêu hao (Yield)</span>} style={{ marginBottom: 0 }}>
                                 <InputNumber style={{ width: '100%', fontSize: 16, fontWeight: 'bold' }} step={0.0001} addonAfter="mét / sp" />
@@ -160,21 +160,21 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
             {/* Cột Phải: Chi tiết bán thành phẩm */}
             <Col span={14}>
                 <Card title="Chi tiết các tấm rập (Cut Pieces)" size="small" extra={<Button size="small" type="dashed" icon={<PlusOutlined />} onClick={() => setDetails([...details, { quantity: 1 }])}>Thêm chi tiết</Button>}>
-                    <Table 
-                        dataSource={details} 
-                        columns={columns} 
-                        rowKey={(r, i) => i || 0} 
-                        pagination={false} 
+                    <Table
+                        dataSource={details}
+                        columns={columns}
+                        rowKey={(r, i) => i || 0}
+                        pagination={false}
                         size="small"
                         summary={(pageData) => {
                             let totalArea = 0;
                             pageData.forEach(({ length, width, quantity }) => {
-                                totalArea += (Number(length||0) * Number(width||0) * Number(quantity||0));
+                                totalArea += (Number(length || 0) * Number(width || 0) * Number(quantity || 0));
                             });
                             return (
                                 <Table.Summary.Row>
                                     <Table.Summary.Cell index={0} colSpan={5} align="right">
-                                        <Text type="secondary" style={{fontSize: 12}}>Tổng diện tích bề mặt: {(totalArea/10000).toFixed(4)} m²</Text>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>Tổng diện tích bề mặt: {(totalArea / 10000).toFixed(4)} m²</Text>
                                     </Table.Summary.Cell>
                                 </Table.Summary.Row>
                             );
