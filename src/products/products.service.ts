@@ -28,7 +28,7 @@ export class ProductsService {
 
     async findAll() {
         return this.productRepo.find({
-            select: ['id', 'sku', 'name', 'category_id', 'cost_price', 'base_price', 'quantity_in_stock', 'profit_margin', 'is_active', 'unit', 'customer_description'],
+            select: ['id', 'sku', 'name', 'category_id', 'product_type', 'cost_price', 'base_price', 'quantity_in_stock', 'profit_margin', 'is_active', 'unit', 'customer_description'],
             order: { id: 'DESC' },
             relations: ['category_link']
         });
