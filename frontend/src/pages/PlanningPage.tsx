@@ -94,15 +94,21 @@ const PlanningPage: React.FC = () => {
             // Nếu đổi NCC, tự động lấy lại Đơn giá tham khảo từ possible_suppliers
             // Nếu đổi NCC, tự động lấy lại Đơn giá tham khảo từ possible_suppliers
             if (field === 'supplier_name') {
+                console.log('🔍 Đang tìm giá cho NCC:', value);
+                console.log('📋 Danh sách NCC có giá:', newData[index].possible_suppliers);
                 const supplierInfo = newData[index].possible_suppliers?.find(
                     (s: any) => s.supplier_name?.trim().toLowerCase() === String(value).trim().toLowerCase()
                 );
 
+                console.log('✅ Tìm thấy:', supplierInfo);
+
                 if (supplierInfo) {
                     newData[index].reference_price = supplierInfo.price;
+                    console.log('💰 Cập nhật giá tham khảo:', supplierInfo.price);
                 } else {
                     // Nếu NCC này chưa có trong danh sách giá, reset về 0 để user tự nhập
                     newData[index].reference_price = 0;
+                    console.log('⚠️ Không tìm thấy giá cho NCC này, reset về 0');
                 }
             }
             setMrpData({ ...mrpData, mrp_result: newData });
