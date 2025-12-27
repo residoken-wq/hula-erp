@@ -686,8 +686,9 @@ const PurchasingPage: React.FC = () => {
                                 />
                             </div>
                         )
-                    }
-                    ]} />
+                    }] : [])
+                ]}
+                />
             </Modal>
 
 
