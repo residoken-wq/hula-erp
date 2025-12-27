@@ -88,24 +88,24 @@ const HelpPage: React.FC = () => {
                                 labelPlacement="vertical"
                                 items={[
                                     {
-                                        title: 'Tạo Báo Giá',
-                                        description: 'Nhân viên Sales',
+                                        title: 'Báo Giá',
+                                        description: 'Gửi Portal',
                                         icon: <SolutionOutlined />,
                                     },
                                     {
-                                        title: 'Gửi Khách Hàng',
-                                        description: 'Portal Link',
-                                        icon: <UserOutlined />,
+                                        title: 'Đặt Cọc',
+                                        description: 'Khách xác nhận',
+                                        icon: <DollarOutlined />,
                                     },
                                     {
-                                        title: 'Xác Nhận',
-                                        description: 'Khách duyệt/từ chối',
+                                        title: 'Duyệt Mẫu',
+                                        description: 'Chốt mẫu',
                                         icon: <FileDoneOutlined />,
                                     },
                                     {
-                                        title: 'Đặt Cọc',
-                                        description: 'Thanh toán',
-                                        icon: <DollarOutlined />,
+                                        title: 'Sản Xuất',
+                                        description: 'Tiến độ',
+                                        icon: <AppstoreAddOutlined />,
                                     },
                                     {
                                         title: 'Giao Hàng',
@@ -329,16 +329,16 @@ const HelpPage: React.FC = () => {
                                     icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
                                 },
                                 {
-                                    title: 'Bước 3: Xác nhận trên hệ thống',
-                                    description: 'Sale nhấn nút "Duyệt Mẫu" trên đơn hàng.',
+                                    title: 'Bước 3: Xác nhận & Sản Xuất',
+                                    description: 'Sale nhấn nút "Duyệt Mẫu" để chuyển sang trạng thái "Đang Sản Xuất" (IN_PRODUCTION).',
                                 },
                                 {
                                     title: 'Bước 4: Giao hàng (1 phần hoặc toàn bộ)',
                                     description: (
                                         <div>
-                                            <Paragraph>Trong quá trình giao hàng, bạn có thể cập nhật trạng thái:</Paragraph>
+                                            <Paragraph>Sản phẩm hoàn thiện sẽ được xuất kho giao cho khách:</Paragraph>
                                             <ul>
-                                                <li><b>Giao 1 Phần (Partial Delivery):</b> Khi chỉ giao trước một số lượng nhỏ. Đơn hàng sẽ hiện ở tab "Đã giao" để dễ theo dõi.</li>
+                                                <li><b>Giao 1 Phần (Partial Delivery):</b> Khi chỉ giao trước một số lượng nhỏ.</li>
                                                 <li><b>Hoàn tất:</b> Khi đã giao đủ và thu đủ tiền.</li>
                                             </ul>
                                         </div>

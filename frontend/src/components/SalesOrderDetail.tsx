@@ -534,12 +534,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                             <Option value="QUOTATION">Báo Giá</Option>
                                         ) : (
                                             <>
-                                                <Option value="SO_PENDING">Chờ Duyệt Mẫu</Option>
-                                                <Option value="SAMPLE_APPROVED">Đã Duyệt Mẫu</Option>
-                                                <Option value="DEPOSITED">Đã Cọc / Sản Xuất</Option>
-                                                <Option value="PARTIAL_DELIVERY">Giao 1 Phần</Option>
-                                                <Option value="DELIVERED">Đã Giao Hàng</Option>
-                                                <Option value="COMPLETED">Hoàn Thành</Option>
+                                                <Option value="SO_PENDING">Xác nhận đơn hàng</Option>
+                                                <Option value="DEPOSITED">Đã đặt cọc</Option>
+                                                <Option value="SAMPLE_APPROVED">Đã duyệt mẫu</Option>
+                                                <Option value="IN_PRODUCTION">Đang sản xuất</Option>
+                                                <Option value="PARTIAL_DELIVERY">Giao hàng 1 phần</Option>
+                                                <Option value="DELIVERED">Đã giao hàng</Option>
+                                                <Option value="COMPLETED">Hoàn tất</Option>
                                             </>
                                         )}
                                         <Option value="CANCELLED">Đã Hủy</Option>

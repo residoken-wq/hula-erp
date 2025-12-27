@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag, Empty } from 'antd';
-import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined } from '@ant-design/icons';
+import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined } from '@ant-design/icons';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
 
@@ -56,10 +56,14 @@ const PortalQuotePage: React.FC = () => {
     if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" tip="Đang tải dữ liệu..." /></div>;
     if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy báo giá hoặc đường dẫn không hợp lệ." />;
 
-    const statusList = ['QUOTATION', 'SO_PENDING', 'SAMPLE_APPROVED', 'DEPOSITED', 'PARTIAL_DELIVERY', 'DELIVERED', 'COMPLETED'];
+    const statusList = ['QUOTATION', 'DEPOSITED', 'SAMPLE_APPROVED', 'IN_PRODUCTION', 'DELIVERED', 'COMPLETED'];
     let currentStep = statusList.indexOf(data.status);
-    if (data.status === 'PLANNED') currentStep = 3;
-    if (data.status === 'COMPLETED') currentStep = 6;
+
+    // Map status to steps
+    if (data.status === 'SO_PENDING') currentStep = 0; // Still Quotation/Pending
+    if (data.status === 'PLANNED') currentStep = 3; // Planned -> Production
+    if (data.status === 'PARTIAL_DELIVERY') currentStep = 4; // Partial -> Delivery
+    if (data.status === 'COMPLETED') currentStep = 5;
 
     const visibleComments = (data.comments || []).filter((c: any) => c.sender_type === 'CUSTOMER' || c.is_visible);
 
@@ -270,10 +274,11 @@ const PortalQuotePage: React.FC = () => {
                     <Steps current={currentStep} size="small"
                         items={[
                             { title: 'Báo Giá', icon: <SolutionOutlined /> },
-                            { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> },
-                            { title: 'Đặt Cọc', icon: <DollarOutlined /> },
-                            { title: 'Giao Hàng', icon: <CarOutlined /> },
-                            { title: 'Hoàn Tất', icon: <CheckCircleOutlined /> }
+                            { title: 'Xác Nhận & Cọc', icon: <DollarOutlined /> }, // DEPOSITED
+                            { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> }, // SAMPLE_APPROVED
+                            { title: 'Sản Xuất', icon: <AppstoreAddOutlined /> }, // IN_PRODUCTION
+                            { title: 'Giao Hàng', icon: <CarOutlined /> }, // DELIVERED, PARTIAL
+                            { title: 'Hoàn Tất', icon: <CheckCircleOutlined /> } // COMPLETED
                         ]}
                     />
                 </Card>
