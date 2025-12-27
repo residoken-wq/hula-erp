@@ -23,7 +23,7 @@ import { PlanningModule } from '../planning/planning.module'; // --- MỚI ---
     ]),
     InventoryModule,
     ProductsModule,
-    ProductsModule,
+
     SuppliersModule,
     PlanningModule // --- MỚI: Import PlanningModule ---
   ],

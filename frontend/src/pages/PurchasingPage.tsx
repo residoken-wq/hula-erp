@@ -279,7 +279,28 @@ const PurchasingPage: React.FC = () => {
                     <Descriptions.Item label="Đã trả" contentStyle={{ color: 'green', fontWeight: 'bold' }}>{Number(currentPO?.paid_amount).toLocaleString()} ₫</Descriptions.Item>
                     <Descriptions.Item label="Còn lại" contentStyle={{ color: 'red' }}>{Number((currentPO?.total_amount || 0) - (currentPO?.paid_amount || 0)).toLocaleString()} ₫</Descriptions.Item>
                 </Descriptions>
-                <Table dataSource={currentPO?.items} rowKey="id" pagination={false} size="small" style={{ marginTop: 10 }} columns={[{ title: 'Tên hàng', dataIndex: 'description' }, { title: 'SL', dataIndex: 'quantity' }, { title: 'Đơn giá', render: (r: any) => Number(r.unit_price).toLocaleString() }, { title: 'Thành tiền', render: (r: any) => Number(r.subtotal).toLocaleString() }]} />
+                <Table
+                    dataSource={currentPO?.items}
+                    rowKey="id"
+                    pagination={false}
+                    size="small"
+                    style={{ marginTop: 10 }}
+                    columns={[
+                        { title: 'Tên hàng', dataIndex: 'description' },
+                        { title: 'SL', dataIndex: 'quantity', render: v => Number(v).toLocaleString() },
+                        { title: 'ĐVT (ĐM)', render: (r: any) => r.material?.unit || '-' },
+                        {
+                            title: 'SL (QĐ)', render: (r: any) => {
+                                if (!r.material) return '-';
+                                const factor = Number(r.material.conversion_factor || 1);
+                                return Number(r.quantity / factor).toLocaleString();
+                            }
+                        },
+                        { title: 'ĐVT (QĐ)', render: (r: any) => r.material?.purchase_unit || r.material?.unit || '-' },
+                        { title: 'Đơn giá', render: (r: any) => Number(r.unit_price).toLocaleString() },
+                        { title: 'Thành tiền', render: (r: any) => Number(r.subtotal).toLocaleString() }
+                    ]}
+                />
             </Modal>
 
             {/* MODAL THANH TOÁN (NÂNG CẤP) */}
