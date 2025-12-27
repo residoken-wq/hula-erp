@@ -9,6 +9,7 @@ import { ProductsService } from '../products/products.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { PlanningService } from '../planning/planning.service'; // --- MỚI ---
 import { v4 as uuidv4 } from 'uuid';
+import { ProductionPlan } from '../planning/production-plan.entity';
 
 @Injectable()
 export class PurchasingService {
@@ -19,7 +20,8 @@ export class PurchasingService {
         private inventoryService: InventoryService,
         private productsService: ProductsService,
         private suppliersService: SuppliersService,
-        private planningService: PlanningService, // --- MỚI: Inject PlanningService ---
+        private planningService: PlanningService,
+        @InjectRepository(ProductionPlan) private planRepo: Repository<ProductionPlan>,
     ) { }
 
     async createPO(data: any) {
@@ -64,7 +66,7 @@ export class PurchasingService {
             // --- MỚI: Enrich Item Data from Plan if missing ---
             const planIds = new Set(po.items.map(i => i.plan_id).filter(Boolean));
             if (planIds.size > 0) {
-                const plans = await this.planningService.planRepo.find({ where: { id: In(Array.from(planIds)) } });
+                const plans = await this.planRepo.find({ where: { id: In(Array.from(planIds)) } });
                 const planMap = new Map(plans.map(p => [p.id, p]));
 
                 for (const item of po.items) {
