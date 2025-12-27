@@ -19,6 +19,7 @@ const PurchasingPage: React.FC = () => {
     const [packingList, setPackingList] = useState<any[]>([]); // Matrix data
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false); // Print Selection Modal
     const [planProducts, setPlanProducts] = useState<any[]>([]); // Products in related Plan
+    const [planSearchText, setPlanSearchText] = useState('');
 
 
 
@@ -694,12 +695,25 @@ const PurchasingPage: React.FC = () => {
                                     ]}
                                 />
 
-                                <Divider orientation="left" style={{ marginTop: 20 }}>Thông tin Sản phẩm trong Kế hoạch</Divider>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                    <b>Thông tin Sản phẩm trong Kế hoạch</b>
+                                    <Input
+                                        placeholder="Tìm kiếm sản phẩm (Tên, SKU)"
+                                        style={{ width: 300 }}
+                                        allowClear
+                                        prefix={<SearchOutlined />}
+                                        value={planSearchText}
+                                        onChange={e => setPlanSearchText(e.target.value)}
+                                    />
+                                </div>
                                 <Table
-                                    dataSource={planProducts}
+                                    dataSource={planProducts.filter(p => !planSearchText ||
+                                        p.sku.toLowerCase().includes(planSearchText.toLowerCase()) ||
+                                        p.name.toLowerCase().includes(planSearchText.toLowerCase())
+                                    )}
                                     rowKey="sku"
                                     size="small"
-                                    pagination={false}
+                                    pagination={{ pageSize: 10 }}
                                     columns={[
                                         { title: 'SKU', dataIndex: 'sku', width: 150 },
                                         { title: 'Tên sản phẩm', dataIndex: 'name' },
