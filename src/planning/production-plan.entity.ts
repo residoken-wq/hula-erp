@@ -40,6 +40,9 @@ export class ProductionPlan {
   @Column({ type: 'simple-json', nullable: true })
   logistics_data: any;
 
+  @Column({ type: 'simple-json', nullable: true })
+  outsourcing_result: any;
+
   @OneToMany(() => SalesOrder, (so) => so.production_plan)
   sales_orders: SalesOrder[];
 
