@@ -383,7 +383,10 @@ const PurchasingPage: React.FC = () => {
                     <td>${r.n2 || '-'}</td>
                     <td>${r.c1 || '-'}</td>
                     <td>${r.c2 || '-'}</td>
-                    <td>-</td><td>-</td><td>-</td><td>-</td>
+                    <td>${r.g1 || '-'}</td>
+                    <td>${r.g2 || '-'}</td>
+                    <td>${r.odd || '-'}</td>
+                    <td>${r.border || '-'}</td>
                     <td>${r.note || ''}</td>
                 </tr>
             `).join('');
