@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber } from 'antd';
+import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber, Checkbox } from 'antd';
 import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined, TruckOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -65,6 +65,10 @@ const PlanningPage: React.FC = () => {
         setLoading(true);
         try {
             const res = await axios.post(`${API_URL}/planning/mrp/${planId}`);
+            // Default use_stock = true because backend already deducts stock
+            if (res.data && res.data.mrp_result) {
+                res.data.mrp_result = res.data.mrp_result.map((item: any) => ({ ...item, use_stock: true }));
+            }
             setMrpData(res.data);
             setOutsourcingList(res.data.outsourcing_result || []);
             setLogisticsList(res.data.logistics_result || []); // <--- MỚI
@@ -117,6 +121,21 @@ const PlanningPage: React.FC = () => {
 
             setOutsourcingList(newData);
         }
+    };
+
+    const handleToggleStock = (index: number, checked: boolean) => {
+        const newData = [...mrpData.mrp_result];
+        const item = newData[index];
+        item.use_stock = checked;
+
+        // Recalculate Net Requirement
+        if (checked) {
+            item.net_requirement = Math.max(0, Number(item.gross_requirement || 0) - Number(item.available_stock || 0));
+        } else {
+            item.net_requirement = Number(item.gross_requirement || 0);
+        }
+
+        setMrpData({ ...mrpData, mrp_result: newData });
     };
 
     const handleSaveAnalysis = async () => {
@@ -236,7 +255,19 @@ const PlanningPage: React.FC = () => {
                                         { title: 'Tổng Cần (Gốc)', dataIndex: 'gross_raw', align: 'center' as const, width: 100, render: (v: any) => Number(v || 0).toLocaleString() },
                                         { title: '% Hao hụt', dataIndex: 'wastage_percent', align: 'center' as const, width: 90, render: (v: any) => <Tag color="orange">{v}%</Tag> },
                                         { title: 'Tổng (+Hao hụt)', dataIndex: 'gross_requirement', align: 'center' as const, width: 110, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
-                                        { title: 'Tồn Kho', dataIndex: 'available_stock', align: 'center' as const, width: 100 },
+                                        { title: 'Tồn Kho', dataIndex: 'available_stock', align: 'center' as const, width: 90 },
+                                        {
+                                            title: 'Dùng Kho',
+                                            align: 'center' as const,
+                                            width: 80,
+                                            render: (v: any, r: any, i: number) => (
+                                                <Checkbox
+                                                    checked={r.use_stock}
+                                                    disabled={!r.available_stock || r.available_stock <= 0}
+                                                    onChange={(e) => handleToggleStock(i, e.target.checked)}
+                                                />
+                                            )
+                                        },
                                         {
                                             title: 'Cần Mua (SL)',
                                             dataIndex: 'net_requirement',
