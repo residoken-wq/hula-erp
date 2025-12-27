@@ -32,4 +32,13 @@ export class InventoryController {
   async reset() {
     return this.inventoryService.resetAllStocks();
   }
+
+  // API Chuyển kho
+  @Post('transfer')
+  async transfer(@Body() body: any) {
+    return this.inventoryService.transferStock(
+      body.itemType, body.itemId, body.quantity,
+      body.fromWh, body.toWh, body.note
+    );
+  }
 }

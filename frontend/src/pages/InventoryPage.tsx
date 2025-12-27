@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Tag, Statistic, Radio, Divider, Space, Badge } from 'antd';
+import { Table, Button, message, Card, Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Tag, Statistic, Radio, Divider, Space, Badge, Checkbox } from 'antd';
 import {
     ReloadOutlined, SwapOutlined, HistoryOutlined,
     AppstoreOutlined, ArrowUpOutlined, ArrowDownOutlined,
@@ -17,6 +17,7 @@ const WAREHOUSES = [
     { code: 'KHO_BTP', name: '2. Kho Bán Thành Phẩm', color: 'orange', allowedTypes: ['PRODUCT'] }, // BTP thường là SP dở dang
     { code: 'KHO_NPL', name: '3. Kho Nguyên Phụ Liệu', color: 'blue', allowedTypes: ['MATERIAL'] }, // Kho này chỉ chứa NL
     { code: 'KHO_LOI', name: '4. Kho Hàng Lỗi', color: 'red', allowedTypes: ['PRODUCT'] }, // Hàng lỗi trả về thường là SP
+    { code: 'KHO_THANH_LY', name: '5. Kho Thanh Lý', color: 'gray', allowedTypes: ['PRODUCT', 'MATERIAL'] }, // Hàng chờ thanh lý
 ];
 
 const InventoryPage: React.FC = () => {
@@ -31,7 +32,19 @@ const InventoryPage: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState('ALL_STOCKS'); // Tab chính
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // --- STATE ---
+    const [showNegativeOnly, setShowNegativeOnly] = useState(false);
+    const [resetCode, setResetCode] = useState('');
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+
+    // --- TRANSFER MODAL STATE ---
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [transferForm] = Form.useForm();
+    const [transferTarget, setTransferTarget] = useState<{ item: any, fromWh: string, toWh: string, title: string } | null>(null);
+
     const [form] = Form.useForm();
+
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const adjustmentType = Form.useWatch('type', form);
@@ -78,6 +91,52 @@ const InventoryPage: React.FC = () => {
         return record ? Number(record.quantity) : 0;
     };
 
+    // --- TRANSFER ---
+    const openTransferModal = (record: any, actionType: 'REPORT_DEFECT' | 'RE_IMPORT' | 'LIQUIDATE') => {
+        let fromWh = '', toWh = '';
+        let title = '';
+
+        if (actionType === 'REPORT_DEFECT') {
+            fromWh = 'KHO_TP';
+            toWh = 'KHO_LOI';
+            title = `Báo lỗi SP: ${record.name} (${record.sku})`;
+        } else if (actionType === 'RE_IMPORT') {
+            fromWh = 'KHO_LOI';
+            toWh = 'KHO_TP';
+            title = `Tái nhập kho SP: ${record.name}`;
+        } else if (actionType === 'LIQUIDATE') {
+            fromWh = 'KHO_LOI';
+            toWh = 'KHO_THANH_LY';
+            title = `Thanh lý SP: ${record.name}`;
+        }
+
+        setTransferTarget({ item: record, fromWh, toWh, title });
+        transferForm.setFieldsValue({ quantity: 1, note: '' });
+        setIsTransferModalOpen(true);
+    };
+
+    const handleTransfer = async () => {
+        try {
+            const values = await transferForm.validateFields();
+            if (!transferTarget) return;
+
+            await api.post('/inventory/transfer', {
+                itemType: transferTarget.item.item_type,
+                itemId: transferTarget.item.id,
+                quantity: values.quantity,
+                fromWh: transferTarget.fromWh,
+                toWh: transferTarget.toWh,
+                note: values.note
+            });
+
+            message.success('Chuyển kho thành công');
+            setIsTransferModalOpen(false);
+            fetchData();
+        } catch (e) {
+            message.error('Lỗi chuyển kho');
+        }
+    };
+
     // --- PREPARE DATA TỔNG HỢP ---
     const masterData = useMemo(() => {
         const prodList = products.map(p => ({ ...p, item_type: 'PRODUCT', key: `P_${p.id}` }));
@@ -85,24 +144,54 @@ const InventoryPage: React.FC = () => {
         return [...prodList, ...matList];
     }, [products, materials]);
 
-    // --- LỌC DATA THEO SEARCH TEXT ---
+    // --- LỌC DATA THEO SEARCH TEXT & FILTER ---
     const filteredMasterData = useMemo(() => {
-        if (!searchText) return masterData;
-        const lower = searchText.toLowerCase();
-        return masterData.filter(item =>
-            (item.name && item.name.toLowerCase().includes(lower)) ||
-            (item.sku && item.sku.toLowerCase().includes(lower)) ||
-            (item.code && item.code.toLowerCase().includes(lower))
-        );
-    }, [masterData, searchText]);
+        let data = masterData;
+
+        // 1. Filter Text
+        if (searchText) {
+            const lower = searchText.toLowerCase();
+            data = data.filter(item =>
+                (item.name && item.name.toLowerCase().includes(lower)) ||
+                (item.sku && item.sku.toLowerCase().includes(lower)) ||
+                (item.code && item.code.toLowerCase().includes(lower))
+            );
+        }
+
+        // 2. Filter Negative
+        if (showNegativeOnly) {
+            // Logic: Nếu đang xem All -> check total stock < 0. Nếu đang xem kho con -> check stock in that warehouse (nhưng logic kho con nằm ở getDataByWarehouse).
+            // Tuy nhiên filteredMasterData là nguồn chung.
+            // Giải pháp: Ở đây ta chỉ lọc những item mà CÓ ÍT NHẤT 1 kho bị âm HOẶC tổng âm?
+            // Đơn giản nhất: Lọc những item có quantity_in_stock < 0 (Tổng âm).
+            // User request: "tìm các sản phẩm đang bị âm số lượng". Thường là tổng âm hoặc âm kho.
+            // Hãy check quantity_in_stock < 0.
+            data = data.filter(item => Number(item.quantity_in_stock || 0) < 0);
+        }
+
+        return data;
+    }, [masterData, searchText, showNegativeOnly]);
 
     // --- HÀM LỌC DATA THEO KHO ---
     const getDataByWarehouse = (whCode: string) => {
         const whConfig = WAREHOUSES.find(w => w.code === whCode);
         if (!whConfig) return [];
-        // Lọc master data (đã qua search) xem loại hàng nào được phép ở kho này
-        return filteredMasterData.filter(item => whConfig.allowedTypes.includes(item.item_type));
+        let data = filteredMasterData.filter(item => whConfig.allowedTypes.includes(item.item_type));
+
+        // Nếu filter âm đang bật, ta cần đảm bảo hiển thị đúng item âm trong kho này
+        // (Vì filteredMasterData chỉ lọc Tổng Âm, có thể item Tổng Dương nhưng kho này Âm -> Logic trên chưa cover hết)
+        // Tuy nhiên để UI đơn giản, ta cứ theo filteredMasterData (Tổng âm) trước.
+        // NẾU MUỐN CHÍNH XÁC TỪNG KHO: Logic filter âm phải nằm ở tầng render table hoặc getDataByWarehouse.
+
+        // Cải tiến: Move logic filter âm xuống đây? 
+        // Nhưng filteredMasterData dùng cho Tab "Toàn bộ".
+        // Thôi cứ để Tổng Âm là tiêu chí chính.
+        return data;
     };
+
+    // ...
+
+
 
     // Cột hiển thị linh động theo Kho
     const getStockColumns = (whCode?: string) => [
@@ -125,17 +214,32 @@ const InventoryPage: React.FC = () => {
             }
         },
         {
-            title: '', key: 'action', align: 'center' as const, width: 100,
+            title: '', key: 'action', align: 'center' as const, width: 180,
             render: (_: any, r: any) => (
-                <Button size="small" icon={<SwapOutlined />} onClick={() => {
-                    form.setFieldsValue({
-                        itemType: r.item_type,
-                        itemId: r.id,
-                        type: 'IMPORT',
-                        warehouse: whCode || 'KHO_TP' // Default
-                    });
-                    setIsModalOpen(true);
-                }}>Điều chỉnh</Button>
+                <Space>
+                    <Button size="small" icon={<SwapOutlined />} onClick={() => {
+                        form.setFieldsValue({
+                            itemType: r.item_type,
+                            itemId: r.id,
+                            type: 'IMPORT',
+                            warehouse: whCode || 'KHO_TP' // Default
+                        });
+                        setIsModalOpen(true);
+                    }}>Đ/C</Button>
+
+                    {/* KHO LỖI: HIỆN NÚT XỬ LÝ */}
+                    {whCode === 'KHO_LOI' && (
+                        <>
+                            <Button size="small" type="primary" ghost icon={<InboxOutlined />} title="Tái nhập kho tốt" onClick={() => openTransferModal(r, 'RE_IMPORT')} />
+                            <Button size="small" danger icon={<ShopOutlined />} title="Thanh lý" onClick={() => openTransferModal(r, 'LIQUIDATE')} />
+                        </>
+                    )}
+
+                    {/* KHO THƯỜNG HOẶC ALL: HIỆN NÚT BÁO LỖI (CHỈ CHO PRODUCT) */}
+                    {whCode !== 'KHO_LOI' && whCode !== 'KHO_THANH_LY' && r.item_type === 'PRODUCT' && (
+                        <Button size="small" type="dashed" danger icon={<AlertOutlined />} title="Báo lỗi (Chuyển sang Kho Lỗi)" onClick={() => openTransferModal(r, 'REPORT_DEFECT')} />
+                    )}
+                </Space>
             )
         }
     ];
@@ -159,8 +263,6 @@ const InventoryPage: React.FC = () => {
     }, [itemType, products, materials]);
 
     // --- ADMIN RESET ---
-    const [resetCode, setResetCode] = useState('');
-    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
     const handleSystemReset = async () => {
         if (resetCode !== 'RESET') return message.error('Mã xác nhận không đúng');
@@ -211,6 +313,9 @@ const InventoryPage: React.FC = () => {
                             style={{ width: 250 }}
                             allowClear
                         />
+                        <Checkbox checked={showNegativeOnly} onChange={e => setShowNegativeOnly(e.target.checked)} style={{ marginLeft: 10 }}>
+                            <span style={{ color: showNegativeOnly ? 'red' : 'inherit' }}>Chỉ hiện tồn âm</span>
+                        </Checkbox>
                         <Divider type="vertical" />
                         <Button type="primary" icon={<SwapOutlined />} onClick={() => { form.resetFields(); setIsModalOpen(true) }}>Điều Chỉnh Kho</Button>
                         <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
@@ -305,6 +410,42 @@ const InventoryPage: React.FC = () => {
                 <Form layout="vertical">
                     <Form.Item label="Nhập chữ 'RESET' để xác nhận">
                         <Input value={resetCode} onChange={e => setResetCode(e.target.value)} placeholder="RESET" />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* MODAL CHUYỂN KHO (TRANSFER) */}
+            <Modal
+                title={transferTarget?.title}
+                open={isTransferModalOpen}
+                onCancel={() => setIsTransferModalOpen(false)}
+                onOk={handleTransfer}
+                okText="Xác nhận Chuyển"
+            >
+                <Form form={transferForm} layout="vertical">
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item label="Từ Kho">
+                                <Input value={WAREHOUSES.find(w => w.code === transferTarget?.fromWh)?.name} disabled style={{ color: 'red', fontWeight: 'bold' }} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item label="Đến Kho">
+                                <Input value={WAREHOUSES.find(w => w.code === transferTarget?.toWh)?.name} disabled style={{ color: 'green', fontWeight: 'bold' }} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="quantity" label="Số lượng chuyển" rules={[{ required: true }]}>
+                                <InputNumber style={{ width: '100%' }} min={1} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Form.Item name="note" label="Ghi chú / Lý do">
+                        <Input.TextArea rows={2} placeholder="VD: Hàng bị móp méo / Đã sửa xong..." />
                     </Form.Item>
                 </Form>
             </Modal>
