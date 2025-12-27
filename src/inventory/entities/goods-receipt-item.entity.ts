@@ -31,4 +31,7 @@ export class GoodsReceiptItem {
 
     @Column('decimal', { precision: 15, scale: 2, default: 0 })
     quantity: number; // Quantity received
+
+    @Column({ type: 'simple-json', nullable: true })
+    packing_data: any;
 }

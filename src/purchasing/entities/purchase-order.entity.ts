@@ -8,6 +8,7 @@ export enum POStatus {
   SENT = 'SENT',
   CONFIRMED = 'CONFIRMED',
   ORDERED = 'ORDERED', // Mới
+  DELIVERED = 'DELIVERED', // Đã giao đủ
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED'
 }

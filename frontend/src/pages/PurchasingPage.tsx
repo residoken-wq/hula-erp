@@ -21,6 +21,10 @@ const PurchasingPage: React.FC = () => {
     const [planProducts, setPlanProducts] = useState<any[]>([]); // Products in related Plan
     const [planSearchText, setPlanSearchText] = useState('');
 
+    // Delivery Matrix State
+    const [deliveryMatrix, setDeliveryMatrix] = useState<any[]>([]);
+    const [isDeliveryLoading, setIsDeliveryLoading] = useState(false);
+
 
 
     // Monitor Modal
@@ -158,9 +162,83 @@ const PurchasingPage: React.FC = () => {
                     };
                 });
 
+
                 setPlanProducts(finalProducts);
             } catch (e) { console.error('Error fetching plan', e); }
         }
+
+        // Fetch Delivery Matrix Progress
+        fetchDeliveryMatrix(record.id);
+    };
+
+    const fetchDeliveryMatrix = async (poId: number) => {
+        setIsDeliveryLoading(true);
+        try {
+            // Fetch PO with Items and their GoodsReceiptItems
+            // Since we don't have a direct endpoint for matrix progress, we calculate it 
+            // by fetching all GoodsReceipts for this PO AND the PO's Packing List.
+            // Simplified: We assume we can get receipts. 
+            // Better: Endpoint `GET /purchasing/:id/delivery-progress` (Mocking logic here for now or assuming we fetch receipts)
+
+            const res = await axios.get(`${API_URL}/inventory/goods-receipt/po/${poId}`);
+            const receipts = res.data; // List of receipts with items
+
+            // We need to aggregate received quantities per Matrix Row (identified by material_name or po_form_code)
+            // But GoodsReceiptItems currently store `packing_data` (Newly added).
+
+            // Re-use current PO's packing list as base
+            /* 
+               Logic: 
+               1. Get `packing_list_details` from PO (this is the PLAN).
+               2. Iterate all Receipts -> Items -> packing_data.
+               3. Sum up N1, N2... for each matching Material/Row.
+            */
+        } catch (e) { console.error('Error fetching delivery', e); }
+        setIsDeliveryLoading(false);
+    };
+
+    const handleCreateMatrixReceipt = async () => {
+        if (!currentPO) return;
+        // Filter rows that have input
+        const validRows = packingList.filter(r =>
+            Number(r.n1_input || 0) > 0 || Number(r.n2_input || 0) > 0 ||
+            Number(r.c1_input || 0) > 0 || Number(r.c2_input || 0) > 0 ||
+            Number(r.g1_input || 0) > 0 || Number(r.g2_input || 0) > 0 ||
+            Number(r.odd_input || 0) > 0 || Number(r.border_input || 0) > 0
+        );
+
+        if (validRows.length === 0) return message.warning('Vui lòng nhập số lượng thực nhận vào cột "Giao"');
+
+        try {
+            await axios.post(`${API_URL}/inventory/goods-receipt/draft`, {
+                po_id: currentPO.id,
+                items: validRows.map(r => {
+                    // Find matching PO Item ID
+                    const poItem = currentPO.items?.find((i: any) => (i.material?.name || i.reference_name || i.sku) === r.material_name);
+                    const totalQty =
+                        Number(r.n1_input || 0) + Number(r.n2_input || 0) +
+                        Number(r.c1_input || 0) + Number(r.c2_input || 0) +
+                        Number(r.g1_input || 0) + Number(r.g2_input || 0) +
+                        Number(r.odd_input || 0) + Number(r.border_input || 0);
+
+                    return {
+                        po_item_id: poItem?.id, // Might be undefined if name mismatch, assume matching
+                        material_id: poItem?.material?.id,
+                        quantity: totalQty,
+                        packing_data: {
+                            n1: Number(r.n1_input || 0), n2: Number(r.n2_input || 0),
+                            c1: Number(r.c1_input || 0), c2: Number(r.c2_input || 0),
+                            g1: Number(r.g1_input || 0), g2: Number(r.g2_input || 0),
+                            odd: Number(r.odd_input || 0), border: Number(r.border_input || 0)
+                        }
+                    };
+                }),
+                note: `Nhập kho (Matrix) từ PO ${currentPO.po_code}`
+            });
+            message.success('Đã tạo phiếu nhập kho (Draft)');
+            // Clear inputs or Refresh
+            fetchDeliveryMatrix(currentPO.id);
+        } catch (e) { message.error('Lỗi tạo phiếu nhập: ' + e); }
     };
 
     // --- LOGIC MONITORING ---
@@ -191,7 +269,7 @@ const PurchasingPage: React.FC = () => {
         { title: 'Ngày', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
         { title: 'Đối tác', dataIndex: 'supplier', render: (s: any, r: any) => s?.name || (r.note?.split('NCC: ')[1] || '-') },
         { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
-        { title: 'Trạng thái', dataIndex: 'status', align: 'center' as const, render: (t: string) => <Tag color={t === 'COMPLETED' ? 'green' : t === 'SENT' ? 'blue' : 'default'}>{t}</Tag> },
+        { title: 'Trạng thái', dataIndex: 'status', align: 'center' as const, render: (t: string) => <Tag color={t === 'COMPLETED' ? 'green' : t === 'DELIVERED' ? 'cyan' : t === 'SENT' ? 'blue' : 'default'}>{t === 'DELIVERED' ? 'Đã giao đủ' : t}</Tag> },
         {
             title: '', key: 'act', align: 'right' as const,
             render: (r: any) => (
@@ -576,7 +654,7 @@ const PurchasingPage: React.FC = () => {
 
                     // Only show Packing Matrix for MATERIAL POs
                     ...(currentPO?.po_type !== 'OUTSOURCING' ? [{
-                        key: '3', label: 'Quản lý Giao hàng', children: (
+                        key: '3', label: 'Thông tin đóng gói', children: (
                             <div>
                                 <div style={{ marginBottom: 10 }}>
                                     <span style={{ marginLeft: 10, color: '#888' }}>Thông tin đóng gói được tạo tự động từ danh sách NPL</span>
@@ -689,6 +767,83 @@ const PurchasingPage: React.FC = () => {
                                         { title: 'ĐM (Cái)', dataIndex: 'unit_norm', width: 100, align: 'right', render: v => v ? Number(v).toLocaleString() : '-' },
                                         { title: 'Tổng ĐM', dataIndex: 'total_norm', width: 100, align: 'right', render: v => v ? Number(v).toLocaleString() : '-' },
                                         { title: 'Tổng SL', dataIndex: 'quantity', width: 100, align: 'right', render: v => Number(v).toLocaleString() }
+                                    ]}
+                                />
+                            </div>
+                        )
+                    },
+                    {
+                        key: '4', label: 'Quản lý Giao hàng', children: (
+                            <div>
+                                <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ color: '#888' }}>
+                                        Theo dõi tiến độ giao hàng và tạo phiếu nhập kho.
+                                    </span>
+                                    <Space>
+                                        <Button type="primary" ghost size="small" onClick={() => handleCreateMatrixReceipt()} loading={isDeliveryLoading}>+ Tạo Phiếu Kho (Theo Form)</Button>
+                                        {currentPO?.status !== 'DELIVERED' && (
+                                            <Popconfirm title="Xác nhận đã giao đủ hàng?" onConfirm={() => handleStatusChange(currentPO.id, 'DELIVERED')}>
+                                                <Button type="primary" style={{ background: '#52c41a', borderColor: '#52c41a' }} size="small" icon={<CheckCircleOutlined />}>Đã giao đủ</Button>
+                                            </Popconfirm>
+                                        )}
+                                    </Space>
+                                </div>
+
+                                <Table
+                                    dataSource={packingList}
+                                    rowKey="id"
+                                    size="small"
+                                    pagination={false}
+                                    scroll={{ x: 1200 }}
+                                    columns={[
+                                        { title: 'Mã PO Form', dataIndex: 'po_form_code', width: 80, align: 'center', render: (t: any, r: any, idx: number) => <b>{idx + 1}</b> },
+                                        { title: 'Tên NPL', dataIndex: 'material_name', width: 200 },
+                                        {
+                                            title: 'Tổng SL', width: 80, align: 'right', render: (t, r, idx) => {
+                                                const matchingItem = currentPO?.items?.find((i: any) => (i.material?.name || i.reference_name || i.sku) === r.material_name);
+                                                return <b>{matchingItem ? Number(matchingItem.quantity).toLocaleString() : '-'}</b>;
+                                            }
+                                        },
+                                        {
+                                            title: 'N1', children: [
+                                                { title: 'Đặt', width: 50, dataIndex: 'n1', align: 'center', render: v => v || '-' },
+                                                {
+                                                    title: 'Giao', width: 60, align: 'center', render: (v, r: any, idx) => <Input size="small" style={{ textAlign: 'center', color: 'green' }} placeholder="0" value={r.n1_input} onChange={(e) => {
+                                                        const list = [...packingList]; list[idx].n1_input = e.target.value; setPackingList(list);
+                                                    }} />
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            title: 'N2', children: [
+                                                { title: 'Đặt', width: 50, dataIndex: 'n2', align: 'center', render: v => v || '-' },
+                                                {
+                                                    title: 'Giao', width: 60, align: 'center', render: (v, r: any, idx) => <Input size="small" style={{ textAlign: 'center', color: 'green' }} placeholder="0" value={r.n2_input} onChange={(e) => {
+                                                        const list = [...packingList]; list[idx].n2_input = e.target.value; setPackingList(list);
+                                                    }} />
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            title: 'C1', children: [
+                                                { title: 'Đặt', width: 50, dataIndex: 'c1', align: 'center', render: v => v || '-' },
+                                                {
+                                                    title: 'Giao', width: 60, align: 'center', render: (v, r: any, idx) => <Input size="small" style={{ textAlign: 'center', color: 'green' }} placeholder="0" value={r.c1_input} onChange={(e) => {
+                                                        const list = [...packingList]; list[idx].c1_input = e.target.value; setPackingList(list);
+                                                    }} />
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            title: 'C2', children: [
+                                                { title: 'Đặt', width: 50, dataIndex: 'c2', align: 'center', render: v => v || '-' },
+                                                {
+                                                    title: 'Giao', width: 60, align: 'center', render: (v, r: any, idx) => <Input size="small" style={{ textAlign: 'center', color: 'green' }} placeholder="0" value={r.c2_input} onChange={(e) => {
+                                                        const list = [...packingList]; list[idx].c2_input = e.target.value; setPackingList(list);
+                                                    }} />
+                                                }
+                                            ]
+                                        }
                                     ]}
                                 />
                             </div>
