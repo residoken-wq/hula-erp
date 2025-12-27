@@ -607,7 +607,9 @@ const PurchasingPage: React.FC = () => {
                                 size="small"
                                 columns={[
                                     { title: 'Tên hàng', dataIndex: 'description' },
-                                    { title: 'SL (ĐM)', render: (r: any) => <span>{Number(r.quantity).toLocaleString()} {r.material?.unit}</span> },
+                                    { title: 'Tổng Cần (Gốc)', width: 100, align: 'center', render: (r: any) => <span>{Number(r.raw_quantity || 0).toLocaleString()}</span> },
+                                    { title: '% Hao hụt', width: 80, align: 'center', render: (r: any) => <Tag color="orange">{r.wastage_rate || 0}%</Tag> },
+                                    { title: 'Tổng (+Hao hụt)', width: 120, align: 'center', render: (r: any) => <b>{Number(r.total_quantity || r.quantity).toLocaleString()}</b> },
                                     {
                                         title: 'SL (QĐ)', width: 150, render: (r: any, _: any, index: number) => {
                                             if (!r.material) return '-';
