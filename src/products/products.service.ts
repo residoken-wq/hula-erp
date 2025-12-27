@@ -339,7 +339,7 @@ export class ProductsService {
 
         if (components.length > 0) {
             for (const comp of components) {
-                totalCost += Number(comp.child_product?.base_price ?? 0) * Number(comp.quantity);
+                totalCost += Number(comp.child_product?.cost_price ?? 0) * Number(comp.quantity);
             }
         } else {
             // BOM
