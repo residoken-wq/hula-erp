@@ -289,6 +289,35 @@ export class ProductsService {
         return { message: 'Synced' };
     }
 
+    async copyBom(sourceSku: string, targetSku: string) {
+        const source = await this.productRepo.findOne({ where: { sku: sourceSku } });
+        const target = await this.productRepo.findOne({ where: { sku: targetSku } });
+
+        if (!source || !target) throw new NotFoundException('Không tìm thấy sản phẩm nguồn hoặc đích.');
+
+        // 1. Lấy BOM nguồn
+        const sourceBoms = await this.bomRepo.find({ where: { product_id: source.id } });
+        if (!sourceBoms.length) throw new BadRequestException(`Sản phẩm nguồn ${sourceSku} chưa có BOM.`);
+
+        // 2. Xóa BOM cũ của đích
+        await this.bomRepo.delete({ product_id: target.id });
+
+        // 3. Sao chép sang đích
+        const newBoms = sourceBoms.map(b => this.bomRepo.create({
+            product_id: target.id,
+            material_id: b.material_id,
+            quantity: b.quantity,
+            waste_percent: b.waste_percent
+        }));
+
+        await this.bomRepo.save(newBoms as any);
+
+        // 4. Tính lại giá vốn
+        await this.calculateCostPrice(target.sku);
+
+        return { message: `Đã sao chép ${newBoms.length} dòng BOM từ ${sourceSku} sang ${targetSku}` };
+    }
+
     private calculateSellingPrice(cost: number, marginPercent: number): number {
         if (marginPercent >= 100 || marginPercent < 0) return cost;
         const marginDecimal = marginPercent / 100;
