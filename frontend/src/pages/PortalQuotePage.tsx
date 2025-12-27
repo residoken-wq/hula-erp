@@ -307,6 +307,13 @@ const PortalQuotePage: React.FC = () => {
                     </Col>
                     <Col xs={24} md={8}>
                         <Card title={<span><CreditCardOutlined /> Thông Tin Thanh Toán</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                            {Number(data.paid_amount) > 0 && (
+                                <div style={{ background: '#f0f5ff', padding: 8, borderRadius: 8, border: '1px solid #adc6ff', textAlign: 'center', marginBottom: 8 }}>
+                                    <div style={{ color: '#2f54eb', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Đã thanh toán</div>
+                                    <div style={{ fontSize: 18, fontWeight: '700', color: '#1d39c4' }}>{Number(data.paid_amount).toLocaleString()} ₫</div>
+                                </div>
+                            )}
+
                             <div style={{ background: '#f6ffed', padding: 10, borderRadius: 8, border: '1px solid #b7eb8f', textAlign: 'center', marginBottom: 10 }}>
                                 <div style={{ color: '#52c41a', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Cần thanh toán</div>
                                 <div style={{ fontSize: 20, fontWeight: '800', color: '#389e0d' }}>{(Number(data.total_amount) - Number(data.paid_amount)).toLocaleString()} ₫</div>
