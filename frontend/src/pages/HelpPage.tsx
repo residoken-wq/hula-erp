@@ -159,6 +159,18 @@ const HelpPage: React.FC = () => {
                             Khi khách hàng xác nhận trên Portal (hoặc bạn xác nhận thủ công), trạng thái sẽ chuyển sang <b>SO_PENDING</b>.
                             Lúc này, các bộ phận khác (Kho, Kế toán) sẽ nhận được thông tin để tiến hành xuất kho và thu tiền.
                         </Paragraph>
+
+                        <Divider />
+
+                        <Title level={3}>4. Xuất Hóa Đơn (Invoice & VAT)</Title>
+                        <Paragraph>
+                            Hệ thống hỗ trợ quản lý thông tin xuất hóa đơn đỏ (VAT) riêng biệt cho từng đơn hàng.
+                        </Paragraph>
+                        <ul>
+                            <li><b>Tự động điền:</b> Khi chọn khách hàng, hệ thống sẽ tự động lấy thông tin pháp nhân (Tên công ty, MST, Địa chỉ ĐKKD) từ hồ sơ khách hàng để điền vào tab "Xuất Hóa Đơn".</li>
+                            <li><b>Tùy chỉnh:</b> Bạn có thể chỉnh sửa thông tin này cho từng đơn hàng cụ thể (VD: Khách muốn xuất cho công ty con).</li>
+                            <li><b>Portal:</b> Thông tin này sẽ hiển thị rõ ràng trên Portal Khách hàng để khách kiểm tra trước khi xác nhận đặt hàng.</li>
+                        </ul>
                     </div>
                 );
             case 'sales-create':
