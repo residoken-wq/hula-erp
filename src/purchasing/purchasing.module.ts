@@ -7,6 +7,7 @@ import { PurchasingController } from './purchasing.controller';
 import { PurchaseOrder } from './entities/purchase-order.entity';
 import { PurchaseOrderItem } from './entities/purchase-order-item.entity';
 import { GoodsReceipt } from './entities/goods-receipt.entity';
+import { ProductionPlan } from '../planning/production-plan.entity';
 
 // External Modules (Service cần gọi đến)
 import { InventoryModule } from '../inventory/inventory.module';
@@ -19,7 +20,8 @@ import { PlanningModule } from '../planning/planning.module';
     TypeOrmModule.forFeature([
       PurchaseOrder,
       PurchaseOrderItem,
-      GoodsReceipt // <--- Đảm bảo đã đăng ký
+      GoodsReceipt, // <--- Đảm bảo đã đăng ký
+      ProductionPlan
     ]),
     InventoryModule,
     ProductsModule,
