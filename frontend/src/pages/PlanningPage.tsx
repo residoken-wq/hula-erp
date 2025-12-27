@@ -164,7 +164,7 @@ const PlanningPage: React.FC = () => {
         const totalRevenue = mrpData.plan_info.sales_orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
 
         // Tính lại tổng chi phí realtime dựa trên dữ liệu đang edit
-        const estMaterialCost = mrpData.mrp_result.reduce((s: number, i: any) => s + (Number(i.net_requirement) * Number(i.cost)), 0);
+        const estMaterialCost = mrpData.mrp_result.reduce((s: number, i: any) => s + (Number(i.net_requirement) * Number(i.reference_price)), 0);
         const estOutsourceCost = outsourcingList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
 
         return (
