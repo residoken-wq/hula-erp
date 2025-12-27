@@ -31,6 +31,12 @@ export class ProductionPlan {
   @Column({ type: 'date', nullable: true })
   end_date: Date;
 
+  @Column({ type: 'simple-json', nullable: true })
+  mrp_data: any;
+
+  @Column({ type: 'simple-json', nullable: true })
+  outsourcing_data: any;
+
   @OneToMany(() => SalesOrder, (so) => so.production_plan)
   sales_orders: SalesOrder[];
 

@@ -54,6 +54,23 @@ export class PlanningService {
         const plan = await this.planRepo.findOne({ where: { id: planId }, relations: ['sales_orders', 'sales_orders.items'] });
         if (!plan) throw new NotFoundException();
 
+        // 1. Kiểm tra xem đã có kết quả đã lưu chưa, nếu có thì trả về kết quả đã lưu (Để user có thể "Save" -> "Mở lại vẫn thấy")
+        // Nếu user muốn chạy lại thì sẽ có nút "Phân tích lại" (Gọi endpoint reset hoặc truyền flag force)
+        // Hiện tại: Nếu đã có dữ liệu saved thì trả về.
+        if (plan.mrp_data && plan.outsourcing_data) {
+            const ganttData = plan.sales_orders.map(so => ({
+                id: so.order_code, name: `SX ${so.order_code}`, start: plan.start_date, end: so.delivery_date || plan.end_date, progress: 0
+            }));
+
+            return {
+                plan_info: plan,
+                mrp_result: plan.mrp_data,
+                outsourcing_result: plan.outsourcing_data,
+                gantt_data: ganttData,
+                is_saved: true
+            };
+        }
+
         const productDemand = new Map<string, number>(); // SKU -> Quantity
         const productInfoMap = new Map<string, number>(); // SKU -> ProductID
 
@@ -193,6 +210,12 @@ export class PlanningService {
         }));
 
         plan.status = PlanStatus.CALCULATED;
+
+        // --- NEW: Lưu kết quả phân tích vào DB lần đầu ---
+        plan.mrp_data = mrpResult;
+        plan.outsourcing_data = outsourcingResult;
+        // ------------------------------------------------
+
         await this.planRepo.save(plan);
 
         return {
@@ -201,6 +224,15 @@ export class PlanningService {
             outsourcing_result: outsourcingResult, // <--- Trả về dữ liệu gia công
             gantt_data: ganttData
         };
+    }
+
+    async saveAnalysis(id: number, mrpData: any, outsourcingData: any) {
+        const plan = await this.planRepo.findOneBy({ id });
+        if (!plan) throw new NotFoundException();
+        plan.mrp_data = mrpData;
+        plan.outsourcing_data = outsourcingData;
+        await this.planRepo.save(plan);
+        return { message: 'Đã lưu kết quả phân tích' };
     }
 
     // --- HÀM TẠO PO (Dùng chung cho NPL và Gia Công) ---
