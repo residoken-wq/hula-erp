@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Drawer, List, DatePicker, InputNumber, Checkbox, Typography, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BankOutlined, DollarOutlined, AppstoreOutlined, CalendarOutlined, StarFilled, StarOutlined, ShopOutlined, LinkOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Drawer, List, DatePicker, InputNumber, Checkbox, Typography, Tooltip, Tabs, Statistic } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BankOutlined, DollarOutlined, AppstoreOutlined, CalendarOutlined, StarFilled, StarOutlined, ShopOutlined, LinkOutlined, ReloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -59,14 +59,35 @@ const SuppliersPage: React.FC = () => {
         try { await axios.delete(`${API_URL}/suppliers/${id}`); fetchData(); } catch (e) { message.error('Lỗi xóa'); }
     };
 
-    // 3. Price Logic (DRAWER)
+    // DRAWER PRICE STATE REMOVED - MERGED INTO MAIN DRAWER
+    // Just need a flag to set default tab
+
+    // New State for PO History
+    const [supplierPOs, setSupplierPOs] = useState<any[]>([]);
+
+    // 3. Price Logic (Now inside Drawer)
     const openPriceList = async (supplier: any) => {
+        setEditingItem(supplier);
         setCurrentSupplier(supplier);
-        setPriceDrawerOpen(true);
-        // Reset Inputs
-        setSelectedMatId(null); setInputPrice(0); setDateRange([dayjs(), dayjs().add(1, 'year')]); setIsDefault(false);
+        form.setFieldsValue(supplier);
+        setPriceDrawerOpen(true); // Reuse this as 'IsPriceTabActive' or just set separate way
+        // Hack: set IsModalOpen(true) and pass a prop? Or just IsModalOpen works.
+        // Let's rely on standard open.
+        // Actually, I need to pass default tab.
+        setIsModalOpen(true);
+
         loadPrices(supplier.id);
+        loadPOs(supplier.id);
     };
+
+    const loadPOs = async (supplierId: number) => {
+        try {
+            // Fallback to fetch all and filter if no endpoint
+            const res = await axios.get(`${API_URL}/purchasing`);
+            const all = Array.isArray(res.data) ? res.data : [];
+            setSupplierPOs(all.filter((p: any) => p.supplier_id === supplierId || p.supplier?.id === supplierId));
+        } catch (e) { }
+    }
 
     const loadPrices = async (id: number) => {
         try { const res = await axios.get(`${API_URL}/suppliers/${id}`); setPriceList(res.data.price_list || []); } catch (e) { setPriceList([]); }
@@ -109,7 +130,13 @@ const SuppliersPage: React.FC = () => {
                 <Space>
                     <Button icon={<DollarOutlined />} size="small" type="primary" ghost onClick={() => openPriceList(r)}>Giá</Button>
                     <Button icon={<BankOutlined />} size="small" style={{ color: '#fa541c', borderColor: '#fa541c' }} onClick={() => openDebtModal(r)}>Công nợ</Button>
-                    <Button icon={<EditOutlined />} size="small" onClick={() => { setEditingItem(r); form.setFieldsValue(r); setIsModalOpen(true) }} />
+                    <Button icon={<EditOutlined />} size="small" onClick={() => {
+                        setEditingItem(r);
+                        form.setFieldsValue(r);
+                        setPriceDrawerOpen(false); // Default to Info Tab
+                        setIsModalOpen(true);
+                        loadPOs(r.id)
+                    }} />
                     <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
                 </Space>
             )
@@ -197,130 +224,251 @@ const SuppliersPage: React.FC = () => {
 
     // ----------------------------------------
 
+    const [activeTab, setActiveTab] = useState('1');
+
+    // --- DEBT TAB LOGIC ---
+    // Filter suppliers with debt > 0
+    // Note: If debt column is not populated fully yet, we might fallback to checking 'debtPOs' but fetching POs for ALL suppliers is heavy.
+    // For now, assume 'debt' field on Supplier is the source of truth or we iterate.
+    // Actually, in fetch data, we load suppliers. Let's assume d.debt is present.
+    // If not, we might need a separate endpoint /suppliers/with-debt.
+    // Let's rely on what we have: `data` (list of suppliers).
+
+    const suppliersWithDebt = data.filter(s => Number(s.debt) > 0);
+
+    const debtColumns = [
+        { title: 'Nhà Cung Cấp', dataIndex: 'name', render: (t: any, r: any) => <b>{t}</b> },
+        { title: 'Tổng Công Nợ', dataIndex: 'debt', align: 'right' as const, render: (v: any) => <span style={{ color: 'red', fontWeight: 'bold' }}>{Number(v).toLocaleString()} ₫</span> },
+        { title: 'SĐT', dataIndex: 'phone' },
+        {
+            title: 'Hành động', key: 'act', align: 'right' as const,
+            render: (_: any, r: any) => (
+                <Button type="primary" size="small" icon={<DollarOutlined />} onClick={() => openDebtModal(r)}>Thanh Toán</Button>
+            )
+        }
+    ];
+
     return (
         <div>
-            <Card title="Quản Lý Nhà Cung Cấp & Đối Tác" extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true) }}>Thêm NCC</Button>}>
-                <div style={{ marginBottom: 16, maxWidth: 400 }}><Input placeholder="Tìm kiếm..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} /></div>
-                <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
+            <Card
+                title="Quản Lý Nhà Cung Cấp & Đối Tác"
+                extra={
+                    activeTab === '1' ?
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true) }}>Thêm NCC</Button>
+                        : null
+                }
+                bodyStyle={{ padding: 0 }}
+            >
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={setActiveTab}
+                    tabBarStyle={{ paddingLeft: 20, marginBottom: 0 }}
+                    items={[
+                        {
+                            key: '1',
+                            label: 'Danh Sách NCC',
+                            children: (
+                                <div style={{ padding: 20 }}>
+                                    <div style={{ marginBottom: 16, maxWidth: 400 }}><Input placeholder="Tìm kiếm..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} /></div>
+                                    <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
+                                </div>
+                            )
+                        },
+                        {
+                            key: '2',
+                            label: <span><DollarOutlined /> Quản Lý Công Nợ <Tag color="red" style={{ marginLeft: 5 }}>{suppliersWithDebt.length}</Tag></span>,
+                            children: (
+                                <div style={{ padding: 20 }}>
+                                    <div style={{ marginBottom: 16, background: '#fff1f0', padding: 15, borderRadius: 6, border: '1px solid #ffa39e', display: 'flex', gap: 20 }}>
+                                        <Statistic title="Tổng Công Nợ Phải Trả" value={suppliersWithDebt.reduce((acc, s) => acc + Number(s.debt), 0)} valueStyle={{ color: '#cf1322' }} prefix={<DollarOutlined />} suffix="₫" />
+                                        <Statistic title="Số NCC đang nợ" value={suppliersWithDebt.length} />
+                                    </div>
+                                    <Table dataSource={suppliersWithDebt} columns={debtColumns} rowKey="id" loading={loading} />
+                                </div>
+                            )
+                        }
+                    ]}
+                />
+
             </Card>
 
-            {/* MODAL EDIT INFO */}
-            <Modal title={editingItem ? "Cập nhật NCC" : "Thêm NCC Mới"} open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={() => form.submit()} width={700}>
-                <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ type: 'MATERIAL' }}>
-                    <Row gutter={16}><Col span={8}><Form.Item name="code" label="Mã" rules={[{ required: true }]}><Input /></Form.Item></Col><Col span={16}><Form.Item name="name" label="Tên" rules={[{ required: true }]}><Input /></Form.Item></Col></Row>
-                    <Row gutter={16}><Col span={12}><Form.Item name="type" label="Loại hình"><Select options={[{ label: 'Bán NPL', value: 'MATERIAL' }, { label: 'Gia công', value: 'PROCESSING' }, { label: 'Hỗn hợp', value: 'MIX' }]} /></Form.Item></Col><Col span={12}><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Col></Row>
-                    <Form.Item name="email" label="Email"><Input /></Form.Item><Form.Item name="address" label="Địa chỉ"><Input /></Form.Item>
-                    <Divider dashed />
-                    <div style={{ background: '#fafafa', padding: 10, borderRadius: 6 }}>
-                        <Form.Item name="legal_name" label="Tên Pháp Nhân VAT"><Input prefix={<BankOutlined />} /></Form.Item>
-                        <Row gutter={16}><Col span={12}><Form.Item name="tax_code" label="MST"><Input /></Form.Item></Col><Col span={12}><Form.Item name="vat_address" label="Đia chỉ ĐKKD"><Input /></Form.Item></Col></Row>
-                    </div>
-                    <Form.Item name="note" label="Ghi chú" style={{ marginTop: 10 }}><Input.TextArea rows={2} /></Form.Item>
-                </Form>
-            </Modal>
-
-            {/* MODAL CÔNG NỢ (DEBT) */}
-            <Modal title={`Quản Lý Công Nợ: ${currentSupplier?.name}`} open={isDebtModalOpen} onCancel={() => setIsDebtModalOpen(false)} width={900} footer={null}>
-                <Row gutter={24}>
-                    <Col span={16}>
-                        <Table
-                            dataSource={debtPOs}
-                            rowKey="id"
-                            size="small"
-                            rowSelection={{
-                                type: 'checkbox',
-                                onChange: (_, rows) => {
-                                    setSelectedDebtPOs(rows);
-                                    // Auto set payment amount to total debt of selected
-                                    const total = rows.reduce((sum, r) => sum + (Number(r.total_amount) - Number(r.paid_amount || 0)), 0);
-                                    setPaymentAmount(total);
-                                }
-                            }}
-                            columns={[
-                                { title: 'PO', dataIndex: 'po_code' },
-                                { title: 'Ngày', dataIndex: 'created_at', render: t => dayjs(t).format('DD/MM/YYYY') },
-                                { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right', render: v => Number(v).toLocaleString() },
-                                { title: 'Đã trả', dataIndex: 'paid_amount', align: 'right', render: v => Number(v).toLocaleString() },
-                                { title: 'Còn lại', align: 'right', render: (t, r: any) => <b style={{ color: 'red' }}>{(Number(r.total_amount) - Number(r.paid_amount || 0)).toLocaleString()}</b> }
-                            ]}
-                            pagination={false}
-                            scroll={{ y: 300 }}
-                        />
-                    </Col>
-                    <Col span={8} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 16 }}>
-                        <div style={{ fontWeight: 'bold', marginBottom: 16 }}>Thông tin Thanh Toán</div>
-                        <Form layout="vertical">
-                            <Form.Item label="Tổng thanh toán">
-                                <InputNumber
-                                    style={{ width: '100%', fontWeight: 'bold', color: 'blue' }}
-                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                    addonAfter="₫"
-                                    value={paymentAmount}
-                                    onChange={(v) => setPaymentAmount(Number(v))}
-                                />
-                            </Form.Item>
-                            <Form.Item label="Ngày thanh toán">
-                                <DatePicker style={{ width: '100%' }} value={paymentDate} onChange={setPaymentDate} format="DD/MM/YYYY" />
-                            </Form.Item>
-                            <Form.Item label="Số hóa đơn VAT">
-                                <Input value={vatCode} onChange={e => setVatCode(e.target.value)} placeholder="VD: 00123..." />
-                            </Form.Item>
-                            <Form.Item label="Link hóa đơn">
-                                <Input value={vatUrl} onChange={e => setVatUrl(e.target.value)} prefix={<LinkOutlined />} />
-                            </Form.Item>
-                            <Form.Item label="Ghi chú">
-                                <Input.TextArea rows={2} value={paymentNote} onChange={e => setPaymentNote(e.target.value)} />
-                            </Form.Item>
-                            <Button type="primary" block icon={<DollarOutlined />} onClick={handleBulkPayment} disabled={selectedDebtPOs.length === 0}>
-                                Thanh Toán ({selectedDebtPOs.length})
-                            </Button>
-                        </Form>
-                    </Col>
-                </Row>
-            </Modal>
-
-            {/* DRAWER PRICE LIST (GIỐNG NGC) */}
-            <Drawer title={`Bảng Giá: ${currentSupplier?.name}`} width={600} open={priceDrawerOpen} onClose={() => setPriceDrawerOpen(false)}>
-                <div style={{ background: '#e6f7ff', padding: 15, marginBottom: 20, borderRadius: 8, border: '1px solid #91d5ff' }}>
-                    <div style={{ fontWeight: 'bold', color: '#0050b3', marginBottom: 10 }}><PlusOutlined /> Thêm giá mới</div>
-                    <Select showSearch placeholder="Chọn Nguyên Liệu..." style={{ width: '100%', marginBottom: 10 }} options={materials} value={selectedMatId} onChange={setSelectedMatId} filterOption={(input, option: any) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())} />
-                    <Row gutter={10} style={{ marginBottom: 10 }}>
-                        <Col span={12}><InputNumber style={{ width: '100%' }} placeholder="Giá nhập" addonAfter="₫" value={inputPrice} onChange={(v: any) => setInputPrice(v)} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Col>
-                        <Col span={12}><RangePicker style={{ width: '100%' }} value={dateRange} onChange={setDateRange} format="DD/MM/YY" /></Col>
-                    </Row>
+            {/* UNIFIED DRAWER: DETAILS / EDIT / PRICE / HISTORY */}
+            <Drawer
+                title={
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Checkbox checked={isDefault} onChange={e => setIsDefault(e.target.checked)}>Đặt làm giá mặc định (Tính BOM)</Checkbox>
-                        <Button type="primary" onClick={handleAddPrice}>Lưu Giá</Button>
+                        <span>{editingItem ? `Nhà Cung Cấp: ${editingItem.name}` : "Thêm NCC Mới"}</span>
+                        {editingItem && (
+                            <Space>
+                                <Tag color={editingItem.type === 'MATERIAL' ? 'blue' : 'orange'}>{editingItem.type === 'MATERIAL' ? 'NPL' : 'Gia Công'}</Tag>
+                                <Tag color="volcano">Nợ: {Number(editingItem.debt || 0).toLocaleString()}</Tag>
+                            </Space>
+                        )}
                     </div>
-                </div>
-
-                <Divider>Danh sách giá hiện tại</Divider>
-
-                <List
-                    itemLayout="horizontal"
-                    dataSource={priceList}
-                    renderItem={(item: any) => (
-                        <List.Item actions={[<a key="del" style={{ color: 'red' }} onClick={() => handleRemovePrice(item.id)}>Xóa</a>]}>
-                            <List.Item.Meta
-                                avatar={<AppstoreOutlined style={{ fontSize: 20, color: '#1890ff', marginTop: 10 }} />}
-                                title={
-                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span>{item.material?.name} <span style={{ fontWeight: 'normal', color: '#888' }}>({item.material?.code})</span></span>
-                                        <span style={{ color: '#389e0d', fontWeight: 'bold' }}>{Number(item.price).toLocaleString()} ₫</span>
+                }
+                open={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                width={850}
+                extra={
+                    <Space>
+                        <Button onClick={() => setIsModalOpen(false)}>Đóng</Button>
+                        <Button type="primary" onClick={() => form.submit()}>Lưu Thông Tin</Button>
+                    </Space>
+                }
+            >
+                <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ type: 'MATERIAL' }}>
+                    <Tabs defaultActiveKey={priceDrawerOpen ? '2' : '1'} items={[
+                        {
+                            key: '1', label: 'Thông tin chung',
+                            children: (
+                                <div style={{ padding: '10px 0' }}>
+                                    <Card size="small" bordered={false} style={{ background: '#f9f9f9', borderRadius: 8 }}>
+                                        <Row gutter={16}>
+                                            <Col span={8}><Form.Item name="code" label="Mã NCC" rules={[{ required: true }]}><Input /></Form.Item></Col>
+                                            <Col span={16}><Form.Item name="name" label="Tên Nhà Cung Cấp" rules={[{ required: true }]}><Input /></Form.Item></Col>
+                                        </Row>
+                                        <Row gutter={16}>
+                                            <Col span={12}><Form.Item name="type" label="Loại hình"><Select options={[{ label: 'Bán NPL', value: 'MATERIAL' }, { label: 'Gia công', value: 'PROCESSING' }, { label: 'Hỗn hợp', value: 'MIX' }]} /></Form.Item></Col>
+                                            <Col span={12}><Form.Item name="phone" label="SĐT Liên hệ"><Input /></Form.Item></Col>
+                                        </Row>
+                                        <Form.Item name="email" label="Email"><Input /></Form.Item>
+                                        <Form.Item name="address" label="Địa chỉ"><Input /></Form.Item>
+                                        <Form.Item name="note" label="Ghi chú"><Input.TextArea rows={2} /></Form.Item>
+                                    </Card>
+                                    <Divider dashed >Thông tin Pháp nhân</Divider>
+                                    <Row gutter={16}>
+                                        <Col span={12}><Form.Item name="legal_name" label="Tên Pháp Nhân VAT"><Input prefix={<BankOutlined />} /></Form.Item></Col>
+                                        <Col span={12}><Form.Item name="tax_code" label="Mã Số Thuế"><Input /></Form.Item></Col>
+                                    </Row>
+                                    <Form.Item name="vat_address" label="Đia chỉ ĐKKD"><Input /></Form.Item>
+                                </div>
+                            )
+                        },
+                        {
+                            key: '2', label: 'Bảng giá & Nguyên liệu',
+                            disabled: !editingItem,
+                            children: (
+                                <div>
+                                    <div style={{ background: '#e6f7ff', padding: 15, marginBottom: 20, borderRadius: 8, border: '1px solid #91d5ff' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#0050b3', marginBottom: 10 }}><PlusOutlined /> Thêm giá mới</div>
+                                        <Select showSearch placeholder="Chọn Nguyên Liệu..." style={{ width: '100%', marginBottom: 10 }} options={materials} value={selectedMatId} onChange={setSelectedMatId} filterOption={(input, option: any) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())} />
+                                        <Row gutter={10} style={{ marginBottom: 10 }}>
+                                            <Col span={12}><InputNumber style={{ width: '100%' }} placeholder="Giá nhập" addonAfter="₫" value={inputPrice} onChange={(v: any) => setInputPrice(v)} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Col>
+                                            <Col span={12}><RangePicker style={{ width: '100%' }} value={dateRange} onChange={setDateRange} format="DD/MM/YY" /></Col>
+                                        </Row>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Checkbox checked={isDefault} onChange={e => setIsDefault(e.target.checked)}>Đặt làm giá mặc định (Tính BOM)</Checkbox>
+                                            <Button type="primary" onClick={handleAddPrice}>Lưu Giá</Button>
+                                        </div>
                                     </div>
-                                }
-                                description={
-                                    <Space size="small" style={{ fontSize: 12 }}>
-                                        <Tag>{item.material?.unit}</Tag>
-                                        {item.is_preferred && <Tag color="gold" icon={<StarFilled />}>Giá chuẩn</Tag>}
-                                        {item.valid_from && <Tag icon={<CalendarOutlined />}>{dayjs(item.valid_from).format('DD/MM/YY')} - {item.valid_to ? dayjs(item.valid_to).format('DD/MM/YY') : '∞'}</Tag>}
-                                    </Space>
-                                }
+                                    <List
+                                        size="small"
+                                        itemLayout="horizontal"
+                                        dataSource={priceList}
+                                        renderItem={(item: any) => (
+                                            <List.Item actions={[<a key="del" style={{ color: 'red' }} onClick={() => handleRemovePrice(item.id)}>Xóa</a>]}>
+                                                <List.Item.Meta
+                                                    avatar={<Tag color="blue">{item.material?.unit}</Tag>}
+                                                    title={<span>{item.material?.name} ({item.material?.code})</span>}
+                                                    description={
+                                                        <Space>
+                                                            <b style={{ color: 'green' }}>{Number(item.price).toLocaleString()} ₫</b>
+                                                            {item.is_preferred && <StarFilled style={{ color: '#faad14' }} />}
+                                                            {item.valid_from && <span style={{ fontSize: 11, color: '#888' }}>{dayjs(item.valid_from).format('DD/MM')} - {item.valid_to ? dayjs(item.valid_to).format('DD/MM') : '∞'}</span>}
+                                                        </Space>
+                                                    }
+                                                />
+                                            </List.Item>
+                                        )}
+                                    />
+                                </div>
+                            )
+                        },
+                        {
+                            key: '3', label: <span style={{ color: '#096dd9' }}><HistoryOutlined /> Lịch sử Giao Dịch</span>,
+                            disabled: !editingItem,
+                            children: (
+                                <div>
+                                    <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                                        <Button size="small" icon={<ReloadOutlined />} onClick={() => loadPOs(editingItem?.id)}>Tải lại</Button>
+                                    </div>
+                                    <Table
+                                        rowKey="id"
+                                        size="small"
+                                        dataSource={supplierPOs}
+                                        scroll={{ y: 400 }}
+                                        columns={[
+                                            { title: 'Ngày', dataIndex: 'created_at', render: t => dayjs(t).format('DD/MM/YYYY') },
+                                            { title: 'PO Code', dataIndex: 'po_code', render: t => <b>{t}</b> },
+                                            { title: 'Trạng Thái', dataIndex: 'status', render: t => <Tag>{t}</Tag> },
+                                            { title: 'Tổng Tiền', dataIndex: 'total_amount', align: 'right', render: v => Number(v).toLocaleString() },
+                                            { title: 'Đã Trả', dataIndex: 'paid_amount', align: 'right', render: v => <span style={{ color: 'green' }}>{Number(v).toLocaleString()}</span> },
+                                            { title: 'Còn Nợ', align: 'right', render: (t, r: any) => <b style={{ color: 'red' }}>{(Number(r.total_amount) - Number(r.paid_amount || 0)).toLocaleString()}</b> }
+                                        ]}
+                                    />
+                                </div>
+                            )
+                        }
+                    ]} />
+                </Form>
+
+                {/* MODAL CÔNG NỢ (DEBT) - For Bulk Payment Action */}
+                <Modal title={`Quản Lý Công Nợ: ${currentSupplier?.name}`} open={isDebtModalOpen} onCancel={() => setIsDebtModalOpen(false)} width={900} footer={null}>
+                    <Row gutter={24}>
+                        <Col span={16}>
+                            <Table
+                                dataSource={debtPOs}
+                                rowKey="id"
+                                size="small"
+                                rowSelection={{
+                                    type: 'checkbox',
+                                    onChange: (_, rows) => {
+                                        setSelectedDebtPOs(rows);
+                                        const total = rows.reduce((sum, r) => sum + (Number(r.total_amount) - Number(r.paid_amount || 0)), 0);
+                                        setPaymentAmount(total);
+                                    }
+                                }}
+                                columns={[
+                                    { title: 'PO', dataIndex: 'po_code' },
+                                    { title: 'Ngày', dataIndex: 'created_at', render: t => dayjs(t).format('DD/MM/YYYY') },
+                                    { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right', render: v => Number(v).toLocaleString() },
+                                    { title: 'Đã trả', dataIndex: 'paid_amount', align: 'right', render: v => Number(v).toLocaleString() },
+                                    { title: 'Còn lại', align: 'right', render: (t, r: any) => <b style={{ color: 'red' }}>{(Number(r.total_amount) - Number(r.paid_amount || 0)).toLocaleString()}</b> }
+                                ]}
+                                pagination={false}
+                                scroll={{ y: 300 }}
                             />
-                        </List.Item>
-                    )}
-                />
-            </Drawer>
+                        </Col>
+                        <Col span={8} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 16 }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: 16 }}>Thông tin Thanh Toán</div>
+                            <Form layout="vertical">
+                                <Form.Item label="Tổng thanh toán">
+                                    <InputNumber
+                                        style={{ width: '100%', fontWeight: 'bold', color: 'blue' }}
+                                        formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                        addonAfter="₫"
+                                        value={paymentAmount}
+                                        onChange={(v) => setPaymentAmount(Number(v))}
+                                    />
+                                </Form.Item>
+                                <Form.Item label="Ngày thanh toán">
+                                    <DatePicker style={{ width: '100%' }} value={paymentDate} onChange={setPaymentDate} format="DD/MM/YYYY" />
+                                </Form.Item>
+                                <Form.Item label="Số hóa đơn VAT">
+                                    <Input value={vatCode} onChange={e => setVatCode(e.target.value)} placeholder="VD: 00123..." />
+                                </Form.Item>
+                                <Form.Item label="Link hóa đơn">
+                                    <Input value={vatUrl} onChange={e => setVatUrl(e.target.value)} prefix={<LinkOutlined />} />
+                                </Form.Item>
+                                <Form.Item label="Ghi chú">
+                                    <Input.TextArea rows={2} value={paymentNote} onChange={e => setPaymentNote(e.target.value)} />
+                                </Form.Item>
+                                <Button type="primary" block icon={<DollarOutlined />} onClick={handleBulkPayment} disabled={selectedDebtPOs.length === 0}>
+                                    Thanh Toán ({selectedDebtPOs.length})
+                                </Button>
+                            </Form>
+                        </Col>
+                    </Row>
+                </Modal>
         </div>
     );
 };

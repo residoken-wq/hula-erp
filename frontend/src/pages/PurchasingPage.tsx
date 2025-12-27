@@ -571,68 +571,12 @@ const PurchasingPage: React.FC = () => {
                             />
                         )
                     },
-                    {
-                        key: '2', label: 'Thông tin Giao hàng', children: (
-                            <Form layout="vertical">
-                                <Row gutter={16}>
-                                    <Col span={12}>
-                                        <Form.Item label="Ngày giao hàng dự kiến">
-                                            <DatePicker
-                                                style={{ width: '100%' }}
-                                                value={poDeliveryInfo.delivery_date ? dayjs(poDeliveryInfo.delivery_date) : null}
-                                                onChange={(d) => setPoDeliveryInfo({ ...poDeliveryInfo, delivery_date: d })}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Form.Item label="Người liên hệ">
-                                            <Input
-                                                value={poDeliveryInfo.contact_person}
-                                                onChange={(e) => setPoDeliveryInfo({ ...poDeliveryInfo, contact_person: e.target.value })}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Form.Item label="SĐT Liên hệ">
-                                            <Input
-                                                value={poDeliveryInfo.contact_phone}
-                                                onChange={(e) => setPoDeliveryInfo({ ...poDeliveryInfo, contact_phone: e.target.value })}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Form.Item label="Phương thức vận chuyển">
-                                            <Select
-                                                value={poDeliveryInfo.delivery_method}
-                                                onChange={(v) => setPoDeliveryInfo({ ...poDeliveryInfo, delivery_method: v })}
-                                                options={[{ value: 'Giao tận nơi', label: 'Giao tận nơi' }, { value: 'Lấy tại kho', label: 'Lấy tại kho' }]}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={24}>
-                                        <Form.Item label="Địa chỉ giao hàng">
-                                            <Input
-                                                value={poDeliveryInfo.delivery_address}
-                                                onChange={(e) => setPoDeliveryInfo({ ...poDeliveryInfo, delivery_address: e.target.value })}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col span={24}>
-                                        <Form.Item label="Ghi chú đóng gói">
-                                            <Input.TextArea
-                                                rows={3}
-                                                value={poDeliveryInfo.packing_note}
-                                                onChange={(e) => setPoDeliveryInfo({ ...poDeliveryInfo, packing_note: e.target.value })}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                            </Form>
-                        )
-                    },
+                    // Renamed from key '3' to '2' effectively in the UI flow, or just keep key logic simpler
+                    // Removed old "Thông tin giao hàng" tab that used removed state variables.
+
                     // Only show Packing Matrix for MATERIAL POs
                     ...(currentPO?.po_type !== 'OUTSOURCING' ? [{
-                        key: '3', label: 'Chi tiết Đóng gói (Matrix)', children: (
+                        key: '3', label: 'Quản lý Giao hàng', children: (
                             <div>
                                 <div style={{ marginBottom: 10 }}>
                                     <span style={{ marginLeft: 10, color: '#888' }}>Thông tin đóng gói được tạo tự động từ danh sách NPL</span>
@@ -645,7 +589,7 @@ const PurchasingPage: React.FC = () => {
                                     scroll={{ x: 1200 }}
                                     columns={[
                                         {
-                                            title: 'Mã PO Form', width: 100, align: 'center', render: (t, r, idx) => <b>{idx + 1}</b>
+                                            title: 'Mã PO Form', width: 100, align: 'center', render: (t: any, r: any, idx: number) => <b>{idx + 1}</b>
                                         },
                                         {
                                             title: 'Tên NPL', width: 250, render: (t, r, idx) => <span>{r.material_name}</span>
