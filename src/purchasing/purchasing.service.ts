@@ -254,7 +254,7 @@ export class PurchasingService {
                                 needed_qty: needed,
                                 ordered_qty: ordered,
                                 remaining_qty: remaining,
-                                remaining_qty: remaining,
+
                                 description: item.material_name,
                                 // --- MỚI: Truyền dữ liệu gốc/hao hụt ---
                                 raw_quantity: item.gross_raw || 0,
