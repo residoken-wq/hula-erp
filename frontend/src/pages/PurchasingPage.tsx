@@ -98,20 +98,42 @@ const PurchasingPage: React.FC = () => {
                 const pRes = await axios.get(`${API_URL}/planning/${planId}`);
                 const plan = pRes.data;
                 // Extract unique products from sales orders
-                const prods = new Map();
+                const addProductToMap = (product: any, qty: number) => {
+                    // Check if it's a Combo based on type OR components existence
+                    const isCombo = product.product_type === 'COMBO' || (product.components && product.components.length > 0);
+
+                    if (isCombo && product.components && product.components.length > 0) {
+                        // Is Combo -> Decompose
+                        product.components.forEach((comp: any) => {
+                            if (comp.child_product) {
+                                addProductToMap(comp.child_product, qty * Number(comp.quantity));
+                            }
+                        });
+                    } else {
+                        // Standard Product (Leaf node)
+                        if (!prods.has(product.sku)) {
+                            prods.set(product.sku, {
+                                sku: product.sku,
+                                name: product.name,
+                                quantity: 0,
+                                product: product
+                            });
+                        }
+                        const p = prods.get(product.sku);
+                        p.quantity += Number(qty);
+                    }
+                };
+
                 if (plan && plan.sales_orders) {
                     plan.sales_orders.forEach((so: any) => {
                         so.items?.forEach((item: any) => {
-                            if (!prods.has(item.sku)) {
-                                prods.set(item.sku, {
-                                    sku: item.sku,
-                                    name: item.product_name,
-                                    quantity: 0,
-                                    product: item.product // Keep ref to product data
-                                });
+                            if (item.product) {
+                                addProductToMap(item.product, Number(item.quantity));
+                            } else {
+                                // Fallback
+                                if (!prods.has(item.sku)) prods.set(item.sku, { sku: item.sku, name: item.product_name, quantity: 0 });
+                                prods.get(item.sku).quantity += Number(item.quantity);
                             }
-                            const p = prods.get(item.sku);
-                            p.quantity += Number(item.quantity);
                         });
                     });
                 }
@@ -119,17 +141,18 @@ const PurchasingPage: React.FC = () => {
                 // Calculate Norms for each aggregated product
                 const finalProducts = Array.from(prods.values()).map((p: any) => {
                     let unitNorm = 0;
-                    if (p.product && p.product.components) {
-                        p.product.components.forEach((comp: any) => {
-                            if (comp.child_product && targetMaterialIds.has(comp.child_product.id)) {
-                                unitNorm += Number(comp.quantity || 0);
+                    // Use BOMs to find Material Usage
+                    if (p.product && p.product.boms) {
+                        p.product.boms.forEach((bom: any) => {
+                            if (bom.material && targetMaterialIds.has(bom.material.id)) {
+                                unitNorm += Number(bom.quantity || 0);
                             }
                         });
                     }
                     return {
                         ...p,
-                        unit_norm: unitNorm,
-                        total_norm: unitNorm * p.quantity
+                        unit_norm: unitNorm > 0 ? unitNorm : 0,
+                        total_norm: (unitNorm > 0 ? unitNorm : 0) * p.quantity
                     };
                 });
 
