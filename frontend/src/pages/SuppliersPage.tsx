@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Drawer, List, DatePicker, InputNumber, Checkbox, Typography, Tooltip, Tabs, Statistic } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BankOutlined, DollarOutlined, AppstoreOutlined, CalendarOutlined, StarFilled, StarOutlined, ShopOutlined, LinkOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BankOutlined, DollarOutlined, AppstoreOutlined, CalendarOutlined, StarFilled, StarOutlined, ShopOutlined, LinkOutlined, ReloadOutlined, HistoryOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -410,65 +410,66 @@ const SuppliersPage: React.FC = () => {
                         }
                     ]} />
                 </Form>
+            </Drawer>
 
-                {/* MODAL CÔNG NỢ (DEBT) - For Bulk Payment Action */}
-                <Modal title={`Quản Lý Công Nợ: ${currentSupplier?.name}`} open={isDebtModalOpen} onCancel={() => setIsDebtModalOpen(false)} width={900} footer={null}>
-                    <Row gutter={24}>
-                        <Col span={16}>
-                            <Table
-                                dataSource={debtPOs}
-                                rowKey="id"
-                                size="small"
-                                rowSelection={{
-                                    type: 'checkbox',
-                                    onChange: (_, rows) => {
-                                        setSelectedDebtPOs(rows);
-                                        const total = rows.reduce((sum, r) => sum + (Number(r.total_amount) - Number(r.paid_amount || 0)), 0);
-                                        setPaymentAmount(total);
-                                    }
-                                }}
-                                columns={[
-                                    { title: 'PO', dataIndex: 'po_code' },
-                                    { title: 'Ngày', dataIndex: 'created_at', render: t => dayjs(t).format('DD/MM/YYYY') },
-                                    { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right', render: v => Number(v).toLocaleString() },
-                                    { title: 'Đã trả', dataIndex: 'paid_amount', align: 'right', render: v => Number(v).toLocaleString() },
-                                    { title: 'Còn lại', align: 'right', render: (t, r: any) => <b style={{ color: 'red' }}>{(Number(r.total_amount) - Number(r.paid_amount || 0)).toLocaleString()}</b> }
-                                ]}
-                                pagination={false}
-                                scroll={{ y: 300 }}
-                            />
-                        </Col>
-                        <Col span={8} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 16 }}>
-                            <div style={{ fontWeight: 'bold', marginBottom: 16 }}>Thông tin Thanh Toán</div>
-                            <Form layout="vertical">
-                                <Form.Item label="Tổng thanh toán">
-                                    <InputNumber
-                                        style={{ width: '100%', fontWeight: 'bold', color: 'blue' }}
-                                        formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                        addonAfter="₫"
-                                        value={paymentAmount}
-                                        onChange={(v) => setPaymentAmount(Number(v))}
-                                    />
-                                </Form.Item>
-                                <Form.Item label="Ngày thanh toán">
-                                    <DatePicker style={{ width: '100%' }} value={paymentDate} onChange={setPaymentDate} format="DD/MM/YYYY" />
-                                </Form.Item>
-                                <Form.Item label="Số hóa đơn VAT">
-                                    <Input value={vatCode} onChange={e => setVatCode(e.target.value)} placeholder="VD: 00123..." />
-                                </Form.Item>
-                                <Form.Item label="Link hóa đơn">
-                                    <Input value={vatUrl} onChange={e => setVatUrl(e.target.value)} prefix={<LinkOutlined />} />
-                                </Form.Item>
-                                <Form.Item label="Ghi chú">
-                                    <Input.TextArea rows={2} value={paymentNote} onChange={e => setPaymentNote(e.target.value)} />
-                                </Form.Item>
-                                <Button type="primary" block icon={<DollarOutlined />} onClick={handleBulkPayment} disabled={selectedDebtPOs.length === 0}>
-                                    Thanh Toán ({selectedDebtPOs.length})
-                                </Button>
-                            </Form>
-                        </Col>
-                    </Row>
-                </Modal>
+            {/* MODAL CÔNG NỢ (DEBT) - For Bulk Payment Action */}
+            <Modal title={`Quản Lý Công Nợ: ${currentSupplier?.name}`} open={isDebtModalOpen} onCancel={() => setIsDebtModalOpen(false)} width={900} footer={null}>
+                <Row gutter={24}>
+                    <Col span={16}>
+                        <Table
+                            dataSource={debtPOs}
+                            rowKey="id"
+                            size="small"
+                            rowSelection={{
+                                type: 'checkbox',
+                                onChange: (_, rows) => {
+                                    setSelectedDebtPOs(rows);
+                                    const total = rows.reduce((sum, r) => sum + (Number(r.total_amount) - Number(r.paid_amount || 0)), 0);
+                                    setPaymentAmount(total);
+                                }
+                            }}
+                            columns={[
+                                { title: 'PO', dataIndex: 'po_code' },
+                                { title: 'Ngày', dataIndex: 'created_at', render: t => dayjs(t).format('DD/MM/YYYY') },
+                                { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right', render: v => Number(v).toLocaleString() },
+                                { title: 'Đã trả', dataIndex: 'paid_amount', align: 'right', render: v => Number(v).toLocaleString() },
+                                { title: 'Còn lại', align: 'right', render: (t, r: any) => <b style={{ color: 'red' }}>{(Number(r.total_amount) - Number(r.paid_amount || 0)).toLocaleString()}</b> }
+                            ]}
+                            pagination={false}
+                            scroll={{ y: 300 }}
+                        />
+                    </Col>
+                    <Col span={8} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 16 }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: 16 }}>Thông tin Thanh Toán</div>
+                        <Form layout="vertical">
+                            <Form.Item label="Tổng thanh toán">
+                                <InputNumber
+                                    style={{ width: '100%', fontWeight: 'bold', color: 'blue' }}
+                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                    addonAfter="₫"
+                                    value={paymentAmount}
+                                    onChange={(v) => setPaymentAmount(Number(v))}
+                                />
+                            </Form.Item>
+                            <Form.Item label="Ngày thanh toán">
+                                <DatePicker style={{ width: '100%' }} value={paymentDate} onChange={setPaymentDate} format="DD/MM/YYYY" />
+                            </Form.Item>
+                            <Form.Item label="Số hóa đơn VAT">
+                                <Input value={vatCode} onChange={e => setVatCode(e.target.value)} placeholder="VD: 00123..." />
+                            </Form.Item>
+                            <Form.Item label="Link hóa đơn">
+                                <Input value={vatUrl} onChange={e => setVatUrl(e.target.value)} prefix={<LinkOutlined />} />
+                            </Form.Item>
+                            <Form.Item label="Ghi chú">
+                                <Input.TextArea rows={2} value={paymentNote} onChange={e => setPaymentNote(e.target.value)} />
+                            </Form.Item>
+                            <Button type="primary" block icon={<DollarOutlined />} onClick={handleBulkPayment} disabled={selectedDebtPOs.length === 0}>
+                                Thanh Toán ({selectedDebtPOs.length})
+                            </Button>
+                        </Form>
+                    </Col>
+                </Row>
+            </Modal>
         </div>
     );
 };
