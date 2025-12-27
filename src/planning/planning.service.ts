@@ -209,7 +209,12 @@ export class PlanningService {
                 // --- MỚI: Lọc các giá hợp lệ (còn hiệu lực) ---
                 const now = new Date();
                 const validPrices = mat.supplier_prices?.filter(sp => {
-                    if (sp.valid_to && new Date(sp.valid_to) < now) return false;
+                    if (sp.valid_to) {
+                        const validToDate = new Date(sp.valid_to);
+                        // Set thời gian là cuối ngày (23:59:59) để tính bao gồm cả ngày hết hạn
+                        validToDate.setHours(23, 59, 59, 999);
+                        if (validToDate < now) return false;
+                    }
                     return true;
                 }) || [];
 
