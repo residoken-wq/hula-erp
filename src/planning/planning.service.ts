@@ -375,7 +375,7 @@ export class PlanningService {
                     quantity: i.qtyToBuy,
                     unit_price: price,
                     subtotal: sub,
-                    plan_id: id // --- MỚI: Link item to Plan ---
+                    plan_id: planId // --- MỚI: Link item to Plan ---
                 } as any) as unknown as PurchaseOrderItem;
             });
 
