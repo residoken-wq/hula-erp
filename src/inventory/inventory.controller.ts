@@ -4,7 +4,7 @@ import { CreateInventoryDto } from './create-inventory.dto';
 
 @Controller('inventory')
 export class InventoryController {
-  constructor(private readonly inventoryService: InventoryService) {}
+  constructor(private readonly inventoryService: InventoryService) { }
 
   @Get('history')
   async getHistory() { return this.inventoryService.getHistory(); }
@@ -14,7 +14,7 @@ export class InventoryController {
   async getStocks() { return this.inventoryService.getAllStocks(); }
 
   @Post('adjust')
-  @UsePipes(new ValidationPipe()) 
+  @UsePipes(new ValidationPipe())
   async adjust(@Body() dto: CreateInventoryDto) {
     return this.inventoryService.adjustStock(
       dto.type,
@@ -25,5 +25,11 @@ export class InventoryController {
       dto.note,
       dto.warehouse // <--- Truyền kho xuống service
     );
+  }
+
+  // API Reset tồn kho (Dành cho Dev/Admin)
+  @Post('reset')
+  async reset() {
+    return this.inventoryService.resetAllStocks();
   }
 }

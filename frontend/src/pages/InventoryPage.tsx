@@ -158,6 +158,21 @@ const InventoryPage: React.FC = () => {
         return [];
     }, [itemType, products, materials]);
 
+    // --- ADMIN RESET ---
+    const [resetCode, setResetCode] = useState('');
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+
+    const handleSystemReset = async () => {
+        if (resetCode !== 'RESET') return message.error('Mã xác nhận không đúng');
+        try {
+            await api.post('/inventory/reset');
+            message.success('Hệ thống kho đã được Reset về 0');
+            setIsResetModalOpen(false);
+            setResetCode('');
+            fetchData();
+        } catch (e) { message.error('Lỗi reset hệ thống'); }
+    };
+
     return (
         <div>
             {/* --- DASHBOARD MINI --- */}
@@ -185,6 +200,10 @@ const InventoryPage: React.FC = () => {
                 title="Quản Lý Kho Hàng"
                 extra={
                     <Space>
+                        <Tag color="gold" style={{ fontSize: 14, padding: '5px 10px' }}>
+                            Tổng giá trị: <b>{filteredMasterData.reduce((sum, item) => sum + (Number(item.quantity_in_stock || 0) * Number(item.cost_price || item.cost_per_unit || 0)), 0).toLocaleString()} ₫</b>
+                        </Tag>
+                        <Divider type="vertical" />
                         <Input.Search
                             placeholder="Tìm tên SP / SKU..."
                             onSearch={val => setSearchText(val)}
@@ -195,6 +214,9 @@ const InventoryPage: React.FC = () => {
                         <Divider type="vertical" />
                         <Button type="primary" icon={<SwapOutlined />} onClick={() => { form.resetFields(); setIsModalOpen(true) }}>Điều Chỉnh Kho</Button>
                         <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+
+                        {/* BUTTON ẨN ADMIN */}
+                        <Button type="text" danger icon={<AlertOutlined />} onClick={() => setIsResetModalOpen(true)} title="Admin Reset System" />
                     </Space>
                 }
             >
@@ -259,6 +281,31 @@ const InventoryPage: React.FC = () => {
                         <Col span={12}><Form.Item name="ref" label="Mã tham chiếu"><Input placeholder="VD: KK-01" /></Form.Item></Col>
                     </Row>
                     <Form.Item name="note" label="Ghi chú"><Input.TextArea rows={2} /></Form.Item>
+                </Form>
+            </Modal>
+
+            {/* MODAL RESET ADMIN */}
+            <Modal
+                title={<span style={{ color: 'red' }}><AlertOutlined /> DANGER ZONE: Reset Inventory</span>}
+                open={isResetModalOpen}
+                onCancel={() => setIsResetModalOpen(false)}
+                onOk={handleSystemReset}
+                okText="Xác nhận XÓA HẾT"
+                okButtonProps={{ danger: true }}
+            >
+                <div style={{ background: '#fff1f0', padding: 15, borderRadius: 8, border: '1px solid #ffccc7', marginBottom: 15 }}>
+                    <p><b>Cảnh báo:</b> Hành động này sẽ:</p>
+                    <ul>
+                        <li>Xóa toàn bộ lịch sử giao dịch kho (History).</li>
+                        <li>Xóa sạch số lượng tồn kho chi tiết trong các kho (Stocks).</li>
+                        <li>Đưa số lượng tồn của TẤT CẢ Sản phẩm và Nguyên liệu về 0.</li>
+                    </ul>
+                    <p style={{ color: 'red', fontWeight: 'bold' }}>Dữ liệu không thể khôi phục!</p>
+                </div>
+                <Form layout="vertical">
+                    <Form.Item label="Nhập chữ 'RESET' để xác nhận">
+                        <Input value={resetCode} onChange={e => setResetCode(e.target.value)} placeholder="RESET" />
+                    </Form.Item>
                 </Form>
             </Modal>
         </div>
