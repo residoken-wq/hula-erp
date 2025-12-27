@@ -97,7 +97,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     discount_rate: initialData.discount_rate || 0,
                     discount_amount: initialData.discount_amount || 0,
                     vat_rate: initialData.vat_rate || 0,
-                    vat_rate: initialData.vat_rate || 0,
+
                     shipping_fee: initialData.shipping_fee || 0,
                     vat_company_name: initialData.vat_company_name,
                     vat_tax_code: initialData.vat_tax_code,
