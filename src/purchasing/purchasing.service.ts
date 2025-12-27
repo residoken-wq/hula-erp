@@ -254,7 +254,13 @@ export class PurchasingService {
                                 needed_qty: needed,
                                 ordered_qty: ordered,
                                 remaining_qty: remaining,
-                                description: item.material_name
+                                remaining_qty: remaining,
+                                description: item.material_name,
+                                // --- MỚI: Truyền dữ liệu gốc/hao hụt ---
+                                raw_quantity: item.gross_raw || 0,
+                                wastage_rate: item.wastage_percent || 0,
+                                total_quantity: item.gross_requirement || 0
+                                // ---------------------------------------
                             });
                         }
                     }
@@ -323,7 +329,15 @@ export class PurchasingService {
             item.plan_id = i.plan_id;
             item.quantity = Number(i.quantity);
             item.unit_price = Number(i.unit_price);
+            item.quantity = Number(i.quantity);
+            item.unit_price = Number(i.unit_price);
             item.subtotal = item.quantity * item.unit_price;
+
+            // --- MỚI: Map các trường bổ sung ---
+            item.raw_quantity = Number(i.raw_quantity || 0);
+            item.wastage_rate = Number(i.wastage_rate || 0);
+            item.total_quantity = Number(i.total_quantity || 0);
+            // ----------------------------------
 
             if (i.type === 'OUTSOURCING') {
                 item.description = i.description; // e.g. "Son (SKU-01)"
