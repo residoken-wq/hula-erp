@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StockHistory } from './stock-history.entity';
 import { InventoryStock } from './inventory-stock.entity';
+import { GoodsReceipt, GoodsReceiptStatus } from './entities/goods-receipt.entity';
+import { GoodsReceiptItem } from './entities/goods-receipt-item.entity';
 import { Product } from '../products/product.entity';
 import { Material } from '../materials/material.entity';
 
@@ -13,6 +15,8 @@ export class InventoryService {
     @InjectRepository(InventoryStock) private stockRepo: Repository<InventoryStock>,
     @InjectRepository(Product) private productRepo: Repository<Product>,
     @InjectRepository(Material) private materialRepo: Repository<Material>,
+    @InjectRepository(GoodsReceipt) private receiptRepo: Repository<GoodsReceipt>,
+    @InjectRepository(GoodsReceiptItem) private receiptItemRepo: Repository<GoodsReceiptItem>,
   ) { }
 
   // Lấy chi tiết tồn kho của tất cả item
@@ -132,5 +136,72 @@ export class InventoryService {
     await this.adjustStock('IMPORT', itemType, itemId, quantity, `TRANSFER_IN`, `Nhận từ ${fromWh}: ${note}`, toWh);
 
     return { message: 'Chuyển kho thành công' };
+  }
+
+  // --- GOODS RECEIPT FLOW ---
+
+  async createDraftReceipt(data: { po_id: number; items: any[]; note?: string }) {
+    // 1. Create Header
+    const receipt = this.receiptRepo.create({
+      code: `PNK-${Date.now()}`,
+      po_id: data.po_id,
+      status: GoodsReceiptStatus.DRAFT,
+      note: data.note
+    });
+    await this.receiptRepo.save(receipt);
+
+    // 2. Create Items
+    if (data.items && data.items.length > 0) {
+      for (const item of data.items) {
+        const rItem = this.receiptItemRepo.create({
+          receipt: receipt,
+          material_id: item.material_id, // Assuming material PO for now
+          po_item_id: item.po_item_id,
+          quantity: item.quantity
+        });
+        await this.receiptItemRepo.save(rItem);
+      }
+    }
+
+    return receipt;
+  }
+
+  async getPendingReceipts() {
+    return this.receiptRepo.find({
+      where: { status: GoodsReceiptStatus.DRAFT },
+      relations: ['items', 'items.material', 'purchase_order', 'purchase_order.supplier'],
+      order: { created_at: 'DESC' }
+    });
+  }
+
+  async confirmReceipt(id: number, warehouseCode: string = 'KHO_NPL') {
+    const receipt = await this.receiptRepo.findOne({
+      where: { id },
+      relations: ['items']
+    });
+    if (!receipt) throw new BadRequestException('Phiếu nhập không tồn tại');
+    if (receipt.status !== GoodsReceiptStatus.DRAFT) throw new BadRequestException('Phiếu đã xử lý');
+
+    // 1. Loop items and import to stock
+    for (const item of receipt.items) {
+      if (item.material_id) {
+        await this.adjustStock(
+          'IMPORT',
+          'MATERIAL',
+          item.material_id,
+          item.quantity,
+          receipt.code,
+          `Nhập kho từ PO ${receipt.po_id ? '#' + receipt.po_id : ''}`,
+          warehouseCode
+        );
+      }
+    }
+
+    // 2. Update Status
+    receipt.status = GoodsReceiptStatus.COMPLETED;
+    receipt.delivery_date = new Date().toISOString();
+    await this.receiptRepo.save(receipt);
+
+    return { message: 'Đã nhập kho thành công', receipt };
   }
 }

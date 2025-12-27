@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UsePipes, ValidationPipe } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './create-inventory.dto';
 
@@ -40,5 +40,21 @@ export class InventoryController {
       body.itemType, body.itemId, body.quantity,
       body.fromWh, body.toWh, body.note
     );
+  }
+
+  // --- GOODS RECEIPT API ---
+  @Post('goods-receipt/draft')
+  async createDraft(@Body() body: any) {
+    return this.inventoryService.createDraftReceipt(body);
+  }
+
+  @Get('goods-receipt/pending')
+  async getPending() {
+    return this.inventoryService.getPendingReceipts();
+  }
+
+  @Post('goods-receipt/:id/confirm')
+  async confirm(@Param('id') id: string) {
+    return this.inventoryService.confirmReceipt(Number(id));
   }
 }

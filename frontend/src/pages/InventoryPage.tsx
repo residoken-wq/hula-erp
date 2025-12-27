@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Tag, Statistic, Radio, Divider, Space, Badge, Checkbox } from 'antd';
+import { Table, Button, message, Card, Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Tag, Statistic, Radio, Divider, Space, Badge, Checkbox, Popconfirm } from 'antd';
 import {
     ReloadOutlined, SwapOutlined, HistoryOutlined,
     AppstoreOutlined, ArrowUpOutlined, ArrowDownOutlined,
-    InboxOutlined, ShopOutlined, AlertOutlined
+    InboxOutlined, ShopOutlined, AlertOutlined, CheckCircleOutlined
 } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
@@ -27,6 +27,7 @@ const InventoryPage: React.FC = () => {
     const [materials, setMaterials] = useState<any[]>([]);
     const [stocks, setStocks] = useState<any[]>([]); // Dữ liệu tồn chi tiết
     const [history, setHistory] = useState<any[]>([]);
+    const [pendingReceipts, setPendingReceipts] = useState<any[]>([]); // <--- New State
 
     const [searchText, setSearchText] = useState('');
 
@@ -53,16 +54,18 @@ const InventoryPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [pRes, mRes, sRes, hRes] = await Promise.all([
+            const [pRes, mRes, sRes, hRes, grRes] = await Promise.all([
                 api.get('/products'),
                 api.get('/materials'),
                 api.get('/inventory/stocks'),
-                api.get('/inventory/history')
+                api.get('/inventory/history'),
+                api.get('/inventory/goods-receipt/pending') // <--- Fetch Pending Receipts
             ]);
             setProducts(pRes.data);
             setMaterials(mRes.data);
             setStocks(sRes.data);
             setHistory(hRes.data);
+            setPendingReceipts(grRes.data || []);
         } catch (error) {
             message.error('Lỗi tải dữ liệu');
         } finally {
@@ -134,6 +137,16 @@ const InventoryPage: React.FC = () => {
             fetchData();
         } catch (e) {
             message.error('Lỗi chuyển kho');
+        }
+    };
+
+    const handleConfirmReceipt = async (id: number) => {
+        try {
+            await api.post(`/inventory/goods-receipt/${id}/confirm`);
+            message.success('Đã nhập kho thành công');
+            fetchData();
+        } catch (e) {
+            message.error('Lỗi nhập kho');
         }
     };
 
@@ -347,6 +360,42 @@ const InventoryPage: React.FC = () => {
                     {/* TAB LỊCH SỬ */}
                     <Tabs.TabPane tab={<span><HistoryOutlined /> Nhật Ký GD</span>} key="HISTORY">
                         <Table dataSource={history} columns={historyColumns} size="small" rowKey="id" pagination={{ pageSize: 15 }} />
+                    </Tabs.TabPane>
+
+                    {/* TAB PHIẾU NHẬP KHO CHỜ DUYỆT */}
+                    <Tabs.TabPane tab={<span><InboxOutlined /> Nhập Kho Chờ Duyệt <Badge count={pendingReceipts.length} offset={[5, 0]} /></span>} key="RECEIPTS">
+                        <Table
+                            dataSource={pendingReceipts}
+                            rowKey="id"
+                            size="small"
+                            expandable={{
+                                expandedRowRender: record => (
+                                    <Table
+                                        dataSource={record.items}
+                                        size="small"
+                                        pagination={false}
+                                        columns={[
+                                            { title: 'Vật tư', render: (r: any) => r.material?.name || '-' },
+                                            { title: 'Mã', render: (r: any) => r.material?.code || '-' },
+                                            { title: 'Số lượng', dataIndex: 'quantity', render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
+                                        ]}
+                                    />
+                                )
+                            }}
+                            columns={[
+                                { title: 'Mã Phiếu', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
+                                { title: 'PO Liên Quan', render: (r: any) => r.purchase_order?.po_code || '-' },
+                                { title: 'Ngày tạo', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YY HH:mm') },
+                                { title: 'Ghi chú', dataIndex: 'note' },
+                                {
+                                    title: 'Thao tác', render: (r: any) => (
+                                        <Popconfirm title="Xác nhận nhập kho chính thức?" onConfirm={() => handleConfirmReceipt(r.id)}>
+                                            <Button type="primary" size="small" icon={<CheckCircleOutlined />}>Nhập Kho</Button>
+                                        </Popconfirm>
+                                    )
+                                }
+                            ]}
+                        />
                     </Tabs.TabPane>
                 </Tabs>
             </Card>

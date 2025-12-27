@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, Card, Tabs, Space, Tooltip, Popconfirm, message, Modal, Descriptions, Divider, Input, Statistic, Row, Col, InputNumber, Select, DatePicker, Form } from 'antd';
-import { ReloadOutlined, EyeOutlined, DeleteOutlined, SendOutlined, CheckCircleOutlined, ShopOutlined, ScissorOutlined, PrinterOutlined, SearchOutlined, DollarOutlined, CarOutlined, LinkOutlined } from '@ant-design/icons';
+import { ReloadOutlined, EyeOutlined, DeleteOutlined, SendOutlined, CheckCircleOutlined, ShopOutlined, ScissorOutlined, PrinterOutlined, SearchOutlined, DollarOutlined, CarOutlined, LinkOutlined, ImportOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -239,6 +239,25 @@ const PurchasingPage: React.FC = () => {
         } catch (e) { message.error('Lỗi lưu PO'); }
     };
 
+    const handleCreateReceipt = async () => {
+        if (!currentPO) return;
+        try {
+            await axios.post(`${API_URL}/inventory/goods-receipt/draft`, {
+                po_id: currentPO.id,
+                items: currentPO.items.map((i: any) => ({
+                    po_item_id: i.id,
+                    material_id: i.material?.id,
+                    quantity: i.quantity
+                })),
+                note: `Nhập kho từ PO ${currentPO.po_code}`
+            });
+            message.success('Đã tạo phiếu nhập kho nháp');
+            setIsDetailOpen(false);
+        } catch (error) {
+            message.error('Lỗi tạo phiếu nhập kho');
+        }
+    };
+
     const handlePrint = (template: string) => {
         const w = window.open('', '_blank');
         if (!w) return;
@@ -402,18 +421,203 @@ const PurchasingPage: React.FC = () => {
                 />
             </Modal>
 
-            {/* MODAL MONITOR NPL */}
-            <Modal title={<span><CarOutlined /> Theo Dõi NPL: {currentPO?.po_code}</span>} open={isMonitorOpen} onCancel={() => setIsMonitorOpen(false)} onOk={handleSaveDeliveryInfo} width={800}>
-                <Row gutter={16} style={{ marginBottom: 20 }}>
-                    <Col span={8}><b>Ngày gửi:</b> <DatePicker style={{ width: '100%' }} value={deliveryInfo.sent_date ? dayjs(deliveryInfo.sent_date) : null} onChange={(d) => setDeliveryInfo({ ...deliveryInfo, sent_date: d })} /></Col>
-                    <Col span={8}><b>Xe/Người giao:</b> <Input value={deliveryInfo.vehicle} onChange={e => setDeliveryInfo({ ...deliveryInfo, vehicle: e.target.value })} /></Col>
-                    <Col span={8}><b>Trạng thái:</b> <Select style={{ width: '100%' }} value={deliveryInfo.status} onChange={v => setDeliveryInfo({ ...deliveryInfo, status: v })} options={[{ label: 'Chưa gửi', value: 'PENDING' }, { label: 'Đang gửi', value: 'SENT' }, { label: 'Đã nhận', value: 'RECEIVED' }]} /></Col>
-                </Row>
-                <Table dataSource={monitorMaterials} pagination={false} size="small" columns={[{ title: 'Mã', dataIndex: 'code' }, { title: 'Tên', dataIndex: 'name' }, { title: 'Cần', dataIndex: 'quantity', align: 'center', render: (v: number) => Number(v).toLocaleString() }, { title: 'Tồn Kho', dataIndex: 'stock', align: 'center', render: (v: number, r: any) => <span style={{ color: v < r.quantity ? 'red' : 'green' }}>{Number(v).toLocaleString()}</span> }]} />
+            {/* MODAL DETAIL */}
+            <Modal
+                title={`Chi tiết: ${currentPO?.po_code}`}
+                open={isDetailOpen}
+                onCancel={() => setIsDetailOpen(false)}
+                width={1200}
+                style={{ top: 20 }}
+                footer={[
+                    <Button key="print" icon={<PrinterOutlined />} onClick={() => setIsPrintModalOpen(true)}>In PO</Button>,
+                    <Button key="save" type="primary" onClick={handleSavePOChanges}>Lưu Thay Đổi</Button>,
+                    <Button key="pay" icon={<DollarOutlined />} onClick={openPaymentModal}>Thanh Toán</Button>,
+                    <Button key="close" onClick={() => setIsDetailOpen(false)}>Đóng</Button>
+                ]}
+            >
+                <Descriptions size="small" bordered column={2} style={{ marginBottom: 16 }}>
+                    <Descriptions.Item label="NCC">{currentPO?.supplier?.name}</Descriptions.Item>
+                    <Descriptions.Item label="Tổng tiền"><b style={{ fontSize: 16 }}>{Number(currentPO?.total_amount).toLocaleString()} ₫</b></Descriptions.Item>
+                    <Descriptions.Item label="Đã trả" contentStyle={{ color: 'green', fontWeight: 'bold' }}>{Number(currentPO?.paid_amount).toLocaleString()} ₫</Descriptions.Item>
+                    <Descriptions.Item label="Còn lại" contentStyle={{ color: 'red' }}>{Number((currentPO?.total_amount || 0) - (currentPO?.paid_amount || 0)).toLocaleString()} ₫</Descriptions.Item>
+                </Descriptions>
+
+                <Tabs defaultActiveKey="1" items={[
+                    {
+                        key: '1', label: 'Chi tiết Đơn hàng', children: (
+                            <Table
+                                dataSource={editingItems}
+                                rowKey="id"
+                                pagination={false}
+                                size="small"
+                                columns={[
+                                    { title: 'Tên hàng', dataIndex: 'description' },
+                                    { title: 'SL (ĐM)', render: (r: any) => <span>{Number(r.quantity).toLocaleString()} {r.material?.unit}</span> },
+                                    {
+                                        title: 'SL (QĐ)', width: 150, render: (r: any, _: any, index: number) => {
+                                            if (!r.material) return '-';
+                                            const factor = Number(r.material.conversion_factor || 1);
+                                            const val = r.quantity / factor;
+                                            return <InputNumber
+                                                value={val}
+                                                min={0}
+                                                style={{ width: '100%' }}
+                                                onChange={(v) => {
+                                                    const newQ = Number(v) * factor;
+                                                    const newItems = [...editingItems];
+                                                    newItems[index].quantity = newQ;
+                                                    newItems[index].subtotal = newQ * Number(newItems[index].unit_price);
+                                                    setEditingItems(newItems);
+                                                }}
+                                                addonAfter={r.material.purchase_unit}
+                                            />
+                                        }
+                                    },
+                                    {
+                                        title: 'Đơn giá', width: 150, render: (r: any, _: any, index: number) => (
+                                            <InputNumber
+                                                value={r.unit_price}
+                                                min={0}
+                                                style={{ width: '100%' }}
+                                                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                onChange={(v) => {
+                                                    const newItems = [...editingItems];
+                                                    newItems[index].unit_price = Number(v);
+                                                    newItems[index].subtotal = Number(newItems[index].quantity) * Number(v);
+                                                    setEditingItems(newItems);
+                                                }}
+                                            />
+                                        )
+                                    },
+                                    { title: 'Thành tiền', render: (r: any) => <b>{Number(r.subtotal).toLocaleString()}</b> }
+                                ]}
+                            />
+                        )
+                    },
+                    {
+                        key: '2', label: 'Thông tin Giao hàng', children: (
+                            <Form layout="vertical">
+                                <Row gutter={16}>
+                                    <Col span={12}>
+                                        <Form.Item label="Ngày giao hàng dự kiến">
+                                            <DatePicker
+                                                style={{ width: '100%' }}
+                                                value={poDeliveryInfo.delivery_date ? dayjs(poDeliveryInfo.delivery_date) : null}
+                                                onChange={(d) => setPoDeliveryInfo({ ...poDeliveryInfo, delivery_date: d })}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item label="Người liên hệ">
+                                            <Input
+                                                value={poDeliveryInfo.contact_person}
+                                                onChange={(e) => setPoDeliveryInfo({ ...poDeliveryInfo, contact_person: e.target.value })}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item label="SĐT Liên hệ">
+                                            <Input
+                                                value={poDeliveryInfo.contact_phone}
+                                                onChange={(e) => setPoDeliveryInfo({ ...poDeliveryInfo, contact_phone: e.target.value })}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item label="Phương thức vận chuyển">
+                                            <Select
+                                                value={poDeliveryInfo.delivery_method}
+                                                onChange={(v) => setPoDeliveryInfo({ ...poDeliveryInfo, delivery_method: v })}
+                                                options={[{ value: 'Giao tận nơi', label: 'Giao tận nơi' }, { value: 'Lấy tại kho', label: 'Lấy tại kho' }]}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={24}>
+                                        <Form.Item label="Địa chỉ giao hàng">
+                                            <Input
+                                                value={poDeliveryInfo.delivery_address}
+                                                onChange={(e) => setPoDeliveryInfo({ ...poDeliveryInfo, delivery_address: e.target.value })}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={24}>
+                                        <Form.Item label="Ghi chú đóng gói">
+                                            <Input.TextArea
+                                                rows={3}
+                                                value={poDeliveryInfo.packing_note}
+                                                onChange={(e) => setPoDeliveryInfo({ ...poDeliveryInfo, packing_note: e.target.value })}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                            </Form>
+                        )
+                    },
+                    {
+                        key: '3', label: 'Chi tiết Đóng gói (Matrix)', children: (
+                            <div>
+                                <div style={{ marginBottom: 10 }}>
+                                    <Button size="small" onClick={() => {
+                                        const newRow = { id: Date.now(), po_form_code: '', material_name: '', n1: '', n2: '', c1: '', c2: '' };
+                                        setPackingList([...packingList, newRow]);
+                                    }}>+ Thêm Dòng</Button>
+                                </div>
+                                <Table
+                                    dataSource={packingList}
+                                    rowKey="id"
+                                    pagination={false}
+                                    size="small"
+                                    columns={[
+                                        {
+                                            title: 'Mã PO Form', render: (t, r, idx) => <Input value={r.po_form_code} onChange={e => {
+                                                const list = [...packingList]; list[idx].po_form_code = e.target.value; setPackingList(list);
+                                            }} />
+                                        },
+                                        {
+                                            title: 'Tên NPL', render: (t, r, idx) => <Input value={r.material_name} onChange={e => {
+                                                const list = [...packingList]; list[idx].material_name = e.target.value; setPackingList(list);
+                                            }} />
+                                        },
+                                        {
+                                            title: 'N1', width: 60, render: (t, r, idx) => <Input value={r.n1} onChange={e => {
+                                                const list = [...packingList]; list[idx].n1 = e.target.value; setPackingList(list);
+                                            }} />
+                                        },
+                                        {
+                                            title: 'N2', width: 60, render: (t, r, idx) => <Input value={r.n2} onChange={e => {
+                                                const list = [...packingList]; list[idx].n2 = e.target.value; setPackingList(list);
+                                            }} />
+                                        },
+                                        {
+                                            title: 'C1', width: 60, render: (t, r, idx) => <Input value={r.c1} onChange={e => {
+                                                const list = [...packingList]; list[idx].c1 = e.target.value; setPackingList(list);
+                                            }} />
+                                        },
+                                        {
+                                            title: 'C2', width: 60, render: (t, r, idx) => <Input value={r.c2} onChange={e => {
+                                                const list = [...packingList]; list[idx].c2 = e.target.value; setPackingList(list);
+                                            }} />
+                                        },
+                                        {
+                                            title: 'Thao tác', width: 50, render: (t, r, idx) => <Button danger icon={<DeleteOutlined />} size="small" onClick={() => {
+                                                const list = [...packingList]; list.splice(idx, 1); setPackingList(list);
+                                            }} />
+                                        }
+                                    ]}
+                                />
+                            </div>
+                        )
+                    }
+                ]} />
             </Modal>
 
             {/* MODAL DETAIL */}
-            <Modal title={`Chi tiết: ${currentPO?.po_code}`} open={isDetailOpen} onCancel={() => setIsDetailOpen(false)} width={900} footer={[<Button key="pay" icon={<DollarOutlined />} onClick={openPaymentModal}>Thanh Toán</Button>, <Button key="close" onClick={() => setIsDetailOpen(false)}>Đóng</Button>]}>
+            <Modal title={`Chi tiết: ${currentPO?.po_code}`} open={isDetailOpen} onCancel={() => setIsDetailOpen(false)} width={900} footer={[
+                <Button key="print" icon={<PrinterOutlined />} onClick={() => setIsPrintModalOpen(true)}>In PO</Button>,
+                <Button key="receipt" icon={<ImportOutlined />} type="dashed" onClick={handleCreateReceipt}>Tạo Phiếu Kho</Button>,
+                <Button key="pay" icon={<DollarOutlined />} onClick={openPaymentModal}>Thanh Toán</Button>,
+                <Button key="close" onClick={() => setIsDetailOpen(false)}>Đóng</Button>
+            ]}>
                 <Descriptions column={2} size="small" bordered>
                     <Descriptions.Item label="NCC">{currentPO?.supplier?.name}</Descriptions.Item>
                     <Descriptions.Item label="Tổng tiền">{Number(currentPO?.total_amount).toLocaleString()} ₫</Descriptions.Item>
