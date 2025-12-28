@@ -196,7 +196,7 @@ const ProductSemiFinishedTab: React.FC<ProductSemiFinishedTabProps> = ({ editing
                                 </Form.Item>
                             </Col>
                             <Col span={6}>
-                                <Form.Item name="unit" label="ĐVT" rules={[{ required: true }]} initialValues={{ unit: editingItem.unit }}>
+                                <Form.Item name="unit" label="ĐVT" rules={[{ required: true }]} initialValue={editingItem.unit}>
                                     <Input placeholder="Cái/Bộ" />
                                 </Form.Item>
                             </Col>
