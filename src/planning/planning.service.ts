@@ -76,6 +76,32 @@ export class PlanningService {
         // Nếu user muốn chạy lại thì sẽ có nút "Phân tích lại" (Gọi endpoint reset hoặc truyền flag force)
         // Hiện tại: Nếu đã có dữ liệu saved thì trả về.
         if (plan.mrp_data && plan.outsourcing_data) {
+            // --- FIX: Update Real-time Stock for Display ---
+            if (Array.isArray(plan.mrp_data)) {
+                const matIds = plan.mrp_data.map((i: any) => i.material_id).filter(id => !!id);
+                if (matIds.length > 0) {
+                    const mats = await this.materialsService.materialRepo.find({
+                        where: { id: In(matIds) },
+                        select: ['id', 'quantity_in_stock']
+                    });
+                    const stockMap = new Map(mats.map(m => [m.id, Number(m.quantity_in_stock)]));
+
+                    plan.mrp_data = plan.mrp_data.map((item: any) => {
+                        if (item.material_id && stockMap.has(item.material_id)) {
+                            // Update stock
+                            const currentStock = stockMap.get(item.material_id);
+                            item.available_stock = currentStock;
+
+                            // Recalculate Net Requirement
+                            const gross = Number(item.gross_requirement) || 0;
+                            item.net_requirement = Math.max(0, gross - currentStock);
+                        }
+                        return item;
+                    });
+                }
+            }
+            // -----------------------------------------------
+
             const ganttData = plan.sales_orders.map(so => ({
                 id: so.order_code, name: `SX ${so.order_code}`, start: plan.start_date, end: so.delivery_date || plan.end_date, progress: 0
             }));
