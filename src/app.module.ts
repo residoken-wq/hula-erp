@@ -118,6 +118,7 @@ import { AiModule } from './ai/ai.module';
     TasksModule, NotificationsModule, SystemModule,
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
     ProcessesModule, CategoriesModule, AiModule,
+    TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
   ],
   providers: [
     {
