@@ -323,6 +323,24 @@ const SuppliersPage: React.FC = () => {
         }
     ];
 
+    const handleBulkPayment = async () => {
+        try {
+            await axios.post(`${API_URL}/finance/po-payment`, {
+                poCode: selectedDebtPOs.map((p: any) => p.id), // Send IDs array
+                amount: paymentAmount,
+                note: paymentNote,
+                date: paymentDate,
+                vatCode: vatCode,
+                vatUrl: vatUrl,
+                partnerName: currentSupplier.name,
+                supplier_id: currentSupplier.id // <--- IMPORTANT: Link Transaction to Supplier
+            });
+            message.success('Thanh toán thành công');
+            setIsDebtModalOpen(false);
+            fetchData(); // Reload main list
+        } catch (e) { message.error('Lỗi thanh toán'); }
+    };
+
     return (
         <div style={{ padding: '0 12px' }}>
             <div style={{ marginBottom: 24 }}>
@@ -614,20 +632,4 @@ const SuppliersPage: React.FC = () => {
     );
 };
 
-const handleBulkPayment = async () => {
-    try {
-        await axios.post(`${API_URL}/finance/po-payment`, {
-            poCode: selectedDebtPOs.map((p: any) => p.id), // Send IDs array
-            amount: paymentAmount,
-            note: paymentNote,
-            date: paymentDate,
-            vatCode: vatCode,
-            vatUrl: vatUrl,
-            partnerName: currentSupplier.name,
-            supplier_id: currentSupplier.id // <--- IMPORTANT: Link Transaction to Supplier
-        });
-        message.success('Thanh toán thành công');
-        setIsDebtModalOpen(false);
-        fetchData(); // Reload main list
-    } catch (e) { message.error('Lỗi thanh toán'); }
-};
+export default SuppliersPage;
