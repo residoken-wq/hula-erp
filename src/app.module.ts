@@ -47,7 +47,7 @@ import { InventoryStock } from './inventory/inventory-stock.entity';
 
 import { PurchaseOrder } from './purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from './purchasing/entities/purchase-order-item.entity';
-import { GoodsReceipt } from './purchasing/entities/goods-receipt.entity';
+import { GoodsReceipt } from './inventory/entities/goods-receipt.entity';
 
 import { ProductionOrder } from './production/entities/production-order.entity';
 

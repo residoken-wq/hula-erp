@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { PurchaseOrder, POType, POStatus } from './entities/purchase-order.entity';
 import { PurchaseOrderItem } from './entities/purchase-order-item.entity';
-import { GoodsReceipt } from './entities/goods-receipt.entity';
+import { GoodsReceipt } from '../inventory/entities/goods-receipt.entity';
 import { InventoryService } from '../inventory/inventory.service';
 import { ProductsService } from '../products/products.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
