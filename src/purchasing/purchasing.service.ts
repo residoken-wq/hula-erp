@@ -40,6 +40,7 @@ export class PurchasingService {
         if (data.items) {
             for (const i of data.items) {
                 const item = new PurchaseOrderItem();
+                item.plan_id = i.plan_id; // --- FIX: Lưu plan_id ---
                 item.material_id = i.material_id;
                 item.product_id = i.product_id;
                 item.description = i.description || '';
@@ -79,11 +80,14 @@ export class PurchasingService {
                         if (typeof plan.mrp_data === 'string') { try { mrpResult = JSON.parse(plan.mrp_data); } catch (e) { } }
                         else { mrpResult = plan.mrp_data || []; }
 
-                        const match = mrpResult.find((m: any) => m.material_id === item.material_id);
+                        // Match by Material ID (Make sure to compare as numbers)
+                        const match = mrpResult.find((m: any) => Number(m.material_id) === Number(item.material_id));
+
                         if (match) {
-                            if (!item.raw_quantity) item.raw_quantity = match.gross_raw || 0;
-                            if (!item.wastage_rate) item.wastage_rate = match.wastage_percent || 0;
-                            if (!item.total_quantity) item.total_quantity = match.gross_requirement || 0;
+                            // Always enrich if data exists in Plan (Overwrite DB 0 values)
+                            item.raw_quantity = match.gross_raw || 0;
+                            item.wastage_rate = match.wastage_percent || 0;
+                            item.total_quantity = match.gross_requirement || 0;
                         }
                     }
                     // B. Outsourcing Logic
@@ -95,8 +99,8 @@ export class PurchasingService {
                         // Match by Description approx
                         const match = outResult.find((m: any) => item.description?.includes(m.product_sku));
                         if (match) {
-                            if (!item.raw_quantity) item.raw_quantity = match.quantity || 0; // Gross
-                            if (!item.total_quantity) item.total_quantity = match.quantity || 0;
+                            item.raw_quantity = match.quantity || 0; // Gross
+                            item.total_quantity = match.quantity || 0;
                         }
                     }
                 }
