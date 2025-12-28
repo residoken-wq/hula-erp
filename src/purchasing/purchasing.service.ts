@@ -228,7 +228,7 @@ export class PurchasingService {
         if (!po) throw new NotFoundException('PO not found');
 
         const gr = this.grRepo.create({
-            code: data.code, purchase_order: po, received_date: data.date, note: data.note
+            code: data.code, purchase_order: po, delivery_date: data.date, note: data.note
         });
         await this.grRepo.save(gr);
 
