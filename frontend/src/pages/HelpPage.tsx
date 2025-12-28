@@ -647,7 +647,7 @@ const HelpPage: React.FC = () => {
                                         <div>
                                             <ul>
                                                 <li><b>Nguyên liệu (BOM):</b> Hệ thống bóc tách BOM để tính tổng lượng vải/phụ liệu cần thiết.</li>
-                                                <li><b>Gia công (Routing):</b> Dựa trên quy trình (Cắt -> May -> Ủi) để tính chi phí và số lượng cần thuê ngoài.</li>
+                                                <li><b>Gia công (Routing):</b> Dựa trên quy trình (Cắt &rarr; May &rarr; Ủi) để tính chi phí và số lượng cần thuê ngoài.</li>
                                                 <li><b>Cân đối kho:</b> <i>Cần mua = Tổng nhu cầu - (Tồn kho thực tế - Đang giữ chỗ)</i>.</li>
                                             </ul>
                                         </div>
@@ -687,11 +687,11 @@ const HelpPage: React.FC = () => {
                                     },
                                     {
                                         title: 'Bước 2: Vào Tab Tổng Hợp',
-                                        description: 'Truy cập menu Purchasing -> Tab "Tổng Hợp Nhu Cầu NPL" (hoặc GC).'
+                                        description: 'Truy cập menu Purchasing &rarr; Tab "Tổng Hợp Nhu Cầu NPL" (hoặc GC).'
                                     },
                                     {
                                         title: 'Bước 3: Chọn & Gộp',
-                                        description: 'Tích chọn nhiều PO cùng loại -> Nhấn nút "+ Tạo PO Gộp" -> Chọn Nhà cung cấp tổng.'
+                                        description: 'Tích chọn nhiều PO cùng loại &rarr; Nhấn nút "+ Tạo PO Gộp" &rarr; Chọn Nhà cung cấp tổng.'
                                     },
                                     {
                                         title: 'Bước 4: Theo dõi',
@@ -715,7 +715,7 @@ const HelpPage: React.FC = () => {
                             </Col>
                             <Col span={8}>
                                 <Card size="small" title="Routing (Quy trình)">
-                                    Thứ tự các bước gia công (Cắt -> In -> May). Mỗi bước có thể làm tại xưởng hoặc gửi ngoài.
+                                    Thứ tự các bước gia công (Cắt &rarr; In &rarr; May). Mỗi bước có thể làm tại xưởng hoặc gửi ngoài.
                                 </Card>
                             </Col>
                         </Row>
