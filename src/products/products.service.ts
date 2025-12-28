@@ -355,6 +355,7 @@ export class ProductsService {
         let totalCost = 0;
 
         // Check Combo
+        // 1. Cost from Components (Semi-Finished / Combo Items)
         const components = await this.componentRepo.find({
             where: { parent_product: { id: product.id } },
             relations: ['child_product']
@@ -364,25 +365,28 @@ export class ProductsService {
             for (const comp of components) {
                 totalCost += Number(comp.child_product?.cost_price ?? 0) * Number(comp.quantity);
             }
-        } else {
-            // BOM
-            const boms = await this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
-            for (const item of boms) {
-                if (item.material) {
-                    const waste = Number(item.waste_percent) / 100;
-                    const materialCost = Number(item.material.cost_price || item.material.cost_per_unit);
-                    totalCost += materialCost * Number(item.quantity) * (1 + waste);
-                }
-            }
-            // Routing
-            const routings = await this.routingRepo.find({ where: { product_id: product.id } });
-            routings.forEach(r => {
-                if (r.is_required) totalCost += Number(r.cost);
-            });
-            // Logistics
-            const logistics = await this.logisticRepo.find({ where: { product_id: product.id } });
-            logistics.forEach(l => { totalCost += Number(l.cost); });
         }
+
+        // 2. Cost from BOM (Direct Materials)
+        // Now we calculate BOM cost regardless of components existence (Hybrid support)
+        const boms = await this.bomRepo.find({ where: { product_id: product.id }, relations: ['material'] });
+        for (const item of boms) {
+            if (item.material) {
+                const waste = Number(item.waste_percent) / 100;
+                const materialCost = Number(item.material.cost_price || item.material.cost_per_unit);
+                totalCost += materialCost * Number(item.quantity) * (1 + waste);
+            }
+        }
+
+        // 3. Routing Cost
+        const routings = await this.routingRepo.find({ where: { product_id: product.id } });
+        routings.forEach(r => {
+            if (r.is_required) totalCost += Number(r.cost);
+        });
+
+        // 4. Logistics Cost
+        const logistics = await this.logisticRepo.find({ where: { product_id: product.id } });
+        logistics.forEach(l => { totalCost += Number(l.cost); });
 
         totalCost = Math.round(totalCost);
 

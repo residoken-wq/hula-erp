@@ -9,7 +9,8 @@ import ProductBOMTab from '../components/products/ProductBOMTab';
 import ProductRoutingTab from '../components/products/ProductRoutingTab';
 import ProductVariantsTab from '../components/products/ProductVariantsTab';
 import ProductPatternTab from '../components/products/ProductPatternTab';
-import ProductLogisticsTab from '../components/products/ProductLogisticsTab'; // <--- MỚI: Import Component
+import ProductLogisticsTab from '../components/products/ProductLogisticsTab';
+import ProductSemiFinishedTab from '../components/products/ProductSemiFinishedTab'; // <--- MỚI
 // -------------------------------------
 
 const { TextArea } = Input;
@@ -430,6 +431,20 @@ const ProductsPage: React.FC = () => {
                             />
                         )
                     },
+                    // --- MỚI: TAB BÁN THÀNH PHẨM ---
+                    {
+                        key: '8', label: <span><AppstoreOutlined /> Bán Thành Phẩm</span>,
+                        disabled: !editingItem,
+                        children: (
+                            <ProductSemiFinishedTab
+                                editingItem={editingItem}
+                                materials={materials}
+                                fetchDetailData={fetchDetailData}
+                                components={components}
+                            />
+                        )
+                    },
+                    // --------------------------
                     // --------------------------
                     {
                         key: '5', label: <span><LinkOutlined /> Combo/Thành phần</span>,
