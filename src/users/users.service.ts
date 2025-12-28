@@ -11,7 +11,7 @@ export class UsersService {
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(UserGroup) private groupRepo: Repository<UserGroup>,
     @InjectRepository(GroupPermission) private permRepo: Repository<GroupPermission>,
-  ) {}
+  ) { }
 
   // --- USER MANAGEMENT ---
   async getAllUsers() {
@@ -21,7 +21,7 @@ export class UsersService {
   async createUser(data: any) {
     const existing = await this.userRepo.findOne({ where: { username: data.username } });
     if (existing) throw new BadRequestException('Tên đăng nhập đã tồn tại');
-    
+
     // Lưu user (trong thực tế nên hash password)
     const user = this.userRepo.create(data);
     return this.userRepo.save(user);
@@ -36,59 +36,68 @@ export class UsersService {
     return this.userRepo.delete(id);
   }
 
+  async getOnlineUsers() {
+    const timeLimit = new Date(Date.now() - 15 * 60 * 1000); // 15 mins
+    return this.userRepo.createQueryBuilder('user')
+      .leftJoinAndSelect('user.group', 'group')
+      .where('user.last_activity_at > :timeLimit', { timeLimit })
+      .orderBy('user.last_activity_at', 'DESC')
+      .getMany();
+  }
+
   // --- GROUP & PERMISSION MANAGEMENT ---
   async getAllGroups() {
     return this.groupRepo.find({ order: { id: 'ASC' }, relations: ['permissions'] });
   }
 
   async getGroupDetail(id: number) {
-      return this.groupRepo.findOne({ where: { id }, relations: ['permissions'] });
+    return this.groupRepo.findOne({ where: { id }, relations: ['permissions'] });
   }
 
   async createGroup(data: any) {
     const group = this.groupRepo.create({ name: data.name, description: data.description });
     const saved = await this.groupRepo.save(group);
-    
+
     if (data.permissions && data.permissions.length > 0) {
-        const permObjects = data.permissions.map((p: any) => ({
-            ...p,
-            group_id: saved.id 
-        }));
-        
-        const perms = this.permRepo.create(permObjects);
-        await this.permRepo.save(perms);
+      const permObjects = data.permissions.map((p: any) => ({
+        ...p,
+        group_id: saved.id
+      }));
+
+      const perms = this.permRepo.create(permObjects);
+      await this.permRepo.save(perms);
     }
     return saved;
   }
 
   async updateGroupPermissions(groupId: number, data: any) {
-      const group = await this.groupRepo.findOne({ where: { id: groupId } });
-      if (!group) throw new NotFoundException('Không tìm thấy nhóm');
+    const group = await this.groupRepo.findOne({ where: { id: groupId } });
+    if (!group) throw new NotFoundException('Không tìm thấy nhóm');
 
-      if (data.name) await this.groupRepo.update(groupId, { name: data.name, description: data.description });
+    if (data.name) await this.groupRepo.update(groupId, { name: data.name, description: data.description });
 
-      // Xóa quyền cũ và thêm quyền mới
-      if (data.permissions) {
-          await this.permRepo.delete({ group_id: groupId });
-          
-          const permObjects = data.permissions.map((p: any) => ({
-              ...p,
-              group_id: groupId 
-          }));
+    // Xóa quyền cũ và thêm quyền mới
+    if (data.permissions) {
+      await this.permRepo.delete({ group_id: groupId });
 
-          const perms = this.permRepo.create(permObjects);
-          await this.permRepo.save(perms);
-      }
-      return { success: true };
+      const permObjects = data.permissions.map((p: any) => ({
+        ...p,
+        group_id: groupId
+      }));
+
+      const perms = this.permRepo.create(permObjects);
+      await this.permRepo.save(perms);
+    }
+    return { success: true };
   }
 
   // --- QUAN TRỌNG: Lấy user kèm theo Permissions ---
   async findOneByUsernameForAuth(username: string) {
     return this.userRepo.createQueryBuilder('user')
-        .addSelect('user.password')
-        .leftJoinAndSelect('user.group', 'group')
-        .leftJoinAndSelect('group.permissions', 'permissions') // Lấy danh sách quyền
-        .where('user.username = :username', { username })
-        .getOne();
-    }   
+      .addSelect('user.password')
+      .leftJoinAndSelect('user.group', 'group')
+      .leftJoinAndSelect('group.permissions', 'permissions') // Lấy danh sách quyền
+      .where('user.username = :username', { username })
+      .getOne();
+  }
 }

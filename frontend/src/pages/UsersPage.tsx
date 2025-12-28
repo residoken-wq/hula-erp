@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Switch } from 'antd';
-import { PlusOutlined, EditOutlined, UserOutlined, LockOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Switch, Space, Avatar, Tooltip } from 'antd';
+import { PlusOutlined, EditOutlined, UserOutlined, LockOutlined, GlobalOutlined, DesktopOutlined, WifiOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import api from '../utils/api';
 
 const UsersPage: React.FC = () => {
@@ -10,6 +11,18 @@ const UsersPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<any>(null);
     const [form] = Form.useForm();
+
+    // Online Users State
+    const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+    const [isOnlineModalOpen, setIsOnlineModalOpen] = useState(false);
+
+    const fetchOnlineUsers = async () => {
+        try {
+            const res = await api.get('/users/online');
+            setOnlineUsers(res.data);
+            setIsOnlineModalOpen(true);
+        } catch (e) { message.error('Lỗi tải danh sách user online'); }
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -81,7 +94,12 @@ const UsersPage: React.FC = () => {
     ];
 
     return (
-        <Card title="Quản lý Người Dùng (Users)" extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => openModal(null)}>Thêm User</Button>}>
+        <Card title="Quản lý Người Dùng (Users)" extra={
+            <Space>
+                <Button icon={<GlobalOutlined />} onClick={fetchOnlineUsers}>Xem User Online</Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal(null)}>Thêm User</Button>
+            </Space>
+        }>
             <Table dataSource={users} columns={columns} rowKey="id" loading={loading} />
 
             <Modal
@@ -138,6 +156,55 @@ const UsersPage: React.FC = () => {
                         </Form.Item>
                     )}
                 </Form>
+            </Modal>
+
+            <Modal
+                title={<span><GlobalOutlined style={{ color: 'green' }} /> Danh sách User đang Online (15 phút gần nhất)</span>}
+                open={isOnlineModalOpen}
+                onCancel={() => setIsOnlineModalOpen(false)}
+                footer={null}
+                width={900}
+            >
+                <Table
+                    dataSource={onlineUsers}
+                    rowKey="id"
+                    pagination={false}
+                    columns={[
+                        {
+                            title: 'User',
+                            dataIndex: 'username',
+                            render: (t, r) => (
+                                <Space>
+                                    <Avatar style={{ backgroundColor: '#87d068' }}>{t[0]?.toUpperCase()}</Avatar>
+                                    <div>
+                                        <b>{r.full_name}</b><br />
+                                        <span style={{ color: '#888', fontSize: 12 }}>@{t}</span>
+                                    </div>
+                                </Space>
+                            )
+                        },
+                        {
+                            title: 'Hoạt động cuối',
+                            dataIndex: 'last_activity_at',
+                            render: (t) => t ? <Tag color="blue">{dayjs(t).fromNow()}</Tag> : '-'
+                        },
+                        {
+                            title: 'IP Address',
+                            dataIndex: 'ip_address',
+                            render: (t) => t ? <Tag icon={<WifiOutlined />}>{t}</Tag> : '-'
+                        },
+                        {
+                            title: 'Thiết bị',
+                            dataIndex: 'device_info',
+                            ellipsis: true,
+                            render: (t) => (
+                                <Tooltip title={t}>
+                                    <Space><DesktopOutlined /> <span style={{ fontSize: 12 }}>{t}</span></Space>
+                                </Tooltip>
+                            )
+                        }
+                    ]}
+                />
             </Modal>
         </Card>
     );

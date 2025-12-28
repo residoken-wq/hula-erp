@@ -74,6 +74,7 @@ import { User } from './users/entities/user.entity';
 import { UserGroup } from './users/entities/user-group.entity';
 import { GroupPermission } from './users/entities/group-permission.entity';
 import { SystemConfig } from './system/system-config.entity';
+import { ActivityInterceptor } from './common/interceptors/activity.interceptor';
 import { ActivityLog } from './system/entities/activity-log.entity';
 
 import { AppController } from './app.controller';
@@ -117,6 +118,12 @@ import { AiModule } from './ai/ai.module';
     TasksModule, NotificationsModule, SystemModule,
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
     ProcessesModule, CategoriesModule, AiModule,
+  ],
+  providers: [
+    {
+      provide: 'APP_INTERCEPTOR',
+      useClass: ActivityInterceptor,
+    },
   ],
   controllers: [AppController]
 })

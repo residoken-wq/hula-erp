@@ -10,7 +10,7 @@ export class User {
   username: string;
 
   @Column({ select: false }) // Không trả về password khi query thường
-  password: string; 
+  password: string;
 
   @Column()
   full_name: string;
@@ -27,6 +27,15 @@ export class User {
 
   @Column({ nullable: true })
   group_id: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  last_activity_at: Date;
+
+  @Column({ nullable: true })
+  ip_address: string;
+
+  @Column({ nullable: true })
+  device_info: string;
 
   @CreateDateColumn() created_at: Date;
   @UpdateDateColumn() updated_at: Date;

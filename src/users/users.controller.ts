@@ -13,6 +13,11 @@ export class UsersController {
         return this.service.getAllUsers();
     }
 
+    @Get('online')
+    getOnline() {
+        return this.service.getOnlineUsers();
+    }
+
     @Post()
     create(@Body() body: any) {
         return this.service.createUser(body);
