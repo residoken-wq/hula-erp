@@ -61,114 +61,113 @@ const PurchasingPage: React.FC = () => {
     };
 
     const viewDetail = async (record: any) => {
-        setCurrentPO(record);
-        // Clone items for editing
-        setEditingItems(record.items ? record.items.map((i: any) => ({ ...i })) : []);
-        // Set delivery info
+        try {
+            // FIX: Gọi API để lấy data enriched thay vì dùng record từ list
+            const res = await axios.get(`${API_URL}/purchasing/${record.id}`);
+            const poDetail = res.data;
 
-        // Set packing list
-        // Set packing list: If empty, auto-generate from Items
-        if (record.packing_list_details && record.packing_list_details.length > 0) {
-            setPackingList(record.packing_list_details);
-        } else {
-            // Auto generate rows from unique Materials in PO Items
-            const uniqueMaterials = new Map();
-            if (record.items) {
-                record.items.forEach((item: any) => {
-                    // Check if item has material info (name)
-                    const matName = item.material?.name || item.reference_name || item.sku;
-                    // Group by Material Name to avoid duplicates if split items exist
-                    if (!uniqueMaterials.has(matName)) {
-                        uniqueMaterials.set(matName, {
-                            id: Date.now() + Math.random(),
-                            po_form_code: '', // Will be index + 1
-                            material_name: matName,
-                            n1: '', n2: '', c1: '', c2: '', g1: '', g2: '', odd: '', border: '', note: ''
-                        });
-                    }
-                });
-            }
-            setPackingList(Array.from(uniqueMaterials.values()));
-        }
-        setIsDetailOpen(true);
+            setCurrentPO(poDetail);
+            // Clone items for editing
+            setEditingItems(poDetail.items ? poDetail.items.map((i: any) => ({ ...i })) : []);
 
-        // Fetch Plan Products
-        setPlanProducts([]);
-        if (record.items && record.items.length > 0 && record.items[0].plan_id) {
-            try {
-                const planId = record.items[0].plan_id;
-                // Identify target material IDs from PO
-                const targetMaterialIds = new Set(record.items.map((i: any) => i.material?.id).filter(Boolean));
-
-                const pRes = await axios.get(`${API_URL}/planning/${planId}`);
-                const plan = pRes.data;
-                // Extract unique products from sales orders
-                const prods = new Map();
-                const addProductToMap = (product: any, qty: number) => {
-                    // Check if it's a Combo based on type OR components existence
-                    const isCombo = product.product_type === 'COMBO' || (product.components && product.components.length > 0);
-
-                    if (isCombo && product.components && product.components.length > 0) {
-                        // Is Combo -> Decompose
-                        product.components.forEach((comp: any) => {
-                            if (comp.child_product) {
-                                addProductToMap(comp.child_product, qty * Number(comp.quantity));
-                            }
-                        });
-                    } else {
-                        // Standard Product (Leaf node)
-                        if (!prods.has(product.sku)) {
-                            prods.set(product.sku, {
-                                sku: product.sku,
-                                name: product.name,
-                                quantity: 0,
-                                product: product
+            // Set packing list: If empty, auto-generate from Items
+            if (poDetail.packing_list_details && poDetail.packing_list_details.length > 0) {
+                setPackingList(poDetail.packing_list_details);
+            } else {
+                // Auto generate rows from unique Materials in PO Items
+                const uniqueMaterials = new Map();
+                if (poDetail.items) {
+                    poDetail.items.forEach((item: any) => {
+                        const matName = item.material?.name || item.reference_name || item.sku;
+                        if (!uniqueMaterials.has(matName)) {
+                            uniqueMaterials.set(matName, {
+                                id: Date.now() + Math.random(),
+                                po_form_code: '',
+                                material_name: matName,
+                                n1: '', n2: '', c1: '', c2: '', g1: '', g2: '', odd: '', border: '', note: ''
                             });
                         }
-                        const p = prods.get(product.sku);
-                        p.quantity += Number(qty);
-                    }
-                };
-
-                if (plan && plan.sales_orders) {
-                    plan.sales_orders.forEach((so: any) => {
-                        so.items?.forEach((item: any) => {
-                            if (item.product) {
-                                addProductToMap(item.product, Number(item.quantity));
-                            } else {
-                                // Fallback
-                                if (!prods.has(item.sku)) prods.set(item.sku, { sku: item.sku, name: item.product_name, quantity: 0 });
-                                prods.get(item.sku).quantity += Number(item.quantity);
-                            }
-                        });
                     });
                 }
+                setPackingList(Array.from(uniqueMaterials.values()));
+            }
+            setIsDetailOpen(true);
 
-                // Calculate Norms for each aggregated product
-                const finalProducts = Array.from(prods.values()).map((p: any) => {
-                    let unitNorm = 0;
-                    // Use BOMs to find Material Usage
-                    if (p.product && p.product.boms) {
-                        p.product.boms.forEach((bom: any) => {
-                            if (bom.material && targetMaterialIds.has(bom.material.id)) {
-                                unitNorm += Number(bom.quantity || 0);
+            // Fetch Plan Products
+            setPlanProducts([]);
+            if (poDetail.items && poDetail.items.length > 0 && poDetail.items[0].plan_id) {
+                const planId = poDetail.items[0].plan_id;
+                // Identify target material IDs from PO
+                const targetMaterialIds = new Set(poDetail.items.map((i: any) => i.material?.id).filter(Boolean));
+
+                try {
+                    const pRes = await axios.get(`${API_URL}/planning/${planId}`);
+                    const plan = pRes.data;
+                    // Extract unique products from sales orders
+                    const prods = new Map();
+                    const addProductToMap = (product: any, qty: number) => {
+                        const isCombo = product.product_type === 'COMBO' || (product.components && product.components.length > 0);
+
+                        if (isCombo && product.components && product.components.length > 0) {
+                            product.components.forEach((comp: any) => {
+                                if (comp.child_product) {
+                                    addProductToMap(comp.child_product, qty * Number(comp.quantity));
+                                }
+                            });
+                        } else {
+                            if (!prods.has(product.sku)) {
+                                prods.set(product.sku, {
+                                    sku: product.sku,
+                                    name: product.name,
+                                    quantity: 0,
+                                    product: product
+                                });
                             }
+                            const p = prods.get(product.sku);
+                            p.quantity += Number(qty);
+                        }
+                    };
+
+                    if (plan && plan.sales_orders) {
+                        plan.sales_orders.forEach((so: any) => {
+                            so.items?.forEach((item: any) => {
+                                if (item.product) {
+                                    addProductToMap(item.product, Number(item.quantity));
+                                } else {
+                                    if (!prods.has(item.sku)) prods.set(item.sku, { sku: item.sku, name: item.product_name, quantity: 0 });
+                                    prods.get(item.sku).quantity += Number(item.quantity);
+                                }
+                            });
                         });
                     }
-                    return {
-                        ...p,
-                        unit_norm: unitNorm > 0 ? unitNorm : 0,
-                        total_norm: (unitNorm > 0 ? unitNorm : 0) * p.quantity
-                    };
-                });
 
+                    // Calculate Norms for each aggregated product
+                    const finalProducts = Array.from(prods.values()).map((p: any) => {
+                        let unitNorm = 0;
+                        if (p.product && p.product.boms) {
+                            p.product.boms.forEach((bom: any) => {
+                                if (bom.material && targetMaterialIds.has(bom.material.id)) {
+                                    unitNorm += Number(bom.quantity || 0);
+                                }
+                            });
+                        }
+                        return {
+                            ...p,
+                            unit_norm: unitNorm > 0 ? unitNorm : 0,
+                            total_norm: (unitNorm > 0 ? unitNorm : 0) * p.quantity
+                        };
+                    });
 
-                setPlanProducts(finalProducts);
-            } catch (e) { console.error('Error fetching plan', e); }
+                    setPlanProducts(finalProducts);
+                } catch (e) { console.error('Error fetching plan', e); }
+            }
+
+            // Fetch Delivery Matrix Progress
+            fetchDeliveryMatrix(poDetail.id);
+        } catch (e) {
+            message.error('Lỗi tải chi tiết PO');
+            console.error('Error fetching PO detail', e);
         }
-
-        // Fetch Delivery Matrix Progress
-        fetchDeliveryMatrix(record.id);
     };
 
     const fetchDeliveryMatrix = async (poId: number) => {
@@ -292,9 +291,10 @@ const PurchasingPage: React.FC = () => {
 
     const fetchRequirements = async () => {
         try {
-            const res = await axios.get(`${API_URL}/purchasing/requirements`);
+            // Lấy danh sách PO_NPL có thể gộp (chưa có parent_po_id)
+            const res = await axios.get(`${API_URL}/purchasing/available-for-pooling`);
             setRequirements(res.data);
-        } catch (e) { message.error('Lỗi tải nhu cầu'); }
+        } catch (e) { message.error('Lỗi tải danh sách PO'); }
     };
 
     useEffect(() => {
@@ -333,7 +333,7 @@ const PurchasingPage: React.FC = () => {
         try {
             await axios.post(`${API_URL}/purchasing/create-pooled`, {
                 supplier_id: supId,
-                po_ids: selectedReqs.map(r => r.id) // Send ID list
+                child_po_ids: selectedReqs.map(r => r.id)  // FIX: Đổi tên field
             });
             message.success('Gộp PO thành công!');
             setIsSelectSupplierOpen(false);
@@ -510,28 +510,25 @@ const PurchasingPage: React.FC = () => {
                     { key: 'ALL', label: 'Tất cả PO' },
                     { key: 'MATERIAL', label: 'Mua NPL' },
                     { key: 'OUTSOURCING', label: 'Gia Công' },
-                    { key: 'REQ', label: 'Tổng Hợp Nhu Cầu (Mới)' } // --- NEW TAB ---
+                    { key: 'POOLED', label: 'PO Gộp' },  // --- MỚI: Tab PO Gộp ---
+                    { key: 'REQ', label: 'Tổng Hợp (Tạo Gộp)' }
                 ]} />
 
                 {activeTab === 'REQ' ? (
                     <Table
                         dataSource={requirements}
-                        rowKey={(r) => `${r.plan_id}_${r.material_id}`}
+                        rowKey="id"  // FIX: Sử dụng id của PO
                         rowSelection={{
                             type: 'checkbox',
                             onChange: (_, rows) => setSelectedReqs(rows)
                         }}
                         columns={[
-                            { title: 'Mã PO', dataIndex: 'po_code', width: 120, render: (t: any) => <b>{t}</b> },
-                            { title: 'Loại', dataIndex: 'type', align: 'center', width: 80, render: (t: any) => t === 'MATERIAL' ? <Tag color="blue">NPL</Tag> : <Tag color="orange">Gia công</Tag> },
-                            { title: 'Kế hoạch', dataIndex: 'plan_id', width: 80, align: 'center', render: (t: any) => t ? `#${t}` : '-' },
-                            { title: 'NCC Gợi ý', dataIndex: 'supplier', render: (s: any) => s?.name || '-' },
-                            { title: 'Ghi chú', dataIndex: 'note' },
-                            { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right', render: (v: number) => Number(v).toLocaleString() },
-                            {
-                                title: 'Ngày tạo', dataIndex: 'created_at', width: 100, align: 'right',
-                                render: (t: any) => dayjs(t).format('DD/MM')
-                            }
+                            { title: 'Mã PO', dataIndex: 'po_code', width: 150, render: (t: any, r: any) => <a onClick={() => viewDetail(r)}><b>{t}</b></a> },
+                            { title: 'NCC', dataIndex: 'supplier', render: (s: any) => s?.name || '-' },
+                            { title: 'Số mặt hàng', width: 100, align: 'center' as const, render: (r: any) => r.items?.length || 0 },
+                            { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
+                            { title: 'Trạng thái', dataIndex: 'status', width: 100, align: 'center' as const, render: (t: string) => <Tag color={t === 'ORDERED' ? 'blue' : 'default'}>{t}</Tag> },
+                            { title: 'Ngày tạo', dataIndex: 'created_at', width: 100, align: 'right' as const, render: (t: any) => dayjs(t).format('DD/MM/YY') }
                         ]}
                     />
                 ) : (

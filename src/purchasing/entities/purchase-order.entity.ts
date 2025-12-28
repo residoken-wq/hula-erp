@@ -15,7 +15,8 @@ export enum POStatus {
 
 export enum POType {
   MATERIAL = 'MATERIAL',
-  OUTSOURCING = 'OUTSOURCING'
+  OUTSOURCING = 'OUTSOURCING',
+  POOLED = 'POOLED'  // Gộp nhiều PO con
 }
 
 @Entity('purchase_orders')
@@ -81,6 +82,18 @@ export class PurchaseOrder {
   packing_list_details: any[]; // Array of rows
   // --------------------------------------------------
   // --------------------------------------------------
+
+  // --- MỚI: Pooled PO Relations ---
+  @Column({ nullable: true })
+  parent_po_id: number;
+
+  @ManyToOne(() => PurchaseOrder, po => po.child_pos, { nullable: true })
+  @JoinColumn({ name: 'parent_po_id' })
+  parent_po: PurchaseOrder;
+
+  @OneToMany(() => PurchaseOrder, po => po.parent_po)
+  child_pos: PurchaseOrder[];
+  // ---------------------------------
 
   @OneToMany(() => PurchaseOrderItem, (item) => item.purchase_order, { cascade: true })
   items: PurchaseOrderItem[];

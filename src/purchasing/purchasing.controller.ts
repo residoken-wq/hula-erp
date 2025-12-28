@@ -12,7 +12,12 @@ export class PurchasingController {
   findAll() { return this.s.getAllPOs(); }
 
   @Get('requirements') getRequirements() { return this.s.getPendingRequirements(); }
+
+  // --- MỚI: Pooled PO APIs ---
+  @Get('available-for-pooling') getAvailableForPooling() { return this.s.getAvailableForPooling(); }
   @Post('create-pooled') createPooled(@Body() b: any) { return this.s.createPooledPO(b); }
+  @Get('pooled/:id/aggregate') getPooledAggregate(@Param('id') id: number) { return this.s.getPooledAggregate(id); }
+  // ----------------------------
 
   @Get(':id')
   findOne(@Param('id') id: number) { return this.s.getPODetail(id); }

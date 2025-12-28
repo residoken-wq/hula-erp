@@ -355,50 +355,109 @@ export class PurchasingService {
         }
     }
 
-    async createPooledPO(dto: any) {
-        // DTO: { supplier_id, items: [{ material_id, quantity, unit_price, plan_id, description, type }] }
-        const isOutsourcing = dto.items.some(i => i.type === 'OUTSOURCING');
+    // --- MỚI: POOLED PO LOGIC ---
 
-        const po = this.poRepo.create({
-            po_code: `PO-${Date.now()}`,
-            uuid: uuidv4(),
-            supplier_id: dto.supplier_id,
-            note: `PO Gộp (${isOutsourcing ? 'Gia Công' : 'NPL'})`,
-            status: 'DRAFT' as any,
-            type: (isOutsourcing ? 'OUTSOURCING' : 'MATERIAL') as any, // Quan trọng
+    // Lấy danh sách PO_NPL có thể gộp (chưa có parent_po_id)
+    async getAvailableForPooling() {
+        return this.poRepo.find({
+            where: {
+                type: POType.MATERIAL,
+                parent_po_id: null as any  // Chưa được gộp
+            },
+            relations: ['supplier', 'items', 'items.material'],
+            order: { created_at: 'DESC' }
         });
+    }
 
-        let total = 0;
-        po.items = [];
-
-        for (const i of dto.items) {
-            const item = new PurchaseOrderItem();
-            item.plan_id = i.plan_id;
-            item.quantity = Number(i.quantity);
-            item.unit_price = Number(i.unit_price);
-            item.quantity = Number(i.quantity);
-            item.unit_price = Number(i.unit_price);
-            item.subtotal = item.quantity * item.unit_price;
-
-            // --- MỚI: Map các trường bổ sung ---
-            item.raw_quantity = Number(i.raw_quantity || 0);
-            item.wastage_rate = Number(i.wastage_rate || 0);
-            item.total_quantity = Number(i.total_quantity || 0);
-            // ----------------------------------
-
-            if (i.type === 'OUTSOURCING') {
-                item.description = i.description; // e.g. "Son (SKU-01)"
-            } else {
-                item.material_id = i.material_id;
-                item.description = i.material_name || i.description;
-            }
-
-            total += item.subtotal;
-            po.items.push(item);
+    // Tạo Pooled PO từ danh sách child PO IDs
+    async createPooledPO(dto: { supplier_id: number, child_po_ids: number[] }) {
+        if (!dto.child_po_ids || dto.child_po_ids.length === 0) {
+            throw new BadRequestException('Vui lòng chọn ít nhất 1 PO');
         }
 
-        po.total_amount = total;
-        return this.poRepo.save(po);
+        const childPos = await this.poRepo.find({
+            where: { id: In(dto.child_po_ids) },
+            relations: ['items']
+        });
+
+        if (childPos.length === 0) {
+            throw new NotFoundException('Không tìm thấy PO');
+        }
+
+        // Tính tổng tiền từ các child POs
+        const totalAmount = childPos.reduce((sum, p) => sum + Number(p.total_amount || 0), 0);
+
+        const pooledPO = this.poRepo.create({
+            po_code: `POOLED-${Date.now()}`,
+            uuid: uuidv4(),
+            type: POType.POOLED,
+            supplier_id: dto.supplier_id,
+            status: 'DRAFT' as any,
+            total_amount: totalAmount,
+            note: `Gộp ${childPos.length} PO: ${childPos.map(p => p.po_code).join(', ')}`
+        });
+
+        await this.poRepo.save(pooledPO);
+
+        // Link child POs to this Pooled PO
+        await this.poRepo.update({ id: In(dto.child_po_ids) }, { parent_po_id: pooledPO.id });
+
+        return pooledPO;
     }
-    // ----------------------------------------------------
+
+    // Lấy aggregate view của Pooled PO
+    async getPooledAggregate(pooledId: number) {
+        const po = await this.poRepo.findOne({
+            where: { id: pooledId },
+            relations: ['child_pos', 'child_pos.items', 'child_pos.items.material', 'supplier']
+        });
+
+        if (!po) throw new NotFoundException('Không tìm thấy PO');
+        if (po.type !== POType.POOLED) throw new BadRequestException('PO này không phải Pooled PO');
+
+        // Aggregate by material
+        const materialMap = new Map<number, any>();
+
+        for (const childPO of (po.child_pos || [])) {
+            for (const item of (childPO.items || [])) {
+                if (!item.material_id) continue;
+
+                if (!materialMap.has(item.material_id)) {
+                    materialMap.set(item.material_id, {
+                        material_id: item.material_id,
+                        material_name: item.material?.name || item.description,
+                        material_code: item.material?.code,
+                        unit: item.material?.unit,
+                        total_ordered: 0,
+                        total_delivered: 0,  // TODO: Tính từ GoodsReceipt
+                        remaining: 0,
+                        po_sources: []
+                    });
+                }
+
+                const agg = materialMap.get(item.material_id);
+                agg.total_ordered += Number(item.quantity || 0);
+                if (!agg.po_sources.includes(childPO.po_code)) {
+                    agg.po_sources.push(childPO.po_code);
+                }
+            }
+        }
+
+        // Calculate remaining
+        for (const agg of materialMap.values()) {
+            agg.remaining = agg.total_ordered - agg.total_delivered;
+        }
+
+        return {
+            pooled_po: {
+                id: po.id,
+                po_code: po.po_code,
+                supplier: po.supplier,
+                total_amount: po.total_amount,
+                child_count: po.child_pos?.length || 0
+            },
+            aggregated_items: Array.from(materialMap.values())
+        };
+    }
+    // ----------------------------
 }
