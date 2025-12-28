@@ -396,7 +396,12 @@ export class PlanningService {
                     quantity: i.qtyToBuy,
                     unit_price: price,
                     subtotal: sub,
-                    plan_id: planId
+                    plan_id: planId,
+                    material_id: isMaterial ? i.material_id : null,
+                    // --- MỚI: Lưu thông tin gốc từ MRP ---
+                    raw_quantity: i.gross_raw || 0,
+                    wastage_rate: i.wastage_percent || 0,
+                    total_quantity: i.gross_requirement || 0
                 });
 
                 if (isMaterial) poItem.material_id = i.material_id;

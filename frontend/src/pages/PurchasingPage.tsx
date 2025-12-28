@@ -522,13 +522,16 @@ const PurchasingPage: React.FC = () => {
                             onChange: (_, rows) => setSelectedReqs(rows)
                         }}
                         columns={[
-                            { title: 'Kế Hoạch', dataIndex: 'plan_code', render: t => <b>{t}</b> },
-                            { title: 'Mã NPL', dataIndex: 'material_code' },
-                            { title: 'Tên NPL', dataIndex: 'material_name' },
-                            { title: 'ĐV', dataIndex: 'unit' },
-                            { title: 'Cần mua', dataIndex: 'remaining_qty', render: v => <b style={{ color: 'red' }}>{Number(v).toLocaleString()}</b> },
-                            { title: 'NCC Gợi ý', dataIndex: 'supplier_name' },
-                            { title: 'Đơn giá', dataIndex: 'reference_price', align: 'right', render: v => Number(v).toLocaleString() }
+                            { title: 'Mã PO', dataIndex: 'po_code', width: 120, render: (t: any) => <b>{t}</b> },
+                            { title: 'Loại', dataIndex: 'type', align: 'center', width: 80, render: (t: any) => t === 'MATERIAL' ? <Tag color="blue">NPL</Tag> : <Tag color="orange">Gia công</Tag> },
+                            { title: 'Kế hoạch', dataIndex: 'plan_id', width: 80, align: 'center', render: (t: any) => t ? `#${t}` : '-' },
+                            { title: 'NCC Gợi ý', dataIndex: 'supplier', render: (s: any) => s?.name || '-' },
+                            { title: 'Ghi chú', dataIndex: 'note' },
+                            { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right', render: (v: number) => Number(v).toLocaleString() },
+                            {
+                                title: 'Ngày tạo', dataIndex: 'created_at', width: 100, align: 'right',
+                                render: (t: any) => dayjs(t).format('DD/MM')
+                            }
                         ]}
                     />
                 ) : (
