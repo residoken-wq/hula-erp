@@ -253,49 +253,7 @@ const SuppliersPage: React.FC = () => {
         } catch (e) { message.error('Lỗi tải công nợ'); }
     };
 
-    const handleBulkPayment = async () => {
-        if (selectedDebtPOs.length === 0) return message.warning('Chọn ít nhất 1 PO');
-        if (paymentAmount <= 0) return message.warning('Nhập số tiền thanh toán');
 
-        try {
-            // Allocation Logic: Distribute amount to selected POs
-            // Simple Strategy: User enters TOTAL amount, we auto-allocate or User pays EXACT total of selected?
-            // User request: "gộp chung thanh toán... 1 hóa đơn VAT"
-            // Usually means Paying specific invoices.
-            // If User inputs a reduced amount, how to allocate?
-            // For MVP: We assume Payment Amount = Sum of Selected (Auto calc) OR User inputs custom.
-            // Let's alloc proportionally or FIFO?
-            // Simplest: Send allocation explicitly.
-
-            let remain = paymentAmount;
-            const allocations = [];
-
-            // Allocate to selected POs
-            for (const po of selectedDebtPOs) {
-                const debt = Number(po.total_amount) - Number(po.paid_amount || 0);
-                const pay = Math.min(remain, debt);
-                if (pay > 0) {
-                    allocations.push({ po_id: po.id, amount: pay });
-                    remain -= pay;
-                }
-            }
-
-            await axios.post(`${API_URL}/finance/payment/bulk-po`, {
-                supplier_id: currentSupplier.id,
-                partnerName: currentSupplier.name,
-                amount: paymentAmount,
-                date: paymentDate,
-                note: paymentNote,
-                vatCode,
-                vatUrl,
-                allocations
-            });
-
-            message.success('Thanh toán thành công');
-            setIsDebtModalOpen(false);
-            fetchData(); // Reload suppliers if needed or just close
-        } catch (e) { message.error('Lỗi thanh toán'); }
-    };
 
     // ----------------------------------------
 
