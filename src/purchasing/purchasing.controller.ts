@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { PurchasingService } from './purchasing.service';
 
 @Controller('purchasing')
@@ -14,7 +14,9 @@ export class PurchasingController {
   @Get('requirements') getRequirements() { return this.s.getPendingRequirements(); }
 
   // --- MỚI: Pooled PO APIs ---
-  @Get('available-for-pooling') getAvailableForPooling() { return this.s.getAvailableForPooling(); }
+  // --- MỚI: Pooled PO APIs ---
+  @Get('available-for-pooling') getAvailableForPooling(@Query('type') type: any) { return this.s.getAvailableForPooling(type); }
+  @Delete('pooled/all') clearPooled() { return this.s.clearPooledPOs(); }
   @Post('create-pooled') createPooled(@Body() b: any) { return this.s.createPooledPO(b); }
   @Get('pooled/:id/aggregate') getPooledAggregate(@Param('id') id: number) { return this.s.getPooledAggregate(id); }
   // ----------------------------

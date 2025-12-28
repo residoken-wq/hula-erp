@@ -292,13 +292,14 @@ const PurchasingPage: React.FC = () => {
     const fetchRequirements = async () => {
         try {
             // Lấy danh sách PO_NPL có thể gộp (chưa có parent_po_id)
-            const res = await axios.get(`${API_URL}/purchasing/available-for-pooling`);
+            const type = activeTab === 'REQ_GC' ? 'OUTSOURCING' : 'MATERIAL';
+            const res = await axios.get(`${API_URL}/purchasing/available-for-pooling?type=${type}`);
             setRequirements(res.data);
         } catch (e) { message.error('Lỗi tải danh sách PO'); }
     };
 
     useEffect(() => {
-        if (activeTab === 'REQ') fetchRequirements();
+        if (activeTab.startsWith('REQ')) fetchRequirements();
     }, [activeTab]);
 
     const handleCreatePooledPO = async () => {
@@ -502,22 +503,29 @@ const PurchasingPage: React.FC = () => {
     return (
         <div>
             <Card title="Quản Lý Mua Hàng & Gia Công" extra={<Space>
-                {activeTab === 'REQ' && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedReqs.length === 0}>+ Tạo PO Gộp ({selectedReqs.length})</Button>}
+                {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedReqs.length === 0}>+ Tạo PO Gộp ({selectedReqs.length})</Button>}
+                {activeTab === 'POOLED' && <Popconfirm title="Xóa tất cả PO Gộp?" onConfirm={async () => {
+                    await axios.delete(`${API_URL}/purchasing/pooled/all`);
+                    message.success('Đã xóa dữ liệu gộp');
+                    fetchData();
+                }}><Button danger>Xóa Data Gộp (Test)</Button></Popconfirm>}
+
                 <Input prefix={<SearchOutlined />} placeholder="Tìm PO..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 200 }} allowClear />
-                <Button icon={<ReloadOutlined />} onClick={() => activeTab === 'REQ' ? fetchRequirements() : fetchData()}>Làm mới</Button>
+                <Button icon={<ReloadOutlined />} onClick={() => activeTab.startsWith('REQ') ? fetchRequirements() : fetchData()}>Làm mới</Button>
             </Space>}>
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                     { key: 'ALL', label: 'Tất cả PO' },
                     { key: 'MATERIAL', label: 'Mua NPL' },
                     { key: 'OUTSOURCING', label: 'Gia Công' },
-                    { key: 'POOLED', label: 'PO Gộp' },  // --- MỚI: Tab PO Gộp ---
-                    { key: 'REQ', label: 'Tổng Hợp (Tạo Gộp)' }
+                    { key: 'POOLED', label: 'PO Gộp' },
+                    { key: 'REQ_NPL', label: 'Tổng Hợp Nhu Cầu NPL' },
+                    { key: 'REQ_GC', label: 'Tổng Hợp Nhu Cầu GC' }
                 ]} />
 
-                {activeTab === 'REQ' ? (
+                {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') ? (
                     <Table
                         dataSource={requirements}
-                        rowKey="id"  // FIX: Sử dụng id của PO
+                        rowKey="id"
                         rowSelection={{
                             type: 'checkbox',
                             onChange: (_, rows) => setSelectedReqs(rows)

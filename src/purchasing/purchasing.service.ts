@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { PurchaseOrder, POType } from './entities/purchase-order.entity';
+import { PurchaseOrder, POType, POStatus } from './entities/purchase-order.entity';
 import { PurchaseOrderItem } from './entities/purchase-order-item.entity';
 import { GoodsReceipt } from './entities/goods-receipt.entity';
 import { InventoryService } from '../inventory/inventory.service';
@@ -211,6 +211,11 @@ export class PurchasingService {
     // ------------------------------------------------------
 
     async remove(id: number) {
+        // Unlink children if this is a Pooled PO
+        const children = await this.poRepo.find({ where: { parent_po_id: id } });
+        if (children.length > 0) {
+            await this.poRepo.update({ parent_po_id: id }, { parent_po_id: null });
+        }
         return this.poRepo.delete(id);
     }
 
@@ -357,12 +362,20 @@ export class PurchasingService {
 
     // --- MỚI: POOLED PO LOGIC ---
 
+    async clearPooledPOs() {
+        // Unlink all
+        await this.poRepo.update({ type: POType.MATERIAL }, { parent_po_id: null });
+        await this.poRepo.update({ type: POType.OUTSOURCING }, { parent_po_id: null });
+        return this.poRepo.delete({ type: POType.POOLED });
+    }
+
     // Lấy danh sách PO_NPL có thể gộp (chưa có parent_po_id)
-    async getAvailableForPooling() {
+    async getAvailableForPooling(type: POType = POType.MATERIAL) {
         return this.poRepo.find({
             where: {
-                type: POType.MATERIAL,
-                parent_po_id: null as any  // Chưa được gộp
+                type: type,
+                status: POStatus.ORDERED, // --- CHỈ GỘP PO ĐÃ ĐẶT HÀNG ---
+                parent_po_id: null as any
             },
             relations: ['supplier', 'items', 'items.material'],
             order: { created_at: 'DESC' }
