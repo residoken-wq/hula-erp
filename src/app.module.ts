@@ -48,6 +48,7 @@ import { InventoryStock } from './inventory/inventory-stock.entity';
 import { PurchaseOrder } from './purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from './purchasing/entities/purchase-order-item.entity';
 import { GoodsReceipt } from './inventory/entities/goods-receipt.entity';
+import { GoodsReceiptItem } from './inventory/entities/goods-receipt-item.entity';
 
 import { ProductionOrder } from './production/entities/production-order.entity';
 
@@ -96,7 +97,7 @@ import { AiModule } from './ai/ai.module';
           Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern,
           SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
           PriceList, PriceListRule, SalesOrderVersion,
-          PurchaseOrder, PurchaseOrderItem, GoodsReceipt,
+          PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
           StockHistory, InventoryStock,
           ProductionOrder,
           Transaction, TransactionCategory,
