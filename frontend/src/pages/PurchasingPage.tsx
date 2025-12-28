@@ -264,6 +264,8 @@ const PurchasingPage: React.FC = () => {
 
     const columns = [
         { title: 'Mã PO', dataIndex: 'po_code', render: (t: any, r: any) => <a onClick={() => viewDetail(r)}><b>{t}</b></a> },
+        { title: 'Mã KH', dataIndex: 'plan', render: (p: any) => p?.code || '-' },
+        { title: 'Tên Plan', dataIndex: 'plan', render: (p: any) => p?.name || '-' },
         { title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 100, render: (t: string) => t === 'MATERIAL' ? <Tag color="blue">NPL</Tag> : <Tag color="orange">Gia công</Tag> },
         { title: 'Ngày', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
         { title: 'Đối tác', dataIndex: 'supplier', render: (s: any, r: any) => s?.name || (r.note?.split('NCC: ')[1] || '-') },

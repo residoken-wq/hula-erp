@@ -628,47 +628,97 @@ const HelpPage: React.FC = () => {
                         <Tag color="volcano" style={{ marginBottom: 16 }}>Sản Xuất & Kho</Tag>
                         <Title level={2}>🏭 Quản lý Nhu Cầu Nguyên Liệu (MRP)</Title>
                         <Paragraph>
-                            Phân hệ Planning giúp tính toán tự động nhu cầu nguyên vật liệu dựa trên các đơn hàng bán (Sales Orders).
+                            Phân hệ Planning giúp tính toán tự động nhu cầu nguyên vật liệu (Material) và gia công (Outsourcing) dựa trên các đơn hàng bán (Sales Orders).
                         </Paragraph>
 
-                        <Divider orientation="left">Quy trình vận hành</Divider>
+                        <Divider orientation="left">I. Quy trình vận hành MRP</Divider>
                         <Steps
                             current={-1}
                             direction="vertical"
                             items={[
                                 {
                                     title: 'Bước 1: Gom đơn hàng (Planning)',
-                                    description: 'Chọn các đơn hàng cần sản xuất trong tuần/tháng để lập thành một Kế hoạch (Plan).',
+                                    description: 'Tại màn hình Sales Order, chọn các đơn hàng "Đã duyệt mẫu" để lập thành một Kế hoạch Sản xuất (Purchase Plan).',
                                     icon: <ProjectOutlined />
                                 },
                                 {
-                                    title: 'Bước 2: Phân tích MRP',
+                                    title: 'Bước 2: Phân tích MRP (Analysis)',
                                     description: (
-                                        <ul>
-                                            <li>Hệ thống tự động phân tích BOM (Định mức) của từng sản phẩm.</li>
-                                            <li>Tính toán tổng lượng nguyên liệu cần thiết.</li>
-                                            <li><b>Cân đối kho:</b> Trừ đi lượng tồn kho thực tế để ra số lượng Cần Mua (Net Requirement).</li>
-                                        </ul>
+                                        <div>
+                                            <ul>
+                                                <li><b>Nguyên liệu (BOM):</b> Hệ thống bóc tách BOM để tính tổng lượng vải/phụ liệu cần thiết.</li>
+                                                <li><b>Gia công (Routing):</b> Dựa trên quy trình (Cắt -> May -> Ủi) để tính chi phí và số lượng cần thuê ngoài.</li>
+                                                <li><b>Cân đối kho:</b> <i>Cần mua = Tổng nhu cầu - (Tồn kho thực tế - Đang giữ chỗ)</i>.</li>
+                                            </ul>
+                                        </div>
                                     ),
                                     icon: <ExperimentOutlined />
                                 },
                                 {
-                                    title: 'Bước 3: Xử lý Hao hụt',
+                                    title: 'Bước 3: Tạo Đơn Mua Hàng (PO)',
                                     description: (
                                         <ul>
-                                            <li>Hệ thống hiển thị <b>% Hao hụt</b> (theo định mức kỹ thuật).</li>
-                                            <li>Bạn có thể tham khảo cột <b>"Tổng nhu cầu (+Hao hụt)"</b> để biết số liệu an toàn.</li>
-                                            <li>Tại cột <b>"Cần Mua"</b>, bạn có thể điều chỉnh số lượng cuối cùng trước khi đặt hàng.</li>
+                                            <li>Dựa trên kết quả phân tích, nhấn "Tạo PO" để hệ thống tự động sinh ra các đơn hàng nháp.</li>
+                                            <li><b>Lưu ý:</b> PO được tách tự động theo Nhà cung cấp (Supplier).</li>
                                         </ul>
-                                    )
-                                },
-                                {
-                                    title: 'Bước 4: Tạo đơn mua hàng (PO)',
-                                    description: 'Nhấn nút "Tạo PO Nguyên Liệu". Hệ thống sẽ tự động tách PO theo từng Nhà cung cấp.',
+                                    ),
                                     icon: <AppstoreAddOutlined />
                                 }
                             ]}
                         />
+
+                        <Divider orientation="left">II. Tính năng Gộp Đơn (Pooled Order)</Divider>
+                        <Alert
+                            message="Tại sao cần gộp đơn?"
+                            description="Thay vì gửi 10 đơn lẻ lắt nhắt cho cùng 1 nhà cung cấp, bạn có thể gộp chúng lại thành 1 đơn lớn để dễ theo dõi và vận chuyển."
+                            type="info"
+                            showIcon
+                            style={{ marginBottom: 20 }}
+                        />
+
+                        <Card title="Hướng dẫn tạo PO Gộp" size="small" bordered>
+                            <Steps
+                                progressDot
+                                current={-1}
+                                items={[
+                                    {
+                                        title: 'Bước 1: Chốt đơn lẻ',
+                                        description: 'Đảm bảo các PO con (NPL hoặc Gia công) đã ở trạng thái "Đã đặt hàng" (ORDERED).'
+                                    },
+                                    {
+                                        title: 'Bước 2: Vào Tab Tổng Hợp',
+                                        description: 'Truy cập menu Purchasing -> Tab "Tổng Hợp Nhu Cầu NPL" (hoặc GC).'
+                                    },
+                                    {
+                                        title: 'Bước 3: Chọn & Gộp',
+                                        description: 'Tích chọn nhiều PO cùng loại -> Nhấn nút "+ Tạo PO Gộp" -> Chọn Nhà cung cấp tổng.'
+                                    },
+                                    {
+                                        title: 'Bước 4: Theo dõi',
+                                        description: 'PO Gộp mới sẽ xuất hiện ở Tab "PO Gộp" với danh sách các PO con bên trong.'
+                                    }
+                                ]}
+                            />
+                        </Card>
+
+                        <Divider orientation="left">III. Thuật ngữ quan trọng</Divider>
+                        <Row gutter={16}>
+                            <Col span={8}>
+                                <Card size="small" title="BOM (Bill of Materials)">
+                                    Định mức nguyên vật liệu. Quy định 1 sản phẩm cần bao nhiêu vải, chỉ, nút...
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card size="small" title="Wastage (Hao hụt)">
+                                    % nguyên liệu dư thừa dự kiến trong quá trình sản xuất (VD: cắt vải vụn).
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card size="small" title="Routing (Quy trình)">
+                                    Thứ tự các bước gia công (Cắt -> In -> May). Mỗi bước có thể làm tại xưởng hoặc gửi ngoài.
+                                </Card>
+                            </Col>
+                        </Row>
                     </div>
                 );
             case 'product-guide':
