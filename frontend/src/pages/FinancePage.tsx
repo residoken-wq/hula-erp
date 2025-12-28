@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import {
     Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form,
     Input, Select, DatePicker, Tag, message, Popconfirm,
-    Radio, InputNumber, Space
+    Radio, InputNumber, Space, Segmented, Divider
 } from 'antd';
+import { Pie, Column } from '@ant-design/plots';
 import {
     WalletOutlined, ArrowUpOutlined, ArrowDownOutlined,
     PlusOutlined, DeleteOutlined, BankOutlined,
@@ -325,26 +326,146 @@ const FinancePage: React.FC = () => {
                     },
                     {
                         key: 'REPORT',
-                        label: <span><PieChartOutlined /> Báo Cáo Tài Chính</span>,
+                        label: <span><PieChartOutlined /> Báo Cáo & Thống Kê</span>,
                         children: (
-                            <div>
-                                <div style={{ marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center', background: '#f5f5f5', padding: 10, borderRadius: 6 }}>
-                                    <b>Lọc Theo:</b>
-                                    <Select value={reportType} onChange={setReportType} style={{ width: 100 }}>
-                                        <Option value="MONTH">Tháng</Option>
-                                        <Option value="YEAR">Năm</Option>
-                                    </Select>
-                                    <DatePicker picker={reportType === 'MONTH' ? 'month' : 'year'} value={reportFilter} onChange={v => v && setReportFilter(v)} allowClear={false} />
-                                    <Button type="primary" onClick={fetchReport} icon={<ReloadOutlined />}>Xem BC</Button>
-                                    <div style={{ flex: 1 }}></div>
-                                    <Button onClick={() => { /* In báo cáo? */ }} disabled>Xuất Excel (Coming soon)</Button>
+                            <div style={{ padding: 10 }}>
+                                {/* TOOLBAR */}
+                                <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '12px 20px', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                                    <Space size="large">
+                                        <div>
+                                            <span style={{ marginRight: 8, fontWeight: 500 }}>Xem theo:</span>
+                                            <Segmented options={[{ label: 'Tháng', value: 'MONTH' }, { label: 'Năm', value: 'YEAR' }]} value={reportType} onChange={(v: any) => setReportType(v)} />
+                                        </div>
+                                        <DatePicker
+                                            picker={reportType === 'MONTH' ? 'month' : 'year'}
+                                            value={reportFilter}
+                                            onChange={v => v && setReportFilter(v)}
+                                            allowClear={false}
+                                            style={{ minWidth: 120 }}
+                                        />
+                                        <Button type="primary" onClick={fetchReport} icon={<ReloadOutlined />}>Tải dữ liệu</Button>
+                                    </Space>
+                                    <Button disabled>Xuất Excel</Button>
                                 </div>
 
-                                <Row gutter={16} style={{ marginBottom: 16 }}>
-                                    <Col span={8}><Statistic title="Tổng Thu (Hạch toán)" value={reportData.summary.income} precision={0} valueStyle={{ color: '#3f8600' }} prefix={<ArrowUpOutlined />} /></Col>
-                                    <Col span={8}><Statistic title="Tổng Chi (Hạch toán)" value={reportData.summary.expense} precision={0} valueStyle={{ color: '#cf1322' }} prefix={<ArrowDownOutlined />} /></Col>
-                                    <Col span={8}><Statistic title="Lợi Nhuận" value={reportData.summary.profit} precision={0} valueStyle={{ color: reportData.summary.profit >= 0 ? '#3f8600' : '#cf1322' }} prefix={<WalletOutlined />} /></Col>
+                                {/* SUMMARY CARDS */}
+                                <Row gutter={24} style={{ marginBottom: 24 }}>
+                                    <Col span={8}>
+                                        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(63, 134, 0, 0.1)' }}>
+                                            <Statistic
+                                                title={<span style={{ fontWeight: 600, color: '#555' }}>Tổng Thu (Hạch toán)</span>}
+                                                value={reportData.summary.income}
+                                                precision={0}
+                                                valueStyle={{ color: '#3f8600', fontWeight: 'bold', fontSize: 24 }}
+                                                prefix={<ArrowUpOutlined />}
+                                            />
+                                        </Card>
+                                    </Col>
+                                    <Col span={8}>
+                                        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(207, 19, 34, 0.1)' }}>
+                                            <Statistic
+                                                title={<span style={{ fontWeight: 600, color: '#555' }}>Tổng Chi (Hạch toán)</span>}
+                                                value={reportData.summary.expense}
+                                                precision={0}
+                                                valueStyle={{ color: '#cf1322', fontWeight: 'bold', fontSize: 24 }}
+                                                prefix={<ArrowDownOutlined />}
+                                            />
+                                        </Card>
+                                    </Col>
+                                    <Col span={8}>
+                                        <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(24, 144, 255, 0.1)' }}>
+                                            <Statistic
+                                                title={<span style={{ fontWeight: 600, color: '#555' }}>Lợi Nhuận Thuần</span>}
+                                                value={reportData.summary.profit}
+                                                precision={0}
+                                                valueStyle={{ color: reportData.summary.profit >= 0 ? '#3f8600' : '#cf1322', fontWeight: 'bold', fontSize: 24 }}
+                                                prefix={<WalletOutlined />}
+                                            />
+                                        </Card>
+                                    </Col>
                                 </Row>
+
+                                {/* CHARTS SECTION */}
+                                <Row gutter={24} style={{ marginBottom: 24 }}>
+                                    {reportType === 'MONTH' ? (
+                                        <>
+                                            <Col span={12}>
+                                                <Card title="Cơ cấu Khoản Thu (Theo Danh mục)" bordered={false} style={{ borderRadius: 12 }}>
+                                                    <Pie
+                                                        data={reportData.transactions.filter((t: any) => t.type === 'INCOME').reduce((acc: any[], t: any) => {
+                                                            const cat = t.category?.name || 'Khác';
+                                                            const existing = acc.find(i => i.type === cat);
+                                                            if (existing) existing.value += Number(t.amount);
+                                                            else acc.push({ type: cat, value: Number(t.amount) });
+                                                            return acc;
+                                                        }, [])}
+                                                        angleField="value"
+                                                        colorField="type"
+                                                        radius={0.8}
+                                                        innerRadius={0.6}
+                                                        label={{ text: 'value', style: { fontWeight: 'bold' } }}
+                                                        legend={{ position: 'bottom' }}
+                                                        height={300}
+                                                    />
+                                                </Card>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Card title="Cơ cấu Khoản Chi (Theo Danh mục)" bordered={false} style={{ borderRadius: 12 }}>
+                                                    <Pie
+                                                        data={reportData.transactions.filter((t: any) => t.type === 'EXPENSE').reduce((acc: any[], t: any) => {
+                                                            const cat = t.category?.name || 'Khác';
+                                                            const existing = acc.find(i => i.type === cat);
+                                                            if (existing) existing.value += Number(t.amount);
+                                                            else acc.push({ type: cat, value: Number(t.amount) });
+                                                            return acc;
+                                                        }, [])}
+                                                        angleField="value"
+                                                        colorField="type"
+                                                        radius={0.8}
+                                                        innerRadius={0.6}
+                                                        label={{ text: 'value', style: { fontWeight: 'bold' } }}
+                                                        legend={{ position: 'bottom' }}
+                                                        height={300}
+                                                    />
+                                                </Card>
+                                            </Col>
+                                        </>
+                                    ) : (
+                                        <Col span={24}>
+                                            <Card title="Biểu đồ Thu / Chi theo Tháng" bordered={false} style={{ borderRadius: 12 }}>
+                                                <Column
+                                                    data={reportData.transactions.reduce((acc: any[], t: any) => {
+                                                        const month = dayjs(t.date).format('MM/YYYY');
+                                                        const type = t.type === 'INCOME' ? 'Thu' : 'Chi';
+
+                                                        // Chart expects array of objects
+                                                        // We need robust aggregations here.
+                                                        // But wait, reportData.transactions contains ALL transactions for the selected YEAR.
+
+                                                        const existing = acc.find(i => i.month === month && i.type === type);
+                                                        if (existing) existing.value += Number(t.amount);
+                                                        else acc.push({ month, type, value: Number(t.amount) });
+                                                        return acc;
+                                                    }, []).sort((a: any, b: any) => {
+                                                        // Sort by month
+                                                        const [m1] = a.month.split('/');
+                                                        const [m2] = b.month.split('/');
+                                                        return Number(m1) - Number(m2);
+                                                    })}
+                                                    xField="month"
+                                                    yField="value"
+                                                    colorField="type"
+                                                    group={true}
+                                                    columnWidthRatio={0.6}
+                                                    color={({ type }: any) => type === 'Thu' ? '#52c41a' : '#f5222d'}
+                                                    height={350}
+                                                />
+                                            </Card>
+                                        </Col>
+                                    )}
+                                </Row>
+
+                                <Divider orientation="left">Chi tiết Giao dịch</Divider>
 
                                 <Table
                                     dataSource={reportData.transactions}
@@ -354,9 +475,9 @@ const FinancePage: React.FC = () => {
                                     summary={() => (
                                         <Table.Summary fixed>
                                             <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
-                                                <Table.Summary.Cell index={0} colSpan={5}>Tổng Cộng</Table.Summary.Cell>
+                                                <Table.Summary.Cell index={0} colSpan={5}>Tổng Cộng (Lợi nhuận HT)</Table.Summary.Cell>
                                                 <Table.Summary.Cell index={1} align="right">
-                                                    <span style={{ color: reportData.summary.profit >= 0 ? 'green' : 'red' }}>
+                                                    <span style={{ color: reportData.summary.profit >= 0 ? 'green' : 'red', fontSize: 16 }}>
                                                         {Number(reportData.summary.profit).toLocaleString()}
                                                     </span>
                                                 </Table.Summary.Cell>
