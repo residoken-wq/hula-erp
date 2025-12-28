@@ -173,13 +173,96 @@ const PlanningPage: React.FC = () => {
         });
     };
 
+    // --- NEW: FULFILL FROM STOCK ---
+    const handleFulfillStock = async (order: any) => {
+        Modal.confirm({
+            title: `Xuất kho cho đơn ${order.order_code}?`,
+            content: (
+                <div>
+                    <p>Hệ thống sẽ tạo Phiếu Xuất Kho cho toàn bộ sản phẩm trong đơn hàng.</p>
+                    <p><b>Lưu ý:</b> Đơn hàng sẽ chuyển sang trạng thái "Đang giao" và rời khỏi danh sách chờ Lập Kế Hoạch.</p>
+                </div>
+            ),
+            onOk: async () => {
+                setLoading(true);
+                try {
+                    // Auto-construct delivery payload
+                    const deliveryItems = order.items.map((i: any) => ({
+                        sku: i.sku,
+                        quantity: i.quantity,
+                        note: 'Xuất kho từ Lập Kế Hoạch'
+                    }));
+
+                    const payload = {
+                        code: `PX-${order.order_code}-${dayjs().format('HHmm')}`,
+                        date: new Date().toISOString(),
+                        note: 'Xuất nhanh từ Planning Center (Có sẵn tồn kho)',
+                        delivery_address: order.shipping_address,
+                        contact_name: order.receiver_name,
+                        contact_phone: order.receiver_phone,
+                        items: deliveryItems
+                    };
+
+                    await axios.post(`${API_URL}/sales/${order.id}/delivery`, payload);
+                    message.success('Đã tạo phiếu xuất kho thành công');
+                    fetchData(); // Refresh to remove from list
+                } catch (e) {
+                    message.error('Lỗi khi xuất kho');
+                }
+                setLoading(false);
+            }
+        });
+    };
+
     const pendingColumns = [
         { title: 'Mã Đơn', dataIndex: 'order_code', render: (t: any) => <b>{t}</b> },
         { title: 'Khách Hàng', dataIndex: 'customer_name' },
-        { title: 'Trạng Thái', dataIndex: 'status', render: (t: any) => <Tag>{t}</Tag> },
+        {
+            title: 'Trạng Thái', dataIndex: 'status',
+            render: (t: any, r: any) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <Tag>{t}</Tag>
+                    {r.can_fulfill_stock && <Tag color="green">Sẵn sàng xuất kho</Tag>}
+                </div>
+            )
+        },
         { title: 'Ngày Giao', dataIndex: 'delivery_date', render: (t: any) => t ? <Tag color="red">{dayjs(t).format('DD/MM')}</Tag> : '-' },
-        { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v: any) => Number(v).toLocaleString() }
+        { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v: any) => Number(v).toLocaleString() },
+        {
+            title: 'Hành động',
+            align: 'center' as const,
+            render: (_: any, r: any) => (
+                r.can_fulfill_stock && (
+                    <Button type="primary" size="small" icon={<TruckOutlined />} onClick={() => handleFulfillStock(r)} style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}>Xuất Kho</Button>
+                )
+            )
+        }
     ];
+
+    const expandedRowRender = (record: any) => {
+        return (
+            <Table
+                dataSource={record.items}
+                rowKey="id"
+                pagination={false}
+                size="small"
+                columns={[
+                    { title: 'Sản phẩm', dataIndex: ['product', 'name'], render: (t, r: any) => <span><b>{r.sku}</b> - {t || r.sku}</span> },
+                    { title: 'Số lượng đặt', dataIndex: 'quantity', align: 'center' },
+                    {
+                        title: 'Tồn kho khả dụng',
+                        dataIndex: 'available_stock_tp',
+                        align: 'center',
+                        render: (v, r: any) => (
+                            <span style={{ color: v >= r.quantity ? 'green' : 'red', fontWeight: 'bold' }}>
+                                {v} {v >= r.quantity ? '(Đủ)' : '(Thiếu)'}
+                            </span>
+                        )
+                    }
+                ]}
+            />
+        );
+    };
 
     const planColumns = [
         { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
@@ -446,7 +529,7 @@ const PlanningPage: React.FC = () => {
             <Row gutter={16} style={{ marginBottom: 16 }}><Col span={8}><Card><Statistic title="Đơn Hàng Chờ SX" value={pendingOrders.length} prefix={<AlertOutlined />} valueStyle={{ color: '#faad14' }} /></Card></Col><Col span={8}><Card><Statistic title="Kế Hoạch Đang Chạy" value={plans.length} prefix={<ProjectOutlined />} valueStyle={{ color: '#1890ff' }} /></Card></Col></Row>
             <Card title="Trung Tâm Điều Hành Sản Xuất (Planning Center)" extra={<Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>}>
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
-                    { key: 'PENDING', label: '1. Gom Đơn Lập Kế Hoạch', children: <div><div style={{ marginBottom: 10, background: '#fffbe6', padding: 10 }}><AlertOutlined /> Chọn đơn hàng để lập kế hoạch.</div><Table rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }} dataSource={pendingOrders} columns={pendingColumns} rowKey="id" footer={() => (<Button type="primary" disabled={selectedRowKeys.length === 0} onClick={() => setIsCreateModalOpen(true)}>Lập Kế Hoạch</Button>)} /></div> },
+                    { key: 'PENDING', label: '1. Gom Đơn Lập Kế Hoạch', children: <div><div style={{ marginBottom: 10, background: '#fffbe6', padding: 10 }}><AlertOutlined /> Chọn đơn hàng để lập kế hoạch.</div><Table rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }} dataSource={pendingOrders} columns={pendingColumns} rowKey="id" expandable={{ expandedRowRender }} footer={() => (<Button type="primary" disabled={selectedRowKeys.length === 0} onClick={() => setIsCreateModalOpen(true)}>Lập Kế Hoạch</Button>)} /></div> },
                     { key: 'PLANS', label: '2. Danh Sách Kế Hoạch', children: <Table dataSource={plans} columns={planColumns} rowKey="id" /> }
                 ]} />
             </Card>

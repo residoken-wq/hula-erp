@@ -8,12 +8,14 @@ import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { ProductsModule } from '../products/products.module';
 import { MaterialsModule } from '../materials/materials.module';
+import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ProductionPlan, SalesOrder, PurchaseOrder, PurchaseOrderItem]),
     ProductsModule,
-    MaterialsModule
+    MaterialsModule,
+    InventoryModule
   ],
   controllers: [PlanningController],
   providers: [PlanningService],

@@ -7,6 +7,7 @@ import { ProductsService } from '../products/products.service';
 import { MaterialsService } from '../materials/materials.service';
 import { PurchaseOrder, POType, POStatus } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
+import { InventoryService } from '../inventory/inventory.service';
 
 @Injectable()
 export class PlanningService {
@@ -17,6 +18,7 @@ export class PlanningService {
         @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
         private productsService: ProductsService,
         private materialsService: MaterialsService,
+        private inventoryService: InventoryService, // <--- INJECT
     ) { }
 
     async getSuggestion() {
@@ -25,15 +27,44 @@ export class PlanningService {
                 status: In([SalesOrderStatus.SO_PENDING, SalesOrderStatus.SAMPLE_APPROVED, SalesOrderStatus.DEPOSITED]),
                 plan_id: IsNull()
             },
-            relations: ['customer'],
+            relations: ['customer', 'items', 'items.product'], // Load items & product info
             order: { delivery_date: 'ASC' }
         });
 
+        // Enrich with Stock Data
+        const stocks = await this.inventoryService.getAllStocks(); // Or optimize to specific IDs
+        const stockMap = new Map<string, number>(); // ProductID_Warehouse -> Qty OR just ProductID -> Qty (Total)
+
+        // Calculate Total Stock per Product (across all warehouses, OR defaulting to 'KHO_TP')
+        // Assuming we look at KHO_TP (Thành Phẩm) primarily for Fulfillment
+        stocks.forEach(s => {
+            if (s.item_type === 'PRODUCT' && s.warehouse_code === 'KHO_TP') {
+                const key = String(s.item_id);
+                stockMap.set(key, (stockMap.get(key) || 0) + Number(s.quantity));
+            }
+        });
+
         return orders.map(o => {
+            // Calculate status for 'Can Fulfill'
+            let canFulfill = true;
+            let totalItems = 0;
+
+            const enrichedItems = o.items.map(item => {
+                let stock = 0;
+                if (item.product) {
+                    stock = stockMap.get(String(item.product.id)) || 0;
+                    // Also fallback to product.quantity_in_stock if needed, but inventory service is SSOT
+                }
+                totalItems++;
+                if (stock < Number(item.quantity)) canFulfill = false;
+
+                return { ...item, available_stock_tp: stock };
+            });
+
             if (!o.customer_name && o.customer) {
                 o.customer_name = o.customer.name;
             }
-            return o;
+            return { ...o, items: enrichedItems, can_fulfill_stock: (totalItems > 0 && canFulfill) };
         });
     }
 
