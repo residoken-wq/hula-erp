@@ -6,7 +6,10 @@ import { ProductRouting } from '../products/product-routing.entity'; // Import
 export enum SupplierType {
   MATERIAL = 'MATERIAL',
   PROCESSING = 'PROCESSING',
-  MIX = 'MIX'
+  MIX = 'MIX',
+  SERVICE = 'SERVICE',
+  LOGISTICS = 'LOGISTICS',
+  OTHER = 'OTHER'
 }
 
 @Entity('suppliers')

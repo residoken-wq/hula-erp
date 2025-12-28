@@ -122,7 +122,13 @@ const SuppliersPage: React.FC = () => {
         { title: 'Mã', dataIndex: 'code', width: 100, render: (t: any) => <b>{t}</b> },
         { title: 'Nhà Cung Cấp', dataIndex: 'name', render: (t: any, r: any) => <div><ShopOutlined style={{ color: '#1890ff' }} /> <b>{t}</b><br /><span style={{ fontSize: 11, color: '#888' }}>{r.address}</span></div> },
         { title: 'Pháp Nhân', dataIndex: 'legal_name', render: (t: any) => t ? <><BankOutlined /> {t}</> : '-' },
-        { title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 100, render: (t: any) => t === 'MATERIAL' ? <Tag color="blue">NPL</Tag> : t === 'PROCESSING' ? <Tag color="orange">Gia Công</Tag> : <Tag color="purple">MIX</Tag> },
+        {
+            title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 100, render: (t: any) => {
+                const colors: any = { MATERIAL: 'blue', PROCESSING: 'orange', MIX: 'purple', SERVICE: 'cyan', LOGISTICS: 'geekblue', OTHER: 'default' };
+                const labels: any = { MATERIAL: 'NPL', PROCESSING: 'Gia Công', MIX: 'MIX', SERVICE: 'Dịch vụ', LOGISTICS: 'Vận chuyển', OTHER: 'Khác' };
+                return <Tag color={colors[t] || 'default'}>{labels[t] || t}</Tag>;
+            }
+        },
         { title: 'Ghi chú', dataIndex: 'note', ellipsis: true },
         {
             title: '', key: 'act', align: 'right' as const, width: 120,
@@ -299,7 +305,7 @@ const SuppliersPage: React.FC = () => {
                         <span>{editingItem ? `Nhà Cung Cấp: ${editingItem.name}` : "Thêm NCC Mới"}</span>
                         {editingItem && (
                             <Space>
-                                <Tag color={editingItem.type === 'MATERIAL' ? 'blue' : 'orange'}>{editingItem.type === 'MATERIAL' ? 'NPL' : 'Gia Công'}</Tag>
+                                <Tag color="blue">{editingItem.type}</Tag>
                                 <Tag color="volcano">Nợ: {Number(editingItem.debt || 0).toLocaleString()}</Tag>
                             </Space>
                         )}
@@ -327,7 +333,14 @@ const SuppliersPage: React.FC = () => {
                                             <Col span={16}><Form.Item name="name" label="Tên Nhà Cung Cấp" rules={[{ required: true }]}><Input /></Form.Item></Col>
                                         </Row>
                                         <Row gutter={16}>
-                                            <Col span={12}><Form.Item name="type" label="Loại hình"><Select options={[{ label: 'Bán NPL', value: 'MATERIAL' }, { label: 'Gia công', value: 'PROCESSING' }, { label: 'Hỗn hợp', value: 'MIX' }]} /></Form.Item></Col>
+                                            <Col span={12}><Form.Item name="type" label="Loại hình"><Select options={[
+                                                { label: 'Bán NPL', value: 'MATERIAL' },
+                                                { label: 'Gia công', value: 'PROCESSING' },
+                                                { label: 'Hỗn hợp', value: 'MIX' },
+                                                { label: 'Dịch vụ', value: 'SERVICE' },
+                                                { label: 'Vận chuyển', value: 'LOGISTICS' },
+                                                { label: 'Khác', value: 'OTHER' }
+                                            ]} /></Form.Item></Col>
                                             <Col span={12}><Form.Item name="phone" label="SĐT Liên hệ"><Input /></Form.Item></Col>
                                         </Row>
                                         <Form.Item name="email" label="Email"><Input /></Form.Item>
