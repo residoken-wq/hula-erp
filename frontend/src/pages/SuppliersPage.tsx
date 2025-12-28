@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Drawer, List, DatePicker, InputNumber, Checkbox, Typography, Tooltip, Tabs, Statistic } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BankOutlined, DollarOutlined, AppstoreOutlined, CalendarOutlined, StarFilled, StarOutlined, ShopOutlined, LinkOutlined, ReloadOutlined, HistoryOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Drawer, List, DatePicker, InputNumber, Checkbox, Typography, Tooltip, Tabs, Statistic, Avatar, Segmented, Dropdown, Menu } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BankOutlined, DollarOutlined, AppstoreOutlined, CalendarOutlined, StarFilled, StarOutlined, ShopOutlined, LinkOutlined, ReloadOutlined, HistoryOutlined, MoreOutlined, FilterOutlined, EnvironmentOutlined, PhoneOutlined, MailOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 
 const { RangePicker } = DatePicker;
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 const SuppliersPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
+    const [filterType, setFilterType] = useState<string>('ALL');
 
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -119,37 +120,94 @@ const SuppliersPage: React.FC = () => {
 
     // Columns Main Table
     const columns = [
-        { title: 'Mã', dataIndex: 'code', width: 100, render: (t: any) => <b>{t}</b> },
-        { title: 'Nhà Cung Cấp', dataIndex: 'name', render: (t: any, r: any) => <div><ShopOutlined style={{ color: '#1890ff' }} /> <b>{t}</b><br /><span style={{ fontSize: 11, color: '#888' }}>{r.address}</span></div> },
-        { title: 'Pháp Nhân', dataIndex: 'legal_name', render: (t: any) => t ? <><BankOutlined /> {t}</> : '-' },
         {
-            title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 100, render: (t: any) => {
+            title: 'Đối Tác / Nhà Cung Cấp',
+            dataIndex: 'name',
+            width: 300,
+            render: (t: any, r: any) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <Avatar shape="square" size={48} style={{ backgroundColor: r.type === 'MATERIAL' ? '#1890ff' : r.type === 'PROCESSING' ? '#fa8c16' : '#722ed1', fontSize: 20 }}>
+                        {t?.charAt(0)?.toUpperCase()}
+                    </Avatar>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography.Text strong style={{ fontSize: 15, color: '#262626' }}>{t}</Typography.Text>
+                        <Space size={4} style={{ fontSize: 12, color: '#8c8c8c' }}>
+                            <Tag style={{ margin: 0 }}>{r.code}</Tag>
+                            {r.legal_name && <Tooltip title={r.legal_name}><BankOutlined /></Tooltip>}
+                            {r.phone && <Tooltip title={r.phone}><PhoneOutlined /></Tooltip>}
+                            {r.email && <Tooltip title={r.email}><MailOutlined /></Tooltip>}
+                        </Space>
+                    </div>
+                </div>
+            )
+        },
+        {
+            title: 'Loại hình', dataIndex: 'type', align: 'center' as const, width: 120, render: (t: any) => {
                 const colors: any = { MATERIAL: 'blue', PROCESSING: 'orange', MIX: 'purple', SERVICE: 'cyan', LOGISTICS: 'geekblue', OTHER: 'default' };
-                const labels: any = { MATERIAL: 'NPL', PROCESSING: 'Gia Công', MIX: 'MIX', SERVICE: 'Dịch vụ', LOGISTICS: 'Vận chuyển', OTHER: 'Khác' };
-                return <Tag color={colors[t] || 'default'}>{labels[t] || t}</Tag>;
+                const labels: any = { MATERIAL: 'NPL', PROCESSING: 'Gia Công', MIX: 'Hỗn Hợp', SERVICE: 'Dịch Vụ', LOGISTICS: 'Vận Chuyển', OTHER: 'Khác' };
+                return <Tag color={colors[t]} style={{ minWidth: 80, textAlign: 'center' }}>{labels[t] || t}</Tag>;
             }
         },
-        { title: 'Ghi chú', dataIndex: 'note', ellipsis: true },
         {
-            title: '', key: 'act', align: 'right' as const, width: 120,
+            title: 'Địa chỉ / Ghi chú',
+            dataIndex: 'address',
+            ellipsis: true,
+            render: (t: any, r: any) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {t ? <Text type="secondary" style={{ fontSize: 13 }}><EnvironmentOutlined /> {t}</Text> : null}
+                    {r.note && <Text type="secondary" italic style={{ fontSize: 12 }}>{r.note}</Text>}
+                </div>
+            )
+        },
+        {
+            title: 'Công nợ',
+            dataIndex: 'debt',
+            align: 'right' as const,
+            width: 150,
+            render: (v: any, r: any) => (
+                <div>
+                    <div style={{ fontWeight: 'bold', color: Number(v) > 0 ? '#cf1322' : '#52c41a' }}>
+                        {Number(v || 0).toLocaleString()} <small>₫</small>
+                    </div>
+                    {Number(v) > 0 && <Button type="link" size="small" style={{ padding: 0, height: 'auto', fontSize: 12 }} onClick={() => openDebtModal(r)}>Thanh toán ngay</Button>}
+                </div>
+            )
+        },
+        {
+            key: 'act', align: 'right' as const, width: 80,
             render: (_: any, r: any) => (
-                <Space>
-                    <Button icon={<DollarOutlined />} size="small" type="primary" ghost onClick={() => openPriceList(r)}>Giá</Button>
-                    <Button icon={<BankOutlined />} size="small" style={{ color: '#fa541c', borderColor: '#fa541c' }} onClick={() => openDebtModal(r)}>Công nợ</Button>
-                    <Button icon={<EditOutlined />} size="small" onClick={() => {
-                        setEditingItem(r);
-                        form.setFieldsValue(r);
-                        setPriceDrawerOpen(false); // Default to Info Tab
-                        setIsModalOpen(true);
-                        loadPOs(r.id)
-                    }} />
-                    <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
-                </Space>
+                <Dropdown menu={{
+                    items: [
+                        { key: 'price', label: 'Bảng giá & Lịch sử', icon: <DollarOutlined />, onClick: () => openPriceList(r) },
+                        { key: 'debt', label: 'Quản lý công nợ', icon: <BankOutlined />, onClick: () => openDebtModal(r) },
+                        { type: 'divider' },
+                        {
+                            key: 'edit', label: 'Chỉnh sửa', icon: <EditOutlined />, onClick: () => {
+                                setEditingItem(r);
+                                form.setFieldsValue(r);
+                                setPriceDrawerOpen(false);
+                                setIsModalOpen(true);
+                                loadPOs(r.id)
+                            }
+                        },
+                        {
+                            key: 'del', label: 'Xóa', icon: <DeleteOutlined />, danger: true, onClick: () => Modal.confirm({
+                                title: 'Xóa Nhà Cung Cấp?', content: 'Hành động này không thể hoàn tác.', onOk: () => handleDelete(r.id)
+                            })
+                        },
+                    ]
+                }} trigger={['click']}>
+                    <Button icon={<MoreOutlined />} type="text" />
+                </Dropdown>
             )
         }
     ];
 
-    const filteredData = data.filter(d => d.name?.toLowerCase().includes(searchText.toLowerCase()) || d.code?.toLowerCase().includes(searchText.toLowerCase()));
+    const filteredData = data.filter(d => {
+        const matchesSearch = d.name?.toLowerCase().includes(searchText.toLowerCase()) || d.code?.toLowerCase().includes(searchText.toLowerCase());
+        const matchesType = filterType === 'ALL' || d.type === filterType;
+        return matchesSearch && matchesType;
+    });
 
     // --- LOGIC CÔNG NỢ & THANH TOÁN (MỚI) ---
     const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
@@ -255,60 +313,95 @@ const SuppliersPage: React.FC = () => {
     ];
 
     return (
-        <div>
-            <Card
-                title="Quản Lý Nhà Cung Cấp & Đối Tác"
-                extra={
-                    activeTab === '1' ?
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true) }}>Thêm NCC</Button>
-                        : null
-                }
-                bodyStyle={{ padding: 0 }}
-            >
+        <div style={{ padding: '0 12px' }}>
+            <div style={{ marginBottom: 24 }}>
+                <Title level={2} style={{ marginBottom: 24, fontWeight: 700 }}>Đối Tác & Nhà Cung Cấp</Title>
+                <Row gutter={16}>
+                    <Col span={6}>
+                        <Card bordered={false} bodyStyle={{ padding: 16 }}>
+                            <Statistic title="Tổng NCC" value={data.length} prefix={<ShopOutlined />} valueStyle={{ fontWeight: 'bold' }} />
+                        </Card>
+                    </Col>
+                    <Col span={6}>
+                        <Card bordered={false} bodyStyle={{ padding: 16 }}>
+                            <Statistic title="Tổng Công Nợ" value={suppliersWithDebt.reduce((acc, s) => acc + Number(s.debt), 0)} prefix={<DollarOutlined />} suffix="₫" valueStyle={{ color: '#cf1322', fontWeight: 'bold' }} />
+                        </Card>
+                    </Col>
+                    <Col span={6}>
+                        <Card bordered={false} bodyStyle={{ padding: 16 }}>
+                            <Statistic title="Số NCC đang nợ" value={suppliersWithDebt.length} prefix={<BankOutlined />} valueStyle={{ color: '#fa8c16', fontWeight: 'bold' }} />
+                        </Card>
+                    </Col>
+                    <Col span={6}>
+                        <Card bordered={false} bodyStyle={{ padding: 16, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true) }}>Thêm Mới</Button>
+                        </Card>
+                    </Col>
+                </Row>
+            </div>
+
+            <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', borderRadius: 8 }}>
+                <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                        <Input placeholder="Tìm kiếm theo tên, mã..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 280 }} size="middle" allowClear />
+                        <Divider type="vertical" />
+                        <span style={{ color: '#8c8c8c' }}><FilterOutlined /> Lọc:</span>
+                        <Segmented
+                            options={[
+                                { label: 'Tất cả', value: 'ALL' },
+                                { label: 'NPL', value: 'MATERIAL' },
+                                { label: 'Gia Công', value: 'PROCESSING' },
+                                { label: 'Dịch vụ', value: 'SERVICE' },
+                                { label: 'Logistics', value: 'LOGISTICS' },
+                                { label: 'Khác', value: 'OTHER' },
+                            ]}
+                            value={filterType}
+                            onChange={(v: string) => setFilterType(v)}
+                        />
+                    </div>
+                </div>
+
                 <Tabs
                     activeKey={activeTab}
                     onChange={setActiveTab}
-                    tabBarStyle={{ paddingLeft: 20, marginBottom: 0 }}
+                    tabBarStyle={{ padding: '0 24px', marginBottom: 0 }}
                     items={[
                         {
                             key: '1',
-                            label: 'Danh Sách NCC',
-                            children: (
-                                <div style={{ padding: 20 }}>
-                                    <div style={{ marginBottom: 16, maxWidth: 400 }}><Input placeholder="Tìm kiếm..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} /></div>
-                                    <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
-                                </div>
-                            )
+                            label: `Danh sách (${loading ? '...' : filteredData.length})`,
+                            children: <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} pagination={{ pageSize: 8, showTotal: (total) => `Tổng ${total}` }} />
                         },
                         {
                             key: '2',
-                            label: <span><DollarOutlined /> Quản Lý Công Nợ <Tag color="red" style={{ marginLeft: 5 }}>{suppliersWithDebt.length}</Tag></span>,
+                            label: <span style={{ color: '#cf1322' }}>Quản Lý Công Nợ ({suppliersWithDebt.length})</span>,
                             children: (
-                                <div style={{ padding: 20 }}>
-                                    <div style={{ marginBottom: 16, background: '#fff1f0', padding: 15, borderRadius: 6, border: '1px solid #ffa39e', display: 'flex', gap: 20 }}>
-                                        <Statistic title="Tổng Công Nợ Phải Trả" value={suppliersWithDebt.reduce((acc, s) => acc + Number(s.debt), 0)} valueStyle={{ color: '#cf1322' }} prefix={<DollarOutlined />} suffix="₫" />
-                                        <Statistic title="Số NCC đang nợ" value={suppliersWithDebt.length} />
-                                    </div>
-                                    <Table dataSource={suppliersWithDebt} columns={debtColumns} rowKey="id" loading={loading} />
-                                </div>
+                                <Table
+                                    dataSource={suppliersWithDebt}
+                                    rowKey="id"
+                                    columns={[
+                                        ...columns.slice(0, 3), // Reuse first 3 refined columns
+                                        {
+                                            title: 'Hành động', key: 'act', align: 'right' as const, width: 120,
+                                            render: (_: any, r: any) => <Button type="primary" size="small" icon={<DollarOutlined />} onClick={() => openDebtModal(r)}>Thanh Toán</Button>
+                                        }
+                                    ]}
+                                    loading={loading}
+                                />
                             )
                         }
                     ]}
                 />
-
             </Card>
 
             {/* UNIFIED DRAWER: DETAILS / EDIT / PRICE / HISTORY */}
             <Drawer
                 title={
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>{editingItem ? `Nhà Cung Cấp: ${editingItem.name}` : "Thêm NCC Mới"}</span>
-                        {editingItem && (
-                            <Space>
-                                <Tag color="blue">{editingItem.type}</Tag>
-                                <Tag color="volcano">Nợ: {Number(editingItem.debt || 0).toLocaleString()}</Tag>
-                            </Space>
-                        )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <Avatar shape="square" style={{ backgroundColor: '#1890ff' }}>{editingItem?.name?.charAt(0).toUpperCase() || '+'}</Avatar>
+                        <div>
+                            <div style={{ fontWeight: 700, fontSize: 16 }}>{editingItem ? editingItem.name : "Thêm NCC Mới"}</div>
+                            {editingItem && <div style={{ fontWeight: 400, fontSize: 12, color: '#888' }}>{editingItem.code} | {editingItem.type}</div>}
+                        </div>
                     </div>
                 }
                 open={isModalOpen}
