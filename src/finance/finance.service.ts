@@ -40,6 +40,7 @@ export class FinanceService {
     // -------------------------------------------------------------
 
     async createTransaction(data: any) {
+        // Ensure supplier_id is passed if available
         const trans = this.transRepo.create(data);
         return this.transRepo.save(trans);
     }
@@ -88,6 +89,7 @@ export class FinanceService {
             reference_type: 'PURCHASE', // Or 'BULK_PURCHASE' if distinct
             description: data.note || `Thanh toán công nợ NCC`,
             partner_name: data.partnerName,
+            supplier_id: data.supplier_id, // <--- SAVE SUPPLIER ID
             vat_invoice_code: data.vatCode,
             vat_invoice_url: data.vatUrl
         });

@@ -47,6 +47,11 @@ export class Supplier {
   @OneToMany(() => ProductRouting, (routing) => routing.supplier)
   routings: ProductRouting[];
 
+  // --- MỚI: TRANSACTIONS HISTORY ---
+  @OneToMany('Transaction', (t: any) => t.supplier)
+  transactions: any[];
+  // -------------------------------
+
   @CreateDateColumn() created_at: Date;
   @UpdateDateColumn() updated_at: Date;
 }
