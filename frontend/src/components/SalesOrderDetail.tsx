@@ -86,7 +86,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     useEffect(() => {
         if (open) {
-            if (initialData) {
+            if (initialData?.id) {
                 // --- EDIT MODE ---
                 form.setFieldsValue({
                     ...initialData,
@@ -130,6 +130,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             } else {
                 // --- CREATE MODE ---
                 form.resetFields();
+
+                const isInternal = (initialData as any)?.isInternal;
+
                 form.setFieldsValue({
                     order_code: '', // Let backend generate
                     order_date: dayjs(),
@@ -137,8 +140,17 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     discount_rate: 0,
                     discount_amount: 0,
                     vat_rate: 0,
-                    shipping_fee: 0
+                    shipping_fee: 0,
+                    // --- AUTO FILL FOR INTERNAL ---
+                    customer_id: isInternal ? -1 : undefined, // Use -1 or handle effectively
+                    note: isInternal ? 'Đơn nhập kho (Make to Stock)' : ''
                 });
+
+                if (isInternal) {
+                    // Mock Internal Customer if not exists in list, or just display "Nội Bộ"
+                    // Better: Handle in rendering
+                }
+
                 setOrderItems([]);
                 setTotalAmount(0);
             }
@@ -520,7 +532,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         showSearch
                                         placeholder="Chọn khách hàng"
                                         optionFilterProp="label"
-                                        options={customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))}
+                                        // Add Internal Option if needed or just handle display
+                                        // options={customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))}
+                                        options={[
+                                            ...(initialData?.isInternal ? [{ label: '🏢 SẢN XUẤT NỘI BỘ (Kho Thành Phẩm)', value: -1 }] : []),
+                                            ...customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))
+                                        ]}
+                                        disabled={initialData?.isInternal}
                                     />
                                 </Form.Item>
                             </Col>
