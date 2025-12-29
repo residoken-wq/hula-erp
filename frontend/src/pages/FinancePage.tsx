@@ -125,12 +125,19 @@ const FinancePage: React.FC = () => {
 
     const handleEditTransaction = (record: any) => {
         setEditingTransaction(record);
+
+        const custId = record.customer_id || record.customer?.id;
+        const supId = record.supplier_id || record.supplier?.id;
+        const catId = record.category_id || record.category?.id;
+
         formTrans.setFieldsValue({
             ...record,
             date: dayjs(record.date),
-            category_id: record.category?.id,
-            customer_id: record.customer?.id,
-            supplier_id: record.supplier?.id
+            category_id: catId,
+            customer_id: custId,
+            supplier_id: supId,
+            is_retail: !custId && record.type === 'INCOME',
+            is_other_expense: !supId && record.type === 'EXPENSE'
         });
         setIsTransModalOpen(true);
     };
