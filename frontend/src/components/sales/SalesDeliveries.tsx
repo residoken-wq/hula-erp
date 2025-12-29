@@ -254,23 +254,23 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                         { title: 'Đã giao (đ)', dataIndex: 'deliveredVal', align: 'right', render: (v: number) => <span style={{ color: 'green' }}>{v.toLocaleString()}</span> },
                         { title: 'Còn lại (đ)', dataIndex: 'remainingVal', align: 'right', render: (v: number) => <span style={{ color: 'red', fontWeight: 'bold' }}>{v.toLocaleString()}</span> },
                     ]}
-                    summary={(pageData) => {
+                    summary={(pageData: readonly any[]) => {
                         let totalAmount = 0;
                         let totalDelivered = 0;
                         let totalRemaining = 0;
 
-                        pageData.forEach(({ totalVal, deliveredVal, remainingVal }) => {
-                            totalAmount += totalVal;
-                            totalDelivered += deliveredVal;
-                            totalRemaining += remainingVal;
+                        pageData.forEach((item) => {
+                            totalAmount += (item.totalVal || 0);
+                            totalDelivered += (item.deliveredVal || 0);
+                            totalRemaining += (item.remainingVal || 0);
                         });
 
                         return (
                             <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
                                 <Table.Summary.Cell index={0} colSpan={4} align="right">Tổng cộng:</Table.Summary.Cell>
                                 <Table.Summary.Cell index={1} align="right">{totalAmount.toLocaleString()}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={2} align="right" style={{ color: 'green' }}>{totalDelivered.toLocaleString()}</Table.Summary.Cell>
-                                <Table.Summary.Cell index={3} align="right" style={{ color: 'red' }}>{totalRemaining.toLocaleString()}</Table.Summary.Cell>
+                                <Table.Summary.Cell index={2} align="right"><span style={{ color: 'green' }}>{totalDelivered.toLocaleString()}</span></Table.Summary.Cell>
+                                <Table.Summary.Cell index={3} align="right"><span style={{ color: 'red' }}>{totalRemaining.toLocaleString()}</span></Table.Summary.Cell>
                             </Table.Summary.Row>
                         );
                     }}
