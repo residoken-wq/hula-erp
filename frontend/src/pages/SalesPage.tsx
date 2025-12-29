@@ -77,13 +77,14 @@ const SalesPage: React.FC = () => {
     };
 
     const openDetailModal = async (record?: any) => {
-        if (record) {
+        if (record && record.order_code) {
             try {
                 const res = await api.get(`/sales/${record.order_code}`);
                 setEditingOrder(res.data);
             } catch (e) { message.error('Không tải được chi tiết đơn'); return; }
         } else {
-            setEditingOrder(null);
+            // New Order (Standard or Internal)
+            setEditingOrder(record);
         }
         setDetailModalOpen(true);
     };
