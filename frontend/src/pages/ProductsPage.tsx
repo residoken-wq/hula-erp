@@ -354,8 +354,8 @@ const ProductsPage: React.FC = () => {
                 activeKey={viewMode}
                 onChange={setViewMode}
                 items={[
-                    { key: 'BASE', label: <span><AppstoreOutlined /> Sản Phẩm Chính</span> },
-                    { key: 'VARIANT', label: <span><ForkOutlined /> Biến Thể</span> }
+                    { key: 'MAIN', label: <span><AppstoreOutlined /> Danh Sách Sản Phẩm</span> },
+                    { key: 'SEMI', label: <span><BuildOutlined /> Bán Thành Phẩm (BOM)</span> }
                 ]}
                 style={{ marginBottom: 16 }}
             />
