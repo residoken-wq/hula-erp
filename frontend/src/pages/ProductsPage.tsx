@@ -404,6 +404,19 @@ const ProductsPage: React.FC = () => {
                                         <Divider orientation="left"><FileTextOutlined /> Mô tả & Thông tin chi tiết</Divider>
                                         <Form.Item name="customer_description" label="Mô tả Khách hàng/Bán hàng" tooltip="Hiển thị trên Báo giá, SO, Phiếu giao hàng"><TextArea rows={3} placeholder="Mô tả thương mại, chất liệu cơ bản, v.v." /></Form.Item>
                                         <Form.Item name="processing_description" label="Mô tả Gia công/Sản xuất" tooltip="Hiển thị trên PO Gia công, Lệnh sản xuất"><TextArea rows={3} placeholder="Yêu cầu kỹ thuật, chi tiết may/cắt, v.v." /></Form.Item>
+
+                                        {/* BIẾN THỂ: Cho phép sửa thuộc tính */}
+                                        {editingItem && editingItem.attributes && Object.keys(editingItem.attributes).length > 0 && (
+                                            <>
+                                                <Divider orientation="left"><ForkOutlined /> Thuộc tính Biến thể</Divider>
+                                                <Row gutter={10}>
+                                                    <Col span={12}><Form.Item name={['attributes', 'color']} label="Màu sắc"><Input /></Form.Item></Col>
+                                                    <Col span={12}><Form.Item name={['attributes', 'size']} label="Kích thước"><Input /></Form.Item></Col>
+                                                    <Col span={12}><Form.Item name={['attributes', 'fabric']} label="Chất liệu"><Input /></Form.Item></Col>
+                                                    <Col span={12}><Form.Item name={['attributes', 'design']} label="Design"><Input /></Form.Item></Col>
+                                                </Row>
+                                            </>
+                                        )}
                                     </Col>
                                 </Row>
                             </Form>
