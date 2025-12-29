@@ -171,6 +171,20 @@ const SuppliersPage: React.FC = () => {
             )
         },
         {
+            title: 'Đã TT theo PO',
+            dataIndex: 'paid_po',
+            align: 'right' as const,
+            width: 140,
+            render: (v: any) => <span style={{ color: 'green', fontWeight: '500' }}>{Number(v || 0).toLocaleString()} ₫</span>
+        },
+        {
+            title: 'Đã TT phiếu chi',
+            dataIndex: 'paid_other',
+            align: 'right' as const,
+            width: 140,
+            render: (v: any) => <span style={{ color: '#eb2f96', fontWeight: '500' }}>{Number(v || 0).toLocaleString()} ₫</span>
+        },
+        {
             title: 'Công nợ',
             dataIndex: 'debt',
             align: 'right' as const,

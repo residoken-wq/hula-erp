@@ -18,7 +18,27 @@ export class SuppliersService {
     // --- HÀM CRUD CƠ BẢN (KHÔNG THỂ THIẾU) ---
 
     async create(data: any) { return this.supplierRepo.save(this.supplierRepo.create(data)); }
-    async findAll() { return this.supplierRepo.find({ order: { created_at: 'DESC' } }); }
+    async findAll() {
+        const qb = this.supplierRepo.createQueryBuilder('s')
+            .leftJoin('s.transactions', 't', 't.type = :type', { type: 'EXPENSE' })
+            .select(['s.id', 's.code', 's.name', 's.debt', 's.type', 's.phone', 's.email', 's.address', 's.note', 's.created_at'])
+            .addSelect('SUM(CASE WHEN t.reference_code LIKE :poPrefix THEN t.amount ELSE 0 END)', 'paid_po')
+            .addSelect('SUM(CASE WHEN t.reference_code IS NULL OR t.reference_code NOT LIKE :poPrefix THEN t.amount ELSE 0 END)', 'paid_other')
+            .groupBy('s.id')
+            .orderBy('s.created_at', 'DESC') // Note: Order by in group by might require s.created_at in select
+            .setParameter('poPrefix', 'PO-%');
+
+        const { entities, raw } = await qb.getRawAndEntities();
+
+        return entities.map(e => {
+            const r = raw.find(row => row.s_id === e.id);
+            return {
+                ...e,
+                paid_po: r ? Math.abs(Number(r.paid_po)) : 0,
+                paid_other: r ? Math.abs(Number(r.paid_other)) : 0
+            };
+        });
+    }
     async findOne(id: number) {
         const supplier = await this.supplierRepo.findOne({
             where: { id },
