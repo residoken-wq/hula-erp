@@ -61,10 +61,16 @@ export class FinanceService {
 
     // --- CẬP NHẬT: THANH TOÁN PO (CHI TIỀN) ---
     async createPOPayment(data: any) {
-        // ... (Keep existing for backward compatibility if needed, or deprecate)
-        // ... Implementation skipped for brevity as we are focusing on BULK
+        // --- FIX: Fetch PO to get Supplier ID ---
+        let supplierId = null;
+        if (data.poCode) {
+            const po = await this.purchasingService.getPOByCode(data.poCode);
+            if (po) supplierId = po.supplier_id;
+        }
+        // ----------------------------------------
+
         return this.createBulkPoPayment({
-            supplier_id: null, // Unknown in legacy call
+            supplier_id: supplierId, // Pass fetched ID
             po_ids: [data.poCode], // Treat as single item array (Note: logic needs ID not Code usually, but let's check input)
             // Actually legacy used poCode string. Bulk uses IDs.
             // Let's implement Bulk properly.
@@ -156,5 +162,36 @@ export class FinanceService {
         const income = all.filter(t => t.type === 'INCOME').reduce((s, t) => s + Number(t.amount), 0);
         const expense = all.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + Number(t.amount), 0);
         return { income, expense, balance: income - expense };
+    }
+
+    // --- MỚI: HÀM MAPPING TRANSACTION CŨ VÀO SUPPLIER ---
+    async mapOldTransactions() {
+        // 1. Tìm các Transaction Purchase mà chưa có Supplier ID
+        const transactions = await this.transRepo.find({
+            where: [
+                { reference_type: 'PURCHASE', supplier_id: null as any },
+                { reference_type: 'BULK_PURCHASE', supplier_id: null as any }
+            ]
+        });
+
+        const updates = [];
+        for (const t of transactions) {
+            // Case 1: Ref Code is PO Code
+            if (t.reference_code && t.reference_code.startsWith('PO-')) {
+                const po = await this.purchasingService.getPOByCode(t.reference_code);
+                if (po && po.supplier_id) {
+                    t.supplier_id = po.supplier_id;
+                    updates.push(this.transRepo.save(t));
+                    continue; // Done
+                }
+            }
+
+            // Case 2: Bulk code logic? (Usually hidden inside description or not traceable easily without structured data)
+            // But we can try fuzzy match partner_name if present?
+            // Skipped for safety to avoid wrong mapping.
+        }
+
+        await Promise.all(updates);
+        return { total: transactions.length, mapped: updates.length };
     }
 }

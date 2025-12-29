@@ -59,6 +59,10 @@ export class PurchasingService {
         return this.poRepo.find({ relations: ['supplier', 'items', 'items.material', 'plan'], order: { created_at: 'DESC' } });
     }
 
+    async getPOByCode(code: string) {
+        return this.poRepo.findOne({ where: { po_code: code }, relations: ['supplier'] });
+    }
+
     async getPODetail(id: number) {
         const po = await this.poRepo.findOne({ where: { id }, relations: ['supplier', 'items', 'items.material', 'items.product'] });
         if (!po || !po.items) return po;

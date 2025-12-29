@@ -42,4 +42,10 @@ export class FinanceController {
   createBulkPOPayment(@Body() b: any) {
     return this.s.createBulkPoPayment(b);
   }
+
+  // --- FIX DATA ENDPOINT ---
+  @Post('payment/fix-mapping')
+  fixMapping() {
+    return this.s.mapOldTransactions();
+  }
 }
