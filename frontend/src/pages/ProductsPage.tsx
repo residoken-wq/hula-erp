@@ -230,14 +230,29 @@ const ProductsPage: React.FC = () => {
         } catch (e) { message.error('Lỗi tính giá vốn'); }
     };
 
+    // --- FILTER VARIANT VS BASE ---
+    const [viewMode, setViewMode] = useState('BASE'); // 'BASE' | 'VARIANT'
+
     const filteredData = useMemo(() => {
-        if (!searchText) return data;
-        const lower = searchText.toLowerCase();
-        return data.filter(d =>
-            (d.name && d.name.toLowerCase().includes(lower)) ||
-            (d.sku && d.sku.toLowerCase().includes(lower))
-        );
-    }, [data, searchText]);
+        let list = data;
+
+        // 1. Filter by Mode
+        if (viewMode === 'BASE') {
+            list = list.filter(d => !d.attributes || Object.keys(d.attributes).length === 0);
+        } else {
+            list = list.filter(d => d.attributes && Object.keys(d.attributes).length > 0);
+        }
+
+        // 2. Filter by Search
+        if (searchText) {
+            const lower = searchText.toLowerCase();
+            list = list.filter(d =>
+                (d.name && d.name.toLowerCase().includes(lower)) ||
+                (d.sku && d.sku.toLowerCase().includes(lower))
+            );
+        }
+        return list;
+    }, [data, searchText, viewMode]);
 
     const columns = [
         {
@@ -335,6 +350,16 @@ const ProductsPage: React.FC = () => {
                 </Space>
             }
         >
+            <Tabs
+                activeKey={viewMode}
+                onChange={setViewMode}
+                items={[
+                    { key: 'BASE', label: <span><AppstoreOutlined /> Sản Phẩm Chính</span> },
+                    { key: 'VARIANT', label: <span><ForkOutlined /> Biến Thể</span> }
+                ]}
+                style={{ marginBottom: 16 }}
+            />
+
             <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
 
             <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"}
