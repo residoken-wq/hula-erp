@@ -4,6 +4,7 @@ import { Repository, Between } from 'typeorm';
 import { Transaction } from './transaction.entity';
 import { TransactionCategory } from './transaction-category.entity';
 import { PurchasingService } from '../purchasing/purchasing.service';
+import { SuppliersService } from '../suppliers/suppliers.service';
 
 @Injectable()
 export class FinanceService {
@@ -11,6 +12,7 @@ export class FinanceService {
         @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
         @InjectRepository(TransactionCategory) private catRepo: Repository<TransactionCategory>,
         @Inject(forwardRef(() => PurchasingService)) private purchasingService: PurchasingService,
+        @Inject(forwardRef(() => SuppliersService)) private suppliersService: SuppliersService,
     ) { }
 
     // ... (Giữ nguyên các hàm Category) ...
@@ -170,11 +172,14 @@ export class FinanceService {
         const transactions = await this.transRepo.find({
             where: [
                 { reference_type: 'PURCHASE', supplier_id: null as any },
-                { reference_type: 'BULK_PURCHASE', supplier_id: null as any }
+                { reference_type: 'BULK_PURCHASE', supplier_id: null as any },
+                { type: 'EXPENSE', supplier_id: null as any } // Also check generic Expense if name matches
             ]
         });
 
         const updates = [];
+        let allSuppliers = [];
+
         for (const t of transactions) {
             // Case 1: Ref Code is PO Code
             if (t.reference_code && t.reference_code.startsWith('PO-')) {
@@ -186,9 +191,22 @@ export class FinanceService {
                 }
             }
 
-            // Case 2: Bulk code logic? (Usually hidden inside description or not traceable easily without structured data)
-            // But we can try fuzzy match partner_name if present?
-            // Skipped for safety to avoid wrong mapping.
+            // Case 2: Fuzzy match partner_name
+            if (t.partner_name && !t.supplier_id) {
+                if (allSuppliers.length === 0) {
+                    allSuppliers = await this.suppliersService.findAll();
+                }
+
+                const normalize = (s: string) => s ? s.toLowerCase().trim() : '';
+                const pName = normalize(t.partner_name);
+
+                const match = allSuppliers.find(s => normalize(s.name) === pName || (s.legal_name && normalize(s.legal_name) === pName));
+
+                if (match) {
+                    t.supplier_id = match.id;
+                    updates.push(this.transRepo.save(t));
+                }
+            }
         }
 
         await Promise.all(updates);
