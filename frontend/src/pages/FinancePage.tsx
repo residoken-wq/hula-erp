@@ -101,11 +101,15 @@ const FinancePage: React.FC = () => {
                 if (sup) finalPartnerName = sup.name;
             }
 
+            // Clean Payload: Remove UI-only fields and customer_id (not in entity)
+            const { is_retail, is_other_expense, customer_id, ...restValues } = values;
+
             const payload = {
-                ...values,
+                ...restValues,
                 date: values.date.format('YYYY-MM-DD'),
                 type: values.type,
-                partner_name: finalPartnerName // Override partner_name
+                partner_name: finalPartnerName, // Override partner_name
+                // customer_id removed
             };
 
             if (editingTransaction) {
@@ -126,7 +130,13 @@ const FinancePage: React.FC = () => {
     const handleEditTransaction = (record: any) => {
         setEditingTransaction(record);
 
-        const custId = record.customer_id || record.customer?.id;
+        // Try to find customer by name if no ID (Entity lacks customer_id)
+        let custId = record.customer_id || record.customer?.id;
+        if (!custId && record.type === 'INCOME' && record.partner_name) {
+            const found = customers.find(c => c.name === record.partner_name);
+            if (found) custId = found.id;
+        }
+
         const supId = record.supplier_id || record.supplier?.id;
         const catId = record.category_id || record.category?.id;
 
