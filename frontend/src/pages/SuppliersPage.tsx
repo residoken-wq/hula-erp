@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Drawer, List, DatePicker, InputNumber, Checkbox, Typography, Tooltip, Tabs, Statistic, Avatar, Segmented, Dropdown, Menu } from 'antd';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Drawer, List, DatePicker, InputNumber, Checkbox, Radio, Typography, Tooltip, Tabs, Statistic, Avatar, Segmented, Dropdown, Menu } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BankOutlined, DollarOutlined, AppstoreOutlined, CalendarOutlined, StarFilled, StarOutlined, ShopOutlined, LinkOutlined, ReloadOutlined, HistoryOutlined, MoreOutlined, FilterOutlined, EnvironmentOutlined, PhoneOutlined, MailOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -87,7 +87,18 @@ const SuppliersPage: React.FC = () => {
             const res = await axios.get(`${API_URL}/purchasing`);
             const all = Array.isArray(res.data) ? res.data : [];
             setSupplierPOs(all.filter((p: any) => p.supplier_id === supplierId || p.supplier?.id === supplierId));
+            setSupplierPOs(all.filter((p: any) => p.supplier_id === supplierId || p.supplier?.id === supplierId));
         } catch (e) { }
+    }
+
+    const [supplierTransactions, setSupplierTransactions] = useState<any[]>([]);
+    const [historyMode, setHistoryMode] = useState('PO'); // 'PO' | 'TRANS'
+
+    const loadTransactions = async (supplierId: number) => {
+        try {
+            const res = await axios.get(`${API_URL}/suppliers/${supplierId}/transactions`); // New API
+            setSupplierTransactions(res.data || []);
+        } catch (e) { setSupplierTransactions([]); }
     }
 
     const loadPrices = async (id: number) => {
@@ -242,49 +253,7 @@ const SuppliersPage: React.FC = () => {
         } catch (e) { message.error('Lỗi tải công nợ'); }
     };
 
-    const handleBulkPayment = async () => {
-        if (selectedDebtPOs.length === 0) return message.warning('Chọn ít nhất 1 PO');
-        if (paymentAmount <= 0) return message.warning('Nhập số tiền thanh toán');
 
-        try {
-            // Allocation Logic: Distribute amount to selected POs
-            // Simple Strategy: User enters TOTAL amount, we auto-allocate or User pays EXACT total of selected?
-            // User request: "gộp chung thanh toán... 1 hóa đơn VAT"
-            // Usually means Paying specific invoices.
-            // If User inputs a reduced amount, how to allocate?
-            // For MVP: We assume Payment Amount = Sum of Selected (Auto calc) OR User inputs custom.
-            // Let's alloc proportionally or FIFO?
-            // Simplest: Send allocation explicitly.
-
-            let remain = paymentAmount;
-            const allocations = [];
-
-            // Allocate to selected POs
-            for (const po of selectedDebtPOs) {
-                const debt = Number(po.total_amount) - Number(po.paid_amount || 0);
-                const pay = Math.min(remain, debt);
-                if (pay > 0) {
-                    allocations.push({ po_id: po.id, amount: pay });
-                    remain -= pay;
-                }
-            }
-
-            await axios.post(`${API_URL}/finance/payment/bulk-po`, {
-                supplier_id: currentSupplier.id,
-                partnerName: currentSupplier.name,
-                amount: paymentAmount,
-                date: paymentDate,
-                note: paymentNote,
-                vatCode,
-                vatUrl,
-                allocations
-            });
-
-            message.success('Thanh toán thành công');
-            setIsDebtModalOpen(false);
-            fetchData(); // Reload suppliers if needed or just close
-        } catch (e) { message.error('Lỗi thanh toán'); }
-    };
 
     // ----------------------------------------
 
@@ -311,6 +280,24 @@ const SuppliersPage: React.FC = () => {
             )
         }
     ];
+
+    const handleBulkPayment = async () => {
+        try {
+            await axios.post(`${API_URL}/finance/po-payment`, {
+                poCode: selectedDebtPOs.map((p: any) => p.id), // Send IDs array
+                amount: paymentAmount,
+                note: paymentNote,
+                date: paymentDate,
+                vatCode: vatCode,
+                vatUrl: vatUrl,
+                partnerName: currentSupplier.name,
+                supplier_id: currentSupplier.id // <--- IMPORTANT: Link Transaction to Supplier
+            });
+            message.success('Thanh toán thành công');
+            setIsDebtModalOpen(false);
+            fetchData(); // Reload main list
+        } catch (e) { message.error('Lỗi thanh toán'); }
+    };
 
     return (
         <div style={{ padding: '0 12px' }}>
@@ -494,23 +481,46 @@ const SuppliersPage: React.FC = () => {
                             disabled: !editingItem,
                             children: (
                                 <div>
-                                    <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'flex-end' }}>
-                                        <Button size="small" icon={<ReloadOutlined />} onClick={() => loadPOs(editingItem?.id)}>Tải lại</Button>
+                                    <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between' }}>
+                                        <Radio.Group value={historyMode} onChange={e => setHistoryMode(e.target.value)} buttonStyle="solid">
+                                            <Radio.Button value="PO">Đơn Mua Hàng (PO)</Radio.Button>
+                                            <Radio.Button value="TRANS">Giao Dịch (Phiếu Chi)</Radio.Button>
+                                        </Radio.Group>
+                                        <Button size="small" icon={<ReloadOutlined />} onClick={() => { loadPOs(editingItem?.id); loadTransactions(editingItem?.id); }}>Tải lại</Button>
                                     </div>
-                                    <Table
-                                        rowKey="id"
-                                        size="small"
-                                        dataSource={supplierPOs}
-                                        scroll={{ y: 400 }}
-                                        columns={[
-                                            { title: 'Ngày', dataIndex: 'created_at', render: t => dayjs(t).format('DD/MM/YYYY') },
-                                            { title: 'PO Code', dataIndex: 'po_code', render: t => <b>{t}</b> },
-                                            { title: 'Trạng Thái', dataIndex: 'status', render: t => <Tag>{t}</Tag> },
-                                            { title: 'Tổng Tiền', dataIndex: 'total_amount', align: 'right', render: v => Number(v).toLocaleString() },
-                                            { title: 'Đã Trả', dataIndex: 'paid_amount', align: 'right', render: v => <span style={{ color: 'green' }}>{Number(v).toLocaleString()}</span> },
-                                            { title: 'Còn Nợ', align: 'right', render: (t, r: any) => <b style={{ color: 'red' }}>{(Number(r.total_amount) - Number(r.paid_amount || 0)).toLocaleString()}</b> }
-                                        ]}
-                                    />
+
+                                    {historyMode === 'PO' ? (
+                                        <Table
+                                            rowKey="id"
+                                            size="small"
+                                            dataSource={supplierPOs}
+                                            scroll={{ y: 400 }}
+                                            columns={[
+                                                { title: 'Ngày', dataIndex: 'created_at', render: t => dayjs(t).format('DD/MM/YYYY') },
+                                                { title: 'PO Code', dataIndex: 'po_code', render: t => <b>{t}</b> },
+                                                { title: 'Trạng Thái', dataIndex: 'status', render: t => <Tag>{t}</Tag> },
+                                                { title: 'Tổng Tiền', dataIndex: 'total_amount', align: 'right', render: v => Number(v).toLocaleString() },
+                                                { title: 'Đã Trả', dataIndex: 'paid_amount', align: 'right', render: v => <span style={{ color: 'green' }}>{Number(v).toLocaleString()}</span> },
+                                                { title: 'Còn Nợ', align: 'right', render: (t, r: any) => <b style={{ color: 'red' }}>{(Number(r.total_amount) - Number(r.paid_amount || 0)).toLocaleString()}</b> }
+                                            ]}
+                                        />
+                                    ) : (
+                                        <Table
+                                            rowKey="id"
+                                            size="small"
+                                            dataSource={supplierTransactions}
+                                            scroll={{ y: 400 }}
+                                            columns={[
+                                                { title: 'Mã GD', dataIndex: 'id', width: 80, render: t => `#${t}` },
+                                                { title: 'Ngày', dataIndex: 'date', width: 100, render: t => dayjs(t).format('DD/MM/YYYY') },
+                                                { title: 'Loại', dataIndex: 'type', width: 100, render: t => <Tag color={t === 'INCOME' ? 'green' : 'red'}>{t === 'INCOME' ? 'Thu' : 'Chi'}</Tag> },
+                                                { title: 'Số tiền', dataIndex: 'amount', align: 'right', render: (v, r: any) => <b style={{ color: r.type === 'INCOME' ? 'green' : 'red' }}>{Number(v).toLocaleString()}</b> },
+                                                { title: 'Nội dung', dataIndex: 'description' },
+                                                { title: 'Tham chiếu', dataIndex: 'reference_code', render: t => t ? <Tag>{t}</Tag> : '-' }
+                                            ]}
+                                        />
+                                    )}
+
                                 </div>
                             )
                         }

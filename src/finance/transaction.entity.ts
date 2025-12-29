@@ -28,6 +28,15 @@ export class Transaction {
   @Column({ nullable: true })
   partner_name: string; // Khách hàng hoặc Nhà cung cấp
 
+  // --- MỚI: LIÊN KẾT CHẶT VỚI SUPPLIER ---
+  @Column({ nullable: true })
+  supplier_id: number;
+
+  @ManyToOne('Supplier', 'transactions', { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'supplier_id' })
+  supplier: any; // Dùng any hoặc import Supplier để tránh circular dependency nếu cần
+  // ---------------------------------------
+
   // --- LIÊN KẾT TỰ ĐỘNG ---
   @Column({ nullable: true })
   reference_code: string; // Mã đơn hàng (PO-..., SO-...)

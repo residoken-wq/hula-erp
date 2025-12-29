@@ -730,7 +730,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         </div>
                     </Form>
                 </Tabs.TabPane>
-                {initialData && !isQuotation && (
+                {initialData?.id && !isQuotation && (
                     <>
                         <Tabs.TabPane tab="3. Thanh toán" key="2">
                             <SalesPayments
