@@ -71,6 +71,154 @@ const HelpPage: React.FC = () => {
                         </Row>
                     </div>
                 );
+            case 'overall-workflow':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Tổng quan hệ thống</Tag>
+                        <Title level={2}>🔄 Quy trình Vận hành Tổng thể (Overall Workflow)</Title>
+                        <Paragraph>
+                            Hệ thống HULA ERP vận hành theo luồng dữ liệu khép kín, đảm bảo tính liên kết chặt chẽ giữa các phòng ban.
+                            Dưới đây là hành trình của một đơn hàng từ khi phát sinh nhu cầu đến khi hoàn tất thanh toán.
+                        </Paragraph>
+
+                        <Steps
+                            direction="vertical"
+                            current={-1}
+                            items={[
+                                {
+                                    title: <Text strong>1. Kinh Doanh (Sales)</Text>,
+                                    description: 'Tiếp nhận yêu cầu -> Tạo Báo giá (Quote) -> Chốt Đơn hàng (SO).',
+                                    icon: <SolutionOutlined />,
+                                    status: 'process'
+                                },
+                                {
+                                    title: <Text strong>2. Kế Hoạch (Planning)</Text>,
+                                    description: 'Tổng hợp các SO đã chốt -> Chạy phân tích MRP -> Xác định nhu cầu Nguyên phụ liệu (NPL) & Gia công.',
+                                    icon: <ProjectOutlined />,
+                                    status: 'wait'
+                                },
+                                {
+                                    title: <Text strong>3. Mua Hàng (Purchasing)</Text>,
+                                    description: 'Tạo Đơn mua hàng (PO) từ yêu cầu của bộ phận Kế hoạch -> Gửi cho Nhà cung cấp.',
+                                    icon: <ShopOutlined />,
+                                    status: 'wait'
+                                },
+                                {
+                                    title: <Text strong>4. Kho Vận (Inventory)</Text>,
+                                    description: 'Nhập kho NPL (GRN) -> Soạn hàng & Xuất kho cho Sản xuất hoặc Giao hàng.',
+                                    icon: <ContainerOutlined />,
+                                    status: 'wait'
+                                },
+                                {
+                                    title: <Text strong>5. Sản Xuất (Production)</Text>,
+                                    description: 'Nhận NPL -> Thực hiện gia công (Cắt/May/Ủi) -> Nhập kho Thành phẩm.',
+                                    icon: <ExperimentOutlined />,
+                                    status: 'wait'
+                                },
+                                {
+                                    title: <Text strong>6. Giao Hàng (Logistics)</Text>,
+                                    description: 'Đóng gói thành phẩm -> Giao cho khách hàng (Delivery Note).',
+                                    icon: <CarOutlined />,
+                                    status: 'wait'
+                                },
+                                {
+                                    title: <Text strong>7. Tài Chính (Finance)</Text>,
+                                    description: 'Xuất hóa đơn GTGT -> Theo dõi công nợ -> Thu tiền (Payment).',
+                                    icon: <DollarOutlined />,
+                                    status: 'wait'
+                                }
+                            ]}
+                        />
+
+                        <Divider />
+                        <Title level={4}>Vai trò của từng bộ phận</Title>
+                        <Row gutter={[16, 16]}>
+                            <Col span={12}>
+                                <Card size="small" title="Kinh Doanh" bordered={false} style={{ background: '#e6f7ff' }}>
+                                    Người khởi tạo quy trình. Chịu trách nhiệm về doanh số và thông tin khách hàng.
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card size="small" title="Kế Hoạch & Mua Hàng" bordered={false} style={{ background: '#f6ffed' }}>
+                                    "Bộ não" của sản xuất. Đảm bảo có đủ nguyên liệu đúng lúc, đúng chỗ.
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card size="small" title="Kho & Sản Xuất" bordered={false} style={{ background: '#fff7e6' }}>
+                                    Bộ phận thực thi. Chuyển hóa nguyên liệu thành sản phẩm cuối cùng.
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card size="small" title="Kế Toán" bordered={false} style={{ background: '#fff0f6' }}>
+                                    Người gác đền. Kiểm soát dòng tiền và hạch toán chính xác.
+                                </Card>
+                            </Col>
+                        </Row>
+                    </div>
+                );
+            case 'internal-sales':
+                return (
+                    <div>
+                        <Tag color="geekblue" style={{ marginBottom: 16 }}>Nghiệp vụ đặc biệt</Tag>
+                        <Title level={2}>🏢 Quy trình Bán hàng Nội bộ (Internal SO)</Title>
+                        <Paragraph>
+                            Đơn hàng nội bộ (Internal Sales Order) được sử dụng khi xuất hàng cho các mục đích không phát sinh doanh thu thương mại thông thường, ví dụ:
+                            xuất chuyển kho chi nhánh, xuất cho nhân viên mua ưu đãi, hoặc xuất làm mẫu marketing.
+                        </Paragraph>
+
+                        <Divider orientation="left">Quy trình thực hiện</Divider>
+                        <Steps
+                            current={-1}
+                            direction="vertical"
+                            items={[
+                                {
+                                    title: 'Bước 1: Tạo Khách hàng "Nội bộ"',
+                                    description: (
+                                        <div>
+                                            Tạo một mã khách hàng đại diện cho phòng ban hoặc mục đích sử dụng.
+                                            <ul>
+                                                <li><b>Tên KH:</b> CÔNG TY ABC - PHÒNG MARKETING</li>
+                                                <li><b>Phân loại:</b> Chọn nhóm khách hàng là "Internal" (nếu có) để dễ lọc báo cáo.</li>
+                                            </ul>
+                                        </div>
+                                    ),
+                                    icon: <UserOutlined />
+                                },
+                                {
+                                    title: 'Bước 2: Tạo Đơn hàng (SO)',
+                                    description: 'Tạo SO như bình thường, chọn Khách hàng nội bộ vừa tạo.',
+                                    icon: <FileDoneOutlined />
+                                },
+                                {
+                                    title: 'Bước 3: Áp dụng Chính sách giá',
+                                    description: (
+                                        <div>
+                                            <Paragraph>Tùy theo mục đích mà chọn giá bán phù hợp:</Paragraph>
+                                            <ul>
+                                                <li><b>Xuất dùng/Biếu tặng:</b> Đơn giá = 0 (Hoặc dùng chức năng Discount 100%).</li>
+                                                <li><b>Bán cho nhân viên:</b> Sử dụng <b>"Internal Price List"</b> (Thường bằng Giá vốn + Chi phí quản lý).</li>
+                                            </ul>
+                                        </div>
+                                    ),
+                                    icon: <DollarOutlined />
+                                },
+                                {
+                                    title: 'Bước 4: Duyệt & Xuất kho',
+                                    description: 'Quy trình duyệt và xuất kho thực hiện tương tự đơn hàng thương mại để đảm bảo trừ tồn kho chính xác.',
+                                    icon: <CheckCircleOutlined />
+                                }
+                            ]}
+                        />
+
+                        <Alert
+                            message="Lưu ý về Hạch toán"
+                            description="Đối với đơn hàng nội bộ giá 0 đồng, Kế toán cần hạch toán vào Chi phí (Marketing, Phúc lợi...) thay vì Doanh thu thuần."
+                            type="warning"
+                            showIcon
+                            style={{ marginTop: 24 }}
+                        />
+                    </div>
+                );
             case 'sales-process':
                 return (
                     <div>
@@ -959,7 +1107,9 @@ const HelpPage: React.FC = () => {
                             label: 'Phân hệ Bán Hàng',
                             icon: <ShopOutlined />,
                             children: [
-                                { key: 'sales-process', label: 'Quy trình chuẩn' },
+                                { key: 'overall-workflow', label: 'Quy trình tổng thể' }, // <--- NEW
+                                { key: 'sales-process', label: 'Quy trình Bán hàng' },
+                                { key: 'internal-sales', label: 'Bán hàng Nội bộ' }, // <--- NEW
                                 { key: 'sales-create', label: 'Tạo đơn mới' },
                                 { key: 'sales-approval', label: 'Duyệt mẫu' },
                                 { key: 'sales-revisions', label: 'Quản lý version (Báo giá)' }, // <--- NEW

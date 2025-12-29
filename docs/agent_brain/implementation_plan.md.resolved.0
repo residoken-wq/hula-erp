@@ -1,0 +1,27 @@
+# Implementation Plan: Update Help Page with Workflow and SO Internal Info
+
+## Goal
+Update the [HelpPage.tsx](file:///c:/Users/nt.nhan/Documents/GitHub/hula-erp/frontend/src/pages/HelpPage.tsx) to include documentation on "SO nội bộ" (Internal Sales Orders) and a comprehensive Workflow diagram connecting all modules to explain the overall system process.
+
+## User Review Required
+> [!IMPORTANT]
+> - **Workflow Diagram**: I will use Mermaid or React Flow (if available/preferred, but likely static Mermaid or Steps/Image) to visualize the workflow. Given the current [HelpPage](file:///c:/Users/nt.nhan/Documents/GitHub/hula-erp/frontend/src/pages/HelpPage.tsx#36-1026) uses `antd` Steps and static diagrams, I'll probably use Mermaid in a Code block or an Image if I can generate one, but arguably Mermaid text in [HelpPage](file:///c:/Users/nt.nhan/Documents/GitHub/hula-erp/frontend/src/pages/HelpPage.tsx#36-1026) isn't directly supported unless there's a renderer. I will stick to `antd` Steps or a text-based/image description if Mermaid isn't supported in the frontend. *Wait*, the system prompt allows me to use Mermaid in artifacts, but [HelpPage.tsx](file:///c:/Users/nt.nhan/Documents/GitHub/hula-erp/frontend/src/pages/HelpPage.tsx) is a React component. I should check if there is a Mermaid renderer in the project or if I should just use `antd` components to simulate a flow, or maybe an image.
+> - **SO Internal**: I need to confirm how "SO nội bộ" is defined in the system.
+
+## Proposed Changes
+### Frontend
+#### [MODIFY] [HelpPage.tsx](file:///c:/Users/nt.nhan/Documents/GitHub/hula-erp/frontend/src/pages/HelpPage.tsx)
+-   **Add "Quy trình tổng thể" (Overall Process) Section**:
+    -   Create a new menu item and content section.
+    -   Key content: Diagram covering Sales -> Plan -> Purchase -> Warehouse -> Production -> Accounting.
+    -   Explanation of how each role contributes.
+-   **Add/Update "SO Nội bộ" (Internal SO)**:
+    -   Explain what it is (e.g., selling to staff, internal consumption, transfer).
+    -   How to create it (likely a specific Customer type or tag).
+
+## Verification Plan
+### Manual Verification
+-   **Run the app**: `npm run dev` in `frontend`.
+-   **Navigate to Help Page**: Verify the new section "Quy trình tổng thể" exists.
+-   **Check Content**: Ensure the diagram/steps make sense and "SO nội bộ" is clearly explained.
+-   **Check UI**: Ensure it looks consistent with the rest of the Help Page.
