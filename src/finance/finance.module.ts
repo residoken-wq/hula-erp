@@ -7,14 +7,17 @@ import { FinanceController } from './finance.controller';
 import { SalesModule } from '../sales/sales.module';
 import { PurchasingModule } from '../purchasing/purchasing.module'; // <--- Import Purchasing
 
+import { SuppliersModule } from '../suppliers/suppliers.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([Transaction, TransactionCategory]),
     forwardRef(() => SalesModule),
-    forwardRef(() => PurchasingModule), // Dùng forwardRef
+    forwardRef(() => PurchasingModule),
+    forwardRef(() => SuppliersModule), // <--- FIX: Thêm SuppliersModule
   ],
   controllers: [FinanceController],
   providers: [FinanceService],
   exports: [FinanceService],
 })
-export class FinanceModule {}
+export class FinanceModule { }
