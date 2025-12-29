@@ -248,6 +248,10 @@ const CrmPage: React.FC = () => {
     // --- COLUMNS DEFINITION ---
     const leadColumns = [
         {
+            title: 'Ngày tạo', dataIndex: 'created_at', width: 110,
+            render: (t: any) => <span style={{ color: '#888' }}>{dayjs(t).format('DD/MM/YYYY')}</span>
+        },
+        {
             title: 'Trạng Thái', dataIndex: 'lead_status', width: 150,
             render: (st: string, r: any) => (
                 <Select
