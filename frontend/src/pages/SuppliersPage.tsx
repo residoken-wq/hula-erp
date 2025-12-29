@@ -79,6 +79,7 @@ const SuppliersPage: React.FC = () => {
 
         loadPrices(supplier.id);
         loadPOs(supplier.id);
+        loadTransactions(supplier.id); // Fix: Load transactions
     };
 
     const loadPOs = async (supplierId: number) => {
@@ -86,7 +87,6 @@ const SuppliersPage: React.FC = () => {
             // Fallback to fetch all and filter if no endpoint
             const res = await axios.get(`${API_URL}/purchasing`);
             const all = Array.isArray(res.data) ? res.data : [];
-            setSupplierPOs(all.filter((p: any) => p.supplier_id === supplierId || p.supplier?.id === supplierId));
             setSupplierPOs(all.filter((p: any) => p.supplier_id === supplierId || p.supplier?.id === supplierId));
         } catch (e) { }
     }
