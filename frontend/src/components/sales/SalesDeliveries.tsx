@@ -50,8 +50,14 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
         const remaining = ordered - delivered;
 
+
+        // Lookup stock from products list
+        const productInfo = products.find((p: any) => p.value === item.sku);
+        const stock = productInfo ? productInfo.quantity_in_stock : 0;
+
         return {
             sku: item.sku,
+            stock, // <--- Add stock
             ordered,
             delivered,
             remaining,
@@ -246,6 +252,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 <Table dataSource={summaryData} rowKey="sku" pagination={false} size="small" bordered
                     columns={[
                         { title: 'SKU', dataIndex: 'sku' },
+                        { title: 'Tồn kho', dataIndex: 'stock', align: 'center', width: 80, render: (v: any) => <span style={{ color: '#fa8c16', fontWeight: 'bold' }}>{v}</span> },
                         { title: 'SL Đặt', dataIndex: 'ordered', align: 'center', width: 70 },
                         { title: 'Đã giao', dataIndex: 'delivered', align: 'center', width: 70, render: (v: any) => <b style={{ color: 'green' }}>{v}</b> },
                         { title: 'Còn lại', dataIndex: 'remaining', align: 'center', width: 70, render: (v: any) => v > 0 ? <b style={{ color: 'red' }}>{v}</b> : <CheckCircleOutlined style={{ color: 'green' }} /> },

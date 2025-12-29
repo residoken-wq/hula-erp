@@ -50,7 +50,8 @@ const SalesPage: React.FC = () => {
                     price: Number(p.base_price) || 0,
                     unit: p.unit,
                     description: p.customer_description,
-                    type: p.product_type
+                    type: p.product_type,
+                    quantity_in_stock: p.quantity_in_stock
                 })));
             }
             setCustomers(Array.isArray(resCust.data) ? resCust.data : []);
