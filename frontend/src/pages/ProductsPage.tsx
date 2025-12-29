@@ -397,7 +397,7 @@ const ProductsPage: React.FC = () => {
                                             </Form.Item>
                                         )}
                                         <Form.Item name="profit_margin" label="Lợi nhuận mong muốn (%)" tooltip="Lấy từ Danh mục nếu tạo mới, có thể override tại đây"><InputNumber style={{ width: '100%' }} addonAfter="%" min={0} max={99} /></Form.Item>
-                                        <Form.Item name="quantity_in_stock" label="Tồn kho"><InputNumber style={{ width: '100%' }} /></Form.Item>
+                                        <Form.Item name="quantity_in_stock" label="Tồn kho"><InputNumber style={{ width: '100%' }} disabled /></Form.Item>
                                     </Col>
 
                                     <Col span={8}>
