@@ -70,7 +70,6 @@ export class SalesService {
         private productsService: ProductsService,
         private inventoryService: InventoryService,
         private customersService: CustomersService,
-        private systemService: SystemService,
     ) { }
 
 
@@ -161,6 +160,9 @@ export class SalesService {
         const taxable = Math.max(0, subtotal - discountAmount);
         order.total_amount = taxable * (1 + order.vat_rate / 100) + order.shipping_fee;
         const saved = await this.orderRepo.save(order);
+
+        // AUTO-INIT CHECKLIST
+        await this.initChecklist(saved.id, saved.status);
 
         await this.systemService.logAction('SALES', 'CREATE_ORDER', `Created Order/Quote ${saved.order_code}`, data.user_id, data.username, saved.order_code);
         return saved;
@@ -295,6 +297,12 @@ export class SalesService {
         }
 
         const saved = await this.orderRepo.save(order);
+
+        // SYNC CHECKLIST IF STATUS CHANGED
+        if (data.status) {
+            await this.syncChecklistWithStatus(saved.id, saved.status);
+        }
+
         // Log Update
         await this.systemService.logAction('SALES', 'UPDATE_ORDER', `Updated Order ${saved.order_code}`, data.user_id, data.username, saved.order_code);
         // Return fresh data with payment info
@@ -334,12 +342,34 @@ export class SalesService {
     async getOrder(code: string) { return this.findOne(code); }
 
     // ... (Các hàm phụ khác giữ nguyên) ...
-    async completeOrder(id: number) { const order = await this.orderRepo.findOne({ where: { id } }); if (!order) throw new NotFoundException(); order.status = SalesOrderStatus.COMPLETED; return this.orderRepo.save(order); }
+    async completeOrder(id: number) {
+        const order = await this.orderRepo.findOne({ where: { id } });
+        if (!order) throw new NotFoundException();
+        order.status = SalesOrderStatus.COMPLETED;
+        const saved = await this.orderRepo.save(order);
+        await this.syncChecklistWithStatus(saved.id, saved.status);
+        return saved;
+    }
     async addComment(orderId: number, content: string, sender: 'STAFF' | 'CUSTOMER', name?: string) { const order = await this.orderRepo.findOne({ where: { id: orderId } }); if (!order) throw new NotFoundException(); const comment = this.commentRepo.create({ order, content, sender_type: sender, sender_name: name }); return this.commentRepo.save(comment); }
     async getComments(orderId: number) { return this.commentRepo.find({ where: { order: { id: orderId } }, order: { created_at: 'ASC' } }); }
     async toggleCommentVisibility(id: number) { const comment = await this.commentRepo.findOne({ where: { id } }); if (comment) { comment.is_visible = !comment.is_visible; return this.commentRepo.save(comment); } }
-    async convertQuoteToSo(id: number, accepted: boolean) { const order = await this.orderRepo.findOne({ where: { id } }); if (!order) throw new NotFoundException(); order.status = accepted ? SalesOrderStatus.SO_PENDING : SalesOrderStatus.CANCELLED; return this.orderRepo.save(order); }
-    async approveAllSamples(id: number) { const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] }); if (!order) throw new NotFoundException(); for (const item of order.items) { item.is_sample_approved = true; await this.orderRepo.manager.save(item); } if (order.status === SalesOrderStatus.SO_PENDING) order.status = SalesOrderStatus.SAMPLE_APPROVED; return this.orderRepo.save(order); }
+    async convertQuoteToSo(id: number, accepted: boolean) {
+        const order = await this.orderRepo.findOne({ where: { id } });
+        if (!order) throw new NotFoundException();
+        order.status = accepted ? SalesOrderStatus.SO_PENDING : SalesOrderStatus.CANCELLED;
+        const saved = await this.orderRepo.save(order);
+        if (accepted) await this.syncChecklistWithStatus(saved.id, saved.status);
+        return saved;
+    }
+    async approveAllSamples(id: number) {
+        const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
+        if (!order) throw new NotFoundException();
+        for (const item of order.items) { item.is_sample_approved = true; await this.orderRepo.manager.save(item); }
+        if (order.status === SalesOrderStatus.SO_PENDING) order.status = SalesOrderStatus.SAMPLE_APPROVED;
+        const saved = await this.orderRepo.save(order);
+        await this.syncChecklistWithStatus(saved.id, saved.status);
+        return saved;
+    }
     async deleteQuote(id: number) { return this.orderRepo.delete(id); }
     async getQuoteByUuid(uuid: string) {
         const order = await this.orderRepo.findOne({
@@ -541,8 +571,9 @@ export class SalesService {
         });
 
         if (!checklist) {
-            // Auto-create if not exists
-            return this.initChecklist(orderId);
+            // Auto-create if not exists, respecting current Order Status
+            const order = await this.orderRepo.findOne({ where: { id: orderId } });
+            return this.initChecklist(orderId, order?.status || 'QUOTATION');
         }
 
         // Sort items by sort_order
