@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Form, Input, Button, Switch, message, Spin, Row, Col, Divider, Alert } from 'antd';
-import { SaveOutlined, MailOutlined } from '@ant-design/icons';
+import { SaveOutlined, MailOutlined, LinkOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -97,8 +97,58 @@ const SystemSettingsPage: React.FC = () => {
                     </Form>
                 )}
             </Card>
-        </div>
+
+            <div style={{ marginBottom: 24 }} />
+
+            <Card
+                title={<span><LinkOutlined /> Quản Lý Link Tài Nguyên</span>}
+                bordered={false}
+            >
+                <div style={{ marginBottom: 16 }}>
+                    <Alert message="Cấu hình các link tài nguyên dùng chung cho hệ thống (VD: Google Drive ảnh sản phẩm)." type="info" showIcon />
+                </div>
+
+                <LinkConfigItem
+                    label="Folder Ảnh Sản Phẩm (Google Drive)"
+                    configKey="SALES_SHARED_DRIVE_LINK"
+                    placeholder="https://drive.google.com/drive/folders/..."
+                />
+            </Card>
+        </div >
     );
 };
+
+const LinkConfigItem = ({ label, configKey, placeholder }: { label: string, configKey: string, placeholder: string }) => {
+    const [val, setVal] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        axios.get(`${API_URL}/system/config/${configKey}`).then(res => {
+            if (res.data && res.data.value) setVal(res.data.value);
+        });
+    }, [configKey]);
+
+    const handleSave = async () => {
+        setLoading(true);
+        try {
+            await axios.post(`${API_URL}/system/config`, {
+                key: configKey,
+                value: val,
+                description: label
+            });
+            message.success('Đã lưu');
+        } catch (e) { message.error('Lỗi lưu'); }
+        setLoading(false);
+    }
+
+    return (
+        <Form.Item label={label}>
+            <div style={{ display: 'flex', gap: 8 }}>
+                <Input value={val} onChange={e => setVal(e.target.value)} placeholder={placeholder} />
+                <Button type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu</Button>
+            </div>
+        </Form.Item>
+    );
+}
 
 export default SystemSettingsPage;
