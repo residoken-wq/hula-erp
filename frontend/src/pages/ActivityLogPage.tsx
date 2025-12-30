@@ -52,6 +52,36 @@ const ActivityLogPage: React.FC = () => {
         {
             title: 'Mô tả',
             dataIndex: 'description',
+        },
+        {
+            title: 'Chi tiết thay đổi',
+            dataIndex: 'details',
+            render: (details: any, record: any) => {
+                if (!details) return null;
+
+                // Diff update
+                if (record.action === 'UPDATE' && details.new && details.old) {
+                    return (
+                        <div style={{ fontSize: 12 }}>
+                            {Object.keys(details.new).map(key => {
+                                let oldVal = details.old[key];
+                                let newVal = details.new[key];
+                                // Helper to format objects/dates
+                                const fmt = (v: any) => {
+                                    if (typeof v === 'object' && v !== null) return JSON.stringify(v);
+                                    return String(v);
+                                };
+                                return (
+                                    <div key={key}>
+                                        <b style={{ color: '#8c8c8c' }}>{key}:</b> {fmt(oldVal)} &rarr; <span style={{ color: '#52c41a' }}>{fmt(newVal)}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                }
+                return null;
+            }
         }
     ];
 

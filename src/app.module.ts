@@ -81,6 +81,9 @@ import { AppController } from './app.controller';
 
 import { AiModule } from './ai/ai.module';
 
+import { MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
+import { UserContextMiddleware } from './common/middleware/user-context.middleware';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -110,6 +113,8 @@ import { AiModule } from './ai/ai.module';
           SystemConfig, ActivityLog
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
+        subscribers: [], // Auto-registration should work if provided in Module, but explicit might be needed if not. 
+        // Note: NestJS TypeOrmModule auto-loads subscribers if registered as providers in modules.
       }),
     }),
     UsersModule, AuthModule,
@@ -128,4 +133,10 @@ import { AiModule } from './ai/ai.module';
   ],
   controllers: [AppController]
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(UserContextMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}

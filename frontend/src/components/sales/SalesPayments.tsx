@@ -126,8 +126,9 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                 size="small"
                 bordered
                 columns={[
-                    { title: 'Ngày', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY HH:mm') },
-                    { title: 'Số tiền', dataIndex: 'amount', align: 'right' as const, render: (v: any) => <b style={{ color: 'green' }}>{Number(v).toLocaleString()}</b> },
+                    { title: 'Ngày tạo', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY HH:mm'), width: 140 },
+                    { title: 'Ngày thanh toán', dataIndex: 'date', render: (t: any) => t ? dayjs(t).format('DD/MM/YYYY HH:mm') : '-', width: 140 },
+                    { title: 'Số tiền', dataIndex: 'amount', align: 'right' as const, render: (v: any) => <b style={{ color: 'green' }}>{Number(v).toLocaleString()}</b>, width: 120 },
                     { title: 'Nội dung', dataIndex: 'description' }
                 ]}
             />

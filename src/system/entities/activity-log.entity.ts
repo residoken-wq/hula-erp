@@ -23,6 +23,9 @@ export class ActivityLog {
     @Column('text', { nullable: true })
     description: string; // Details of the action
 
+    @Column('jsonb', { nullable: true })
+    details: any; // JSON Diff: { old: ..., new: ... }
+
     @CreateDateColumn()
     timestamp: Date;
 }

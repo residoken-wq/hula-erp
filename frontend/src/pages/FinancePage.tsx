@@ -28,6 +28,7 @@ const FinancePage: React.FC = () => {
     const [isTransModalOpen, setIsTransModalOpen] = useState(false);
     // isCatModalOpen không còn dùng vì Form nằm trên trang, ta dùng editingCategory để control
     const [editingCategory, setEditingCategory] = useState<any>(null); // <--- MỚI: Lưu danh mục đang sửa
+    const [editingTransaction, setEditingTransaction] = useState<any>(null); // <--- State for editing transaction
 
     const [activeTab, setActiveTab] = useState('1');
     const [filterMonth, setFilterMonth] = useState(dayjs());
@@ -100,18 +101,55 @@ const FinancePage: React.FC = () => {
                 if (sup) finalPartnerName = sup.name;
             }
 
+            // Clean Payload: Remove UI-only fields and customer_id (not in entity)
+            const { is_retail, is_other_expense, customer_id, ...restValues } = values;
+
             const payload = {
-                ...values,
+                ...restValues,
                 date: values.date.format('YYYY-MM-DD'),
                 type: values.type,
-                partner_name: finalPartnerName // Override partner_name
+                partner_name: finalPartnerName, // Override partner_name
+                // customer_id removed
             };
-            await axios.post(`${API_URL}/finance/transactions`, payload);
-            message.success('Đã lưu giao dịch');
+
+            if (editingTransaction) {
+                await axios.put(`${API_URL}/finance/transactions/${editingTransaction.id}`, payload);
+                message.success('Cập nhật thành công');
+            } else {
+                await axios.post(`${API_URL}/finance/transactions`, payload);
+                message.success('Đã lưu giao dịch');
+            }
+
             setIsTransModalOpen(false);
+            setEditingTransaction(null);
             formTrans.resetFields();
             fetchData();
         } catch (e) { message.error('Lỗi lưu'); }
+    };
+
+    const handleEditTransaction = (record: any) => {
+        setEditingTransaction(record);
+
+        // Try to find customer by name if no ID (Entity lacks customer_id)
+        let custId = record.customer_id || record.customer?.id;
+        if (!custId && record.type === 'INCOME' && record.partner_name) {
+            const found = customers.find(c => c.name === record.partner_name);
+            if (found) custId = found.id;
+        }
+
+        const supId = record.supplier_id || record.supplier?.id;
+        const catId = record.category_id || record.category?.id;
+
+        formTrans.setFieldsValue({
+            ...record,
+            date: dayjs(record.date),
+            category_id: catId,
+            customer_id: custId,
+            supplier_id: supId,
+            is_retail: !custId && record.type === 'INCOME',
+            is_other_expense: !supId && record.type === 'EXPENSE'
+        });
+        setIsTransModalOpen(true);
     };
 
     // --- MỚI: LOGIC LƯU DANH MỤC (TẠO MỚI HOẶC CẬP NHẬT) ---
@@ -191,7 +229,8 @@ const FinancePage: React.FC = () => {
             title: '', key: 'act', width: 50,
             render: (_: any, r: any) => (
                 <Space>
-                    <Button size="small" icon={<EditOutlined style={{ color: 'orange' }} />} onClick={() => handleOpenAccounting(r)} />
+                    <Button size="small" icon={<EditOutlined style={{ color: 'orange' }} />} onClick={() => handleEditTransaction(r)} />
+                    <Button size="small" icon={<FileTextOutlined />} onClick={() => handleOpenAccounting(r)} />
                     <Popconfirm title="Xóa?" onConfirm={() => handleDelete('transactions', r.id)}><Button size="small" danger icon={<DeleteOutlined />} type="text" /></Popconfirm>
                 </Space>
             )
@@ -535,7 +574,7 @@ const FinancePage: React.FC = () => {
             </Modal>
 
             {/* ... (Keep existing Modal) ... */}
-            <Modal title="Lập Phiếu Thu / Chi" open={isTransModalOpen} onCancel={() => setIsTransModalOpen(false)} footer={null}>
+            <Modal title={editingTransaction ? "Cập nhật Giao Dịch" : "Lập Phiếu Thu / Chi"} open={isTransModalOpen} onCancel={() => { setIsTransModalOpen(false); setEditingTransaction(null); formTrans.resetFields(); }} footer={null}>
                 <Form form={formTrans} layout="vertical" onFinish={handleSaveTrans} initialValues={{ date: dayjs(), type: activeTab === 'EXPENSE' ? 'EXPENSE' : 'INCOME' }}>
 
                     <Form.Item name="type" label="Loại phiếu" rules={[{ required: true }]}>
