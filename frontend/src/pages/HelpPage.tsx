@@ -69,11 +69,9 @@ const HelpPage: React.FC = () => {
                                 </Card>
                             </Col>
                         </Row>
-                    </div>
-                );
-            case 'overall-workflow':
-                return (
-                    <div>
+
+                        <Divider style={{ margin: '40px 0' }} />
+
                         <Tag color="cyan" style={{ marginBottom: 16 }}>Tổng quan hệ thống</Tag>
                         <Title level={2}>🔄 Quy trình Vận hành Tổng thể (Overall Workflow)</Title>
                         <Paragraph>
@@ -481,7 +479,7 @@ const HelpPage: React.FC = () => {
                                     description: 'Sale nhấn nút "Duyệt Mẫu" để chuyển sang trạng thái "Đang Sản Xuất" (IN_PRODUCTION).',
                                 },
                                 {
-                                    title: 'Bước 4: Giao hàng (1 phần hoặc toàn bộ)',
+                                    title: 'Bước 4: Giao hàng (Shipping)',
                                     description: (
                                         <div>
                                             <Paragraph>Sản phẩm hoàn thiện sẽ được xuất kho giao cho khách:</Paragraph>
@@ -492,8 +490,39 @@ const HelpPage: React.FC = () => {
                                         </div>
                                     ),
                                     status: 'process',
+                                },
+                                {
+                                    title: 'Bước 5: Thông báo Giao hàng (Email)',
+                                    description: (
+                                        <div>
+                                            <Paragraph>Gửi email thông báo tự động cho khách hàng:</Paragraph>
+                                            <ul>
+                                                <li>Trong tab <b>Giao Hàng (Deliveries)</b>, nhấn nút <b>"Gửi Email"</b> <span style={{ fontSize: 10 }}>✉️</span>.</li>
+                                                <li>Hệ thống gửi email chứa thông tin tài xế/đơn vị vận chuyển và link theo dõi.</li>
+                                                <li>Trạng thái đơn hàng trên Portal chuyển thành <b>"Đang giao"</b> hoặc <b>"Đã giao"</b>.</li>
+                                            </ul>
+                                        </div>
+                                    ),
+                                    icon: <RocketOutlined style={{ color: '#eb2f96' }} />
                                 }
                             ]}
+                        />
+
+                        <Divider />
+                        <Title level={3}>✅ Trợ lý Kiểm tra (Checklist)</Title>
+                        <Paragraph>
+                            Để đảm bảo không bỏ sót bước nào trong quy trình, mỗi đơn hàng sẽ có một <b>Checklist</b> tự động (Tab Checklist).
+                        </Paragraph>
+                        <Alert
+                            message="Quy trình tự động"
+                            description={
+                                <ul>
+                                    <li><b>Tự động tạo:</b> Checklist được tạo ngay khi mở đơn hàng.</li>
+                                    <li><b>Tự động cập nhật:</b> Khi bạn đổi trạng thái đơn (VD: Từ Báo giá -> Sản xuất), các việc cần làm mới sẽ tự động hiện ra.</li>
+                                </ul>
+                            }
+                            type="info"
+                            showIcon
                         />
                     </div>
                 );
@@ -1107,7 +1136,7 @@ const HelpPage: React.FC = () => {
                             label: 'Phân hệ Bán Hàng',
                             icon: <ShopOutlined />,
                             children: [
-                                { key: 'overall-workflow', label: 'Quy trình tổng thể' }, // <--- NEW
+
                                 { key: 'sales-process', label: 'Quy trình Bán hàng' },
                                 { key: 'internal-sales', label: 'Bán hàng Nội bộ' }, // <--- NEW
                                 { key: 'sales-create', label: 'Tạo đơn mới' },
