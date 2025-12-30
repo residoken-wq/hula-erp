@@ -254,7 +254,45 @@ const ProductsPage: React.FC = () => {
         return list;
     }, [data, searchText, viewMode]);
 
+
+    // Helper to extract ID from Drive Link and return thumbnail URL
+    const getGoogleDriveImageUrl = (link: string) => {
+        if (!link) return null;
+        try {
+            let id = '';
+            const url = new URL(link);
+            if (url.hostname.includes('drive.google.com')) {
+                if (url.pathname.includes('/file/d/')) {
+                    const parts = url.pathname.split('/');
+                    const idx = parts.indexOf('d');
+                    if (idx !== -1 && idx + 1 < parts.length) {
+                        id = parts[idx + 1];
+                    }
+                } else if (url.searchParams.has('id')) {
+                    id = url.searchParams.get('id') || '';
+                }
+            }
+
+            if (id) {
+                // Use lh3.googleusercontent.com for high-res thumbnail that doesn't require auth for public links usually
+                // or drive.google.com/thumbnail?id=ID
+                return `https://drive.google.com/thumbnail?id=${id}&sz=w200`;
+            }
+        } catch (e) {
+            return null; // Invalid URL
+        }
+        return link; // Return original if not a drive link (maybe direct url)
+    };
+
+
     const columns = [
+        {
+            title: 'Ảnh', dataIndex: 'image_url', width: 80, align: 'center' as const,
+            render: (link: string) => {
+                const src = getGoogleDriveImageUrl(link);
+                return src ? <img src={src} alt="product" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }} /> : <div style={{ width: 50, height: 50, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}><FileTextOutlined /></div>;
+            }
+        },
         {
             title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t: any) => <b>{t}</b>,
             sorter: (a: any, b: any) => (a.sku || '').localeCompare(b.sku || '')
@@ -389,6 +427,22 @@ const ProductsPage: React.FC = () => {
 
                                     <Col span={8}>
                                         <Divider orientation="left">Thông tin Giá & Tồn</Divider>
+                                        <Form.Item name="image_url" label="Link hình ảnh (Google Drive)" tooltip="Paste link chia sẻ (Public) từ Google Drive. Hệ thống sẽ tự tạo thumbnail.">
+                                            <Input prefix={<LinkOutlined />} placeholder="https://drive.google.com/..." />
+                                        </Form.Item>
+
+                                        <Form.Item shouldUpdate={(prev, curr) => prev.image_url !== curr.image_url}>
+                                            {({ getFieldValue }) => {
+                                                const url = getFieldValue('image_url');
+                                                const src = getGoogleDriveImageUrl(url);
+                                                return src ? (
+                                                    <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                                                        <img src={src} alt="Preview" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, border: '1px solid #d9d9d9' }} />
+                                                    </div>
+                                                ) : null;
+                                            }}
+                                        </Form.Item>
+
                                         <Form.Item name="base_price" label="Giá bán (Chưa KM)"><InputNumber style={{ width: '100%' }} addonAfter="₫" formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item>
 
                                         {canViewCost && (

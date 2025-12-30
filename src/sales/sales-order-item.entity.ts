@@ -28,6 +28,9 @@ export class SalesOrderItem {
   product: Product;
   // ----------------------------------------
 
+  @Column({ nullable: true })
+  image_url: string; // Snapshot image from product at time of order
+
   @Column('decimal', { precision: 10, scale: 2 })
   quantity: number;
 

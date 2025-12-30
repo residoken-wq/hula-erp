@@ -387,6 +387,34 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     };
 
+
+    // Helper to extract ID from Drive Link and return thumbnail URL (Duplicated from ProductsPage - Should refactor to Utils)
+    const getGoogleDriveImageUrl = (link: string) => {
+        if (!link) return null;
+        try {
+            let id = '';
+            const url = new URL(link);
+            if (url.hostname.includes('drive.google.com')) {
+                if (url.pathname.includes('/file/d/')) {
+                    const parts = url.pathname.split('/');
+                    const idx = parts.indexOf('d');
+                    if (idx !== -1 && idx + 1 < parts.length) {
+                        id = parts[idx + 1];
+                    }
+                } else if (url.searchParams.has('id')) {
+                    id = url.searchParams.get('id') || '';
+                }
+            }
+
+            if (id) {
+                return `https://drive.google.com/thumbnail?id=${id}&sz=w200`;
+            }
+        } catch (e) {
+            return null;
+        }
+        return link;
+    };
+
     const itemColumns = [
         {
             key: 'sort',
@@ -394,9 +422,33 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             render: () => <MenuOutlined style={{ cursor: 'grab', color: '#999' }} />,
         },
         {
-            title: 'Sản phẩm', dataIndex: 'sku', width: 300,
+            title: '#',
+            dataIndex: 'position',
+            width: 50,
+            render: (text: any, record: any, index: number) => index + 1,
+        },
+        {
+            title: 'Ảnh',
+            dataIndex: 'image_url', // From SalesOrderItem
+            width: 70,
+            align: 'center' as const,
+            render: (link: string, record: any) => {
+                // Fallback to product.image_url if item.image_url is missing (for older orders)
+                const finalLink = link || (record.product ? record.product.image_url : null);
+                const src = getGoogleDriveImageUrl(finalLink);
+                return src ? <img src={src} alt="img" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} /> : null;
+            }
+        },
+        {
+            title: 'Mã hàng',
+            dataIndex: 'sku',
+            width: 120,
+            render: (text: string) => <b>{text}</b>
+        },
+        {
+            title: 'Sản phẩm', width: 300,
             render: (text: any, record: any, index: number) => {
-                const prodInfo = products.find(p => p.value === text);
+                const prodInfo = products.find(p => p.value === record.sku);
                 return (
                     <div>
                         <Select

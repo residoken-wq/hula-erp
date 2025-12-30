@@ -148,6 +148,7 @@ export class SalesService {
                 variant_color: itemData.variant_color,
                 vat_content: itemData.vat_content,
                 sample_image: itemData.sample_image,
+                image_url: product ? product.image_url : null, // <--- Auto-populate Image URL
                 position: validItems.indexOf(itemData) + 1 // Save Position
             });
         }));
@@ -280,6 +281,7 @@ export class SalesService {
                     variant_color: itemData.variant_color,
                     vat_content: itemData.vat_content,
                     sample_image: itemData.sample_image, // <--- Ensure this is mapped
+                    image_url: product ? product.image_url : null, // <--- Auto-populate Image URL
                     position: validItems.indexOf(itemData) + 1 // Save Position
                 });
             }));
