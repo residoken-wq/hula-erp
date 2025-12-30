@@ -6,6 +6,8 @@ import { SalesOrderItem } from './sales-order-item.entity';
 import { ProductSample } from './product-sample.entity';
 import { SalesDelivery } from './sales-delivery.entity';
 import { SalesComment } from './sales-comment.entity';
+import { SalesChecklist } from './sales-checklist.entity';
+import { SalesChecklistItem } from './sales-checklist-item.entity';
 import { Transaction } from '../finance/transaction.entity';
 import { ProductsService } from '../products/products.service';
 import { InventoryService } from '../inventory/inventory.service';
@@ -17,6 +19,36 @@ import { v4 as uuidv4 } from 'uuid';
 import { SalesOrderVersion } from './sales-order-version.entity';
 import { SystemService } from '../system/system.service';
 
+// --- CHECKLIST TEMPLATES ---
+const CHECKLIST_TEMPLATES: Record<string, Array<{ code: string; name: string; sort: number }>> = {
+    QUOTATION: [
+        { code: 'QUOTE_CONTACT', name: 'Liên hệ khách hàng xác nhận yêu cầu', sort: 1 },
+        { code: 'QUOTE_SEND', name: 'Gửi báo giá (Link portal / PDF)', sort: 2 },
+        { code: 'QUOTE_FOLLOWUP', name: 'Follow-up báo giá (2-3 ngày)', sort: 3 },
+        { code: 'QUOTE_CONFIRM', name: 'Xác nhận chốt đơn', sort: 4 },
+    ],
+    SO_PENDING: [
+        { code: 'SO_SAMPLE', name: 'Xác nhận mẫu (Upload hình, khách duyệt)', sort: 5 },
+        { code: 'SO_DEPOSIT', name: 'Thu đặt cọc (30-50%)', sort: 6 },
+        { code: 'SO_PLAN', name: 'Lập kế hoạch sản xuất', sort: 7 },
+    ],
+    IN_PRODUCTION: [
+        { code: 'PROD_UPDATE', name: 'Cập nhật tiến độ cho khách', sort: 8 },
+        { code: 'PROD_QC', name: 'Kiểm tra chất lượng trước giao', sort: 9 },
+    ],
+    DELIVERED: [
+        { code: 'DEL_CONFIRM', name: 'Xác nhận khách nhận hàng OK', sort: 10 },
+        { code: 'DEL_PAYMENT', name: 'Thu công nợ còn lại (50-70%)', sort: 11 },
+        { code: 'DEL_INVOICE', name: 'Gửi hóa đơn VAT (nếu có)', sort: 12 },
+    ],
+    COMPLETED: [
+        { code: 'POST_THANKS', name: 'Gửi thư cảm ơn (sau 3 ngày)', sort: 13 },
+        { code: 'POST_SURVEY', name: 'Khảo sát hài lòng (sau 7 ngày)', sort: 14 },
+        { code: 'POST_UPSELL', name: 'Đề xuất sản phẩm bổ sung (up-sell)', sort: 15 },
+        { code: 'POST_CROSSSELL', name: 'Nhắc đặt hàng lại (cross-sell, 30 ngày)', sort: 16 },
+    ],
+};
+
 @Injectable()
 export class SalesService {
     private readonly logger = new Logger(SalesService.name);
@@ -27,6 +59,8 @@ export class SalesService {
         @InjectRepository(ProductSample) public sampleRepo: Repository<ProductSample>,
         @InjectRepository(SalesDelivery) private deliveryRepo: Repository<SalesDelivery>,
         @InjectRepository(SalesComment) private commentRepo: Repository<SalesComment>,
+        @InjectRepository(SalesChecklist) private checklistRepo: Repository<SalesChecklist>,
+        @InjectRepository(SalesChecklistItem) private checklistItemRepo: Repository<SalesChecklistItem>,
         @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
         @InjectRepository(PriceList) private priceListRepo: Repository<PriceList>,
         @InjectRepository(PriceListRule) private priceListRuleRepo: Repository<PriceListRule>,
@@ -37,6 +71,7 @@ export class SalesService {
         private customersService: CustomersService,
         private systemService: SystemService,
     ) { }
+
 
     // ... (Price List Functions - Giữ nguyên) ...
     async validatePriceAgainstPriceList(sku: string, unitPrice: number, currentUserId: number): Promise<boolean> { return true; }
@@ -393,5 +428,160 @@ export class SalesService {
         }
 
         return this.orderRepo.save(order);
+    }
+
+    // ========================================
+    // === CHECKLIST MANAGEMENT METHODS ===
+    // ========================================
+
+    /**
+     * Initialize checklist for an order (called when creating order)
+     */
+    async initChecklist(orderId: number, initialStatus: string = 'QUOTATION'): Promise<SalesChecklist> {
+        // Check if checklist already exists
+        let checklist = await this.checklistRepo.findOne({ where: { order_id: orderId } });
+
+        if (!checklist) {
+            checklist = this.checklistRepo.create({ order_id: orderId, items: [] });
+            checklist = await this.checklistRepo.save(checklist);
+        }
+
+        // Add items for initial stage
+        await this.addChecklistItemsForStage(checklist.id, initialStatus);
+
+        return this.getChecklist(orderId);
+    }
+
+    /**
+     * Get checklist with all items for an order
+     */
+    async getChecklist(orderId: number): Promise<any> {
+        const checklist = await this.checklistRepo.findOne({
+            where: { order_id: orderId },
+            relations: ['items'],
+        });
+
+        if (!checklist) {
+            // Auto-create if not exists
+            return this.initChecklist(orderId);
+        }
+
+        // Sort items by sort_order
+        checklist.items = (checklist.items || []).sort((a, b) => a.sort_order - b.sort_order);
+
+        // Calculate progress
+        const total = checklist.items.length;
+        const completed = checklist.items.filter(i => i.is_completed).length;
+
+        return {
+            ...checklist,
+            progress: { total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 }
+        };
+    }
+
+    /**
+     * Toggle a checklist item (complete/uncomplete)
+     */
+    async toggleChecklistItem(itemId: number, completedBy?: string): Promise<SalesChecklistItem> {
+        const item = await this.checklistItemRepo.findOne({ where: { id: itemId } });
+        if (!item) throw new NotFoundException('Checklist item not found');
+
+        item.is_completed = !item.is_completed;
+        item.completed_at = item.is_completed ? new Date() : null;
+        item.completed_by = item.is_completed ? (completedBy || 'User') : null;
+
+        return this.checklistItemRepo.save(item);
+    }
+
+    /**
+     * Add a custom task to the checklist
+     */
+    async addCustomChecklistItem(orderId: number, taskName: string, dueDate?: Date): Promise<SalesChecklistItem> {
+        const checklist = await this.checklistRepo.findOne({ where: { order_id: orderId } });
+        if (!checklist) throw new NotFoundException('Checklist not found');
+
+        // Get max sort order
+        const maxSort = await this.checklistItemRepo
+            .createQueryBuilder('item')
+            .select('MAX(item.sort_order)', 'max')
+            .where('item.checklist_id = :id', { id: checklist.id })
+            .getRawOne();
+
+        const newItem = this.checklistItemRepo.create({
+            checklist_id: checklist.id,
+            task_code: 'CUSTOM_' + Date.now(),
+            task_name: taskName,
+            stage: 'CUSTOM',
+            is_completed: false,
+            due_date: dueDate || null,
+            sort_order: (maxSort?.max || 0) + 1,
+        });
+
+        return this.checklistItemRepo.save(newItem);
+    }
+
+    /**
+     * Update checklist note for an item
+     */
+    async updateChecklistItemNote(itemId: number, note: string): Promise<SalesChecklistItem> {
+        const item = await this.checklistItemRepo.findOne({ where: { id: itemId } });
+        if (!item) throw new NotFoundException('Checklist item not found');
+        item.note = note;
+        return this.checklistItemRepo.save(item);
+    }
+
+    /**
+     * Add checklist items for a specific stage (internal helper)
+     */
+    private async addChecklistItemsForStage(checklistId: number, stage: string): Promise<void> {
+        const templates = CHECKLIST_TEMPLATES[stage];
+        if (!templates || templates.length === 0) return;
+
+        // Check which items already exist
+        const existing = await this.checklistItemRepo.find({ where: { checklist_id: checklistId } });
+        const existingCodes = existing.map(e => e.task_code);
+
+        const newItems = templates
+            .filter(t => !existingCodes.includes(t.code))
+            .map(t => this.checklistItemRepo.create({
+                checklist_id: checklistId,
+                task_code: t.code,
+                task_name: t.name,
+                stage: stage,
+                is_completed: false,
+                sort_order: t.sort,
+            }));
+
+        if (newItems.length > 0) {
+            await this.checklistItemRepo.save(newItems);
+        }
+    }
+
+    /**
+     * Sync checklist when order status changes
+     * Call this after any status update to add new stage tasks
+     */
+    async syncChecklistWithStatus(orderId: number, newStatus: string): Promise<any> {
+        const checklist = await this.checklistRepo.findOne({ where: { order_id: orderId } });
+        if (!checklist) {
+            return this.initChecklist(orderId, newStatus);
+        }
+
+        // Add items for new stage
+        await this.addChecklistItemsForStage(checklist.id, newStatus);
+
+        return this.getChecklist(orderId);
+    }
+
+    /**
+     * Delete a custom checklist item
+     */
+    async deleteChecklistItem(itemId: number): Promise<void> {
+        const item = await this.checklistItemRepo.findOne({ where: { id: itemId } });
+        if (!item) throw new NotFoundException('Checklist item not found');
+        if (!item.task_code.startsWith('CUSTOM_')) {
+            throw new Error('Cannot delete system-generated checklist items');
+        }
+        await this.checklistItemRepo.delete(itemId);
     }
 }

@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import SalesPayments from './sales/SalesPayments';
 import SalesDeliveries from './sales/SalesDeliveries';
 import SalesComments from './sales/SalesComments';
+import SalesChecklistPanel from './SalesChecklistPanel';
 import { HistoryOutlined, CopyOutlined } from '@ant-design/icons'; // Import icons
 
 import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -747,6 +748,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         </Tabs.TabPane>
                         <Tabs.TabPane tab="5. Trao đổi" key="4">
                             <SalesComments orderId={initialData.id} />
+                        </Tabs.TabPane>
+                        <Tabs.TabPane tab="6. Checklist" key="5">
+                            <SalesChecklistPanel orderId={initialData.id} orderStatus={initialData.status} onRefresh={onSuccess} />
                         </Tabs.TabPane>
                     </>
                 )}

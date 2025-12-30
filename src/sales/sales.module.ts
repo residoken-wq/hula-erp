@@ -6,7 +6,10 @@ import { ProductSample } from './product-sample.entity';
 import { SalesDelivery } from './sales-delivery.entity';
 import { SalesDeliveryItem } from './sales-delivery-item.entity';
 import { SalesComment } from './sales-comment.entity';
+import { SalesChecklist } from './sales-checklist.entity';
+import { SalesChecklistItem } from './sales-checklist-item.entity';
 import { Transaction } from '../finance/transaction.entity';
+
 
 // Price List Entities
 import { PriceList } from './pricelist/price-list.entity';
@@ -34,6 +37,8 @@ import { SalesOrderVersion } from './sales-order-version.entity';
       SalesDelivery,
       SalesDeliveryItem,
       SalesComment,
+      SalesChecklist,
+      SalesChecklistItem,
       Transaction,
       PriceList,
       PriceListRule,

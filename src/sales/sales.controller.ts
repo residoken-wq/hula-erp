@@ -111,4 +111,41 @@ export class SalesController {
 
     @Get(':id/revisions')
     getRevisions(@Param('id') id: number) { return this.s.getRevisions(id); }
+
+    // ============================================================
+    // 4. CHECKLIST APIS
+    // ============================================================
+
+    @Get(':id/checklist')
+    getChecklist(@Param('id') id: number) { return this.s.getChecklist(id); }
+
+    @Post(':id/checklist/init')
+    initChecklist(@Param('id') id: number, @Body() body: any) {
+        return this.s.initChecklist(id, body.status || 'QUOTATION');
+    }
+
+    @Post(':id/checklist/toggle/:itemId')
+    toggleChecklistItem(@Param('id') id: number, @Param('itemId') itemId: number, @Body() body: any) {
+        return this.s.toggleChecklistItem(itemId, body.username);
+    }
+
+    @Post(':id/checklist/add')
+    addChecklistItem(@Param('id') id: number, @Body() body: any) {
+        return this.s.addCustomChecklistItem(id, body.task_name, body.due_date);
+    }
+
+    @Put(':id/checklist/:itemId/note')
+    updateChecklistNote(@Param('itemId') itemId: number, @Body() body: any) {
+        return this.s.updateChecklistItemNote(itemId, body.note);
+    }
+
+    @Delete(':id/checklist/:itemId')
+    deleteChecklistItem(@Param('itemId') itemId: number) {
+        return this.s.deleteChecklistItem(itemId);
+    }
+
+    @Post(':id/checklist/sync')
+    syncChecklist(@Param('id') id: number, @Body() body: any) {
+        return this.s.syncChecklistWithStatus(id, body.status);
+    }
 }
