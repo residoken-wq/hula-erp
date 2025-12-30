@@ -306,139 +306,104 @@ const SalesPage: React.FC = () => {
                         </div>
                     </div>
 
-                                {/* Year Select */}
-                                <Select
-                                    value={selectedYear}
-                                    onChange={handleYearChange}
-                                    style={{ width: 100 }}
-                                    options={years.map(y => ({ label: `Năm ${y}`, value: y }))}
-                                />
 
-                                {/* Month Blocks */}
-                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                                    {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
-                                        const isActive = selectedMonth === m;
-                                        return (
-                                            <div
-                                                key={m}
-                                                onClick={() => handleMonthClick(m)}
-                                                style={{
-                                                    padding: '4px 12px',
-                                                    borderRadius: 4,
-                                                    cursor: 'pointer',
-                                                    border: isActive ? '1px solid #1890ff' : '1px solid #d9d9d9',
-                                                    background: isActive ? '#e6f7ff' : '#fff',
-                                                    color: isActive ? '#1890ff' : '#666',
-                                                    fontSize: 13,
-                                                    transition: 'all 0.2s',
-                                                    fontWeight: isActive ? 500 : 400
-                                                }}
-                                                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#40a9ff'; }}
-                                                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#d9d9d9'; }}
-                                            >
-                                                T{m}
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </div>
 
-                            <RangePicker
-                                style={{ width: 260 }}
-                                placeholder={['Từ ngày', 'Đến ngày']}
-                                value={dateRange as any} // Ensure value is controlled if we want to reflect month clicks
-                                onChange={(dates) => {
-                                    setDateRange(dates as any);
-                                    if (dates) setSelectedMonth(null); // Clear specific month block selection if manual range is picked
-                                }}
-                            />
-                        </div>
+                    <RangePicker
+                        style={{ width: 260 }}
+                        placeholder={['Từ ngày', 'Đến ngày']}
+                        value={dateRange as any} // Ensure value is controlled if we want to reflect month clicks
+                        onChange={(dates) => {
+                            setDateRange(dates as any);
+                            if (dates) setSelectedMonth(null); // Clear specific month block selection if manual range is picked
+                        }}
+                    />
+                </div>
 
-                        <Row gutter={16}>
-                            <Col span={5}>
-                                <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#f9f0ff', border: '1px solid #d3adf7' }}>
-                                    <Statistic title="Tổng Giá Trị" value={metrics.totalRevenue} precision={0} suffix="₫" prefix={<DollarOutlined style={{ color: '#722ed1' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold' }} />
-                                </Card>
-                            </Col>
-                            <Col span={5}>
-                                <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#f6ffed', border: '1px solid #b7eb8f' }}>
-                                    <Statistic title="Đã Thực Thu" value={metrics.totalPaid} precision={0} suffix="₫" prefix={<WalletOutlined style={{ color: '#52c41a' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold', color: '#389e0d' }} />
-                                </Card>
-                            </Col>
-                            <Col span={5}>
-                                <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#fff2e8', border: '1px solid #ffbb96' }}>
-                                    <Statistic title="Công Nợ / Còn Lại" value={metrics.totalRemaining} precision={0} suffix="₫" prefix={<AuditOutlined style={{ color: '#fa541c' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold', color: '#cf1322' }} />
-                                </Card>
-                            </Col>
-                            <Col span={4}>
-                                <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#e6f7ff', border: '1px solid #91d5ff' }}>
-                                    <Statistic title="Số Đơn Hàng" value={metrics.count} prefix={<ShoppingCartOutlined style={{ color: '#1890ff' }} />} valueStyle={{ fontSize: 18 }} />
-                                </Card>
-                            </Col>
-                            <Col span={5}>
-                                <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
-                                    <Statistic title="Đang Xử Lý" value={metrics.processingCount} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} valueStyle={{ fontSize: 18 }} />
-                                </Card>
-                            </Col>
-                        </Row>
+                <Row gutter={16}>
+                    <Col span={5}>
+                        <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#f9f0ff', border: '1px solid #d3adf7' }}>
+                            <Statistic title="Tổng Giá Trị" value={metrics.totalRevenue} precision={0} suffix="₫" prefix={<DollarOutlined style={{ color: '#722ed1' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold' }} />
+                        </Card>
+                    </Col>
+                    <Col span={5}>
+                        <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#f6ffed', border: '1px solid #b7eb8f' }}>
+                            <Statistic title="Đã Thực Thu" value={metrics.totalPaid} precision={0} suffix="₫" prefix={<WalletOutlined style={{ color: '#52c41a' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold', color: '#389e0d' }} />
+                        </Card>
+                    </Col>
+                    <Col span={5}>
+                        <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#fff2e8', border: '1px solid #ffbb96' }}>
+                            <Statistic title="Công Nợ / Còn Lại" value={metrics.totalRemaining} precision={0} suffix="₫" prefix={<AuditOutlined style={{ color: '#fa541c' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold', color: '#cf1322' }} />
+                        </Card>
+                    </Col>
+                    <Col span={4}>
+                        <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#e6f7ff', border: '1px solid #91d5ff' }}>
+                            <Statistic title="Số Đơn Hàng" value={metrics.count} prefix={<ShoppingCartOutlined style={{ color: '#1890ff' }} />} valueStyle={{ fontSize: 18 }} />
+                        </Card>
+                    </Col>
+                    <Col span={5}>
+                        <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
+                            <Statistic title="Đang Xử Lý" value={metrics.processingCount} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} valueStyle={{ fontSize: 18 }} />
+                        </Card>
+                    </Col>
+                </Row>
+            </div>
+
+            <Card
+                title={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 18, fontWeight: 600 }}>Quản Lý Đơn Hàng (SO)</span>
+                        <Input prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />} placeholder="Tìm mã đơn, tên khách..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} allowClear />
                     </div>
+                }
+                extra={
+                    <Space>
+                        <Button type="dashed" icon={<AppstoreAddOutlined />} onClick={() => openDetailModal({ isInternal: true })} style={{ borderColor: '#722ed1', color: '#722ed1' }}>Tạo Đơn Nhập Kho (Nội Bộ)</Button>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo Đơn Mới</Button>
+                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+                    </Space>
+                }
+                bodyStyle={{ padding: '0 24px 24px' }}
+            >
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={setActiveTab}
+                    items={[
+                        { key: 'ALL', label: 'Tất cả' },
+                        { key: 'SO_PENDING', label: 'Chờ Duyệt' },
+                        { key: 'SAMPLE_APPROVED', label: 'Đã Duyệt Mẫu' },
+                        { key: 'DEPOSITED', label: 'Đang Sản Xuất' },
+                        { key: 'DELIVERED', label: 'Đã Giao' },
+                        { key: 'COMPLETED', label: 'Hoàn Thành' },
+                        { key: 'QUOTATION', label: 'Báo Giá (Draft)' },
+                    ]}
+                    style={{ marginBottom: 16 }}
+                />
 
-                    <Card
-                        title={
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <span style={{ fontSize: 18, fontWeight: 600 }}>Quản Lý Đơn Hàng (SO)</span>
-                                <Input prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />} placeholder="Tìm mã đơn, tên khách..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} allowClear />
-                            </div>
-                        }
-                        extra={
-                            <Space>
-                                <Button type="dashed" icon={<AppstoreAddOutlined />} onClick={() => openDetailModal({ isInternal: true })} style={{ borderColor: '#722ed1', color: '#722ed1' }}>Tạo Đơn Nhập Kho (Nội Bộ)</Button>
-                                <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo Đơn Mới</Button>
-                                <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
-                            </Space>
-                        }
-                        bodyStyle={{ padding: '0 24px 24px' }}
-                    >
-                        <Tabs
-                            activeKey={activeTab}
-                            onChange={setActiveTab}
-                            items={[
-                                { key: 'ALL', label: 'Tất cả' },
-                                { key: 'SO_PENDING', label: 'Chờ Duyệt' },
-                                { key: 'SAMPLE_APPROVED', label: 'Đã Duyệt Mẫu' },
-                                { key: 'DEPOSITED', label: 'Đang Sản Xuất' },
-                                { key: 'DELIVERED', label: 'Đã Giao' },
-                                { key: 'COMPLETED', label: 'Hoàn Thành' },
-                                { key: 'QUOTATION', label: 'Báo Giá (Draft)' },
-                            ]}
-                            style={{ marginBottom: 16 }}
-                        />
+                <Table
+                    dataSource={filteredData}
+                    columns={columns}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `Tổng ${total} đơn hàng` }}
+                    size="middle"
+                />
 
-                        <Table
-                            dataSource={filteredData}
-                            columns={columns}
-                            rowKey="id"
-                            loading={loading}
-                            pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `Tổng ${total} đơn hàng` }}
-                            size="middle"
-                        />
+                {/* MODALS */}
+                <QuickTaskModal open={taskModalOpen} onClose={() => setTaskModalOpen(false)} initialValues={taskInitialValues} />
 
-                        {/* MODALS */}
-                        <QuickTaskModal open={taskModalOpen} onClose={() => setTaskModalOpen(false)} initialValues={taskInitialValues} />
-
-                        <SalesOrderDetail
-                            open={detailModalOpen}
-                            onClose={() => setDetailModalOpen(false)}
-                            onSuccess={fetchData}
-                            initialData={editingOrder}
-                            customers={customers}
-                            products={products}
-                            users={users} // Pass users list
-                            isQuotation={false}
-                        />
-                    </Card>
-                </div >
-                );
+                <SalesOrderDetail
+                    open={detailModalOpen}
+                    onClose={() => setDetailModalOpen(false)}
+                    onSuccess={fetchData}
+                    initialData={editingOrder}
+                    customers={customers}
+                    products={products}
+                    users={users} // Pass users list
+                    isQuotation={false}
+                />
+            </Card>
+        </div >
+    );
 };
 
 export default SalesPage;
