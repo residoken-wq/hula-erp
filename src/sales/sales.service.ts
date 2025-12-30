@@ -488,7 +488,7 @@ export class SalesService {
                 <td style="padding:8px;border:1px solid #ddd;text-align:center;">${idx + 1}</td>
                 <td style="padding:8px;border:1px solid #ddd;">${i.sku}</td>
                 <td style="padding:8px;border:1px solid #ddd;text-align:center;">${i.quantity}</td>
-                <td style="padding:8px;border:1px solid #ddd;">${i.note || ''}</td>
+                <td style="padding:8px;border:1px solid #ddd;"></td> 
             </tr>
         `).join('');
 
@@ -497,7 +497,7 @@ export class SalesService {
         const html = `
             <div style="font-family: Arial, sans-serif; color: #333;">
                 <h2 style="color: #1890ff;">Thông Báo Giao Hàng</h2>
-                <p>Kính gửi <b>${customer ? (customer.name || customer.customer_name) : delivery.contact_name}</b>,</p>
+                <p>Kính gửi <b>${customer ? customer.name : (order.customer_name || delivery.contact_name)}</b>,</p>
                 <p>Đơn hàng <b>${order.order_code}</b> của quý khách đang được giao.</p>
                 
                 <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
