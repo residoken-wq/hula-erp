@@ -44,43 +44,95 @@ import { PriceList } from './sales/pricelist/price-list.entity';
 import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
 import { SalesOrderVersion } from './sales/sales-order-version.entity';
 
-// ... (inside @Module)
+import { StockHistory } from './inventory/stock-history.entity';
+import { InventoryStock } from './inventory/inventory-stock.entity';
 
-entities: [
-  Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern,
-  SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
-  SalesChecklist, SalesChecklistItem,
-  PriceList, PriceListRule, SalesOrderVersion,
-  PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
-  StockHistory, InventoryStock,
-  ProductionOrder,
-  Transaction, TransactionCategory,
-  Task, Notification,
-  Supplier, SupplierMaterial, SupplierContact,
-  Customer, CustomerContact,
-  ProductionPlan, Process, Category,
-  User, UserGroup, GroupPermission,
-  SystemConfig, ActivityLog
-],
-  synchronize: configService.get<string>('NODE_ENV') !== 'production',
-    subscribers: [], // Auto-registration should work if provided in Module, but explicit might be needed if not. 
-        // Note: NestJS TypeOrmModule auto-loads subscribers if registered as providers in modules.
+import { PurchaseOrder } from './purchasing/entities/purchase-order.entity';
+import { PurchaseOrderItem } from './purchasing/entities/purchase-order-item.entity';
+import { GoodsReceipt } from './inventory/entities/goods-receipt.entity';
+import { GoodsReceiptItem } from './inventory/entities/goods-receipt-item.entity';
+
+import { ProductionOrder } from './production/entities/production-order.entity';
+
+// Finance Entities
+import { Transaction } from './finance/transaction.entity';
+import { TransactionCategory } from './finance/transaction-category.entity';
+
+// Task & Notification Entities
+import { Task } from './tasks/task.entity';
+import { Notification } from './notifications/notification.entity';
+
+import { Supplier } from './suppliers/supplier.entity';
+import { SupplierMaterial } from './suppliers/supplier-material.entity';
+import { SupplierContact } from './suppliers/supplier-contact.entity';
+import { Customer } from './customers/customer.entity';
+import { CustomerContact } from './customers/customer-contact.entity';
+import { ProductionPlan } from './planning/production-plan.entity';
+import { Process } from './processes/process.entity';
+import { Category } from './categories/category.entity';
+
+// User Entities
+import { User } from './users/entities/user.entity';
+import { UserGroup } from './users/entities/user-group.entity';
+import { GroupPermission } from './users/entities/group-permission.entity';
+import { SystemConfig } from './system/system-config.entity';
+import { ActivityInterceptor } from './common/interceptors/activity.interceptor';
+import { ActivityLog } from './system/entities/activity-log.entity';
+
+import { AppController } from './app.controller';
+
+import { AiModule } from './ai/ai.module';
+
+import { MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
+import { UserContextMiddleware } from './common/middleware/user-context.middleware';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST') || 'hula_db',
+        port: configService.get<number>('DB_PORT') || 5432,
+        username: configService.get<string>('DB_USERNAME') || 'hula_user',
+        password: configService.get<string>('DB_PASSWORD') || 'hula_password',
+        database: configService.get<string>('DB_DATABASE') || 'hula_db',
+        entities: [
+          Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern,
+          SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
+          SalesChecklist, SalesChecklistItem,
+          PriceList, PriceListRule, SalesOrderVersion,
+          PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
+          StockHistory, InventoryStock,
+          ProductionOrder,
+          Transaction, TransactionCategory,
+          Task, Notification,
+          Supplier, SupplierMaterial, SupplierContact,
+          Customer, CustomerContact,
+          ProductionPlan, Process, Category,
+          User, UserGroup, GroupPermission,
+          SystemConfig, ActivityLog
+        ],
+        synchronize: configService.get<string>('NODE_ENV') !== 'production',
+        subscribers: [],
       }),
     }),
-UsersModule, AuthModule,
-  ProductsModule, MaterialsModule, BomModule, SalesModule,
-  InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
-  TasksModule, NotificationsModule, SystemModule,
-  UploadModule, SuppliersModule, CustomersModule, PlanningModule,
-  ProcessesModule, CategoriesModule, AiModule,
-  TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
+    UsersModule, AuthModule,
+    ProductsModule, MaterialsModule, BomModule, SalesModule,
+    InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
+    TasksModule, NotificationsModule, SystemModule,
+    UploadModule, SuppliersModule, CustomersModule, PlanningModule,
+    ProcessesModule, CategoriesModule, AiModule,
+    TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
   ],
-providers: [
-  {
-    provide: 'APP_INTERCEPTOR',
-    useClass: ActivityInterceptor,
-  },
-],
+  providers: [
+    {
+      provide: 'APP_INTERCEPTOR',
+      useClass: ActivityInterceptor,
+    },
+  ],
   controllers: [AppController]
 })
 export class AppModule implements NestModule {
