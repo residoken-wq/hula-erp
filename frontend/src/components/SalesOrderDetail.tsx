@@ -753,6 +753,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                             <InputNumber
                                                                 size="small"
                                                                 min={0} max={100}
+                                                                formatter={v => `${v}%`}
+                                                                parser={v => v!.replace('%', '')}
                                                                 style={{ width: 60 }}
                                                                 value={getFieldValue('vat_rate')}
                                                                 onChange={(v) => { form.setFieldsValue({ vat_rate: v }); calculateTotal(orderItems); }}
