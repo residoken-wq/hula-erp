@@ -427,12 +427,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             width: 50,
             render: (text: any, record: any, index: number) => index + 1,
         },
-        {
-            title: 'Mã hàng',
-            dataIndex: 'sku',
-            width: 120,
-            render: (text: string) => <b>{text}</b>
-        },
+
         {
             title: 'Sản phẩm', width: 350,
             render: (text: any, record: any, index: number) => {
