@@ -457,6 +457,14 @@ const PortalQuotePage: React.FC = () => {
                                         { title: 'Ngày', width: 90, align: 'center', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YY') },
                                         { title: 'Mã Phiếu', width: 100, dataIndex: 'code', render: (t: string) => <div style={{ fontWeight: 700, color: '#1890ff' }}>{t}</div> },
                                         {
+                                            title: 'Trạng thái', width: 90, align: 'center',
+                                            render: (r: any) => (
+                                                <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>
+                                                    {r.status === 'SHIPPED' ? 'Đã Giao' : 'Đang Giao'}
+                                                </Tag>
+                                            )
+                                        },
+                                        {
                                             title: 'Chi tiết sản phẩm',
                                             render: (r: any) => (
                                                 <div style={{ fontSize: 12 }}>

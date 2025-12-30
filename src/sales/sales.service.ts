@@ -61,6 +61,7 @@ export class SalesService {
         @InjectRepository(SalesComment) private commentRepo: Repository<SalesComment>,
         @InjectRepository(SalesChecklist) private checklistRepo: Repository<SalesChecklist>,
         @InjectRepository(SalesChecklistItem) private checklistItemRepo: Repository<SalesChecklistItem>,
+        private systemService: SystemService,
         @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
         @InjectRepository(PriceList) private priceListRepo: Repository<PriceList>,
         @InjectRepository(PriceListRule) private priceListRuleRepo: Repository<PriceListRule>,
@@ -428,6 +429,84 @@ export class SalesService {
         }
 
         return this.orderRepo.save(order);
+    }
+
+    // --- DELIVERY EMAIL ---
+    async sendDeliveryEmail(deliveryId: number) {
+        const delivery = await this.deliveryRepo.findOne({ where: { id: deliveryId }, relations: ['items', 'sales_order', 'sales_order.customer'] });
+        if (!delivery) throw new NotFoundException('Delivery not found');
+
+        const order = delivery.sales_order;
+        const customer = order.customer;
+        const smtpConfig = await this.systemService.getSmtpConfig();
+
+        if (!smtpConfig.SMTP_HOST || !smtpConfig.SMTP_USER) {
+            throw new Error('SMTP Config missing');
+        }
+
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+            host: smtpConfig.SMTP_HOST,
+            port: Number(smtpConfig.SMTP_PORT) || 587,
+            secure: smtpConfig.SMTP_SECURE === 'true',
+            auth: { user: smtpConfig.SMTP_USER, pass: smtpConfig.SMTP_PASS }
+        });
+
+        // Template
+        const itemsHtml = delivery.items.map((i, idx) => `
+            <tr>
+                <td style="padding:8px;border:1px solid #ddd;text-align:center;">${idx + 1}</td>
+                <td style="padding:8px;border:1px solid #ddd;">${i.sku}</td>
+                <td style="padding:8px;border:1px solid #ddd;text-align:center;">${i.quantity}</td>
+                <td style="padding:8px;border:1px solid #ddd;">${i.note || ''}</td>
+            </tr>
+        `).join('');
+
+        const portalLink = `https://hula-erp.vn/portal/quote/${order.uuid}`; // Replace with actual domain from env if possible, or config
+
+        const html = `
+            <div style="font-family: Arial, sans-serif; color: #333;">
+                <h2 style="color: #1890ff;">Thông Báo Giao Hàng</h2>
+                <p>Kính gửi <b>${customer ? (customer.name || customer.customer_name) : delivery.contact_name}</b>,</p>
+                <p>Đơn hàng <b>${order.order_code}</b> của quý khách đang được giao.</p>
+                
+                <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <p><b>Mã Phiếu Xuất:</b> ${delivery.code}</p>
+                    <p><b>Ngày Giao:</b> ${new Date(delivery.delivery_date).toLocaleDateString('vi-VN')}</p>
+                    <p><b>Người Nhận:</b> ${delivery.contact_name} (${delivery.contact_phone})</p>
+                    <p><b>Địa Chỉ:</b> ${delivery.delivery_address}</p>
+                </div>
+
+                <h3>Chi Tiết Giao Hàng:</h3>
+                <table style="width:100%; border-collapse:collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background:#eee;">
+                            <th style="padding:8px;border:1px solid #ddd;">STT</th>
+                            <th style="padding:8px;border:1px solid #ddd;">Sản Phẩm</th>
+                            <th style="padding:8px;border:1px solid #ddd;">SL</th>
+                            <th style="padding:8px;border:1px solid #ddd;">Ghi Chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+
+                <p>Quý khách có thể theo dõi tiến độ đơn hàng tại:</p>
+                <a href="${portalLink}" style="display:inline-block;padding:10px 20px;background:#1890ff;color:#fff;text-decoration:none;border-radius:4px;">Xem Đơn Hàng Online</a>
+                
+                <p style="margin-top:20px; font-size:12px; color:#999;">Cảm ơn quý khách đã tin tưởng HULA ERP.</p>
+            </div>
+        `;
+
+        await transporter.sendMail({
+            from: `"${smtpConfig.SMTP_FROM_NAME}" <${smtpConfig.SMTP_FROM_EMAIL}>`,
+            to: (customer && customer.email) || 'shinwon93@gmail.com', // Fallback for dev/demo or use contact email
+            subject: `[HULA] Thông Báo Giao Hàng - ${delivery.code}`,
+            html: html
+        });
+
+        delivery.email_sent = true;
+        delivery.status = 'SHIPPED'; // Update status
+        return this.deliveryRepo.save(delivery);
     }
 
     // ========================================

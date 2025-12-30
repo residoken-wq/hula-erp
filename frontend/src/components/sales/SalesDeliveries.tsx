@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Input, Modal, message, InputNumber, Tooltip, Select, DatePicker } from 'antd';
-import { CarOutlined, CheckCircleOutlined, PrinterOutlined } from '@ant-design/icons';
+import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../../config';
@@ -291,13 +291,38 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             <Table dataSource={history} rowKey="id" pagination={false} size="small" bordered columns={[
                 { title: 'Mã phiếu', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
                 { title: 'Ngày giao', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YYYY') },
+                {
+                    title: 'Trạng thái', align: 'center', render: (r: any) => (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                            <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>{r.status === 'SHIPPED' ? 'Đã báo khách' : 'Đang giao'}</Tag>
+                            {r.email_sent && <span style={{ fontSize: 10, color: 'green' }}><CheckCircleOutlined /> Email: Sent</span>}
+                        </div>
+                    )
+                },
                 { title: 'Người công trình', render: (r) => (r.contact_name ? <span>{r.contact_name} <br /><small>{r.contact_phone}</small></span> : '-') },
                 { title: 'Chi tiết', width: '30%', render: (r: any) => r.items?.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') },
                 {
-                    title: '', width: 60, align: 'center', render: (_: any, r: any) => (
-                        <Tooltip title="In Phiếu Xuất Kho">
-                            <Button size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
-                        </Tooltip>
+                    title: '', width: 100, align: 'center', render: (_: any, r: any) => (
+                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
+                            <Tooltip title="In Phiếu Xuất Kho">
+                                <Button size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
+                            </Tooltip>
+                            <Tooltip title="Gửi Email thông báo khách hàng">
+                                <Button size="small" icon={<MailOutlined />} onClick={async () => {
+                                    try {
+                                        Modal.confirm({
+                                            title: 'Gửi Email thông báo?',
+                                            content: 'Hệ thống sẽ gửi email thông báo giao hàng cho khách hàng theo mẫu.',
+                                            onOk: async () => {
+                                                await axios.post(`${API_URL}/sales/delivery/${r.id}/email`);
+                                                message.success('Đã gửi email thành công');
+                                                fetchHistory();
+                                            }
+                                        });
+                                    } catch (e) { message.error('Lỗi gửi email: Cần cấu hình SMTP'); }
+                                }} />
+                            </Tooltip>
+                        </div>
                     )
                 }
             ]} />

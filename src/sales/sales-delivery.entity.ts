@@ -23,6 +23,12 @@ export class SalesDelivery {
   @Column({ nullable: true })
   note: string;
 
+  @Column({ default: 'DELIVERING' }) // DELIVERING, SHIPPED, COMPLETED
+  status: string;
+
+  @Column({ default: false })
+  email_sent: boolean;
+
   @Column({ nullable: true })
   delivery_address: string;
 
