@@ -428,43 +428,21 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             render: (text: any, record: any, index: number) => index + 1,
         },
         {
-            title: 'Ảnh',
-            dataIndex: 'image_url', // From SalesOrderItem
-            width: 80,
-            align: 'center' as const,
-            render: (link: string, record: any, index: number) => {
-                // Fallback to product.image_url if item.image_url is missing (for older orders)
-                const finalLink = link || (record.product ? record.product.image_url : null);
-
-                // Use ImageLinkCell to allow editing
-                return (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        {finalLink && (
-                            <img
-                                src={getGoogleDriveImageUrl(finalLink) || ''}
-                                alt="img"
-                                style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, cursor: 'pointer' }}
-                                onClick={() => window.open(finalLink, '_blank')}
-                            />
-                        )}
-                        <ImageLinkCell
-                            value={finalLink}
-                            onChange={(newVal) => handleItemChange(index, 'image_url', newVal)}
-                        />
-                    </div>
-                );
-            }
-        },
-        {
             title: 'Mã hàng',
             dataIndex: 'sku',
             width: 120,
             render: (text: string) => <b>{text}</b>
         },
         {
-            title: 'Sản phẩm', width: 300,
+            title: 'Sản phẩm', width: 350,
             render: (text: any, record: any, index: number) => {
                 const prodInfo = products.find(p => p.value === record.sku);
+
+                // Image Logic
+                const link = record.image_url;
+                const finalLink = link || (record.product ? record.product.image_url : null);
+                const src = getGoogleDriveImageUrl(finalLink);
+
                 return (
                     <div>
                         <Select
@@ -472,7 +450,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             placeholder="Chọn SP"
                             optionFilterProp="label"
                             style={{ width: '100%' }}
-                            value={text}
+                            value={record.sku}
                             onChange={(val) => handleItemChange(index, 'sku', val)}
                             options={products}
                         />
@@ -484,40 +462,26 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 </span>
                             </div>
                         )}
-                        {/* IMAGE URL INPUT */}
-                        <div style={{ marginTop: 5, display: 'flex', alignItems: 'center' }}>
-                            {/* 1. Image Preview (Fixed) */}
-                            {record.sample_image && (
-                                <div style={{ marginRight: 8, position: 'relative' }}>
-                                    {/* Basic check if it looks like an image, otherwise generic icon */}
-                                    {record.sample_image.match(/\.(jpeg|jpg|gif|png)$/i) || record.sample_image.startsWith('data:image') ? (
-                                        <img
-                                            src={`${record.sample_image.startsWith('http') ? '' : api.defaults.baseURL}${record.sample_image}`}
-                                            alt="sample"
-                                            style={{ height: 40, width: 40, objectFit: 'cover', border: '1px solid #ddd', borderRadius: 4 }}
-                                        />
-                                    ) : (
-                                        <div style={{ height: 40, width: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: 4, background: '#f0f0f0', color: '#1890ff', fontSize: 20 }}>
-                                            <LinkOutlined />
-                                        </div>
-                                    )}
-                                    <div style={{ position: 'absolute', top: -8, right: -8 }}>
-                                        <Button
-                                            type="text"
-                                            danger
-                                            size="small"
-                                            icon={<DeleteOutlined style={{ fontSize: 10 }} />}
-                                            onClick={() => handleItemChange(index, 'sample_image', null)}
-                                        />
-                                    </div>
+
+                        {/* Improved Image UI (Stacked) */}
+                        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {/* Preview */}
+                            {finalLink && (
+                                <div style={{ position: 'relative' }}>
+                                    <img
+                                        src={src || ''}
+                                        alt="img"
+                                        style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #ddd' }}
+                                        onClick={() => window.open(finalLink, '_blank')}
+                                    />
+                                    {/* Link Icon Overlay if needed, or just clean image */}
                                 </div>
                             )}
 
-                            {/* 2. Link Trigger (Stable) */}
-                            {/* 2. Link Trigger (Enhanced) */}
+                            {/* Edit/Add Link */}
                             <ImageLinkCell
-                                value={record.sample_image}
-                                onChange={(val) => handleItemChange(index, 'sample_image', val)}
+                                value={finalLink}
+                                onChange={(newVal) => handleItemChange(index, 'image_url', newVal)}
                             />
                         </div>
                     </div>
