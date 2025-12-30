@@ -430,13 +430,29 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         {
             title: 'Ảnh',
             dataIndex: 'image_url', // From SalesOrderItem
-            width: 70,
+            width: 80,
             align: 'center' as const,
-            render: (link: string, record: any) => {
+            render: (link: string, record: any, index: number) => {
                 // Fallback to product.image_url if item.image_url is missing (for older orders)
                 const finalLink = link || (record.product ? record.product.image_url : null);
-                const src = getGoogleDriveImageUrl(finalLink);
-                return src ? <img src={src} alt="img" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} /> : null;
+
+                // Use ImageLinkCell to allow editing
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        {finalLink && (
+                            <img
+                                src={getGoogleDriveImageUrl(finalLink) || ''}
+                                alt="img"
+                                style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, cursor: 'pointer' }}
+                                onClick={() => window.open(finalLink, '_blank')}
+                            />
+                        )}
+                        <ImageLinkCell
+                            value={finalLink}
+                            onChange={(newVal) => handleItemChange(index, 'image_url', newVal)}
+                        />
+                    </div>
+                );
             }
         },
         {
