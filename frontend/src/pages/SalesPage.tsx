@@ -303,6 +303,30 @@ const SalesPage: React.FC = () => {
                                     </div>
                                 )
                             })}
+                            {/* ALL BLOCK */}
+                            <div
+                                onClick={() => {
+                                    setSelectedMonth(null);
+                                    const start = dayjs().year(selectedYear).startOf('year');
+                                    const end = dayjs().year(selectedYear).endOf('year');
+                                    setDateRange([start, end]);
+                                }}
+                                style={{
+                                    padding: '4px 12px',
+                                    borderRadius: 4,
+                                    cursor: 'pointer',
+                                    border: selectedMonth === null ? '1px solid #722ed1' : '1px solid #d9d9d9',
+                                    background: selectedMonth === null ? '#f9f0ff' : '#fff',
+                                    color: selectedMonth === null ? '#722ed1' : '#666',
+                                    fontSize: 13,
+                                    transition: 'all 0.2s',
+                                    fontWeight: selectedMonth === null ? 500 : 400
+                                }}
+                                onMouseEnter={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#b37feb'; }}
+                                onMouseLeave={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#d9d9d9'; }}
+                            >
+                                All
+                            </div>
                         </div>
                     </div>
 
