@@ -518,7 +518,7 @@ const HelpPage: React.FC = () => {
                             description={
                                 <ul>
                                     <li><b>Tự động tạo:</b> Checklist được tạo ngay khi mở đơn hàng.</li>
-                                    <li><b>Tự động cập nhật:</b> Khi bạn đổi trạng thái đơn (VD: Từ Báo giá -> Sản xuất), các việc cần làm mới sẽ tự động hiện ra.</li>
+                                    <li><b>Tự động cập nhật:</b> Khi bạn đổi trạng thái đơn (VD: Từ Báo giá &rarr; Sản xuất), các việc cần làm mới sẽ tự động hiện ra.</li>
                                 </ul>
                             }
                             type="info"
