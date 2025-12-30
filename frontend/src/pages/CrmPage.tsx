@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge, Tabs, InputNumber, Typography } from 'antd'; // <--- Đã thêm Tabs
-import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined, SearchOutlined, FilterOutlined, RiseOutlined, TagOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge, Tabs, InputNumber, Typography, DatePicker } from 'antd'; // <--- Đã thêm Tabs
+import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined, SearchOutlined, FilterOutlined, RiseOutlined, TagOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import dayjs from 'dayjs';
@@ -12,6 +12,43 @@ const { Text } = Typography;
 
 const CrmPage: React.FC = () => {
     const navigate = useNavigate();
+    const { RangePicker } = DatePicker;
+
+    // --- FILTER STATE ---
+    const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+    const [selectedYear, setSelectedYear] = useState(dayjs().year());
+    const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+
+    // Generate years
+    const years = Array.from({ length: 5 }, (_, i) => dayjs().year() - 2 + i);
+
+    const handleMonthClick = (month: number) => {
+        setSelectedMonth(month);
+        const start = dayjs().year(selectedYear).month(month - 1).startOf('month');
+        const end = dayjs().year(selectedYear).month(month - 1).endOf('month');
+        setDateRange([start, end]);
+    };
+
+    const handleAllMonthClick = () => {
+        setSelectedMonth(null);
+        const start = dayjs().year(selectedYear).startOf('year');
+        const end = dayjs().year(selectedYear).endOf('year');
+        setDateRange([start, end]);
+    };
+
+    const handleYearChange = (val: number) => {
+        setSelectedYear(val);
+        if (selectedMonth !== null) {
+            const start = dayjs().year(val).month(selectedMonth - 1).startOf('month');
+            const end = dayjs().year(val).month(selectedMonth - 1).endOf('month');
+            setDateRange([start, end]);
+        } else {
+            // If All selected, update year range
+            const start = dayjs().year(val).startOf('year');
+            const end = dayjs().year(val).endOf('year');
+            setDateRange([start, end]);
+        }
+    };
 
     const [activeTab, setActiveTab] = useState('LEAD');
     const [loading, setLoading] = useState(false);
@@ -93,17 +130,34 @@ const CrmPage: React.FC = () => {
 
     useEffect(() => { fetchData(); }, []);
 
+    // --- FILTERING ---
+    const filterByDate = (list: any[]) => {
+        if (!dateRange[0] || !dateRange[1]) return list;
+        return list.filter(item => {
+            const date = dayjs(item.created_at);
+            return date.isBetween(dateRange[0], dateRange[1], 'day', '[]');
+        });
+    };
+
+    const dateFilteredLeads = useMemo(() => filterByDate(leads), [leads, dateRange]);
+    const dateFilteredQuotes = useMemo(() => filterByDate(quotes), [quotes, dateRange]);
+    const dateFilteredOrders = useMemo(() => filterByDate(orders), [orders, dateRange]);
+
     // --- LOGIC LỌC DỮ LIỆU (SEARCH) ---
     const getFilteredData = (data: any[]) => {
-        if (!searchText) return data;
-        const lower = searchText.toLowerCase();
-        return data.filter(item =>
-            item.code?.toLowerCase().includes(lower) ||
-            item.name?.toLowerCase().includes(lower) ||
-            item.phone?.toLowerCase().includes(lower) ||
-            item.customer?.name?.toLowerCase().includes(lower) ||
-            item.order_code?.toLowerCase().includes(lower)
-        );
+        let filtered = data;
+        // Search
+        if (searchText) {
+            const lower = searchText.toLowerCase();
+            filtered = filtered.filter(item =>
+                item.code?.toLowerCase().includes(lower) ||
+                item.name?.toLowerCase().includes(lower) ||
+                item.phone?.toLowerCase().includes(lower) ||
+                item.customer?.name?.toLowerCase().includes(lower) ||
+                item.order_code?.toLowerCase().includes(lower)
+            );
+        }
+        return filtered;
     };
 
     // --- ACTIONS ---
@@ -359,11 +413,78 @@ const CrmPage: React.FC = () => {
 
     return (
         <div>
+            {/* FILTER BAR */}
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                    <span style={{ fontSize: 16, fontWeight: 600, color: '#555', whiteSpace: 'nowrap' }}><CalendarOutlined /> Thống kê theo kỳ:</span>
+                    <Select
+                        value={selectedYear}
+                        onChange={handleYearChange}
+                        style={{ width: 120 }}
+                        options={years.map(y => ({ label: `Năm ${y}`, value: y }))}
+                    />
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+                            const isActive = selectedMonth === m;
+                            return (
+                                <div
+                                    key={m}
+                                    onClick={() => handleMonthClick(m)}
+                                    style={{
+                                        padding: '4px 12px',
+                                        borderRadius: 4,
+                                        cursor: 'pointer',
+                                        border: isActive ? '1px solid #1890ff' : '1px solid #d9d9d9',
+                                        background: isActive ? '#e6f7ff' : '#fff',
+                                        color: isActive ? '#1890ff' : '#666',
+                                        fontSize: 13,
+                                        transition: 'all 0.2s',
+                                        fontWeight: isActive ? 500 : 400
+                                    }}
+                                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#40a9ff'; }}
+                                    onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#d9d9d9'; }}
+                                >
+                                    T{m}
+                                </div>
+                            )
+                        })}
+                        {/* ALL BLOCK */}
+                        <div
+                            onClick={handleAllMonthClick}
+                            style={{
+                                padding: '4px 12px',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                border: selectedMonth === null ? '1px solid #722ed1' : '1px solid #d9d9d9',
+                                background: selectedMonth === null ? '#f9f0ff' : '#fff',
+                                color: selectedMonth === null ? '#722ed1' : '#666',
+                                fontSize: 13,
+                                transition: 'all 0.2s',
+                                fontWeight: selectedMonth === null ? 500 : 400
+                            }}
+                            onMouseEnter={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#b37feb'; }}
+                            onMouseLeave={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#d9d9d9'; }}
+                        >
+                            All
+                        </div>
+                    </div>
+                </div>
+                <RangePicker
+                    style={{ width: 260 }}
+                    placeholder={['Từ ngày', 'Đến ngày']}
+                    value={dateRange as any}
+                    onChange={(dates) => {
+                        setDateRange(dates as any);
+                        if (dates) setSelectedMonth(null);
+                    }}
+                />
+            </div>
+
             {/* KPI DASHBOARD */}
             <Row gutter={16} style={{ marginBottom: 16 }}>
-                <Col span={8}><Card bordered={false} style={{ background: 'linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%)' }}><Statistic title="Leads Tiềm Năng" value={leads.length} prefix={<UserOutlined style={{ color: '#1890ff' }} />} /></Card></Col>
-                <Col span={8}><Card bordered={false} style={{ background: 'linear-gradient(135deg, #fff7e6 0%, #ffffff 100%)' }}><Statistic title="Báo Giá Đang Chờ" value={quotes.length} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} /></Card></Col>
-                <Col span={8}><Card bordered={false} style={{ background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)' }}><Statistic title="Tỷ lệ chuyển đổi" value={leads.length > 0 ? ((orders.length / leads.length) * 100).toFixed(1) : 0} suffix="%" prefix={<RiseOutlined style={{ color: '#52c41a' }} />} /></Card></Col>
+                <Col span={8}><Card bordered={false} style={{ background: 'linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%)' }}><Statistic title="Leads Tiềm Năng" value={dateFilteredLeads.length} prefix={<UserOutlined style={{ color: '#1890ff' }} />} /></Card></Col>
+                <Col span={8}><Card bordered={false} style={{ background: 'linear-gradient(135deg, #fff7e6 0%, #ffffff 100%)' }}><Statistic title="Báo Giá Đang Chờ" value={dateFilteredQuotes.length} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} /></Card></Col>
+                <Col span={8}><Card bordered={false} style={{ background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)' }}><Statistic title="Tỷ lệ chuyển đổi" value={dateFilteredLeads.length > 0 ? ((dateFilteredOrders.length / dateFilteredLeads.length) * 100).toFixed(1) : 0} suffix="%" prefix={<RiseOutlined style={{ color: '#52c41a' }} />} /></Card></Col>
             </Row>
 
             <Card
@@ -394,7 +515,7 @@ const CrmPage: React.FC = () => {
                                         <Button type="primary" onClick={openCreateLead} icon={<PlusOutlined />}>Tạo Lead Mới</Button>
                                     </div>
                                     <Table
-                                        dataSource={getFilteredData(leads)}
+                                        dataSource={getFilteredData(dateFilteredLeads)}
                                         columns={leadColumns}
                                         rowKey="id"
                                         pagination={{ pageSize: 8, showTotal: (total) => `Tổng ${total} leads` }}
@@ -409,7 +530,7 @@ const CrmPage: React.FC = () => {
                                     <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
                                         <Button type="primary" onClick={() => openDetailModal(null, true)} icon={<PlusOutlined />}>Tạo Báo Giá</Button>
                                     </div>
-                                    <Table dataSource={getFilteredData(quotes)} columns={quoteColumns} rowKey="id" pagination={{ pageSize: 8 }} />
+                                    <Table dataSource={getFilteredData(dateFilteredQuotes)} columns={quoteColumns} rowKey="id" pagination={{ pageSize: 8 }} />
                                 </>
                             )
                         }

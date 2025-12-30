@@ -273,7 +273,7 @@ const SalesPage: React.FC = () => {
                         <Select
                             value={selectedYear}
                             onChange={handleYearChange}
-                            style={{ width: 100 }}
+                            style={{ width: 120 }}
                             options={years.map(y => ({ label: `Năm ${y}`, value: y }))}
                         />
 
