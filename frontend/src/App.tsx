@@ -39,6 +39,7 @@ const FinancePage = React.lazy(() => import('./pages/FinancePage'));
 const TasksPage = React.lazy(() => import('./pages/TasksPage'));
 const PurchasingPage = React.lazy(() => import('./pages/PurchasingPage'));
 const SalesPage = React.lazy(() => import('./pages/SalesPage'));
+const PosPage = React.lazy(() => import('./pages/PosPage')); // <--- MỚI
 const HelpPage = React.lazy(() => import('./pages/HelpPage'));
 const DocsPage = React.lazy(() => import('./pages/DocsPage'));
 const SystemSettingsPage = React.lazy(() => import('./pages/SystemSettingsPage'));
@@ -221,6 +222,7 @@ const App: React.FC = () => {
                                                 {hasPerm('SALES') && (
                                                     <>
                                                         <Route path="/sales" element={<CrmPage />} /> {/* CRM Page */}
+                                                        <Route path="/sales/pos" element={<PosPage />} /> {/* <--- MỚI: Route POS */}
                                                         <Route path="/orders" element={<SalesPage />} /> {/* <--- MỚI: Route cho trang Đơn hàng */}
                                                         <Route path="/customers" element={<CustomersPage />} />
                                                         <Route path="/sales/pricelist" element={<PriceListsPage />} />

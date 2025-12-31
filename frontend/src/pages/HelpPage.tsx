@@ -721,6 +721,59 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'sales-pos':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Bán lẻ & Cửa hàng</Tag>
+                        <Title level={2}>🏪 Bán Lẻ Tại Quầy (POS)</Title>
+                        <Paragraph>
+                            Giao diện POS (Point of Sale) được thiết kế tối giản để nhân viên bán hàng thao tác nhanh chóng, chính xác ngay tại quầy thu ngân.
+                        </Paragraph>
+
+                        <Row gutter={16}>
+                            <Col span={16}>
+                                <Card title="Quy trình Bán hàng POS" bordered={false} style={{ background: '#f9f9f9' }}>
+                                    <Steps
+                                        current={-1}
+                                        items={[
+                                            { title: 'Chọn Hàng', description: 'Quét mã vạch hoặc tìm tên.', icon: <SearchOutlined /> },
+                                            { title: 'Giỏ Hàng', description: 'Điều chỉnh số lượng.', icon: <ShoppingCartOutlined /> },
+                                            { title: 'Khách Hàng', description: 'Chọn thành viên (nếu có).', icon: <UserOutlined /> },
+                                            { title: 'Thanh Toán', description: 'Xuất phiếu thu ngay lập tức.', icon: <WalletOutlined /> },
+                                        ]}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Alert
+                                    message="Kiểm soát Tồn kho"
+                                    description="Hệ thống tự động chặn không cho thêm vào giỏ hàng đối với các sản phẩm có Tồn kho < 0 để tránh bán âm."
+                                    type="error"
+                                    showIcon
+                                />
+                            </Col>
+                        </Row>
+
+                        <Divider orientation="left">Các tính năng chính</Divider>
+                        <Row gutter={[16, 16]}>
+                            <Col span={8}>
+                                <Card size="small" title="1. Tra cứu thông minh">
+                                    Hỗ trợ tìm kiếm theo <b>Tên, SKU</b> hoặc <b>Barcode</b>. Hiển thị ngay hình ảnh sản phẩm và giá bán để nhân viên dễ tư vấn.
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card size="small" title="2. Quản lý Khách lẻ">
+                                    Mặc định là "Khách lẻ". Bạn có thể chọn khách hàng thành viên để tích điểm hoặc áp dụng chính sách giá riêng.
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card size="small" title="3. Xử lý nhanh">
+                                    Thanh toán 1 chạm. Đơn hàng sau khi hoàn tất sẽ tự động chuyển trạng thái <b>COMPLETED</b> và trừ tồn kho ngay lập tức.
+                                </Card>
+                            </Col>
+                        </Row>
+                    </div>
+                );
             case 'customers':
                 return (
                     <div>
@@ -1142,6 +1195,7 @@ const HelpPage: React.FC = () => {
                                 { key: 'sales-create', label: 'Tạo đơn mới' },
                                 { key: 'sales-approval', label: 'Duyệt mẫu' },
                                 { key: 'sales-revisions', label: 'Quản lý version (Báo giá)' }, // <--- NEW
+                                { key: 'sales-pos', label: 'Bán Lẻ (POS)' }, // <--- NEW POS
                                 { key: 'sales-portal', label: 'Customer Portal' },
                                 { key: 'price-list', label: 'Chính sách giá' },
                             ]
