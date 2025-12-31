@@ -159,13 +159,15 @@ const PortalQuotePage: React.FC = () => {
                 return (
                     <div>
                         <div style={{ fontWeight: 600, fontSize: 14, color: '#1f1f1f', lineHeight: 1.2, marginBottom: 4 }}>
-                            {r.product_name_real || r.product?.name || r.sku}
+                            {r.product?.customer_description || r.product_name_real || r.product?.name || r.sku}
                         </div>
+                        {/* 
                         {customerDesc && (
                             <div style={{ fontSize: 12, color: '#666', fontStyle: 'italic', marginBottom: 4, whiteSpace: 'pre-wrap', background: '#fafafa', padding: 5, borderRadius: 4, border: '1px dashed #e8e8e8' }}>
                                 {customerDesc}
                             </div>
-                        )}
+                        )} 
+                        */}
                         <div>
                             <Tag style={{ fontSize: 10, margin: 0, padding: '0 4px' }}>{r.sku}</Tag>
                             {r.variant_color && <Tag color="blue" style={{ fontSize: 10, margin: 0, padding: '0 4px', marginLeft: 4 }}>{r.variant_color}</Tag>}
@@ -400,7 +402,7 @@ const PortalQuotePage: React.FC = () => {
                                                     {/* Content */}
                                                     <div style={{ flex: 1 }}>
                                                         <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, lineHeight: 1.3 }}>
-                                                            {item.product_name_real || item.product?.name}
+                                                            {item.product?.customer_description || item.product_name_real || item.product?.name}
                                                         </div>
                                                         <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>{item.sku} {item.variant_color && `• ${item.variant_color}`}</div>
 
