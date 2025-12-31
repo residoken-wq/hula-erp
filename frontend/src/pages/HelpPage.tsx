@@ -27,7 +27,9 @@ import {
     TagsOutlined,
     GiftOutlined,
     ContainerOutlined,
-    CalculatorOutlined
+    CalculatorOutlined,
+    ShoppingCartOutlined,
+    WalletOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
