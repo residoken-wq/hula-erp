@@ -205,7 +205,7 @@ const PosPage: React.FC = () => {
                                     </Text>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 }}>
                                         <div>
-                                            <Text strong style={{ color: '#1890ff', fontSize: 15 }}>{product.base_price.toLocaleString()}đ</Text>
+                                            <Text strong style={{ color: '#1890ff', fontSize: 15 }}>{product.base_price.toLocaleString('vi-VN')}đ</Text>
                                         </div>
                                     </div>
                                     {!isMobile && <Tag color={isOutOfStock ? 'red' : 'green'} style={{ marginTop: 5 }}>{isOutOfStock ? 'Hết' : 'Kho: ' + product.quantity_in_stock}</Tag>}
@@ -272,8 +272,8 @@ const PosPage: React.FC = () => {
                                 title={<span style={{ fontSize: 13 }}>{item.name}</span>}
                                 description={
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                        <span style={{ fontSize: 12, color: '#999' }}>{item.base_price.toLocaleString()} x {item.qty}</span>
-                                        <span style={{ fontWeight: 600, color: '#333' }}>{(item.base_price * item.qty).toLocaleString()}đ</span>
+                                        <span style={{ fontSize: 12, color: '#999' }}>{item.base_price.toLocaleString('vi-VN')} x {item.qty}</span>
+                                        <span style={{ fontWeight: 600, color: '#333' }}>{(item.base_price * item.qty).toLocaleString('vi-VN')}đ</span>
                                     </div>
                                 }
                             />
@@ -287,7 +287,7 @@ const PosPage: React.FC = () => {
             <div style={{ padding: 24, background: '#fafafa', borderTop: '1px solid #e8e8e8' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text>Tạm tính:</Text>
-                    <Text strong>{totalAmount.toLocaleString()}đ</Text>
+                    <Text strong>{totalAmount.toLocaleString('vi-VN')}đ</Text>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                     <Text>VAT (0%):</Text>
@@ -296,7 +296,7 @@ const PosPage: React.FC = () => {
                 <Divider style={{ margin: '12px 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
                     <Title level={4} style={{ margin: 0 }}>Tổng:</Title>
-                    <Title level={3} type="danger" style={{ margin: 0 }}>{totalAmount.toLocaleString()}đ</Title>
+                    <Title level={3} type="danger" style={{ margin: 0 }}>{totalAmount.toLocaleString('vi-VN')}đ</Title>
                 </div>
 
                 <Row gutter={10}>
@@ -373,7 +373,7 @@ const PosPage: React.FC = () => {
                                     <div style={{ fontSize: 10, fontWeight: 500, lineHeight: 1.1, height: 22, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#333' }}>
                                         {p.name}
                                     </div>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1890ff', marginTop: 2 }}>{p.base_price.toLocaleString()}</div>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1890ff', marginTop: 2 }}>{p.base_price.toLocaleString('vi-VN')}</div>
                                     {isOOS && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 'bold', color: 'red' }}>HẾT</div>}
                                 </div>
                             )
