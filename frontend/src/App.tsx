@@ -3,9 +3,11 @@ import { Layout, Menu, theme, Button, Avatar, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import {
     DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
-    SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined
+    SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined, MenuOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { Drawer } from 'antd'; // <--- Import Drawer
+import useMobile from './hooks/useMobile'; // <--- Import Hook
 import api from './utils/api';
 
 // Import Components
@@ -56,6 +58,10 @@ const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [permissions, setPermissions] = useState<any[]>([]);
+
+    // Mobile Logic
+    const isMobile = useMobile();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     // Check Token & Load Permissions
     useEffect(() => {
@@ -180,22 +186,54 @@ const App: React.FC = () => {
                 <Route path="*" element={
                     isAuthenticated ? (
                         <Layout style={{ minHeight: '100vh' }}>
-                            <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
-                                <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', textAlign: 'center', color: '#fff', lineHeight: '32px', fontWeight: 'bold' }}>HULA ERP</div>
-                                <Menu theme="dark" selectedKeys={[window.location.pathname]} mode="inline" items={menuItems} />
-                            </Sider>
+                            {/* DESKTOP SIDER */}
+                            {!isMobile && (
+                                <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
+                                    <div style={{ height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', textAlign: 'center', color: '#fff', lineHeight: '32px', fontWeight: 'bold' }}>HULA ERP</div>
+                                    <Menu theme="dark" selectedKeys={[window.location.pathname]} mode="inline" items={menuItems} />
+                                </Sider>
+                            )}
+
+                            {/* MOBILE DRAWER MENU */}
+                            {isMobile && (
+                                <Drawer
+                                    title={<span style={{ fontWeight: 'bold' }}>HULA ERP</span>}
+                                    placement="left"
+                                    onClose={() => setMobileMenuOpen(false)}
+                                    open={mobileMenuOpen}
+                                    bodyStyle={{ padding: 0 }}
+                                    width={260}
+                                >
+                                    <Menu
+                                        theme="light"
+                                        selectedKeys={[window.location.pathname]}
+                                        mode="inline"
+                                        items={menuItems}
+                                        onClick={() => setMobileMenuOpen(false)} // Auto close on click
+                                    />
+                                </Drawer>
+                            )}
                             <Layout>
-                                <Header style={{ padding: '0 24px', background: colorBgContainer, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                    <HeaderNotifications />
-                                    <div style={{ width: 20 }} />
-                                    <Dropdown overlay={userMenu}>
-                                        <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <Avatar style={{ backgroundColor: '#87d068' }} icon={<UserOutlined />} />
-                                        </div>
-                                    </Dropdown>
+                                <Header style={{ padding: '0 24px', background: colorBgContainer, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    {/* MOBILE BURGER TRIGGER */}
+                                    {isMobile ? (
+                                        <Button type="text" icon={<MenuOutlined />} onClick={() => setMobileMenuOpen(true)} style={{ fontSize: '18px', width: 46, height: 46 }} />
+                                    ) : (
+                                        <div /> // Spacer if needed or just justify-end
+                                    )}
+
+                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                        <HeaderNotifications />
+                                        <div style={{ width: 20 }} />
+                                        <Dropdown overlay={userMenu}>
+                                            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <Avatar style={{ backgroundColor: '#87d068' }} icon={<UserOutlined />} />
+                                            </div>
+                                        </Dropdown>
+                                    </div>
                                 </Header>
-                                <Content style={{ margin: '0 16px' }}>
-                                    <div style={{ padding: 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG, marginTop: 16 }}>
+                                <Content style={{ margin: isMobile ? '16px 8px' : '0 16px' }}> {/* Less margin on mobile */}
+                                    <div style={{ padding: isMobile ? 12 : 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG, marginTop: 16 }}>
                                         <React.Suspense fallback={<LoadingDisplay />}>
                                             <Routes>
                                                 <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />

@@ -5,6 +5,7 @@ import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, A
 import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined } from '@ant-design/icons';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
+import useMobile from '../hooks/useMobile'; // <--- Import Hook
 
 const { Title, Text } = Typography;
 
@@ -15,6 +16,7 @@ const PortalQuotePage: React.FC = () => {
     const [commentText, setCommentText] = useState('');
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [previewVisible, setPreviewVisible] = useState(false);
+    const isMobile = useMobile(); // <--- Detect Mobile
 
     const handlePreview = (imageUrl: string) => {
         setPreviewImage(imageUrl);
@@ -250,7 +252,7 @@ const PortalQuotePage: React.FC = () => {
                     </Row>
                 </div>
 
-                {data.status === 'QUOTATION' && (
+                {!isMobile && data.status === 'QUOTATION' && (
                     <div style={{ borderTop: '1px solid #f0f0f0', background: '#fff' }}>
                         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -266,19 +268,35 @@ const PortalQuotePage: React.FC = () => {
                 )}
             </div>
 
+            {/* --- MOBILE FIXED BOTTOM ACTIONS --- */}
+            {isMobile && data.status === 'QUOTATION' && (
+                <div style={{
+                    position: 'fixed', bottom: 0, left: 0, right: 0,
+                    background: '#fff', padding: '12px 16px',
+                    boxShadow: '0 -2px 10px rgba(0,0,0,0.1)', zIndex: 9999,
+                    display: 'flex', gap: 10
+                }}>
+                    <Button danger size="large" block onClick={() => handleAction('REJECT')}>Từ Chối</Button>
+                    <Button type="primary" size="large" block style={{ background: '#52c41a', borderColor: '#52c41a' }} onClick={() => handleAction('ACCEPT')}>Đồng Ý</Button>
+                </div>
+            )}
+
             {/* --- MAIN CONTENT --- */}
-            <div style={{ maxWidth: 1200, margin: '30px auto', padding: '0 20px' }}>
+            <div style={{ maxWidth: 1200, margin: isMobile ? '16px auto' : '30px auto', padding: isMobile ? '0 12px' : '0 20px' }}>
 
                 {/* STATUS BAR */}
                 <Card bordered={false} style={{ marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                    <Steps current={currentStep} size="small"
+                    <Steps
+                        current={currentStep}
+                        size={isMobile ? "small" : "small"}
+                        direction={isMobile ? "vertical" : "horizontal"} // <--- Vertical on Mobile
                         items={[
                             { title: 'Báo Giá', icon: <SolutionOutlined /> },
-                            { title: 'Xác Nhận & Cọc', icon: <DollarOutlined /> }, // DEPOSITED
-                            { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> }, // SAMPLE_APPROVED
-                            { title: 'Sản Xuất', icon: <AppstoreAddOutlined /> }, // IN_PRODUCTION
-                            { title: 'Giao Hàng', icon: <CarOutlined /> }, // DELIVERED, PARTIAL
-                            { title: 'Hoàn Tất', icon: <CheckCircleOutlined /> } // COMPLETED
+                            { title: 'Xác Nhận & Cọc', icon: <DollarOutlined /> },
+                            { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> },
+                            { title: 'Sản Xuất', icon: <AppstoreAddOutlined /> },
+                            { title: 'Giao Hàng', icon: <CarOutlined /> },
+                            { title: 'Hoàn Tất', icon: <CheckCircleOutlined /> }
                         ]}
                     />
                 </Card>
@@ -342,50 +360,148 @@ const PortalQuotePage: React.FC = () => {
                                 </div>
                             )}
 
-                            <Table
-                                dataSource={data.items}
-                                columns={columns}
-                                rowKey="id"
-                                pagination={false}
-                                bordered={false}
-                                scroll={{ x: '100%' }}
-                                className="quote-table"
-                                summary={() => {
-                                    const vatRate = data.vat_rate || 0;
-                                    const subTotal = data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0);
-                                    const discountAmount = Number(data.discount_amount || 0);
-                                    const taxable = Math.max(0, subTotal - discountAmount);
-                                    const vatAmount = taxable * (vatRate / 100);
-                                    const total = taxable + vatAmount + Number(data.shipping_fee || 0);
+                            {isMobile ? (
+                                // MOBILE LIST VIEW
+                                <List
+                                    dataSource={data.items}
+                                    rowKey="id"
+                                    renderItem={(item: any, index: number) => {
+                                        // Re-use logic for image
+                                        const rawUrl = item.sample_image || item.product?.image_url;
+                                        let finalSrc = rawUrl;
+                                        let isImage = false;
+                                        if (rawUrl && rawUrl.includes('drive.google.com') && rawUrl.includes('/d/')) {
+                                            const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                                            if (match && match[1]) { finalSrc = `https://lh3.googleusercontent.com/d/${match[1]}`; isImage = true; }
+                                        } else if (rawUrl && rawUrl.includes('googleusercontent.com')) { isImage = true; }
+                                        else if (rawUrl && (rawUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || rawUrl.startsWith('data:image'))) {
+                                            if (!rawUrl.startsWith('http') && !rawUrl.startsWith('data:')) finalSrc = `${API_URL}${rawUrl}`;
+                                            isImage = true;
+                                        }
 
-                                    return (
-                                        <Table.Summary fixed>
-                                            <Table.Summary.Row>
-                                                <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Tổng tiền hàng</span></Table.Summary.Cell>
-                                                <Table.Summary.Cell index={1} align="right"><b>{subTotal.toLocaleString()}</b></Table.Summary.Cell>
-                                            </Table.Summary.Row>
-                                            {discountAmount > 0 && (
+                                        return (
+                                            <Card
+                                                size="small"
+                                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}
+                                                bodyStyle={{ padding: 12 }}
+                                            >
+                                                <div style={{ display: 'flex', gap: 12 }}>
+                                                    {/* Image */}
+                                                    <div style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #eee' }}>
+                                                        {isImage ? (
+                                                            <img
+                                                                src={finalSrc} alt="prod"
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                onClick={() => handlePreview(finalSrc)}
+                                                            />
+                                                        ) : <div style={{ width: '100%', height: '100%', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}><ShopOutlined /></div>}
+                                                    </div>
+
+                                                    {/* Content */}
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, lineHeight: 1.3 }}>
+                                                            {item.product_name_real || item.product?.name}
+                                                        </div>
+                                                        <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>{item.sku} {item.variant_color && `• ${item.variant_color}`}</div>
+
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <div style={{ fontSize: 12 }}>
+                                                                <b>{Number(item.quantity)}</b> x {Number(item.unit_price).toLocaleString()}
+                                                            </div>
+                                                            <div style={{ fontWeight: 700, fontSize: 14 }}>
+                                                                {Number(item.subtotal).toLocaleString()}₫
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {item.vat_content && (
+                                                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #f0f0f0', fontSize: 11, color: '#888' }}>
+                                                        {item.vat_content}
+                                                    </div>
+                                                )}
+                                            </Card>
+                                        );
+                                    }}
+                                />
+                            ) : (
+                                // DESKTOP TABLE VIEW
+                                <Table
+                                    dataSource={data.items}
+                                    columns={columns}
+                                    rowKey="id"
+                                    pagination={false}
+                                    bordered={false}
+                                    scroll={{ x: '100%' }}
+                                    className="quote-table"
+                                    summary={() => {
+                                        // Summary handled below for both views actually, but Antd Table Summary is properly placed inside Table.
+                                        // For mobile, we might need a separate summary block or use specific mobile summary logic. 
+                                        // Let's keep the Desktop summary here and add a visual summary for mobile below the list.
+                                        const vatRate = data.vat_rate || 0;
+                                        const subTotal = data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0);
+                                        const discountAmount = Number(data.discount_amount || 0);
+                                        const taxable = Math.max(0, subTotal - discountAmount);
+                                        const vatAmount = taxable * (vatRate / 100);
+                                        const total = taxable + vatAmount + Number(data.shipping_fee || 0);
+
+                                        return (
+                                            <Table.Summary fixed>
                                                 <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Giảm giá ({data.discount_rate}%)</span></Table.Summary.Cell>
-                                                    <Table.Summary.Cell index={1} align="right"><span style={{ color: '#52c41a' }}>-{discountAmount.toLocaleString()}</span></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Tổng tiền hàng</span></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right"><b>{subTotal.toLocaleString()}</b></Table.Summary.Cell>
                                                 </Table.Summary.Row>
-                                            )}
-                                            <Table.Summary.Row>
-                                                <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span></Table.Summary.Cell>
-                                                <Table.Summary.Cell index={1} align="right">{vatAmount.toLocaleString()}</Table.Summary.Cell>
-                                            </Table.Summary.Row>
-                                            <Table.Summary.Row>
-                                                <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Phí vận chuyển</span></Table.Summary.Cell>
-                                                <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee || 0).toLocaleString()}</Table.Summary.Cell>
-                                            </Table.Summary.Row>
-                                            <Table.Summary.Row style={{ background: '#fafafa' }}>
-                                                <Table.Summary.Cell index={0} colSpan={5} align="right"><b style={{ fontSize: 18, color: '#1890ff' }}>TỔNG CỘNG</b></Table.Summary.Cell>
-                                                <Table.Summary.Cell index={1} align="right"><b style={{ fontSize: 20, color: '#cf1322' }}>{total.toLocaleString()} ₫</b></Table.Summary.Cell>
-                                            </Table.Summary.Row>
-                                        </Table.Summary>
-                                    );
-                                }}
-                            />
+                                                {discountAmount > 0 && (
+                                                    <Table.Summary.Row>
+                                                        <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Giảm giá ({data.discount_rate}%)</span></Table.Summary.Cell>
+                                                        <Table.Summary.Cell index={1} align="right"><span style={{ color: '#52c41a' }}>-{discountAmount.toLocaleString()}</span></Table.Summary.Cell>
+                                                    </Table.Summary.Row>
+                                                )}
+                                                <Table.Summary.Row>
+                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right">{vatAmount.toLocaleString()}</Table.Summary.Cell>
+                                                </Table.Summary.Row>
+                                                <Table.Summary.Row>
+                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Phí vận chuyển</span></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee || 0).toLocaleString()}</Table.Summary.Cell>
+                                                </Table.Summary.Row>
+                                                <Table.Summary.Row style={{ background: '#fafafa' }}>
+                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><b style={{ fontSize: 18, color: '#1890ff' }}>TỔNG CỘNG</b></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right"><b style={{ fontSize: 20, color: '#cf1322' }}>{total.toLocaleString()} ₫</b></Table.Summary.Cell>
+                                                </Table.Summary.Row>
+                                            </Table.Summary>
+                                        );
+                                    }}
+                                />
+                            )}
+
+                            {/* MOBILE SUMMARY BLOCK (Since Table Summary won't show in List) */}
+                            {isMobile && (
+                                <div style={{ background: '#fafafa', padding: 12, borderRadius: 8, marginTop: 12 }}>
+                                    {[
+                                        { label: 'Tổng tiền hàng', value: data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0).toLocaleString() },
+                                        { log: data.discount_amount > 0, label: `Giảm giá (${data.discount_rate}%)`, value: `-${Number(data.discount_amount).toLocaleString()}`, color: 'green' },
+                                        { label: `Thuế VAT (${data.vat_rate || 0}%)`, value: ((Math.max(0, data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0) - Number(data.discount_amount || 0))) * ((data.vat_rate || 0) / 100)).toLocaleString() },
+                                        { label: 'Phí vận chuyển', value: Number(data.shipping_fee || 0).toLocaleString() }
+                                    ].map((row, idx) => {
+                                        if (row.log === false) return null;
+                                        return (
+                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                                                <span style={{ color: '#888' }}>{row.label}</span>
+                                                <span style={{ fontWeight: 600, color: row.color || '#333' }}>{row.value}</span>
+                                            </div>
+                                        )
+                                    })}
+                                    <Divider style={{ margin: '8px 0' }} />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontWeight: 700, fontSize: 15 }}>TỔNG CỘNG</span>
+                                        <span style={{ fontWeight: 700, fontSize: 18, color: '#ff4d4f' }}>
+                                            {(
+                                                (Math.max(0, data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0) - Number(data.discount_amount || 0))) * (1 + (data.vat_rate || 0) / 100) + Number(data.shipping_fee || 0)
+                                            ).toLocaleString()} ₫
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Terms */}
                             {data.terms_content && (
@@ -448,42 +564,68 @@ const PortalQuotePage: React.FC = () => {
                         {/* --- DELIVERY HISTORY --- */}
                         {data.deliveries && data.deliveries.length > 0 && (
                             <Card title={<span><CarOutlined /> Lịch Sử Giao Hàng</span>} size="small" style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                                <Table
-                                    dataSource={data.deliveries}
-                                    rowKey="id"
-                                    pagination={false}
-                                    size="small"
-                                    columns={[
-                                        { title: 'Ngày', width: 90, align: 'center', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YY') },
-                                        { title: 'Mã Phiếu', width: 100, dataIndex: 'code', render: (t: string) => <div style={{ fontWeight: 700, color: '#1890ff' }}>{t}</div> },
-                                        {
-                                            title: 'Trạng thái', width: 90, align: 'center',
-                                            render: (r: any) => (
-                                                <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>
-                                                    {r.status === 'SHIPPED' ? 'Đã Giao' : 'Đang Giao'}
-                                                </Tag>
-                                            )
-                                        },
-                                        {
-                                            title: 'Chi tiết sản phẩm',
-                                            render: (r: any) => (
-                                                <div style={{ fontSize: 12 }}>
-                                                    {r.items?.map((item: any, idx: number) => {
-                                                        const p = data.items.find((x: any) => x.sku === item.sku);
-                                                        const name = p ? (p.product_name_real || p.product?.name) : item.sku;
-                                                        return (
-                                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #f0f0f0', padding: '3px 0' }}>
-                                                                <span style={{ color: '#444', marginRight: 5 }}>{name}</span>
-                                                                <b>x{item.quantity}</b>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                    {r.note && <div style={{ color: '#999', fontStyle: 'italic', marginTop: 4 }}>Example: {r.note}</div>}
-                                                </div>
-                                            )
-                                        },
-                                    ]}
-                                />
+                                {isMobile ? (
+                                    <List dataSource={data.deliveries} renderItem={(r: any) => (
+                                        <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                                <span style={{ fontWeight: 700, color: '#1890ff' }}>{r.code}</span>
+                                                <span style={{ fontSize: 12, color: '#999' }}>{dayjs(r.delivery_date).format('DD/MM/YY')}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                                <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>{r.status === 'SHIPPED' ? 'Đã Giao' : 'Đang Giao'}</Tag>
+                                            </div>
+                                            <div style={{ background: '#fafafa', padding: 8, borderRadius: 4, fontSize: 12 }}>
+                                                {r.items?.map((item: any, idx: number) => {
+                                                    const p = data.items.find((x: any) => x.sku === item.sku);
+                                                    const name = p ? (p.product_name_real || p.product?.name) : item.sku;
+                                                    return (
+                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                            <span>{name}</span>
+                                                            <b>x{item.quantity}</b>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )} />
+                                ) : (
+                                    <Table
+                                        dataSource={data.deliveries}
+                                        rowKey="id"
+                                        pagination={false}
+                                        size="small"
+                                        columns={[
+                                            { title: 'Ngày', width: 90, align: 'center', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YY') },
+                                            { title: 'Mã Phiếu', width: 100, dataIndex: 'code', render: (t: string) => <div style={{ fontWeight: 700, color: '#1890ff' }}>{t}</div> },
+                                            {
+                                                title: 'Trạng thái', width: 90, align: 'center',
+                                                render: (r: any) => (
+                                                    <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>
+                                                        {r.status === 'SHIPPED' ? 'Đã Giao' : 'Đang Giao'}
+                                                    </Tag>
+                                                )
+                                            },
+                                            {
+                                                title: 'Chi tiết sản phẩm',
+                                                render: (r: any) => (
+                                                    <div style={{ fontSize: 12 }}>
+                                                        {r.items?.map((item: any, idx: number) => {
+                                                            const p = data.items.find((x: any) => x.sku === item.sku);
+                                                            const name = p ? (p.product_name_real || p.product?.name) : item.sku;
+                                                            return (
+                                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #f0f0f0', padding: '3px 0' }}>
+                                                                    <span style={{ color: '#444', marginRight: 5 }}>{name}</span>
+                                                                    <b>x{item.quantity}</b>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        {r.note && <div style={{ color: '#999', fontStyle: 'italic', marginTop: 4 }}>Example: {r.note}</div>}
+                                                    </div>
+                                                )
+                                            },
+                                        ]}
+                                    />
+                                )}
                             </Card>
                         )}
 
@@ -497,42 +639,66 @@ const PortalQuotePage: React.FC = () => {
                             <Divider orientation="left" style={{ fontSize: 12, color: '#bbb' }}>Chi tiết giao dịch</Divider>
 
                             {data.payments && data.payments.length > 0 ? (
-                                <Table
-                                    dataSource={data.payments}
-                                    rowKey="id"
-                                    pagination={false}
-                                    size="small"
-                                    columns={[
-                                        { title: 'Ngày', render: (r: any) => dayjs(r.date).format('DD/MM/YYYY') },
-                                        {
-                                            title: 'Loại',
-                                            render: (r: any) => {
-                                                let text = r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền';
-                                                let color = r.type === 'INCOME' ? 'success' : 'red';
-                                                let desc = r.description || '';
+                                isMobile ? (
+                                    <List dataSource={data.payments} renderItem={(r: any) => {
+                                        let text = r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền';
+                                        let color = r.type === 'INCOME' ? 'success' : 'red';
+                                        let desc = r.description || '';
+                                        const match = desc.match(/^\[(.*?)\]/);
+                                        if (match) {
+                                            text = match[1]; desc = desc.replace(match[0], '').trim();
+                                            if (text.includes('ĐẶT CỌC')) color = 'orange';
+                                            if (text.includes('TẤT TOÁN')) color = 'blue';
+                                        }
+                                        return (
+                                            <div style={{ padding: '8px 0', borderBottom: '1px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <div style={{ fontSize: 12, color: '#999' }}>{dayjs(r.date).format('DD/MM/YYYY')}</div>
+                                                    <div><Tag color={color}>{text}</Tag></div>
+                                                    {desc && <div style={{ fontSize: 11, color: '#666' }}>{desc}</div>}
+                                                </div>
+                                                <div style={{ fontWeight: 700, fontSize: 14 }}>{Number(r.amount).toLocaleString()}</div>
+                                            </div>
+                                        )
+                                    }} />
+                                ) : (
+                                    <Table
+                                        dataSource={data.payments}
+                                        rowKey="id"
+                                        pagination={false}
+                                        size="small"
+                                        columns={[
+                                            { title: 'Ngày', render: (r: any) => dayjs(r.date).format('DD/MM/YYYY') },
+                                            {
+                                                title: 'Loại',
+                                                render: (r: any) => {
+                                                    let text = r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền';
+                                                    let color = r.type === 'INCOME' ? 'success' : 'red';
+                                                    let desc = r.description || '';
 
-                                                // Try to parse [TYPE] from description (saved in SalesPayments.tsx)
-                                                // Format: [ĐẶT CỌC] Note...
-                                                const match = desc.match(/^\[(.*?)\]/);
-                                                if (match) {
-                                                    text = match[1]; // e.g. "ĐẶT CỌC", "TẤT TOÁN"
-                                                    desc = desc.replace(match[0], '').trim();
-                                                    if (text.includes('ĐẶT CỌC')) color = 'orange';
-                                                    if (text.includes('TẤT TOÁN')) color = 'blue';
-                                                    if (text.includes('THANH TOÁN')) color = 'green';
+                                                    // Try to parse [TYPE] from description (saved in SalesPayments.tsx)
+                                                    // Format: [ĐẶT CỌC] Note...
+                                                    const match = desc.match(/^\[(.*?)\]/);
+                                                    if (match) {
+                                                        text = match[1]; // e.g. "ĐẶT CỌC", "TẤT TOÁN"
+                                                        desc = desc.replace(match[0], '').trim();
+                                                        if (text.includes('ĐẶT CỌC')) color = 'orange';
+                                                        if (text.includes('TẤT TOÁN')) color = 'blue';
+                                                        if (text.includes('THANH TOÁN')) color = 'green';
+                                                    }
+
+                                                    return (
+                                                        <div>
+                                                            <Tag color={color}>{text}</Tag>
+                                                            {desc && <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{desc}</div>}
+                                                        </div>
+                                                    );
                                                 }
-
-                                                return (
-                                                    <div>
-                                                        <Tag color={color}>{text}</Tag>
-                                                        {desc && <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{desc}</div>}
-                                                    </div>
-                                                );
-                                            }
-                                        },
-                                        { title: 'Số tiền', align: 'right', render: (r: any) => <b>{Number(r.amount).toLocaleString()}</b> },
-                                    ]}
-                                />
+                                            },
+                                            { title: 'Số tiền', align: 'right', render: (r: any) => <b>{Number(r.amount).toLocaleString()}</b> },
+                                        ]}
+                                    />
+                                )
                             ) : (
                                 <Empty description="Chưa có giao dịch nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />
                             )}
