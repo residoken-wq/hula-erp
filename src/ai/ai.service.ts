@@ -61,6 +61,10 @@ export class AiService {
         const { message } = body;
 
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        console.log('DEBUG AI: Checking Key...');
+        console.log('DEBUG AI: Key from ConfigService:', apiKey ? 'FOUND (Length: ' + apiKey.length + ')' : 'MISSING');
+        console.log('DEBUG AI: Process.env.GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? 'FOUND' : 'MISSING');
+
         if (!apiKey) {
             return { text: "AI Service is not configured (Missing GEMINI_API_KEY)." };
         }
