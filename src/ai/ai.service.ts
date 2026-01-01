@@ -223,8 +223,10 @@ export class AiService {
             let action;
             try {
                 action = JSON.parse(cleanJson);
+                console.log('DEBUG AI: Parsed action from LLM:', JSON.stringify(action));
             } catch (e) {
                 // If LLM replies with text, return it
+                console.log('DEBUG AI: Failed to parse JSON, returning raw text:', textHTML);
                 return { text: textHTML };
             }
 
