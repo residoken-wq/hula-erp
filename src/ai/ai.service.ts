@@ -25,8 +25,8 @@ export class AiService {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
-        // Use gemini-1.5-flash (recommended for ERP use cases)
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // Use gemini-1.5-flash with stable v1 API (recommended for ERP use cases)
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
         const payload = {
             contents: [{ parts: [{ text: prompt }] }]
