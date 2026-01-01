@@ -41,6 +41,7 @@ services:
       - DB_USERNAME=hula_user
       - DB_PASSWORD=hula_password
       - DB_DATABASE=hula_db
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       db:
         condition: service_healthy

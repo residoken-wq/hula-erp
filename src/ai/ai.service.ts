@@ -1,4 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ProductsService } from '../products/products.service';
 import { FinanceService } from '../finance/finance.service';
 import { SalesService } from '../sales/sales.service';
@@ -10,6 +11,7 @@ export class AiService {
     // private model: GenerativeModel;
 
     constructor(
+        private configService: ConfigService,
         private productsService: ProductsService,
         private financeService: FinanceService,
         private salesService: SalesService,
@@ -20,7 +22,7 @@ export class AiService {
     }
 
     private async callGemini(prompt: string): Promise<string> {
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
@@ -58,7 +60,8 @@ export class AiService {
     async chat(body: any) {
         const { message } = body;
 
-        if (!process.env.GEMINI_API_KEY) {
+        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        if (!apiKey) {
             return { text: "AI Service is not configured (Missing GEMINI_API_KEY)." };
         }
 
