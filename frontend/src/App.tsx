@@ -110,7 +110,7 @@ const App: React.FC = () => {
         }
 
         // 3. Nhập liệu
-        if (hasPerm('PRODUCT') || hasPerm('INVENTORY')) {
+        if (hasPerm('PRODUCT') || hasPerm('INVENTORY') || hasPerm('SALES')) {
             items.push(getItem(<Link to="/upload">Nhập liệu (Excel)</Link>, 'upload', <CloudUploadOutlined />));
         }
 
@@ -239,7 +239,7 @@ const App: React.FC = () => {
                                             <Routes>
                                                 <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
 
-                                                {(hasPerm('PRODUCT') || hasPerm('INVENTORY')) && <Route path="/upload" element={<UploadPage />} />}
+                                                {(hasPerm('PRODUCT') || hasPerm('INVENTORY') || hasPerm('SALES')) && <Route path="/upload" element={<UploadPage />} />}
 
                                                 {hasPerm('PRODUCT') && (
                                                     <>
