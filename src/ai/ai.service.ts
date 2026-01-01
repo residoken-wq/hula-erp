@@ -3,20 +3,51 @@ import { ProductsService } from '../products/products.service';
 import { FinanceService } from '../finance/finance.service';
 import { SalesService } from '../sales/sales.service';
 import { CustomersService } from '../customers/customers.service';
-import { GenerativeModel } from '@google/generative-ai';
+// import { GenerativeModel } from '@google/generative-ai'; // Removed to avoid dependency issues
 
 @Injectable()
 export class AiService {
-    private model: GenerativeModel;
+    // private model: GenerativeModel;
 
     constructor(
         private productsService: ProductsService,
         private financeService: FinanceService,
         private salesService: SalesService,
         private customersService: CustomersService,
-        @Inject('GEMINI_MODEL') private geminiModel: GenerativeModel
+        // @Inject('GEMINI_MODEL') private geminiModel: GenerativeModel
     ) {
-        this.model = this.geminiModel;
+        // this.model = this.geminiModel;
+    }
+
+    private async callGemini(prompt: string): Promise<string> {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        const payload = {
+            contents: [{ parts: [{ text: prompt }] }]
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const err = await response.text();
+                throw new Error(`Gemini API Error: ${response.status} - ${err}`);
+            }
+
+            const data = await response.json();
+            // Parse prediction
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        } catch (error) {
+            console.error("Gemini Fetch Error:", error);
+            throw error;
+        }
     }
 
     // --- TOOLS DEFINITION ---
@@ -27,8 +58,8 @@ export class AiService {
     async chat(body: any) {
         const { message } = body;
 
-        if (!this.model) {
-            return { text: "AI Service is not configured (Missing API Key)." };
+        if (!process.env.GEMINI_API_KEY) {
+            return { text: "AI Service is not configured (Missing GEMINI_API_KEY)." };
         }
 
         // SYSTEM PROMPT
@@ -57,9 +88,8 @@ export class AiService {
         `;
 
         try {
-            const result = await this.model.generateContent(prompt);
-            const response = result.response;
-            const textHTML = response.text();
+            // CALL GEMINI via FETCH
+            const textHTML = await this.callGemini(prompt);
 
             // Clean markdown if present
             const cleanJson = textHTML.replace(/```json/g, '').replace(/```/g, '').trim();
