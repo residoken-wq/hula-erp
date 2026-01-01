@@ -23,6 +23,39 @@ export class AiService {
 
     private selectedModel: string | null = null;
 
+    // Conversation history: Map<userId, messages[]>
+    private conversationHistory: Map<string, Array<{ role: string; content: string }>> = new Map();
+    private readonly MAX_HISTORY = 10; // Keep last 10 messages
+
+    private getConversationHistory(userId: string): Array<{ role: string; content: string }> {
+        if (!this.conversationHistory.has(userId)) {
+            this.conversationHistory.set(userId, []);
+        }
+        return this.conversationHistory.get(userId);
+    }
+
+    private addToHistory(userId: string, role: string, content: string) {
+        const history = this.getConversationHistory(userId);
+        history.push({ role, content });
+
+        // Keep only last MAX_HISTORY messages
+        if (history.length > this.MAX_HISTORY) {
+            history.shift();
+        }
+    }
+
+    private clearHistory(userId: string) {
+        this.conversationHistory.delete(userId);
+    }
+
+    private formatNumber(num: number): string {
+        return num.toLocaleString('vi-VN');
+    }
+
+    private formatMoney(amount: number): string {
+        return amount.toLocaleString('vi-VN');
+    }
+
     private async getBestModel(apiKey: string): Promise<string> {
         if (this.selectedModel) return this.selectedModel;
 
@@ -98,7 +131,7 @@ export class AiService {
     // UPDATED STRATEGY: We will just prompt the LLM to output a JSON Action.
 
     async chat(body: any) {
-        const { message } = body;
+        const { message, userId = 'default' } = body; // Default userId if not provided
 
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         console.log('DEBUG AI: Checking Key...');
@@ -114,18 +147,25 @@ export class AiService {
         const currentMonth = now.getMonth() + 1;
         const currentYear = now.getFullYear();
 
+        // Get conversation history
+        const history = this.getConversationHistory(userId);
+        const historyContext = history.length > 0
+            ? `\n\nCONVERSATION HISTORY:\n${history.map(h => `${h.role}: ${h.content}`).join('\n')}\n`
+            : '';
+
         const prompt = `
             You are HulaBot, an intelligent assistant for the Hula ERP system in Vietnam.
             Current date: ${now.toISOString().split('T')[0]} (Month: ${currentMonth}, Year: ${currentYear})
             
             Your job is to help the user manage Inventory, Finance, and Sales.
             You MUST respond in Vietnamese when the user speaks Vietnamese.
-            
+            ${historyContext}
             CRITICAL RULES:
             1. When user asks about "tháng [số]" (month X) without year, assume they mean the CURRENT YEAR (${currentYear})
             2. When user asks "tháng này" (this month), use month ${currentMonth} and year ${currentYear}
             3. When user asks "tháng trước" (last month), calculate the previous month correctly
             4. Output ONLY a valid JSON object, NO markdown code blocks, NO text before or after
+            5. Use conversation history to understand context when the user asks follow-up questions
             
             AVAILABLE TOOLS:
             1. CHECK_STOCK: Search for products and check their stock.
@@ -143,7 +183,19 @@ export class AiService {
                Output: { "tool": "CREATE_LEAD", "name": "customer name", "phone": "phone number" }
                Example: "khách tên Tùng sdt 0909123456" → { "tool": "CREATE_LEAD", "name": "Tùng", "phone": "0909123456" }
 
-            4. UNKNOWN: If you cannot help.
+            4. CHECK_ORDER: Search for sales orders.
+               Output: { "tool": "CHECK_ORDER", "query": "customer name or order code" }
+               Example: "tìm đơn của khách Tùng" → { "tool": "CHECK_ORDER", "query": "Tùng" }
+
+            5. GET_PRODUCT_INFO: Get detailed product information.
+               Output: { "tool": "GET_PRODUCT_INFO", "sku": "product sku" }
+               Example: "thông tin sản phẩm PRD-001" → { "tool": "GET_PRODUCT_INFO", "sku": "PRD-001" }
+
+            6. SEARCH_CUSTOMER: Find customer contact information.
+               Output: { "tool": "SEARCH_CUSTOMER", "query": "customer name or phone" }
+               Example: "tìm khách hàng Lan" → { "tool": "SEARCH_CUSTOMER", "query": "Lan" }
+
+            7. UNKNOWN: If you cannot help.
                Output: { "tool": "UNKNOWN", "reply": "Xin lỗi, tôi chưa hiểu yêu cầu này." }
 
             USER MESSAGE: "${message}"
@@ -169,10 +221,18 @@ export class AiService {
             // EXECUTE TOOL
             if (action.tool === 'CHECK_STOCK') {
                 const products = await this.productsService.searchProducts(action.query);
-                if (products.length === 0) return { text: `Không tìm thấy sản phẩm nào khớp với "${action.query}".` };
+                if (products.length === 0) {
+                    const reply = `Không tìm thấy sản phẩm nào khớp với "${action.query}".`;
+                    this.addToHistory(userId, 'user', message);
+                    this.addToHistory(userId, 'assistant', reply);
+                    return { text: reply };
+                }
 
-                const details = products.map(p => `- ${p.name} (${p.sku}): Còn ${p.quantity_in_stock} ${p.unit || 'cái'}`).join('\n');
-                return { text: `Kết quả tìm kiếm cho "${action.query}":\n${details}` };
+                const details = products.map(p => `- ${p.name} (${p.sku}): Còn ${this.formatNumber(p.quantity_in_stock)} ${p.unit || 'cái'}`).join('\n');
+                const reply = `Kết quả tìm kiếm cho "${action.query}":\n${details}`;
+                this.addToHistory(userId, 'user', message);
+                this.addToHistory(userId, 'assistant', reply);
+                return { text: reply };
             }
 
             if (action.tool === 'CHECK_FINANCE') {
@@ -181,9 +241,10 @@ export class AiService {
                 const dateStr = `${y}-${String(m).padStart(2, '0')}`;
 
                 const report = await this.financeService.getFinancialReport(dateStr);
-                return {
-                    text: `Báo cáo tháng ${m}/${y}:\n- Doanh thu: ${report.summary.income.toLocaleString()} đ\n- Lợi nhuận: ${report.summary.profit.toLocaleString()} đ`
-                };
+                const reply = `Báo cáo tháng ${m}/${y}:\n- Doanh thu: ${this.formatMoney(report.summary.income)} đ\n- Lợi nhuận: ${this.formatMoney(report.summary.profit)} đ`;
+                this.addToHistory(userId, 'user', message);
+                this.addToHistory(userId, 'assistant', reply);
+                return { text: reply };
             }
 
             if (action.tool === 'CREATE_LEAD') {
@@ -195,10 +256,84 @@ export class AiService {
                     type: 'LEAD',
                     lead_status: 'NEW'
                 });
-                return { text: `Đã tạo Lead mới: ${action.name} (SĐT: ${action.phone}).` };
+                const reply = `Đã tạo Lead mới: ${action.name} (SĐT: ${action.phone}).`;
+                this.addToHistory(userId, 'user', message);
+                this.addToHistory(userId, 'assistant', reply);
+                return { text: reply };
             }
 
-            return { text: action.reply || "Tôi không hiểu yêu cầu này." };
+            if (action.tool === 'CHECK_ORDER') {
+                const allOrders = await this.salesService.findAll();
+                const orders = allOrders.filter((o: any) =>
+                    o.code?.toLowerCase().includes(action.query.toLowerCase()) ||
+                    o.customer?.name?.toLowerCase().includes(action.query.toLowerCase())
+                );
+
+                if (!orders || orders.length === 0) {
+                    const reply = `Không tìm thấy đơn hàng nào khớp với "${action.query}".`;
+                    this.addToHistory(userId, 'user', message);
+                    this.addToHistory(userId, 'assistant', reply);
+                    return { text: reply };
+                }
+
+                const details = orders.slice(0, 5).map((o: any) => {
+                    const customerName = o.customer?.name || 'N/A';
+                    const total = this.formatMoney(o.total_price || 0);
+                    return `- ${o.code}: ${customerName} - ${total} đ (${o.status})`;
+                }).join('\n');
+                const reply = `Tìm thấy ${orders.length} đơn hàng:\n${details}`;
+                this.addToHistory(userId, 'user', message);
+                this.addToHistory(userId, 'assistant', reply);
+                return { text: reply };
+            }
+
+            if (action.tool === 'GET_PRODUCT_INFO') {
+                const product = await this.productsService.findOneBySku(action.sku);
+                if (!product) {
+                    const reply = `Không tìm thấy sản phẩm với SKU "${action.sku}".`;
+                    this.addToHistory(userId, 'user', message);
+                    this.addToHistory(userId, 'assistant', reply);
+                    return { text: reply };
+                }
+
+                const reply = `Thông tin sản phẩm ${product.sku}:\n` +
+                    `- Tên: ${product.name}\n` +
+                    `- Loại: ${product.product_type || 'N/A'}\n` +
+                    `- Giá: ${this.formatMoney(product.base_price)} đ\n` +
+                    `- Tồn kho: ${this.formatNumber(product.quantity_in_stock)} ${product.unit || 'cái'}`;
+                this.addToHistory(userId, 'user', message);
+                this.addToHistory(userId, 'assistant', reply);
+                return { text: reply };
+            }
+
+            if (action.tool === 'SEARCH_CUSTOMER') {
+                const allCustomers = await this.customersService.findAll();
+                const customers = allCustomers.filter((c: any) =>
+                    c.name?.toLowerCase().includes(action.query.toLowerCase()) ||
+                    c.code?.toLowerCase().includes(action.query.toLowerCase()) ||
+                    c.phone?.toLowerCase().includes(action.query.toLowerCase())
+                );
+
+                if (!customers || customers.length === 0) {
+                    const reply = `Không tìm thấy khách hàng nào khớp với "${action.query}".`;
+                    this.addToHistory(userId, 'user', message);
+                    this.addToHistory(userId, 'assistant', reply);
+                    return { text: reply };
+                }
+
+                const details = customers.slice(0, 5).map((c: any) =>
+                    `- ${c.name} (${c.code}): ${c.phone || 'N/A'} - ${c.email || 'N/A'}`
+                ).join('\n');
+                const reply = `Tìm thấy ${customers.length} khách hàng:\n${details}`;
+                this.addToHistory(userId, 'user', message);
+                this.addToHistory(userId, 'assistant', reply);
+                return { text: reply };
+            }
+
+            const reply = action.reply || "Tôi không hiểu yêu cầu này.";
+            this.addToHistory(userId, 'user', message);
+            this.addToHistory(userId, 'assistant', reply);
+            return { text: reply };
 
         } catch (error) {
             console.error(error);

@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 import { MaterialsService } from '../materials/materials.service';
 import { ProductsService } from '../products/products.service';
+import { SalesService } from '../sales/sales.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from '../products/product.entity';
@@ -14,6 +15,7 @@ export class UploadService {
   constructor(
     private materialsService: MaterialsService,
     private productsService: ProductsService,
+    private salesService: SalesService,
     @InjectRepository(Product) private productRepo: Repository<Product>,
     @InjectRepository(BOM) private bomRepo: Repository<BOM>,
     @InjectRepository(ProductComponent) private componentRepo: Repository<ProductComponent>,
@@ -243,6 +245,13 @@ export class UploadService {
       sampleData = [
         { Code: 'KH001', Name: 'Công ty ABC', Type: 'CUSTOMER', Phone: '0909123456', Email: 'abc@gmail.com', Address: 'HCM', Tax: '030123456', Limit: 50000000 },
         { Code: 'LEAD01', Name: 'Chị Lan', Type: 'LEAD', Phone: '0918...', Email: '', Address: '', Tax: '', Limit: 0 }
+      ];
+    } else if (type === 'sales') {
+      // --- TEMPLATE DON HANG ---
+      headers = ['CustomerCode', 'OrderDate', 'ProductSKU', 'Quantity', 'UnitPrice', 'Notes'];
+      sampleData = [
+        { CustomerCode: 'KH001', OrderDate: '2026-01-01', ProductSKU: 'PRD-001', Quantity: 10, UnitPrice: 50000, Notes: 'Giao gấp' },
+        { CustomerCode: 'KH001', OrderDate: '2026-01-01', ProductSKU: 'PRD-002', Quantity: 5, UnitPrice: 75000, Notes: '' }
       ];
     } else {
       throw new BadRequestException('Loai template khong hop le');
