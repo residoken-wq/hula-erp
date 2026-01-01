@@ -25,8 +25,8 @@ export class AiService {
         const apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) throw new Error("GEMINI_API_KEY not set");
 
-        // Switch to gemini-1.5-flash for better free-tier availability
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // Switch to gemini-pro (Stable v1.0) which is widely supported
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 
         const payload = {
             contents: [{ parts: [{ text: prompt }] }]
