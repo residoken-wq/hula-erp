@@ -174,13 +174,20 @@ export class AiService {
             
             2. CHECK_FINANCE: Get financial report for a specific period.
                Output: { "tool": "CHECK_FINANCE", "month": number, "year": number }
-               IMPORTANT: If user asks for YEARLY statistics ("năm 2025", "thống kê năm"), set month to 0
-               Examples:
+               
+               CRITICAL: Detect if user wants YEARLY or MONTHLY report:
+               - If user says "năm", "cả năm", "toàn năm", "thống kê năm" → set month = 0
+               - If user says "tháng [số]" or specific month → set month = 1-12
+               
+               Yearly examples (month = 0):
+               - "thống kê doanh thu năm 2025" → { "tool": "CHECK_FINANCE", "month": 0, "year": 2025 }
+               - "doanh thu cả năm 2024" → { "tool": "CHECK_FINANCE", "month": 0, "year": 2024 }
+               - "báo cáo tài chính năm 2025" → { "tool": "CHECK_FINANCE", "month": 0, "year": 2025 }
+               
+               Monthly examples (month = 1-12):
                - "doanh thu tháng 12" → { "tool": "CHECK_FINANCE", "month": 12, "year": ${currentYear} }
                - "doanh thu tháng này" → { "tool": "CHECK_FINANCE", "month": ${currentMonth}, "year": ${currentYear} }
                - "báo cáo tài chính tháng 3/2024" → { "tool": "CHECK_FINANCE", "month": 3, "year": 2024 }
-               - "thống kê doanh thu năm 2025" → { "tool": "CHECK_FINANCE", "month": 0, "year": 2025 }
-               - "doanh thu cả năm 2024" → { "tool": "CHECK_FINANCE", "month": 0, "year": 2024 }
 
             3. CREATE_LEAD: Create a new CRM lead.
                Output: { "tool": "CREATE_LEAD", "name": "customer name", "phone": "phone number" }
