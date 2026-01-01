@@ -169,7 +169,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     shipping_fee: initialData.shipping_fee || 0,
                     vat_company_name: initialData.vat_company_name || initialData.customer?.legal_name || initialData.customer?.name || '',
                     vat_tax_code: initialData.vat_tax_code || initialData.customer?.tax_code || '',
-                    vat_address: initialData.vat_address || initialData.customer?.legal_address || initialData.customer?.address || ''
+                    vat_address: initialData.vat_address || initialData.customer?.legal_address || initialData.customer?.address || '',
+                    vat_invoice_link: initialData.vat_invoice_link || '',
+                    vat_email: initialData.vat_email || initialData.customer?.einvoice_email || ''
                 });
 
                 // FIX LỖI: Map dữ liệu từ Backend (subtotal) sang Frontend (total_price)
@@ -255,7 +257,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             form.setFieldsValue({
                 vat_company_name: customer.legal_name || customer.name || '',
                 vat_tax_code: customer.tax_code || '',
-                vat_address: customer.legal_address || customer.address || ''
+                vat_address: customer.legal_address || customer.address || '',
+                vat_email: customer.einvoice_email || customer.email || ''
             });
         }
     };
@@ -812,10 +815,23 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                     </Form.Item>
                                 </Col>
                             </Row>
+
                             <Row gutter={16}>
                                 <Col span={24}>
                                     <Form.Item name="vat_address" label="Địa chỉ xuất HĐ">
                                         <Input placeholder="Địa chỉ theo ĐKKD" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item name="vat_email" label="Email Nhận Hóa Đơn">
+                                        <Input placeholder="email@company.com" />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item name="vat_invoice_link" label="Link Hóa Đơn (PDF/Drive)">
+                                        <Input placeholder="https://..." prefix={<LinkOutlined />} />
                                     </Form.Item>
                                 </Col>
                             </Row>

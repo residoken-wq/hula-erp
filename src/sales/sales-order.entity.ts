@@ -53,6 +53,8 @@ export class SalesOrder {
   @Column({ nullable: true }) vat_tax_code: string;
   @Column({ nullable: true }) vat_address: string;
   @Column('int', { default: 0 }) vat_rate: number;
+  @Column({ nullable: true }) vat_invoice_link: string;
+  @Column({ nullable: true }) vat_email: string;
 
   @Column({ type: 'date', nullable: true }) delivery_date: Date;
   @Column({ nullable: true }) shipping_address: string;

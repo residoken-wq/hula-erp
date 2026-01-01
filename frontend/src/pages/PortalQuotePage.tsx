@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag, Empty } from 'antd';
-import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined } from '@ant-design/icons';
+import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
 import useMobile from '../hooks/useMobile'; // <--- Import Hook
@@ -321,7 +321,20 @@ const PortalQuotePage: React.FC = () => {
                                 <Descriptions.Item label="Công ty">{data.vat_company_name || data.customer?.legal_name || data.customer?.name || '-'}</Descriptions.Item>
                                 <Descriptions.Item label="MST">{data.vat_tax_code || data.customer?.tax_code || '-'}</Descriptions.Item>
                                 <Descriptions.Item label="Địa chỉ">{data.vat_address || data.customer?.legal_address || data.customer?.address || '-'}</Descriptions.Item>
-                                {data.customer?.einvoice_email && <Descriptions.Item label="Email nhận HĐ">{data.customer.einvoice_email}</Descriptions.Item>}
+                                {(data.vat_email || data.customer?.einvoice_email) && <Descriptions.Item label="Email nhận HĐ">{data.vat_email || data.customer.einvoice_email}</Descriptions.Item>}
+                                {data.vat_invoice_link && (
+                                    <Descriptions.Item label="Hóa đơn">
+                                        <Button
+                                            type="link"
+                                            size="small"
+                                            icon={<FilePdfOutlined />}
+                                            onClick={() => window.open(data.vat_invoice_link, '_blank')}
+                                            style={{ padding: 0 }}
+                                        >
+                                            Xem/Tải Hóa Đơn
+                                        </Button>
+                                    </Descriptions.Item>
+                                )}
                             </Descriptions>
                         </Card>
                     </Col>
