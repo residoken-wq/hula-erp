@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { ProductsService } from '../products/products.service';
+import { FinanceService } from '../finance/finance.service';
+import { SalesService } from '../sales/sales.service';
+import { CustomersService } from '../customers/customers.service';
 
 @Injectable()
 export class AiService {
@@ -43,21 +47,24 @@ export class AiService {
             };
         }
 
-        // 3. CREATE LEAD (Basic)
+        // 3. CREATE LEAD
         // Pattern: "tạo lead [tên] sđt [phone]"
         const leadMatch = msg.match(/tạo lead (.+) sđt (\d+)/);
         if (leadMatch) {
             const name = leadMatch[1].trim();
             const phone = leadMatch[2].trim();
 
-            // Call SalesService to create lead
-            // Assuming createLead method exists or we use createOrder with specific flag/status
-            // For MVP, if createLead doesn't exist, we might return a mock or todo
             try {
-                // Check if createLead exists on SalesService type (it might not be in interface yet)
-                // Using 'any' cast to bypass strict check if method was recently added or implicit
-                const result = await (this.salesService as any).createLead({ name, phone, source: 'AI_BOT' });
-                return { text: `Đã tạo Lead mới: ${name} (${phone}). ID: ${result.id}` };
+                // Auto generate code
+                const code = `LEAD-${Date.now().toString().slice(-6)}`;
+                const lead = await this.customersService.create({
+                    code,
+                    name,
+                    phone,
+                    type: 'LEAD',
+                    lead_status: 'NEW'
+                });
+                return { text: `Đã tạo Lead thành công: ${name} (${phone}). Mã: ${code}` };
             } catch (e) {
                 return { text: `Lỗi khi tạo Lead: ${e.message}` };
             }
