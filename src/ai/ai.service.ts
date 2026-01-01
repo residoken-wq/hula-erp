@@ -1,81 +1,115 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { ProductsService } from '../products/products.service';
 import { FinanceService } from '../finance/finance.service';
 import { SalesService } from '../sales/sales.service';
 import { CustomersService } from '../customers/customers.service';
+import { GenerativeModel } from '@google/generative-ai';
 
 @Injectable()
 export class AiService {
+    private model: GenerativeModel;
+
     constructor(
         private productsService: ProductsService,
         private financeService: FinanceService,
         private salesService: SalesService,
-        private customersService: CustomersService
-    ) { }
+        private customersService: CustomersService,
+        @Inject('GEMINI_MODEL') private geminiModel: GenerativeModel
+    ) {
+        this.model = this.geminiModel;
+    }
+
+    // --- TOOLS DEFINITION ---
+    // In a real production app, these schemas would be passed to the LLM.
+    // Since Gemini Function Calling API setup can be verbose, we will use a "ReAct" style or simplified JSON mode first.
+    // UPDATED STRATEGY: We will just prompt the LLM to output a JSON Action.
 
     async chat(body: any) {
         const { message } = body;
-        const msg = message.toLowerCase().trim();
 
-        // 1. STOCK CHECK
-        // Pattern: "tồn kho [sku]"
-        const stockMatch = msg.match(/tồn kho (.+)/);
-        if (stockMatch) {
-            const sku = stockMatch[1].trim().toUpperCase();
-            const product = await this.productsService.findOneBySku(sku);
-            if (!product) return { text: `Không tìm thấy sản phẩm mã ${sku}.` };
-
-            return {
-                text: `Sản phẩm ${product.name} (${sku}) hiện có ${product.quantity_in_stock} ${product.unit || 'cái'}.`
-            };
+        if (!this.model) {
+            return { text: "AI Service is not configured (Missing API Key)." };
         }
 
-        // 2. FINANCE CHECK
-        // Pattern: "doanh thu tháng [mm/yyyy]"
-        const financeMatch = msg.match(/doanh thu tháng (\d{1,2})[\/-]?(\d{4})?/);
-        if (financeMatch) {
-            const month = parseInt(financeMatch[1]);
-            const year = financeMatch[2] ? parseInt(financeMatch[2]) : new Date().getFullYear();
-            const dateStr = `${year}-${String(month).padStart(2, '0')}`;
+        // SYSTEM PROMPT
+        const prompt = `
+            You are HulaBot, an intelligent assistant for the Hula ERP system.
+            Your job is to help the user manage Inventory, Finance, and Sales.
+            
+            You have access to the following TOOLS. If the user asks for something, output a JSON object describing the tool to call.
+            Do NOT output markdown code blocks. Just the raw JSON string.
 
-            const report = await this.financeService.getFinancialReport(dateStr);
-            const profit = report.summary.profit;
-            const revenue = report.summary.income;
+            TOOLS:
+            1. CHECK_STOCK: Search for products and check their stock.
+               JSON: { "tool": "CHECK_STOCK", "query": "product name or sku" }
+            
+            2. CHECK_FINANCE: Get financial report for a specific period.
+               JSON: { "tool": "CHECK_FINANCE", "month": number, "year": number }
+               (Default to current month/year if not specified)
 
-            return {
-                text: `Tháng ${month}/${year}:\n- Doanh thu: ${revenue.toLocaleString()} đ\n- Lợi nhuận: ${profit.toLocaleString()} đ`
-            };
-        }
+            3. CREATE_LEAD: Create a new CRM lead.
+               JSON: { "tool": "CREATE_LEAD", "name": "customer name", "phone": "phone number" }
 
-        // 3. CREATE LEAD
-        // Pattern: "tạo lead [tên] sđt [phone]"
-        const leadMatch = msg.match(/tạo lead (.+) sđt (\d+)/);
-        if (leadMatch) {
-            const name = leadMatch[1].trim();
-            const phone = leadMatch[2].trim();
+            4. UNKNOWN: If you cannot help.
+               JSON: { "tool": "UNKNOWN", "reply": "Courtesy message" }
 
+            USER MESSAGE: "${message}"
+        `;
+
+        try {
+            const result = await this.model.generateContent(prompt);
+            const response = result.response;
+            const textHTML = response.text();
+
+            // Clean markdown if present
+            const cleanJson = textHTML.replace(/```json/g, '').replace(/```/g, '').trim();
+
+            let action;
             try {
-                // Auto generate code
+                action = JSON.parse(cleanJson);
+            } catch (e) {
+                // If LLM replies with text, return it
+                return { text: textHTML };
+            }
+
+            // EXECUTE TOOL
+            if (action.tool === 'CHECK_STOCK') {
+                const products = await this.productsService.searchProducts(action.query);
+                if (products.length === 0) return { text: `Không tìm thấy sản phẩm nào khớp với "${action.query}".` };
+
+                const details = products.map(p => `- ${p.name} (${p.sku}): Còn ${p.quantity_in_stock} ${p.unit || 'cái'}`).join('\n');
+                return { text: `Kết quả tìm kiếm cho "${action.query}":\n${details}` };
+            }
+
+            if (action.tool === 'CHECK_FINANCE') {
+                const m = action.month || new Date().getMonth() + 1;
+                const y = action.year || new Date().getFullYear();
+                const dateStr = `${y}-${String(m).padStart(2, '0')}`;
+
+                const report = await this.financeService.getFinancialReport(dateStr);
+                return {
+                    text: `Báo cáo tháng ${m}/${y}:\n- Doanh thu: ${report.summary.income.toLocaleString()} đ\n- Lợi nhuận: ${report.summary.profit.toLocaleString()} đ`
+                };
+            }
+
+            if (action.tool === 'CREATE_LEAD') {
                 const code = `LEAD-${Date.now().toString().slice(-6)}`;
-                const lead = await this.customersService.create({
+                await this.customersService.create({
                     code,
-                    name,
-                    phone,
+                    name: action.name,
+                    phone: action.phone,
                     type: 'LEAD',
                     lead_status: 'NEW'
                 });
-                return { text: `Đã tạo Lead thành công: ${name} (${phone}). Mã: ${code}` };
-            } catch (e) {
-                return { text: `Lỗi khi tạo Lead: ${e.message}` };
+                return { text: `Đã tạo Lead mới: ${action.name} (SĐT: ${action.phone}).` };
             }
-        }
 
-        // 4. PRICING (Existing)
-        if (msg.includes('định giá')) {
-            return { text: "Vui lòng sử dụng tính năng Định giá trong menu Sản phẩm để có đầy đủ tùy chọn." };
-        }
+            return { text: action.reply || "Tôi không hiểu yêu cầu này." };
 
-        return { text: "Xin lỗi, tôi chưa hiểu lệnh này. Thử 'Tồn kho [Mã]', 'Doanh thu tháng 12'..." };
+        } catch (error) {
+            console.error(error);
+            return { text: "Lỗi xử lý AI: " + error.message };
+        }
     }
 
     async suggestPrice(dto: any) {

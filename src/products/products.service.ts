@@ -34,6 +34,14 @@ export class ProductsService {
         });
     }
 
+    async searchProducts(keyword: string) {
+        return this.productRepo.createQueryBuilder('p')
+            .where('p.name ILIKE :keyword OR p.sku ILIKE :keyword', { keyword: `%${keyword}%` })
+            .leftJoinAndSelect('p.category_link', 'cat')
+            .limit(5)
+            .getMany();
+    }
+
     async findOne(id: number) {
         return this.productRepo.findOne({ where: { id }, relations: ['category_link'] });
     }
