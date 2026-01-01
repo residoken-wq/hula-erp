@@ -253,6 +253,7 @@ export class UploadService {
         { CustomerCode: 'KH001', OrderDate: '2026-01-01', ProductSKU: 'PRD-001', Quantity: 10, UnitPrice: 50000, Notes: 'Giao gấp' },
         { CustomerCode: 'KH001', OrderDate: '2026-01-01', ProductSKU: 'PRD-002', Quantity: 5, UnitPrice: 75000, Notes: '' }
       ];
+    } else {
       throw new BadRequestException('Loai template khong hop le');
     }
 
