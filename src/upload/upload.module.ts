@@ -4,22 +4,24 @@ import { UploadController } from './upload.controller';
 import { UploadService } from './upload.service';
 import { MaterialsModule } from '../materials/materials.module';
 import { ProductsModule } from '../products/products.module';
+import { SalesModule } from '../sales/sales.module';
 // Entities
 import { Product } from '../products/product.entity';
 import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from '../products/product-component.entity';
-import { Customer } from '../customers/customer.entity'; // --- FIX: IMPORT CUSTOMER
+import { Customer } from '../customers/customer.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-        Product, BOM, ProductComponent,
-        Customer // --- FIX: KHAI BAO ENTITY CUSTOMER
-    ]), 
-    MaterialsModule, 
-    ProductsModule
-  ], 
+      Product, BOM, ProductComponent,
+      Customer
+    ]),
+    MaterialsModule,
+    ProductsModule,
+    SalesModule
+  ],
   controllers: [UploadController],
   providers: [UploadService],
 })
-export class UploadModule {}
+export class UploadModule { }
