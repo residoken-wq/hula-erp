@@ -21,12 +21,48 @@ export class AiService {
         // this.model = this.geminiModel;
     }
 
-    private async callGemini(prompt: string): Promise<string> {
-        const apiKey = this.configService.get<string>('GEMINI_API_KEY');
-        if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+    private selectedModel: string | null = null;
 
-        // Use gemini-1.5-flash with stable v1 API (recommended for ERP use cases)
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    private async getBestModel(apiKey: string): Promise<string> {
+        if (this.selectedModel) return this.selectedModel;
+
+        try {
+            const listUrl = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
+            const response = await fetch(listUrl);
+            const data = await response.json();
+
+            if (!data.models) {
+                console.error('DEBUG AI: Failed to list models', data);
+                return 'gemini-1.5-flash';
+            }
+
+            const models = data.models.filter((m: any) =>
+                m.supportedGenerationMethods?.includes('generateContent')
+            );
+
+            console.log('DEBUG AI: Available models:', models.map((m: any) => m.name));
+
+            const preferred = models.find((m: any) => m.name.includes('flash')) || models[0];
+
+            if (preferred) {
+                console.log('DEBUG AI: Auto-selected model:', preferred.name);
+                this.selectedModel = preferred.name;
+                return this.selectedModel;
+            }
+        } catch (e) {
+            console.error('DEBUG AI: Error listing models:', e);
+        }
+
+        return 'gemini-1.5-flash';
+    }
+
+    private async callGemini(prompt: string): Promise<string> {
+        let apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        if (!apiKey) throw new Error("GEMINI_API_KEY not set");
+        apiKey = apiKey.trim();
+
+        const modelName = await this.getBestModel(apiKey);
+        const url = `https://generativelanguage.googleapis.com/v1/${modelName}:generateContent?key=${apiKey}`;
 
         const payload = {
             contents: [{ parts: [{ text: prompt }] }]
@@ -41,7 +77,10 @@ export class AiService {
 
             if (!response.ok) {
                 const err = await response.text();
-                throw new Error(`Gemini API Error: ${response.status} - ${err}`);
+                if (response.status === 404) {
+                    this.selectedModel = null;
+                }
+                throw new Error(`Gemini API Error (${modelName}): ${response.status} - ${err}`);
             }
 
             const data = await response.json();
