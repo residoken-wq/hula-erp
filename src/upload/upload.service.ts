@@ -253,13 +253,85 @@ export class UploadService {
         { CustomerCode: 'KH001', OrderDate: '2026-01-01', ProductSKU: 'PRD-001', Quantity: 10, UnitPrice: 50000, Notes: 'Giao gấp' },
         { CustomerCode: 'KH001', OrderDate: '2026-01-01', ProductSKU: 'PRD-002', Quantity: 5, UnitPrice: 75000, Notes: '' }
       ];
-    } else {
       throw new BadRequestException('Loai template khong hop le');
     }
 
     const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
-    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as any;
+    return XLSX.write({ Sheets: { Sheet1: ws }, SheetNames: ['Sheet1'] }, { type: 'buffer', bookType: 'xlsx' });
+  }
+
+  // 7. IMPORT SALES ORDERS NEW
+  async importSalesOrders(buffer: Buffer) {
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+    const ordersMap = new Map();
+    const errors = [];
+    let count = 0;
+
+    // Group rows by CustomerCode + OrderDate to create single order with multiple items
+    for (const rawRow of data) {
+      const row = this.normalizeRow(rawRow);
+      try {
+        const customerCode = row['customercode'] || row['makh'];
+        if (!customerCode) continue;
+
+        const orderDateStr = row['orderdate'] || row['ngaydat'];
+        const notes = row['notes'] || row['ghichu'] || '';
+
+        const sku = row['productsku'] || row['masp'];
+        const qty = Number(row['quantity'] || row['sl']) || 0;
+        const price = Number(row['unitprice'] || row['dongia']) || 0;
+
+        if (!sku || qty <= 0) {
+          errors.push({ row, error: 'SKU or Quantity invalid' });
+          continue;
+        }
+
+        const key = `${customerCode}_${orderDateStr || 'today'}_${notes}`;
+
+        if (!ordersMap.has(key)) {
+          ordersMap.set(key, {
+            customerCode,
+            orderDate: orderDateStr ? new Date(orderDateStr) : new Date(),
+            notes,
+            items: []
+          });
+        }
+
+        ordersMap.get(key).items.push({ sku, qty, price });
+      } catch (e) {
+        errors.push({ row, error: e.message });
+      }
+    }
+
+    // Process each grouped order
+    for (const [key, orderData] of ordersMap.entries()) {
+      try {
+        const customer = await this.customerRepo.findOne({ where: { code: orderData.customerCode } });
+        if (!customer) {
+          errors.push({ key, error: `Customer ${orderData.customerCode} not found` });
+          continue;
+        }
+
+        // Create Order
+        const newOrder = await this.salesService.createOrder({
+          customer_id: customer.id,
+          order_date: orderData.orderDate,
+          note: orderData.notes, // Map 'notes' to 'note' as per SalesService
+          items: orderData.items.map(i => ({
+            sku: i.sku, // SalesService expects 'sku'
+            quantity: i.qty,
+            price: i.price
+          }))
+        });
+
+        if (newOrder) count++;
+
+      } catch (e) {
+        errors.push({ key, error: e.message });
+      }
+    }
+
+    return { message: `Imported ${count} orders`, count, errors };
   }
 }

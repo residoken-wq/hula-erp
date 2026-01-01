@@ -1,4 +1,21 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import ExcelUploadModal from '../components/ExcelUploadModal';
+// ... (keep existing imports)
+
+const SalesPage: React.FC = () => {
+    // ... (keep existing state)
+    const [importModalOpen, setImportModalOpen] = useState(false);
+
+    // ... (keep existing code)
+
+    extra = {
+                    < Space >
+                        <Button type="dashed" icon={<AppstoreAddOutlined />} onClick={() => openDetailModal({ isInternal: true })} style={{ borderColor: '#722ed1', color: '#722ed1' }}>Tạo Đơn Nhập Kho (Nội Bộ)</Button>
+                        <Button icon={<FileExcelOutlined />} onClick={() => setImportModalOpen(true)}>Import Excel</Button>
+                        <Button type="default" icon={<ShopOutlined />} onClick={() => navigate('/sales/pos')} style={{ borderColor: '#52c41a', color: '#52c41a' }}>Bán Lẻ (POS)</Button>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo Đơn Mới</Button>
+                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+                    </Space >
+                }
 import { Table, Tag, Button, message, Card, Input, Space, Row, Col, Tabs, Progress, Tooltip, Statistic, DatePicker, Select } from 'antd';
 // --- FIX: Thêm PlusOutlined đã bị thiếu trước đó ---
 import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, FileTextOutlined, CalendarOutlined, WalletOutlined, AuditOutlined, AppstoreAddOutlined, ShopOutlined } from '@ant-design/icons';
@@ -425,6 +442,15 @@ const SalesPage: React.FC = () => {
                     products={products}
                     users={users} // Pass users list
                     isQuotation={false}
+                />
+
+                {/* IMPORT MODAL */}
+                <ExcelUploadModal
+                    open={importModalOpen}
+                    onClose={() => setImportModalOpen(false)}
+                    onSuccess={() => { setImportModalOpen(false); fetchData(); }}
+                    type="sales"
+                    title="Import Đơn Hàng (Excel)"
                 />
             </Card>
         </div >

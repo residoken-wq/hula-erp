@@ -49,6 +49,14 @@ export class UploadController {
     if (!file) throw new BadRequestException('Chua chon file!');
     return this.uploadService.importCustomers(file.buffer);
   }
+
+  // --- API IMPORT SALES ORDERS (MOI) ---
+  @Post('sales')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadSales(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Chua chon file!');
+    return this.uploadService.importSalesOrders(file.buffer);
+  }
   // ----------------------------------
 
   @Get('template/:type')
