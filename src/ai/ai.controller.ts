@@ -11,4 +11,9 @@ export class AiController {
     async suggestPrice(@Body() body: any) {
         return this.aiService.suggestPrice(body);
     }
+
+    @Post('chat')
+    async chat(@Body() body: any) {
+        return this.aiService.chat(body);
+    }
 }

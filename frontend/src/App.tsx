@@ -12,7 +12,8 @@ import api from './utils/api';
 
 // Import Components
 import HeaderNotifications from './components/HeaderNotifications';
-import LoadingDisplay from './components/LoadingDisplay'; // We will create this
+import LoadingDisplay from './components/LoadingDisplay';
+import AiChatWidget from './components/common/AiChatWidget'; // <--- Import AI Widget
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -299,6 +300,7 @@ const App: React.FC = () => {
                                     </div>
                                 </Content>
                                 <Footer style={{ textAlign: 'center' }}>Hula ERP ©2025 Created by AI</Footer>
+                                <AiChatWidget /> {/* <--- Insert AI Widget */}
                             </Layout>
                         </Layout>
                     ) : (

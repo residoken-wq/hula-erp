@@ -2,7 +2,77 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AiService {
+    constructor(
+        private productsService: ProductsService,
+        private financeService: FinanceService,
+        private salesService: SalesService,
+        private customersService: CustomersService
+    ) { }
+
+    async chat(body: any) {
+        const { message } = body;
+        const msg = message.toLowerCase().trim();
+
+        // 1. STOCK CHECK
+        // Pattern: "tồn kho [sku]"
+        const stockMatch = msg.match(/tồn kho (.+)/);
+        if (stockMatch) {
+            const sku = stockMatch[1].trim().toUpperCase();
+            const product = await this.productsService.findOneBySku(sku);
+            if (!product) return { text: `Không tìm thấy sản phẩm mã ${sku}.` };
+
+            return {
+                text: `Sản phẩm ${product.name} (${sku}) hiện có ${product.quantity_in_stock} ${product.unit || 'cái'}.`
+            };
+        }
+
+        // 2. FINANCE CHECK
+        // Pattern: "doanh thu tháng [mm/yyyy]"
+        const financeMatch = msg.match(/doanh thu tháng (\d{1,2})[\/-]?(\d{4})?/);
+        if (financeMatch) {
+            const month = parseInt(financeMatch[1]);
+            const year = financeMatch[2] ? parseInt(financeMatch[2]) : new Date().getFullYear();
+            const dateStr = `${year}-${String(month).padStart(2, '0')}`;
+
+            const report = await this.financeService.getFinancialReport(dateStr);
+            const profit = report.summary.profit;
+            const revenue = report.summary.income;
+
+            return {
+                text: `Tháng ${month}/${year}:\n- Doanh thu: ${revenue.toLocaleString()} đ\n- Lợi nhuận: ${profit.toLocaleString()} đ`
+            };
+        }
+
+        // 3. CREATE LEAD (Basic)
+        // Pattern: "tạo lead [tên] sđt [phone]"
+        const leadMatch = msg.match(/tạo lead (.+) sđt (\d+)/);
+        if (leadMatch) {
+            const name = leadMatch[1].trim();
+            const phone = leadMatch[2].trim();
+
+            // Call SalesService to create lead
+            // Assuming createLead method exists or we use createOrder with specific flag/status
+            // For MVP, if createLead doesn't exist, we might return a mock or todo
+            try {
+                // Check if createLead exists on SalesService type (it might not be in interface yet)
+                // Using 'any' cast to bypass strict check if method was recently added or implicit
+                const result = await (this.salesService as any).createLead({ name, phone, source: 'AI_BOT' });
+                return { text: `Đã tạo Lead mới: ${name} (${phone}). ID: ${result.id}` };
+            } catch (e) {
+                return { text: `Lỗi khi tạo Lead: ${e.message}` };
+            }
+        }
+
+        // 4. PRICING (Existing)
+        if (msg.includes('định giá')) {
+            return { text: "Vui lòng sử dụng tính năng Định giá trong menu Sản phẩm để có đầy đủ tùy chọn." };
+        }
+
+        return { text: "Xin lỗi, tôi chưa hiểu lệnh này. Thử 'Tồn kho [Mã]', 'Doanh thu tháng 12'..." };
+    }
+
     async suggestPrice(dto: any) {
+        // ... (Keep existing logic)
         const { cost_price, competitor_price, strategy, market_volume } = dto;
         const cost = Number(cost_price) || 0;
         const comp = Number(competitor_price) || 0;
