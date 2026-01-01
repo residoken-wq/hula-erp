@@ -248,7 +248,10 @@ export class AiService {
             }
 
             if (action.tool === 'CHECK_FINANCE') {
-                const m = action.month || new Date().getMonth() + 1;
+                // Fix: Check for month 0 (yearly stats) explicitly since 0 is falsy
+                const m = (action.month !== undefined && action.month !== null)
+                    ? action.month
+                    : new Date().getMonth() + 1;
                 const y = action.year || new Date().getFullYear();
 
                 // Handle yearly statistics (month = 0)
