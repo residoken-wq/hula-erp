@@ -174,10 +174,13 @@ export class AiService {
             
             2. CHECK_FINANCE: Get financial report for a specific period.
                Output: { "tool": "CHECK_FINANCE", "month": number, "year": number }
+               IMPORTANT: If user asks for YEARLY statistics ("năm 2025", "thống kê năm"), set month to 0
                Examples:
                - "doanh thu tháng 12" → { "tool": "CHECK_FINANCE", "month": 12, "year": ${currentYear} }
                - "doanh thu tháng này" → { "tool": "CHECK_FINANCE", "month": ${currentMonth}, "year": ${currentYear} }
                - "báo cáo tài chính tháng 3/2024" → { "tool": "CHECK_FINANCE", "month": 3, "year": 2024 }
+               - "thống kê doanh thu năm 2025" → { "tool": "CHECK_FINANCE", "month": 0, "year": 2025 }
+               - "doanh thu cả năm 2024" → { "tool": "CHECK_FINANCE", "month": 0, "year": 2024 }
 
             3. CREATE_LEAD: Create a new CRM lead.
                Output: { "tool": "CREATE_LEAD", "name": "customer name", "phone": "phone number" }
@@ -238,8 +241,42 @@ export class AiService {
             if (action.tool === 'CHECK_FINANCE') {
                 const m = action.month || new Date().getMonth() + 1;
                 const y = action.year || new Date().getFullYear();
-                const dateStr = `${y}-${String(m).padStart(2, '0')}`;
 
+                // Handle yearly statistics (month = 0)
+                if (m === 0) {
+                    let totalIncome = 0;
+                    let totalExpense = 0;
+                    let totalProfit = 0;
+
+                    console.log(`DEBUG AI: Aggregating year ${y} statistics...`);
+
+                    // Aggregate all 12 months
+                    for (let month = 1; month <= 12; month++) {
+                        const dateStr = `${y}-${String(month).padStart(2, '0')}`;
+                        try {
+                            const monthReport = await this.financeService.getFinancialReport(dateStr);
+                            console.log(`DEBUG AI: Month ${month}/${y} - Income: ${monthReport.summary.income}, Expense: ${monthReport.summary.expense}, Profit: ${monthReport.summary.profit}`);
+                            totalIncome += monthReport.summary.income || 0;
+                            totalExpense += monthReport.summary.expense || 0;
+                            totalProfit += monthReport.summary.profit || 0;
+                        } catch (e) {
+                            console.log(`DEBUG AI: Month ${month}/${y} - No data or error: ${e.message}`);
+                        }
+                    }
+
+                    console.log(`DEBUG AI: Year ${y} totals - Income: ${totalIncome}, Expense: ${totalExpense}, Profit: ${totalProfit}`);
+
+                    const reply = `Báo cáo tài chính năm ${y}:\n` +
+                        `- Tổng doanh thu: ${this.formatMoney(totalIncome)} đ\n` +
+                        `- Tổng chi phí: ${this.formatMoney(totalExpense)} đ\n` +
+                        `- Tổng lợi nhuận: ${this.formatMoney(totalProfit)} đ`;
+                    this.addToHistory(userId, 'user', message);
+                    this.addToHistory(userId, 'assistant', reply);
+                    return { text: reply };
+                }
+
+                // Handle monthly statistics
+                const dateStr = `${y}-${String(m).padStart(2, '0')}`;
                 const report = await this.financeService.getFinancialReport(dateStr);
                 const reply = `Báo cáo tháng ${m}/${y}:\n- Doanh thu: ${this.formatMoney(report.summary.income)} đ\n- Lợi nhuận: ${this.formatMoney(report.summary.profit)} đ`;
                 this.addToHistory(userId, 'user', message);
