@@ -20,11 +20,11 @@ const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({ open, onClose, onSu
 
     const handleDownloadTemplate = async () => {
         try {
-            const response = await api.get(\`/upload/template/\${type}\`, { responseType: 'blob' });
+            const response = await api.get(`/upload/template/${type}`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', \`Template_\${type}.xlsx\`);
+            link.setAttribute('download', `Template_${type}.xlsx`);
             document.body.appendChild(link);
             link.click();
             link.parentNode?.removeChild(link);
@@ -40,12 +40,12 @@ const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({ open, onClose, onSu
         formData.append('file', file);
 
         try {
-            const res = await api.post(\`/upload/\${type}\`, formData, {
+            const res = await api.post(`/upload/${type}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             setResult(res.data);
             if (res.data.count > 0) {
-                message.success(\`Đã import thành công \${res.data.count} dòng!\`);
+                message.success(`Đã import thành công ${res.data.count} dòng!`);
                 if (onSuccess) onSuccess();
             } else {
                 message.warning('Không có dữ liệu nào được import.');
@@ -121,8 +121,8 @@ const ExcelUploadModal: React.FC<ExcelUploadModalProps> = ({ open, onClose, onSu
                                 renderItem={(item: any) => (
                                     <List.Item>
                                         <Text type="danger">
-                                            {item.row ? \`[Dòng \${JSON.stringify(item.row)}] \` : ''} 
-                                            {item.key ? \`[Key \${item.key}] \` : ''}
+                                            {item.row ? `[Dòng ${JSON.stringify(item.row)}] ` : ''}
+                                            {item.key ? `[Key ${item.key}] ` : ''}
                                             {item.error}
                                         </Text>
                                     </List.Item>
