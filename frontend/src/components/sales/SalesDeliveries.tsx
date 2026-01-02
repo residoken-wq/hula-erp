@@ -309,7 +309,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
                         return (
                             <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
-                                <Table.Summary.Cell index={0} colSpan={4} align="right">Tổng cộng:</Table.Summary.Cell>
+                                <Table.Summary.Cell index={0} colSpan={5} align="right">Tổng cộng:</Table.Summary.Cell>
                                 <Table.Summary.Cell index={1} align="right">{totalAmount.toLocaleString()}</Table.Summary.Cell>
                                 <Table.Summary.Cell index={2} align="right"><span style={{ color: 'green' }}>{totalDelivered.toLocaleString()}</span></Table.Summary.Cell>
                                 <Table.Summary.Cell index={3} align="right"><span style={{ color: 'red' }}>{totalRemaining.toLocaleString()}</span></Table.Summary.Cell>
