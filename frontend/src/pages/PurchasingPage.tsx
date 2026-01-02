@@ -48,6 +48,7 @@ const PurchasingPage: React.FC = () => {
         fetchData();
         axios.get(`${API_URL}/products`).then(res => setProducts(res.data)).catch(console.error);
         axios.get(`${API_URL}/suppliers`).then(res => setSuppliers(res.data)).catch(console.error);
+        axios.get(`${API_URL}/system/company`).then(res => setCompanyConfig(res.data)).catch(console.error);
     }, []);
 
     const handleStatusChange = async (id: number, status: string) => {
@@ -421,7 +422,8 @@ const PurchasingPage: React.FC = () => {
         let content = '';
         const dateStr = dayjs().format('DD/MM/YYYY');
         const poCode = currentPO?.po_code || 'PO-XXXX';
-        const supplierName = currentPO?.supplier?.name || '';
+        // Logic: Show Legal Name if available, otherwise Name
+        const supplierDisplayName = currentPO?.supplier?.legal_name || currentPO?.supplier?.name || '';
 
         // CSS Common
         const style = `
@@ -451,11 +453,17 @@ const PurchasingPage: React.FC = () => {
             content = `
                 ${style}
                 <div class="header">
-                    <div><b>Date:</b> ${dateStr}</div>
-                    <div><b>PO No:</b> ${poCode}</div>
+                    <div>
+                         <div class="title" style="margin-bottom:5px; text-align:left;">${companyConfig?.COMPANY_NAME || 'HULA'}</div>
+                         <div>${companyConfig?.COMPANY_ADDRESS ? `Đ/C: ${companyConfig.COMPANY_ADDRESS}` : 'Đ/C: 123 ABC...'}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div><b>Ngày:</b> ${dateStr}</div>
+                        <div><b>Mã PO:</b> ${poCode}</div>
+                    </div>
                 </div>
-                <div class="title">PURCHASE ORDER</div>
-                <p><b>Supplier:</b> ${supplierName}</p>
+                <div class="title">ĐƠN ĐẶT HÀNG (NPL)</div>
+                <div style="margin-bottom:10px;"><b>Kính gửi:</b> ${supplierDisplayName}</div>
                 <table>
                     <thead>
                         <tr>
@@ -538,7 +546,7 @@ const PurchasingPage: React.FC = () => {
                     </div>
                 </div>
                 <div class="title">ĐƠN ĐẶT HÀNG GIA CÔNG</div>
-                <div style="margin-bottom:10px;"><b>Kính gửi:</b> ${supplierName}</div>
+                <div style="margin-bottom:10px;"><b>Kính gửi:</b> ${supplierDisplayName}</div>
                  <table>
                     <thead>
                         <tr>
