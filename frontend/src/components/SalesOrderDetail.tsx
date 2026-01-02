@@ -236,7 +236,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         const shipping = Number(form.getFieldValue('shipping_fee')) || 0;
 
         const taxable = Math.max(0, subtotal - discountAmt);
-        const total = taxable * (1 + vatRate / 100) + shipping;
+        const total = Math.round(taxable * (1 + vatRate / 100) + shipping);
 
         setTotalAmount(total);
     };

@@ -36,10 +36,10 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
     }, [orderCode]);
 
     const realTimePaidAmount = useMemo(() => {
-        return history.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        return Math.round(history.reduce((sum, item) => sum + (Number(item.amount) || 0), 0));
     }, [history]);
 
-    const remainingAmount = totalAmount - realTimePaidAmount;
+    const remainingAmount = Math.round(totalAmount - realTimePaidAmount);
 
     const handlePayment = async () => {
         if (amount <= 0) return message.warning('Nhập số tiền hợp lệ');
