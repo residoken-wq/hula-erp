@@ -162,24 +162,37 @@ const PurchasingPage: React.FC = () => {
 
                     // --- MỚI: Fallback enrich PO Items from Plan Products ---
                     // If backend recovery failed, we try to match SKU here
+                    console.log('=== Frontend Product Enrichment ===');
+                    console.log('PO Items:', poDetail.items);
+                    console.log('Plan Products:', finalProducts);
+
                     const newEditingItems = [...poDetail.items]; // Re-clone from source to be safe
                     let hasUpdate = false;
                     newEditingItems.forEach((item: any) => {
                         if (!item.product && item.description) {
+                            console.log(`Checking item: ${item.description}`);
                             const match = item.description.match(/\(([^)]+)\)\s*$/);
                             if (match && match[1]) {
                                 const sku = match[1].trim();
+                                console.log(`Extracted SKU: "${sku}"`);
                                 const found = finalProducts.find(p => p.sku === sku);
+                                console.log('Found in plan:', found);
                                 if (found && found.product) {
+                                    console.log('Enriching item with product:', found.product);
                                     item.product = found.product;
                                     item.product_id = found.product.id;
                                     hasUpdate = true;
+                                } else {
+                                    console.log('Product not found or missing product object');
                                 }
                             }
                         }
                     });
                     if (hasUpdate) {
+                        console.log('Updating editing items with enriched data');
                         setEditingItems(newEditingItems);
+                    } else {
+                        console.log('No updates made to items');
                     }
                     // --------------------------------------------------------
                 } catch (e) { console.error('Error fetching plan', e); }
