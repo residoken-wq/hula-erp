@@ -752,20 +752,24 @@ const PurchasingPage: React.FC = () => {
                                         }
                                     },
                                     {
-                                        title: 'Mô tả SP', width: 150, render: (r: any) => {
-                                            // For product items, show processing_description
+                                        title: 'Mô tả', width: 250, render: (r: any) => {
+                                            let content = '-';
+
+                                            // 1. Try Product Processing Description
                                             if (r.product?.processing_description) {
-                                                return <span style={{ color: '#666', fontStyle: 'italic' }}>{r.product.processing_description}</span>;
+                                                content = r.product.processing_description;
                                             }
-
-                                            // For outsourcing, extract ProcessingDesc from "ProcessingDesc (SKU)"
-                                            if (!r.material && r.description) {
+                                            // 2. Try parsing Description "Text (SKU)"
+                                            else if (!r.material && r.description) {
                                                 const match = r.description.match(/^(.+?)\s*\([^)]+\)\s*$/);
-                                                if (match) return <span style={{ color: '#666', fontStyle: 'italic' }}>{match[1].trim()}</span>;
+                                                if (match) content = match[1].trim();
+                                                else content = r.description; // Fallback to full description if format doesn't match
+                                            }
+                                            else if (r.product?.name) {
+                                                content = r.product.name;
                                             }
 
-                                            // For material items, show nothing
-                                            return '-';
+                                            return <span style={{ color: '#666', fontStyle: 'italic' }}>{content}</span>;
                                         }
                                     },
                                     { title: 'Tổng Cần (Gốc)', width: 100, align: 'center', render: (r: any) => <span>{Number(r.raw_quantity || 0).toLocaleString()}</span> },
