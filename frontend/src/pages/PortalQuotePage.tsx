@@ -310,7 +310,7 @@ const PortalQuotePage: React.FC = () => {
                             <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
                                 <Descriptions.Item label="Đơn vị">{data.customer_name || data.customer?.name || 'Khách lẻ'}</Descriptions.Item>
                                 <Descriptions.Item label="Người nhận">{data.receiver_name || data.customer?.contacts?.[0]?.full_name || data.customer?.name || '-'}</Descriptions.Item>
-                                <Descriptions.Item label="SĐT">{data.receiver_phone || data.customer?.phone || '-'}</Descriptions.Item>
+                                <Descriptions.Item label="SĐT">{data.receiver_phone || data.customer?.contacts?.[0]?.phone || data.customer?.phone || '-'}</Descriptions.Item>
                                 <Descriptions.Item label="Địa chỉ">{data.shipping_address || data.customer?.address || '-'}</Descriptions.Item>
                             </Descriptions>
                         </Card>
