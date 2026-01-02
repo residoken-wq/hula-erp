@@ -68,6 +68,37 @@ export class PurchasingService {
         const po = await this.poRepo.findOne({ where: { id }, relations: ['supplier', 'items', 'items.material', 'items.product'] });
         if (!po || !po.items) return po;
 
+        // --- MỚI: Recover Missing Product (Legacy Data Fix) ---
+        // Some Outsourcing POs created before 02/01/2026 might miss product_id
+        const missingProductItems = po.items.filter(i => !i.product_id && !i.material_id && i.description);
+        if (missingProductItems.length > 0) {
+            const skuMap = new Map<string, any>();
+            for (const item of missingProductItems) {
+                const match = item.description.match(/\(([^)]+)\)$/);
+                if (match && match[1]) {
+                    skuMap.set(match[1], null);
+                }
+            }
+            if (skuMap.size > 0) {
+                for (const sku of Array.from(skuMap.keys())) {
+                    const p = await this.productsService.findOneBySku(sku);
+                    if (p) skuMap.set(sku, p);
+                }
+                for (const item of missingProductItems) {
+                    const match = item.description.match(/\(([^)]+)\)$/);
+                    if (match && match[1]) {
+                        const p = skuMap.get(match[1]);
+                        if (p) {
+                            item.product = p;
+                            item.product_id = p.id;
+                        }
+                    }
+                }
+            }
+        }
+        // -----------------------------------------------------
+
+
         // --- MỚI: Enrich Item Data from Plan if missing ---
         const planIds = new Set(po.items.map(i => i.plan_id).filter(Boolean));
         if (planIds.size > 0) {

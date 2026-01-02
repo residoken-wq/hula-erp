@@ -241,6 +241,7 @@ export class PlanningService {
                 // Chỉ lấy các công đoạn có gán Nhà cung cấp (Gia công ngoài)
                 if (route.supplier_id) {
                     outsourcingDemand.push({
+                        product_id: prodId, // --- FIX: ADD PRODUCT ID ---
                         product_sku: sku,
                         step_name: route.step_name,
                         supplier_id: route.supplier_id,
@@ -455,6 +456,7 @@ export class PlanningService {
                     subtotal: sub,
                     plan_id: planId,
                     material_id: isMaterial ? i.material_id : null,
+                    product_id: !isMaterial ? i.product_id : null, // --- FIX: SAVE PRODUCT ID ---
                     // --- MỚI: Lưu thông tin gốc từ MRP ---
                     raw_quantity: i.gross_raw || 0,
                     wastage_rate: i.wastage_percent || 0,

@@ -384,7 +384,7 @@ const PurchasingPage: React.FC = () => {
         }
     };
 
-    const handlePrint = (template: string) => {
+    const handlePrint = (template: string, showPrice = true) => {
         const w = window.open('', '_blank');
         if (!w) return;
 
@@ -447,7 +447,12 @@ const PurchasingPage: React.FC = () => {
             `;
         } else if (template === 'OUTSOURCING') {
             // --- TEMPLATE GIA CÔNG MỚI ---
-            const rows = currentPO?.items?.map((i: any, idx: number) => `
+            const priceHeaders = showPrice ? `<th>Đơn giá</th><th>Thành tiền</th>` : '';
+            const priceColspan = showPrice ? 2 : 0;
+
+            const rows = currentPO?.items?.map((i: any, idx: number) => {
+                const priceCells = showPrice ? `<td>${Number(i.unit_price || 0).toLocaleString()}</td><td>${Number(i.subtotal || 0).toLocaleString()}</td>` : '';
+                return `
                 <tr>
                     <td>${idx + 1}</td>
                     <td>${currentPO.po_code}</td>
@@ -457,9 +462,10 @@ const PurchasingPage: React.FC = () => {
                     <td>-</td> 
                     <td>${Number(i.quantity).toLocaleString()}</td>
                     <td>-</td> 
+                    ${priceCells}
                     <td>${i.note || ''}</td>
                 </tr>
-            `).join('');
+            `}).join('');
 
             content = `
                 ${style}
@@ -486,6 +492,7 @@ const PurchasingPage: React.FC = () => {
                             <th>Định mức vải (VMS)</th>
                             <th>Số lượng</th>
                             <th>Thêu</th>
+                            ${priceHeaders}
                             <th>Ghi chú</th>
                         </tr>
                     </thead>
@@ -494,7 +501,7 @@ const PurchasingPage: React.FC = () => {
                         <tr>
                             <td colspan="6" style="text-align:right; font-weight:bold;">Tổng cộng</td>
                             <td style="font-weight:bold;">${Number(currentPO?.items?.reduce((s: number, i: any) => s + Number(i.quantity || 0), 0)).toLocaleString()}</td>
-                            <td colspan="2"></td>
+                            <td colspan="${2 + priceColspan}"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -1007,7 +1014,8 @@ const PurchasingPage: React.FC = () => {
             <Modal title="Chọn Mẫu In PO" open={isPrintModalOpen} onCancel={() => setIsPrintModalOpen(false)} footer={null}>
                 <Space direction="vertical" style={{ width: '100%' }}>
                     <Button block onClick={() => handlePrint('STANDARD')}>Mẫu Tiêu Chuẩn (Đơn hàng)</Button>
-                    <Button block onClick={() => handlePrint('OUTSOURCING')}>Mẫu Gia Công (Outsourcing)</Button>
+                    <Button block onClick={() => handlePrint('OUTSOURCING', true)}>Mẫu Gia Công (Có Đơn giá)</Button>
+                    <Button block onClick={() => handlePrint('OUTSOURCING', false)}>Mẫu Gia Công (Không Đơn giá)</Button>
                     <Button block onClick={() => handlePrint('CARA')}>Mẫu Đóng Gói (Cara Style)</Button>
                     <Button block onClick={() => handlePrint('HQ')}>Mẫu Đóng Gói (HQ Style)</Button>
                 </Space>
