@@ -162,37 +162,24 @@ const PurchasingPage: React.FC = () => {
 
                     // --- MỚI: Fallback enrich PO Items from Plan Products ---
                     // If backend recovery failed, we try to match SKU here
-                    console.log('=== Frontend Product Enrichment ===');
-                    console.log('PO Items:', poDetail.items);
-                    console.log('Plan Products:', finalProducts);
-
                     const newEditingItems = [...poDetail.items]; // Re-clone from source to be safe
                     let hasUpdate = false;
                     newEditingItems.forEach((item: any) => {
                         if (!item.product && item.description) {
-                            console.log(`Checking item: ${item.description}`);
                             const match = item.description.match(/\(([^)]+)\)\s*$/);
                             if (match && match[1]) {
                                 const sku = match[1].trim();
-                                console.log(`Extracted SKU: "${sku}"`);
                                 const found = finalProducts.find(p => p.sku === sku);
-                                console.log('Found in plan:', found);
                                 if (found && found.product) {
-                                    console.log('Enriching item with product:', found.product);
                                     item.product = found.product;
                                     item.product_id = found.product.id;
                                     hasUpdate = true;
-                                } else {
-                                    console.log('Product not found or missing product object');
                                 }
                             }
                         }
                     });
                     if (hasUpdate) {
-                        console.log('Updating editing items with enriched data');
                         setEditingItems(newEditingItems);
-                    } else {
-                        console.log('No updates made to items');
                     }
                     // --------------------------------------------------------
                 } catch (e) { console.error('Error fetching plan', e); }
@@ -488,11 +475,24 @@ const PurchasingPage: React.FC = () => {
 
             const rows = currentPO?.items?.map((i: any, idx: number) => {
                 const priceCells = showPrice ? `<td>${Number(i.unit_price || 0).toLocaleString()}</td><td>${Number(i.subtotal || 0).toLocaleString()}</td>` : '';
+
+                // Extract SKU and processing description
+                let sku = i.material?.code || i.product?.sku || '-';
+                let processingDesc = i.product?.processing_description || i.material?.name || '';
+
+                // If no product/material, extract from description format "ProcessingDesc (SKU)"
+                if (!i.product && !i.material && i.description) {
+                    const skuMatch = i.description.match(/\(([^)]+)\)\s*$/);
+                    const descMatch = i.description.match(/^(.+?)\s*\([^)]+\)\s*$/);
+                    if (skuMatch) sku = skuMatch[1].trim();
+                    if (descMatch) processingDesc = descMatch[1].trim();
+                }
+
                 return `
                 <tr>
                     <td>${idx + 1}</td>
-                    <td>${i.material?.code || i.product?.sku || '-'}</td>
-                    <td class="left-align">${i.product?.processing_description || i.description || i.material?.name || ''}</td>
+                    <td>${sku}</td>
+                    <td class="left-align">${processingDesc || i.description || ''}</td>
                     <td>-</td> 
                     <td>-</td> 
                     <td>${Number(i.quantity).toLocaleString()}</td>
@@ -720,41 +720,36 @@ const PurchasingPage: React.FC = () => {
                                 size="small"
                                 columns={[
                                     {
-                                        title: 'Tên hàng', render: (r: any) => {
-                                            // If we have full product data, use it
-                                            if (r.product) {
-                                                return (
-                                                    <div>
-                                                        <div style={{ fontWeight: 'bold' }}>{r.product.name}</div>
-                                                        <div style={{ fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
-                                                            {r.product.processing_description || r.description}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }
+                                        title: 'Tên hàng', width: 150, render: (r: any) => {
+                                            // For product items, show SKU
+                                            if (r.product) return <b>{r.product.sku || r.product.name}</b>;
 
                                             // For material items, show material name
                                             if (r.material) return <b>{r.material.name}</b>;
 
-                                            // For outsourcing without product object, parse description
-                                            // Format: "Processing Description (SKU)"
-                                            if (!r.material && r.description) {
-                                                const match = r.description.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
-                                                if (match) {
-                                                    const processingDesc = match[1].trim();
-                                                    const sku = match[2].trim();
-                                                    return (
-                                                        <div>
-                                                            <div style={{ fontWeight: 'bold' }}>{sku}</div>
-                                                            <div style={{ fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
-                                                                {processingDesc}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                }
+                                            // For outsourcing, extract SKU from description "ProcessingDesc (SKU)"
+                                            if (r.description) {
+                                                const match = r.description.match(/\(([^)]+)\)\s*$/);
+                                                if (match) return <b>{match[1].trim()}</b>;
+                                            }
+                                            return r.description;
+                                        }
+                                    },
+                                    {
+                                        title: 'Mô tả SP', width: 150, render: (r: any) => {
+                                            // For product items, show processing_description
+                                            if (r.product?.processing_description) {
+                                                return <span style={{ color: '#666', fontStyle: 'italic' }}>{r.product.processing_description}</span>;
                                             }
 
-                                            return r.description;
+                                            // For outsourcing, extract ProcessingDesc from "ProcessingDesc (SKU)"
+                                            if (!r.material && r.description) {
+                                                const match = r.description.match(/^(.+?)\s*\([^)]+\)\s*$/);
+                                                if (match) return <span style={{ color: '#666', fontStyle: 'italic' }}>{match[1].trim()}</span>;
+                                            }
+
+                                            // For material items, show nothing
+                                            return '-';
                                         }
                                     },
                                     { title: 'Tổng Cần (Gốc)', width: 100, align: 'center', render: (r: any) => <span>{Number(r.raw_quantity || 0).toLocaleString()}</span> },
