@@ -159,6 +159,29 @@ const PurchasingPage: React.FC = () => {
                     });
 
                     setPlanProducts(finalProducts);
+
+                    // --- MỚI: Fallback enrich PO Items from Plan Products ---
+                    // If backend recovery failed, we try to match SKU here
+                    const newEditingItems = [...poDetail.items]; // Re-clone from source to be safe
+                    let hasUpdate = false;
+                    newEditingItems.forEach((item: any) => {
+                        if (!item.product && item.description) {
+                            const match = item.description.match(/\(([^)]+)\)\s*$/);
+                            if (match && match[1]) {
+                                const sku = match[1].trim();
+                                const found = finalProducts.find(p => p.sku === sku);
+                                if (found && found.product) {
+                                    item.product = found.product;
+                                    item.product_id = found.product.id;
+                                    hasUpdate = true;
+                                }
+                            }
+                        }
+                    });
+                    if (hasUpdate) {
+                        setEditingItems(newEditingItems);
+                    }
+                    // --------------------------------------------------------
                 } catch (e) { console.error('Error fetching plan', e); }
             }
 

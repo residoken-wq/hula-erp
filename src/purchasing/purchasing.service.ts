@@ -74,6 +74,9 @@ export class PurchasingService {
         const missingProductItems = po.items.filter(i => (!i.product || !i.product.processing_description) && !i.material_id && i.description);
 
         if (missingProductItems.length > 0) {
+            console.log('--- Debugging Missing Product Recovery ---');
+            console.log(`Found ${missingProductItems.length} items missing product info.`);
+
             const skuMap = new Map<string, any>();
 
             // Helper to extract SKU: Taken from the last (...) group
@@ -82,8 +85,11 @@ export class PurchasingService {
                 if (matches && matches.length > 0) {
                     // Take the last match, remove parens
                     const last = matches[matches.length - 1];
-                    return last.replace(/^\(/, '').replace(/\)$/, '').trim();
+                    const sku = last.replace(/^\(/, '').replace(/\)$/, '').trim();
+                    console.log(`Extracted SKU from "${desc}" -> "${sku}"`);
+                    return sku;
                 }
+                console.log(`Failed to extract SKU from "${desc}"`);
                 return null;
             };
 
@@ -93,9 +99,15 @@ export class PurchasingService {
             }
 
             if (skuMap.size > 0) {
+                console.log('SKUs to lookup:', Array.from(skuMap.keys()));
                 for (const sku of Array.from(skuMap.keys())) {
                     const p = await this.productsService.findOneBySku(sku);
-                    if (p) skuMap.set(sku, p);
+                    if (p) {
+                        console.log(`Found product for SKU "${sku}":`, p.id, p.name);
+                        skuMap.set(sku, p);
+                    } else {
+                        console.log(`Product not found for SKU "${sku}"`);
+                    }
                 }
                 for (const item of missingProductItems) {
                     const sku = extractSku(item.description);
@@ -104,6 +116,7 @@ export class PurchasingService {
                         if (p) {
                             item.product = p;
                             item.product_id = p.id;
+                            console.log(`Mapped product ${p.id} to item ${item.description}`);
                         }
                     }
                 }
