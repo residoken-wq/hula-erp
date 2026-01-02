@@ -4,6 +4,10 @@ import { ProductsService } from '../products/products.service';
 import { FinanceService } from '../finance/finance.service';
 import { SalesService } from '../sales/sales.service';
 import { CustomersService } from '../customers/customers.service';
+import { InventoryService } from '../inventory/inventory.service';
+import { PlanningService } from '../planning/planning.service';
+import { TasksService } from '../tasks/tasks.service';
+import { UsersService } from '../users/users.service';
 // import { GenerativeModel } from '@google/generative-ai'; // Removed to avoid dependency issues
 
 @Injectable()
@@ -16,6 +20,10 @@ export class AiService {
         private financeService: FinanceService,
         private salesService: SalesService,
         private customersService: CustomersService,
+        private inventoryService: InventoryService,
+        private planningService: PlanningService,
+        private tasksService: TasksService,
+        private usersService: UsersService,
         // @Inject('GEMINI_MODEL') private geminiModel: GenerativeModel
     ) {
         // this.model = this.geminiModel;
@@ -205,7 +213,20 @@ export class AiService {
                Output: { "tool": "SEARCH_CUSTOMER", "query": "customer name or phone" }
                Example: "tìm khách hàng Lan" → { "tool": "SEARCH_CUSTOMER", "query": "Lan" }
 
-            7. UNKNOWN: If you cannot help.
+            7. CHECK_MRP: Check production planning suggestions.
+               Output: { "tool": "CHECK_MRP" }
+               Example: "kiểm tra kế hoạch sản xuất" → { "tool": "CHECK_MRP" }
+
+            8. CREATE_TASK: Create a new task or reminder.
+               Output: { "tool": "CREATE_TASK", "title": "task title", "assignee_name": "name of assignee", "due_date": "YYYY-MM-DD HH:mm" }
+               Example: "nhắc Tùng gọi khách A vào 14h chiều mai" → { "tool": "CREATE_TASK", "title": "Gọi lại khách A", "assignee_name": "Tùng", "due_date": "2025-10-20 14:00" }
+               Note: If no time specified, assume tomorrow 9AM.
+
+            9. CHECK_TASKS: Search for tasks.
+               Output: { "tool": "CHECK_TASKS", "query": "keyword" }
+               Example: "kiểm tra công việc của Tùng" → { "tool": "CHECK_TASKS", "query": "Tùng" }
+
+            10. UNKNOWN: If you cannot help.
                Output: { "tool": "UNKNOWN", "reply": "Xin lỗi, tôi chưa hiểu yêu cầu này." }
 
             USER MESSAGE: "${message}"
@@ -374,6 +395,102 @@ export class AiService {
                     `- ${c.name} (${c.code}): ${c.phone || 'N/A'} - ${c.email || 'N/A'}`
                 ).join('\n');
                 const reply = `Tìm thấy ${customers.length} khách hàng:\n${details}`;
+                this.addToHistory(userId, 'user', message);
+                this.addToHistory(userId, 'assistant', reply);
+                return { text: reply };
+            }
+
+            if (action.tool === 'CHECK_MRP') {
+                try {
+                    const suggestions = await this.planningService.getSuggestion();
+                    if (suggestions.length === 0) {
+                        const reply = "Hiện tại không có đơn hàng nào cần lên kế hoạch sản xuất.";
+                        this.addToHistory(userId, 'user', message);
+                        this.addToHistory(userId, 'assistant', reply);
+                        return { text: reply };
+                    }
+
+                    const details = suggestions.slice(0, 5).map(o =>
+                        `- Đơn ${o.code} (${o.customer?.name}): Giao ${new Date(o.delivery_date).toLocaleDateString('vi-VN')}`
+                    ).join('\n');
+
+                    const reply = `Có ${suggestions.length} đơn hàng cần lập kế hoạch sản xuất:\n${details}`;
+                    this.addToHistory(userId, 'user', message);
+                    this.addToHistory(userId, 'assistant', reply);
+                    return { text: reply };
+                } catch (e) {
+                    return { text: "Lỗi kiểm tra MRP: " + e.message };
+                }
+            }
+
+            if (action.tool === 'CHECK_TASKS') {
+                const allTasks = await this.tasksService.findAll();
+                const tasks = allTasks.filter((t: any) =>
+                    t.title?.toLowerCase().includes(action.query.toLowerCase()) ||
+                    t.assignee?.full_name?.toLowerCase().includes(action.query.toLowerCase())
+                );
+
+                if (tasks.length === 0) {
+                    const reply = `Không tìm thấy công việc nào liên quan đến "${action.query}".`;
+                    this.addToHistory(userId, 'user', message);
+                    this.addToHistory(userId, 'assistant', reply);
+                    return { text: reply };
+                }
+
+                const details = tasks.slice(0, 5).map((t: any) =>
+                    `- [${t.status}] ${t.title} (Giao: ${t.assignee?.full_name || 'Chưa gán'}) - Hạn: ${t.due_date ? new Date(t.due_date).toLocaleDateString('vi-VN') : 'N/A'}`
+                ).join('\n');
+
+                const reply = `Tìm thấy ${tasks.length} công việc:\n${details}`;
+                this.addToHistory(userId, 'user', message);
+                this.addToHistory(userId, 'assistant', reply);
+                return { text: reply };
+            }
+
+            if (action.tool === 'CREATE_TASK') {
+                // 1. Find Assignee ID
+                let assigneeId = null;
+                let assigneeName = 'Bạn';
+
+                if (action.assignee_name) {
+                    const allUsers = await this.usersService.getAllUsers();
+
+                    // Simple fuzzy search
+                    const user = allUsers.find(u =>
+                        u.full_name?.toLowerCase().includes(action.assignee_name.toLowerCase()) ||
+                        u.username?.toLowerCase().includes(action.assignee_name.toLowerCase())
+                    );
+
+                    if (user) {
+                        assigneeId = user.id;
+                        assigneeName = user.full_name;
+                    } else {
+                        // Fallback to current user if exact match not found? Or just leave null?
+                        // decided: warn user but create task anyway unassigned or assigned to self?
+                        // Better: respond error
+                        const reply = `Không tìm thấy nhân viên nào tên "${action.assignee_name}". Vui lòng kiểm tra lại.`;
+                        this.addToHistory(userId, 'user', message);
+                        this.addToHistory(userId, 'assistant', reply);
+                        return { text: reply };
+                    }
+                } else {
+                    // Assign to creator (need to map userId to numeric ID? Assuming userId passed is NOT numeric id)
+                    // TODO: Need robust user resolution. For now, try to find by userId if it looks like username
+                    const u = await this.usersService.findOneByUsernameForAuth(userId);
+                    if (u) assigneeId = u.id;
+                }
+
+                await this.tasksService.create({
+                    title: action.title,
+                    description: `Được tạo bởi HulaBot theo yêu cầu: "${message}"`,
+                    status: 'TODO',
+                    priority: 'MEDIUM',
+                    assignee_id: assigneeId,
+                    due_date: action.due_date || new Date(Date.now() + 86400000), // Default +1 day
+                    creator_id: assigneeId // Self-created for now if unknown
+                });
+
+                const reply = `Đã tạo công việc "${action.title}" cho ${assigneeName}.`;
                 this.addToHistory(userId, 'user', message);
                 this.addToHistory(userId, 'assistant', reply);
                 return { text: reply };
