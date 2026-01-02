@@ -1007,6 +1007,7 @@ const PurchasingPage: React.FC = () => {
             <Modal title="Chọn Mẫu In PO" open={isPrintModalOpen} onCancel={() => setIsPrintModalOpen(false)} footer={null}>
                 <Space direction="vertical" style={{ width: '100%' }}>
                     <Button block onClick={() => handlePrint('STANDARD')}>Mẫu Tiêu Chuẩn (Đơn hàng)</Button>
+                    <Button block onClick={() => handlePrint('OUTSOURCING')}>Mẫu Gia Công (Outsourcing)</Button>
                     <Button block onClick={() => handlePrint('CARA')}>Mẫu Đóng Gói (Cara Style)</Button>
                     <Button block onClick={() => handlePrint('HQ')}>Mẫu Đóng Gói (HQ Style)</Button>
                 </Space>
