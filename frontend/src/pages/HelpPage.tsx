@@ -222,7 +222,6 @@ const HelpPage: React.FC = () => {
                 );
             case 'sales-process':
                 return (
-                return (
                     <div>
                         <Tag color="blue" style={{ marginBottom: 16 }}>Modules: Sales</Tag>
                         <Title level={2}>🤝 Quy trình phối kết hợp Bán hàng (Wholesale Sales Workflow)</Title>
