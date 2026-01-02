@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Input, Modal, message, InputNumber, Tooltip, Select, DatePicker, Tag } from 'antd';
-import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined } from '@ant-design/icons';
+import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined, EditOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../../config';
@@ -17,6 +17,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [shipNote, setShipNote] = useState('');
     const [shipItems, setShipItems] = useState<any[]>([]);
+    const [editingDeliveryId, setEditingDeliveryId] = useState<number | null>(null);
 
     // Additional Ship Info state
     const [shipDate, setShipDate] = useState<any>(dayjs());
@@ -71,7 +72,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         };
     });
 
-    const openModal = () => {
+    const openCreateModal = () => {
+        setEditingDeliveryId(null);
         setShipItems(summaryData.map((d: any) => ({
             sku: d.sku, max: d.remaining, quantity: d.remaining > 0 ? d.remaining : 0
         })));
@@ -86,20 +88,53 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         setIsModalOpen(true);
     };
 
+    const openEditModal = (delivery: any) => {
+        setEditingDeliveryId(delivery.id);
+        setShipDate(dayjs(delivery.delivery_date));
+        setShipAddress(delivery.delivery_address || '');
+        setShipContactName(delivery.contact_name || '');
+        setShipContactPhone(delivery.contact_phone || '');
+        setShipNote(delivery.note || '');
+
+        // Calculate Ship Items
+        // Merge Order Items (summaryData) with Delivery Items
+        const mergedItems = summaryData.map((d: any) => {
+            const deliveredItem = delivery.items?.find((i: any) => i.sku === d.sku);
+            const currentQtyInDelivery = deliveredItem ? Number(deliveredItem.quantity) : 0;
+            const max = d.remaining + currentQtyInDelivery;
+
+            return {
+                sku: d.sku,
+                max: max,
+                quantity: currentQtyInDelivery
+            };
+        });
+        setShipItems(mergedItems);
+        setIsModalOpen(true);
+    };
+
     const handleShip = async () => {
         try {
-            await axios.post(`${API_URL}/sales/${order.id}/delivery`, {
-                code: `PXK-${dayjs(shipDate).format('DDMMYY')}-${Math.floor(1000 + Math.random() * 9000)}`,
+            const payload = {
+                code: editingDeliveryId ? undefined : `PXK-${dayjs(shipDate).format('DDMMYY')}-${Math.floor(1000 + Math.random() * 9000)}`,
                 date: shipDate ? shipDate.toDate() : new Date(),
                 note: shipNote,
                 delivery_address: shipAddress,
                 contact_name: shipContactName,
                 contact_phone: shipContactPhone,
                 items: shipItems.filter(i => i.quantity > 0)
-            });
-            message.success('Đã xuất kho');
+            };
+
+            if (editingDeliveryId) {
+                await axios.put(`${API_URL}/sales/delivery/${editingDeliveryId}`, payload);
+                message.success('Đã cập nhật phiếu xuất kho');
+            } else {
+                await axios.post(`${API_URL}/sales/${order.id}/delivery`, payload);
+                message.success('Đã xuất kho');
+            }
+
             setIsModalOpen(false); fetchHistory(); onSuccess();
-        } catch (e) { message.error('Lỗi xuất kho'); }
+        } catch (e) { message.error('Lỗi lưu phiếu xuất kho'); }
     };
 
     const handlePrint = (delivery: any) => {
@@ -291,7 +326,9 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                 <b>Lịch sử phiếu giao:</b>
-                <Button type="primary" icon={<CarOutlined />} onClick={openModal}>Tạo Phiếu Xuất Kho</Button>
+                {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                    <Button type="primary" size="small" icon={<CarOutlined />} onClick={openCreateModal}>Tạo Phiếu Xuất Kho</Button>
+                )}
             </div>
             <Table dataSource={history} rowKey="id" pagination={false} size="small" bordered columns={[
                 { title: 'Mã phiếu', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
@@ -307,11 +344,16 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 { title: 'Người công trình', render: (r) => (r.contact_name ? <span>{r.contact_name} <br /><small>{r.contact_phone}</small></span> : '-') },
                 { title: 'Chi tiết', width: '30%', render: (r: any) => r.items?.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') },
                 {
-                    title: '', width: 100, align: 'center', render: (_: any, r: any) => (
+                    title: '', width: 120, align: 'center', render: (_: any, r: any) => (
                         <div style={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
                             <Tooltip title="In Phiếu Xuất Kho">
                                 <Button size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
                             </Tooltip>
+                            {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                                <Tooltip title="Sửa phiếu">
+                                    <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(r)} />
+                                </Tooltip>
+                            )}
                             <Tooltip title="Gửi Email thông báo khách hàng">
                                 <Button size="small" icon={<MailOutlined />} onClick={async () => {
                                     try {
@@ -332,7 +374,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 }
             ]} />
 
-            <Modal title="Tạo Phiếu Xuất Kho" open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={handleShip} width={600}>
+            <Modal title={editingDeliveryId ? "Cập nhật Phiếu Xuất Kho" : "Tạo Phiếu Xuất Kho"} open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={handleShip} width={600}>
                 {/* DATE SELECTION */}
                 <div style={{ marginBottom: 10 }}>
                     <div style={{ fontWeight: 500 }}>Ngày xuất kho:</div>
@@ -398,5 +440,6 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             </Modal>
         </div>
     );
-};
+}
+
 export default SalesDeliveries;

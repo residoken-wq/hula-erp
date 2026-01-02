@@ -50,6 +50,9 @@ export class SalesController {
     @Post(':id/delivery')
     createDelivery(@Param('id') id: number, @Body() b: any) { return this.s.createDelivery(id, b); }
 
+    @Put('delivery/:deliveryId')
+    updateDelivery(@Param('deliveryId') deliveryId: number, @Body() b: any) { return this.s.updateDelivery(deliveryId, b); }
+
     @Get(':code/payments')
     getPayments(@Param('code') code: string) { return this.s.getPaymentHistory(code); }
 
