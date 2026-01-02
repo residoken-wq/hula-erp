@@ -179,6 +179,10 @@ export class PurchasingService {
                 const poItem = po.items.find(i => i.id === itemDTO.id);
                 if (poItem) {
                     // Update Item fields
+                    if (itemDTO.product_id !== undefined) {
+                        poItem.product = { id: itemDTO.product_id } as any;
+                        poItem.product_id = itemDTO.product_id; // Explicitly set ID
+                    }
                     if (itemDTO.quantity !== undefined) poItem.quantity = Number(itemDTO.quantity);
                     if (itemDTO.unit_price !== undefined) poItem.unit_price = Number(itemDTO.unit_price);
                     if (itemDTO.note !== undefined) poItem.note = itemDTO.note; // Update Item Note

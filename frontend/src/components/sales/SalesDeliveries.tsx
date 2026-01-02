@@ -23,6 +23,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const [shipAddress, setShipAddress] = useState<string>('');
     const [shipContactName, setShipContactName] = useState<string>('');
     const [shipContactPhone, setShipContactPhone] = useState<string>('');
+    const [companyConfig, setCompanyConfig] = useState<any>(null);
 
     // RESOLVE FULL CUSTOMER (to get contacts)
     const fullCustomer = customers.find(c => c.id === order?.customer?.id || c.id === order?.customer_id) || order?.customer || {};
@@ -35,7 +36,10 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         } catch (e) { }
     };
 
-    useEffect(() => { if (order?.id) fetchHistory(); }, [order?.id]);
+    useEffect(() => {
+        if (order?.id) fetchHistory();
+        axios.get(`${API_URL}/system/company`).then(res => setCompanyConfig(res.data)).catch(() => { });
+    }, [order?.id]);
 
     // Use order.items for ordered quantities
     const summaryData = (order.items || []).map((item: any) => {
@@ -158,11 +162,12 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             <body>
                 <div class="header">
                     <div class="company-info">
-                        <h1>HULA ERP</h1>
-                        <p style="font-weight:bold; font-size:14px; margin-top:5px;">NỆM MẦM NON HULA</p>
-                        <p>📍 29 đường 12, P. An Phú, Q.2, TP.HCM</p>
-                        <p>📞 0983.882210 - 0983.796654</p>
-                        <p style="font-weight:bold; color:#0050b3; margin-top:5px;">CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</p>
+                        <h1>${companyConfig?.COMPANY_NAME || 'HULA ERP'}</h1>
+                        <p style="font-weight:bold; font-size:14px; margin-top:5px;">${companyConfig?.COMPANY_NAME || 'NỆM MẦM NON HULA'}</p>
+                        <p>📍 ${companyConfig?.COMPANY_ADDRESS || '29 đường 12, P. An Phú, Q.2, TP.HCM'}</p>
+                        <p>📞 ${companyConfig?.COMPANY_PHONE || '0983.882210 - 0983.796654'}</p>
+                        <p style="font-weight:bold; color:#0050b3; margin-top:5px;">${companyConfig?.COMPANY_WEBSITE || 'CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH'}</p>
+                        ${companyConfig?.COMPANY_EMAIL ? `<p>Email: ${companyConfig.COMPANY_EMAIL}</p>` : ''}
                     </div>
                     <div class="title-section">
                         <h2>PHIẾU XUẤT KHO</h2>

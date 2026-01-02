@@ -49,6 +49,27 @@ export class SystemService {
         await this.setValue('SMTP_SECURE', String(data.SMTP_SECURE), 'Use SSL/TLS'); // 'true' or 'false'
         return { success: true };
     }
+
+    // --- COMPANY CONFIG HELPER ---
+    async getCompanyConfig() {
+        const keys = ['COMPANY_NAME', 'COMPANY_ADDRESS', 'COMPANY_PHONE', 'COMPANY_EMAIL', 'COMPANY_WEBSITE'];
+        const configs = await this.configRepo.findByIds(keys);
+        const result: any = {};
+        keys.forEach(k => {
+            const found = configs.find(c => c.key === k);
+            result[k] = found ? found.value : '';
+        });
+        return result;
+    }
+
+    async saveCompanyConfig(data: any) {
+        await this.setValue('COMPANY_NAME', data.COMPANY_NAME || '', 'Tên Doanh Nghiệp');
+        await this.setValue('COMPANY_ADDRESS', data.COMPANY_ADDRESS || '', 'Địa chỉ');
+        await this.setValue('COMPANY_PHONE', data.COMPANY_PHONE || '', 'Số điện thoại');
+        await this.setValue('COMPANY_EMAIL', data.COMPANY_EMAIL || '', 'Email liên hệ');
+        await this.setValue('COMPANY_WEBSITE', data.COMPANY_WEBSITE || '', 'Website');
+        return { success: true };
+    }
     // --- ACTIVITY LOGGING ---
     async logAction(module: string, action: string, description: string, userId?: number, username?: string, entityId?: string) {
         const log = this.logRepo.create({

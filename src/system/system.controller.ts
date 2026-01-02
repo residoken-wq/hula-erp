@@ -15,6 +15,16 @@ export class SystemController {
         return this.s.saveSmtpConfig(body);
     }
 
+    @Get('company')
+    getCompanyConfig() {
+        return this.s.getCompanyConfig();
+    }
+
+    @Post('company')
+    saveCompanyConfig(@Body() body: any) {
+        return this.s.saveCompanyConfig(body);
+    }
+
     @Get('logs')
     getLogs() {
         return this.s.getLogs();

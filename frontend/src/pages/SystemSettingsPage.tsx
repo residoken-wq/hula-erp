@@ -100,6 +100,17 @@ const SystemSettingsPage: React.FC = () => {
 
             <div style={{ marginBottom: 24 }} />
 
+            <div style={{ marginBottom: 24 }} />
+
+            <Card
+                title={<span><ShopOutlined /> Thông tin Doanh nghiệp</span>}
+                bordered={false}
+            >
+                <CompanyConfigForm />
+            </Card>
+
+            <div style={{ marginBottom: 24 }} />
+
             <Card
                 title={<span><LinkOutlined /> Quản Lý Link Tài Nguyên</span>}
                 bordered={false}
@@ -150,5 +161,38 @@ const LinkConfigItem = ({ label, configKey, placeholder }: { label: string, conf
         </Form.Item>
     );
 }
+
+const CompanyConfigForm = () => {
+    const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        axios.get(`${API_URL}/system/company`).then(res => form.setFieldsValue(res.data));
+    }, []);
+
+    const onFinish = async (values: any) => {
+        setLoading(true);
+        try {
+            await axios.post(`${API_URL}/system/company`, values);
+            message.success('Đã lưu thông tin doanh nghiệp');
+        } catch (e) { message.error('Lỗi khi lưu'); }
+        setLoading(false);
+    };
+
+    return (
+        <Form form={form} layout="vertical" onFinish={onFinish}>
+            <Row gutter={16}>
+                <Col span={12}><Form.Item name="COMPANY_NAME" label="Tên Doanh Nghiệp"><Input placeholder="VD: Công ty TNHH ABC" /></Form.Item></Col>
+                <Col span={12}><Form.Item name="COMPANY_PHONE" label="Số điện thoại"><Input placeholder="0909xxxxxx" /></Form.Item></Col>
+            </Row>
+            <Form.Item name="COMPANY_ADDRESS" label="Địa chỉ"><Input.TextArea rows={2} placeholder="Số 123, đường xyz..." /></Form.Item>
+            <Row gutter={16}>
+                <Col span={12}><Form.Item name="COMPANY_EMAIL" label="Email"><Input /></Form.Item></Col>
+                <Col span={12}><Form.Item name="COMPANY_WEBSITE" label="Website"><Input /></Form.Item></Col>
+            </Row>
+            <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={loading}>Lưu Thông Tin</Button>
+        </Form>
+    );
+};
 
 export default SystemSettingsPage;

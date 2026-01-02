@@ -20,6 +20,9 @@ const PurchasingPage: React.FC = () => {
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false); // Print Selection Modal
     const [planProducts, setPlanProducts] = useState<any[]>([]); // Products in related Plan
     const [planSearchText, setPlanSearchText] = useState('');
+    const [products, setProducts] = useState<any[]>([]); // All Products for Relinking
+    const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [companyConfig, setCompanyConfig] = useState<any>(null);
 
     // Delivery Matrix State
     const [deliveryMatrix, setDeliveryMatrix] = useState<any[]>([]);
@@ -41,7 +44,11 @@ const PurchasingPage: React.FC = () => {
         setLoading(false);
     };
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        fetchData();
+        axios.get(`${API_URL}/products`).then(res => setProducts(res.data)).catch(console.error);
+        axios.get(`${API_URL}/suppliers`).then(res => setSuppliers(res.data)).catch(console.error);
+    }, []);
 
     const handleStatusChange = async (id: number, status: string) => {
         try {
@@ -349,11 +356,11 @@ const PurchasingPage: React.FC = () => {
     // Auxiliary state for selecting supplier
     const [isSelectSupplierOpen, setIsSelectSupplierOpen] = useState(false);
     const [targetSupplierId, setTargetSupplierId] = useState<number | null>(null);
-    const [suppliers, setSuppliers] = useState<any[]>([]);
+    // const [suppliers, setSuppliers] = useState<any[]>([]); // REMOVED DUPLICATE
 
-    useEffect(() => {
-        axios.get(`${API_URL}/suppliers`).then(res => setSuppliers(res.data));
-    }, []);
+    // useEffect(() => {
+    //     axios.get(`${API_URL}/suppliers`).then(res => setSuppliers(res.data));
+    // }, []);
 
     const proceedCreatePooled = async (supId: number | null) => {
         try {
@@ -522,8 +529,8 @@ const PurchasingPage: React.FC = () => {
                 ${style}
                  <div class="header">
                     <div>
-                         <div class="title" style="margin-bottom:5px; text-align:left;">HULA</div>
-                         <div>Đ/C: 123 ABC...</div>
+                         <div class="title" style="margin-bottom:5px; text-align:left;">${companyConfig?.COMPANY_NAME || 'HULA'}</div>
+                         <div>${companyConfig?.COMPANY_ADDRESS ? `Đ/C: ${companyConfig.COMPANY_ADDRESS}` : 'Đ/C: 123 ABC...'}</div>
                     </div>
                     <div style="text-align:right;">
                         <div><b>Ngày:</b> ${dateStr}</div>
@@ -736,18 +743,35 @@ const PurchasingPage: React.FC = () => {
                                 size="small"
                                 columns={[
                                     {
-                                        title: 'Tên hàng', width: 150, render: (r: any) => {
-                                            // For product items, show SKU
-                                            if (r.product) return <b>{r.product.sku || r.product.name}</b>;
+                                        title: 'Tên hàng', width: 200, render: (r: any, _: any, index: number) => {
+                                            // Handle Product Relinking (Select)
+                                            if (r.product || (!r.material && r.description)) {
+                                                return <Select
+                                                    showSearch
+                                                    style={{ width: '100%' }}
+                                                    value={r.product_id || r.product?.id}
+                                                    placeholder="Chọn sản phẩm..."
+                                                    optionFilterProp="label"
+                                                    onChange={(val) => {
+                                                        const p = products.find(prod => prod.id === val);
+                                                        const newItems = [...editingItems];
+                                                        if (p) {
+                                                            newItems[index].product = p;
+                                                            newItems[index].product_id = p.id;
+                                                            // Optional: Update description? 
+                                                            // Ideally we keep existing desc or allow manual update, 
+                                                            // but changing product usually implies a fix.
+                                                            // We leave description column to handle display based on NEW product.
+                                                        }
+                                                        setEditingItems(newItems);
+                                                    }}
+                                                    options={products.map(p => ({ label: `${p.name} (${p.sku})`, value: p.id }))}
+                                                />
+                                            }
 
-                                            // For material items, show material name
+                                            // Material Fallback
                                             if (r.material) return <b>{r.material.name}</b>;
 
-                                            // For outsourcing, extract SKU from description "ProcessingDesc (SKU)"
-                                            if (r.description) {
-                                                const match = r.description.match(/\(([^)]+)\)\s*$/);
-                                                if (match) return <b>{match[1].trim()}</b>;
-                                            }
                                             return r.description;
                                         }
                                     },
