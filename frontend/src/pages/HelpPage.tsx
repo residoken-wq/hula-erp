@@ -29,7 +29,8 @@ import {
     ContainerOutlined,
     CalculatorOutlined,
     ShoppingCartOutlined,
-    WalletOutlined
+    WalletOutlined,
+    HeartOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
@@ -221,104 +222,94 @@ const HelpPage: React.FC = () => {
                 );
             case 'sales-process':
                 return (
+                return (
                     <div>
                         <Tag color="blue" style={{ marginBottom: 16 }}>Modules: Sales</Tag>
-                        <Title level={2}>🛒 Quy trình Bán hàng (Sales Workflow)</Title>
+                        <Title level={2}>🤝 Quy trình phối kết hợp Bán hàng (Wholesale Sales Workflow)</Title>
                         <Paragraph>
-                            Hệ thống quản lý quy trình bán hàng khép kín từ lúc khởi tạo báo giá cho đến khi đơn hàng hoàn tất.
-                            Dưới đây là sơ đồ luồng công việc tiêu chuẩn:
+                            Quy trình phối hợp chặt chẽ giữa <b>Sales Team</b>, <b>Purchasing Team</b> (Mua hàng) và <b>Production Team</b> (Sản xuất/Kho) để phục vụ khách hàng sỉ.
                         </Paragraph>
 
-                        {/* WORKFLOW DIAGRAM */}
-                        <Card style={{ background: '#f9f9f9', marginBottom: 30 }} bordered={false}>
-                            <Steps
-                                current={-1}
-                                labelPlacement="vertical"
-                                items={[
-                                    {
-                                        title: 'Báo Giá',
-                                        description: 'Gửi Portal',
-                                        icon: <SolutionOutlined />,
-                                    },
-                                    {
-                                        title: 'Đặt Cọc',
-                                        description: 'Khách xác nhận',
-                                        icon: <DollarOutlined />,
-                                    },
-                                    {
-                                        title: 'Duyệt Mẫu',
-                                        description: 'Chốt mẫu',
-                                        icon: <FileDoneOutlined />,
-                                    },
-                                    {
-                                        title: 'Sản Xuất',
-                                        description: 'Tiến độ',
-                                        icon: <AppstoreAddOutlined />,
-                                    },
-                                    {
-                                        title: 'Giao Hàng',
-                                        description: 'Kho vận',
-                                        icon: <CarOutlined />,
-                                    },
-                                    {
-                                        title: 'Hoàn Tất',
-                                        description: 'Nghiệm thu',
-                                        icon: <CheckCircleOutlined />,
-                                    },
-                                ]}
-                            />
+                        {/* PHASE 1: LEAD & CONSULTING */}
+                        <Card title="Giai đoạn 1: Chăm sóc & Tư vấn (Pre-Sales)" style={{ marginBottom: 20, borderColor: '#91d5ff' }}>
+                            <Row gutter={16}>
+                                <Col span={24}>
+                                    <Steps direction="vertical" size="small" current={-1} items={[
+                                        {
+                                            title: <Text strong>1. Chăm sóc Lead & Tư vấn giải pháp</Text>,
+                                            description: 'Sales Team tiếp nhận Lead từ thị trường, tư vấn giải pháp, dịch vụ vượt trội và sản phẩm phù hợp.',
+                                            icon: <UserOutlined style={{ color: '#1890ff' }} />
+                                        },
+                                        {
+                                            title: <Text strong>2. Kiểm tra tồn kho (Kho - Production Team)</Text>,
+                                            description: 'Sales Team phối hợp với Kho (Production) để kiểm tra số lượng tồn kho và lên kế hoạch giao nhận sơ bộ.',
+                                            icon: <ShopOutlined style={{ color: '#52c41a' }} />
+                                        },
+                                        {
+                                            title: <Text strong>3. Báo giá khả thi</Text>,
+                                            description: 'Dựa trên năng lực cung ứng và tồn kho, Sales Team gửi báo giá khả thi cho khách hàng.',
+                                            icon: <DollarOutlined style={{ color: '#faad14' }} />
+                                        }
+                                    ]} />
+                                </Col>
+                            </Row>
                         </Card>
 
-                        <Title level={3}>1. Tạo Báo Giá (Quotations)</Title>
-                        <Paragraph>
-                            Truy cập menu <b>Bán hàng (Sales)</b> và chọn nút <b>"Thêm Đơn Hàng"</b>.
-                            Tại đây, bạn điền thông tin khách hàng và chọn sản phẩm.
-                        </Paragraph>
-                        <ul>
-                            <li><Text strong>Khách hàng:</Text> Chọn khách hàng cũ hoặc tạo mới ngay trên form.</li>
-                            <li><Text strong>Sản phẩm:</Text> Tìm kiếm theo tên hoặc SKU. Hệ thống tự động điền giá bán và hình ảnh.</li>
-                            <li><Text strong>Mô tả VAT:</Text> Nhập thông tin mô tả cụ thể cho hóa đơn nếu cần thiết (Khác với tên sản phẩm nội bộ).</li>
-                        </ul>
+                        {/* PHASE 2: ORDER & PLANNING */}
+                        <Card title="Giai đoạn 2: Đơn hàng & Kế hoạch (Order Processing)" style={{ marginBottom: 20, borderColor: '#ffd666' }}>
+                            <Row gutter={[16, 16]}>
+                                <Col span={10}>
+                                    <Card size="small" title="Sales Team" bordered={false} style={{ background: '#e6f7ff' }}>
+                                        <div style={{ fontWeight: 600, marginBottom: 5 }}>2. Đơn hàng (Sale Order)</div>
+                                        <ul>
+                                            <li>Chốt sản phẩm mẫu & Chi tiết đơn hàng.</li>
+                                            <li>Xác nhận thông tin giao hàng.</li>
+                                            <li>Ký kết Hợp đồng & Nhận thanh toán.</li>
+                                        </ul>
+                                    </Card>
+                                </Col>
+                                <Col span={2} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ fontSize: 20 }}>➔</div>
+                                </Col>
+                                <Col span={12}>
+                                    <Card size="small" title="Phối hợp Liên phòng ban" bordered={false} style={{ background: '#fffbe6' }}>
+                                        <div style={{ marginBottom: 10 }}>
+                                            <Tag color="orange">Purchasing Team</Tag>
+                                            <br />
+                                            <span>Nhận BOM ➔ Tạo <b>2. PO NPL</b> (Nguyên phụ liệu) dựa trên thông tin giao hàng & hợp đồng.</span>
+                                        </div>
+                                        <div>
+                                            <Tag color="green">Production Team</Tag>
+                                            <br />
+                                            <span>Tiếp nhận <b>2. KHSX</b> (Kế hoạch SX) ➔ Lên PO NGC, Kiểm soát chất lượng SP & Kế hoạch giao hàng chi tiết.</span>
+                                        </div>
+                                    </Card>
+                                </Col>
+                            </Row>
+                        </Card>
 
-                        <Divider />
-
-                        <Title level={3}>2. Cổng Thông Tin Khách Hàng (Customer Portal)</Title>
-                        <Paragraph>
-                            Sau khi tạo báo giá, bạn có thể gửi link <b>Portal</b> cho khách hàng.
-                            Tại Portal, khách hàng có thể:
-                        </Paragraph>
-                        <Row gutter={[16, 16]}>
-                            <Col span={12}>
-                                <Card size="small" title="Xem chi tiết" bordered>
-                                    Xem hình ảnh sản phẩm, thông số kỹ thuật và tổng tiền chi tiết.
-                                </Card>
-                            </Col>
-                            <Col span={12}>
-                                <Card size="small" title="Tương tác" bordered>
-                                    Chat trực tiếp với Sale, <Text type="success">Xác nhận đồng ý</Text> hoặc <Text type="danger">Từ chối</Text> báo giá.
-                                </Card>
-                            </Col>
-                        </Row>
-
-                        <Divider />
-
-                        <Title level={3}>3. Chuyển đổi thành Đơn hàng (Sales Order)</Title>
-                        <Paragraph>
-                            Khi khách hàng xác nhận trên Portal (hoặc bạn xác nhận thủ công), trạng thái sẽ chuyển sang <b>SO_PENDING</b>.
-                            Lúc này, các bộ phận khác (Kho, Kế toán) sẽ nhận được thông tin để tiến hành xuất kho và thu tiền.
-                        </Paragraph>
-
-                        <Divider />
-
-                        <Title level={3}>4. Xuất Hóa Đơn (Invoice & VAT)</Title>
-                        <Paragraph>
-                            Hệ thống hỗ trợ quản lý thông tin xuất hóa đơn đỏ (VAT) riêng biệt cho từng đơn hàng.
-                        </Paragraph>
-                        <ul>
-                            <li><b>Tự động điền:</b> Khi chọn khách hàng, hệ thống sẽ tự động lấy thông tin pháp nhân (Tên công ty, MST, Địa chỉ ĐKKD) từ hồ sơ khách hàng để điền vào tab "Xuất Hóa Đơn".</li>
-                            <li><b>Tùy chỉnh:</b> Bạn có thể chỉnh sửa thông tin này cho từng đơn hàng cụ thể (VD: Khách muốn xuất cho công ty con).</li>
-                            <li><b>Portal:</b> Thông tin này sẽ hiển thị rõ ràng trên Portal Khách hàng để khách kiểm tra trước khi xác nhận đặt hàng.</li>
-                        </ul>
+                        {/* PHASE 3: DELIVERY */}
+                        <Card title="Giai đoạn 3: Giao hàng & Sau bán hàng" style={{ marginBottom: 20, borderColor: '#95de64' }}>
+                            <Steps direction="vertical" size="small" current={-1} items={[
+                                {
+                                    title: <Text strong>3. Giao hàng & Thanh lý HĐ</Text>,
+                                    description: (
+                                        <div>
+                                            <ul>
+                                                <li><b>Production Team:</b> Thực hiện Đóng gói & Vận chuyển (Giao hàng).</li>
+                                                <li><b>Sales Team:</b> Phối hợp bàn giao, làm thủ tục thanh lý hợp đồng và đo lường mức độ hài lòng của khách.</li>
+                                            </ul>
+                                        </div>
+                                    ),
+                                    icon: <CarOutlined style={{ color: '#13c2c2' }} />
+                                },
+                                {
+                                    title: <Text strong>4. Chăm sóc sau bán hàng</Text>,
+                                    description: 'Sales Team tiếp tục duy trì mối quan hệ và hỗ trợ khách hàng sau khi đơn hàng hoàn tất.',
+                                    icon: <HeartOutlined style={{ color: '#eb2f96' }} />
+                                }
+                            ]} />
+                        </Card>
                     </div>
                 );
             case 'sales-create':

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Form, Input, Button, Switch, message, Spin, Row, Col, Divider, Alert } from 'antd';
-import { SaveOutlined, MailOutlined, LinkOutlined } from '@ant-design/icons';
+import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
