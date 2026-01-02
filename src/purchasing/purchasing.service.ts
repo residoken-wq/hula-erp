@@ -70,24 +70,36 @@ export class PurchasingService {
 
         // --- MỚI: Recover Missing Product (Legacy Data Fix) ---
         // Some Outsourcing POs created before 02/01/2026 might miss product_id
-        const missingProductItems = po.items.filter(i => !i.product_id && !i.material_id && i.description);
+        // HOẶC product_id có nhưng ko load được relation (trường hợp hiếm)
+        const missingProductItems = po.items.filter(i => (!i.product || !i.product.processing_description) && !i.material_id && i.description);
+
         if (missingProductItems.length > 0) {
             const skuMap = new Map<string, any>();
-            for (const item of missingProductItems) {
-                const match = item.description.match(/\(([^)]+)\)\s*$/);
-                if (match && match[1]) {
-                    skuMap.set(match[1].trim(), null);
+
+            // Helper to extract SKU: Taken from the last (...) group
+            const extractSku = (desc: string) => {
+                const matches = desc.match(/\(([^)]+)\)/g);
+                if (matches && matches.length > 0) {
+                    // Take the last match, remove parens
+                    const last = matches[matches.length - 1];
+                    return last.replace(/^\(/, '').replace(/\)$/, '').trim();
                 }
+                return null;
+            };
+
+            for (const item of missingProductItems) {
+                const sku = extractSku(item.description);
+                if (sku) skuMap.set(sku, null);
             }
+
             if (skuMap.size > 0) {
                 for (const sku of Array.from(skuMap.keys())) {
                     const p = await this.productsService.findOneBySku(sku);
                     if (p) skuMap.set(sku, p);
                 }
                 for (const item of missingProductItems) {
-                    const match = item.description.match(/\(([^)]+)\)\s*$/);
-                    if (match && match[1]) {
-                        const sku = match[1].trim();
+                    const sku = extractSku(item.description);
+                    if (sku) {
                         const p = skuMap.get(sku);
                         if (p) {
                             item.product = p;
