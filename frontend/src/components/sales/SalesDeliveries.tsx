@@ -196,13 +196,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             </head>
             <body>
                 <div class="header">
-                    <div class="company-info">
-                        <h1>${companyConfig?.COMPANY_NAME || 'HULA ERP'}</h1>
-                        <p style="font-weight:bold; font-size:14px; margin-top:5px;">${companyConfig?.COMPANY_NAME || 'NỆM MẦM NON HULA'}</p>
-                        <p>📍 ${companyConfig?.COMPANY_ADDRESS || '29 đường 12, P. An Phú, Q.2, TP.HCM'}</p>
-                        <p>📞 ${companyConfig?.COMPANY_PHONE || '0983.882210 - 0983.796654'}</p>
-                        <p style="font-weight:bold; color:#0050b3; margin-top:5px;">${companyConfig?.COMPANY_WEBSITE || 'CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH'}</p>
-                        ${companyConfig?.COMPANY_EMAIL ? `<p>Email: ${companyConfig.COMPANY_EMAIL}</p>` : ''}
+                    <div class="header-logo" style="text-align:center;">
+                        <img src="${window.location.origin}/company_header.png" alt="Company Header" style="max-height: 100px; max-width: 100%;" />
                     </div>
                     <div class="title-section">
                         <h2>PHIẾU XUẤT KHO</h2>
