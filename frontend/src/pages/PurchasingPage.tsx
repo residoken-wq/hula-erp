@@ -452,7 +452,7 @@ const PurchasingPage: React.FC = () => {
                     <td>${idx + 1}</td>
                     <td>${currentPO.po_code}</td>
                     <td>${i.material?.code || i.product?.sku || '-'}</td>
-                    <td class="left-align">${i.description || i.material?.name || ''}</td>
+                    <td class="left-align">${i.product?.processing_description || i.description || i.material?.name || ''}</td>
                     <td>-</td> 
                     <td>-</td> 
                     <td>${Number(i.quantity).toLocaleString()}</td>
@@ -481,7 +481,7 @@ const PurchasingPage: React.FC = () => {
                             <th>STT</th>
                             <th>Mã ĐH</th>
                             <th>Mã SKU</th>
-                            <th>Tên SP</th>
+                            <th>Mô tả sản phẩm</th>
                             <th>Định mức vải (VMT)</th>
                             <th>Định mức vải (VMS)</th>
                             <th>Số lượng</th>
@@ -684,8 +684,10 @@ const PurchasingPage: React.FC = () => {
                                     { title: 'Tổng (+Hao hụt)', width: 120, align: 'center', render: (r: any) => <b>{Number(r.total_quantity || r.quantity).toLocaleString()}</b> },
                                     {
                                         title: 'SL (QĐ)', width: 150, render: (r: any, _: any, index: number) => {
-                                            if (!r.material) return '-';
-                                            const factor = Number(r.material.conversion_factor || 1);
+                                            // --- FIX: Allow edit for Outsourcing (no material) ---
+                                            const factor = r.material ? Number(r.material.conversion_factor || 1) : 1;
+                                            const unit = r.material ? r.material.purchase_unit : '';
+
                                             const val = r.quantity / factor;
                                             return <InputNumber
                                                 value={val}
@@ -698,7 +700,7 @@ const PurchasingPage: React.FC = () => {
                                                     newItems[index].subtotal = newQ * Number(newItems[index].unit_price);
                                                     setEditingItems(newItems);
                                                 }}
-                                                addonAfter={r.material.purchase_unit}
+                                                addonAfter={unit}
                                             />
                                         }
                                     },
