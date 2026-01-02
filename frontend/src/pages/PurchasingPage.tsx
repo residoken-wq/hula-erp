@@ -477,22 +477,38 @@ const PurchasingPage: React.FC = () => {
                 const priceCells = showPrice ? `<td>${Number(i.unit_price || 0).toLocaleString()}</td><td>${Number(i.subtotal || 0).toLocaleString()}</td>` : '';
 
                 // Extract SKU and processing description
+                // Extract SKU and processing description
                 let sku = i.material?.code || i.product?.sku || '-';
-                let processingDesc = i.product?.processing_description || i.material?.name || '';
+                let processingDesc = i.product?.processing_description || i.material?.name || ''; // Prioritize Processing Desc
+
+                // If product exists but processing_description is missing, fallback to name
+                if (i.product && !processingDesc) {
+                    processingDesc = i.product.name;
+                }
 
                 // If no product/material, extract from description format "ProcessingDesc (SKU)"
                 if (!i.product && !i.material && i.description) {
                     const skuMatch = i.description.match(/\(([^)]+)\)\s*$/);
                     const descMatch = i.description.match(/^(.+?)\s*\([^)]+\)\s*$/);
+
                     if (skuMatch) sku = skuMatch[1].trim();
-                    if (descMatch) processingDesc = descMatch[1].trim();
+                    if (descMatch) {
+                        processingDesc = descMatch[1].trim();
+                    } else {
+                        // If regex fails (no SKU part), just show the whole description
+                        if (!processingDesc) processingDesc = i.description;
+                    }
+                } else if (!processingDesc && i.description) {
+                    // Clean up description if needed
+                    const descMatch = i.description.match(/^(.+?)\s*\([^)]+\)\s*$/);
+                    processingDesc = descMatch ? descMatch[1].trim() : i.description;
                 }
 
                 return `
                 <tr>
                     <td>${idx + 1}</td>
                     <td>${sku}</td>
-                    <td class="left-align">${processingDesc || i.description || ''}</td>
+                    <td class="left-align">${processingDesc}</td>
                     <td>-</td> 
                     <td>-</td> 
                     <td>${Number(i.quantity).toLocaleString()}</td>
