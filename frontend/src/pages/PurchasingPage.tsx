@@ -721,6 +721,7 @@ const PurchasingPage: React.FC = () => {
                                 columns={[
                                     {
                                         title: 'Tên hàng', render: (r: any) => {
+                                            // If we have full product data, use it
                                             if (r.product) {
                                                 return (
                                                     <div>
@@ -731,7 +732,28 @@ const PurchasingPage: React.FC = () => {
                                                     </div>
                                                 );
                                             }
+
+                                            // For material items, show material name
                                             if (r.material) return <b>{r.material.name}</b>;
+
+                                            // For outsourcing without product object, parse description
+                                            // Format: "Processing Description (SKU)"
+                                            if (!r.material && r.description) {
+                                                const match = r.description.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+                                                if (match) {
+                                                    const processingDesc = match[1].trim();
+                                                    const sku = match[2].trim();
+                                                    return (
+                                                        <div>
+                                                            <div style={{ fontWeight: 'bold' }}>{sku}</div>
+                                                            <div style={{ fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
+                                                                {processingDesc}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+                                            }
+
                                             return r.description;
                                         }
                                     },
