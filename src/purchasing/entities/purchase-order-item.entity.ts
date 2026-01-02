@@ -45,6 +45,9 @@ export class PurchaseOrderItem {
   @Column('decimal', { precision: 15, scale: 2 })
   subtotal: number;
 
+  @Column({ nullable: true })
+  note: string;  // Ghi chu cho cac don gia cong
+
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   raw_quantity: number; // Tổng Cần (Gốc)
 

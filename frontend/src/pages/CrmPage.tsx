@@ -170,16 +170,16 @@ const CrmPage: React.FC = () => {
         setIsLeadModalOpen(true);
     };
 
-    const handleEditLead = (record: any) => {
-        setEditingLeadId(record.id);
-        setIsNewCustomerMode(true);
+    const handleEditLead = (lead: any) => {
+        setEditingLeadId(lead.id);
+        setIsNewCustomerMode(false); // Default to existing customer mode technically, but for editing we reuse the form
+        // Pre-fill
         formLead.setFieldsValue({
-            code: record.code,
-            name: record.name,
-            phone: record.phone,
-            lead_status: record.lead_status,
-            potential_value: record.potential_value,
-            assigned_to_id: record.assigned_to?.id // Map user
+            ...lead,
+            customer_id: lead.id, // For display logic mainly
+            name: lead.name,
+            phone: lead.phone,
+            created_at: lead.created_at ? dayjs(lead.created_at) : dayjs()
         });
         setIsLeadModalOpen(true);
     };
@@ -547,6 +547,21 @@ const CrmPage: React.FC = () => {
             <Modal title={editingLeadId ? "Cập nhật Lead" : "Tạo Lead"} open={isLeadModalOpen} onCancel={() => { setIsLeadModalOpen(false); formLead.resetFields(); }} onOk={() => formLead.submit()}>
                 <Form form={formLead} layout="vertical" onFinish={handleSaveLead}>
                     <Form.Item name="code" label="Mã Lead"><Input disabled /></Form.Item>
+
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="created_at" label="Ngày tạo Lead" initialValue={dayjs()} rules={[{ required: true, message: 'Vui lòng chọn ngày tạo' }]}>
+                                <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="lead_status" label="Trạng thái" initialValue="NEW">
+                                <Select>
+                                    {Object.keys(statusLabels).map(k => <Select.Option key={k} value={k}>{statusLabels[k]}</Select.Option>)}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                    </Row>
                     {!isNewCustomerMode ? (
                         <Form.Item label="Khách hàng có sẵn" name="customer_id" rules={[{ required: !isNewCustomerMode }]}>
                             <Select showSearch placeholder="Tìm theo tên/sđt" optionFilterProp="label" options={customerOptionsForLead} allowClear />
@@ -558,20 +573,15 @@ const CrmPage: React.FC = () => {
                             <Form.Item name="phone" label="SĐT" rules={[{ required: isNewCustomerMode }]}><Input /></Form.Item>
                         </>
                     )}
+
                     <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item name="lead_status" label="Trạng thái" initialValue="NEW">
-                                <Select>
-                                    {Object.keys(statusLabels).map(k => <Select.Option key={k} value={k}>{statusLabels[k]}</Select.Option>)}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
+                        <Col span={24}>
                             <Form.Item name="potential_value" label="Giá trị đơn hàng (dự kiến)">
                                 <InputNumber style={{ width: '100%' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(value: any) => value.replace(/\$\s?|(,*)/g, '')} />
                             </Form.Item>
                         </Col>
                     </Row>
+
                     <Row>
                         <Col span={24}>
                             <Form.Item name="assigned_to_id" label="Nhân viên phụ trách">

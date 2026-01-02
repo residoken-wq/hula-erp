@@ -44,6 +44,7 @@ export class PurchasingService {
                 item.material_id = i.material_id;
                 item.product_id = i.product_id;
                 item.description = i.description || '';
+                item.note = i.note || ''; // --- FIX: Save note ---
                 item.quantity = Number(i.quantity);
                 item.unit_price = Number(i.unit_price);
                 item.subtotal = item.quantity * item.unit_price;
@@ -123,6 +124,7 @@ export class PurchasingService {
         if (data.delivery_info) po.delivery_info = data.delivery_info;
         if (data.packing_list_details) po.packing_list_details = data.packing_list_details;
         if (data.status) po.status = data.status;
+        if (data.note !== undefined) po.note = data.note; // Update General Note
         if (data.supplier_id) po.supplier = { id: data.supplier_id } as any; // Update Supplier relation
 
         // --- MỚI: Update Items logic ---
@@ -133,6 +135,7 @@ export class PurchasingService {
                     // Update Item fields
                     if (itemDTO.quantity !== undefined) poItem.quantity = Number(itemDTO.quantity);
                     if (itemDTO.unit_price !== undefined) poItem.unit_price = Number(itemDTO.unit_price);
+                    if (itemDTO.note !== undefined) poItem.note = itemDTO.note; // Update Item Note
 
                     // Recalculate Subtotal
                     poItem.subtotal = Number(poItem.quantity) * Number(poItem.unit_price);
@@ -140,6 +143,7 @@ export class PurchasingService {
             }
             // Save updated items
             await this.poItemRepo.save(po.items);
+
 
             // Recalculate PO Total
             po.total_amount = po.items.reduce((sum, i) => sum + Number(i.subtotal), 0);

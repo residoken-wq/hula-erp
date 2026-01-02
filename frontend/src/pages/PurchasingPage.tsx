@@ -445,6 +445,68 @@ const PurchasingPage: React.FC = () => {
                     </tfoot>
                 </table>
             `;
+        } else if (template === 'OUTSOURCING') {
+            // --- TEMPLATE GIA CÔNG MỚI ---
+            const rows = currentPO?.items?.map((i: any, idx: number) => `
+                <tr>
+                    <td>${idx + 1}</td>
+                    <td>${currentPO.po_code}</td>
+                    <td>${i.material?.code || i.product?.sku || '-'}</td>
+                    <td class="left-align">${i.description || i.material?.name || ''}</td>
+                    <td>-</td> 
+                    <td>-</td> 
+                    <td>${Number(i.quantity).toLocaleString()}</td>
+                    <td>-</td> 
+                    <td>${i.note || ''}</td>
+                </tr>
+            `).join('');
+
+            content = `
+                ${style}
+                 <div class="header">
+                    <div>
+                         <div class="title" style="margin-bottom:5px; text-align:left;">HULA</div>
+                         <div>Đ/C: 123 ABC...</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div><b>Ngày:</b> ${dateStr}</div>
+                        <div><b>Mã:</b> ${poCode}</div>
+                    </div>
+                </div>
+                <div class="title">ĐƠN ĐẶT HÀNG GIA CÔNG</div>
+                <div style="margin-bottom:10px;"><b>Kính gửi:</b> ${supplierName}</div>
+                 <table>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Mã ĐH</th>
+                            <th>Mã SKU</th>
+                            <th>Tên SP</th>
+                            <th>Định mức vải (VMT)</th>
+                            <th>Định mức vải (VMS)</th>
+                            <th>Số lượng</th>
+                            <th>Thêu</th>
+                            <th>Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                     <tfoot>
+                        <tr>
+                            <td colspan="6" style="text-align:right; font-weight:bold;">Tổng cộng</td>
+                            <td style="font-weight:bold;">${Number(currentPO?.items?.reduce((s: number, i: any) => s + Number(i.quantity || 0), 0)).toLocaleString()}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div style="margin-top:20px;">
+                    <div><b>Ghi chú chung:</b> ${currentPO.note || ''}</div>
+                </div>
+                 <div style="display:flex; justify-content:space-between; margin-top:40px; text-align:center;">
+                    <div><b>Người lập phiếu</b><br/><br/><br/>(Ký, họ tên)</div>
+                    <div><b>Người duyệt</b><br/><br/><br/>(Ký, họ tên)</div>
+                     <div><b>Nhà cung cấp</b><br/><br/><br/>(Ký, họ tên)</div>
+                </div>
+            `;
         } else if (template === 'CARA' || template === 'HQ') {
             const list = packingList.length > 0 ? packingList : [{ po_form_code: '', material_name: '' }];
             const rows = list.map((r: any, idx: number) => `
@@ -597,6 +659,14 @@ const PurchasingPage: React.FC = () => {
                     <Descriptions.Item label="Tổng tiền"><b style={{ fontSize: 16 }}>{Number(currentPO?.total_amount).toLocaleString()} ₫</b></Descriptions.Item>
                     <Descriptions.Item label="Đã trả" contentStyle={{ color: 'green', fontWeight: 'bold' }}>{Number(currentPO?.paid_amount).toLocaleString()} ₫</Descriptions.Item>
                     <Descriptions.Item label="Còn lại" contentStyle={{ color: 'red' }}>{Number((currentPO?.total_amount || 0) - (currentPO?.paid_amount || 0)).toLocaleString()} ₫</Descriptions.Item>
+                    <Descriptions.Item label="Ghi chú chung" span={2}>
+                        <Input.TextArea
+                            rows={2}
+                            value={currentPO?.note}
+                            onChange={(e) => setCurrentPO({ ...currentPO, note: e.target.value })}
+                            placeholder="Ghi chú chung cho đơn hàng..."
+                        />
+                    </Descriptions.Item>
                 </Descriptions>
 
                 <Tabs defaultActiveKey="1" items={[
@@ -648,7 +718,20 @@ const PurchasingPage: React.FC = () => {
                                             />
                                         )
                                     },
+                                    {
+                                        title: 'Ghi chú', width: 150, render: (r: any, _: any, index: number) => (
+                                            <Input
+                                                value={r.note}
+                                                onChange={(e) => {
+                                                    const newItems = [...editingItems];
+                                                    newItems[index].note = e.target.value;
+                                                    setEditingItems(newItems);
+                                                }}
+                                            />
+                                        )
+                                    },
                                     { title: 'Thành tiền', render: (r: any) => <b>{Number(r.subtotal).toLocaleString()}</b> }
+
                                 ]}
                             />
                         )
