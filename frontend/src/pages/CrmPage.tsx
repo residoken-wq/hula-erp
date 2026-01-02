@@ -203,11 +203,12 @@ const CrmPage: React.FC = () => {
 
     const handleSaveLead = async (values: any) => {
         try {
-            const { code, customer_id, name, phone, lead_status, potential_value, assigned_to_id } = values;
+            const { code, customer_id, name, phone, lead_status, potential_value, assigned_to_id, created_at } = values;
             const payload = {
                 name, phone, lead_status,
                 potential_value: Number(potential_value) || 0,
-                assigned_to_id
+                assigned_to_id,
+                created_at: created_at ? created_at.toISOString() : undefined
             };
 
             if (editingLeadId) {
