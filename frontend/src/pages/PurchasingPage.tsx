@@ -455,7 +455,6 @@ const PurchasingPage: React.FC = () => {
                 return `
                 <tr>
                     <td>${idx + 1}</td>
-                    <td>${currentPO.po_code}</td>
                     <td>${i.material?.code || i.product?.sku || '-'}</td>
                     <td class="left-align">${i.product?.processing_description || i.description || i.material?.name || ''}</td>
                     <td>-</td> 
@@ -485,7 +484,6 @@ const PurchasingPage: React.FC = () => {
                     <thead>
                         <tr>
                             <th>STT</th>
-                            <th>Mã ĐH</th>
                             <th>Mã SKU</th>
                             <th>Mô tả sản phẩm</th>
                             <th>Định mức vải (VMT)</th>
@@ -499,7 +497,7 @@ const PurchasingPage: React.FC = () => {
                     <tbody>${rows}</tbody>
                      <tfoot>
                         <tr>
-                            <td colspan="6" style="text-align:right; font-weight:bold;">Tổng cộng</td>
+                            <td colspan="5" style="text-align:right; font-weight:bold;">Tổng cộng</td>
                             <td style="font-weight:bold;">${Number(currentPO?.items?.reduce((s: number, i: any) => s + Number(i.quantity || 0), 0)).toLocaleString()}</td>
                             <td colspan="${2 + priceColspan}"></td>
                         </tr>
@@ -685,7 +683,22 @@ const PurchasingPage: React.FC = () => {
                                 pagination={false}
                                 size="small"
                                 columns={[
-                                    { title: 'Tên hàng', dataIndex: 'description' },
+                                    {
+                                        title: 'Tên hàng', render: (r: any) => {
+                                            if (r.product) {
+                                                return (
+                                                    <div>
+                                                        <div style={{ fontWeight: 'bold' }}>{r.product.name}</div>
+                                                        <div style={{ fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
+                                                            {r.product.processing_description || r.description}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            if (r.material) return <b>{r.material.name}</b>;
+                                            return r.description;
+                                        }
+                                    },
                                     { title: 'Tổng Cần (Gốc)', width: 100, align: 'center', render: (r: any) => <span>{Number(r.raw_quantity || 0).toLocaleString()}</span> },
                                     { title: '% Hao hụt', width: 80, align: 'center', render: (r: any) => <Tag color="orange">{r.wastage_rate || 0}%</Tag> },
                                     { title: 'Tổng (+Hao hụt)', width: 120, align: 'center', render: (r: any) => <b>{Number(r.total_quantity || r.quantity).toLocaleString()}</b> },

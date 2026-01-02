@@ -74,9 +74,9 @@ export class PurchasingService {
         if (missingProductItems.length > 0) {
             const skuMap = new Map<string, any>();
             for (const item of missingProductItems) {
-                const match = item.description.match(/\(([^)]+)\)$/);
+                const match = item.description.match(/\(([^)]+)\)\s*$/);
                 if (match && match[1]) {
-                    skuMap.set(match[1], null);
+                    skuMap.set(match[1].trim(), null);
                 }
             }
             if (skuMap.size > 0) {
@@ -85,9 +85,10 @@ export class PurchasingService {
                     if (p) skuMap.set(sku, p);
                 }
                 for (const item of missingProductItems) {
-                    const match = item.description.match(/\(([^)]+)\)$/);
+                    const match = item.description.match(/\(([^)]+)\)\s*$/);
                     if (match && match[1]) {
-                        const p = skuMap.get(match[1]);
+                        const sku = match[1].trim();
+                        const p = skuMap.get(sku);
                         if (p) {
                             item.product = p;
                             item.product_id = p.id;
