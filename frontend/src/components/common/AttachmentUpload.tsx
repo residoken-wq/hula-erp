@@ -122,31 +122,33 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
                                         </a>
                                     )}
                                 </Popover>
-                                <Button
-                                    type="text"
-                                    size="small"
-                                    style={{
-                                        position: 'absolute',
-                                        top: -8,
-                                        right: -8,
-                                        background: 'white',
-                                        border: '1px solid #eee',
-                                        borderRadius: '50%',
-                                        width: 16,
-                                        height: 16,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        padding: 0,
-                                        fontSize: 10,
-                                        color: 'red',
-                                        zIndex: 10,
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                    }}
-                                    onClick={() => handleRemove(index)}
-                                >
-                                    <DeleteOutlined />
-                                </Button>
+                                {onChange && maxFiles > 0 && (
+                                    <Button
+                                        type="text"
+                                        size="small"
+                                        style={{
+                                            position: 'absolute',
+                                            top: -8,
+                                            right: -8,
+                                            background: 'white',
+                                            border: '1px solid #eee',
+                                            borderRadius: '50%',
+                                            width: 16,
+                                            height: 16,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            padding: 0,
+                                            fontSize: 10,
+                                            color: 'red',
+                                            zIndex: 10,
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                        }}
+                                        onClick={() => handleRemove(index)}
+                                    >
+                                        <DeleteOutlined />
+                                    </Button>
+                                )}
                             </div>
                         );
                     })}
