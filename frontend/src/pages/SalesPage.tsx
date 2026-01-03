@@ -221,6 +221,8 @@ const SalesPage: React.FC = () => {
                 if (t === 'SO_PENDING') { color = 'processing'; label = 'Mới'; }
                 if (t === 'SAMPLE_APPROVED') { color = 'cyan'; label = 'Đã Duyệt'; }
                 if (t === 'DEPOSITED') { color = 'purple'; label = 'Đã Cọc'; }
+                if (t === 'IN_PRODUCTION') { color = 'blue'; label = 'Đang SX'; }
+                if (t === 'MANUFACTURING_COMPLETED') { color = 'gold'; label = 'Xong SX'; }
                 if (t === 'COMPLETED') { color = 'success'; label = 'Hoàn Thành'; }
                 if (t === 'DELIVERED') { color = 'geekblue'; label = 'Đã Giao'; }
                 if (t === 'CANCELLED') { color = 'error'; label = 'Hủy'; }
@@ -396,7 +398,9 @@ const SalesPage: React.FC = () => {
                         { key: 'ALL', label: 'Tất cả' },
                         { key: 'SO_PENDING', label: 'Chờ Duyệt' },
                         { key: 'SAMPLE_APPROVED', label: 'Đã Duyệt Mẫu' },
-                        { key: 'DEPOSITED', label: 'Đang Sản Xuất' },
+                        { key: 'DEPOSITED', label: 'Đã Cọc' },
+                        { key: 'IN_PRODUCTION', label: 'Đang Sản Xuất' },
+                        { key: 'MANUFACTURING_COMPLETED', label: 'Hoàn Thành SX' },
                         { key: 'DELIVERED', label: 'Đã Giao' },
                         { key: 'COMPLETED', label: 'Hoàn Thành' },
                         { key: 'QUOTATION', label: 'Báo Giá (Draft)' },

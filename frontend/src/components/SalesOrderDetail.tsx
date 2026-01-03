@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Button, Table, Tabs, Row, Col, InputNumber, Divider, message, Tag, Space, Popconfirm, Tooltip, Popover } from 'antd';
+import { Modal, Form, Input, Select, DatePicker, Button, Table, Tabs, Row, Col, InputNumber, Divider, message, Tag, Space, Popconfirm, Tooltip, Popover, Checkbox } from 'antd';
 import { PlusOutlined, DeleteOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined, GiftOutlined, UploadOutlined, LoadingOutlined, LinkOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
@@ -165,6 +165,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     discount_rate: initialData.discount_rate || 0,
                     discount_amount: initialData.discount_amount || 0,
                     vat_rate: initialData.vat_rate || 0,
+                    is_production_sample_approved: initialData.is_production_sample_approved || false,
 
                     shipping_fee: initialData.shipping_fee || 0,
                     vat_company_name: initialData.vat_company_name || initialData.customer?.legal_name || initialData.customer?.name || '',
@@ -316,6 +317,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const handleSave = async () => {
         try {
             const values = await form.validateFields();
+
+            // --- VALIDATION: Check Production Sample Approval ---
+            if (values.status === 'IN_PRODUCTION' && !values.is_production_sample_approved) { // Checkbox value
+                message.error('Cần duyệt mẫu sản xuất trước khi chuyển sang Đang Sản Xuất!');
+                return;
+            }
+
             setLoading(true);
             const payload = {
                 ...values,
@@ -651,6 +659,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             <Col span={8}>
                                 <Form.Item name="assigned_to_id" label="Nhân sự phụ trách">
                                     <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} placeholder="Chọn nhân viên" />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col span={24}>
+                                <Form.Item name="is_production_sample_approved" valuePropName="checked">
+                                    <Checkbox style={{ fontWeight: 600, color: '#1890ff' }}>Đã duyệt mẫu sản xuất (Production Sample Approved)</Checkbox>
                                 </Form.Item>
                             </Col>
                         </Row>

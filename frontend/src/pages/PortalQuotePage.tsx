@@ -102,14 +102,14 @@ const PortalQuotePage: React.FC = () => {
     if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" tip="Đang tải dữ liệu..." /></div>;
     if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy báo giá hoặc đường dẫn không hợp lệ." />;
 
-    const statusList = ['QUOTATION', 'DEPOSITED', 'SAMPLE_APPROVED', 'IN_PRODUCTION', 'DELIVERED', 'COMPLETED'];
+    const statusList = ['QUOTATION', 'DEPOSITED', 'SAMPLE_APPROVED', 'IN_PRODUCTION', 'MANUFACTURING_COMPLETED', 'DELIVERED', 'COMPLETED'];
     let currentStep = statusList.indexOf(data.status);
 
     // Map status to steps
     if (data.status === 'SO_PENDING') currentStep = 0; // Still Quotation/Pending
     if (data.status === 'PLANNED') currentStep = 3; // Planned -> Production
-    if (data.status === 'PARTIAL_DELIVERY') currentStep = 4; // Partial -> Delivery
-    if (data.status === 'COMPLETED') currentStep = 5;
+    if (data.status === 'PARTIAL_DELIVERY') currentStep = 5; // Partial -> Delivery
+    if (data.status === 'COMPLETED') currentStep = 6;
 
     const visibleComments = (data.comments || []).filter((c: any) => c.sender_type === 'CUSTOMER' || c.is_visible);
 
@@ -366,8 +366,9 @@ const PortalQuotePage: React.FC = () => {
                             { title: 'Xác Nhận & Cọc', icon: <DollarOutlined /> },
                             { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> },
                             { title: 'Sản Xuất', icon: <AppstoreAddOutlined /> },
+                            { title: 'Xong SX', icon: <CheckCircleOutlined /> },
                             { title: 'Giao Hàng', icon: <CarOutlined /> },
-                            { title: 'Hoàn Tất', icon: <CheckCircleOutlined /> }
+                            { title: 'Hoàn Tất', icon: <DollarOutlined /> }
                         ]}
                     />
                 </Card>

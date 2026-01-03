@@ -19,6 +19,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const [shipNote, setShipNote] = useState('');
     const [shipItems, setShipItems] = useState<any[]>([]);
     const [editingDeliveryId, setEditingDeliveryId] = useState<number | null>(null);
+    const [shipStatus, setShipStatus] = useState<string>('PENDING_EXPORT');
 
     // Additional Ship Info state
     const [shipDate, setShipDate] = useState<any>(dayjs());
@@ -467,6 +468,21 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                         <Input placeholder="SĐT Liên hệ" value={shipContactPhone} onChange={e => setShipContactPhone(e.target.value)} />
                     </div>
                 </div>
+
+                {editingDeliveryId && (
+                    <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontWeight: 500 }}>Trạng thái phiếu:</div>
+                        <Select
+                            style={{ width: '100%' }}
+                            value={shipStatus}
+                            onChange={setShipStatus}
+                            options={[
+                                { value: 'PENDING_EXPORT', label: 'Chờ xuất / Đang giao' },
+                                { value: 'SHIPPED', label: 'Đã giao hàng / Đã báo khách' },
+                            ]}
+                        />
+                    </div>
+                )}
 
                 <Input.TextArea rows={2} placeholder="Ghi chú giao hàng..." value={shipNote} onChange={e => setShipNote(e.target.value)} style={{ marginBottom: 10 }} />
 

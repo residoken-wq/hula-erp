@@ -90,6 +90,8 @@ export class SalesOrder {
   @Column('text', { nullable: true }) sample_image_url: string;
   @Column('text', { nullable: true }) sample_note: string;
 
+  @Column({ default: false }) is_production_sample_approved: boolean; // Duyệt mẫu sản xuất (trước khi chạy mass)
+
   // --- MỚI: CỘT LƯU ĐIỀU KHOẢN ---
   @Column('text', { nullable: true }) terms_content: string;
 

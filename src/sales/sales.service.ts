@@ -34,7 +34,11 @@ const CHECKLIST_TEMPLATES: Record<string, Array<{ code: string; name: string; so
     ],
     IN_PRODUCTION: [
         { code: 'PROD_UPDATE', name: 'Cập nhật tiến độ cho khách', sort: 8 },
-        { code: 'PROD_QC', name: 'Kiểm tra chất lượng trước giao', sort: 9 },
+        { code: 'PROD_QC', name: 'Kiểm tra chất lượng (QC) trước hoàn thành', sort: 9 },
+    ],
+    MANUFACTURING_COMPLETED: [
+        { code: 'PROD_FINISH', name: 'Đóng gói & Nhập kho thành phẩm', sort: 9.1 },
+        { code: 'DEL_PLAN', name: 'Liên hệ khách lên lịch giao hàng', sort: 9.2 },
     ],
     DELIVERED: [
         { code: 'DEL_CONFIRM', name: 'Xác nhận khách nhận hàng OK', sort: 10 },
@@ -247,6 +251,7 @@ export class SalesService {
         // if (data.delivery_date) order.delivery_date = data.delivery_date; // Remove duplicate
         if (data.status) order.status = data.status;
         if (data.note !== undefined) order.note = data.note;
+        if (data.is_production_sample_approved !== undefined) order.is_production_sample_approved = data.is_production_sample_approved;
 
         // --- INVOICE INFO ---
         if (data.vat_company_name !== undefined) order.vat_company_name = data.vat_company_name;
@@ -496,6 +501,7 @@ export class SalesService {
         delivery.contact_name = data.contact_name;
         delivery.contact_phone = data.contact_phone;
         if (data.attachments) delivery.attachments = data.attachments; // <--- Update Attachments
+        if (data.status) delivery.status = data.status; // <--- Update Status
 
         if (data.items) {
             // Delete old items

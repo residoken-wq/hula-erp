@@ -45,6 +45,50 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
         setEditingId(null);
     };
 
+    const quillRef = React.useRef<ReactQuill>(null);
+
+    const imageHandler = () => {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+
+        input.onchange = async () => {
+            const file = input.files ? input.files[0] : null;
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const res = await axios.post(`${API_URL}/upload/image`, formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    const url = `${API_URL}${res.data.url}`; // Assuming backend returns { url: '/uploads/...' }
+                    const quill = quillRef.current?.getEditor();
+                    const range = quill?.getSelection();
+                    if (quill && range) {
+                        quill.insertEmbed(range.index, 'image', url);
+                    }
+                } catch (e) {
+                    message.error('Upload ảnh thất bại');
+                }
+            }
+        };
+    };
+
+    const modules = React.useMemo(() => ({
+        toolbar: {
+            container: [
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                ['link', 'image'],
+                ['clean']
+            ],
+            handlers: {
+                image: imageHandler
+            }
+        }
+    }), []);
+
     return (
         <div>
             <div style={{ maxHeight: 300, overflowY: 'auto', background: '#fafafa', padding: 10, borderRadius: 8, marginBottom: 10, border: '1px solid #eee' }}>
@@ -72,9 +116,11 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
             <div style={{ marginBottom: 10 }}>
                 {/* ReactQuill Editor */}
                 <ReactQuill
+                    ref={quillRef}
                     theme="snow"
                     value={text}
                     onChange={setText}
+                    modules={modules}
                     style={{ background: 'white', minHeight: '100px' }}
                 />
             </div>
