@@ -10,6 +10,8 @@ const UsersPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<any>(null);
+    const [changePassUser, setChangePassUser] = useState<any>(null); // State cho modal đổi pass
+    const [passForm] = Form.useForm();
     const [form] = Form.useForm();
 
     // Online Users State
@@ -80,7 +82,6 @@ const UsersPage: React.FC = () => {
         { title: 'Username', dataIndex: 'username', render: (t: any) => <b>{t}</b> },
         { title: 'Họ Tên', dataIndex: 'full_name' },
         {
-            title: 'Nhóm (Role)', dataIndex: 'group',
             render: (g: any) => g ? <Tag color="blue">{g.name}</Tag> : <Tag color="red">Chưa phân nhóm</Tag>
         },
         {
@@ -89,9 +90,26 @@ const UsersPage: React.FC = () => {
         },
         {
             title: '', key: 'act', align: 'right' as const,
-            render: (_: any, r: any) => <Button icon={<EditOutlined />} size="small" onClick={() => openModal(r)} />
+            render: (_: any, r: any) => (
+                <Space>
+                    <Tooltip title="Đổi mật khẩu">
+                        <Button icon={<LockOutlined />} size="small" onClick={() => { setChangePassUser(r); passForm.resetFields(); }} />
+                    </Tooltip>
+                    <Button icon={<EditOutlined />} size="small" onClick={() => openModal(r)} />
+                </Space>
+            )
         }
     ];
+
+    const handleChangePass = async (values: any) => {
+        try {
+            await api.post(`/users/${changePassUser.id}/change-password`, { password: values.password });
+            message.success('Đổi mật khẩu thành công');
+            setChangePassUser(null);
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Có lỗi xảy ra');
+        }
+    };
 
     return (
         <Card title="Quản lý Người Dùng (Users)" extra={
@@ -117,15 +135,16 @@ const UsersPage: React.FC = () => {
                         <Input disabled={!!editingUser} prefix={<UserOutlined />} placeholder="Ví dụ: admin" />
                     </Form.Item>
 
-                    {/* --- MỚI: TRƯỜNG PASSWORD --- */}
-                    <Form.Item
-                        name="password"
-                        label={editingUser ? "Mật khẩu mới (Bỏ trống nếu không đổi)" : "Mật khẩu"}
-                        rules={[{ required: !editingUser, message: 'Vui lòng nhập mật khẩu' }]}
-                        tooltip={editingUser ? "Chỉ nhập nếu bạn muốn đổi mật khẩu cho user này" : undefined}
-                    >
-                        <Input.Password prefix={<LockOutlined />} placeholder={editingUser ? "Nhập mật khẩu mới..." : "Nhập mật khẩu..."} />
-                    </Form.Item>
+                    {/* --- Password Field Only for Create --- */}
+                    {!editingUser && (
+                        <Form.Item
+                            name="password"
+                            label="Mật khẩu"
+                            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu' }]}
+                        >
+                            <Input.Password prefix={<LockOutlined />} placeholder="Nhập mật khẩu..." />
+                        </Form.Item>
+                    )}
                     {/* --------------------------- */}
 
                     <Form.Item
@@ -205,6 +224,22 @@ const UsersPage: React.FC = () => {
                         }
                     ]}
                 />
+            </Modal>
+            <Modal
+                title={`Đổi mật khẩu cho: ${changePassUser?.username}`}
+                open={!!changePassUser}
+                onCancel={() => setChangePassUser(null)}
+                onOk={() => passForm.submit()}
+            >
+                <Form form={passForm} layout="vertical" onFinish={handleChangePass}>
+                    <Form.Item
+                        name="password"
+                        label="Mật khẩu mới"
+                        rules={[{ required: true, message: 'Vui lòng nhập mật khẩu mới' }]}
+                    >
+                        <Input.Password placeholder="Nhập mật khẩu mới..." />
+                    </Form.Item>
+                </Form>
             </Modal>
         </Card>
     );

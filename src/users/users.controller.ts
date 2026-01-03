@@ -33,6 +33,11 @@ export class UsersController {
         return this.service.deleteUser(id);
     }
 
+    @Post(':id/change-password')
+    changePass(@Param('id') id: number, @Body() body: any) {
+        return this.service.changePassword(id, body.password);
+    }
+
     // --- GROUP APIs ---
     @Get('groups')
     getGroups() {

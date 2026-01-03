@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Layout, Menu, theme, Button, Avatar, Dropdown } from 'antd';
+import { Layout, Menu, theme, Button, Avatar, Dropdown, Modal, Form, Input, message } from 'antd';
 import type { MenuProps } from 'antd';
 import {
     DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
@@ -59,6 +59,21 @@ const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [permissions, setPermissions] = useState<any[]>([]);
+
+    // --- CHANGE PASSWORD STATE ---
+    const [isChangePassOpen, setIsChangePassOpen] = useState(false);
+    const [passForm] = Form.useForm();
+
+    const handleChangePass = async (values: any) => {
+        try {
+            await api.post(`/users/${currentUser?.id}/change-password`, { password: values.password });
+            message.success('Đổi mật khẩu thành công');
+            setIsChangePassOpen(false);
+            passForm.resetFields();
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Có lỗi xảy ra');
+        }
+    };
 
     // Mobile Logic
     const isMobile = useMobile();
@@ -173,6 +188,7 @@ const App: React.FC = () => {
     const userMenu = (
         <Menu items={[
             { key: '1', label: <span>Xin chào, <b>{currentUser?.full_name}</b></span>, icon: <UserOutlined /> },
+            { key: 'change_pass', label: 'Đổi mật khẩu', icon: <SettingOutlined />, onClick: () => setIsChangePassOpen(true) },
             { key: '2', label: 'Đăng xuất', icon: <LogoutOutlined />, onClick: handleLogout, danger: true }
         ]} />
     );
@@ -308,6 +324,22 @@ const App: React.FC = () => {
                     )
                 } />
             </Routes>
+            <Modal
+                title={`Đổi mật khẩu: ${currentUser?.username}`}
+                open={isChangePassOpen}
+                onCancel={() => setIsChangePassOpen(false)}
+                onOk={() => passForm.submit()}
+            >
+                <Form form={passForm} layout="vertical" onFinish={handleChangePass}>
+                    <Form.Item
+                        name="password"
+                        label="Mật khẩu mới"
+                        rules={[{ required: true, message: 'Vui lòng nhập mật khẩu mới' }]}
+                    >
+                        <Input.Password placeholder="Nhập mật khẩu mới..." />
+                    </Form.Item>
+                </Form>
+            </Modal>
         </Router>
     );
 };

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserGroup } from './entities/user-group.entity';
 import { GroupPermission } from './entities/group-permission.entity';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -22,8 +23,9 @@ export class UsersService {
     const existing = await this.userRepo.findOne({ where: { username: data.username } });
     if (existing) throw new BadRequestException('Tên đăng nhập đã tồn tại');
 
-    // Lưu user (trong thực tế nên hash password)
-    const user = this.userRepo.create(data);
+    // Hash password
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const user = this.userRepo.create({ ...data, password: hashedPassword });
     return this.userRepo.save(user);
   }
 
@@ -34,6 +36,14 @@ export class UsersService {
 
   async deleteUser(id: number) {
     return this.userRepo.delete(id);
+  }
+
+  async changePassword(id: number, newPass: string) {
+    const user = await this.userRepo.findOne({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+
+    user.password = await bcrypt.hash(newPass, 10);
+    return this.userRepo.save(user);
   }
 
   async getOnlineUsers() {
