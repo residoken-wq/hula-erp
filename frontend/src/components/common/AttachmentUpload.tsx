@@ -61,21 +61,11 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
         if (!path) return '';
         if (path.startsWith('http')) return path;
 
-        // Strip /api from API_URL for static assets
-        const baseUrl = API_URL.replace(/\/api$/, '');
-
-        // If path starts with /uploads/, serve from base URL
-        if (path.startsWith('/uploads/')) {
-            return `${baseUrl}${path}`;
-        }
-
-        // If path is just a filename (no slashes at start)
-        if (!path.startsWith('/')) {
-            return `${baseUrl}/uploads/${path}`;
-        }
-
-        // Fallback: use upload/files endpoint for any other format
+        // Extract just the filename from any path format
         const filename = path.split('/').pop();
+        if (!filename) return '';
+
+        // Always use the controller endpoint since static serving isn't configured on production
         return `${API_URL}/upload/files/${filename}`;
     };
 
