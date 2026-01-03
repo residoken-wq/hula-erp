@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Button, message, Popover, List } from 'antd';
+import { Upload, Button, message, Popover, Image } from 'antd';
 import { UploadOutlined, FileOutlined, DeleteOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { API_URL } from '../../config';
 import axios from 'axios';
@@ -75,61 +75,82 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
             </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                {value.map((url, index) => {
-                    const fileName = url.split('/').pop();
-                    const fullUrl = getDownloadUrl(url);
-                    return (
-                        <div key={index} style={{ position: 'relative', display: 'inline-block' }}>
-                            <Popover content={fileName} trigger="hover">
-                                <a
-                                    href={fullUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                <Image.PreviewGroup>
+                    {value.map((url, index) => {
+                        const fileName = url ? url.split('/').pop() : 'file';
+                        const fullUrl = getDownloadUrl(url);
+                        const isImage = url ? url.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) : false;
+
+                        return (
+                            <div key={index} style={{ position: 'relative', display: 'inline-block' }}>
+                                <Popover content={fileName} trigger="hover">
+                                    {isImage ? (
+                                        <div style={{
+                                            width: 40, height: 40,
+                                            border: '1px solid #d9d9d9',
+                                            borderRadius: 4,
+                                            overflow: 'hidden',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            cursor: 'pointer'
+                                        }}>
+                                            <Image
+                                                width={40}
+                                                height={40}
+                                                src={fullUrl}
+                                                style={{ objectFit: 'cover' }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <a
+                                            href={fullUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: 40,
+                                                height: 40,
+                                                border: '1px solid #d9d9d9',
+                                                borderRadius: 4,
+                                                background: '#fafafa',
+                                                color: '#1890ff',
+                                                fontSize: 20
+                                            }}
+                                        >
+                                            <FileOutlined />
+                                        </a>
+                                    )}
+                                </Popover>
+                                <Button
+                                    type="text"
+                                    size="small"
                                     style={{
+                                        position: 'absolute',
+                                        top: -8,
+                                        right: -8,
+                                        background: 'white',
+                                        border: '1px solid #eee',
+                                        borderRadius: '50%',
+                                        width: 16,
+                                        height: 16,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        width: 40,
-                                        height: 40,
-                                        border: '1px solid #d9d9d9',
-                                        borderRadius: 4,
-                                        background: '#fafafa',
-                                        color: '#1890ff',
-                                        fontSize: 20
+                                        padding: 0,
+                                        fontSize: 10,
+                                        color: 'red',
+                                        zIndex: 10,
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                     }}
+                                    onClick={() => handleRemove(index)}
                                 >
-                                    <FileOutlined />
-                                </a>
-                            </Popover>
-                            <Button
-                                type="text"
-                                size="small"
-
-                                style={{
-                                    position: 'absolute',
-                                    top: -8,
-                                    right: -8,
-                                    background: 'white',
-                                    border: '1px solid #eee',
-                                    borderRadius: '50%',
-                                    width: 16,
-                                    height: 16,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    padding: 0,
-                                    fontSize: 10,
-                                    color: 'red',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                                }}
-                                onClick={() => handleRemove(index)}
-                            >
-                                <DeleteOutlined />
-                            </Button>
-                        </div>
-                    );
-                })}
-
+                                    <DeleteOutlined />
+                                </Button>
+                            </div>
+                        );
+                    })}
+                </Image.PreviewGroup>
 
                 <Upload
                     customRequest={handleUpload}
