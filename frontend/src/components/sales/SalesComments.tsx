@@ -63,7 +63,7 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                         headers: { 'Content-Type': 'multipart/form-data' }
                     });
                     const url = `${API_URL}${res.data.url}`; // Assuming backend returns { url: '/uploads/...' }
-                    const quill = quillRef.current?.getEditor();
+                    const quill = (quillRef.current as any)?.getEditor();
                     const range = quill?.getSelection();
                     if (quill && range) {
                         quill.insertEmbed(range.index, 'image', url);
