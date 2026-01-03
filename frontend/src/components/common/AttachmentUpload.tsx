@@ -58,11 +58,12 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
     };
 
     const getDownloadUrl = (path: string) => {
+        if (!path) return '';
         if (path.startsWith('http')) return path;
-        // Fix for legacy data: remove '/api' prefix from stored path if present, 
-        // because API_URL already includes '/api'
-        const cleanPath = path.replace(/^\/api/, '');
-        return `${API_URL}${cleanPath}`;
+
+        // Robust fix: extract filename and rebuild URL entirely
+        const filename = path.split('/').pop();
+        return `${API_URL}/upload/files/${filename}`;
     };
 
     return (

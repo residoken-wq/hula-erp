@@ -6,6 +6,8 @@ import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, 
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
 import useMobile from '../hooks/useMobile'; // <--- Import Hook
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const { Title, Text } = Typography;
 
@@ -633,7 +635,9 @@ const PortalQuotePage: React.FC = () => {
                                                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                                                 color: '#333'
                                             }}>
-                                                {item.content}
+                                                color: '#333'
+                                            }}>
+                                                <div dangerouslySetInnerHTML={{ __html: item.content }} />
                                             </div>
                                         </div>
                                     </div>
@@ -642,16 +646,18 @@ const PortalQuotePage: React.FC = () => {
                             </div>
                             <div style={{ padding: 15, background: '#fff', borderTop: '1px solid #f0f0f0' }}>
                                 <div style={{ display: 'flex', gap: 10 }}>
-                                    <Input.TextArea
-                                        autoSize={{ minRows: 1, maxRows: 3 }}
+                                    <ReactQuill
+                                        theme="snow"
                                         value={commentText}
-                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCommentText(e.target.value)}
+                                        onChange={setCommentText}
                                         placeholder="Nhập tin nhắn..."
-                                        onPressEnter={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                                            if (!e.shiftKey) {
-                                                e.preventDefault();
-                                                handleSendComment();
-                                            }
+                                        style={{ background: 'white', flex: 1 }}
+                                        modules={{
+                                            toolbar: [
+                                                ['bold', 'italic', 'underline'],
+                                                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                                ['clean']
+                                            ]
                                         }}
                                     />
                                     <Button type="primary" icon={<SendOutlined />} onClick={handleSendComment} />
