@@ -16,6 +16,8 @@ const PortalQuotePage: React.FC = () => {
     const [commentText, setCommentText] = useState('');
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const [previewVisible, setPreviewVisible] = useState(false);
+    const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+    const [verifyInput, setVerifyInput] = useState('');
     const isMobile = useMobile(); // <--- Detect Mobile
 
     const handlePreview = (imageUrl: string) => {
@@ -34,17 +36,57 @@ const PortalQuotePage: React.FC = () => {
     useEffect(() => { fetchQuote(); }, [uuid]);
 
     const handleAction = async (action: 'ACCEPT' | 'REJECT') => {
+        if (action === 'ACCEPT') {
+            setIsVerifyModalOpen(true);
+            return;
+        }
+
         Modal.confirm({
-            title: action === 'ACCEPT' ? 'Xác nhận Báo giá?' : 'Từ chối?',
-            content: action === 'ACCEPT' ? 'Bạn đồng ý với các điều khoản và giá của báo giá này?' : 'Bạn muốn từ chối báo giá này?',
-            okText: action === 'ACCEPT' ? 'Đồng Ý' : 'Từ Chối',
+            title: 'Từ chối báo giá?',
+            content: 'Bạn muốn từ chối báo giá này?',
+            okText: 'Từ Chối',
             cancelText: 'Hủy',
-            okType: action === 'ACCEPT' ? 'primary' : 'danger',
+            okType: 'danger',
             onOk: async () => {
                 await axios.post(`${API_URL}/sales/portal/${uuid}/action`, { action });
                 message.success('Thành công!'); window.location.reload();
             }
         });
+    };
+
+    const handleVerifyAndAccept = async () => {
+        if (!verifyInput || !verifyInput.trim()) {
+            message.error('Vui lòng nhập số điện thoại hoặc email');
+            return;
+        }
+
+        const input = verifyInput.trim().toLowerCase();
+
+        // Collect valid verification data
+        const validValues = [
+            data.customer?.phone,
+            data.customer?.email,
+            ...(data.customer?.contacts?.map((c: any) => c.phone) || []),
+            ...(data.customer?.contacts?.map((c: any) => c.email) || [])
+        ].filter(Boolean).map(v => String(v).toLowerCase().trim());
+
+        // Check match
+        // Also allow checking "last 4 digits" of phone if needed? No, user said "enter correct phone/email".
+        const isMatch = validValues.some(v => v === input);
+
+        if (!isMatch) {
+            message.error('Thông tin xác thực không chính xác. Vui lòng thử lại.');
+            return;
+        }
+
+        try {
+            await axios.post(`${API_URL}/sales/portal/${uuid}/action`, { action: 'ACCEPT' });
+            message.success('Xác nhận báo giá thành công!');
+            setIsVerifyModalOpen(false);
+            window.location.reload();
+        } catch (e) {
+            message.error('Có lỗi xảy ra.');
+        }
     };
 
     const handleSendComment = async () => {
@@ -742,6 +784,24 @@ const PortalQuotePage: React.FC = () => {
                         src={previewImage}
                     />
                 )}
+            </Modal>
+            <Modal
+                title="Xác thực thông tin"
+                visible={isVerifyModalOpen}
+                onOk={handleVerifyAndAccept}
+                onCancel={() => setIsVerifyModalOpen(false)}
+                okText="Xác nhận & Đặt cọc"
+                cancelText="Hủy"
+            >
+                <div>
+                    <p>Vui lòng nhập <b>Số điện thoại</b> hoặc <b>Email</b> của bạn để xác nhận đơn hàng này.</p>
+                    <Input
+                        placeholder="Nhập SĐT hoặc Email..."
+                        value={verifyInput}
+                        onChange={e => setVerifyInput(e.target.value)}
+                        onPressEnter={handleVerifyAndAccept}
+                    />
+                </div>
             </Modal>
         </div >
     );
