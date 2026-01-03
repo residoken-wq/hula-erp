@@ -79,7 +79,7 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
                     {value.map((url, index) => {
                         const fileName = url ? url.split('/').pop() : 'file';
                         const fullUrl = getDownloadUrl(url);
-                        const isImage = url ? url.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) : false;
+                        const isImage = url ? url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/) : false;
 
                         return (
                             <div key={index} style={{ position: 'relative', display: 'inline-block' }}>
