@@ -4,7 +4,7 @@ import { Repository, Between } from 'typeorm';
 import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
 import { InventoryStock } from '../inventory/inventory-stock.entity';
 import { GoodsReceipt, GoodsReceiptStatus } from '../inventory/entities/goods-receipt.entity';
-import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
+import { PurchaseOrder, POStatus } from '../purchasing/entities/purchase-order.entity';
 
 @Controller('system/dashboard')
 export class DashboardController {
@@ -25,13 +25,13 @@ export class DashboardController {
 
         const ordersToday = await this.orderRepo.count({
             where: {
-                created_at: Between(today, new Date(today.getTime() + 86400000))
+                order_date: Between(today, new Date(today.getTime() + 86400000))
             }
         });
 
         const revenueMonth = await this.orderRepo.createQueryBuilder('order')
             .select('SUM(order.total_amount)', 'total')
-            .where('order.created_at >= :start', { start: startOfMonth })
+            .where('order.order_date >= :start', { start: startOfMonth })
             .andWhere('order.status != :cancelled', { cancelled: SalesOrderStatus.CANCELLED })
             .getRawOne();
 
@@ -48,7 +48,7 @@ export class DashboardController {
 
         // 3. Purchasing Stats
         const pendingPO = await this.poRepo.count({
-            where: { status: 'PENDING' } // Adjust status key if needed
+            where: { status: POStatus.SENT } // Adjust status key if needed
         });
 
         return {
