@@ -126,7 +126,7 @@ const PortalQuotePage: React.FC = () => {
             width: 60,
             align: 'center' as const,
             render: (_: any, r: any) => {
-                const rawUrl = r.sample_image || r.product?.image_url;
+                const rawUrl = r.image_url || r.sample_image || r.product?.image_url;
                 if (!rawUrl) return <div style={{ color: '#ccc', fontSize: 10, textAlign: 'center' }}>No Img</div>;
 
                 let finalSrc = rawUrl;
@@ -195,7 +195,7 @@ const PortalQuotePage: React.FC = () => {
             key: 'product_details',
             width: 80,
             render: (_: any, r: any) => {
-                const imgUrl = r.sample_image || r.product?.image_url;
+                const imgUrl = r.image_url || r.sample_image || r.product?.image_url;
                 const isImage = imgUrl && (imgUrl.match(/\.(jpeg|jpg|gif|png)$/i) || imgUrl.includes('drive.google.com') || imgUrl.includes('googleusercontent.com'));
 
                 // Helper to convert Google Drive link to Direct Link
@@ -449,7 +449,8 @@ const PortalQuotePage: React.FC = () => {
                                     rowKey="id"
                                     renderItem={(item: any, index: number) => {
                                         // Re-use logic for image
-                                        const rawUrl = item.sample_image || item.product?.image_url;
+                                        // Fix: Check item.image_url first (Snapshot/Custom Link), then sample_image, then product.image_url
+                                        const rawUrl = item.image_url || item.sample_image || item.product?.image_url;
                                         let finalSrc = rawUrl;
                                         let isImage = false;
 

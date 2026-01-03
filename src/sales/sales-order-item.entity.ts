@@ -28,7 +28,7 @@ export class SalesOrderItem {
   product: Product;
   // ----------------------------------------
 
-  @Column({ nullable: true })
+  @Column('text', { nullable: true })
   image_url: string; // Snapshot image from product at time of order
 
   @Column('decimal', { precision: 10, scale: 2 })
@@ -49,7 +49,7 @@ export class SalesOrderItem {
   @Column({ default: false })
   is_sample_approved: boolean;
 
-  @Column({ nullable: true })
+  @Column('text', { nullable: true })
   sample_image: string;
 
   @Column({ nullable: true })
