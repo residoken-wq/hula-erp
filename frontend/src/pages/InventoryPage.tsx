@@ -55,14 +55,13 @@ const InventoryPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [pRes, mRes, sRes, hRes, grRes] = await Promise.all([
+            const [pRes, mRes, sRes, hRes, grRes, dRes] = await Promise.all([
                 api.get('/products'),
                 api.get('/materials'),
                 api.get('/inventory/stocks'),
                 api.get('/inventory/history'),
-                api.get('/inventory/history'),
                 api.get('/inventory/goods-receipt/pending'),
-                api.get('/inventory/deliveries/pending') // <--- Fetch Pending Deliveries
+                api.get('/inventory/deliveries/pending')
             ]);
             setProducts(pRes.data);
             setMaterials(mRes.data);
