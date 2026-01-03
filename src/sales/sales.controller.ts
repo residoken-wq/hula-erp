@@ -41,6 +41,9 @@ export class SalesController {
     @Post(':id/comment')
     addComment(@Param('id') id: number, @Body() body: any) { return this.s.addComment(id, body.content, body.sender, body.name); }
 
+    @Put('comment/:id')
+    updateComment(@Param('id') id: number, @Body() body: any) { return this.s.updateComment(id, body.content); }
+
     @Post('comment/:id/toggle')
     toggleComment(@Param('id') id: number) { return this.s.toggleCommentVisibility(id); }
 

@@ -392,6 +392,12 @@ export class SalesService {
     async addComment(orderId: number, content: string, sender: 'STAFF' | 'CUSTOMER', name?: string) { const order = await this.orderRepo.findOne({ where: { id: orderId } }); if (!order) throw new NotFoundException(); const comment = this.commentRepo.create({ order, content, sender_type: sender, sender_name: name }); return this.commentRepo.save(comment); }
     async getComments(orderId: number) { return this.commentRepo.find({ where: { order: { id: orderId } }, order: { created_at: 'ASC' } }); }
     async toggleCommentVisibility(id: number) { const comment = await this.commentRepo.findOne({ where: { id } }); if (comment) { comment.is_visible = !comment.is_visible; return this.commentRepo.save(comment); } }
+    async updateComment(id: number, content: string) {
+        const comment = await this.commentRepo.findOne({ where: { id } });
+        if (!comment) throw new NotFoundException('Comment not found');
+        comment.content = content;
+        return this.commentRepo.save(comment);
+    }
     async convertQuoteToSo(id: number, accepted: boolean) {
         const order = await this.orderRepo.findOne({ where: { id } });
         if (!order) throw new NotFoundException();

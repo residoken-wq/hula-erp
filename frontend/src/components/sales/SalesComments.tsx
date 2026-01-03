@@ -10,6 +10,7 @@ import { API_URL } from '../../config';
 const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
     const [comments, setComments] = useState<any[]>([]);
     const [text, setText] = useState('');
+    const [editingId, setEditingId] = useState<number | null>(null);
 
     const fetchComments = async () => {
         try { const res = await axios.get(`${API_URL}/sales/${orderId}/comments`); setComments(res.data); } catch (e) { }
@@ -22,11 +23,27 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
         const stripped = text.replace(/<[^>]*>?/gm, '').trim();
         if (!stripped) return;
 
-        await axios.post(`${API_URL}/sales/${orderId}/comment`, { content: text, sender: 'STAFF', name: 'Nhân viên' });
+        if (editingId) {
+            await axios.put(`${API_URL}/sales/comment/${editingId}`, { content: text });
+            message.success('Cập nhật tin nhắn thành công');
+            setEditingId(null);
+        } else {
+            await axios.post(`${API_URL}/sales/${orderId}/comment`, { content: text, sender: 'STAFF', name: 'Nhân viên' });
+        }
         setText(''); fetchComments();
     };
 
     const toggle = async (id: number) => { await axios.post(`${API_URL}/sales/comment/${id}/toggle`); fetchComments(); };
+
+    const handleEdit = (item: any) => {
+        setText(item.content);
+        setEditingId(item.id);
+    };
+
+    const cancelEdit = () => {
+        setText('');
+        setEditingId(null);
+    };
 
     return (
         <div>
@@ -39,7 +56,12 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                             description={
                                 <div>
                                     <div style={{ color: '#333' }} dangerouslySetInnerHTML={{ __html: item.content }} />
-                                    {item.sender_type === 'CUSTOMER' && <Button type="text" size="small" icon={item.is_visible ? <EyeOutlined /> : <EyeInvisibleOutlined />} onClick={() => toggle(item.id)}>{item.is_visible ? 'Hiện' : 'Ẩn'}</Button>}
+                                    <div style={{ marginTop: 5 }}>
+                                        <Button type="text" size="small" icon={item.is_visible ? <EyeOutlined /> : <EyeInvisibleOutlined />} onClick={() => toggle(item.id)}>{item.is_visible ? 'Hiện ở Portal' : 'Ẩn ở Portal'}</Button>
+                                        {item.sender_type === 'STAFF' && (
+                                            <Button type="link" size="small" onClick={() => handleEdit(item)}>Sửa</Button>
+                                        )}
+                                    </div>
                                 </div>
                             }
                         />
@@ -57,8 +79,9 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                 />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button type="primary" icon={<MessageOutlined />} onClick={send}>Gửi</Button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                {editingId && <Button onClick={cancelEdit}>Hủy</Button>}
+                <Button type="primary" icon={<MessageOutlined />} onClick={send}>{editingId ? 'Cập nhật' : 'Gửi'}</Button>
             </div>
         </div>
     );
