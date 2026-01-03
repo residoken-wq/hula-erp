@@ -231,6 +231,9 @@ export class SalesService {
         const order = await this.orderRepo.findOne({ where: { id }, relations: ['items'] });
         if (!order) throw new NotFoundException('Order Not Found');
 
+        // Capture Old State for Diffing
+        const oldOrder = { ...order, items: order.items?.map(i => ({ sku: i.sku, qty: i.quantity })) };
+
         if (data.customer_id) {
             if (data.customer_id === -1) {
                 order.customer = null;
@@ -241,7 +244,7 @@ export class SalesService {
         }
         if (data.order_date) order.order_date = data.order_date;
         if (data.delivery_date) order.delivery_date = data.delivery_date;
-        if (data.delivery_date) order.delivery_date = data.delivery_date;
+        // if (data.delivery_date) order.delivery_date = data.delivery_date; // Remove duplicate
         if (data.status) order.status = data.status;
         if (data.note !== undefined) order.note = data.note;
 
@@ -308,8 +311,39 @@ export class SalesService {
             await this.syncChecklistWithStatus(saved.id, saved.status);
         }
 
-        // Log Update
-        await this.systemService.logAction('SALES', 'UPDATE_ORDER', `Updated Order ${saved.order_code}`, data.user_id, data.username, saved.order_code);
+        // --- CALCULATE DIFF ---
+        const changes: any = {};
+        // Simple comparison for key fields
+        const fieldsToCheck = [
+            'status', 'delivery_date', 'customer_name', 'note', 'vat_company_name',
+            'shipping_fee', 'discount_amount', 'total_amount'
+        ];
+
+        fieldsToCheck.forEach(field => {
+            if (JSON.stringify(oldOrder[field]) !== JSON.stringify(saved[field])) {
+                changes[field] = { old: oldOrder[field], new: saved[field] };
+            }
+        });
+
+        // Items comparison (simplified)
+        if (data.items) {
+            const oldItemsStr = JSON.stringify(oldOrder.items);
+            const newItemsStr = JSON.stringify(saved.items?.map(i => ({ sku: i.sku, qty: i.quantity })));
+            if (oldItemsStr !== newItemsStr) {
+                changes['items'] = 'Items changed';
+            }
+        }
+
+        // Log Update with Details
+        await this.systemService.logAction(
+            'SALES',
+            'UPDATE_ORDER',
+            `Updated Order ${saved.order_code}`,
+            data.user_id,
+            data.username,
+            saved.order_code,
+            Object.keys(changes).length > 0 ? changes : null // Pass diff as details
+        );
         // Return fresh data with payment info
         return this.findOne(saved.id);
     }
@@ -400,7 +434,25 @@ export class SalesService {
         const paid = await this.calculatePaidAmount(order.order_code);
         return { ...order, paid_amount: paid, payments: transactions };
     }
-    async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT') { const q = await this.getQuoteByUuid(uuid); if (q) return this.convertQuoteToSo(q.id, action === 'ACCEPT'); }
+    async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT', metadata?: any) {
+        const q = await this.getQuoteByUuid(uuid);
+        if (q) {
+            if (action === 'ACCEPT') {
+                // Log with metadata
+                await this.systemService.logAction(
+                    'SALES',
+                    'CUSTOMER_ACCEPT',
+                    `Khách hàng xác nhận đơn ${q.order_code}`,
+                    null,
+                    'Customer',
+                    q.order_code,
+                    null,
+                    metadata
+                );
+            }
+            return this.convertQuoteToSo(q.id, action === 'ACCEPT');
+        }
+    }
     async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
     async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
     async createDelivery(orderId: number, data: any) {

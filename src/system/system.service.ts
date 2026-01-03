@@ -71,14 +71,16 @@ export class SystemService {
         return { success: true };
     }
     // --- ACTIVITY LOGGING ---
-    async logAction(module: string, action: string, description: string, userId?: number, username?: string, entityId?: string) {
+    async logAction(module: string, action: string, description: string, userId?: number, username?: string, entityId?: string, details?: any, metadata?: any) {
         const log = this.logRepo.create({
             module,
             action,
             description,
             user_id: userId,
             username: username || 'System',
-            entity_id: entityId
+            entity_id: entityId,
+            details,
+            metadata
         });
         return this.logRepo.save(log);
     }

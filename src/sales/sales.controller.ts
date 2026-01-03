@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
 import { SalesService } from './sales.service';
 
 @Controller('sales')
@@ -61,7 +61,13 @@ export class SalesController {
 
     // Portal APIs
     @Get('portal/:uuid') getPortal(@Param('uuid') uuid: string) { return this.s.getQuoteByUuid(uuid); }
-    @Post('portal/:uuid/action') customerAction(@Param('uuid') uuid: string, @Body() body: any) { return this.s.customerAction(uuid, body.action); }
+    @Post('portal/:uuid/action')
+    customerAction(@Param('uuid') uuid: string, @Body() body: any, @Req() req: any) {
+        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const userAgent = req.headers['user-agent'];
+        const metadata = { ip, userAgent };
+        return this.s.customerAction(uuid, body.action, metadata);
+    }
 
     // ============================================================
     // 3. API ĐƠN HÀNG (DYNAMIC ROUTES)
