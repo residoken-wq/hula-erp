@@ -61,14 +61,20 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
         if (!path) return '';
         if (path.startsWith('http')) return path;
 
-        // If path starts with /uploads/, serve directly from API base (static assets)
+        // Strip /api from API_URL for static assets
+        const baseUrl = API_URL.replace(/\/api$/, '');
+
+        // If path starts with /uploads/, serve from base URL
         if (path.startsWith('/uploads/')) {
-            // API_URL includes /api, so we need to strip it for static assets
-            const baseUrl = API_URL.replace(/\/api$/, '');
             return `${baseUrl}${path}`;
         }
 
-        // Fallback: use upload/files endpoint
+        // If path is just a filename (no slashes at start)
+        if (!path.startsWith('/')) {
+            return `${baseUrl}/uploads/${path}`;
+        }
+
+        // Fallback: use upload/files endpoint for any other format
         const filename = path.split('/').pop();
         return `${API_URL}/upload/files/${filename}`;
     };
@@ -106,6 +112,7 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
                                                 height={40}
                                                 src={fullUrl}
                                                 style={{ objectFit: 'cover' }}
+                                                fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect fill='%23f5f5f5' width='40' height='40'/%3E%3Ctext x='50%25' y='50%25' font-size='20' text-anchor='middle' dominant-baseline='middle' fill='%23bbb'%3E?%3C/text%3E%3C/svg%3E"
                                             />
                                         </div>
                                     ) : (
