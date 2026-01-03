@@ -23,6 +23,9 @@ export class SalesDelivery {
   @Column({ nullable: true })
   note: string;
 
+  @Column('simple-json', { nullable: true })
+  attachments: string[];
+
   @Column({ default: 'PENDING_EXPORT' }) // PENDING_EXPORT, SHIPPED, COMPLETED
   status: string;
 

@@ -59,6 +59,15 @@ export class UploadController {
   }
   // ----------------------------------
 
+  @Post('file')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Chưa chọn file!');
+    // 1MB limit check is better done here or in service, but multer options usually handle it. 
+    // For now, let's delegate to service.
+    return this.uploadService.uploadFile(file);
+  }
+
   @Get('template/:type')
   async downloadTemplate(@Param('type') type: string, @Res() res: Response) {
     const buffer = this.uploadService.getTemplate(type);

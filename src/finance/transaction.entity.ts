@@ -25,6 +25,9 @@ export class Transaction {
   @Column({ nullable: true })
   description: string;
 
+  @Column('simple-json', { nullable: true })
+  attachments: string[];
+
   @Column({ nullable: true })
   partner_name: string; // Khách hàng hoặc Nhà cung cấp
 

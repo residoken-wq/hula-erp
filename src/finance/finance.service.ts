@@ -56,7 +56,8 @@ export class FinanceService {
             reference_code: data.refCode,
             reference_type: 'SALES',
             description: data.note,
-            partner_name: data.customerName || data.partnerName // Support both keys
+            partner_name: data.customerName || data.partnerName, // Support both keys
+            attachments: data.attachments || [] // <--- Save Attachments
         });
         return this.transRepo.save(trans);
     }

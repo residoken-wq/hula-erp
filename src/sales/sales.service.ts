@@ -467,7 +467,8 @@ export class SalesService {
             contact_name: data.contact_name,
             contact_phone: data.contact_phone,
             sales_order: order,
-            items: data.items
+            items: data.items,
+            attachments: data.attachments || [] // <--- Save Attachments
         });
         const savedDelivery = await this.deliveryRepo.save(delivery);
 
@@ -488,6 +489,7 @@ export class SalesService {
         delivery.delivery_address = data.delivery_address;
         delivery.contact_name = data.contact_name;
         delivery.contact_phone = data.contact_phone;
+        if (data.attachments) delivery.attachments = data.attachments; // <--- Update Attachments
 
         if (data.items) {
             // Delete old items
