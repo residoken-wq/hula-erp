@@ -4,7 +4,7 @@ import { UploadService } from './upload.service';
 import { Response } from 'express';
 import { Public } from '../auth/public.decorator';
 
-import { Public } from '../auth/public.decorator';
+
 
 @Controller('upload')
 export class UploadController {
