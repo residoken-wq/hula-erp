@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Input, Modal, message, InputNumber, Tooltip, Select, DatePicker, Tag } from 'antd';
-import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined, EditOutlined } from '@ant-design/icons';
+import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined, EditOutlined, UploadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../../config';
@@ -27,6 +27,11 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const [shipContactPhone, setShipContactPhone] = useState<string>('');
     const [companyConfig, setCompanyConfig] = useState<any>(null);
     const [attachments, setAttachments] = useState<string[]>([]);
+
+    // Quick Upload State
+    const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    const [uploadDeliveryId, setUploadDeliveryId] = useState<number | null>(null);
+    const [uploadAttachments, setUploadAttachments] = useState<string[]>([]);
 
     // RESOLVE FULL CUSTOMER (to get contacts)
     const fullCustomer = customers.find(c => c.id === order?.customer?.id || c.id === order?.customer_id) || order?.customer || {};
@@ -115,6 +120,26 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         });
         setShipItems(mergedItems);
         setIsModalOpen(true);
+    };
+
+    const openUploadModal = (delivery: any) => {
+        setUploadDeliveryId(delivery.id);
+        setUploadAttachments(delivery.attachments || []);
+        setUploadModalOpen(true);
+    };
+
+    const handleUploadSave = async () => {
+        if (!uploadDeliveryId) return;
+        try {
+            await axios.put(`${API_URL}/sales/delivery/${uploadDeliveryId}`, {
+                attachments: uploadAttachments
+            });
+            message.success('Đã cập nhật chứng từ');
+            setUploadModalOpen(false);
+            fetchHistory();
+        } catch (e) {
+            message.error('Lỗi cập nhật');
+        }
     };
 
     const handleShip = async () => {
@@ -343,7 +368,20 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 },
                 { title: 'Người công trình', render: (r) => (r.contact_name ? <span>{r.contact_name} <br /><small>{r.contact_phone}</small></span> : '-') },
                 { title: 'Chi tiết', width: '30%', render: (r: any) => r.items?.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') },
-                { title: 'Chứng từ', render: (r) => r.attachments?.length > 0 ? <AttachmentUpload value={r.attachments} maxFiles={0} /> : '-' },
+                {
+                    title: 'Chứng từ',
+                    width: 200,
+                    render: (r) => (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ flex: 1 }}>
+                                {r.attachments?.length > 0 ? <AttachmentUpload value={r.attachments} maxFiles={0} /> : <span style={{ color: '#999', fontSize: 12 }}>Chưa có</span>}
+                            </div>
+                            <Tooltip title="Tải lên chứng từ (phiếu đã ký...)">
+                                <Button size="small" type="text" icon={<UploadOutlined style={{ color: '#1890ff' }} />} onClick={() => openUploadModal(r)} />
+                            </Tooltip>
+                        </div>
+                    )
+                },
                 {
                     title: '', width: 120, align: 'center', render: (_: any, r: any) => (
                         <div style={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
@@ -442,6 +480,12 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                     { title: 'SL Còn', dataIndex: 'max' },
                     { title: 'Giao lần này', render: (_: any, r: any, idx: number) => (<InputNumber max={r.max} min={0} value={r.quantity} onChange={(v: any) => { const newItems = [...shipItems]; newItems[idx].quantity = v; setShipItems(newItems); }} />) }
                 ]} />
+            </Modal>
+
+            {/* Quick Upload Modal */}
+            <Modal title="Cập nhật chứng từ giao hàng" open={uploadModalOpen} onCancel={() => setUploadModalOpen(false)} onOk={handleUploadSave} width={500}>
+                <div style={{ marginBottom: 15 }}>Tải lên hình ảnh chứng thực giao hàng (Phiếu xuất kho có ký nhận, hình ảnh hàng hóa tại công trình...)</div>
+                <AttachmentUpload value={uploadAttachments} onChange={setUploadAttachments} />
             </Modal>
         </div>
     );
