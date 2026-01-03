@@ -57,27 +57,13 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
         if (onChange) onChange(newFileList);
     };
 
-    const renderFileList = () => (
-        <List
-            size="small"
-            dataSource={value}
-            renderItem={(url, index) => {
-                const fileName = url.split('/').pop();
-                return (
-                    <List.Item
-                        actions={[
-                            <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => handleRemove(index)} />
-                        ]}
-                    >
-                        <List.Item.Meta
-                            avatar={<FileOutlined />}
-                            title={<a href={`${API_URL}${url}`} target="_blank" rel="noopener noreferrer">{fileName}</a>}
-                        />
-                    </List.Item>
-                );
-            }}
-        />
-    );
+    const getDownloadUrl = (path: string) => {
+        if (path.startsWith('http')) return path;
+        // Fix for legacy data: remove '/api' prefix from stored path if present, 
+        // because API_URL already includes '/api'
+        const cleanPath = path.replace(/^\/api/, '');
+        return `${API_URL}${cleanPath}`;
+    };
 
     return (
         <div style={{ marginTop: 10 }}>
@@ -87,22 +73,72 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
                 </span>
             </div>
 
-            <Upload
-                customRequest={handleUpload}
-                showUploadList={false}
-                multiple={false}
-                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx"
-            >
-                <Button icon={<UploadOutlined />} loading={uploading} disabled={value.length >= maxFiles}>
-                    Thêm file
-                </Button>
-            </Upload>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                {value.map((url, index) => {
+                    const fileName = url.split('/').pop();
+                    const fullUrl = getDownloadUrl(url);
+                    return (
+                        <div key={index} style={{ position: 'relative', display: 'inline-block' }}>
+                            <Popover content={fileName} trigger="hover">
+                                <a
+                                    href={fullUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 40,
+                                        height: 40,
+                                        border: '1px solid #d9d9d9',
+                                        borderRadius: 4,
+                                        background: '#fafafa',
+                                        color: '#1890ff',
+                                        fontSize: 20
+                                    }}
+                                >
+                                    <FileOutlined />
+                                </a>
+                            </Popover>
+                            <Button
+                                type="text"
+                                size="small"
 
-            {value.length > 0 && (
-                <div style={{ marginTop: 8, border: '1px solid #eee', borderRadius: 4, padding: '4px 8px', background: '#fafafa' }}>
-                    {renderFileList()}
-                </div>
-            )}
+                                style={{
+                                    position: 'absolute',
+                                    top: -8,
+                                    right: -8,
+                                    background: 'white',
+                                    border: '1px solid #eee',
+                                    borderRadius: '50%',
+                                    width: 16,
+                                    height: 16,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: 0,
+                                    fontSize: 10,
+                                    color: 'red',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                }}
+                                onClick={() => handleRemove(index)}
+                            >
+                                <DeleteOutlined />
+                            </Button>
+                        </div>
+                    );
+                })}
+
+
+                <Upload
+                    customRequest={handleUpload}
+                    showUploadList={false}
+                    multiple={false}
+                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx"
+                >
+                    <Button icon={<UploadOutlined />} loading={uploading} disabled={value.length >= maxFiles} type="dashed" style={{ height: 40, width: 40, padding: 0 }} />
+                </Upload>
+            </div>
         </div>
     );
 };
