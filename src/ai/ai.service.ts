@@ -411,7 +411,7 @@ export class AiService {
                     }
 
                     const details = suggestions.slice(0, 5).map(o =>
-                        `- Đơn ${o.code} (${o.customer?.name}): Giao ${new Date(o.delivery_date).toLocaleDateString('vi-VN')}`
+                        `- Đơn ${o.order_code} (${o.customer?.name}): Giao ${new Date(o.delivery_date).toLocaleDateString('vi-VN')}`
                     ).join('\n');
 
                     const reply = `Có ${suggestions.length} đơn hàng cần lập kế hoạch sản xuất:\n${details}`;
