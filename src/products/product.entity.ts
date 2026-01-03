@@ -57,7 +57,7 @@ export class Product {
   @Column('text', { nullable: true })
   processing_description: string;
 
-  @Column({ nullable: true })
+  @Column('text', { nullable: true })
   image_url: string; // Google Drive Link or Direct URL
 
   @OneToMany(() => ProductRouting, (routing) => routing.product)

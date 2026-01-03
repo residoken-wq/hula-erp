@@ -57,6 +57,12 @@ export class ProductsService {
         if (!clean.attributes && (color || size || fabric)) {
             clean.attributes = { color, size, fabric };
         }
+
+        // Explicitly ensure image_url is preserved (though ...clean should cover it, being explicit helps debugging)
+        if (data.image_url !== undefined) {
+            clean.image_url = data.image_url;
+        }
+
         return clean;
     }
 
