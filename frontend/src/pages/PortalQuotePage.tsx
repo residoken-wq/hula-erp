@@ -133,10 +133,25 @@ const PortalQuotePage: React.FC = () => {
                 let isImage = false;
 
                 // 1. Handle Google Drive
-                if (rawUrl.includes('drive.google.com') && rawUrl.includes('/d/')) {
-                    const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                    if (match && match[1]) {
-                        finalSrc = `https://lh3.googleusercontent.com/d/${match[1]}`;
+                if (rawUrl.includes('drive.google.com')) {
+                    let id = '';
+                    try {
+                        const urlObj = new URL(rawUrl);
+                        if (urlObj.pathname.includes('/d/')) {
+                            const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                            if (match && match[1]) id = match[1];
+                        } else if (urlObj.searchParams.has('id')) {
+                            id = urlObj.searchParams.get('id') || '';
+                        }
+                    } catch (e) {
+                        // Fallback regex if URL parsing fails
+                        const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                        if (match && match[1]) id = match[1];
+                    }
+
+                    if (id) {
+                        // Use thumbnail endpoint for reliable image rendering
+                        finalSrc = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
                         isImage = true;
                     }
                 }
@@ -186,11 +201,21 @@ const PortalQuotePage: React.FC = () => {
                 // Helper to convert Google Drive link to Direct Link
                 const getDirectLink = (url: string) => {
                     if (!url) return '';
-                    if (url.includes('drive.google.com') && url.includes('/d/')) {
-                        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                        if (match && match[1]) {
-                            return `https://lh3.googleusercontent.com/d/${match[1]}`;
+                    if (url.includes('drive.google.com')) {
+                        let id = '';
+                        try {
+                            const urlObj = new URL(url);
+                            if (urlObj.pathname.includes('/d/')) {
+                                const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                                if (match && match[1]) id = match[1];
+                            } else if (urlObj.searchParams.has('id')) {
+                                id = urlObj.searchParams.get('id') || '';
+                            }
+                        } catch (e) {
+                            const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                            if (match && match[1]) id = match[1];
                         }
+                        if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
                     }
                     return url;
                 };
@@ -427,9 +452,26 @@ const PortalQuotePage: React.FC = () => {
                                         const rawUrl = item.sample_image || item.product?.image_url;
                                         let finalSrc = rawUrl;
                                         let isImage = false;
-                                        if (rawUrl && rawUrl.includes('drive.google.com') && rawUrl.includes('/d/')) {
-                                            const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                                            if (match && match[1]) { finalSrc = `https://lh3.googleusercontent.com/d/${match[1]}`; isImage = true; }
+
+                                        if (rawUrl && rawUrl.includes('drive.google.com')) {
+                                            let id = '';
+                                            try {
+                                                const urlObj = new URL(rawUrl);
+                                                if (urlObj.pathname.includes('/d/')) {
+                                                    const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                                                    if (match && match[1]) id = match[1];
+                                                } else if (urlObj.searchParams.has('id')) {
+                                                    id = urlObj.searchParams.get('id') || '';
+                                                }
+                                            } catch (e) {
+                                                const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                                                if (match && match[1]) id = match[1];
+                                            }
+
+                                            if (id) {
+                                                finalSrc = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+                                                isImage = true;
+                                            }
                                         } else if (rawUrl && rawUrl.includes('googleusercontent.com')) { isImage = true; }
                                         else if (rawUrl && (rawUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || rawUrl.startsWith('data:image'))) {
                                             if (!rawUrl.startsWith('http') && !rawUrl.startsWith('data:')) finalSrc = `${API_URL}${rawUrl}`;
