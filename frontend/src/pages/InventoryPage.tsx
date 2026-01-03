@@ -27,7 +27,8 @@ const InventoryPage: React.FC = () => {
     const [materials, setMaterials] = useState<any[]>([]);
     const [stocks, setStocks] = useState<any[]>([]); // Dữ liệu tồn chi tiết
     const [history, setHistory] = useState<any[]>([]);
-    const [pendingReceipts, setPendingReceipts] = useState<any[]>([]); // <--- New State
+    const [pendingReceipts, setPendingReceipts] = useState<any[]>([]);
+    const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]); // <--- New State: Pending Export Requests // <--- New State
 
     const [searchText, setSearchText] = useState('');
 
@@ -59,13 +60,16 @@ const InventoryPage: React.FC = () => {
                 api.get('/materials'),
                 api.get('/inventory/stocks'),
                 api.get('/inventory/history'),
-                api.get('/inventory/goods-receipt/pending') // <--- Fetch Pending Receipts
+                api.get('/inventory/history'),
+                api.get('/inventory/goods-receipt/pending'),
+                api.get('/inventory/deliveries/pending') // <--- Fetch Pending Deliveries
             ]);
             setProducts(pRes.data);
             setMaterials(mRes.data);
             setStocks(sRes.data);
             setHistory(hRes.data);
             setPendingReceipts(grRes.data || []);
+            setPendingDeliveries(dRes.data || []); // <--- Set State
         } catch (error) {
             message.error('Lỗi tải dữ liệu');
         } finally {
@@ -147,6 +151,17 @@ const InventoryPage: React.FC = () => {
             fetchData();
         } catch (e) {
             message.error('Lỗi nhập kho');
+        }
+    };
+
+    const handleConfirmExport = async (id: number) => {
+        try {
+            // Defaulting to KHO_TP for now as per requirement, but could be selectable
+            await api.post(`/inventory/deliveries/${id}/confirm`, { warehouse: 'KHO_TP' });
+            message.success('Đã xác nhận xuất kho');
+            fetchData();
+        } catch (e) {
+            message.error('Lỗi xác nhận xuất kho');
         }
     };
 
@@ -360,6 +375,43 @@ const InventoryPage: React.FC = () => {
                     {/* TAB LỊCH SỬ */}
                     <Tabs.TabPane tab={<span><HistoryOutlined /> Nhật Ký GD</span>} key="HISTORY">
                         <Table dataSource={history} columns={historyColumns} size="small" rowKey="id" pagination={{ pageSize: 15 }} />
+                    </Tabs.TabPane>
+
+                    {/* TAB YÊU CẦU XUẤT KHO (New) */}
+                    <Tabs.TabPane tab={<span><ArrowUpOutlined /> Yêu cầu Xuất kho <Badge count={pendingDeliveries.length} offset={[5, 0]} /></span>} key="EXPORT_REQUESTS">
+                        <Table
+                            dataSource={pendingDeliveries}
+                            rowKey="id"
+                            size="small"
+                            expandable={{
+                                expandedRowRender: record => (
+                                    <Table
+                                        dataSource={record.items}
+                                        size="small"
+                                        pagination={false}
+                                        columns={[
+                                            { title: 'SKU', dataIndex: 'sku', render: (t: any) => <b>{t}</b> },
+                                            { title: 'Số lượng', dataIndex: 'quantity', render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
+                                            { title: 'Ghi chú', dataIndex: 'note' },
+                                        ]}
+                                    />
+                                )
+                            }}
+                            columns={[
+                                { title: 'Mã PXK', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
+                                { title: 'Đơn hàng', render: (r: any) => <Tag color="blue">{r.sales_order?.order_code}</Tag> },
+                                { title: 'Khách hàng', render: (r: any) => r.sales_order?.customer?.name || r.sales_order?.customer_name },
+                                { title: 'Ngày giao', dataIndex: 'delivery_date', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
+                                { title: 'Ghi chú', dataIndex: 'note' },
+                                {
+                                    title: 'Thao tác', render: (r: any) => (
+                                        <Popconfirm title="Xác nhận đủ hàng và xuất kho?" onConfirm={() => handleConfirmExport(r.id)}>
+                                            <Button type="primary" danger size="small" icon={<CheckCircleOutlined />}>Xuất Kho</Button>
+                                        </Popconfirm>
+                                    )
+                                }
+                            ]}
+                        />
                     </Tabs.TabPane>
 
                     {/* TAB PHIẾU NHẬP KHO CHỜ DUYỆT */}

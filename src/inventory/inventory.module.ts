@@ -11,6 +11,8 @@ import { Material } from '../materials/material.entity';
 import { Supplier } from '../suppliers/supplier.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
+import { SalesDelivery } from '../sales/sales-delivery.entity'; // <--- Import SalesDelivery
+import { ProductsModule } from '../products/products.module'; // <--- Import ProductsModule for Combos
 
 @Module({
   imports: [
@@ -24,8 +26,10 @@ import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.en
       GoodsReceiptItem, // <--- New
       Supplier,
       PurchaseOrder,
-      PurchaseOrderItem
+      PurchaseOrderItem,
+      SalesDelivery // <--- Register SalesDelivery
     ]),
+    ProductsModule // <--- Register ProductsModule
   ],
   controllers: [InventoryController],
   providers: [InventoryService],

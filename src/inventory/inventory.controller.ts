@@ -57,4 +57,18 @@ export class InventoryController {
   async confirm(@Param('id') id: string) {
     return this.inventoryService.confirmReceipt(Number(id));
   }
+
+  // --- EXPORT CONFIRMATION API ---
+  @Get('deliveries/pending')
+  async getPendingDeliveries() {
+    return this.inventoryService.getPendingDeliveries();
+  }
+
+  @Post('deliveries/:id/confirm')
+  async confirmDelivery(
+    @Param('id') id: string,
+    @Body('warehouse') warehouse: string
+  ) {
+    return this.inventoryService.confirmStockExport(Number(id), warehouse);
+  }
 }

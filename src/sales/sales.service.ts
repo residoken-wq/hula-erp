@@ -471,104 +471,66 @@ export class SalesService {
         });
         const savedDelivery = await this.deliveryRepo.save(delivery);
 
-        // --- TRIGGER INVENTORY EXPORT ---
-        // --- TRIGGER INVENTORY EXPORT ---
-        for (const item of savedDelivery.items) {
-            const product = await this.productsService.findOneBySku(item.sku);
-            if (product) {
-                try {
-                    // Check if Combo (has components)
-                    const components = await this.productsService.getComboComponents(item.sku);
+    }
+}
 
-                    if (components && components.length > 0) {
-                        // Is Combo -> Deduct Components
-                        for (const comp of components) {
-                            if (comp.child_product) {
-                                await this.inventoryService.adjustStock(
-                                    'EXPORT',
-                                    'PRODUCT',
-                                    comp.child_product.id,
-                                    Number(item.quantity) * Number(comp.quantity), // Qty * Component Qty
-                                    savedDelivery.code,
-                                    `Xuất Combo ${item.sku} (Đơn ${order.order_code})`,
-                                    'KHO_TP'
-                                );
-                            }
-                        }
-                    } else {
-                        // Is Single Product -> Deduct Itself
-                        await this.inventoryService.adjustStock(
-                            'EXPORT',
-                            'PRODUCT',
-                            product.id,
-                            Number(item.quantity),
-                            savedDelivery.code,
-                            `Giao hàng đơn ${order.order_code}`,
-                            'KHO_TP' // Mặc định xuất từ Kho Thành Phẩm
-                        );
-                    }
+// NO AUTO DEDUCT STOCK HERE. 
+// Stock will be deducted when Inventory User confirms (PENDING_EXPORT -> SHIPPED).
 
-                } catch (e) {
-                    this.logger.error(`Failed to export stock for ${item.sku}: ${e.message}`);
-                    // Có thể throw lỗi để rollback nếu cần chặt chẽ
-                }
-            }
-        }
-
-        return this.orderRepo.save(order);
+return this.orderRepo.save(order);
     }
 
     async updateDelivery(deliveryId: number, data: any) {
-        const delivery = await this.deliveryRepo.findOne({ where: { id: deliveryId }, relations: ['items'] });
-        if (!delivery) throw new NotFoundException('Delivery not found');
+    const delivery = await this.deliveryRepo.findOne({ where: { id: deliveryId }, relations: ['items'] });
+    if (!delivery) throw new NotFoundException('Delivery not found');
 
-        delivery.delivery_date = data.date;
-        delivery.note = data.note;
-        delivery.delivery_address = data.delivery_address;
-        delivery.contact_name = data.contact_name;
-        delivery.contact_phone = data.contact_phone;
+    delivery.delivery_date = data.date;
+    delivery.note = data.note;
+    delivery.delivery_address = data.delivery_address;
+    delivery.contact_name = data.contact_name;
+    delivery.contact_phone = data.contact_phone;
 
-        if (data.items) {
-            // Delete old items
-            await this.deliveryRepo.manager.delete('SalesDeliveryItem', { delivery: { id: deliveryId } });
+    if (data.items) {
+        // Delete old items
+        await this.deliveryRepo.manager.delete('SalesDeliveryItem', { delivery: { id: deliveryId } });
 
-            // Create new items
-            // Note: Not adjusting inventory to avoid complex diff logic for now. 
-            // Assuming user is fixing data, or will handle inventory manually if needed.
-            // Ideally, we should diff old vs new and adjustStock.
-            delivery.items = data.items.map((i: any) => ({
-                sku: i.sku,
-                quantity: i.quantity,
-                note: i.note
-            }));
-        }
-
-        return this.deliveryRepo.save(delivery);
+        // Create new items
+        // Note: Not adjusting inventory to avoid complex diff logic for now. 
+        // Assuming user is fixing data, or will handle inventory manually if needed.
+        // Ideally, we should diff old vs new and adjustStock.
+        delivery.items = data.items.map((i: any) => ({
+            sku: i.sku,
+            quantity: i.quantity,
+            note: i.note
+        }));
     }
+
+    return this.deliveryRepo.save(delivery);
+}
 
     // --- DELIVERY EMAIL ---
     async sendDeliveryEmail(deliveryId: number) {
-        const delivery = await this.deliveryRepo.findOne({ where: { id: deliveryId }, relations: ['items', 'sales_order', 'sales_order.customer'] });
-        if (!delivery) throw new NotFoundException('Delivery not found');
+    const delivery = await this.deliveryRepo.findOne({ where: { id: deliveryId }, relations: ['items', 'sales_order', 'sales_order.customer'] });
+    if (!delivery) throw new NotFoundException('Delivery not found');
 
-        const order = delivery.sales_order;
-        const customer = order.customer;
-        const smtpConfig = await this.systemService.getSmtpConfig();
+    const order = delivery.sales_order;
+    const customer = order.customer;
+    const smtpConfig = await this.systemService.getSmtpConfig();
 
-        if (!smtpConfig.SMTP_HOST || !smtpConfig.SMTP_USER) {
-            throw new Error('SMTP Config missing');
-        }
+    if (!smtpConfig.SMTP_HOST || !smtpConfig.SMTP_USER) {
+        throw new Error('SMTP Config missing');
+    }
 
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-            host: smtpConfig.SMTP_HOST,
-            port: Number(smtpConfig.SMTP_PORT) || 587,
-            secure: smtpConfig.SMTP_SECURE === 'true',
-            auth: { user: smtpConfig.SMTP_USER, pass: smtpConfig.SMTP_PASS }
-        });
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+        host: smtpConfig.SMTP_HOST,
+        port: Number(smtpConfig.SMTP_PORT) || 587,
+        secure: smtpConfig.SMTP_SECURE === 'true',
+        auth: { user: smtpConfig.SMTP_USER, pass: smtpConfig.SMTP_PASS }
+    });
 
-        // Template
-        const itemsHtml = delivery.items.map((i, idx) => `
+    // Template
+    const itemsHtml = delivery.items.map((i, idx) => `
             <tr>
                 <td style="padding:8px;border:1px solid #ddd;text-align:center;">${idx + 1}</td>
                 <td style="padding:8px;border:1px solid #ddd;">${i.sku}</td>
@@ -577,9 +539,9 @@ export class SalesService {
             </tr>
         `).join('');
 
-        const portalLink = `https://hula-erp.vn/portal/quote/${order.uuid}`; // Replace with actual domain from env if possible, or config
+    const portalLink = `https://hula-erp.vn/portal/quote/${order.uuid}`; // Replace with actual domain from env if possible, or config
 
-        const html = `
+    const html = `
             <div style="font-family: Arial, sans-serif; color: #333;">
                 <h2 style="color: #1890ff;">Thông Báo Giao Hàng</h2>
                 <p>Kính gửi <b>${customer ? customer.name : (order.customer_name || delivery.contact_name)}</b>,</p>
@@ -612,17 +574,17 @@ export class SalesService {
             </div>
         `;
 
-        await transporter.sendMail({
-            from: `"${smtpConfig.SMTP_FROM_NAME}" <${smtpConfig.SMTP_FROM_EMAIL}>`,
-            to: (customer && customer.email) || 'shinwon93@gmail.com', // Fallback for dev/demo or use contact email
-            subject: `[HULA] Thông Báo Giao Hàng - ${delivery.code}`,
-            html: html
-        });
+    await transporter.sendMail({
+        from: `"${smtpConfig.SMTP_FROM_NAME}" <${smtpConfig.SMTP_FROM_EMAIL}>`,
+        to: (customer && customer.email) || 'shinwon93@gmail.com', // Fallback for dev/demo or use contact email
+        subject: `[HULA] Thông Báo Giao Hàng - ${delivery.code}`,
+        html: html
+    });
 
-        delivery.email_sent = true;
-        delivery.status = 'SHIPPED'; // Update status
-        return this.deliveryRepo.save(delivery);
-    }
+    delivery.email_sent = true;
+    delivery.status = 'SHIPPED'; // Update status
+    return this.deliveryRepo.save(delivery);
+}
 
     // ========================================
     // === CHECKLIST MANAGEMENT METHODS ===
@@ -631,152 +593,152 @@ export class SalesService {
     /**
      * Initialize checklist for an order (called when creating order)
      */
-    async initChecklist(orderId: number, initialStatus: string = 'QUOTATION'): Promise<SalesChecklist> {
-        // Check if checklist already exists
-        let checklist = await this.checklistRepo.findOne({ where: { order_id: orderId } });
+    async initChecklist(orderId: number, initialStatus: string = 'QUOTATION'): Promise < SalesChecklist > {
+    // Check if checklist already exists
+    let checklist = await this.checklistRepo.findOne({ where: { order_id: orderId } });
 
-        if (!checklist) {
-            checklist = this.checklistRepo.create({ order_id: orderId, items: [] });
-            checklist = await this.checklistRepo.save(checklist);
-        }
+    if(!checklist) {
+        checklist = this.checklistRepo.create({ order_id: orderId, items: [] });
+        checklist = await this.checklistRepo.save(checklist);
+    }
 
         // Add items for initial stage
         await this.addChecklistItemsForStage(checklist.id, initialStatus);
 
-        return this.getChecklist(orderId);
-    }
+    return this.getChecklist(orderId);
+}
 
     /**
      * Get checklist with all items for an order
      */
-    async getChecklist(orderId: number): Promise<any> {
-        const checklist = await this.checklistRepo.findOne({
-            where: { order_id: orderId },
-            relations: ['items'],
-        });
+    async getChecklist(orderId: number): Promise < any > {
+    const checklist = await this.checklistRepo.findOne({
+        where: { order_id: orderId },
+        relations: ['items'],
+    });
 
-        if (!checklist) {
-            // Auto-create if not exists, respecting current Order Status
-            const order = await this.orderRepo.findOne({ where: { id: orderId } });
-            return this.initChecklist(orderId, order?.status || 'QUOTATION');
-        }
+    if(!checklist) {
+        // Auto-create if not exists, respecting current Order Status
+        const order = await this.orderRepo.findOne({ where: { id: orderId } });
+        return this.initChecklist(orderId, order?.status || 'QUOTATION');
+    }
 
         // Sort items by sort_order
         checklist.items = (checklist.items || []).sort((a, b) => a.sort_order - b.sort_order);
 
-        // Calculate progress
-        const total = checklist.items.length;
-        const completed = checklist.items.filter(i => i.is_completed).length;
+    // Calculate progress
+    const total = checklist.items.length;
+    const completed = checklist.items.filter(i => i.is_completed).length;
 
-        return {
-            ...checklist,
-            progress: { total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 }
-        };
-    }
+    return {
+        ...checklist,
+        progress: { total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 }
+    };
+}
 
     /**
      * Toggle a checklist item (complete/uncomplete)
      */
-    async toggleChecklistItem(itemId: number, completedBy?: string): Promise<SalesChecklistItem> {
-        const item = await this.checklistItemRepo.findOne({ where: { id: itemId } });
-        if (!item) throw new NotFoundException('Checklist item not found');
+    async toggleChecklistItem(itemId: number, completedBy ?: string): Promise < SalesChecklistItem > {
+    const item = await this.checklistItemRepo.findOne({ where: { id: itemId } });
+    if(!item) throw new NotFoundException('Checklist item not found');
 
-        item.is_completed = !item.is_completed;
-        item.completed_at = item.is_completed ? new Date() : null;
-        item.completed_by = item.is_completed ? (completedBy || 'User') : null;
+    item.is_completed = !item.is_completed;
+    item.completed_at = item.is_completed ? new Date() : null;
+    item.completed_by = item.is_completed ? (completedBy || 'User') : null;
 
-        return this.checklistItemRepo.save(item);
-    }
+    return this.checklistItemRepo.save(item);
+}
 
     /**
      * Add a custom task to the checklist
      */
-    async addCustomChecklistItem(orderId: number, taskName: string, dueDate?: Date): Promise<SalesChecklistItem> {
-        const checklist = await this.checklistRepo.findOne({ where: { order_id: orderId } });
-        if (!checklist) throw new NotFoundException('Checklist not found');
+    async addCustomChecklistItem(orderId: number, taskName: string, dueDate ?: Date): Promise < SalesChecklistItem > {
+    const checklist = await this.checklistRepo.findOne({ where: { order_id: orderId } });
+    if(!checklist) throw new NotFoundException('Checklist not found');
 
-        // Get max sort order
-        const maxSort = await this.checklistItemRepo
-            .createQueryBuilder('item')
-            .select('MAX(item.sort_order)', 'max')
-            .where('item.checklist_id = :id', { id: checklist.id })
-            .getRawOne();
+    // Get max sort order
+    const maxSort = await this.checklistItemRepo
+        .createQueryBuilder('item')
+        .select('MAX(item.sort_order)', 'max')
+        .where('item.checklist_id = :id', { id: checklist.id })
+        .getRawOne();
 
-        const newItem = this.checklistItemRepo.create({
-            checklist_id: checklist.id,
-            task_code: 'CUSTOM_' + Date.now(),
-            task_name: taskName,
-            stage: 'CUSTOM',
-            is_completed: false,
-            due_date: dueDate || null,
-            sort_order: (maxSort?.max || 0) + 1,
-        });
+    const newItem = this.checklistItemRepo.create({
+        checklist_id: checklist.id,
+        task_code: 'CUSTOM_' + Date.now(),
+        task_name: taskName,
+        stage: 'CUSTOM',
+        is_completed: false,
+        due_date: dueDate || null,
+        sort_order: (maxSort?.max || 0) + 1,
+    });
 
-        return this.checklistItemRepo.save(newItem);
-    }
+    return this.checklistItemRepo.save(newItem);
+}
 
     /**
      * Update checklist note for an item
      */
-    async updateChecklistItemNote(itemId: number, note: string): Promise<SalesChecklistItem> {
-        const item = await this.checklistItemRepo.findOne({ where: { id: itemId } });
-        if (!item) throw new NotFoundException('Checklist item not found');
-        item.note = note;
-        return this.checklistItemRepo.save(item);
-    }
+    async updateChecklistItemNote(itemId: number, note: string): Promise < SalesChecklistItem > {
+    const item = await this.checklistItemRepo.findOne({ where: { id: itemId } });
+    if(!item) throw new NotFoundException('Checklist item not found');
+    item.note = note;
+    return this.checklistItemRepo.save(item);
+}
 
     /**
      * Add checklist items for a specific stage (internal helper)
      */
-    private async addChecklistItemsForStage(checklistId: number, stage: string): Promise<void> {
-        const templates = CHECKLIST_TEMPLATES[stage];
-        if (!templates || templates.length === 0) return;
+    private async addChecklistItemsForStage(checklistId: number, stage: string): Promise < void> {
+    const templates = CHECKLIST_TEMPLATES[stage];
+    if(!templates || templates.length === 0) return;
 
-        // Check which items already exist
-        const existing = await this.checklistItemRepo.find({ where: { checklist_id: checklistId } });
-        const existingCodes = existing.map(e => e.task_code);
+// Check which items already exist
+const existing = await this.checklistItemRepo.find({ where: { checklist_id: checklistId } });
+const existingCodes = existing.map(e => e.task_code);
 
-        const newItems = templates
-            .filter(t => !existingCodes.includes(t.code))
-            .map(t => this.checklistItemRepo.create({
-                checklist_id: checklistId,
-                task_code: t.code,
-                task_name: t.name,
-                stage: stage,
-                is_completed: false,
-                sort_order: t.sort,
-            }));
+const newItems = templates
+    .filter(t => !existingCodes.includes(t.code))
+    .map(t => this.checklistItemRepo.create({
+        checklist_id: checklistId,
+        task_code: t.code,
+        task_name: t.name,
+        stage: stage,
+        is_completed: false,
+        sort_order: t.sort,
+    }));
 
-        if (newItems.length > 0) {
-            await this.checklistItemRepo.save(newItems);
-        }
+if (newItems.length > 0) {
+    await this.checklistItemRepo.save(newItems);
+}
     }
 
     /**
      * Sync checklist when order status changes
      * Call this after any status update to add new stage tasks
      */
-    async syncChecklistWithStatus(orderId: number, newStatus: string): Promise<any> {
-        const checklist = await this.checklistRepo.findOne({ where: { order_id: orderId } });
-        if (!checklist) {
-            return this.initChecklist(orderId, newStatus);
-        }
+    async syncChecklistWithStatus(orderId: number, newStatus: string): Promise < any > {
+    const checklist = await this.checklistRepo.findOne({ where: { order_id: orderId } });
+    if(!checklist) {
+        return this.initChecklist(orderId, newStatus);
+    }
 
         // Add items for new stage
         await this.addChecklistItemsForStage(checklist.id, newStatus);
 
-        return this.getChecklist(orderId);
-    }
+    return this.getChecklist(orderId);
+}
 
     /**
      * Delete a custom checklist item
      */
-    async deleteChecklistItem(itemId: number): Promise<void> {
-        const item = await this.checklistItemRepo.findOne({ where: { id: itemId } });
-        if (!item) throw new NotFoundException('Checklist item not found');
-        if (!item.task_code.startsWith('CUSTOM_')) {
-            throw new Error('Cannot delete system-generated checklist items');
-        }
-        await this.checklistItemRepo.delete(itemId);
+    async deleteChecklistItem(itemId: number): Promise < void> {
+    const item = await this.checklistItemRepo.findOne({ where: { id: itemId } });
+    if(!item) throw new NotFoundException('Checklist item not found');
+    if(!item.task_code.startsWith('CUSTOM_')) {
+    throw new Error('Cannot delete system-generated checklist items');
+}
+await this.checklistItemRepo.delete(itemId);
     }
 }

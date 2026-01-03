@@ -10,6 +10,8 @@ import { Material } from '../materials/material.entity';
 import { Supplier } from '../suppliers/supplier.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
+import { SalesDelivery } from '../sales/sales-delivery.entity';
+import { ProductsService } from '../products/products.service';
 
 @Injectable()
 export class InventoryService {
@@ -23,6 +25,8 @@ export class InventoryService {
     @InjectRepository(Supplier) private supplierRepo: Repository<Supplier>,
     @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
     @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
+    @InjectRepository(SalesDelivery) private deliveryRepo: Repository<SalesDelivery>,
+    private productsService: ProductsService,
   ) { }
 
   // Lấy chi tiết tồn kho của tất cả item
@@ -223,10 +227,88 @@ export class InventoryService {
     }
 
     // 3. Update Status
-    receipt.status = GoodsReceiptStatus.COMPLETED;
     receipt.delivery_date = new Date().toISOString();
     await this.receiptRepo.save(receipt);
 
     return { message: 'Đã nhập kho thành công', receipt };
+  }
+
+  // --- SALES DELIVERY CONFIRMATION FLOW ---
+
+  async getPendingDeliveries() {
+    return this.deliveryRepo.find({
+      where: { status: 'PENDING_EXPORT' }, // Or whatever status was set in SalesService
+      relations: ['sales_order', 'sales_order.customer', 'items'],
+      order: { created_at: 'ASC' }
+    });
+  }
+
+  async confirmStockExport(deliveryId: number, warehouseCode: string = 'KHO_TP') {
+    const delivery = await this.deliveryRepo.findOne({
+      where: { id: deliveryId },
+      relations: ['items', 'sales_order']
+    });
+
+    if (!delivery) throw new BadRequestException('Phiếu xuất không tồn tại');
+    if (delivery.status !== 'PENDING_EXPORT') throw new BadRequestException('Phiếu đã xử lý hoặc không ở trạng thái chờ xuất');
+
+    // Loop items and deduct stock
+    for (const item of delivery.items) {
+      if (!item.sku) continue;
+
+      const product = await this.productRepo.findOne({ where: { sku: item.sku } });
+      if (product) {
+        try {
+          // Check if Combo (has components)
+          const components = await this.productsService.getComboComponents(item.sku);
+
+          if (components && components.length > 0) {
+            // Is Combo -> Deduct Components
+            for (const comp of components) {
+              if (comp.child_product) {
+                await this.adjustStock(
+                  'EXPORT',
+                  'PRODUCT',
+                  comp.child_product.id,
+                  Number(item.quantity) * Number(comp.quantity),
+                  delivery.code,
+                  `Xuất Combo ${item.sku} (Đơn ${delivery.sales_order?.order_code})`,
+                  warehouseCode
+                );
+              }
+            }
+          } else {
+            // Is Single Product -> Deduct Itself
+            await this.adjustStock(
+              'EXPORT',
+              'PRODUCT',
+              product.id,
+              Number(item.quantity),
+              delivery.code,
+              `Giao hàng đơn ${delivery.sales_order?.order_code}`,
+              warehouseCode
+            );
+          }
+
+        } catch (e) {
+          // Log error but generally we might want to stop? 
+          // For now continue best effort or throw?
+          // Let's throw to ensure data integrity
+          throw new BadRequestException(`Lỗi xuất kho ${item.sku}: ${e.message}`);
+        }
+      }
+    }
+
+    // Update Status
+    delivery.status = 'SHIPPED'; // Or DELIVERING if you want another step? Plan said SHIPPED.
+    // NOTE: SHIPPED means Stock Deducted. Then SalesService can send email later?
+    // Current SalesService.sendDeliveryEmail sets status to SHIPPED too.
+    // If we set SHIPPED here, sendDeliveryEmail might process it again?
+    // SalesService.sendDeliveryEmail checks: delivery.email_sent = true.
+    // It is fine.
+
+    await this.deliveryRepo.save(delivery);
+
+    return { message: 'Đã xuất kho thành công', delivery };
   }
 }

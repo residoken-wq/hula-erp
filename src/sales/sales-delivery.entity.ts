@@ -23,7 +23,7 @@ export class SalesDelivery {
   @Column({ nullable: true })
   note: string;
 
-  @Column({ default: 'DELIVERING' }) // DELIVERING, SHIPPED, COMPLETED
+  @Column({ default: 'PENDING_EXPORT' }) // PENDING_EXPORT, SHIPPED, COMPLETED
   status: string;
 
   @Column({ default: false })
