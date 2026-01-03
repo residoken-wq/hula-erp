@@ -55,7 +55,7 @@ export class UploadService {
     fs.writeFileSync(filePath, file.buffer);
 
     // Return backend API URL
-    return { url: `/api/upload/files/${filename}` };
+    return { url: `/upload/files/${filename}` };
   }
 
   // Helper to serve file
