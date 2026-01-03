@@ -2,6 +2,7 @@ import { Controller, Post, Get, Param, Res, UseInterceptors, UploadedFile, BadRe
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 import { Response } from 'express';
+import { Public } from '../auth/public.decorator';
 
 @Controller('upload')
 export class UploadController {
@@ -80,8 +81,15 @@ export class UploadController {
 
     res.end(buffer);
   }
-  @Get('files/:filename')
-  async serveFile(@Param('filename') filename: string, @Res() res: Response) {
-    return this.uploadService.serveFile(filename, res);
-  }
+import { Public } from '../auth/public.decorator';
+
+// ... (imports)
+
+// ...
+
+@Public()
+@Get('files/:filename')
+async serveFile(@Param('filename') filename: string, @Res() res: Response) {
+  return this.uploadService.serveFile(filename, res);
+}
 }
