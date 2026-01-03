@@ -1,57 +1,449 @@
+import React, { useEffect, useState } from 'react';
+import { Table, Button, Input, Modal, message, InputNumber, Tooltip, Select, DatePicker, Tag } from 'antd';
+import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined, EditOutlined } from '@ant-design/icons';
+import axios from 'axios';
+import dayjs from 'dayjs';
+import { API_URL } from '../../config';
 import AttachmentUpload from '../common/AttachmentUpload';
-// ... existing imports
+
+interface Props {
+    order: any;
+    products: any[];
+    customers?: any[];
+    onSuccess: () => void;
+}
 
 const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onSuccess }) => {
-    // ... existing state
-    const [attachments, setAttachments] = useState<string[]>([]); // <--- Add State
+    const [history, setHistory] = useState<any[]>([]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [shipNote, setShipNote] = useState('');
+    const [shipItems, setShipItems] = useState<any[]>([]);
+    const [editingDeliveryId, setEditingDeliveryId] = useState<number | null>(null);
 
-    // ... existing fetchHistory
+    // Additional Ship Info state
+    const [shipDate, setShipDate] = useState<any>(dayjs());
+    const [shipAddress, setShipAddress] = useState<string>('');
+    const [shipContactName, setShipContactName] = useState<string>('');
+    const [shipContactPhone, setShipContactPhone] = useState<string>('');
+    const [companyConfig, setCompanyConfig] = useState<any>(null);
+    const [attachments, setAttachments] = useState<string[]>([]);
+
+    // RESOLVE FULL CUSTOMER (to get contacts)
+    const fullCustomer = customers.find(c => c.id === order?.customer?.id || c.id === order?.customer_id) || order?.customer || {};
+    const contactList = fullCustomer?.contacts || [];
+
+    const fetchHistory = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/sales/${order.id}/deliveries`);
+            setHistory(Array.isArray(res.data) ? res.data : []);
+        } catch (e) { }
+    };
+
+    useEffect(() => {
+        if (order?.id) fetchHistory();
+        axios.get(`${API_URL}/system/company`).then(res => setCompanyConfig(res.data)).catch(() => { });
+    }, [order?.id]);
+
+    // Use order.items for ordered quantities
+    const summaryData = (order.items || []).map((item: any) => {
+        const ordered = Number(item.quantity) || 0;
+        const price = Number(item.unit_price) || 0;
+
+        let delivered = 0;
+        history.forEach((d: any) => {
+            const found = d.items?.find((di: any) => di.sku === item.sku);
+            if (found) delivered += Number(found.quantity);
+        });
+
+        const remaining = ordered - delivered;
+
+
+        // Lookup stock from products list
+        const productInfo = products.find((p: any) => p.value === item.sku);
+        const stock = productInfo ? productInfo.quantity_in_stock : 0;
+
+        return {
+            sku: item.sku,
+            stock, // <--- Add stock
+            ordered,
+            delivered,
+            remaining,
+            totalVal: ordered * price,
+            deliveredVal: delivered * price,
+            remainingVal: remaining * price
+        };
+    });
 
     const openCreateModal = () => {
         setEditingDeliveryId(null);
-        // ... existing reset logic
-        setAttachments([]); // <--- Reset
+        setShipItems(summaryData.map((d: any) => ({
+            sku: d.sku, max: d.remaining, quantity: d.remaining > 0 ? d.remaining : 0
+        })));
+        setShipNote('');
+
+        // Auto-fill defaults
+        setShipDate(dayjs());
+        setShipAddress(order.shipping_address || fullCustomer?.address || '');
+        setShipContactName(order.receiver_name || contactList[0]?.full_name || fullCustomer?.name || '');
+        setShipContactPhone(order.receiver_phone || contactList[0]?.phone || fullCustomer?.phone || '');
+        setAttachments([]);
+
         setIsModalOpen(true);
     };
 
     const openEditModal = (delivery: any) => {
         setEditingDeliveryId(delivery.id);
-        // ... existing set logic
-        setAttachments(delivery.attachments || []); // <--- Load existing
+        setShipDate(dayjs(delivery.delivery_date));
+        setShipAddress(delivery.delivery_address || '');
+        setShipContactName(delivery.contact_name || '');
+        setShipContactPhone(delivery.contact_phone || '');
+        setShipNote(delivery.note || '');
+        setAttachments(delivery.attachments || []);
+
+        // Calculate Ship Items
+        // Merge Order Items (summaryData) with Delivery Items
+        const mergedItems = summaryData.map((d: any) => {
+            const deliveredItem = delivery.items?.find((i: any) => i.sku === d.sku);
+            const currentQtyInDelivery = deliveredItem ? Number(deliveredItem.quantity) : 0;
+            const max = d.remaining + currentQtyInDelivery;
+
+            return {
+                sku: d.sku,
+                max: max,
+                quantity: currentQtyInDelivery
+            };
+        });
+        setShipItems(mergedItems);
         setIsModalOpen(true);
     };
 
     const handleShip = async () => {
         try {
             const payload = {
-                // ... existing payload fields
-                attachments: attachments, // <--- Send attachments
-                items: shipItems.filter(i => i.quantity > 0)
+                code: editingDeliveryId ? undefined : `PXK-${dayjs(shipDate).format('DDMMYY')}-${Math.floor(1000 + Math.random() * 9000)}`,
+                date: shipDate ? shipDate.toDate() : new Date(),
+                note: shipNote,
+                delivery_address: shipAddress,
+                contact_name: shipContactName,
+                contact_phone: shipContactPhone,
+                items: shipItems.filter(i => i.quantity > 0),
+                attachments: attachments
             };
-            // ... API calls
+
+            if (editingDeliveryId) {
+                await axios.put(`${API_URL}/sales/delivery/${editingDeliveryId}`, payload);
+                message.success('Đã cập nhật phiếu xuất kho');
+            } else {
+                await axios.post(`${API_URL}/sales/${order.id}/delivery`, payload);
+                message.success('Đã xuất kho');
+            }
+
+            setIsModalOpen(false); fetchHistory(); onSuccess();
         } catch (e) { message.error('Lỗi lưu phiếu xuất kho'); }
+    };
+
+    const handlePrint = (delivery: any) => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        // Map Items for Print
+        const printItems = (delivery.items || []).map((di: any, idx: number) => {
+            const product = products.find(p => p.value === di.sku);
+            // Fallback for color/variant if stored in order items
+            const orderItem = order?.items?.find((oi: any) => oi.sku === di.sku);
+
+            return {
+                index: idx + 1,
+                name: product ? (product.label || product.name) : di.sku, // Prefer product name, fallback SKU
+                unit: product?.unit || 'Cái',
+                qty: di.quantity,
+                note: orderItem?.variant_color || di.note || '' // Try to show variant color/note
+            };
+        });
+
+        // Resolve Info
+        const dAddr = delivery.delivery_address || (order.shipping_address || order.customer?.address || '-');
+
+        // IMPORTANT: Must use delivery specific contact first, usually saved in delivery.contact_name
+        const dContactName = delivery.contact_name || (order.receiver_name || order.customer?.name || '-');
+        const dContactPhone = delivery.contact_phone || (order.receiver_phone || order.customer?.phone || '');
+
+        // Format: Name - Phone
+        const fullContact = dContactPhone ? `${dContactName} - ${dContactPhone}` : dContactName;
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>In Phiếu Xuất Kho - ${delivery.code}</title>
+                <style>
+                    body { font-family: 'Times New Roman', Times, serif; padding: 20px; font-size: 14px; }
+                    .header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #0050b3; padding-bottom: 10px; }
+                    .company-info { width: 60%; }
+                    .company-info h1 { margin: 0; color: #0050b3; font-size: 24px; text-transform: uppercase; }
+                    .company-info p { margin: 2px 0; font-size: 13px; }
+                    .title-section { text-align: center; width: 40%; }
+                    .title-section h2 { margin: 10px 0 5px; font-size: 26px; text-transform: uppercase; }
+                    .info-grid { margin-bottom: 20px; }
+                    .info-row { display: flex; margin-bottom: 8px; }
+                    .info-label { width: 130px; font-weight: bold; }
+                    .info-val { flex: 1; }
+
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                    th, td { border: 1px solid #000; padding: 8px; text-align: center; }
+                    th { background-color: #fce4d6; font-weight: bold; }
+
+                    .footer { display: flex; justify-content: space-between; text-align: center; margin-top: 50px; }
+                    .footer-col { width: 30%; }
+                    .footer-col .role { font-weight: bold; margin-bottom: 80px; }
+                    .note-bottom { font-style: italic; font-size: 12px; margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="header-logo" style="text-align:center;">
+                        <img src="${window.location.origin}/company_header.png" alt="Company Header" style="max-height: 100px; max-width: 100%;" />
+                    </div>
+                    <div class="title-section">
+                        <h2>PHIẾU XUẤT KHO</h2>
+                        <div style="font-style:italic;">Ngày ${dayjs(delivery.delivery_date).format('DD')} tháng ${dayjs(delivery.delivery_date).format('MM')} năm ${dayjs(delivery.delivery_date).format('YYYY')}</div>
+                        <div style="margin-top:10px; text-align:right; font-size:12px; font-style:italic;">Số PXK: <b>${delivery.code}</b></div>
+                    </div>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-row">
+                        <div class="info-label">Khách hàng:</div>
+                        <div class="info-val" style="text-transform:uppercase; font-weight:bold;">${order.customer_name || order.customer?.name}</div>
+                        <div style="font-size:12px;">Số BG: <b>${order.order_code}</b></div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Địa chỉ giao hàng:</div>
+                        <div class="info-val">${dAddr}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Liên hệ:</div>
+                        <div class="info-val">${fullContact}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Xuất tại kho:</div>
+                        <div class="info-val">Kho Thành Phẩm (Trung tâm)</div>
+                    </div>
+                    ${delivery.note ? `<div class="info-row"><div class="info-label">Ghi chú phiếu:</div><div class="info-val">${delivery.note}</div></div>` : ''}
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">STT</th>
+                            <th>Tên Sản phẩm</th>
+                            <th style="width: 80px;">ĐVT</th>
+                            <th style="width: 80px;">Số lượng</th>
+                            <th style="width: 150px;">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${printItems.map((item: any) => `
+                        <tr>
+                            <td>${item.index}</td>
+                            <td style="text-align:left; font-weight:bold;">${item.name}</td>
+                            <td>${item.unit}</td>
+                            <td>${item.qty}</td>
+                            <td style="text-align:left;">${item.note}</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+
+                <div class="footer">
+                    <div class="footer-col">
+                        <div class="role">Người nhận hàng</div>
+                        <div>(Ký và ghi rõ họ tên)</div>
+                    </div>
+                    <div class="footer-col">
+                        <div class="role">Người lập phiếu</div>
+                        <div style="margin-top:70px; font-weight:bold;">${order.assigned_to?.full_name || 'Admin'}</div>
+                    </div>
+                    <div class="footer-col">
+                        <div class="role">Thủ kho</div>
+                        <div>(Ký xác nhận)</div>
+                    </div>
+                </div>
+
+                <div class="note-bottom">
+                    Quý khách vui lòng kiểm tra kỹ số lượng và chất lượng hàng hóa khi nhận hàng.
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); }
+                </script>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
     };
 
     return (
         <div>
-            {/* ... Summary Table ... */}
+            <div style={{ marginBottom: 20, background: '#f0f5ff', padding: 10, borderRadius: 6, border: '1px solid #adc6ff' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#1d39c4' }}>Tiến độ giao hàng:</div>
+                <Table dataSource={summaryData} rowKey="sku" pagination={false} size="small" bordered
+                    columns={[
+                        { title: 'SKU', dataIndex: 'sku' },
+                        { title: 'Tồn kho', dataIndex: 'stock', align: 'center', width: 80, render: (v: any) => <span style={{ color: '#fa8c16', fontWeight: 'bold' }}>{v}</span> },
+                        { title: 'SL Đặt', dataIndex: 'ordered', align: 'center', width: 70 },
+                        { title: 'Đã giao', dataIndex: 'delivered', align: 'center', width: 70, render: (v: any) => <b style={{ color: 'green' }}>{v}</b> },
+                        { title: 'Còn lại', dataIndex: 'remaining', align: 'center', width: 70, render: (v: any) => v > 0 ? <b style={{ color: 'red' }}>{v}</b> : <CheckCircleOutlined style={{ color: 'green' }} /> },
 
+                        { title: 'Tổng tiền hàng', dataIndex: 'totalVal', align: 'right', render: (v: number) => v.toLocaleString() },
+                        { title: 'Đã giao (đ)', dataIndex: 'deliveredVal', align: 'right', render: (v: number) => <span style={{ color: 'green' }}>{v.toLocaleString()}</span> },
+                        { title: 'Còn lại (đ)', dataIndex: 'remainingVal', align: 'right', render: (v: number) => <span style={{ color: 'red', fontWeight: 'bold' }}>{v.toLocaleString()}</span> },
+                    ]}
+                    summary={(pageData: readonly any[]) => {
+                        let totalAmount = 0;
+                        let totalDelivered = 0;
+                        let totalRemaining = 0;
+
+                        pageData.forEach((item) => {
+                            totalAmount += (item.totalVal || 0);
+                            totalDelivered += (item.deliveredVal || 0);
+                            totalRemaining += (item.remainingVal || 0);
+                        });
+
+                        return (
+                            <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
+                                <Table.Summary.Cell index={0} colSpan={5} align="right">Tổng cộng:</Table.Summary.Cell>
+                                <Table.Summary.Cell index={1} align="right">{totalAmount.toLocaleString()}</Table.Summary.Cell>
+                                <Table.Summary.Cell index={2} align="right"><span style={{ color: 'green' }}>{totalDelivered.toLocaleString()}</span></Table.Summary.Cell>
+                                <Table.Summary.Cell index={3} align="right"><span style={{ color: 'red' }}>{totalRemaining.toLocaleString()}</span></Table.Summary.Cell>
+                            </Table.Summary.Row>
+                        );
+                    }}
+                />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                <b>Lịch sử phiếu giao:</b>
+                {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                    <Button type="primary" size="small" icon={<CarOutlined />} onClick={openCreateModal}>Tạo Phiếu Xuất Kho</Button>
+                )}
+            </div>
             <Table dataSource={history} rowKey="id" pagination={false} size="small" bordered columns={[
-                // ... existing columns
-                { title: 'Chứng từ', render: (r) => r.attachments?.length > 0 ? <AttachmentUpload value={r.attachments} maxFiles={0} /> : '-' }, // Read-only view
-                // ... existing action columns
+                { title: 'Mã phiếu', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
+                { title: 'Ngày giao', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YYYY') },
+                {
+                    title: 'Trạng thái', align: 'center', render: (r: any) => (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                            <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>{r.status === 'SHIPPED' ? 'Đã báo khách' : 'Đang giao'}</Tag>
+                            {r.email_sent && <span style={{ fontSize: 10, color: 'green' }}><CheckCircleOutlined /> Email: Sent</span>}
+                        </div>
+                    )
+                },
+                { title: 'Người công trình', render: (r) => (r.contact_name ? <span>{r.contact_name} <br /><small>{r.contact_phone}</small></span> : '-') },
+                { title: 'Chi tiết', width: '30%', render: (r: any) => r.items?.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') },
+                { title: 'Chứng từ', render: (r) => r.attachments?.length > 0 ? <AttachmentUpload value={r.attachments} maxFiles={0} /> : '-' },
+                {
+                    title: '', width: 120, align: 'center', render: (_: any, r: any) => (
+                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
+                            <Tooltip title="In Phiếu Xuất Kho">
+                                <Button size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
+                            </Tooltip>
+                            {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                                <Tooltip title="Sửa phiếu">
+                                    <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(r)} />
+                                </Tooltip>
+                            )}
+                            <Tooltip title="Gửi Email thông báo khách hàng">
+                                <Button size="small" icon={<MailOutlined />} onClick={async () => {
+                                    try {
+                                        Modal.confirm({
+                                            title: 'Gửi Email thông báo?',
+                                            content: 'Hệ thống sẽ gửi email thông báo giao hàng cho khách hàng theo mẫu.',
+                                            onOk: async () => {
+                                                await axios.post(`${API_URL}/sales/delivery/${r.id}/email`);
+                                                message.success('Đã gửi email thành công');
+                                                fetchHistory();
+                                            }
+                                        });
+                                    } catch (e) { message.error('Lỗi gửi email: Cần cấu hình SMTP'); }
+                                }} />
+                            </Tooltip>
+                        </div>
+                    )
+                }
             ]} />
 
             <Modal title={editingDeliveryId ? "Cập nhật Phiếu Xuất Kho" : "Tạo Phiếu Xuất Kho"} open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={handleShip} width={600}>
-                {/* ... existing fields ... */}
+                {/* DATE SELECTION */}
+                <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 500 }}>Ngày xuất kho:</div>
+                    <DatePicker format="DD/MM/YYYY" value={shipDate} onChange={setShipDate} style={{ width: '100%' }} />
+                </div>
 
-                <AttachmentUpload value={attachments} onChange={setAttachments} /> {/* <--- Add Component */}
+                {/* ADDRESS SELECTION */}
+                <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 500 }}>Chọn Chi Nhánh / Địa chỉ giao hàng:</div>
+                    <Select
+                        style={{ width: '100%' }}
+                        value={shipAddress}
+                        onChange={setShipAddress}
+                        placeholder="Chọn địa chỉ giao hàng"
+                        options={[
+                            { value: fullCustomer?.address || '', label: `Mặc định: ${fullCustomer?.address || 'Chưa cập nhật'}` },
+                            ...(fullCustomer?.delivery_addresses || []).map((addr: any) => ({
+                                value: addr.address, label: `${addr.name || 'CN'} - ${addr.address}`
+                            }))
+                        ]}
+                    />
+                    <Input
+                        style={{ marginTop: 5 }}
+                        placeholder="Hoặc nhập địa chỉ khác..."
+                        value={shipAddress}
+                        onChange={e => setShipAddress(e.target.value)}
+                    />
+                </div>
+
+                {/* CONTACT SELECTION */}
+                <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 500 }}>Người liên hệ nhận hàng:</div>
+                    <Select
+                        style={{ width: '100%' }}
+                        placeholder="Chọn người liên hệ"
+                        value={shipContactName}
+                        onChange={(val) => {
+                            // Find contact to auto-fill Phone
+                            const contact = contactList.find((c: any) => c.full_name === val);
+                            setShipContactName(val);
+                            if (contact) setShipContactPhone(contact.phone);
+                        }}
+                        options={[
+                            ...(contactList).map((c: any) => ({
+                                value: c.full_name, label: `${c.full_name} - ${c.position || ''} (${c.phone})`
+                            }))
+                        ]}
+                    />
+                    <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
+                        <Input placeholder="Tên người nhận" value={shipContactName} onChange={e => setShipContactName(e.target.value)} />
+                        <Input placeholder="SĐT Liên hệ" value={shipContactPhone} onChange={e => setShipContactPhone(e.target.value)} />
+                    </div>
+                </div>
+
+                <Input.TextArea rows={2} placeholder="Ghi chú giao hàng..." value={shipNote} onChange={e => setShipNote(e.target.value)} style={{ marginBottom: 10 }} />
+
+                <div style={{ marginBottom: 10 }}>
+                    <AttachmentUpload value={attachments} onChange={setAttachments} />
+                </div>
 
                 <div style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 5 }}>Danh sách xuất:</div>
-                {/* ... Items Table ... */}
+                <Table dataSource={shipItems} rowKey="sku" pagination={false} size="small" columns={[
+                    { title: 'SKU', dataIndex: 'sku' },
+                    { title: 'SL Còn', dataIndex: 'max' },
+                    { title: 'Giao lần này', render: (_: any, r: any, idx: number) => (<InputNumber max={r.max} min={0} value={r.quantity} onChange={(v: any) => { const newItems = [...shipItems]; newItems[idx].quantity = v; setShipItems(newItems); }} />) }
+                ]} />
             </Modal>
         </div>
     );
 }
-
 export default SalesDeliveries;
