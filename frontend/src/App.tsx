@@ -47,6 +47,7 @@ const HelpPage = React.lazy(() => import('./pages/HelpPage'));
 const DocsPage = React.lazy(() => import('./pages/DocsPage'));
 const SystemSettingsPage = React.lazy(() => import('./pages/SystemSettingsPage'));
 const ActivityLogPage = React.lazy(() => import('./pages/ActivityLogPage'));
+const DashboardPage = React.lazy(() => import('./pages/DashboardPage')); // <--- Import Dashboard
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
     return { key, icon, children, label } as MenuItem;
@@ -253,7 +254,7 @@ const App: React.FC = () => {
                                     <div style={{ padding: isMobile ? 12 : 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG, marginTop: 16 }}>
                                         <React.Suspense fallback={<LoadingDisplay />}>
                                             <Routes>
-                                                <Route path="/" element={<h2>Chào mừng đến với Hula ERP</h2>} />
+                                                <Route path="/" element={<DashboardPage />} />
 
                                                 {(hasPerm('PRODUCT') || hasPerm('INVENTORY') || hasPerm('SALES')) && <Route path="/upload" element={<UploadPage />} />}
 
