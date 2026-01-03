@@ -41,8 +41,8 @@ export class UploadService {
     const fs = require('fs');
     const path = require('path');
 
-    // Save to backend 'uploads' directory
-    const uploadDir = path.join(__dirname, '..', '..', 'uploads');
+    // Save to frontend 'public/uploads' directory for static serving
+    const uploadDir = path.join(__dirname, '..', '..', 'frontend', 'public', 'uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -54,21 +54,28 @@ export class UploadService {
 
     fs.writeFileSync(filePath, file.buffer);
 
-    // Return backend API URL
-    return { url: `/upload/files/${filename}` };
+    // Return static URL (served by main.ts)
+    return { url: `/uploads/${filename}` };
   }
 
   // Helper to serve file
   async serveFile(filename: string, res: any) {
     const fs = require('fs');
     const path = require('path');
-    const filePath = path.join(__dirname, '..', '..', 'uploads', filename);
 
-    if (fs.existsSync(filePath)) {
-      res.sendFile(filePath);
-    } else {
-      res.status(404).send('File not found');
+    // Check primary location (frontend/public/uploads)
+    const primaryPath = path.join(__dirname, '..', '..', 'frontend', 'public', 'uploads', filename);
+    if (fs.existsSync(primaryPath)) {
+      return res.sendFile(primaryPath);
     }
+
+    // Check fallback location (old backend uploads)
+    const fallbackPath = path.join(__dirname, '..', '..', 'uploads', filename);
+    if (fs.existsSync(fallbackPath)) {
+      return res.sendFile(fallbackPath);
+    }
+
+    return res.status(404).send('File not found');
   }
 
   // 1. IMPORT NGUYEN LIEU
