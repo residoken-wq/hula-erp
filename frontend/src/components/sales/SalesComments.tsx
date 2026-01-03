@@ -62,7 +62,8 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                     const res = await axios.post(`${API_URL}/upload/image`, formData, {
                         headers: { 'Content-Type': 'multipart/form-data' }
                     });
-                    const url = `${API_URL}${res.data.url}`; // Assuming backend returns { url: '/uploads/...' }
+                    const baseUrl = API_URL.replace(/\/api$/, '');
+                    const url = `${baseUrl}${res.data.url}`; // Static files served at base URL, not /api
                     const quill = (quillRef.current as any)?.getEditor();
                     const range = quill?.getSelection();
                     if (quill && range) {

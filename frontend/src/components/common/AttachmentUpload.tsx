@@ -61,7 +61,14 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
         if (!path) return '';
         if (path.startsWith('http')) return path;
 
-        // Robust fix: extract filename and rebuild URL entirely
+        // If path starts with /uploads/, serve directly from API base (static assets)
+        if (path.startsWith('/uploads/')) {
+            // API_URL includes /api, so we need to strip it for static assets
+            const baseUrl = API_URL.replace(/\/api$/, '');
+            return `${baseUrl}${path}`;
+        }
+
+        // Fallback: use upload/files endpoint
         const filename = path.split('/').pop();
         return `${API_URL}/upload/files/${filename}`;
     };
@@ -79,7 +86,8 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
                     {value.map((url, index) => {
                         const fileName = url ? url.split('/').pop() : 'file';
                         const fullUrl = getDownloadUrl(url);
-                        const isImage = url ? url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/) : false;
+                        // Improved isImage detection - check filename for common extensions
+                        const isImage = fileName ? /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(fileName) : false;
 
                         return (
                             <div key={index} style={{ position: 'relative', display: 'inline-block' }}>
