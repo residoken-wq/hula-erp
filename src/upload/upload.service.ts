@@ -30,6 +30,14 @@ export class UploadService {
 
   // 0. UPLOAD IMAGE
   async uploadImage(file: Express.Multer.File) {
+    return this.saveFile(file, 'img');
+  }
+
+  async uploadFile(file: Express.Multer.File) {
+    return this.saveFile(file, 'file');
+  }
+
+  private async saveFile(file: Express.Multer.File, prefix: string) {
     const fs = require('fs');
     const path = require('path');
 
@@ -41,7 +49,7 @@ export class UploadService {
 
     // Generate unique name
     const ext = path.extname(file.originalname);
-    const filename = `img_${Date.now()}${ext}`;
+    const filename = `${prefix}_${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, filename);
 
     fs.writeFileSync(filePath, file.buffer);
