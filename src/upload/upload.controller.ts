@@ -4,6 +4,8 @@ import { UploadService } from './upload.service';
 import { Response } from 'express';
 import { Public } from '../auth/public.decorator';
 
+import { Public } from '../auth/public.decorator';
+
 @Controller('upload')
 export class UploadController {
   constructor(private readonly uploadService: UploadService) { }
@@ -81,15 +83,10 @@ export class UploadController {
 
     res.end(buffer);
   }
-import { Public } from '../auth/public.decorator';
 
-// ... (imports)
-
-// ...
-
-@Public()
-@Get('files/:filename')
-async serveFile(@Param('filename') filename: string, @Res() res: Response) {
-  return this.uploadService.serveFile(filename, res);
-}
+  @Public()
+  @Get('files/:filename')
+  async serveFile(@Param('filename') filename: string, @Res() res: Response) {
+    return this.uploadService.serveFile(filename, res);
+  }
 }
