@@ -56,7 +56,7 @@ const ActivityLogPage: React.FC = () => {
         {
             title: 'Chi tiết thay đổi',
             dataIndex: 'details',
-            width: 300,
+            width: 450,
             render: (details: any, record: any) => {
                 if (!details || Object.keys(details).length === 0) return <span style={{ color: '#999' }}>-</span>;
 
