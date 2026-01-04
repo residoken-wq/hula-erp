@@ -168,11 +168,11 @@ export class CustomersService {
         const soComments: any[] = [];
         if (customer.orders && customer.orders.length > 0) {
             for (const order of customer.orders) {
-                // Query SalesComment from sales_comments table
-                const comments = await this.commentRepo.manager.find('sales_comments', {
-                    where: { order_id: order.id, comment_type: 'CUSTOMER' },
-                    order: { created_at: 'DESC' }
-                });
+                // Query SalesComment from sales_comments table using raw query
+                const comments = await this.commentRepo.manager.query(
+                    `SELECT * FROM sales_comments WHERE order_id = $1 AND comment_type = 'CUSTOMER' ORDER BY created_at DESC`,
+                    [order.id]
+                );
                 comments.forEach((c: any) => {
                     soComments.push({
                         ...c,
