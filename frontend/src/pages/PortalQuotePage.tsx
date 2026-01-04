@@ -203,7 +203,7 @@ const PortalQuotePage: React.FC = () => {
         {
             title: 'Sản Phẩm',
             key: 'product_details',
-            width: 80,
+            width: 280,
             render: (_: any, r: any) => {
                 const imgUrl = r.image_url || r.sample_image || r.product?.image_url;
                 const isImage = imgUrl && (imgUrl.match(/\.(jpeg|jpg|gif|png)$/i) || imgUrl.includes('drive.google.com') || imgUrl.includes('googleusercontent.com'));
@@ -257,7 +257,7 @@ const PortalQuotePage: React.FC = () => {
             title: 'Mô Tả Sản Phẩm (VAT)',
             dataIndex: 'vat_content',
             key: 'vat_content',
-            width: 300,
+            width: 180,
             render: (text: string) => {
                 return (
                     <div style={{
