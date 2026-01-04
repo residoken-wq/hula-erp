@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Customer } from './customer.entity';
-import { CustomerContact } from './customer-contact.entity'; // <-- MOI
+import { CustomerContact } from './customer-contact.entity';
+import { CustomerComment } from './customer-comment.entity';
 import { CustomersController } from './customers.controller';
 import { CustomersService } from './customers.service';
 
-import { Transaction } from '../finance/transaction.entity'; // <--- NEW
+import { Transaction } from '../finance/transaction.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Customer, CustomerContact, Transaction])], // <--- ADD Transaction
+  imports: [TypeOrmModule.forFeature([Customer, CustomerContact, CustomerComment, Transaction])],
   controllers: [CustomersController],
   providers: [CustomersService],
   exports: [CustomersService],

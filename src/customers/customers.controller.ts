@@ -3,7 +3,7 @@ import { CustomersService } from './customers.service';
 
 @Controller('customers')
 export class CustomersController {
-  constructor(private readonly s: CustomersService) {}
+  constructor(private readonly s: CustomersService) { }
 
   @Post() create(@Body() b: any) { return this.s.create(b); }
   @Get() findAll() { return this.s.findAll(); }
@@ -13,11 +13,22 @@ export class CustomersController {
 
   @Post(':id/follow')
   addHistory(@Param('id') id: number, @Body('note') note: string) {
-      return this.s.addHistory(id, note);
+    return this.s.addHistory(id, note);
   }
 
   @Get(':id/orders')
   getOrders(@Param('id') id: number) {
-      return this.s.getOrders(id);
+    return this.s.getOrders(id);
+  }
+
+  // --- LEAD CARE: COMMENTS ---
+  @Get(':id/comments')
+  getComments(@Param('id') id: number) {
+    return this.s.getComments(id);
+  }
+
+  @Post(':id/comment')
+  addComment(@Param('id') id: number, @Body() body: any) {
+    return this.s.addComment(id, body.content, body.sender, body.name, body.comment_type, body.mentioned_user_ids);
   }
 }

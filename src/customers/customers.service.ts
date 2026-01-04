@@ -3,8 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Customer, CustomerType } from './customer.entity';
 import { CustomerContact } from './customer-contact.entity';
+import { CustomerComment } from './customer-comment.entity';
 
 import { Transaction } from '../finance/transaction.entity';
+import { SalesComment } from '../sales/sales-comment.entity';
+import { SalesOrder } from '../sales/sales-order.entity';
 
 @Injectable()
 export class CustomersService {
@@ -13,7 +16,9 @@ export class CustomersService {
         private customerRepo: Repository<Customer>,
         @InjectRepository(CustomerContact)
         private contactRepo: Repository<CustomerContact>,
-        @InjectRepository(Transaction) // <--- INJECT
+        @InjectRepository(CustomerComment)
+        private commentRepo: Repository<CustomerComment>,
+        @InjectRepository(Transaction)
         private transRepo: Repository<Transaction>,
     ) { }
 
@@ -143,5 +148,63 @@ export class CustomersService {
 
     async convertToCustomer(id: number) {
         return this.customerRepo.update(id, { type: CustomerType.CUSTOMER });
+    }
+
+    // --- LEAD CARE: GET ALL COMMENTS ---
+    async getComments(customerId: number) {
+        const customer = await this.customerRepo.findOne({
+            where: { id: customerId },
+            relations: ['orders']
+        });
+        if (!customer) throw new NotFoundException('Khách hàng không tồn tại');
+
+        // 1. Get direct comments to customer
+        const directComments = await this.commentRepo.find({
+            where: { customer_id: customerId },
+            order: { created_at: 'DESC' }
+        });
+
+        // 2. Get comments from all SOs
+        const soComments: any[] = [];
+        if (customer.orders && customer.orders.length > 0) {
+            for (const order of customer.orders) {
+                // Query SalesComment from sales_comments table
+                const comments = await this.commentRepo.manager.find('sales_comments', {
+                    where: { order_id: order.id, comment_type: 'CUSTOMER' },
+                    order: { created_at: 'DESC' }
+                });
+                comments.forEach((c: any) => {
+                    soComments.push({
+                        ...c,
+                        source: 'SO',
+                        order_code: order.order_code
+                    });
+                });
+            }
+        }
+
+        // 3. Merge and sort
+        const merged = [
+            ...directComments.map(c => ({ ...c, source: 'DIRECT', order_code: null })),
+            ...soComments
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        return merged;
+    }
+
+    // --- LEAD CARE: ADD DIRECT COMMENT ---
+    async addComment(customerId: number, content: string, senderType: 'STAFF' | 'CUSTOMER', senderName: string, commentType?: string, mentionedUserIds?: string) {
+        const customer = await this.customerRepo.findOne({ where: { id: customerId } });
+        if (!customer) throw new NotFoundException('Khách hàng không tồn tại');
+
+        const comment = this.commentRepo.create({
+            customer_id: customerId,
+            content,
+            sender_type: senderType,
+            sender_name: senderName,
+            comment_type: (commentType as any) || 'CUSTOMER',
+            mentioned_user_ids: mentionedUserIds || null
+        });
+        return this.commentRepo.save(comment);
     }
 }

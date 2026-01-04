@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Popconfirm, Space, Tag, Row, Col, Select, Tabs, Divider, DatePicker, Statistic, Tooltip } from 'antd';
-import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined, AuditOutlined, MinusCircleOutlined, BranchesOutlined, HistoryOutlined, DollarOutlined } from '@ant-design/icons';
-import api from '../utils/api'; // Changed from axios to api
+import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined, AuditOutlined, MinusCircleOutlined, BranchesOutlined, HistoryOutlined, DollarOutlined, MessageOutlined } from '@ant-design/icons';
+import api from '../utils/api';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
+import LeadCarePanel from '../components/crm/LeadCarePanel';
 
 const { Option } = Select;
 
@@ -319,6 +320,16 @@ const CustomersPage: React.FC = () => {
                                         scroll={{ y: 200 }}
                                     />
                                 </div>
+                            )
+                        },
+                        {
+                            key: '6', label: <span style={{ color: '#52c41a' }}><MessageOutlined /> Chăm sóc Lead</span>,
+                            children: (
+                                editingItem ? (
+                                    <LeadCarePanel customerId={editingItem.id} customerName={editingItem.name} />
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>Chọn khách hàng để xem</div>
+                                )
                             )
                         }
                     ]} />

@@ -569,4 +569,50 @@ export class AiService {
             explanation: explanation
         };
     }
+
+    // --- LEAD CARE: SUGGEST REPLY ---
+    async suggestReply(dto: any) {
+        const { customerId, chatHistory, customerName, products } = dto;
+
+        // Build context from chat history
+        const historyText = chatHistory && chatHistory.length > 0
+            ? chatHistory.slice(-10).map((c: any) =>
+                `[${c.sender_type}] ${c.sender_name}: ${c.content.replace(/<[^>]+>/g, '')}`
+            ).join('\n')
+            : 'Chưa có lịch sử chat.';
+
+        // Build product context
+        let productContext = 'Không có thông tin sản phẩm.';
+        if (products && products.length > 0) {
+            productContext = products.slice(0, 5).map((p: any) =>
+                `- ${p.name}: ${this.formatMoney(p.price || 0)} (SL tồn: ${p.stock || 'N/A'})`
+            ).join('\n');
+        }
+
+        const prompt = `Bạn là nhân viên chăm sóc khách hàng chuyên nghiệp của công ty.
+
+THÔNG TIN KHÁCH HÀNG:
+- Tên: ${customerName || 'N/A'}
+
+LỊCH SỬ TRAO ĐỔI GẦN ĐÂY:
+${historyText}
+
+THÔNG TIN SẢN PHẨM:
+${productContext}
+
+HÃY GỢI Ý MỘT CÂU TRẢ LỜI CHO KHÁCH HÀNG:
+- Lịch sự, chuyên nghiệp
+- Ngắn gọn, đi thẳng vào vấn đề
+- Nếu khách hỏi về giá, có thể tham khảo thông tin sản phẩm trên
+- Trả lời bằng tiếng Việt
+
+Chỉ trả về nội dung gợi ý, không giải thích thêm.`;
+
+        try {
+            const reply = await this.callGemini(prompt);
+            return { suggestion: reply.trim() };
+        } catch (e) {
+            return { suggestion: 'Xin chào! Cảm ơn bạn đã liên hệ. Tôi có thể giúp gì cho bạn?' };
+        }
+    }
 }
