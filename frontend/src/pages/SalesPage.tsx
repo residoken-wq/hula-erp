@@ -397,8 +397,8 @@ const SalesPage: React.FC = () => {
                     items={[
                         { key: 'ALL', label: 'Tất cả' },
                         { key: 'SO_PENDING', label: 'Chờ Duyệt' },
-                        { key: 'SAMPLE_APPROVED', label: 'Đã Duyệt Mẫu' },
-                        { key: 'DEPOSITED', label: 'Đã Cọc' },
+                        { key: 'DEPOSITED', label: 'Đã Đặt Cọc' },
+                        { key: 'SAMPLE_APPROVED', label: 'Đã Duyệt Mẫu SX' },
                         { key: 'IN_PRODUCTION', label: 'Đang Sản Xuất' },
                         { key: 'MANUFACTURING_COMPLETED', label: 'Hoàn Thành SX' },
                         { key: 'DELIVERED', label: 'Đã Giao' },

@@ -596,7 +596,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             onClick={handleApproveSamples}
                             disabled={isQuotation || initialData?.status !== 'SO_PENDING'}
                         >
-                            Duyệt Mẫu
+                            Duyệt mẫu sản xuất
                         </Button>
                     </Tooltip>
                 ),
@@ -644,7 +644,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                             <>
                                                 <Option value="SO_PENDING">Xác nhận đơn hàng</Option>
                                                 <Option value="DEPOSITED">Đã đặt cọc</Option>
-                                                <Option value="SAMPLE_APPROVED">Đã duyệt mẫu</Option>
+                                                <Option value="SAMPLE_APPROVED">Đã duyệt mẫu SX</Option>
                                                 <Option value="IN_PRODUCTION">Đang sản xuất</Option>
                                                 <Option value="PARTIAL_DELIVERY">Giao hàng 1 phần</Option>
                                                 <Option value="DELIVERED">Đã giao hàng</Option>
@@ -665,7 +665,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         <Row>
                             <Col span={24}>
                                 <Form.Item name="is_production_sample_approved" valuePropName="checked">
-                                    <Checkbox style={{ fontWeight: 600, color: '#1890ff' }}>Đã duyệt mẫu tiêu chuẩn (Production Sample Approved)</Checkbox>
+                                    <Checkbox style={{ fontWeight: 600, color: '#1890ff' }}>Đã duyệt mẫu tiêu chuẩn - Production Sample Approved (KH duyệt khi báo giá)</Checkbox>
                                 </Form.Item>
                             </Col>
                         </Row>
