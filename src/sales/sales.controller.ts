@@ -39,7 +39,9 @@ export class SalesController {
     getComments(@Param('id') id: number) { return this.s.getComments(id); }
 
     @Post(':id/comment')
-    addComment(@Param('id') id: number, @Body() body: any) { return this.s.addComment(id, body.content, body.sender, body.name); }
+    addComment(@Param('id') id: number, @Body() body: any) {
+        return this.s.addComment(id, body.content, body.sender, body.name, body.comment_type, body.mentioned_user_ids);
+    }
 
     @Put('comment/:id')
     updateComment(@Param('id') id: number, @Body() body: any) { return this.s.updateComment(id, body.content); }

@@ -394,7 +394,20 @@ export class SalesService {
         await this.syncChecklistWithStatus(saved.id, saved.status);
         return saved;
     }
-    async addComment(orderId: number, content: string, sender: 'STAFF' | 'CUSTOMER', name?: string) { const order = await this.orderRepo.findOne({ where: { id: orderId } }); if (!order) throw new NotFoundException(); const comment = this.commentRepo.create({ order, content, sender_type: sender, sender_name: name }); return this.commentRepo.save(comment); }
+    async addComment(orderId: number, content: string, sender: 'STAFF' | 'CUSTOMER', name?: string, commentType: 'CUSTOMER' | 'INTERNAL' = 'CUSTOMER', mentionedUserIds?: string) {
+        const order = await this.orderRepo.findOne({ where: { id: orderId } });
+        if (!order) throw new NotFoundException();
+        const comment = this.commentRepo.create({
+            order,
+            content,
+            sender_type: sender,
+            sender_name: name,
+            comment_type: commentType,
+            mentioned_user_ids: mentionedUserIds,
+            is_visible: commentType === 'CUSTOMER' // Internal comments are hidden on Portal
+        });
+        return this.commentRepo.save(comment);
+    }
     async getComments(orderId: number) { return this.commentRepo.find({ where: { order: { id: orderId } }, order: { created_at: 'ASC' } }); }
     async toggleCommentVisibility(id: number) { const comment = await this.commentRepo.findOne({ where: { id } }); if (comment) { comment.is_visible = !comment.is_visible; return this.commentRepo.save(comment); } }
     async updateComment(id: number, content: string) {

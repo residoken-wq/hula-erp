@@ -13,7 +13,7 @@ export class SalesComment {
   order: SalesOrder;
 
   @Column()
-  sender_type: 'STAFF' | 'CUSTOMER'; 
+  sender_type: 'STAFF' | 'CUSTOMER';
 
   @Column({ nullable: true })
   sender_name: string;
@@ -23,6 +23,12 @@ export class SalesComment {
 
   @Column({ default: true })
   is_visible: boolean;
+
+  @Column({ default: 'CUSTOMER' })
+  comment_type: 'CUSTOMER' | 'INTERNAL';
+
+  @Column('simple-array', { nullable: true })
+  mentioned_user_ids: string;
 
   @CreateDateColumn()
   created_at: Date;

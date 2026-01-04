@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Res, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, Res, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 import { Response } from 'express';
@@ -88,5 +88,10 @@ export class UploadController {
   @Get('files/:filename')
   async serveFile(@Param('filename') filename: string, @Res() res: Response) {
     return this.uploadService.serveFile(filename, res);
+  }
+
+  @Delete('files/:filename')
+  async deleteFile(@Param('filename') filename: string) {
+    return this.uploadService.deleteFile(filename);
   }
 }

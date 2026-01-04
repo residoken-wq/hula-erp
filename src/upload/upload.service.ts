@@ -80,6 +80,33 @@ export class UploadService {
     return res.status(404).send('File not found');
   }
 
+  // Helper to delete file physically
+  async deleteFile(filename: string) {
+    const fs = require('fs');
+    const path = require('path');
+
+    // Security: Prevent path traversal
+    const safeName = path.basename(filename);
+
+    // Check 'uploads' at project root
+    const filePath = path.join(process.cwd(), 'uploads', safeName);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      return { success: true, message: 'File deleted' };
+    }
+
+    // Fallback: Check 'frontend/public/uploads' (legacy/dev)
+    const fallbackPath = path.join(process.cwd(), 'frontend', 'public', 'uploads', safeName);
+    if (fs.existsSync(fallbackPath)) {
+      fs.unlinkSync(fallbackPath);
+      return { success: true, message: 'File deleted (legacy path)' };
+    }
+
+    // File not found - still return success (idempotent delete)
+    return { success: true, message: 'File not found, already deleted' };
+  }
+
   // 1. IMPORT NGUYEN LIEU
   async importMaterials(buffer: Buffer) {
     const workbook = XLSX.read(buffer, { type: 'buffer' });

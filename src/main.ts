@@ -20,7 +20,7 @@ async function bootstrap() {
 
     // Create uploads folder if not exists
     const fs = await import('fs');
-    const uploadDir = join(__dirname, '..', 'frontend', 'public', 'uploads');
+    const uploadDir = join(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }

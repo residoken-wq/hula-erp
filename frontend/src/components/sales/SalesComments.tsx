@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { List, Avatar, Button, message } from 'antd';
-import { UserOutlined, MessageOutlined, EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
+import { List, Avatar, Button, message, Tabs, Select } from 'antd';
+import { UserOutlined, MessageOutlined, EyeInvisibleOutlined, EyeOutlined, TeamOutlined, CustomerServiceOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import ReactQuill from 'react-quill';
@@ -11,12 +11,21 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
     const [comments, setComments] = useState<any[]>([]);
     const [text, setText] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState<'CUSTOMER' | 'INTERNAL'>('CUSTOMER');
+    const [users, setUsers] = useState<any[]>([]);
+    const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
 
     const fetchComments = async () => {
         try { const res = await axios.get(`${API_URL}/sales/${orderId}/comments`); setComments(res.data); } catch (e) { }
     };
 
-    useEffect(() => { if (orderId) fetchComments(); }, [orderId]);
+    const fetchUsers = async () => {
+        try { const res = await axios.get(`${API_URL}/users`); setUsers(res.data); } catch (e) { }
+    };
+
+    useEffect(() => { if (orderId) { fetchComments(); fetchUsers(); } }, [orderId]);
+
+    const filteredComments = comments.filter(c => c.comment_type === activeTab || (!c.comment_type && activeTab === 'CUSTOMER'));
 
     const send = async () => {
         // Strip HTML tags to check if empty
@@ -28,9 +37,17 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
             message.success('Cập nhật tin nhắn thành công');
             setEditingId(null);
         } else {
-            await axios.post(`${API_URL}/sales/${orderId}/comment`, { content: text, sender: 'STAFF', name: 'Nhân viên' });
+            await axios.post(`${API_URL}/sales/${orderId}/comment`, {
+                content: text,
+                sender: 'STAFF',
+                name: 'Nhân viên',
+                comment_type: activeTab,
+                mentioned_user_ids: mentionedUserIds.join(',')
+            });
         }
-        setText(''); fetchComments();
+        setText('');
+        setMentionedUserIds([]);
+        fetchComments();
     };
 
     const toggle = async (id: number) => { await axios.post(`${API_URL}/sales/comment/${id}/toggle`); fetchComments(); };
@@ -92,8 +109,23 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
 
     return (
         <div>
+            <Tabs
+                activeKey={activeTab}
+                onChange={(key) => setActiveTab(key as 'CUSTOMER' | 'INTERNAL')}
+                items={[
+                    {
+                        key: 'CUSTOMER',
+                        label: <span><CustomerServiceOutlined /> Chat Khách Hàng</span>,
+                    },
+                    {
+                        key: 'INTERNAL',
+                        label: <span><TeamOutlined /> Chat Nội Bộ</span>,
+                    }
+                ]}
+            />
+
             <div style={{ maxHeight: 300, overflowY: 'auto', background: '#fafafa', padding: 10, borderRadius: 8, marginBottom: 10, border: '1px solid #eee' }}>
-                <List dataSource={comments} renderItem={(item: any) => (
+                <List dataSource={filteredComments} renderItem={(item: any) => (
                     <List.Item>
                         <List.Item.Meta
                             avatar={<Avatar icon={<UserOutlined />} style={{ backgroundColor: item.sender_type === 'STAFF' ? '#1890ff' : '#87d068' }} />}
@@ -101,12 +133,17 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                             description={
                                 <div>
                                     <div style={{ color: '#333' }} dangerouslySetInnerHTML={{ __html: item.content }} />
-                                    <div style={{ marginTop: 5 }}>
-                                        <Button type="text" size="small" icon={item.is_visible ? <EyeOutlined /> : <EyeInvisibleOutlined />} onClick={() => toggle(item.id)}>{item.is_visible ? 'Hiện ở Portal' : 'Ẩn ở Portal'}</Button>
-                                        {item.sender_type === 'STAFF' && (
-                                            <Button type="link" size="small" onClick={() => handleEdit(item)}>Sửa</Button>
-                                        )}
-                                    </div>
+                                    {activeTab === 'CUSTOMER' && (
+                                        <div style={{ marginTop: 5 }}>
+                                            <Button type="text" size="small" icon={item.is_visible ? <EyeOutlined /> : <EyeInvisibleOutlined />} onClick={() => toggle(item.id)}>{item.is_visible ? 'Hiện ở Portal' : 'Ẩn ở Portal'}</Button>
+                                            {item.sender_type === 'STAFF' && (
+                                                <Button type="link" size="small" onClick={() => handleEdit(item)}>Sửa</Button>
+                                            )}
+                                        </div>
+                                    )}
+                                    {activeTab === 'INTERNAL' && item.sender_type === 'STAFF' && (
+                                        <Button type="link" size="small" onClick={() => handleEdit(item)}>Sửa</Button>
+                                    )}
                                 </div>
                             }
                         />
@@ -114,8 +151,20 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                 )} />
             </div>
 
+            {activeTab === 'INTERNAL' && (
+                <div style={{ marginBottom: 10 }}>
+                    <Select
+                        mode="multiple"
+                        placeholder="@ Mention đồng nghiệp..."
+                        style={{ width: '100%' }}
+                        value={mentionedUserIds}
+                        onChange={setMentionedUserIds}
+                        options={users.map((u: any) => ({ label: u.full_name, value: String(u.id) }))}
+                    />
+                </div>
+            )}
+
             <div style={{ marginBottom: 10 }}>
-                {/* ReactQuill Editor */}
                 <ReactQuill
                     ref={quillRef}
                     theme="snow"

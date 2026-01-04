@@ -51,7 +51,22 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
         }
     };
 
-    const handleRemove = (index: number) => {
+    const handleRemove = async (index: number) => {
+        const fileUrl = value[index];
+
+        // Extract filename and call DELETE API
+        if (fileUrl) {
+            const filename = fileUrl.split('/').pop();
+            if (filename) {
+                try {
+                    await axios.delete(`${API_URL}/upload/files/${filename}`);
+                } catch (e) {
+                    // Silently fail - file might already be deleted
+                    console.warn('Could not delete physical file:', e);
+                }
+            }
+        }
+
         const newFileList = [...value];
         newFileList.splice(index, 1);
         if (onChange) onChange(newFileList);
@@ -65,7 +80,13 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
         const filename = path.split('/').pop();
         if (!filename) return '';
 
-        // Always use the controller endpoint since static serving isn't configured on production
+        // Check if path already includes /uploads (new format from UploadService)
+        if (path.startsWith('/uploads/')) {
+            // Use the path directly - NPM proxies /uploads to backend
+            return path;
+        }
+
+        // Legacy: use /api/upload/files endpoint
         return `${API_URL}/upload/files/${filename}`;
     };
 
