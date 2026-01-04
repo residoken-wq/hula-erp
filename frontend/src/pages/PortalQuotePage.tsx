@@ -235,7 +235,7 @@ const PortalQuotePage: React.FC = () => {
                 const customerDesc = r.product?.customer_description;
                 return (
                     <div>
-                        <div style={{ fontWeight: 600, fontSize: 14, color: '#1f1f1f', lineHeight: 1.2, marginBottom: 4 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: '#1f1f1f', lineHeight: 1.4, marginBottom: 4, whiteSpace: 'pre-wrap' }}>
                             {r.product?.customer_description || r.product_name_real || r.product?.name || r.sku}
                         </div>
                         {/* 
@@ -510,7 +510,7 @@ const PortalQuotePage: React.FC = () => {
 
                                                     {/* Content */}
                                                     <div style={{ flex: 1 }}>
-                                                        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, lineHeight: 1.3 }}>
+                                                        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
                                                             {item.product?.customer_description || item.product_name_real || item.product?.name}
                                                         </div>
                                                         <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>{item.sku} {item.variant_color && `• ${item.variant_color}`}</div>
