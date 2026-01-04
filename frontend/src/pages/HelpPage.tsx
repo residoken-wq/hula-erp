@@ -1156,6 +1156,81 @@ const HelpPage: React.FC = () => {
 
                     </div>
                 );
+            case 'changelog':
+                return (
+                    <div>
+                        <Tag color="green" style={{ marginBottom: 16 }}>Cập nhật mới</Tag>
+                        <Title level={2}>🚀 Tính năng mới (từ 31/12/2025)</Title>
+
+                        <Card title="04/01/2026 - Cập nhật Module CRM & Dashboard" style={{ marginBottom: 16 }}>
+                            <Descriptions column={1} bordered size="small">
+                                <Descriptions.Item label="Chăm sóc Lead (CRM)">
+                                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                        <li>Thêm Tab <b>"Chăm sóc Lead"</b> trong modal Khách hàng</li>
+                                        <li>Tổng hợp bình luận từ các đơn hàng + bình luận trực tiếp</li>
+                                        <li>Nút <b>"Gợi ý AI"</b> gợi ý trả lời dựa trên lịch sử chat và sản phẩm</li>
+                                        <li>Modal <b>Lead Care</b> độc lập - truy cập nhanh từ Dashboard</li>
+                                    </ul>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Dashboard">
+                                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                        <li><b>"Công việc của tôi"</b> - Hiển thị tasks được phân công</li>
+                                        <li><b>"Leads cần chăm sóc"</b> - Danh sách lead chưa chuyển đổi</li>
+                                        <li>UI mới với gradient cards, badges count</li>
+                                    </ul>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Activity Logs">
+                                    Sửa cột <b>"Chi tiết thay đổi"</b> - hiển thị old → new rõ ràng
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Check List trong SO">
+                                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                        <li>Tab <b>"Check List"</b> trong chi tiết đơn hàng</li>
+                                        <li>Danh sách công việc cần làm theo từng giai đoạn</li>
+                                        <li>Tự động thêm task khi chuyển trạng thái đơn hàng</li>
+                                        <li>Đánh dấu hoàn thành với người thực hiện và thời gian</li>
+                                    </ul>
+                                </Descriptions.Item>
+                            </Descriptions>
+                        </Card>
+
+                        <Card title="04/01/2026 - Cập nhật Module Khách hàng" style={{ marginBottom: 16 }}>
+                            <Descriptions column={1} bordered size="small">
+                                <Descriptions.Item label="Tự sinh mã khách hàng">
+                                    Mã KH tự động tạo theo format: <Tag color="blue">KH-YYMM-XXXX</Tag>
+                                    <br />Ví dụ: KH-2601-0001, KH-2601-0002...
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Lịch sử mua hàng">
+                                    Mặc định hiển thị <b>TẤT CẢ</b> đơn hàng (không lọc theo năm)
+                                </Descriptions.Item>
+                            </Descriptions>
+                        </Card>
+
+                        <Card title="31/12/2025 - Cập nhật Module Sales" style={{ marginBottom: 16 }}>
+                            <Descriptions column={1} bordered size="small">
+                                <Descriptions.Item label="Giao hàng từng phần (Partial Delivery)">
+                                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                        <li>Hỗ trợ giao nhiều đợt cho 1 đơn hàng</li>
+                                        <li>Theo dõi số lượng đã giao / còn lại</li>
+                                        <li>Tự động cập nhật trạng thái: PARTIAL_DELIVERED → DELIVERED</li>
+                                    </ul>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Tìm kiếm Tài chính">
+                                    Tìm kiếm nhanh theo mã đơn hàng, mô tả, tên khách hàng
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Portal Layout">
+                                    Điều chỉnh cột "Sản Phẩm" và "Mô Tả VAT" cho cân đối hơn
+                                </Descriptions.Item>
+                            </Descriptions>
+                        </Card>
+
+                        <Alert
+                            message="Mẹo"
+                            description="Các tính năng mới sẽ được cập nhật liên tục. Theo dõi trang này để nắm bắt các thay đổi mới nhất!"
+                            type="info"
+                            showIcon
+                        />
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -1175,6 +1250,7 @@ const HelpPage: React.FC = () => {
                     style={{ borderRight: 0 }}
                     items={[
                         { key: 'intro', icon: <RocketOutlined />, label: 'Giới thiệu chung' },
+                        { key: 'changelog', icon: <GiftOutlined />, label: <span style={{ color: '#52c41a', fontWeight: 600 }}>Tính năng mới 🎉</span> },
                         { type: 'divider' },
                         {
                             key: 'sub1',
