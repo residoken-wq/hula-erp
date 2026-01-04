@@ -665,7 +665,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         <Row>
                             <Col span={24}>
                                 <Form.Item name="is_production_sample_approved" valuePropName="checked">
-                                    <Checkbox style={{ fontWeight: 600, color: '#1890ff' }}>Đã duyệt mẫu sản xuất (Production Sample Approved)</Checkbox>
+                                    <Checkbox style={{ fontWeight: 600, color: '#1890ff' }}>Đã duyệt mẫu tiêu chuẩn (Production Sample Approved)</Checkbox>
                                 </Form.Item>
                             </Col>
                         </Row>
