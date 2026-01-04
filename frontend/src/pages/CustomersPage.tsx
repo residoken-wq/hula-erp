@@ -21,7 +21,7 @@ const CustomersPage: React.FC = () => {
 
     // State History Orders
     const [historyOrders, setHistoryOrders] = useState<any[]>([]);
-    const [filterYear, setFilterYear] = useState<dayjs.Dayjs>(dayjs()); // Mặc định năm nay
+    const [filterYear, setFilterYear] = useState<dayjs.Dayjs | null>(null); // Mặc định = ALL
 
     const [form] = Form.useForm();
 
@@ -63,10 +63,8 @@ const CustomersPage: React.FC = () => {
 
     // Logic Filter & Calculate Revenue theo Năm
     const { filteredOrders, revenueStats } = useMemo(() => {
-        if (!filterYear) return { filteredOrders: historyOrders, revenueStats: { total: 0, paid: 0, debt: 0 } };
-
-        const year = filterYear.year();
-        const list = historyOrders.filter(o => dayjs(o.order_date).year() === year);
+        // Nếu không chọn năm (null) => hiển thị ALL
+        const list = filterYear ? historyOrders.filter(o => dayjs(o.order_date).year() === filterYear.year()) : historyOrders;
 
         const stats = list.reduce((acc, curr) => ({
             total: acc.total + Number(curr.total_amount),
@@ -218,7 +216,7 @@ const CustomersPage: React.FC = () => {
                             children: (
                                 <>
                                     <Row gutter={16}>
-                                        <Col span={8}><Form.Item name="code" label="Mã KH" rules={[{ required: true }]}><Input disabled={!!editingItem} /></Form.Item></Col>
+                                        <Col span={8}><Form.Item name="code" label="Mã KH" tooltip="Để trống để tự động tạo mã"><Input disabled={!!editingItem} placeholder="Tự động: KH-YYMM-XXXX" /></Form.Item></Col>
                                         <Col span={16}><Form.Item name="name" label="Tên Khách Hàng" rules={[{ required: true }]}><Input /></Form.Item></Col>
                                     </Row>
                                     <Row gutter={16}><Col span={12}><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Col><Col span={12}><Form.Item name="email" label="Email"><Input /></Form.Item></Col></Row>
@@ -304,7 +302,7 @@ const CustomersPage: React.FC = () => {
                                     <div style={{ marginBottom: 16, background: '#f5f5f5', padding: 10, borderRadius: 8 }}>
                                         <Space size={20} align="center">
                                             <span>Lọc theo năm:</span>
-                                            <DatePicker picker="year" value={filterYear} onChange={setFilterYear} allowClear={false} />
+                                            <DatePicker picker="year" value={filterYear} onChange={setFilterYear} allowClear placeholder="Tất cả" />
                                             <Divider type="vertical" />
                                             <Statistic title="Doanh Thu" value={revenueStats.total} prefix={<DollarOutlined />} valueStyle={{ fontSize: 16, color: '#1890ff' }} />
                                             <Statistic title="Đã Thu" value={revenueStats.paid} valueStyle={{ fontSize: 16, color: 'green' }} />

@@ -23,6 +23,11 @@ export class CustomersService {
     ) { }
 
     async create(data: any) {
+        // Auto-generate customer code if not provided
+        if (!data.code) {
+            data.code = await this.generateCustomerCode();
+        }
+
         const existing = await this.customerRepo.findOne({ where: { code: data.code } });
         if (existing) throw new BadRequestException('Mã khách hàng đã tồn tại: ' + data.code);
 
@@ -40,6 +45,31 @@ export class CustomersService {
             contacts: data.contacts?.map((c: any) => this.contactRepo.create(c) as unknown as CustomerContact) || []
         });
         return this.customerRepo.save(customer);
+    }
+
+    // --- AUTO-GENERATE CUSTOMER CODE ---
+    private async generateCustomerCode(): Promise<string> {
+        const now = new Date();
+        const yy = now.getFullYear().toString().slice(-2);
+        const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+        const prefix = `KH-${yy}${mm}-`;
+
+        // Find the latest customer code with this prefix
+        const latest = await this.customerRepo
+            .createQueryBuilder('c')
+            .where('c.code LIKE :prefix', { prefix: `${prefix}%` })
+            .orderBy('c.code', 'DESC')
+            .getOne();
+
+        let nextNum = 1;
+        if (latest && latest.code) {
+            const lastNum = parseInt(latest.code.slice(-4), 10);
+            if (!isNaN(lastNum)) {
+                nextNum = lastNum + 1;
+            }
+        }
+
+        return `${prefix}${nextNum.toString().padStart(4, '0')}`;
     }
 
     async findAll() {
