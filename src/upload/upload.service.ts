@@ -41,8 +41,9 @@ export class UploadService {
     const fs = require('fs');
     const path = require('path');
 
-    // Save to frontend 'public/uploads' directory for static serving
-    const uploadDir = path.join(__dirname, '..', '..', 'frontend', 'public', 'uploads');
+    // Use project root 'uploads' directory for reliability
+    const uploadDir = path.join(process.cwd(), 'uploads');
+
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -54,7 +55,7 @@ export class UploadService {
 
     fs.writeFileSync(filePath, file.buffer);
 
-    // Return static URL (served by main.ts)
+    // Return backend API URL for serving
     return { url: `/uploads/${filename}` };
   }
 
@@ -63,14 +64,15 @@ export class UploadService {
     const fs = require('fs');
     const path = require('path');
 
-    // Check primary location (frontend/public/uploads)
-    const primaryPath = path.join(__dirname, '..', '..', 'frontend', 'public', 'uploads', filename);
-    if (fs.existsSync(primaryPath)) {
-      return res.sendFile(primaryPath);
+    // Check 'uploads' at project root
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
     }
 
-    // Check fallback location (old backend uploads)
-    const fallbackPath = path.join(__dirname, '..', '..', 'uploads', filename);
+    // Fallback: Check 'frontend/public/uploads' (legacy/dev)
+    const fallbackPath = path.join(process.cwd(), 'frontend', 'public', 'uploads', filename);
     if (fs.existsSync(fallbackPath)) {
       return res.sendFile(fallbackPath);
     }
