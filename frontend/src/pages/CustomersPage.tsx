@@ -222,7 +222,7 @@ const CustomersPage: React.FC = () => {
                                     <Row gutter={16}><Col span={12}><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Col><Col span={12}><Form.Item name="email" label="Email"><Input /></Form.Item></Col></Row>
                                     <Form.Item name="address" label="Địa Chỉ (Trụ sở chính)"><Input /></Form.Item>
                                     <Row gutter={16}>
-                                        <Col span={12}><Form.Item name="parent_id" label="Công ty mẹ"><Select allowClear showSearch optionFilterProp="children" options={customers.filter(c => c.id !== editingItem?.id).map(c => ({ label: c.name, value: c.id }))} /></Form.Item></Col>
+                                        <Col span={12}><Form.Item name="parent_id" label="Công ty mẹ"><Select allowClear showSearch optionFilterProp="label" options={customers.filter(c => c.id !== editingItem?.id).map(c => ({ label: c.name, value: c.id }))} /></Form.Item></Col>
                                         <Col span={12}><Form.Item name="credit_limit" label="Hạn Mức Nợ"><InputNumber style={{ width: '100%' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
                                     </Row>
                                     <Row gutter={16}>
