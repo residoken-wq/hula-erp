@@ -27,6 +27,14 @@ const PortalQuotePage: React.FC = () => {
         setPreviewVisible(true);
     };
 
+    // Mask phone: show *****123 (last 3 digits)
+    const maskPhone = (phone: string | null | undefined): string => {
+        if (!phone) return '-';
+        const cleaned = phone.replace(/\D/g, '');
+        if (cleaned.length < 3) return '*****';
+        return '*****' + cleaned.slice(-3);
+    };
+
     const fetchQuote = async () => {
         try {
             const res = await axios.get(`${API_URL}/sales/portal/${uuid}`);
@@ -380,7 +388,7 @@ const PortalQuotePage: React.FC = () => {
                             <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
                                 <Descriptions.Item label="Đơn vị">{data.customer_name || data.customer?.name || 'Khách lẻ'}</Descriptions.Item>
                                 <Descriptions.Item label="Người nhận">{data.receiver_name || data.customer?.contacts?.[0]?.full_name || data.customer?.name || '-'}</Descriptions.Item>
-                                <Descriptions.Item label="SĐT">{data.receiver_phone || data.customer?.contacts?.[0]?.phone || data.customer?.phone || '-'}</Descriptions.Item>
+                                <Descriptions.Item label="SĐT">{maskPhone(data.receiver_phone || data.customer?.contacts?.[0]?.phone || data.customer?.phone)}</Descriptions.Item>
                                 <Descriptions.Item label="Địa chỉ">{data.shipping_address || data.customer?.address || '-'}</Descriptions.Item>
                             </Descriptions>
                         </Card>
