@@ -12,6 +12,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
 import api from '../utils/api';
+import LeadCareModal from '../components/crm/LeadCareModal';
 
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
@@ -25,6 +26,8 @@ const DashboardPage: React.FC = () => {
     const [recentLogs, setRecentLogs] = useState<any[]>([]);
     const [myTasks, setMyTasks] = useState<any[]>([]);
     const [incompleteLeads, setIncompleteLeads] = useState<any[]>([]);
+    const [leadCareOpen, setLeadCareOpen] = useState(false);
+    const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
 
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
@@ -165,7 +168,10 @@ const DashboardPage: React.FC = () => {
                 transition: 'all 0.2s',
                 border: '1px solid #ffe58f'
             }}
-            onClick={() => navigate('/customers')}
+            onClick={() => {
+                setSelectedLeadId(lead.id);
+                setLeadCareOpen(true);
+            }}
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -396,6 +402,16 @@ const DashboardPage: React.FC = () => {
                     </Col>
                 </Row>
             </Skeleton>
+
+            {/* Lead Care Modal */}
+            <LeadCareModal
+                visible={leadCareOpen}
+                onClose={() => {
+                    setLeadCareOpen(false);
+                    setSelectedLeadId(null);
+                }}
+                initialCustomerId={selectedLeadId || undefined}
+            />
         </div>
     );
 };

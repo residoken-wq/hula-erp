@@ -56,31 +56,46 @@ const ActivityLogPage: React.FC = () => {
         {
             title: 'Chi tiết thay đổi',
             dataIndex: 'details',
+            width: 300,
             render: (details: any, record: any) => {
-                if (!details) return null;
+                if (!details || Object.keys(details).length === 0) return <span style={{ color: '#999' }}>-</span>;
 
-                // Diff update
-                if (record.action === 'UPDATE' && details.new && details.old) {
-                    return (
-                        <div style={{ fontSize: 12 }}>
-                            {Object.keys(details.new).map(key => {
-                                let oldVal = details.old[key];
-                                let newVal = details.new[key];
-                                // Helper to format objects/dates
-                                const fmt = (v: any) => {
-                                    if (typeof v === 'object' && v !== null) return JSON.stringify(v);
-                                    return String(v);
-                                };
+                // Format 1: { field1: { old: x, new: y }, field2: { old: a, new: b } }
+                // This is what our backend sends for UPDATE actions
+                const keys = Object.keys(details);
+
+                // Helper to format values
+                const fmt = (v: any) => {
+                    if (v === null || v === undefined) return <span style={{ color: '#bbb' }}>null</span>;
+                    if (typeof v === 'object') return JSON.stringify(v).slice(0, 50);
+                    if (typeof v === 'number') return v.toLocaleString();
+                    return String(v);
+                };
+
+                return (
+                    <div style={{ fontSize: 11, maxHeight: 120, overflowY: 'auto' }}>
+                        {keys.map(key => {
+                            const val = details[key];
+                            // Check if it's { old, new } format
+                            if (val && typeof val === 'object' && ('old' in val || 'new' in val)) {
                                 return (
-                                    <div key={key}>
-                                        <b style={{ color: '#8c8c8c' }}>{key}:</b> {fmt(oldVal)} &rarr; <span style={{ color: '#52c41a' }}>{fmt(newVal)}</span>
+                                    <div key={key} style={{ marginBottom: 4 }}>
+                                        <b style={{ color: '#595959' }}>{key}:</b>{' '}
+                                        <span style={{ color: '#ff4d4f', textDecoration: 'line-through' }}>{fmt(val.old)}</span>
+                                        {' → '}
+                                        <span style={{ color: '#52c41a' }}>{fmt(val.new)}</span>
                                     </div>
                                 );
-                            })}
-                        </div>
-                    );
-                }
-                return null;
+                            }
+                            // Simple value (e.g., "Items changed")
+                            return (
+                                <div key={key} style={{ marginBottom: 4 }}>
+                                    <b style={{ color: '#595959' }}>{key}:</b> {fmt(val)}
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
             }
         }
     ];
