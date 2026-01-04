@@ -79,8 +79,9 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                     const res = await axios.post(`${API_URL}/upload/image`, formData, {
                         headers: { 'Content-Type': 'multipart/form-data' }
                     });
-                    const filename = res.data.url.split('/').pop();
-                    const url = `${API_URL}/upload/files/${filename}`; // Use controller endpoint
+                    // Use the URL returned by backend directly
+                    // Backend returns /uploads/filename, which NPM proxies to backend
+                    const url = res.data.url;
                     const quill = (quillRef.current as any)?.getEditor();
                     const range = quill?.getSelection();
                     if (quill && range) {
