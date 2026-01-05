@@ -96,8 +96,12 @@ const TasksPage: React.FC = () => {
             }
         },
         {
-            title: 'Người thực hiện', dataIndex: 'assignee',
+            title: 'Người thực hiện', dataIndex: 'assignee', width: 130,
             render: (u: any) => u ? <Tag color="blue">{u.full_name}</Tag> : <Tag>Chưa gán</Tag>
+        },
+        {
+            title: 'Người tạo', dataIndex: 'creator', width: 130,
+            render: (u: any) => u ? <Tag color="purple">{u.full_name}</Tag> : <Tag>-</Tag>
         },
         {
             title: '', key: 'act', width: 100, align: 'right' as const,

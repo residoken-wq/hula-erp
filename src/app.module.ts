@@ -84,7 +84,7 @@ import { AppController } from './app.controller';
 import { AiModule } from './ai/ai.module';
 
 import { MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
-import { UserContextMiddleware } from './common/middleware/user-context.middleware';
+import { UserContextInterceptor } from './common/interceptors/user-context.interceptor';
 
 @Module({
   imports: [
@@ -130,15 +130,13 @@ import { UserContextMiddleware } from './common/middleware/user-context.middlewa
   providers: [
     {
       provide: 'APP_INTERCEPTOR',
+      useClass: UserContextInterceptor, // Must run first to set context
+    },
+    {
+      provide: 'APP_INTERCEPTOR',
       useClass: ActivityInterceptor,
     },
   ],
   controllers: [AppController]
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(UserContextMiddleware)
-      .forRoutes({ path: '*', method: RequestMethod.ALL });
-  }
-}
+export class AppModule { }
