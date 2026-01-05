@@ -30,6 +30,11 @@ async function bootstrap() {
       prefix: '/uploads/',
     });
 
+    // Increase body size limit (default is ~100kb, increase to 50MB)
+    const bodyParser = await import('body-parser');
+    app.use(bodyParser.json({ limit: '50mb' }));
+    app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+
     // Enable /api prefix
     app.setGlobalPrefix('api');
     app.enableCors();
