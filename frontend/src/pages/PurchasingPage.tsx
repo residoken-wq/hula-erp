@@ -4,7 +4,7 @@ import { ReloadOutlined, EyeOutlined, DeleteOutlined, SendOutlined, CheckCircleO
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
-import { useMobile } from '../hooks/useMobile';
+import useMobile from '../hooks/useMobile';
 
 const PurchasingPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);

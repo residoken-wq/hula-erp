@@ -7,7 +7,7 @@ import {
 } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
-import { useMobile } from '../hooks/useMobile';
+import useMobile from '../hooks/useMobile';
 
 
 const { Option } = Select;

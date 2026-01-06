@@ -1,55 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Button, Table, Tabs, Row, Col, InputNumber, Divider, message, Tag, Space, Popconfirm, Tooltip, Popover, Checkbox } from 'antd';
-import { PlusOutlined, DeleteOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined, GiftOutlined, UploadOutlined, LoadingOutlined, LinkOutlined, FolderOpenOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox } from 'antd';
+import { PlusOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { HistoryOutlined, CopyOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import SalesPayments from './sales/SalesPayments';
 import SalesDeliveries from './sales/SalesDeliveries';
 import SalesComments from './sales/SalesComments';
 import SalesChecklistPanel from './SalesChecklistPanel';
-import { HistoryOutlined, CopyOutlined } from '@ant-design/icons';
-import { useMobile } from '../hooks/useMobile';
-
-import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import { MenuOutlined } from '@ant-design/icons';
-
-interface RowProps extends React.HTMLAttributes<HTMLTableRowElement> {
-    'data-row-key': string;
-}
-
-const DraggableRow = ({ children, ...props }: RowProps) => {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-        id: props['data-row-key'],
-    });
-
-    const style: React.CSSProperties = {
-        ...props.style,
-        transform: CSS.Transform.toString(transform && { ...transform, scaleY: 1 }),
-        transition,
-        cursor: 'move',
-        ...(isDragging ? { position: 'relative', zIndex: 9999 } : {}),
-    };
-
-    return (
-        <tr {...props} ref={setNodeRef} style={style} {...attributes}>
-            {React.Children.map(children, (child) => {
-                if ((child as React.ReactElement).key === 'sort') {
-                    return React.cloneElement(child as React.ReactElement, {
-                        children: (
-                            <div {...listeners} style={{ touchAction: 'none', cursor: 'grab' }}>
-                                <MenuOutlined style={{ color: '#999' }} />
-                            </div>
-                        ),
-                    });
-                }
-                return child;
-            })}
-        </tr>
-    );
-};
+import SalesOrderItemsTable from './sales/SalesOrderItemsTable';
+import CancelOrderModal from './sales/CancelOrderModal';
+import RevisionHistoryModal from './sales/RevisionHistoryModal';
+import useMobile from '../hooks/useMobile';
 
 const { Option } = Select;
 
@@ -63,73 +25,6 @@ interface Props {
     users?: any[];
     isQuotation?: boolean;
 }
-
-// --- NEW COMPONENT FOR IMAGE LINK ---
-const DEFAULT_DRIVE = 'https://drive.google.com/drive/folders/1TmL0dVOf9';
-
-const ImageLinkCell: React.FC<{ value: string; onChange: (val: string) => void }> = ({ value, onChange }) => {
-    const [open, setOpen] = useState(false);
-    const [tempValue, setTempValue] = useState(value);
-    const [driveLink, setDriveLink] = useState(DEFAULT_DRIVE);
-
-    useEffect(() => {
-        if (open) {
-            setTempValue(value || '');
-            // Fetch config when opening
-            api.get('/system/config/SALES_SHARED_DRIVE_LINK').then(res => {
-                if (res.data && res.data.value) setDriveLink(res.data.value);
-            }).catch(() => { });
-        }
-    }, [open, value]);
-
-    const handleSave = () => {
-        onChange(tempValue);
-        setOpen(false);
-    };
-
-    return (
-        <Popover
-            open={open}
-            onOpenChange={setOpen}
-            trigger="click"
-            title="Thêm ảnh từ Google Drive"
-            content={
-                <div style={{ width: 320 }}>
-                    <div style={{ marginBottom: 12, padding: '8px', background: '#e6f7ff', borderRadius: 4, border: '1px solid #91d5ff' }}>
-                        <InfoCircleOutlined style={{ color: '#1890ff', marginRight: 5 }} />
-                        <span style={{ fontSize: 12 }}>Mở folder, copy link ảnh, rồi dán vào đây.</span>
-                    </div>
-
-                    <Button
-                        block
-                        icon={<FolderOpenOutlined />}
-                        onClick={() => window.open(driveLink, '_blank')}
-                        style={{ marginBottom: 12, borderColor: '#1890ff', color: '#1890ff' }}
-                    >
-                        Mở Kho Ảnh (Google Drive)
-                    </Button>
-
-                    <Input
-                        value={tempValue}
-                        onChange={(e) => setTempValue(e.target.value)}
-                        placeholder="Paste link Google Drive/Image vào đây..."
-                        style={{ marginBottom: 12 }}
-                        autoFocus
-                    />
-
-                    <div style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                        <Button size="small" onClick={() => setOpen(false)}>Hủy</Button>
-                        <Button size="small" type="primary" onClick={handleSave} icon={<SaveOutlined />}>OK (Lưu)</Button>
-                    </div>
-                </div>
-            }
-        >
-            <Button size="small" icon={<LinkOutlined />} style={{ fontSize: 10 }}>
-                {value ? 'Sửa Link' : 'Dán Link'}
-            </Button>
-        </Popover>
-    );
-};
 
 const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, customers, products, users = [], isQuotation = false }) => {
     const [form] = Form.useForm();
@@ -298,23 +193,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     };
 
     const handleRemoveItem = (index: number) => {
-        const newItems = orderItems.filter((_, i) => i !== index);
+        const newItems = orderItems.filter((_: any, i: number) => i !== index);
         setOrderItems(newItems);
         calculateTotal(newItems);
     };
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 1 } })
-    );
-
-    const onDragEnd = ({ active, over }: DragEndEvent) => {
-        if (active.id !== over?.id) {
-            setOrderItems((prev) => {
-                const activeIndex = prev.findIndex((i) => i.key === active.id);
-                const overIndex = prev.findIndex((i) => i.key === over?.id);
-                return arrayMove(prev, activeIndex, overIndex);
-            });
-        }
+    const handleReorderItems = (newItems: any[]) => {
+        setOrderItems(newItems);
     };
 
     const handleSave = async () => {
@@ -402,154 +287,6 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     };
 
-
-    // Helper to extract ID from Drive Link and return thumbnail URL (Duplicated from ProductsPage - Should refactor to Utils)
-    const getGoogleDriveImageUrl = (link: string) => {
-        if (!link) return null;
-        try {
-            let id = '';
-            const url = new URL(link);
-            if (url.hostname.includes('drive.google.com')) {
-                if (url.pathname.includes('/file/d/')) {
-                    const parts = url.pathname.split('/');
-                    const idx = parts.indexOf('d');
-                    if (idx !== -1 && idx + 1 < parts.length) {
-                        id = parts[idx + 1];
-                    }
-                } else if (url.searchParams.has('id')) {
-                    id = url.searchParams.get('id') || '';
-                }
-            }
-
-            if (id) {
-                return `https://drive.google.com/thumbnail?id=${id}&sz=w200`;
-            }
-        } catch (e) {
-            return null;
-        }
-        return link;
-    };
-
-    const itemColumns = [
-        {
-            key: 'sort',
-            width: 30,
-            render: () => <MenuOutlined style={{ cursor: 'grab', color: '#999' }} />,
-        },
-        {
-            title: '#',
-            dataIndex: 'position',
-            width: 50,
-            render: (text: any, record: any, index: number) => index + 1,
-        },
-
-        {
-            title: 'Sản phẩm', width: 350,
-            render: (text: any, record: any, index: number) => {
-                const prodInfo = products.find(p => p.value === record.sku);
-
-                // Image Logic
-                const link = record.image_url;
-                const finalLink = link || (record.product ? record.product.image_url : null);
-                const src = getGoogleDriveImageUrl(finalLink);
-
-                return (
-                    <div>
-                        <Select
-                            showSearch
-                            placeholder="Chọn SP"
-                            optionFilterProp="label"
-                            style={{ width: '100%' }}
-                            value={record.sku}
-                            onChange={(val) => handleItemChange(index, 'sku', val)}
-                            options={products}
-                        />
-                        {prodInfo && (
-                            <div style={{ marginTop: 4, lineHeight: '1.2' }}>
-                                {prodInfo.type === 'COMBO' && <Tag color="purple" style={{ fontSize: 10, marginRight: 4 }}><GiftOutlined /> Combo</Tag>}
-                                <span style={{ fontSize: 11, color: '#666', fontStyle: 'italic' }}>
-                                    {prodInfo.description || 'Chưa có mô tả'}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Improved Image UI (Stacked) */}
-                        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            {/* Preview */}
-                            {finalLink && (
-                                <div style={{ position: 'relative' }}>
-                                    <img
-                                        src={src || ''}
-                                        alt="img"
-                                        style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #ddd' }}
-                                        onClick={() => window.open(finalLink, '_blank')}
-                                    />
-                                    {/* Link Icon Overlay if needed, or just clean image */}
-                                </div>
-                            )}
-
-                            {/* Edit/Add Link */}
-                            <ImageLinkCell
-                                value={finalLink}
-                                onChange={(newVal) => handleItemChange(index, 'image_url', newVal)}
-                            />
-                        </div>
-                    </div>
-                );
-            }
-        },
-        {
-            title: 'Mô tả VAT (HĐ đơn)',
-            dataIndex: 'vat_content',
-            width: 200,
-            render: (text: any, record: any, index: number) => (
-                <Input.TextArea
-                    rows={2}
-                    placeholder="Mô tả khi xuất hóa đơn..."
-                    value={text} // Bind directly to vat_content
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleItemChange(index, 'vat_content', e.target.value)}
-                />
-            )
-        },
-        {
-            title: 'Đơn giá', dataIndex: 'unit_price', width: 140,
-            render: (text: any, record: any, index: number) => {
-                const prod = products.find(p => p.value === record.sku);
-                const basePrice = prod ? prod.price : 0;
-                return (
-                    <div>
-                        {prod && (
-                            <div style={{ fontSize: 10, color: '#999', marginBottom: 2, textAlign: 'right' }}>
-                                Giá gốc: {basePrice.toLocaleString()}
-                            </div>
-                        )}
-                        <InputNumber
-                            min={0}
-                            style={{ width: '100%' }}
-                            value={text}
-                            formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                            parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '')}
-                            onChange={(val) => handleItemChange(index, 'unit_price', val)}
-                        />
-                    </div>
-                );
-            }
-        },
-        {
-            title: 'SL', dataIndex: 'quantity', width: 80,
-            render: (text: any, record: any, index: number) => (
-                <InputNumber min={1} value={text} onChange={(val) => handleItemChange(index, 'quantity', val)} style={{ width: '100%' }} />
-            )
-        },
-        {
-            title: 'Thành tiền', dataIndex: 'total_price', align: 'right' as const, width: 140,
-            render: (val: any) => <b>{Number(val).toLocaleString()}</b>
-        },
-        {
-            title: '', width: 50, align: 'center' as const,
-            render: (_: any, r: any, index: number) => <DeleteOutlined onClick={() => handleRemoveItem(index)} style={{ color: 'red', cursor: 'pointer' }} />
-        }
-    ];
 
     return (
         <Modal
@@ -688,26 +425,14 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         <Form.Item name="shipping_fee" hidden><InputNumber /></Form.Item>
 
                         <Divider orientation="left">Danh sách sản phẩm</Divider>
-                        <DndContext sensors={sensors} modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
-                            <SortableContext items={orderItems.map((i) => i.key)} strategy={verticalListSortingStrategy}>
-                                <div style={{ overflowX: isMobile ? 'auto' : 'visible' }}>
-                                    <Table
-                                        components={{
-                                            body: {
-                                                row: DraggableRow,
-                                            },
-                                        }}
-                                        dataSource={orderItems}
-                                        columns={itemColumns}
-                                        pagination={false}
-                                        rowKey="key"
-                                        size="small"
-                                        bordered
-                                        scroll={isMobile ? { x: 800 } : undefined}
-                                    />
-                                </div>
-                            </SortableContext>
-                        </DndContext>
+                        <SalesOrderItemsTable
+                            items={orderItems}
+                            products={products}
+                            isMobile={isMobile}
+                            onItemChange={handleItemChange}
+                            onRemoveItem={handleRemoveItem}
+                            onReorder={handleReorderItems}
+                        />
                         <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>Thêm sản phẩm</Button>
 
                         {/* NEW TOTALS SECTION */}
@@ -889,123 +614,22 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             </Tabs>
 
             {/* CANCEL REASON MODAL */}
-            <Modal
-                title="Xác nhận hủy đơn hàng"
+            <CancelOrderModal
                 open={cancelModalOpen}
+                cancelReason={cancelReason}
+                onReasonChange={setCancelReason}
+                onConfirm={handleCancelOrder}
                 onCancel={() => setCancelModalOpen(false)}
-                onOk={handleCancelOrder}
-                okText="Xác nhận Hủy"
-                okButtonProps={{ danger: true }}
-            >
-                <p>Bạn có chắc chắn muốn hủy đơn hàng này không? Hành động này không thể hoàn tác.</p>
-                <Form layout="vertical">
-                    <Form.Item label="Lý do hủy" required>
-                        <Input.TextArea
-                            rows={3}
-                            value={cancelReason}
-                            onChange={e => setCancelReason(e.target.value)}
-                            placeholder="Nhập lý do hủy đơn..."
-                        />
-                    </Form.Item>
-                </Form>
-            </Modal>
+            />
 
-            {/* REVISION HISTORY MODELS */}
-            <Modal title="Lịch sử phiên bản" open={revisionModalOpen} onCancel={() => setRevisionModalOpen(false)} footer={null} width={800}>
-                <Table
-                    dataSource={revisions}
-                    rowKey="id"
-                    columns={[
-                        { title: 'Version', dataIndex: 'version_number', render: (v) => <Tag>v{v}</Tag> },
-                        { title: 'Ngày tạo', dataIndex: 'created_at', render: (t) => dayjs(t).format('DD/MM/YYYY HH:mm') },
-                        { title: 'Người tạo', dataIndex: 'created_by' },
-                        {
-                            title: 'Action', render: (r) => <Button size="small" onClick={() => {
-                                const snapshot = r.data_snapshot || {};
-                                const snapItems = snapshot.items || [];
-
-                                Modal.info({
-                                    title: `Chi tiết version ${r.version_number} - ${dayjs(r.created_at).format('DD/MM/YYYY HH:mm')}`,
-                                    width: 900,
-                                    icon: <HistoryOutlined />,
-                                    content: (
-                                        <div>
-                                            <div style={{ marginBottom: 15, display: 'flex', gap: 20, flexWrap: 'wrap', background: '#f5f5f5', padding: 10, borderRadius: 6 }}>
-                                                <div><b>Mã:</b> {snapshot.order_code}</div>
-                                                <div><b>Khách hàng:</b> {customers.find(c => c.id === snapshot.customer_id)?.name || snapshot.customer_name || snapshot.customer_id}</div>
-                                                <div><b>Ngày đặt:</b> {dayjs(snapshot.order_date).format('DD/MM/YYYY')}</div>
-                                                <div><b>Ngày giao:</b> {snapshot.delivery_date ? dayjs(snapshot.delivery_date).format('DD/MM/YYYY') : 'N/A'}</div>
-                                            </div>
-                                            {snapshot.note && <div style={{ marginBottom: 10, fontStyle: 'italic' }}>Ghi chú: {snapshot.note}</div>}
-
-                                            <Table
-                                                dataSource={snapItems}
-                                                rowKey={(rec: any) => rec?.sku || rec || Math.random()}
-                                                pagination={false}
-                                                size="small"
-                                                bordered
-                                                columns={[
-                                                    {
-                                                        title: 'Sản phẩm', dataIndex: 'sku',
-                                                        render: (sku) => {
-                                                            const p = products.find(x => x.value === sku);
-                                                            return p ? (
-                                                                <div>
-                                                                    <b>{p.label || sku}</b>
-                                                                    <div style={{ fontSize: 11, color: '#888' }}>{p.description}</div>
-                                                                </div>
-                                                            ) : sku
-                                                        }
-                                                    },
-                                                    { title: 'SL', dataIndex: 'quantity', width: 60, align: 'center' },
-                                                    { title: 'Đơn giá', dataIndex: 'unit_price', align: 'right', render: (v: any) => Number(v).toLocaleString() },
-                                                    { title: 'Thành tiền', dataIndex: 'total_price', align: 'right', render: (v: any) => <b>{Number(v).toLocaleString()}</b> }
-                                                ]}
-                                                summary={() => {
-                                                    return (
-                                                        <>
-                                                            <Table.Summary.Row>
-                                                                <Table.Summary.Cell index={0} colSpan={3} align="right">Tổng tiền hàng</Table.Summary.Cell>
-                                                                <Table.Summary.Cell index={1} align="right">{snapItems.reduce((s: number, i: any) => s + Number(i.total_price || 0), 0).toLocaleString()}</Table.Summary.Cell>
-                                                            </Table.Summary.Row>
-                                                            {Number(snapshot.discount_amount) > 0 && (
-                                                                <Table.Summary.Row>
-                                                                    <Table.Summary.Cell index={0} colSpan={3} align="right">Giảm giá</Table.Summary.Cell>
-                                                                    <Table.Summary.Cell index={1} align="right"><span style={{ color: 'green' }}>-{Number(snapshot.discount_amount).toLocaleString()}</span></Table.Summary.Cell>
-                                                                </Table.Summary.Row>
-                                                            )}
-                                                            {Number(snapshot.vat_rate) > 0 && (
-                                                                <Table.Summary.Row>
-                                                                    <Table.Summary.Cell index={0} colSpan={3} align="right">VAT ({snapshot.vat_rate}%)</Table.Summary.Cell>
-                                                                    <Table.Summary.Cell index={1} align="right">
-                                                                        {/* Estimate VAT content if not saved directly. Usually Total = (Sub - Disc) * (1+VAT) + Ship. So VAT = Total - Ship - Taxable. */}
-                                                                        {((Number(snapshot.total_amount) - Number(snapshot.shipping_fee || 0)) - (snapItems.reduce((s: number, i: any) => s + Number(i.total_price || 0), 0) - Number(snapshot.discount_amount || 0))).toLocaleString()}
-                                                                    </Table.Summary.Cell>
-                                                                </Table.Summary.Row>
-                                                            )}
-                                                            {Number(snapshot.shipping_fee) > 0 && (
-                                                                <Table.Summary.Row>
-                                                                    <Table.Summary.Cell index={0} colSpan={3} align="right">Phí vận chuyển</Table.Summary.Cell>
-                                                                    <Table.Summary.Cell index={1} align="right">{Number(snapshot.shipping_fee).toLocaleString()}</Table.Summary.Cell>
-                                                                </Table.Summary.Row>
-                                                            )}
-                                                            <Table.Summary.Row style={{ background: '#fafafa' }}>
-                                                                <Table.Summary.Cell index={0} colSpan={3} align="right"><b style={{ fontSize: 15 }}>TỔNG CỘNG</b></Table.Summary.Cell>
-                                                                <Table.Summary.Cell index={1} align="right"><b style={{ color: 'red', fontSize: 15 }}>{Number(snapshot.total_amount).toLocaleString()}</b></Table.Summary.Cell>
-                                                            </Table.Summary.Row>
-                                                        </>
-                                                    )
-                                                }}
-                                            />
-                                        </div>
-                                    ),
-                                    maskClosable: true
-                                })
-                            }}>Xem chi tiết</Button>
-                        }
-                    ]}
-                />
-            </Modal>
+            {/* REVISION HISTORY MODAL */}
+            <RevisionHistoryModal
+                open={revisionModalOpen}
+                onClose={() => setRevisionModalOpen(false)}
+                revisions={revisions}
+                products={products}
+                customers={customers}
+            />
         </Modal >
     );
 };

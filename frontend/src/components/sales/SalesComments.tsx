@@ -6,7 +6,7 @@ import dayjs from 'dayjs';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { API_URL } from '../../config';
-import { useMobile } from '../../hooks/useMobile';
+import useMobile from '../../hooks/useMobile';
 
 const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
     const [comments, setComments] = useState<any[]>([]);

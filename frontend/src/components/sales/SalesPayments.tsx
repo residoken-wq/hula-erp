@@ -5,7 +5,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../../config';
 import AttachmentUpload from '../common/AttachmentUpload';
-import { useMobile } from '../../hooks/useMobile';
+import useMobile from '../../hooks/useMobile';
 
 interface Props {
     orderId: number;

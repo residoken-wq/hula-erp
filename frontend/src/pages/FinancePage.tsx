@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useMobile } from '../hooks/useMobile';
+import useMobile from '../hooks/useMobile';
 import {
     Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form,
     Input, Select, DatePicker, Tag, message, Popconfirm,

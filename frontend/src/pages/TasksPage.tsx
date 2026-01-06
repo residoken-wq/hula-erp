@@ -4,7 +4,7 @@ import { PlusOutlined, EditOutlined, CheckCircleOutlined, ClockCircleOutlined, F
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
-import { useMobile } from '../hooks/useMobile';
+import useMobile from '../hooks/useMobile';
 
 const { Option } = Select;
 

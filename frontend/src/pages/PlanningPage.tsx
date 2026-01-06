@@ -4,7 +4,7 @@ import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, R
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
-import { useMobile } from '../hooks/useMobile';
+import useMobile from '../hooks/useMobile';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
