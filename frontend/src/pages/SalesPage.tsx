@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Tag, Button, message, Card, Input, Space, Row, Col, Tabs, Progress, Tooltip, Statistic, DatePicker, Select } from 'antd';
+import { Table, Tag, Button, message, Card, Input, Space, Row, Col, Tabs, Progress, Tooltip, Statistic, DatePicker, Select, List } from 'antd';
 // --- FIX: Thêm PlusOutlined đã bị thiếu trước đó ---
-import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, FileTextOutlined, CalendarOutlined, WalletOutlined, AuditOutlined, AppstoreAddOutlined, ShopOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, FileTextOutlined, CalendarOutlined, WalletOutlined, AuditOutlined, AppstoreAddOutlined, ShopOutlined, RightOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import QuickTaskModal from '../components/QuickTaskModal';
 import SalesOrderDetail from '../components/SalesOrderDetail';
+import useMobile from '../hooks/useMobile';
 
 dayjs.extend(isBetween);
 
@@ -15,6 +16,7 @@ const { RangePicker } = DatePicker;
 
 const SalesPage: React.FC = () => {
     const navigate = useNavigate();
+    const isMobile = useMobile();
     const [activeTab, setActiveTab] = useState('ALL');
     const [searchText, setSearchText] = useState('');
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
@@ -376,20 +378,24 @@ const SalesPage: React.FC = () => {
 
             <Card
                 title={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontSize: 18, fontWeight: 600 }}>Quản Lý Đơn Hàng (SO)</span>
-                        <Input prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />} placeholder="Tìm mã đơn, tên khách..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} allowClear />
+                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 8 : 12 }}>
+                        <span style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600 }}>Quản Lý Đơn Hàng</span>
+                        <Input prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />} placeholder="Tìm kiếm..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: isMobile ? '100%' : 250 }} allowClear />
                     </div>
                 }
                 extra={
-                    <Space>
-                        <Button type="dashed" icon={<AppstoreAddOutlined />} onClick={() => openDetailModal({ isInternal: true })} style={{ borderColor: '#722ed1', color: '#722ed1' }}>Tạo Đơn Nhập Kho (Nội Bộ)</Button>
-                        <Button type="default" icon={<ShopOutlined />} onClick={() => navigate('/sales/pos')} style={{ borderColor: '#52c41a', color: '#52c41a' }}>Bán Lẻ (POS)</Button>
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo Đơn Mới</Button>
-                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
-                    </Space>
+                    isMobile ? (
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo mới</Button>
+                    ) : (
+                        <Space>
+                            <Button type="dashed" icon={<AppstoreAddOutlined />} onClick={() => openDetailModal({ isInternal: true })} style={{ borderColor: '#722ed1', color: '#722ed1' }}>Tạo Đơn Nhập Kho (Nội Bộ)</Button>
+                            <Button type="default" icon={<ShopOutlined />} onClick={() => navigate('/sales/pos')} style={{ borderColor: '#52c41a', color: '#52c41a' }}>Bán Lẻ (POS)</Button>
+                            <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo Đơn Mới</Button>
+                            <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+                        </Space>
+                    )
                 }
-                bodyStyle={{ padding: '0 24px 24px' }}
+                bodyStyle={{ padding: isMobile ? '0 12px 12px' : '0 24px 24px' }}
             >
                 <Tabs
                     activeKey={activeTab}
@@ -408,14 +414,72 @@ const SalesPage: React.FC = () => {
                     style={{ marginBottom: 16 }}
                 />
 
-                <Table
-                    dataSource={filteredData}
-                    columns={columns}
-                    rowKey="id"
-                    loading={loading}
-                    pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `Tổng ${total} đơn hàng` }}
-                    size="middle"
-                />
+                {/* MOBILE LIST VIEW */}
+                {isMobile ? (
+                    <List
+                        dataSource={filteredData}
+                        loading={loading}
+                        pagination={{ pageSize: 10, showTotal: (total: number) => `Tổng ${total} đơn` }}
+                        renderItem={(r: any) => {
+                            const total = Number(r.total_amount) || 0;
+                            const paid = Number(r.paid_amount) || 0;
+                            const remain = total - paid;
+                            const pct = total > 0 ? Math.min(Math.round((paid / total) * 100), 100) : 0;
+
+                            // Status tag
+                            let color = 'default', label = r.status;
+                            if (r.status === 'QUOTATION') { color = 'orange'; label = 'Báo Giá'; }
+                            if (r.status === 'SO_PENDING') { color = 'processing'; label = 'Mới'; }
+                            if (r.status === 'SAMPLE_APPROVED') { color = 'cyan'; label = 'Đã Duyệt'; }
+                            if (r.status === 'DEPOSITED') { color = 'purple'; label = 'Đã Cọc'; }
+                            if (r.status === 'IN_PRODUCTION') { color = 'blue'; label = 'Đang SX'; }
+                            if (r.status === 'COMPLETED') { color = 'success'; label = 'Hoàn Thành'; }
+                            if (r.status === 'DELIVERED') { color = 'geekblue'; label = 'Đã Giao'; }
+                            if (r.status === 'CANCELLED') { color = 'error'; label = 'Hủy'; }
+
+                            return (
+                                <List.Item style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                    <div style={{ width: '100%' }} onClick={() => openDetailModal(r)}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                                            <div>
+                                                <div style={{ fontWeight: 600, fontSize: 14, color: '#1890ff' }}>{r.order_code}</div>
+                                                <div style={{ fontSize: 13, color: '#333' }}>{r.customer?.name || r.customer_name || '-'}</div>
+                                            </div>
+                                            <Tag color={color}>{label}</Tag>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                                            <div>
+                                                <span style={{ color: '#666' }}>Tổng: </span>
+                                                <span style={{ fontWeight: 600, color: '#262626' }}>{total.toLocaleString()}đ</span>
+                                            </div>
+                                            <div>
+                                                <span style={{ color: '#666' }}>Còn lại: </span>
+                                                <span style={{ fontWeight: 500, color: remain > 0 ? '#fa541c' : '#52c41a' }}>{remain.toLocaleString()}đ</span>
+                                            </div>
+                                        </div>
+                                        <div style={{ marginTop: 8 }}>
+                                            <Progress percent={pct} size="small" strokeColor={pct >= 100 ? '#52c41a' : '#1890ff'} showInfo={false} />
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 11, color: '#999' }}>
+                                            <span>{r.order_date ? dayjs(r.order_date).format('DD/MM/YYYY') : '-'}</span>
+                                            <span>{r.assigned_to?.full_name || '-'}</span>
+                                            <RightOutlined style={{ color: '#bfbfbf' }} />
+                                        </div>
+                                    </div>
+                                </List.Item>
+                            );
+                        }}
+                    />
+                ) : (
+                    <Table
+                        dataSource={filteredData}
+                        columns={columns}
+                        rowKey="id"
+                        loading={loading}
+                        pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `Tổng ${total} đơn hàng` }}
+                        size="middle"
+                    />
+                )}
 
                 {/* MODALS */}
                 <QuickTaskModal open={taskModalOpen} onClose={() => setTaskModalOpen(false)} initialValues={taskInitialValues} />

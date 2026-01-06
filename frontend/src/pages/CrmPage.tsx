@@ -1,17 +1,19 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge, Tabs, InputNumber, Typography, DatePicker } from 'antd'; // <--- Đã thêm Tabs
-import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined, SearchOutlined, FilterOutlined, RiseOutlined, TagOutlined, CalendarOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge, Tabs, InputNumber, Typography, DatePicker, List } from 'antd'; // <--- Đã thêm Tabs
+import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined, SearchOutlined, FilterOutlined, RiseOutlined, TagOutlined, CalendarOutlined, RightOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import QuotationTemplate from '../components/QuotationTemplate';
 import SalesOrderDetail from '../components/SalesOrderDetail';
 import QuickTaskModal from '../components/QuickTaskModal';
+import useMobile from '../hooks/useMobile';
 
 const { Text } = Typography;
 
 const CrmPage: React.FC = () => {
     const navigate = useNavigate();
+    const isMobile = useMobile();
     const { RangePicker } = DatePicker;
 
     // --- FILTER STATE ---
@@ -513,14 +515,37 @@ const CrmPage: React.FC = () => {
                             children: (
                                 <>
                                     <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                                        <Button type="primary" onClick={openCreateLead} icon={<PlusOutlined />}>Tạo Lead Mới</Button>
+                                        <Button type="primary" onClick={openCreateLead} icon={<PlusOutlined />}>{isMobile ? 'Tạo' : 'Tạo Lead Mới'}</Button>
                                     </div>
-                                    <Table
-                                        dataSource={getFilteredData(dateFilteredLeads)}
-                                        columns={leadColumns}
-                                        rowKey="id"
-                                        pagination={{ pageSize: 8, showTotal: (total) => `Tổng ${total} leads` }}
-                                    />
+                                    {isMobile ? (
+                                        <List
+                                            dataSource={getFilteredData(dateFilteredLeads)}
+                                            pagination={{ pageSize: 8 }}
+                                            renderItem={(r: any) => (
+                                                <List.Item style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                                    <div style={{ width: '100%' }} onClick={() => handleEditLead(r)}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                                                            <div>
+                                                                <div style={{ fontWeight: 600, fontSize: 14, color: '#333' }}>{r.customer?.name || '-'}</div>
+                                                                <div style={{ fontSize: 12, color: '#666' }}>{r.customer?.phone || '-'}</div>
+                                                            </div>
+                                                            <Tag color={r.status === 'WON' ? 'green' : r.status === 'LOST' ? 'red' : 'blue'}>{r.status}</Tag>
+                                                        </div>
+                                                        <div style={{ fontSize: 12, color: '#999' }}>
+                                                            {r.assigned_to?.full_name || 'Chưa gán'} • {r.created_at ? dayjs(r.created_at).format('DD/MM/YYYY') : '-'}
+                                                        </div>
+                                                    </div>
+                                                </List.Item>
+                                            )}
+                                        />
+                                    ) : (
+                                        <Table
+                                            dataSource={getFilteredData(dateFilteredLeads)}
+                                            columns={leadColumns}
+                                            rowKey="id"
+                                            pagination={{ pageSize: 8, showTotal: (total) => `Tổng ${total} leads` }}
+                                        />
+                                    )}
                                 </>
                             )
                         },
@@ -529,9 +554,36 @@ const CrmPage: React.FC = () => {
                             children: (
                                 <>
                                     <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                                        <Button type="primary" onClick={() => openDetailModal(null, true)} icon={<PlusOutlined />}>Tạo Báo Giá</Button>
+                                        <Button type="primary" onClick={() => openDetailModal(null, true)} icon={<PlusOutlined />}>{isMobile ? 'Tạo' : 'Tạo Báo Giá'}</Button>
                                     </div>
-                                    <Table dataSource={getFilteredData(dateFilteredQuotes)} columns={quoteColumns} rowKey="id" pagination={{ pageSize: 8 }} />
+                                    {isMobile ? (
+                                        <List
+                                            dataSource={getFilteredData(dateFilteredQuotes)}
+                                            pagination={{ pageSize: 8 }}
+                                            renderItem={(r: any) => {
+                                                const total = Number(r.total_amount) || 0;
+                                                return (
+                                                    <List.Item style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                                        <div style={{ width: '100%' }} onClick={() => openDetailModal(r, true)}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                                                                <div>
+                                                                    <div style={{ fontWeight: 600, fontSize: 14, color: '#1890ff' }}>{r.order_code || '-'}</div>
+                                                                    <div style={{ fontSize: 13, color: '#333' }}>{r.customer?.name || '-'}</div>
+                                                                </div>
+                                                                <Tag color="orange">Báo Giá</Tag>
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#666' }}>
+                                                                <span>{total.toLocaleString()}đ</span>
+                                                                <span>{r.order_date ? dayjs(r.order_date).format('DD/MM/YYYY') : '-'}</span>
+                                                            </div>
+                                                        </div>
+                                                    </List.Item>
+                                                );
+                                            }}
+                                        />
+                                    ) : (
+                                        <Table dataSource={getFilteredData(dateFilteredQuotes)} columns={quoteColumns} rowKey="id" pagination={{ pageSize: 8 }} />
+                                    )}
                                 </>
                             )
                         }
