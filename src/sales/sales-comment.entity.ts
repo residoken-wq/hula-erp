@@ -32,4 +32,11 @@ export class SalesComment {
 
   @CreateDateColumn()
   created_at: Date;
+
+  // Soft delete: store deletion time, null means not deleted
+  @Column({ type: 'timestamp', nullable: true })
+  deleted_at: Date;
+
+  @Column({ nullable: true })
+  deleted_by: string; // Username of who deleted it
 }

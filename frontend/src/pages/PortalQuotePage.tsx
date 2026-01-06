@@ -107,6 +107,23 @@ const PortalQuotePage: React.FC = () => {
         } catch (e) { }
     };
 
+    const handleDeleteComment = async (commentId: number) => {
+        Modal.confirm({
+            title: 'Thu hồi tin nhắn?',
+            content: 'Tin nhắn sẽ bị ẩn khỏi cuộc trò chuyện nhưng vẫn được lưu trong hệ thống.',
+            okText: 'Thu hồi',
+            cancelText: 'Hủy',
+            okButtonProps: { danger: true },
+            onOk: async () => {
+                try {
+                    await axios.delete(`${API_URL}/sales/comment/${commentId}`, { data: { deletedBy: data.customer_name || 'Khách hàng' } });
+                    message.success('Đã thu hồi tin nhắn');
+                    fetchQuote();
+                } catch (e) { message.error('Không thể thu hồi tin nhắn'); }
+            }
+        });
+    };
+
     if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" tip="Đang tải dữ liệu..." /></div>;
     if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy báo giá hoặc đường dẫn không hợp lệ." />;
 
@@ -642,9 +659,30 @@ const PortalQuotePage: React.FC = () => {
                                                 background: item.sender_type === 'CUSTOMER' ? '#d9f7be' : '#fff',
                                                 borderRadius: 8,
                                                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                                color: '#333'
+                                                color: '#333',
+                                                position: 'relative'
                                             }}>
                                                 <div dangerouslySetInnerHTML={{ __html: item.content }} />
+                                                {item.sender_type === 'CUSTOMER' && (
+                                                    <Button
+                                                        type="text"
+                                                        size="small"
+                                                        danger
+                                                        onClick={() => handleDeleteComment(item.id)}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: -8,
+                                                            right: -8,
+                                                            background: '#fff',
+                                                            borderRadius: '50%',
+                                                            padding: '2px 6px',
+                                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                                            fontSize: 10
+                                                        }}
+                                                    >
+                                                        Thu hồi
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

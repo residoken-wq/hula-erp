@@ -49,6 +49,11 @@ export class SalesController {
     @Post('comment/:id/toggle')
     toggleComment(@Param('id') id: number) { return this.s.toggleCommentVisibility(id); }
 
+    @Delete('comment/:id')
+    softDeleteComment(@Param('id') id: number, @Body() body: any) {
+        return this.s.softDeleteComment(id, body?.deletedBy || 'Khách hàng');
+    }
+
     @Get(':id/deliveries')
     getDeliveries(@Param('id') id: number) { return this.s.getDeliveryHistory(id); }
 

@@ -408,8 +408,42 @@ export class SalesService {
         });
         return this.commentRepo.save(comment);
     }
-    async getComments(orderId: number) { return this.commentRepo.find({ where: { order: { id: orderId } }, order: { created_at: 'ASC' } }); }
-    async toggleCommentVisibility(id: number) { const comment = await this.commentRepo.findOne({ where: { id } }); if (comment) { comment.is_visible = !comment.is_visible; return this.commentRepo.save(comment); } }
+
+    // Filter out deleted comments (deleted_at is null means not deleted)
+    async getComments(orderId: number) {
+        return this.commentRepo.find({
+            where: { order: { id: orderId }, deleted_at: null as any },
+            order: { created_at: 'ASC' }
+        });
+    }
+
+    // Get all comments including deleted (for admin view)
+    async getAllComments(orderId: number) {
+        return this.commentRepo.find({
+            where: { order: { id: orderId } },
+            order: { created_at: 'ASC' }
+        });
+    }
+
+    async toggleCommentVisibility(id: number) {
+        const comment = await this.commentRepo.findOne({ where: { id } });
+        if (comment) {
+            comment.is_visible = !comment.is_visible;
+            return this.commentRepo.save(comment);
+        }
+    }
+
+    // Soft delete: mark as deleted but keep in database
+    async softDeleteComment(id: number, deletedBy: string = 'Khách hàng') {
+        const comment = await this.commentRepo.findOne({ where: { id } });
+        if (!comment) throw new NotFoundException('Comment not found');
+
+        comment.deleted_at = new Date();
+        comment.deleted_by = deletedBy;
+        comment.content = `[Đã thu hồi] ${comment.content}`; // Prefix for record keeping
+        return this.commentRepo.save(comment);
+    }
+
     async updateComment(id: number, content: string) {
         const comment = await this.commentRepo.findOne({ where: { id } });
         if (!comment) throw new NotFoundException('Comment not found');
