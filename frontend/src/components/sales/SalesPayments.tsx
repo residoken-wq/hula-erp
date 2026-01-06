@@ -12,10 +12,11 @@ interface Props {
     totalAmount: number;
     paidAmount: number;
     customerName?: string;
+    customerId?: number;
     onSuccess: () => void;
 }
 
-const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidAmount, customerName, onSuccess }) => {
+const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidAmount, customerName, customerId, onSuccess }) => {
     const [history, setHistory] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [amount, setAmount] = useState<number>(0);
@@ -23,6 +24,7 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
     const [note, setNote] = useState('');
     const [date, setDate] = useState(dayjs());
     const [attachments, setAttachments] = useState<string[]>([]);
+    const [overpaymentAction, setOverpaymentAction] = useState<'REFUND' | 'CREDIT'>('CREDIT');
 
     const fetchHistory = async () => {
         try {
@@ -46,10 +48,18 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
     const handlePayment = async () => {
         if (amount <= 0) return message.warning('Nhập số tiền hợp lệ');
 
+        const overpayment = amount - remainingAmount;
+        const isOverpaying = overpayment > 0;
+
         const prefix = type === 'DEPOSIT' ? '[ĐẶT CỌC]' : type === 'FINAL' ? '[TẤT TOÁN]' : '[THANH TOÁN]';
-        const finalNote = `${prefix} ${note}`.trim();
+        let finalNote = `${prefix} ${note}`.trim();
+
+        if (isOverpaying) {
+            finalNote += ` | Số dư: ${overpayment.toLocaleString()}đ - ${overpaymentAction === 'REFUND' ? 'Hoàn tiền' : 'Tạo Credit cho KH'}`;
+        }
 
         try {
+            // 1. Create payment transaction
             await axios.post(`${API_URL}/finance/payment`, {
                 type: 'INCOME',
                 amount,
@@ -59,6 +69,32 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                 date: date,
                 attachments: attachments
             });
+
+            // 2. If overpayment, handle based on action
+            if (isOverpaying && overpaymentAction === 'CREDIT') {
+                // Create customer credit transaction
+                await axios.post(`${API_URL}/finance/payment`, {
+                    type: 'INCOME',
+                    amount: -overpayment, // Negative to indicate credit (stored balance)
+                    refCode: `CREDIT-${customerId || customerName}`,
+                    note: `[TẠO CREDIT] Số dư từ đơn ${orderCode} - Khách hàng: ${customerName}`,
+                    customerName: customerName,
+                    date: date
+                });
+                message.success(`Đã tạo Credit ${overpayment.toLocaleString()}đ cho khách hàng!`);
+            } else if (isOverpaying && overpaymentAction === 'REFUND') {
+                // Create refund expense transaction
+                await axios.post(`${API_URL}/finance/transaction`, {
+                    type: 'EXPENSE',
+                    amount: overpayment,
+                    reference_code: orderCode,
+                    reference_type: 'SALES_REFUND',
+                    description: `[HOÀN TIỀN] Số dư từ đơn ${orderCode} - Khách hàng: ${customerName}`,
+                    partner_name: customerName,
+                    date: date?.format('YYYY-MM-DD') || new Date().toISOString().split('T')[0]
+                });
+                message.success(`Đã ghi nhận hoàn tiền ${overpayment.toLocaleString()}đ!`);
+            }
 
             message.success('Đã lưu thanh toán!');
             setIsModalOpen(false);
@@ -118,7 +154,6 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                     type="primary"
                     icon={<DollarOutlined />}
                     onClick={openModal}
-                    disabled={remainingAmount <= 0}
                 >
                     Thêm thanh toán
                 </Button>
@@ -157,8 +192,19 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                             onChange={(v: any) => setAmount(v)}
                             formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                             addonAfter="₫"
-                            max={remainingAmount} // Không cho nhập quá số tiền còn lại
+                            min={0}
                         />
+                        {amount > remainingAmount && remainingAmount >= 0 && (
+                            <div style={{ marginTop: 8, padding: 10, background: '#fff7e6', borderRadius: 6, border: '1px solid #ffd591' }}>
+                                <div style={{ color: '#d46b08', marginBottom: 8 }}>
+                                    <b>⚠️ Số tiền dư: {(amount - remainingAmount).toLocaleString()}đ</b>
+                                </div>
+                                <Radio.Group value={overpaymentAction} onChange={e => setOverpaymentAction(e.target.value)} size="small">
+                                    <Radio value="CREDIT">Tạo Credit (cấn trừ đơn khác)</Radio>
+                                    <Radio value="REFUND">Hoàn tiền mặt</Radio>
+                                </Radio.Group>
+                            </div>
+                        )}
                     </Form.Item>
                     <Form.Item label="Loại">
                         <Radio.Group value={type} onChange={e => setType(e.target.value)} buttonStyle="solid">
