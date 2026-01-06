@@ -207,6 +207,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 form.setFieldsValue({
                     order_code: '', // Let backend generate
                     order_date: dayjs(),
+                    delivery_date: dayjs().add(25, 'day'), // Default: +25 days from order date
                     status: isQuotation ? 'QUOTATION' : 'SO_PENDING',
                     discount_rate: 0,
                     discount_amount: 0,
