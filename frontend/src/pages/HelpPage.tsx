@@ -1231,6 +1231,89 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'sales-payment':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Phân hệ Bán Hàng</Tag>
+                        <Title level={2}>💸 Thanh toán & Tất toán Đơn hàng</Title>
+                        <Paragraph>
+                            Hệ thống hỗ trợ quản lý thanh toán linh hoạt, cho phép ghi nhận thanh toán từng phần, đặt cọc và xử lý các trường hợp thanh toán thừa (Overpayment).
+                        </Paragraph>
+
+                        <Divider orientation="left">I. Quy trình Thanh toán</Divider>
+                        <Steps
+                            current={-1}
+                            items={[
+                                { title: 'Mở đơn hàng', description: 'Truy cập chi tiết đơn hàng (SO) cần thanh toán.' },
+                                { title: 'Tab Giao Hàng & Thanh Toán', description: 'Chọn tab thứ 3 "Giao Hàng & Thanh Toán".' },
+                                { title: 'Thêm thanh toán', description: 'Click nút "Thêm thanh toán" để mở form.' },
+                                { title: 'Nhập thông tin', description: 'Nhập số tiền, loại thanh toán, và đính kèm chứng từ (nếu có).' },
+                            ]}
+                        />
+
+                        <Divider orientation="left">II. Xử lý Thanh toán Thừa & Tất toán</Divider>
+                        <Alert
+                            message="Tính năng Mới"
+                            description="Hệ thống hiện cho phép nhập số tiền thanh toán LỚN HƠN số tiền còn lại của đơn hàng."
+                            type="info"
+                            showIcon
+                            style={{ marginBottom: 20 }}
+                        />
+
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Card title="Trường hợp 1: Tạo Credit (Số dư)" size="small">
+                                    <Text>Khi khách hàng chuyển khoản dư hoặc muốn để lại tiền thừa cho đơn sau:</Text>
+                                    <ul style={{ marginTop: 10 }}>
+                                        <li>Hệ thống ghi nhận đơn hàng đã thanh toán đủ.</li>
+                                        <li>Phần tiền thừa được tạo thành một giao dịch <b>CREDIT</b>.</li>
+                                        <li>Số dư này có thể được dùng để cấn trừ cho các đơn hàng sau.</li>
+                                    </ul>
+                                    <Tag color="blue">Khuyên dùng</Tag>
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card title="Trường hợp 2: Hoàn tiền mặt" size="small">
+                                    <Text>Khi cửa hàng trả lại tiền thừa ngay lập tức cho khách:</Text>
+                                    <ul style={{ marginTop: 10 }}>
+                                        <li>Hệ thống ghi nhận đơn hàng đã thanh toán đủ.</li>
+                                        <li>Tự động tạo một phiếu chi <b>(EXPENSE)</b> với lý do hoàn tiền.</li>
+                                        <li>Giúp cân bằng sổ quỹ tiền mặt/ngân hàng.</li>
+                                    </ul>
+                                    <Tag color="orange">Dùng cho khách lẻ</Tag>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Divider orientation="left">III. Các loại giao dịch</Divider>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #f0f0f0' }}>
+                            <thead style={{ background: '#fafafa' }}>
+                                <tr>
+                                    <th style={{ padding: 8, border: '1px solid #f0f0f0' }}>Loại</th>
+                                    <th style={{ padding: 8, border: '1px solid #f0f0f0' }}>Mô tả</th>
+                                    <th style={{ padding: 8, border: '1px solid #f0f0f0' }}>Ý nghĩa</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style={{ padding: 8, border: '1px solid #f0f0f0' }}><Tag>DEPOSIT</Tag></td>
+                                    <td style={{ padding: 8, border: '1px solid #f0f0f0' }}>Đặt cọc</td>
+                                    <td style={{ padding: 8, border: '1px solid #f0f0f0' }}>Khoản thanh toán trước khi giao hàng</td>
+                                </tr>
+                                <tr>
+                                    <td style={{ padding: 8, border: '1px solid #f0f0f0' }}><Tag color="blue">PAYMENT</Tag></td>
+                                    <td style={{ padding: 8, border: '1px solid #f0f0f0' }}>Thanh toán</td>
+                                    <td style={{ padding: 8, border: '1px solid #f0f0f0' }}>Thanh toán thông thường theo đợt</td>
+                                </tr>
+                                <tr>
+                                    <td style={{ padding: 8, border: '1px solid #f0f0f0' }}><Tag color="green">FINAL</Tag></td>
+                                    <td style={{ padding: 8, border: '1px solid #f0f0f0' }}>Tất toán</td>
+                                    <td style={{ padding: 8, border: '1px solid #f0f0f0' }}>Khoản thanh toán cuối cùng để đóng đơn</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -1265,6 +1348,7 @@ const HelpPage: React.FC = () => {
                                 { key: 'sales-revisions', label: 'Quản lý version (Báo giá)' }, // <--- NEW
                                 { key: 'sales-pos', label: 'Bán Lẻ (POS)' }, // <--- NEW POS
                                 { key: 'sales-portal', label: 'Customer Portal' },
+                                { key: 'sales-payment', label: 'Thanh toán & Tất toán' }, // <--- NEW PAYMENT
                                 { key: 'price-list', label: 'Chính sách giá' },
                             ]
                         },
