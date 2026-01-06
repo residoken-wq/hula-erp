@@ -110,7 +110,7 @@ const PortalQuotePage: React.FC = () => {
     const handleDeleteComment = async (commentId: number) => {
         Modal.confirm({
             title: 'Thu hồi tin nhắn?',
-            content: 'Tin nhắn sẽ bị ẩn khỏi cuộc trò chuyện nhưng vẫn được lưu trong hệ thống.',
+            content: 'Bạn có chắc chắn muốn thu hồi tin nhắn này?',
             okText: 'Thu hồi',
             cancelText: 'Hủy',
             okButtonProps: { danger: true },

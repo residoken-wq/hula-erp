@@ -483,6 +483,11 @@ export class SalesService {
             }
         }
 
+        // Filter out deleted comments for Portal View (Manual filter because relations loading ignores where condition)
+        if (order.comments) {
+            order.comments = order.comments.filter(c => !c.deleted_at);
+        }
+
         // Fetch Payments manually
         const transactions = await this.transRepo.find({
             where: { reference_code: order.order_code, reference_type: 'SALES' },
