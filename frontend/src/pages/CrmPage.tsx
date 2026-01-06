@@ -416,64 +416,67 @@ const CrmPage: React.FC = () => {
 
     return (
         <div>
-            {/* FILTER BAR */}
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-                    <span style={{ fontSize: 16, fontWeight: 600, color: '#555', whiteSpace: 'nowrap' }}><CalendarOutlined /> Thống kê theo kỳ:</span>
+            {/* FILTER BAR - MOBILE FRIENDLY */}
+            <div style={{ marginBottom: 16, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 12 : 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, color: '#555', whiteSpace: 'nowrap' }}><CalendarOutlined /> Thống kê:</span>
                     <Select
                         value={selectedYear}
                         onChange={handleYearChange}
-                        style={{ width: 120 }}
-                        options={years.map(y => ({ label: `Năm ${y}`, value: y }))}
+                        style={{ width: isMobile ? 100 : 120 }}
+                        options={years.map(y => ({ label: `${y}`, value: y }))}
                     />
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
-                            const isActive = selectedMonth === m;
-                            return (
-                                <div
-                                    key={m}
-                                    onClick={() => handleMonthClick(m)}
-                                    style={{
-                                        padding: '4px 12px',
-                                        borderRadius: 4,
-                                        cursor: 'pointer',
-                                        border: isActive ? '1px solid #1890ff' : '1px solid #d9d9d9',
-                                        background: isActive ? '#e6f7ff' : '#fff',
-                                        color: isActive ? '#1890ff' : '#666',
-                                        fontSize: 13,
-                                        transition: 'all 0.2s',
-                                        fontWeight: isActive ? 500 : 400
-                                    }}
-                                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#40a9ff'; }}
-                                    onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#d9d9d9'; }}
-                                >
-                                    T{m}
-                                </div>
-                            )
-                        })}
-                        {/* ALL BLOCK */}
-                        <div
-                            onClick={handleAllMonthClick}
-                            style={{
-                                padding: '4px 12px',
-                                borderRadius: 4,
-                                cursor: 'pointer',
-                                border: selectedMonth === null ? '1px solid #722ed1' : '1px solid #d9d9d9',
-                                background: selectedMonth === null ? '#f9f0ff' : '#fff',
-                                color: selectedMonth === null ? '#722ed1' : '#666',
-                                fontSize: 13,
-                                transition: 'all 0.2s',
-                                fontWeight: selectedMonth === null ? 500 : 400
-                            }}
-                            onMouseEnter={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#b37feb'; }}
-                            onMouseLeave={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#d9d9d9'; }}
-                        >
-                            All
+                    {/* Month Blocks - HIDE ON MOBILE */}
+                    {!isMobile && (
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+                                const isActive = selectedMonth === m;
+                                return (
+                                    <div
+                                        key={m}
+                                        onClick={() => handleMonthClick(m)}
+                                        style={{
+                                            padding: '4px 12px',
+                                            borderRadius: 4,
+                                            cursor: 'pointer',
+                                            border: isActive ? '1px solid #1890ff' : '1px solid #d9d9d9',
+                                            background: isActive ? '#e6f7ff' : '#fff',
+                                            color: isActive ? '#1890ff' : '#666',
+                                            fontSize: 13,
+                                            transition: 'all 0.2s',
+                                            fontWeight: isActive ? 500 : 400
+                                        }}
+                                        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#40a9ff'; }}
+                                        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#d9d9d9'; }}
+                                    >
+                                        T{m}
+                                    </div>
+                                )
+                            })}
+                            {/* ALL BLOCK */}
+                            <div
+                                onClick={handleAllMonthClick}
+                                style={{
+                                    padding: '4px 12px',
+                                    borderRadius: 4,
+                                    cursor: 'pointer',
+                                    border: selectedMonth === null ? '1px solid #722ed1' : '1px solid #d9d9d9',
+                                    background: selectedMonth === null ? '#f9f0ff' : '#fff',
+                                    color: selectedMonth === null ? '#722ed1' : '#666',
+                                    fontSize: 13,
+                                    transition: 'all 0.2s',
+                                    fontWeight: selectedMonth === null ? 500 : 400
+                                }}
+                                onMouseEnter={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#b37feb'; }}
+                                onMouseLeave={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#d9d9d9'; }}
+                            >
+                                All
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
                 <RangePicker
-                    style={{ width: 260 }}
+                    style={{ width: isMobile ? '100%' : 260 }}
                     placeholder={['Từ ngày', 'Đến ngày']}
                     value={dateRange as any}
                     onChange={(dates) => {
@@ -483,26 +486,32 @@ const CrmPage: React.FC = () => {
                 />
             </div>
 
-            {/* KPI DASHBOARD */}
-            <Row gutter={16} style={{ marginBottom: 16 }}>
-                <Col span={8}><Card bordered={false} style={{ background: 'linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%)' }}><Statistic title="Leads Tiềm Năng" value={dateFilteredLeads.length} prefix={<UserOutlined style={{ color: '#1890ff' }} />} /></Card></Col>
-                <Col span={8}><Card bordered={false} style={{ background: 'linear-gradient(135deg, #fff7e6 0%, #ffffff 100%)' }}><Statistic title="Báo Giá Đang Chờ" value={dateFilteredQuotes.length} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} /></Card></Col>
-                <Col span={8}><Card bordered={false} style={{ background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)' }}><Statistic title="Tỷ lệ chuyển đổi" value={dateFilteredLeads.length > 0 ? ((dateFilteredOrders.length / dateFilteredLeads.length) * 100).toFixed(1) : 0} suffix="%" prefix={<RiseOutlined style={{ color: '#52c41a' }} />} /></Card></Col>
-            </Row>
+            {/* KPI DASHBOARD - HORIZONTAL SCROLL ON MOBILE */}
+            <div style={{ overflowX: isMobile ? 'auto' : 'visible', marginBottom: 16 }}>
+                <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 500 : 'auto' }}>
+                    <Col flex={isMobile ? '160px' : 1}><Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: 'linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%)' }}><Statistic title="Leads" value={dateFilteredLeads.length} prefix={<UserOutlined style={{ color: '#1890ff' }} />} valueStyle={{ fontSize: isMobile ? 16 : 24 }} /></Card></Col>
+                    <Col flex={isMobile ? '160px' : 1}><Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: 'linear-gradient(135deg, #fff7e6 0%, #ffffff 100%)' }}><Statistic title="Báo Giá" value={dateFilteredQuotes.length} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} valueStyle={{ fontSize: isMobile ? 16 : 24 }} /></Card></Col>
+                    <Col flex={isMobile ? '160px' : 1}><Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)' }}><Statistic title="Chuyển đổi" value={dateFilteredLeads.length > 0 ? ((dateFilteredOrders.length / dateFilteredLeads.length) * 100).toFixed(1) : 0} suffix="%" prefix={<RiseOutlined style={{ color: '#52c41a' }} />} valueStyle={{ fontSize: isMobile ? 16 : 24 }} /></Card></Col>
+                </Row>
+            </div>
 
             <Card
-                bodyStyle={{ padding: '12px 24px' }}
+                bodyStyle={{ padding: isMobile ? '8px 12px' : '12px 24px' }}
                 title={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 18 }}>Quản Lý Kinh Doanh (CRM)</span>
-                        <Input prefix={<SearchOutlined />} placeholder="Tìm tên, sđt, mã..." style={{ width: 250, fontSize: 13 }} value={searchText} onChange={e => setSearchText(e.target.value)} allowClear />
+                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 8 : 10 }}>
+                        <span style={{ fontSize: isMobile ? 16 : 18 }}>CRM</span>
+                        <Input prefix={<SearchOutlined />} placeholder="Tìm kiếm..." style={{ width: isMobile ? '100%' : 250, fontSize: 13 }} value={searchText} onChange={e => setSearchText(e.target.value)} allowClear />
                     </div>
                 }
                 extra={
-                    <Space>
-                        <Button icon={<UnorderedListOutlined />} onClick={() => navigate('/sales/pricelist')}>Bảng Giá</Button>
-                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
-                    </Space>
+                    isMobile ? (
+                        <Button icon={<ReloadOutlined />} onClick={fetchData} />
+                    ) : (
+                        <Space>
+                            <Button icon={<UnorderedListOutlined />} onClick={() => navigate('/sales/pricelist')}>Bảng Giá</Button>
+                            <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+                        </Space>
+                    )
                 }
             >
                 <Tabs

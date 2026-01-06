@@ -269,111 +269,115 @@ const SalesPage: React.FC = () => {
     return (
         <div>
             <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-                        <span style={{ fontSize: 16, fontWeight: 600, color: '#555', whiteSpace: 'nowrap' }}><CalendarOutlined /> Thống kê theo kỳ:</span>
+                {/* FILTER BAR - MOBILE FRIENDLY */}
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: 16, gap: isMobile ? 12 : 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, color: '#555', whiteSpace: 'nowrap' }}><CalendarOutlined /> Thống kê:</span>
 
                         {/* Year Select */}
                         <Select
                             value={selectedYear}
                             onChange={handleYearChange}
-                            style={{ width: 120 }}
-                            options={years.map(y => ({ label: `Năm ${y}`, value: y }))}
+                            style={{ width: isMobile ? 100 : 120 }}
+                            options={years.map(y => ({ label: `${y}`, value: y }))}
                         />
 
-                        {/* Month Blocks */}
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
-                                const isActive = selectedMonth === m;
-                                return (
-                                    <div
-                                        key={m}
-                                        onClick={() => handleMonthClick(m)}
-                                        style={{
-                                            padding: '4px 12px',
-                                            borderRadius: 4,
-                                            cursor: 'pointer',
-                                            border: isActive ? '1px solid #1890ff' : '1px solid #d9d9d9',
-                                            background: isActive ? '#e6f7ff' : '#fff',
-                                            color: isActive ? '#1890ff' : '#666',
-                                            fontSize: 13,
-                                            transition: 'all 0.2s',
-                                            fontWeight: isActive ? 500 : 400
-                                        }}
-                                        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#40a9ff'; }}
-                                        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#d9d9d9'; }}
-                                    >
-                                        T{m}
-                                    </div>
-                                )
-                            })}
-                            {/* ALL BLOCK */}
-                            <div
-                                onClick={() => {
-                                    setSelectedMonth(null);
-                                    const start = dayjs().year(selectedYear).startOf('year');
-                                    const end = dayjs().year(selectedYear).endOf('year');
-                                    setDateRange([start, end]);
-                                }}
-                                style={{
-                                    padding: '4px 12px',
-                                    borderRadius: 4,
-                                    cursor: 'pointer',
-                                    border: selectedMonth === null ? '1px solid #722ed1' : '1px solid #d9d9d9',
-                                    background: selectedMonth === null ? '#f9f0ff' : '#fff',
-                                    color: selectedMonth === null ? '#722ed1' : '#666',
-                                    fontSize: 13,
-                                    transition: 'all 0.2s',
-                                    fontWeight: selectedMonth === null ? 500 : 400
-                                }}
-                                onMouseEnter={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#b37feb'; }}
-                                onMouseLeave={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#d9d9d9'; }}
-                            >
-                                All
+                        {/* Month Blocks - HIDE ON MOBILE */}
+                        {!isMobile && (
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+                                    const isActive = selectedMonth === m;
+                                    return (
+                                        <div
+                                            key={m}
+                                            onClick={() => handleMonthClick(m)}
+                                            style={{
+                                                padding: '4px 12px',
+                                                borderRadius: 4,
+                                                cursor: 'pointer',
+                                                border: isActive ? '1px solid #1890ff' : '1px solid #d9d9d9',
+                                                background: isActive ? '#e6f7ff' : '#fff',
+                                                color: isActive ? '#1890ff' : '#666',
+                                                fontSize: 13,
+                                                transition: 'all 0.2s',
+                                                fontWeight: isActive ? 500 : 400
+                                            }}
+                                            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#40a9ff'; }}
+                                            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#d9d9d9'; }}
+                                        >
+                                            T{m}
+                                        </div>
+                                    )
+                                })}
+                                {/* ALL BLOCK */}
+                                <div
+                                    onClick={() => {
+                                        setSelectedMonth(null);
+                                        const start = dayjs().year(selectedYear).startOf('year');
+                                        const end = dayjs().year(selectedYear).endOf('year');
+                                        setDateRange([start, end]);
+                                    }}
+                                    style={{
+                                        padding: '4px 12px',
+                                        borderRadius: 4,
+                                        cursor: 'pointer',
+                                        border: selectedMonth === null ? '1px solid #722ed1' : '1px solid #d9d9d9',
+                                        background: selectedMonth === null ? '#f9f0ff' : '#fff',
+                                        color: selectedMonth === null ? '#722ed1' : '#666',
+                                        fontSize: 13,
+                                        transition: 'all 0.2s',
+                                        fontWeight: selectedMonth === null ? 500 : 400
+                                    }}
+                                    onMouseEnter={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#b37feb'; }}
+                                    onMouseLeave={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#d9d9d9'; }}
+                                >
+                                    All
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
-
-
                     <RangePicker
-                        style={{ width: 260 }}
+                        style={{ width: isMobile ? '100%' : 260 }}
                         placeholder={['Từ ngày', 'Đến ngày']}
-                        value={dateRange as any} // Ensure value is controlled if we want to reflect month clicks
+                        value={dateRange as any}
                         onChange={(dates) => {
                             setDateRange(dates as any);
-                            if (dates) setSelectedMonth(null); // Clear specific month block selection if manual range is picked
+                            if (dates) setSelectedMonth(null);
                         }}
                     />
                 </div>
 
-                <Row gutter={16}>
-                    <Col span={5}>
-                        <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#f9f0ff', border: '1px solid #d3adf7' }}>
-                            <Statistic title="Tổng Giá Trị" value={metrics.totalRevenue} precision={0} suffix="₫" prefix={<DollarOutlined style={{ color: '#722ed1' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold' }} />
-                        </Card>
-                    </Col>
-                    <Col span={5}>
-                        <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#f6ffed', border: '1px solid #b7eb8f' }}>
-                            <Statistic title="Đã Thực Thu" value={metrics.totalPaid} precision={0} suffix="₫" prefix={<WalletOutlined style={{ color: '#52c41a' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold', color: '#389e0d' }} />
-                        </Card>
-                    </Col>
-                    <Col span={5}>
-                        <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#fff2e8', border: '1px solid #ffbb96' }}>
-                            <Statistic title="Công Nợ / Còn Lại" value={metrics.totalRemaining} precision={0} suffix="₫" prefix={<AuditOutlined style={{ color: '#fa541c' }} />} valueStyle={{ fontSize: 18, fontWeight: 'bold', color: '#cf1322' }} />
-                        </Card>
-                    </Col>
-                    <Col span={4}>
-                        <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#e6f7ff', border: '1px solid #91d5ff' }}>
-                            <Statistic title="Số Đơn Hàng" value={metrics.count} prefix={<ShoppingCartOutlined style={{ color: '#1890ff' }} />} valueStyle={{ fontSize: 18 }} />
-                        </Card>
-                    </Col>
-                    <Col span={5}>
-                        <Card bordered={false} bodyStyle={{ padding: 12 }} style={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
-                            <Statistic title="Đang Xử Lý" value={metrics.processingCount} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} valueStyle={{ fontSize: 18 }} />
-                        </Card>
-                    </Col>
-                </Row>
+                {/* STATS CARDS - HORIZONTAL SCROLL ON MOBILE */}
+                <div style={{ overflowX: isMobile ? 'auto' : 'visible', marginBottom: 8 }}>
+                    <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 600 : 'auto' }}>
+                        <Col flex={isMobile ? '120px' : 1}>
+                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#f9f0ff', border: '1px solid #d3adf7' }}>
+                                <Statistic title="Tổng GT" value={metrics.totalRevenue} precision={0} suffix="₫" prefix={<DollarOutlined style={{ color: '#722ed1' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18, fontWeight: 'bold' }} />
+                            </Card>
+                        </Col>
+                        <Col flex={isMobile ? '120px' : 1}>
+                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#f6ffed', border: '1px solid #b7eb8f' }}>
+                                <Statistic title="Thực Thu" value={metrics.totalPaid} precision={0} suffix="₫" prefix={<WalletOutlined style={{ color: '#52c41a' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18, fontWeight: 'bold', color: '#389e0d' }} />
+                            </Card>
+                        </Col>
+                        <Col flex={isMobile ? '120px' : 1}>
+                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#fff2e8', border: '1px solid #ffbb96' }}>
+                                <Statistic title="Công Nợ" value={metrics.totalRemaining} precision={0} suffix="₫" prefix={<AuditOutlined style={{ color: '#fa541c' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18, fontWeight: 'bold', color: '#cf1322' }} />
+                            </Card>
+                        </Col>
+                        <Col flex={isMobile ? '100px' : 1}>
+                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#e6f7ff', border: '1px solid #91d5ff' }}>
+                                <Statistic title="Số Đơn" value={metrics.count} prefix={<ShoppingCartOutlined style={{ color: '#1890ff' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18 }} />
+                            </Card>
+                        </Col>
+                        <Col flex={isMobile ? '100px' : 1}>
+                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
+                                <Statistic title="Đang XL" value={metrics.processingCount} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18 }} />
+                            </Card>
+                        </Col>
+                    </Row>
+                </div>
             </div>
 
             <Card
