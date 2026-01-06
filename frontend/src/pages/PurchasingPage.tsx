@@ -4,12 +4,14 @@ import { ReloadOutlined, EyeOutlined, DeleteOutlined, SendOutlined, CheckCircleO
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
+import { useMobile } from '../hooks/useMobile';
 
 const PurchasingPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('ALL');
     const [searchText, setSearchText] = useState('');
+    const isMobile = useMobile();
 
     // Detail Modal State
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -659,24 +661,36 @@ const PurchasingPage: React.FC = () => {
 
     return (
         <div>
-            <Card title="Quản Lý Mua Hàng & Gia Công" extra={<Space>
-                {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedReqs.length === 0}>+ Tạo PO Gộp ({selectedReqs.length})</Button>}
-                {activeTab === 'POOLED' && <Popconfirm title="Xóa tất cả PO Gộp?" onConfirm={async () => {
-                    await axios.delete(`${API_URL}/purchasing/pooled/all`);
-                    message.success('Đã xóa dữ liệu gộp');
-                    fetchData();
-                }}><Button danger>Xóa Data Gộp (Test)</Button></Popconfirm>}
-
-                <Input prefix={<SearchOutlined />} placeholder="Tìm PO..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 200 }} allowClear />
-                <Button icon={<ReloadOutlined />} onClick={() => activeTab.startsWith('REQ') ? fetchRequirements() : fetchData()}>Làm mới</Button>
-            </Space>}>
-                <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
-                    { key: 'ALL', label: 'Tất cả PO' },
-                    { key: 'MATERIAL', label: 'Mua NPL' },
-                    { key: 'OUTSOURCING', label: 'Gia Công' },
-                    { key: 'POOLED', label: 'PO Gộp' },
-                    { key: 'REQ_NPL', label: 'Tổng Hợp Nhu Cầu NPL' },
-                    { key: 'REQ_GC', label: 'Tổng Hợp Nhu Cầu GC' }
+            <Card
+                bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
+                title={<span style={{ fontSize: isMobile ? 14 : 16 }}>Mua Hàng</span>}
+                extra={
+                    isMobile ? (
+                        <Space size={4}>
+                            <Input prefix={<SearchOutlined />} placeholder="Tìm..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 100 }} allowClear />
+                            <Button icon={<ReloadOutlined />} onClick={() => activeTab.startsWith('REQ') ? fetchRequirements() : fetchData()} />
+                        </Space>
+                    ) : (
+                        <Space>
+                            {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedReqs.length === 0}>+ Tạo PO Gộp ({selectedReqs.length})</Button>}
+                            {activeTab === 'POOLED' && <Popconfirm title="Xóa tất cả PO Gộp?" onConfirm={async () => {
+                                await axios.delete(`${API_URL}/purchasing/pooled/all`);
+                                message.success('Đã xóa dữ liệu gộp');
+                                fetchData();
+                            }}><Button danger>Xóa Data Gộp (Test)</Button></Popconfirm>}
+                            <Input prefix={<SearchOutlined />} placeholder="Tìm PO..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 200 }} allowClear />
+                            <Button icon={<ReloadOutlined />} onClick={() => activeTab.startsWith('REQ') ? fetchRequirements() : fetchData()}>Làm mới</Button>
+                        </Space>
+                    )
+                }
+            >
+                <Tabs activeKey={activeTab} onChange={setActiveTab} size={isMobile ? 'small' : 'middle'} items={[
+                    { key: 'ALL', label: isMobile ? 'Tất cả' : 'Tất cả PO' },
+                    { key: 'MATERIAL', label: isMobile ? 'NPL' : 'Mua NPL' },
+                    { key: 'OUTSOURCING', label: isMobile ? 'GC' : 'Gia Công' },
+                    { key: 'POOLED', label: isMobile ? 'Gộp' : 'PO Gộp' },
+                    { key: 'REQ_NPL', label: isMobile ? 'NC NPL' : 'Tổng Hợp Nhu Cầu NPL' },
+                    { key: 'REQ_GC', label: isMobile ? 'NC GC' : 'Tổng Hợp Nhu Cầu GC' }
                 ]} />
 
                 {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') ? (

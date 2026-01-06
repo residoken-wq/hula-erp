@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber, Checkbox } from 'antd';
+import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber, Checkbox, Space } from 'antd';
 import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined, TruckOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
+import { useMobile } from '../hooks/useMobile';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -11,6 +12,7 @@ const { Option } = Select;
 const PlanningPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('PENDING');
     const [loading, setLoading] = useState(false);
+    const isMobile = useMobile();
 
     // Data State
     const [pendingOrders, setPendingOrders] = useState<any[]>([]);
@@ -526,11 +528,36 @@ const PlanningPage: React.FC = () => {
 
     return (
         <div>
-            <Row gutter={16} style={{ marginBottom: 16 }}><Col span={8}><Card><Statistic title="Đơn Hàng Chờ SX" value={pendingOrders.length} prefix={<AlertOutlined />} valueStyle={{ color: '#faad14' }} /></Card></Col><Col span={8}><Card><Statistic title="Kế Hoạch Đang Chạy" value={plans.length} prefix={<ProjectOutlined />} valueStyle={{ color: '#1890ff' }} /></Card></Col></Row>
-            <Card title="Trung Tâm Điều Hành Sản Xuất (Planning Center)" extra={<Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>}>
+            {/* STATS CARDS - HORIZONTAL SCROLL ON MOBILE */}
+            <div style={{ overflowX: isMobile ? 'auto' : 'visible', marginBottom: 16 }}>
+                <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 320 : 'auto' }}>
+                    <Col flex={isMobile ? '150px' : 1}>
+                        <Card bodyStyle={{ padding: isMobile ? 10 : 20 }}>
+                            <Statistic title={<span style={{ fontSize: isMobile ? 12 : 14 }}>Chờ SX</span>} value={pendingOrders.length} prefix={<AlertOutlined />} valueStyle={{ color: '#faad14', fontSize: isMobile ? 18 : 24 }} />
+                        </Card>
+                    </Col>
+                    <Col flex={isMobile ? '150px' : 1}>
+                        <Card bodyStyle={{ padding: isMobile ? 10 : 20 }}>
+                            <Statistic title={<span style={{ fontSize: isMobile ? 12 : 14 }}>Kế Hoạch</span>} value={plans.length} prefix={<ProjectOutlined />} valueStyle={{ color: '#1890ff', fontSize: isMobile ? 18 : 24 }} />
+                        </Card>
+                    </Col>
+                </Row>
+            </div>
+
+            <Card
+                bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
+                title={<span style={{ fontSize: isMobile ? 14 : 16 }}>MRP / Planning</span>}
+                extra={
+                    isMobile ? (
+                        <Button icon={<ReloadOutlined />} onClick={fetchData} />
+                    ) : (
+                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+                    )
+                }
+            >
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
-                    { key: 'PENDING', label: '1. Gom Đơn Lập Kế Hoạch', children: <div><div style={{ marginBottom: 10, background: '#fffbe6', padding: 10 }}><AlertOutlined /> Chọn đơn hàng để lập kế hoạch.</div><Table rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }} dataSource={pendingOrders} columns={pendingColumns} rowKey="id" expandable={{ expandedRowRender }} footer={() => (<Button type="primary" disabled={selectedRowKeys.length === 0} onClick={() => setIsCreateModalOpen(true)}>Lập Kế Hoạch</Button>)} /></div> },
-                    { key: 'PLANS', label: '2. Danh Sách Kế Hoạch', children: <Table dataSource={plans} columns={planColumns} rowKey="id" /> }
+                    { key: 'PENDING', label: isMobile ? 'Gom Đơn' : '1. Gom Đơn Lập Kế Hoạch', children: <div><div style={{ marginBottom: 10, background: '#fffbe6', padding: 10 }}><AlertOutlined /> Chọn đơn hàng để lập kế hoạch.</div><Table rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }} dataSource={pendingOrders} columns={pendingColumns} rowKey="id" expandable={{ expandedRowRender }} scroll={{ x: isMobile ? 600 : undefined }} footer={() => (<Button type="primary" disabled={selectedRowKeys.length === 0} onClick={() => setIsCreateModalOpen(true)}>Lập Kế Hoạch</Button>)} /></div> },
+                    { key: 'PLANS', label: isMobile ? 'Kế Hoạch' : '2. Danh Sách Kế Hoạch', children: <Table dataSource={plans} columns={planColumns} rowKey="id" scroll={{ x: isMobile ? 500 : undefined }} /> }
                 ]} />
             </Card>
             <Modal

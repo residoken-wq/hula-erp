@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Button, Tag, Modal, Form, Input, Select, DatePicker, Row, Col, message, Progress, Avatar, Tooltip, Radio } from 'antd';
-import { PlusOutlined, EditOutlined, CheckCircleOutlined, ClockCircleOutlined, FlagOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Tag, Modal, Form, Input, Select, DatePicker, Row, Col, message, Progress, Avatar, Tooltip, Radio, Space } from 'antd';
+import { PlusOutlined, EditOutlined, CheckCircleOutlined, ClockCircleOutlined, FlagOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
+import { useMobile } from '../hooks/useMobile';
 
 const { Option } = Select;
 
@@ -15,6 +16,7 @@ const TasksPage: React.FC = () => {
     const [editingTask, setEditingTask] = useState<any>(null);
     const [form] = Form.useForm();
     const [filterStatus, setFilterStatus] = useState('ALL');
+    const isMobile = useMobile();
 
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -119,18 +121,25 @@ const TasksPage: React.FC = () => {
     return (
         <div style={{ paddingBottom: 20 }}>
             <Card
-                title="Quản lý Công Việc & Nhắc Nhở"
-                extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTask(null); form.resetFields(); setIsModalOpen(true) }}>Thêm Công Việc</Button>}
+                bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
+                title={<span style={{ fontSize: isMobile ? 14 : 16 }}>Công Việc</span>}
+                extra={
+                    isMobile ? (
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTask(null); form.resetFields(); setIsModalOpen(true) }} />
+                    ) : (
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTask(null); form.resetFields(); setIsModalOpen(true) }}>Thêm Công Việc</Button>
+                    )
+                }
             >
-                <div style={{ marginBottom: 16 }}>
-                    <Radio.Group value={filterStatus} onChange={e => setFilterStatus(e.target.value)} buttonStyle="solid">
+                <div style={{ marginBottom: 16, overflowX: isMobile ? 'auto' : 'visible' }}>
+                    <Radio.Group value={filterStatus} onChange={e => setFilterStatus(e.target.value)} buttonStyle="solid" size={isMobile ? 'small' : 'middle'}>
                         <Radio.Button value="ALL">Tất cả</Radio.Button>
                         <Radio.Button value="TODO">Cần làm</Radio.Button>
-                        <Radio.Button value="IN_PROGRESS">Đang thực hiện</Radio.Button>
-                        <Radio.Button value="DONE">Hoàn thành</Radio.Button>
+                        <Radio.Button value="IN_PROGRESS">{isMobile ? 'Đang XL' : 'Đang thực hiện'}</Radio.Button>
+                        <Radio.Button value="DONE">{isMobile ? 'Xong' : 'Hoàn thành'}</Radio.Button>
                     </Radio.Group>
                 </div>
-                <Table dataSource={filteredTasks} columns={columns} rowKey="id" loading={loading} />
+                <Table dataSource={filteredTasks} columns={columns} rowKey="id" loading={loading} scroll={{ x: isMobile ? 600 : undefined }} />
             </Card>
 
             <Modal

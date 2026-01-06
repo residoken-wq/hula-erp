@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { API_URL } from '../../config';
+import { useMobile } from '../../hooks/useMobile';
 
 const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
     const [comments, setComments] = useState<any[]>([]);
@@ -14,6 +15,7 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
     const [activeTab, setActiveTab] = useState<'CUSTOMER' | 'INTERNAL'>('CUSTOMER');
     const [users, setUsers] = useState<any[]>([]);
     const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
+    const isMobile = useMobile();
 
     const fetchComments = async () => {
         try { const res = await axios.get(`${API_URL}/sales/${orderId}/comments`); setComments(res.data); } catch (e) { }

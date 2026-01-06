@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useMobile } from '../hooks/useMobile';
 import {
     Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form,
     Input, Select, DatePicker, Tag, message, Popconfirm,
@@ -18,6 +19,7 @@ const { Option } = Select;
 
 const FinancePage: React.FC = () => {
     const [loading, setLoading] = useState(false);
+    const isMobile = useMobile();
     const [transactions, setTransactions] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]); // <--- New State
@@ -281,51 +283,59 @@ const FinancePage: React.FC = () => {
 
     return (
         <div style={{ paddingBottom: 20 }}>
-            {/* TOP CARDS */}
-            <Row gutter={16} style={{ marginBottom: 16 }}>
-                <Col span={8}>
-                    <Card bordered={false} style={{ background: 'linear-gradient(135deg, #3f8600 0%, #52c41a 100%)' }}>
-                        <Statistic title={<span style={{ color: 'rgba(255,255,255,0.8)' }}>Tổng Thu (Lũy kế)</span>} value={summary.income} precision={0} valueStyle={{ color: '#fff', fontWeight: 'bold' }} prefix={<ArrowUpOutlined />} />
-                    </Card>
-                </Col>
-                <Col span={8}>
-                    <Card bordered={false} style={{ background: 'linear-gradient(135deg, #cf1322 0%, #ff4d4f 100%)' }}>
-                        <Statistic title={<span style={{ color: 'rgba(255,255,255,0.8)' }}>Tổng Chi (Lũy kế)</span>} value={summary.expense} precision={0} valueStyle={{ color: '#fff', fontWeight: 'bold' }} prefix={<ArrowDownOutlined />} />
-                    </Card>
-                </Col>
-                <Col span={8}>
-                    <Card bordered={false} style={{ background: 'linear-gradient(135deg, #096dd9 0%, #1890ff 100%)' }}>
-                        <Statistic title={<span style={{ color: 'rgba(255,255,255,0.8)' }}>Quỹ Tiền Mặt</span>} value={summary.balance} precision={0} valueStyle={{ color: '#fff', fontWeight: 'bold' }} prefix={<BankOutlined />} />
-                    </Card>
-                </Col>
-            </Row>
-
-
+            {/* TOP CARDS - HORIZONTAL SCROLL ON MOBILE */}
+            <div style={{ overflowX: isMobile ? 'auto' : 'visible', marginBottom: 16 }}>
+                <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 500 : 'auto' }}>
+                    <Col flex={isMobile ? '160px' : 1}>
+                        <Card bordered={false} bodyStyle={{ padding: isMobile ? 10 : 20 }} style={{ background: 'linear-gradient(135deg, #3f8600 0%, #52c41a 100%)' }}>
+                            <Statistic title={<span style={{ color: 'rgba(255,255,255,0.8)', fontSize: isMobile ? 12 : 14 }}>Tổng Thu</span>} value={summary.income} precision={0} valueStyle={{ color: '#fff', fontWeight: 'bold', fontSize: isMobile ? 16 : 24 }} prefix={<ArrowUpOutlined />} />
+                        </Card>
+                    </Col>
+                    <Col flex={isMobile ? '160px' : 1}>
+                        <Card bordered={false} bodyStyle={{ padding: isMobile ? 10 : 20 }} style={{ background: 'linear-gradient(135deg, #cf1322 0%, #ff4d4f 100%)' }}>
+                            <Statistic title={<span style={{ color: 'rgba(255,255,255,0.8)', fontSize: isMobile ? 12 : 14 }}>Tổng Chi</span>} value={summary.expense} precision={0} valueStyle={{ color: '#fff', fontWeight: 'bold', fontSize: isMobile ? 16 : 24 }} prefix={<ArrowDownOutlined />} />
+                        </Card>
+                    </Col>
+                    <Col flex={isMobile ? '160px' : 1}>
+                        <Card bordered={false} bodyStyle={{ padding: isMobile ? 10 : 20 }} style={{ background: 'linear-gradient(135deg, #096dd9 0%, #1890ff 100%)' }}>
+                            <Statistic title={<span style={{ color: 'rgba(255,255,255,0.8)', fontSize: isMobile ? 12 : 14 }}>Quỹ TM</span>} value={summary.balance} precision={0} valueStyle={{ color: '#fff', fontWeight: 'bold', fontSize: isMobile ? 16 : 24 }} prefix={<BankOutlined />} />
+                        </Card>
+                    </Col>
+                </Row>
+            </div>
 
             <Card
-                title={<span><WalletOutlined /> Quản Lý Tài Chính</span>}
+                bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
+                title={<span style={{ fontSize: isMobile ? 14 : 16 }}><WalletOutlined /> Tài Chính</span>}
                 extra={
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        {activeTab !== 'REPORT' && (
-                            <>
-                                <Input prefix={<SearchOutlined />} placeholder="Tìm kiếm..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 200 }} allowClear />
-                                <DatePicker picker="month" value={filterMonth} onChange={v => v && setFilterMonth(v)} allowClear={false} />
-                            </>
-                        )}
-                        <Select
-                            value={pageSize}
-                            style={{ width: 110 }}
-                            onChange={(v) => setPageSize(v)}
-                            options={[
-                                { value: 10, label: '10 dòng' },
-                                { value: 20, label: '20 dòng' },
-                                { value: 50, label: '50 dòng' },
-                                { value: 100, label: '100 dòng' },
-                                { value: 999999, label: 'Tất cả' },
-                            ]}
-                        />
-                        <Button icon={<ReloadOutlined />} onClick={fetchData} />
-                    </div>
+                    isMobile ? (
+                        <Space size={4}>
+                            <DatePicker picker="month" value={filterMonth} onChange={v => v && setFilterMonth(v)} allowClear={false} style={{ width: 100 }} />
+                            <Button icon={<ReloadOutlined />} onClick={fetchData} />
+                        </Space>
+                    ) : (
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            {activeTab !== 'REPORT' && (
+                                <>
+                                    <Input prefix={<SearchOutlined />} placeholder="Tìm kiếm..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 200 }} allowClear />
+                                    <DatePicker picker="month" value={filterMonth} onChange={v => v && setFilterMonth(v)} allowClear={false} />
+                                </>
+                            )}
+                            <Select
+                                value={pageSize}
+                                style={{ width: 110 }}
+                                onChange={(v) => setPageSize(v)}
+                                options={[
+                                    { value: 10, label: '10 dòng' },
+                                    { value: 20, label: '20 dòng' },
+                                    { value: 50, label: '50 dòng' },
+                                    { value: 100, label: '100 dòng' },
+                                    { value: 999999, label: 'Tất cả' },
+                                ]}
+                            />
+                            <Button icon={<ReloadOutlined />} onClick={fetchData} />
+                        </div>
+                    )
                 }
             >
                 <Tabs activeKey={activeTab} onChange={setActiveTab} type="card" items={[

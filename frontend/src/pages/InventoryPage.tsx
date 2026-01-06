@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
+import { useMobile } from '../hooks/useMobile';
 
 
 const { Option } = Select;
@@ -22,6 +23,7 @@ const WAREHOUSES = [
 
 const InventoryPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
+    const isMobile = useMobile();
 
     const [products, setProducts] = useState<any[]>([]);
     const [materials, setMaterials] = useState<any[]>([]);
@@ -304,52 +306,65 @@ const InventoryPage: React.FC = () => {
 
     return (
         <div>
-            {/* --- DASHBOARD MINI --- */}
-            <Row gutter={16} style={{ marginBottom: 16 }}>
-                {WAREHOUSES.map(wh => {
-                    // Tính tổng tồn của kho này (chỉ mang tính tham khảo tổng số lượng)
-                    const totalInWh = stocks.filter(s => s.warehouse_code === wh.code).reduce((sum, s) => sum + Number(s.quantity), 0);
-                    return (
-                        <Col span={6} key={wh.code}>
-                            <Card size="small" style={{ borderTop: `3px solid ${wh.color}` }}>
-                                <Statistic
-                                    title={wh.name}
-                                    value={totalInWh}
-                                    valueStyle={{ color: wh.color }}
-                                    prefix={<AppstoreOutlined />}
-                                    suffix="đv"
-                                />
-                            </Card>
-                        </Col>
-                    )
-                })}
-            </Row>
+            {/* --- DASHBOARD MINI - HORIZONTAL SCROLL ON MOBILE --- */}
+            <div style={{ overflowX: isMobile ? 'auto' : 'visible', marginBottom: 16 }}>
+                <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 700 : 'auto' }}>
+                    {WAREHOUSES.map(wh => {
+                        const totalInWh = stocks.filter(s => s.warehouse_code === wh.code).reduce((sum, s) => sum + Number(s.quantity), 0);
+                        return (
+                            <Col flex={isMobile ? '140px' : 1} key={wh.code}>
+                                <Card size="small" bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ borderTop: `3px solid ${wh.color}` }}>
+                                    <Statistic
+                                        title={<span style={{ fontSize: isMobile ? 11 : 14 }}>{wh.name.split('.')[1] || wh.name}</span>}
+                                        value={totalInWh}
+                                        valueStyle={{ color: wh.color, fontSize: isMobile ? 16 : 24 }}
+                                        prefix={<AppstoreOutlined />}
+                                        suffix="đv"
+                                    />
+                                </Card>
+                            </Col>
+                        )
+                    })}
+                </Row>
+            </div>
 
             <Card
-                title="Quản Lý Kho Hàng"
+                bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
+                title={<span style={{ fontSize: isMobile ? 14 : 16 }}>Kho Hàng</span>}
                 extra={
-                    <Space>
-                        <Tag color="gold" style={{ fontSize: 14, padding: '5px 10px' }}>
-                            Tổng giá trị: <b>{filteredMasterData.reduce((sum, item) => sum + (Number(item.quantity_in_stock || 0) * Number(item.cost_price || item.cost_per_unit || 0)), 0).toLocaleString()} ₫</b>
-                        </Tag>
-                        <Divider type="vertical" />
-                        <Input.Search
-                            placeholder="Tìm tên SP / SKU..."
-                            onSearch={val => setSearchText(val)}
-                            onChange={e => setSearchText(e.target.value)}
-                            style={{ width: 250 }}
-                            allowClear
-                        />
-                        <Checkbox checked={showNegativeOnly} onChange={e => setShowNegativeOnly(e.target.checked)} style={{ marginLeft: 10 }}>
-                            <span style={{ color: showNegativeOnly ? 'red' : 'inherit' }}>Chỉ hiện tồn âm</span>
-                        </Checkbox>
-                        <Divider type="vertical" />
-                        <Button type="primary" icon={<SwapOutlined />} onClick={() => { form.resetFields(); setIsModalOpen(true) }}>Điều Chỉnh Kho</Button>
-                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
-
-                        {/* BUTTON ẨN ADMIN */}
-                        <Button type="text" danger icon={<AlertOutlined />} onClick={() => setIsResetModalOpen(true)} title="Admin Reset System" />
-                    </Space>
+                    isMobile ? (
+                        <Space size={4}>
+                            <Input.Search
+                                placeholder="Tìm..."
+                                onSearch={val => setSearchText(val)}
+                                onChange={e => setSearchText(e.target.value)}
+                                style={{ width: 120 }}
+                                allowClear
+                            />
+                            <Button icon={<ReloadOutlined />} onClick={fetchData} />
+                        </Space>
+                    ) : (
+                        <Space>
+                            <Tag color="gold" style={{ fontSize: 14, padding: '5px 10px' }}>
+                                Tổng giá trị: <b>{filteredMasterData.reduce((sum, item) => sum + (Number(item.quantity_in_stock || 0) * Number(item.cost_price || item.cost_per_unit || 0)), 0).toLocaleString()} ₫</b>
+                            </Tag>
+                            <Divider type="vertical" />
+                            <Input.Search
+                                placeholder="Tìm tên SP / SKU..."
+                                onSearch={val => setSearchText(val)}
+                                onChange={e => setSearchText(e.target.value)}
+                                style={{ width: 250 }}
+                                allowClear
+                            />
+                            <Checkbox checked={showNegativeOnly} onChange={e => setShowNegativeOnly(e.target.checked)} style={{ marginLeft: 10 }}>
+                                <span style={{ color: showNegativeOnly ? 'red' : 'inherit' }}>Chỉ hiện tồn âm</span>
+                            </Checkbox>
+                            <Divider type="vertical" />
+                            <Button type="primary" icon={<SwapOutlined />} onClick={() => { form.resetFields(); setIsModalOpen(true) }}>Điều Chỉnh Kho</Button>
+                            <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+                            <Button type="text" danger icon={<AlertOutlined />} onClick={() => setIsResetModalOpen(true)} title="Admin Reset System" />
+                        </Space>
+                    )
                 }
             >
                 <Tabs activeKey={activeTab} onChange={setActiveTab} type="card">

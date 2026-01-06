@@ -5,15 +5,17 @@ import api from '../utils/api';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import LeadCarePanel from '../components/crm/LeadCarePanel';
+import { useMobile } from '../hooks/useMobile';
 
 const { Option } = Select;
 
 const CustomersPage: React.FC = () => {
     const [customers, setCustomers] = useState<any[]>([]);
-    const [users, setUsers] = useState<any[]>([]); // New State
+    const [users, setUsers] = useState<any[]>([]);
     const [filteredData, setFilteredData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
+    const isMobile = useMobile();
 
     // State Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -187,16 +189,24 @@ const CustomersPage: React.FC = () => {
     return (
         <div>
             <Card
-                title="Danh Mục Khách Hàng & Đối Tác"
+                bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
+                title={<span style={{ fontSize: isMobile ? 14 : 16 }}>Khách Hàng</span>}
                 extra={
-                    <Space>
-                        <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }}>Thêm Mới</Button>
-                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
-                    </Space>
+                    isMobile ? (
+                        <Space size={4}>
+                            <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }} />
+                            <Button icon={<ReloadOutlined />} onClick={fetchData} />
+                        </Space>
+                    ) : (
+                        <Space>
+                            <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }}>Thêm Mới</Button>
+                            <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
+                        </Space>
+                    )
                 }
             >
                 <div style={{ marginBottom: 16 }}>
-                    <Input placeholder="Tìm kiếm..." prefix={<SearchOutlined style={{ color: '#ccc' }} />} style={{ width: 300 }} value={searchText} onChange={e => setSearchText(e.target.value)} allowClear />
+                    <Input placeholder="Tìm kiếm..." prefix={<SearchOutlined style={{ color: '#ccc' }} />} style={{ width: isMobile ? '100%' : 300 }} value={searchText} onChange={e => setSearchText(e.target.value)} allowClear />
                 </div>
                 <Table columns={columns} dataSource={filteredData} rowKey="id" loading={loading} bordered pagination={{ pageSize: 10 }} />
             </Card>

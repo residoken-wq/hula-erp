@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BankOutline
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
+import { useMobile } from '../hooks/useMobile';
 
 const { RangePicker } = DatePicker;
 const { Text, Title } = Typography;
@@ -13,6 +14,7 @@ const SuppliersPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
     const [filterType, setFilterType] = useState<string>('ALL');
+    const isMobile = useMobile();
 
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -314,51 +316,66 @@ const SuppliersPage: React.FC = () => {
     };
 
     return (
-        <div style={{ padding: '0 12px' }}>
+        <div style={{ padding: isMobile ? '0 4px' : '0 12px' }}>
+            {/* STATS CARDS - HORIZONTAL SCROLL ON MOBILE */}
             <div style={{ marginBottom: 24 }}>
-                <Title level={2} style={{ marginBottom: 24, fontWeight: 700 }}>Đối Tác & Nhà Cung Cấp</Title>
-                <Row gutter={16}>
-                    <Col span={6}>
-                        <Card bordered={false} bodyStyle={{ padding: 16 }}>
-                            <Statistic title="Tổng NCC" value={data.length} prefix={<ShopOutlined />} valueStyle={{ fontWeight: 'bold' }} />
-                        </Card>
-                    </Col>
-                    <Col span={6}>
-                        <Card bordered={false} bodyStyle={{ padding: 16 }}>
-                            <Statistic title="Tổng Công Nợ" value={suppliersWithDebt.reduce((acc, s) => acc + Number(s.debt), 0)} prefix={<DollarOutlined />} suffix="₫" valueStyle={{ color: '#cf1322', fontWeight: 'bold' }} />
-                        </Card>
-                    </Col>
-                    <Col span={6}>
-                        <Card bordered={false} bodyStyle={{ padding: 16 }}>
-                            <Statistic title="Số NCC đang nợ" value={suppliersWithDebt.length} prefix={<BankOutlined />} valueStyle={{ color: '#fa8c16', fontWeight: 'bold' }} />
-                        </Card>
-                    </Col>
-                    <Col span={6}>
-                        <Card bordered={false} bodyStyle={{ padding: 16, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true) }}>Thêm Mới</Button>
-                        </Card>
-                    </Col>
-                </Row>
+                {!isMobile && <Title level={2} style={{ marginBottom: 24, fontWeight: 700 }}>Đối Tác & Nhà Cung Cấp</Title>}
+                <div style={{ overflowX: isMobile ? 'auto' : 'visible' }}>
+                    <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 600 : 'auto' }}>
+                        <Col flex={isMobile ? '130px' : 1}>
+                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 10 : 16 }}>
+                                <Statistic title={<span style={{ fontSize: isMobile ? 11 : 14 }}>Tổng NCC</span>} value={data.length} prefix={<ShopOutlined />} valueStyle={{ fontWeight: 'bold', fontSize: isMobile ? 18 : 24 }} />
+                            </Card>
+                        </Col>
+                        <Col flex={isMobile ? '140px' : 1}>
+                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 10 : 16 }}>
+                                <Statistic title={<span style={{ fontSize: isMobile ? 11 : 14 }}>Tổng Công Nợ</span>} value={suppliersWithDebt.reduce((acc, s) => acc + Number(s.debt), 0)} prefix={<DollarOutlined />} suffix="₫" valueStyle={{ color: '#cf1322', fontWeight: 'bold', fontSize: isMobile ? 16 : 24 }} />
+                            </Card>
+                        </Col>
+                        <Col flex={isMobile ? '130px' : 1}>
+                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 10 : 16 }}>
+                                <Statistic title={<span style={{ fontSize: isMobile ? 11 : 14 }}>NCC nợ</span>} value={suppliersWithDebt.length} prefix={<BankOutlined />} valueStyle={{ color: '#fa8c16', fontWeight: 'bold', fontSize: isMobile ? 18 : 24 }} />
+                            </Card>
+                        </Col>
+                        <Col flex={isMobile ? '100px' : 1}>
+                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 10 : 16, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                                <Button type="primary" size={isMobile ? 'middle' : 'large'} icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true) }}>{isMobile ? '' : 'Thêm Mới'}</Button>
+                            </Card>
+                        </Col>
+                    </Row>
+                </div>
             </div>
 
-            <Card bordered={false} bodyStyle={{ padding: 0 }} style={{ overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', borderRadius: 8 }}>
-                <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                        <Input placeholder="Tìm kiếm theo tên, mã..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 280 }} size="middle" allowClear />
-                        <Divider type="vertical" />
-                        <span style={{ color: '#8c8c8c' }}><FilterOutlined /> Lọc:</span>
-                        <Segmented
-                            options={[
+            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 0 }} style={{ overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', borderRadius: 8 }}>
+                <div style={{ padding: isMobile ? '8px' : '16px 24px', display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', backgroundColor: '#fafafa', borderBottom: '1px solid #f0f0f0', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: isMobile ? 8 : 16, alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+                        <Input placeholder="Tìm kiếm..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: isMobile ? '100%' : 280 }} size="middle" allowClear />
+                        {!isMobile && <Divider type="vertical" />}
+                        {isMobile ? (
+                            <Select value={filterType} onChange={setFilterType} style={{ width: '100%' }} options={[
                                 { label: 'Tất cả', value: 'ALL' },
                                 { label: 'NPL', value: 'MATERIAL' },
                                 { label: 'Gia Công', value: 'PROCESSING' },
                                 { label: 'Dịch vụ', value: 'SERVICE' },
                                 { label: 'Logistics', value: 'LOGISTICS' },
-                                { label: 'Khác', value: 'OTHER' },
-                            ]}
-                            value={filterType}
-                            onChange={(v: string) => setFilterType(v)}
-                        />
+                            ]} />
+                        ) : (
+                            <>
+                                <span style={{ color: '#8c8c8c' }}><FilterOutlined /> Lọc:</span>
+                                <Segmented
+                                    options={[
+                                        { label: 'Tất cả', value: 'ALL' },
+                                        { label: 'NPL', value: 'MATERIAL' },
+                                        { label: 'Gia Công', value: 'PROCESSING' },
+                                        { label: 'Dịch vụ', value: 'SERVICE' },
+                                        { label: 'Logistics', value: 'LOGISTICS' },
+                                        { label: 'Khác', value: 'OTHER' },
+                                    ]}
+                                    value={filterType}
+                                    onChange={(v: string) => setFilterType(v)}
+                                />
+                            </>
+                        )}
                     </div>
                 </div>
 

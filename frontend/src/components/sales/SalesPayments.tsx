@@ -5,6 +5,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../../config';
 import AttachmentUpload from '../common/AttachmentUpload';
+import { useMobile } from '../../hooks/useMobile';
 
 interface Props {
     orderId: number;
@@ -25,6 +26,7 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
     const [date, setDate] = useState(dayjs());
     const [attachments, setAttachments] = useState<string[]>([]);
     const [overpaymentAction, setOverpaymentAction] = useState<'REFUND' | 'CREDIT'>('CREDIT');
+    const isMobile = useMobile();
 
     const fetchHistory = async () => {
         try {
@@ -121,41 +123,42 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
 
     return (
         <div>
-            <Row gutter={16}>
-                <Col span={8}>
-                    <Statistic title="Tổng giá trị" value={totalAmount} suffix="đ" />
-                </Col>
-                <Col span={8}>
-                    {/* Sử dụng realTimePaidAmount thay vì paidAmount */}
-                    <Statistic
-                        title="Đã thanh toán"
-                        value={realTimePaidAmount}
-                        valueStyle={{ color: 'green' }}
-                        suffix="đ"
-                    />
-                </Col>
-                <Col span={8}>
-                    {/* Sử dụng remainingAmount đã tính toán lại */}
-                    <Statistic
-                        title="Còn lại"
-                        value={remainingAmount}
-                        valueStyle={{ color: remainingAmount > 0 ? 'red' : 'gray' }}
-                        suffix="đ"
-                    />
-                </Col>
-            </Row>
+            {/* STATS - HORIZONTAL SCROLL ON MOBILE */}
+            <div style={{ overflowX: isMobile ? 'auto' : 'visible' }}>
+                <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 400 : 'auto' }}>
+                    <Col flex={isMobile ? '130px' : 1}>
+                        <Statistic title={<span style={{ fontSize: isMobile ? 11 : 14 }}>Tổng</span>} value={totalAmount} suffix="đ" valueStyle={{ fontSize: isMobile ? 16 : 24 }} />
+                    </Col>
+                    <Col flex={isMobile ? '130px' : 1}>
+                        <Statistic
+                            title={<span style={{ fontSize: isMobile ? 11 : 14 }}>Đã TT</span>}
+                            value={realTimePaidAmount}
+                            valueStyle={{ color: 'green', fontSize: isMobile ? 16 : 24 }}
+                            suffix="đ"
+                        />
+                    </Col>
+                    <Col flex={isMobile ? '130px' : 1}>
+                        <Statistic
+                            title={<span style={{ fontSize: isMobile ? 11 : 14 }}>Còn lại</span>}
+                            value={remainingAmount}
+                            valueStyle={{ color: remainingAmount > 0 ? 'red' : 'gray', fontSize: isMobile ? 16 : 24 }}
+                            suffix="đ"
+                        />
+                    </Col>
+                </Row>
+            </div>
 
             <Divider />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                 <b>Lịch sử thanh toán:</b>
-                {/* Chỉ cho phép thêm thanh toán nếu còn nợ */}
                 <Button
                     type="primary"
                     icon={<DollarOutlined />}
                     onClick={openModal}
+                    size={isMobile ? 'small' : 'middle'}
                 >
-                    Thêm thanh toán
+                    {isMobile ? 'Thêm TT' : 'Thêm thanh toán'}
                 </Button>
             </div>
 

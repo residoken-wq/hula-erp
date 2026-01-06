@@ -3,6 +3,7 @@ import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfi
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
+import { useMobile } from '../hooks/useMobile';
 
 // --- IMPORTS CÁC COMPONENT ĐÃ TÁCH ---
 import ProductBOMTab from '../components/products/ProductBOMTab';
@@ -20,6 +21,7 @@ const ProductsPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
+    const isMobile = useMobile();
 
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -377,28 +379,37 @@ const ProductsPage: React.FC = () => {
 
     return (
         <Card
-            title="Quản Lý Sản Phẩm (SKU)"
+            bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
+            title={<span style={{ fontSize: isMobile ? 14 : 16 }}>Sản Phẩm</span>}
             extra={
-                <Space>
-                    <Input placeholder="Tìm kiếm SKU/Tên..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} allowClear />
-                    {canViewCost && (
-                        <Button icon={<SyncOutlined />} onClick={handleCalculateAllCosts}>Cập nhật tất cả giá</Button>
-                    )}
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1') }}>Thêm Mới</Button>
-                </Space>
+                isMobile ? (
+                    <Space size={4}>
+                        <Input placeholder="Tìm..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 120 }} allowClear />
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1') }} />
+                    </Space>
+                ) : (
+                    <Space>
+                        <Input placeholder="Tìm kiếm SKU/Tên..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} allowClear />
+                        {canViewCost && (
+                            <Button icon={<SyncOutlined />} onClick={handleCalculateAllCosts}>Cập nhật tất cả giá</Button>
+                        )}
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1') }}>Thêm Mới</Button>
+                    </Space>
+                )
             }
         >
             <Tabs
                 activeKey={viewMode}
                 onChange={setViewMode}
+                size={isMobile ? 'small' : 'middle'}
                 items={[
-                    { key: 'MAIN', label: <span><AppstoreOutlined /> Danh Sách Sản Phẩm</span> },
-                    { key: 'SEMI', label: <span><BuildOutlined /> Bán Thành Phẩm (BOM)</span> }
+                    { key: 'MAIN', label: <span><AppstoreOutlined /> {isMobile ? 'SP' : 'Danh Sách Sản Phẩm'}</span> },
+                    { key: 'SEMI', label: <span><BuildOutlined /> {isMobile ? 'BOM' : 'Bán Thành Phẩm (BOM)'}</span> }
                 ]}
                 style={{ marginBottom: 16 }}
             />
 
-            <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" />
+            <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" scroll={{ x: isMobile ? 800 : undefined }} />
 
             <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"}
                 open={isModalOpen}

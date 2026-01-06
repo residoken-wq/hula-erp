@@ -7,7 +7,8 @@ import SalesPayments from './sales/SalesPayments';
 import SalesDeliveries from './sales/SalesDeliveries';
 import SalesComments from './sales/SalesComments';
 import SalesChecklistPanel from './SalesChecklistPanel';
-import { HistoryOutlined, CopyOutlined } from '@ant-design/icons'; // Import icons
+import { HistoryOutlined, CopyOutlined } from '@ant-design/icons';
+import { useMobile } from '../hooks/useMobile';
 
 import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -136,6 +137,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const [activeTab, setActiveTab] = useState('1');
     const [orderItems, setOrderItems] = useState<any[]>([]);
     const [totalAmount, setTotalAmount] = useState(0);
+    const isMobile = useMobile();
 
     // Cancel Modal State
     const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -552,91 +554,90 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     return (
         <Modal
             title={
-                <span>
-                    {isQuotation ? 'Báo Giá' : 'Đơn Hàng (SO)'} #{initialData?.order_code}
+                <span style={{ fontSize: isMobile ? 14 : 16 }}>
+                    {isQuotation ? 'Báo Giá' : 'Đơn Hàng'} #{initialData?.order_code}
                     {initialData?.version > 1 && <Tag color="orange" style={{ marginLeft: 5 }}>v{initialData?.version}</Tag>}
                     {initialData?.status === 'COMPLETED' && <Tag color="green" style={{ marginLeft: 5 }}>Hoàn tất</Tag>}
                 </span>
             }
             open={open}
             onCancel={onClose}
-            width={1100}
-            footer={[
-                <Button key="close" onClick={onClose}>Đóng</Button>,
-                <Button key="save" type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu Thông Tin</Button>,
-
-                isQuotation && initialData && (
-                    <Button key="revision" icon={<CopyOutlined />} onClick={handleCreateRevision}>Tạo Version Mới</Button>
-                ),
-
-                isQuotation && initialData && (
-                    <Popconfirm title="Bạn có chắc chắn muốn xóa báo giá này không?" onConfirm={async () => {
-                        try {
-                            await api.delete(`/sales/quote/${initialData.id}`);
-                            message.success('Đã xóa báo giá');
-                            onSuccess();
-                            onClose();
-                        } catch (e) { message.error('Không thể xóa báo giá'); }
-                    }}>
-                        <Button key="delete-quote" danger icon={<DeleteOutlined />}>Xóa Báo Giá</Button>
-                    </Popconfirm>
-                ),
-
-                isQuotation && initialData && (
-                    <Button key="history" icon={<HistoryOutlined />} onClick={() => setRevisionModalOpen(true)}>Lịch sử</Button>
-                ),
-
-                /* BUTTON DUYỆT MẪU (CHỈ HIỆN KHI CÓ DATA) */
-                initialData && (
-                    <Tooltip title={isQuotation ? "Vui lòng chuyển thành Đơn hàng (SO) để duyệt mẫu" : "Xác nhận mẫu sản phẩm đã đạt yêu cầu"}>
-                        <Button
-                            key="approve"
-                            type="primary"
-                            style={{ backgroundColor: isQuotation ? '#d9d9d9' : '#52c41a', borderColor: isQuotation ? '#d9d9d9' : '#52c41a' }}
-                            icon={<CheckCircleOutlined />}
-                            onClick={handleApproveSamples}
-                            disabled={isQuotation || initialData?.status !== 'SO_PENDING'}
-                        >
-                            Duyệt mẫu sản xuất
+            width={isMobile ? '100%' : 1100}
+            style={{ top: isMobile ? 0 : 20, maxWidth: '100vw' }}
+            bodyStyle={{ padding: isMobile ? 8 : 24, maxHeight: isMobile ? 'calc(100vh - 120px)' : '70vh', overflowY: 'auto' }}
+            footer={
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                    <Button size={isMobile ? 'small' : 'middle'} onClick={onClose}>Đóng</Button>
+                    <Button size={isMobile ? 'small' : 'middle'} type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>
+                        {isMobile ? 'Lưu' : 'Lưu Thông Tin'}
+                    </Button>
+                    {isQuotation && initialData && (
+                        <Button size={isMobile ? 'small' : 'middle'} icon={<CopyOutlined />} onClick={handleCreateRevision}>
+                            {isMobile ? 'Tạo Ver' : 'Tạo Version Mới'}
                         </Button>
-                    </Tooltip>
-                ),
-
-
-
-                (!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
-                    <Button key="cancel" danger icon={<DeleteOutlined />} onClick={() => setCancelModalOpen(true)}>Hủy Đơn</Button>
-                ),
-
-                (!isQuotation && initialData && initialData.status !== 'CANCELLED') && <Button key="complete" type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>Hoàn tất đơn hàng</Button>
-            ]}
-            style={{ top: 20 }}
+                    )}
+                    {isQuotation && initialData && (
+                        <Popconfirm title="Xóa báo giá?" onConfirm={async () => {
+                            try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); }
+                        }}>
+                            <Button size={isMobile ? 'small' : 'middle'} danger icon={<DeleteOutlined />}>{isMobile ? 'Xóa' : 'Xóa Báo Giá'}</Button>
+                        </Popconfirm>
+                    )}
+                    {isQuotation && initialData && (
+                        <Button size={isMobile ? 'small' : 'middle'} icon={<HistoryOutlined />} onClick={() => setRevisionModalOpen(true)}>
+                            {isMobile ? 'LS' : 'Lịch sử'}
+                        </Button>
+                    )}
+                    {initialData && (
+                        <Tooltip title={isQuotation ? "Chuyển thành SO để duyệt mẫu" : "Xác nhận mẫu sản phẩm"}>
+                            <Button
+                                size={isMobile ? 'small' : 'middle'}
+                                type="primary"
+                                style={{ backgroundColor: isQuotation ? '#d9d9d9' : '#52c41a', borderColor: isQuotation ? '#d9d9d9' : '#52c41a' }}
+                                icon={<CheckCircleOutlined />}
+                                onClick={handleApproveSamples}
+                                disabled={isQuotation || initialData?.status !== 'SO_PENDING'}
+                            >
+                                {isMobile ? 'Duyệt' : 'Duyệt mẫu SX'}
+                            </Button>
+                        </Tooltip>
+                    )}
+                    {(!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
+                        <Button size={isMobile ? 'small' : 'middle'} danger icon={<DeleteOutlined />} onClick={() => setCancelModalOpen(true)}>
+                            {isMobile ? 'Hủy' : 'Hủy Đơn'}
+                        </Button>
+                    )}
+                    {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
+                        <Button size={isMobile ? 'small' : 'middle'} type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>
+                            {isMobile ? 'Hoàn tất' : 'Hoàn tất đơn hàng'}
+                        </Button>
+                    )}
+                </div>
+            }
         >
-            <Tabs activeKey={activeTab} onChange={setActiveTab}>
-                <Tabs.TabPane tab="1. Thông tin & Sản phẩm" key="1">
+            <Tabs activeKey={activeTab} onChange={setActiveTab} size={isMobile ? 'small' : 'middle'}>
+                <Tabs.TabPane tab={isMobile ? '1. SP' : '1. Thông tin & Sản phẩm'} key="1">
                     <Form form={form} layout="vertical" onValuesChange={handleFormValuesChange}>
-                        <Row gutter={16}>
-                            <Col span={8}><Form.Item name="order_code" label="Mã đơn hàng"><Input disabled placeholder="Tự động sinh mã" /></Form.Item></Col>
-                            <Col span={8}>
+                        <Row gutter={[16, isMobile ? 0 : 16]}>
+                            <Col xs={24} sm={8}><Form.Item name="order_code" label="Mã đơn"><Input disabled placeholder="Tự động" /></Form.Item></Col>
+                            <Col xs={24} sm={8}>
                                 <Form.Item name="customer_id" label="Khách hàng" rules={[{ required: true }]}>
                                     <Select
                                         showSearch
-                                        placeholder="Chọn khách hàng"
+                                        placeholder="Chọn KH"
                                         optionFilterProp="label"
-                                        // Add Internal Option if needed or just handle display
-                                        // options={customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))}
                                         options={[
-                                            ...(initialData?.isInternal ? [{ label: '🏢 SẢN XUẤT NỘI BỘ (Kho Thành Phẩm)', value: -1 }] : []),
+                                            ...(initialData?.isInternal ? [{ label: '🏢 NỘI BỘ', value: -1 }] : []),
                                             ...customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))
                                         ]}
                                         disabled={initialData?.isInternal}
                                     />
                                 </Form.Item>
                             </Col>
-                            <Col span={8}><Form.Item name="order_date" label="Ngày đặt" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
+                            <Col xs={24} sm={8}><Form.Item name="order_date" label="Ngày đặt" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                         </Row>
-                        <Row gutter={16}>
-                            <Col span={8}>
+                        <Row gutter={[16, isMobile ? 0 : 16]}>
+                            <Col xs={24} sm={8}>
                                 <Form.Item name="status" label="Trạng thái">
                                     <Select>
                                         {isQuotation ? (
@@ -647,7 +648,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                 <Option value="DEPOSITED">Đã đặt cọc</Option>
                                                 <Option value="SAMPLE_APPROVED">Đã duyệt mẫu SX</Option>
                                                 <Option value="IN_PRODUCTION">Đang sản xuất</Option>
-                                                <Option value="PARTIAL_DELIVERY">Giao hàng 1 phần</Option>
+                                                <Option value="PARTIAL_DELIVERY">Giao 1 phần</Option>
                                                 <Option value="DELIVERED">Đã giao hàng</Option>
                                                 <Option value="COMPLETED">Hoàn tất</Option>
                                             </>
@@ -656,17 +657,19 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                     </Select>
                                 </Form.Item>
                             </Col>
-                            <Col span={8}><Form.Item name="delivery_date" label="Ngày giao dự kiến"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
-                            <Col span={8}>
-                                <Form.Item name="assigned_to_id" label="Nhân sự phụ trách">
-                                    <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} placeholder="Chọn nhân viên" />
+                            <Col xs={24} sm={8}><Form.Item name="delivery_date" label={isMobile ? 'Ngày giao' : 'Ngày giao dự kiến'}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
+                            <Col xs={24} sm={8}>
+                                <Form.Item name="assigned_to_id" label={isMobile ? 'Phụ trách' : 'Nhân sự phụ trách'}>
+                                    <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} placeholder="Chọn NV" />
                                 </Form.Item>
                             </Col>
                         </Row>
                         <Row>
                             <Col span={24}>
                                 <Form.Item name="is_production_sample_approved" valuePropName="checked">
-                                    <Checkbox style={{ fontWeight: 600, color: '#1890ff' }}>Đã duyệt mẫu tiêu chuẩn - Production Sample Approved (KH duyệt khi báo giá)</Checkbox>
+                                    <Checkbox style={{ fontWeight: 600, color: '#1890ff' }}>
+                                        {isMobile ? 'Đã duyệt mẫu SX' : 'Đã duyệt mẫu tiêu chuẩn - Production Sample Approved'}
+                                    </Checkbox>
                                 </Form.Item>
                             </Col>
                         </Row>
@@ -687,19 +690,22 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         <Divider orientation="left">Danh sách sản phẩm</Divider>
                         <DndContext sensors={sensors} modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
                             <SortableContext items={orderItems.map((i) => i.key)} strategy={verticalListSortingStrategy}>
-                                <Table
-                                    components={{
-                                        body: {
-                                            row: DraggableRow,
-                                        },
-                                    }}
-                                    dataSource={orderItems}
-                                    columns={itemColumns}
-                                    pagination={false}
-                                    rowKey="key"
-                                    size="small"
-                                    bordered
-                                />
+                                <div style={{ overflowX: isMobile ? 'auto' : 'visible' }}>
+                                    <Table
+                                        components={{
+                                            body: {
+                                                row: DraggableRow,
+                                            },
+                                        }}
+                                        dataSource={orderItems}
+                                        columns={itemColumns}
+                                        pagination={false}
+                                        rowKey="key"
+                                        size="small"
+                                        bordered
+                                        scroll={isMobile ? { x: 800 } : undefined}
+                                    />
+                                </div>
                             </SortableContext>
                         </DndContext>
                         <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>Thêm sản phẩm</Button>
@@ -814,12 +820,14 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         </Row>
                     </Form>
                 </Tabs.TabPane>
-                <Tabs.TabPane tab="2. Xuất Hóa Đơn & VAT" key="invoice">
+                <Tabs.TabPane tab={isMobile ? '2. HĐ' : '2. Xuất Hóa Đơn & VAT'} key="invoice">
                     <Form form={form} layout="vertical">
-                        <div style={{ padding: 10, background: '#f5f5f5', borderRadius: 4, marginBottom: 15 }}>
-                            <div style={{ fontStyle: 'italic', color: '#666', marginBottom: 10 }}>
-                                <InfoCircleOutlined /> Thông tin này được lấy mặc định từ phần "Pháp Nhân" của khách hàng. Bạn có thể chỉnh sửa cho đơn hàng này.
-                            </div>
+                        <div style={{ padding: isMobile ? 6 : 10, background: '#f5f5f5', borderRadius: 4, marginBottom: 15 }}>
+                            {!isMobile && (
+                                <div style={{ fontStyle: 'italic', color: '#666', marginBottom: 10, fontSize: 12 }}>
+                                    <InfoCircleOutlined /> Lấy từ "Pháp Nhân" của KH
+                                </div>
+                            )}
                             <Row gutter={16}>
                                 <Col span={12}>
                                     <Form.Item name="vat_company_name" label="Tên đơn vị (Xuất HĐ)">
@@ -857,7 +865,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 </Tabs.TabPane>
                 {initialData?.id && !isQuotation && (
                     <>
-                        <Tabs.TabPane tab="3. Thanh toán" key="2">
+                        <Tabs.TabPane tab={isMobile ? '3. TT' : '3. Thanh toán'} key="2">
                             <SalesPayments
                                 orderId={initialData.id}
                                 orderCode={initialData.order_code}
@@ -867,13 +875,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 onSuccess={onSuccess}
                             />
                         </Tabs.TabPane>
-                        <Tabs.TabPane tab="4. Giao hàng" key="3">
+                        <Tabs.TabPane tab={isMobile ? '4. GH' : '4. Giao hàng'} key="3">
                             <SalesDeliveries order={initialData} products={products} customers={customers} onSuccess={onSuccess} />
                         </Tabs.TabPane>
-                        <Tabs.TabPane tab="5. Trao đổi" key="4">
+                        <Tabs.TabPane tab={isMobile ? '5. Chat' : '5. Trao đổi'} key="4">
                             <SalesComments orderId={initialData.id} />
                         </Tabs.TabPane>
-                        <Tabs.TabPane tab="6. Checklist" key="5">
+                        <Tabs.TabPane tab={isMobile ? '6. CL' : '6. Checklist'} key="5">
                             <SalesChecklistPanel orderId={initialData.id} orderStatus={initialData.status} onRefresh={onSuccess} />
                         </Tabs.TabPane>
                     </>
