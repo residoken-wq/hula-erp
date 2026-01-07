@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Badge, Popover, List, Avatar, Button, Typography, Empty } from 'antd';
 import { BellOutlined, CheckCircleOutlined, InfoCircleOutlined, WarningOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -12,6 +13,7 @@ dayjs.locale('vi');
 const { Text } = Typography;
 
 const HeaderNotifications: React.FC = () => {
+    const navigate = useNavigate();
     const [list, setList] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [open, setOpen] = useState(false);
@@ -68,7 +70,17 @@ const HeaderNotifications: React.FC = () => {
                 console.error("Failed to mark read:", e);
             }
         }
-        if (item.link) window.location.href = item.link;
+        // Navigate to the linked content
+        if (item.link) {
+            setOpen(false); // Close popover
+            if (item.link.startsWith('/')) {
+                // Internal link - use React Router
+                navigate(item.link);
+            } else {
+                // External link - use window.location
+                window.location.href = item.link;
+            }
+        }
     };
 
     const handleReadAll = async () => {

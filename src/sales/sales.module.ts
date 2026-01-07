@@ -26,6 +26,7 @@ import { CustomersModule } from '../customers/customers.module';
 import { FinanceModule } from '../finance/finance.module';
 import { SystemModule } from '../system/system.module';
 import { SalesOrderVersion } from './sales-order-version.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { SalesOrderVersion } from './sales-order-version.entity';
     InventoryModule,
     CustomersModule,
     SystemModule,
+    NotificationsModule,
     forwardRef(() => FinanceModule)
   ],
   controllers: [SalesController],

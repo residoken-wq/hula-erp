@@ -18,6 +18,7 @@ import { User } from '../users/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { SalesOrderVersion } from './sales-order-version.entity';
 import { SystemService } from '../system/system.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // --- CHECKLIST TEMPLATES ---
 const CHECKLIST_TEMPLATES: Record<string, Array<{ code: string; name: string; sort: number }>> = {
@@ -74,6 +75,7 @@ export class SalesService {
         private productsService: ProductsService,
         private inventoryService: InventoryService,
         private customersService: CustomersService,
+        private notificationsService: NotificationsService,
     ) { }
 
 
@@ -406,7 +408,24 @@ export class SalesService {
             mentioned_user_ids: mentionedUserIds,
             is_visible: commentType === 'CUSTOMER' // Internal comments are hidden on Portal
         });
-        return this.commentRepo.save(comment);
+        const savedComment = await this.commentRepo.save(comment);
+
+        // Create notifications for @mentioned users (INTERNAL comments only)
+        if (mentionedUserIds && commentType === 'INTERNAL') {
+            const userIds = mentionedUserIds.split(',').filter(id => id.trim());
+            for (const userId of userIds) {
+                await this.notificationsService.create({
+                    user_id: parseInt(userId, 10),
+                    title: `${name || 'Nhân viên'} đã nhắc đến bạn`,
+                    message: `Trong đơn hàng ${order.order_code}: ${content.replace(/<[^>]*>/g, '').substring(0, 100)}...`,
+                    type: 'INFO',
+                    link: `/sales?order=${order.id}`, // Link to sales page with order param
+                    is_read: false
+                });
+            }
+        }
+
+        return savedComment;
     }
 
     // Filter out deleted comments (deleted_at is null means not deleted)

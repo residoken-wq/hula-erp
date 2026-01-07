@@ -194,21 +194,27 @@ export class CustomersService {
             order: { created_at: 'DESC' }
         });
 
-        // 2. Get comments from all SOs
+        // 2. Get ALL comments from all SOs (both STAFF and CUSTOMER types)
         const soComments: any[] = [];
         if (customer.orders && customer.orders.length > 0) {
             for (const order of customer.orders) {
-                // Query SalesComment from sales_comments table using raw query
-                const comments = await this.commentRepo.manager.query(
-                    `SELECT * FROM sales_comments WHERE order_id = $1 AND comment_type = 'CUSTOMER' ORDER BY created_at DESC`,
-                    [order.id]
-                );
-                comments.forEach((c: any) => {
-                    soComments.push({
-                        ...c,
-                        source: 'SO',
-                        order_code: order.order_code
+                // Use TypeORM repository for cross-database compatibility
+                const comments = await this.commentRepo.manager
+                    .getRepository(SalesComment)
+                    .find({
+                        where: { order: { id: order.id } },
+                        order: { created_at: 'DESC' }
                     });
+
+                comments.forEach((c: any) => {
+                    // Filter out deleted comments
+                    if (!c.deleted_at) {
+                        soComments.push({
+                            ...c,
+                            source: 'SO',
+                            order_code: order.order_code
+                        });
+                    }
                 });
             }
         }
