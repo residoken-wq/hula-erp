@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { API_URL } from '../../config';
+import api from '../../utils/api';
 import useMobile from '../../hooks/useMobile';
 
 const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
@@ -22,7 +23,12 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
     };
 
     const fetchUsers = async () => {
-        try { const res = await axios.get(`${API_URL}/users`); setUsers(res.data); } catch (e) { }
+        try {
+            const res = await api.get('/users');
+            setUsers(res.data);
+        } catch (e) {
+            console.error('Failed to fetch users for mentions:', e);
+        }
     };
 
     useEffect(() => { if (orderId) { fetchComments(); fetchUsers(); } }, [orderId]);
