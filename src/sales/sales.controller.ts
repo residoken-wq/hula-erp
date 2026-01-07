@@ -131,6 +131,12 @@ export class SalesController {
     @Get(':id/revisions')
     getRevisions(@Param('id') id: number) { return this.s.getRevisions(id); }
 
+    @Delete('delivery/:deliveryId')
+    deleteDelivery(@Param('deliveryId') deliveryId: number) {
+        return this.s.deleteDelivery(deliveryId);
+    }
+
+
     // ============================================================
     // 4. CHECKLIST APIS
     // ============================================================

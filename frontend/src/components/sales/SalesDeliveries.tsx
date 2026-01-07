@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Input, Modal, message, InputNumber, Tooltip, Select, DatePicker, Tag } from 'antd';
-import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined, EditOutlined, UploadOutlined } from '@ant-design/icons';
+import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined, EditOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../../config';
@@ -43,6 +43,26 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             const res = await axios.get(`${API_URL}/sales/${order.id}/deliveries`);
             setHistory(Array.isArray(res.data) ? res.data : []);
         } catch (e) { }
+    };
+
+    const handleDeleteDelivery = async (deliveryId: number) => {
+        Modal.confirm({
+            title: 'Xóa Phiếu Xuất Kho?',
+            content: 'Bạn có chắc muốn xóa phiếu này? Nếu đã xuất kho, tồn kho sẽ được hoàn lại.',
+            okText: 'Xóa',
+            cancelText: 'Hủy',
+            okButtonProps: { danger: true },
+            onOk: async () => {
+                try {
+                    await axios.delete(`${API_URL}/sales/delivery/${deliveryId}`);
+                    message.success('Đã xóa phiếu xuất kho');
+                    fetchHistory();
+                    onSuccess();
+                } catch (e: any) {
+                    message.error(e.response?.data?.message || 'Không thể xóa phiếu');
+                }
+            }
+        });
     };
 
     useEffect(() => {
@@ -390,9 +410,14 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                                 <Button size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
                             </Tooltip>
                             {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
-                                <Tooltip title="Sửa phiếu">
-                                    <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(r)} />
-                                </Tooltip>
+                                <>
+                                    <Tooltip title="Sửa phiếu">
+                                        <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(r)} />
+                                    </Tooltip>
+                                    <Tooltip title="Xóa phiếu">
+                                        <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteDelivery(r.id)} />
+                                    </Tooltip>
+                                </>
                             )}
                             <Tooltip title="Gửi Email thông báo khách hàng">
                                 <Button size="small" icon={<MailOutlined />} onClick={async () => {

@@ -573,6 +573,38 @@ export class SalesService {
         return this.deliveryRepo.save(delivery);
     }
 
+    // --- DELETE DELIVERY (Only if SO is NOT COMPLETED) ---
+    async deleteDelivery(deliveryId: number) {
+        const delivery = await this.deliveryRepo.findOne({
+            where: { id: deliveryId },
+            relations: ['items', 'sales_order']
+        });
+        if (!delivery) throw new NotFoundException('Phiếu xuất kho không tồn tại');
+
+        const order = delivery.sales_order;
+        if (!order) throw new NotFoundException('Đơn hàng không tồn tại');
+
+        // Block deletion if order is COMPLETED
+        if (order.status === 'COMPLETED') {
+            throw new Error('Không thể xóa phiếu xuất kho khi đơn hàng đã Hoàn thành');
+        }
+
+        // If delivery was already SHIPPED, restore inventory
+        if (delivery.status === 'SHIPPED') {
+            for (const item of delivery.items || []) {
+                await this.inventoryService.adjustStock(item.sku, Number(item.quantity), 'IN', `Hoàn kho từ xóa PXK ${delivery.code}`);
+            }
+        }
+
+        // Delete delivery items first
+        await this.deliveryRepo.manager.delete('SalesDeliveryItem', { delivery: { id: deliveryId } });
+
+        // Delete delivery
+        await this.deliveryRepo.delete(deliveryId);
+
+        return { success: true, message: 'Đã xóa phiếu xuất kho' };
+    }
+
     // --- DELIVERY EMAIL ---
     async sendDeliveryEmail(deliveryId: number) {
         const delivery = await this.deliveryRepo.findOne({ where: { id: deliveryId }, relations: ['items', 'sales_order', 'sales_order.customer'] });
