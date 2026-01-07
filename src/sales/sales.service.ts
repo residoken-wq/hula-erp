@@ -611,7 +611,19 @@ export class SalesService {
         // If delivery was already SHIPPED, restore inventory
         if (delivery.status === 'SHIPPED') {
             for (const item of delivery.items || []) {
-                await this.inventoryService.adjustStock(item.sku, Number(item.quantity), 'IN', `Hoàn kho từ xóa PXK ${delivery.code}`);
+                // Lookup product by SKU to get ID
+                const product = await this.productsService.findOneBySku(item.sku);
+                if (product) {
+                    await this.inventoryService.adjustStock(
+                        'IMPORT',           // type: restore = import
+                        'PRODUCT',          // itemType
+                        product.id,         // itemId
+                        Number(item.quantity), // quantity
+                        delivery.code || 'PXK-DELETE', // refCode
+                        `Hoàn kho từ xóa PXK ${delivery.code}`, // note
+                        'MAIN'              // warehouse (default)
+                    );
+                }
             }
         }
 
