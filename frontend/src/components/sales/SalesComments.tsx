@@ -170,14 +170,17 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                         value={text}
                         onChange={(val) => setText(val)}
                         onSelect={(option) => {
-                            if (option.value && !mentionedUserIds.includes(String(option.value))) {
-                                setMentionedUserIds([...mentionedUserIds, String(option.value)]);
+                            // Find user by full_name to get their ID
+                            const selectedUser = users.find((u: any) => u.full_name === option.value);
+                            if (selectedUser && !mentionedUserIds.includes(String(selectedUser.id))) {
+                                setMentionedUserIds([...mentionedUserIds, String(selectedUser.id)]);
                             }
                         }}
                         rows={4}
                         options={users.map((u: any) => ({
-                            value: String(u.id),
+                            value: u.full_name, // Display name gets inserted into text
                             label: u.full_name,
+                            key: String(u.id), // Keep ID for reference
                         }))}
                     />
                 ) : (
