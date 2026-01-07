@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { List, Avatar, Button, message, Tabs, Select } from 'antd';
+import { List, Avatar, Button, message, Tabs, Mentions } from 'antd';
 import { UserOutlined, MessageOutlined, EyeInvisibleOutlined, EyeOutlined, TeamOutlined, CustomerServiceOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -154,28 +154,37 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                 )} />
             </div>
 
-            {activeTab === 'INTERNAL' && (
-                <div style={{ marginBottom: 10 }}>
-                    <Select
-                        mode="multiple"
-                        placeholder="@ Mention đồng nghiệp..."
-                        style={{ width: '100%' }}
-                        value={mentionedUserIds}
-                        onChange={setMentionedUserIds}
-                        options={users.map((u: any) => ({ label: u.full_name, value: String(u.id) }))}
-                    />
-                </div>
-            )}
-
+            {/* Editor Section - Different for each tab */}
             <div style={{ marginBottom: 10 }}>
-                <ReactQuill
-                    ref={quillRef}
-                    theme="snow"
-                    value={text}
-                    onChange={setText}
-                    modules={modules}
-                    style={{ background: 'white', minHeight: '100px' }}
-                />
+                {activeTab === 'INTERNAL' ? (
+                    // INTERNAL: Use Mentions component for inline @user functionality
+                    <Mentions
+                        style={{ width: '100%', minHeight: 100 }}
+                        placeholder="Nhập tin nhắn... Gõ @ để mention đồng nghiệp"
+                        value={text}
+                        onChange={(val) => setText(val)}
+                        onSelect={(option) => {
+                            if (option.value && !mentionedUserIds.includes(String(option.value))) {
+                                setMentionedUserIds([...mentionedUserIds, String(option.value)]);
+                            }
+                        }}
+                        rows={4}
+                        options={users.map((u: any) => ({
+                            value: String(u.id),
+                            label: u.full_name,
+                        }))}
+                    />
+                ) : (
+                    // CUSTOMER: Use ReactQuill for rich text
+                    <ReactQuill
+                        ref={quillRef}
+                        theme="snow"
+                        value={text}
+                        onChange={setText}
+                        modules={modules}
+                        style={{ background: 'white', minHeight: '100px' }}
+                    />
+                )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
