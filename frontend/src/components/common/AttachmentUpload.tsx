@@ -80,13 +80,7 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
         const filename = path.split('/').pop();
         if (!filename) return '';
 
-        // Check if path already includes /uploads (new format from UploadService)
-        if (path.startsWith('/uploads/')) {
-            // Use the path directly - NPM proxies /uploads to backend
-            return path;
-        }
-
-        // Legacy: use /api/upload/files endpoint
+        // Always use backend API to serve files (works in all environments)
         return `${API_URL}/upload/files/${filename}`;
     };
 
