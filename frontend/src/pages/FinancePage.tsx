@@ -9,13 +9,25 @@ import { Pie, Column } from '@ant-design/plots';
 import {
     WalletOutlined, ArrowUpOutlined, ArrowDownOutlined,
     PlusOutlined, DeleteOutlined, BankOutlined,
-    FileTextOutlined, PieChartOutlined, ReloadOutlined, EditOutlined, CloseOutlined, SearchOutlined
+    FileTextOutlined, PieChartOutlined, ReloadOutlined, EditOutlined, CloseOutlined, SearchOutlined,
+    LineChartOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
+import CashFlowDashboard from '../components/finance/CashFlowDashboard';
 
 const { Option } = Select;
+
+// Helper function to check permissions
+const hasPerm = (moduleCode: string) => {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (user?.username === 'admin') return true;
+    const permissions = user?.permissions || [];
+    const p = permissions.find((perm: any) => perm.module_code === moduleCode);
+    return !!(p && (p.can_view === true || p.can_view === 1));
+};
 
 const FinancePage: React.FC = () => {
     const [loading, setLoading] = useState(false);
@@ -565,7 +577,13 @@ const FinancePage: React.FC = () => {
                                 </Col>
                             </Row>
                         )
-                    }
+                    },
+                    // --- TAB DÒNG TIỀN (với phân quyền CASHFLOW) ---
+                    ...(hasPerm('CASHFLOW') ? [{
+                        key: 'CASHFLOW',
+                        label: <span><LineChartOutlined /> Dòng tiền</span>,
+                        children: <CashFlowDashboard />
+                    }] : [])
                 ]} />
             </Card>
 

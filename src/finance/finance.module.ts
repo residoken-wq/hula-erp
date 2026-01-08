@@ -4,20 +4,25 @@ import { Transaction } from './transaction.entity';
 import { TransactionCategory } from './transaction-category.entity';
 import { FinanceService } from './finance.service';
 import { FinanceController } from './finance.controller';
+import { CashFlowService } from './cash-flow.service';
+import { CashFlowController } from './cash-flow.controller';
 import { SalesModule } from '../sales/sales.module';
-import { PurchasingModule } from '../purchasing/purchasing.module'; // <--- Import Purchasing
-
+import { SalesOrder } from '../sales/sales-order.entity';
+import { PurchasingModule } from '../purchasing/purchasing.module';
+import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { SuppliersModule } from '../suppliers/suppliers.module';
+import { SystemModule } from '../system/system.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Transaction, TransactionCategory]),
+    TypeOrmModule.forFeature([Transaction, TransactionCategory, SalesOrder, PurchaseOrder]),
     forwardRef(() => SalesModule),
     forwardRef(() => PurchasingModule),
-    forwardRef(() => SuppliersModule), // <--- FIX: Thêm SuppliersModule
+    forwardRef(() => SuppliersModule),
+    forwardRef(() => SystemModule), // For CashFlowService to access config
   ],
-  controllers: [FinanceController],
-  providers: [FinanceService],
-  exports: [FinanceService],
+  controllers: [FinanceController, CashFlowController],
+  providers: [FinanceService, CashFlowService],
+  exports: [FinanceService, CashFlowService],
 })
 export class FinanceModule { }

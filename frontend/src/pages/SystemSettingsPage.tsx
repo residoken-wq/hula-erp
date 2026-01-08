@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, Button, Switch, message, Spin, Row, Col, Divider, Alert } from 'antd';
+import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert } from 'antd';
 import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
@@ -125,6 +125,25 @@ const SystemSettingsPage: React.FC = () => {
                     placeholder="https://drive.google.com/drive/folders/..."
                 />
             </Card>
+
+            <div style={{ marginBottom: 24 }} />
+
+            <Card
+                title={<span>💰 Cấu Hình Dòng Tiền</span>}
+                bordered={false}
+            >
+                <Alert
+                    message="Cấu hình ngưỡng cảnh báo cho hệ thống quản lý dòng tiền. Khi số dư quỹ tiền mặt dưới ngưỡng này, hệ thống sẽ hiển thị cảnh báo."
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                />
+                <NumberConfigItem
+                    label="Ngưỡng cảnh báo quỹ thấp (VNĐ)"
+                    configKey="CASH_FLOW_THRESHOLD"
+                    defaultValue={50000000}
+                />
+            </Card>
         </div >
     );
 };
@@ -156,6 +175,47 @@ const LinkConfigItem = ({ label, configKey, placeholder }: { label: string, conf
         <Form.Item label={label}>
             <div style={{ display: 'flex', gap: 8 }}>
                 <Input value={val} onChange={e => setVal(e.target.value)} placeholder={placeholder} />
+                <Button type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu</Button>
+            </div>
+        </Form.Item>
+    );
+}
+
+const NumberConfigItem = ({ label, configKey, defaultValue }: { label: string, configKey: string, defaultValue: number }) => {
+    const [val, setVal] = useState<number>(defaultValue);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        axios.get(`${API_URL}/system/config/${configKey}`).then(res => {
+            if (res.data && res.data.value) setVal(Number(res.data.value));
+        });
+    }, [configKey]);
+
+    const handleSave = async () => {
+        setLoading(true);
+        try {
+            await axios.post(`${API_URL}/system/config`, {
+                key: configKey,
+                value: String(val),
+                description: label
+            });
+            message.success('Đã lưu');
+        } catch (e) { message.error('Lỗi lưu'); }
+        setLoading(false);
+    }
+
+    return (
+        <Form.Item label={label}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <InputNumber
+                    style={{ width: 200 }}
+                    value={val}
+                    onChange={(v) => setVal(v || defaultValue)}
+                    formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    parser={(v) => Number(v?.replace(/,/g, '') || defaultValue)}
+                    min={0}
+                />
+                <span style={{ color: '#888' }}>VNĐ</span>
                 <Button type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu</Button>
             </div>
         </Form.Item>
