@@ -86,7 +86,6 @@ export class PublicController {
     @Get('categories')
     async getCategories() {
         const categories = await this.categoryRepo.find({
-            where: { is_active: true },
             order: { name: 'ASC' }
         });
         return categories.map(c => ({
@@ -234,7 +233,7 @@ export class PublicController {
             return {
                 success: true,
                 message: 'Đặt hàng thành công!',
-                order_code: order.code
+                order_code: order.order_code
             };
         } catch (error) {
             return {
