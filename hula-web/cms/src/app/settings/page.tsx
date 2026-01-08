@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Form, Input, Button, Space, message, Divider, Switch, Tabs } from 'antd';
-import { SaveOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Space, message, Divider, Switch, Tabs, Radio, Alert } from 'antd';
+import { SaveOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined } from '@ant-design/icons';
 
 export default function SettingsPage() {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
+    const [siteMode, setSiteMode] = useState('live');
 
     const handleSave = async () => {
         try {
@@ -23,7 +24,145 @@ export default function SettingsPage() {
         }
     };
 
+    const handleModeChange = (mode: string) => {
+        setSiteMode(mode);
+        // In production, this would update environment variable or database
+        message.info(`Đã chuyển sang chế độ: ${mode === 'live' ? 'Website hoạt động' : mode === 'coming-soon' ? 'Coming Soon' : 'Bảo trì'}`);
+    };
+
     const items = [
+        {
+            key: 'site-mode',
+            label: '🌐 Chế độ Website',
+            children: (
+                <div>
+                    <Alert
+                        message="Điều khiển trạng thái website"
+                        description="Chọn chế độ hiển thị cho khách truy cập. Khi chọn Coming Soon hoặc Bảo trì, khách sẽ thấy trang thông báo thay vì nội dung website."
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 24 }}
+                    />
+
+                    <Radio.Group
+                        value={siteMode}
+                        onChange={(e) => handleModeChange(e.target.value)}
+                        style={{ width: '100%' }}
+                    >
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                            <Radio.Button
+                                value="live"
+                                style={{
+                                    width: '100%',
+                                    height: 'auto',
+                                    padding: '16px 20px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    borderRadius: 8,
+                                    marginBottom: 8,
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <div style={{
+                                        width: 40,
+                                        height: 40,
+                                        background: siteMode === 'live' ? '#dcfce7' : '#f5f5f5',
+                                        borderRadius: 8,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <GlobalOutlined style={{ fontSize: 20, color: '#16a34a' }} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: 600 }}>Website Hoạt Động</div>
+                                        <div style={{ fontSize: 12, color: '#666' }}>Hiển thị đầy đủ nội dung website cho khách hàng</div>
+                                    </div>
+                                </div>
+                            </Radio.Button>
+
+                            <Radio.Button
+                                value="coming-soon"
+                                style={{
+                                    width: '100%',
+                                    height: 'auto',
+                                    padding: '16px 20px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    borderRadius: 8,
+                                    marginBottom: 8,
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <div style={{
+                                        width: 40,
+                                        height: 40,
+                                        background: siteMode === 'coming-soon' ? '#dbeafe' : '#f5f5f5',
+                                        borderRadius: 8,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <ClockCircleOutlined style={{ fontSize: 20, color: '#2563eb' }} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: 600 }}>Coming Soon</div>
+                                        <div style={{ fontSize: 12, color: '#666' }}>Hiển thị trang countdown + đăng ký email</div>
+                                    </div>
+                                </div>
+                            </Radio.Button>
+
+                            <Radio.Button
+                                value="maintenance"
+                                style={{
+                                    width: '100%',
+                                    height: 'auto',
+                                    padding: '16px 20px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    borderRadius: 8,
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <div style={{
+                                        width: 40,
+                                        height: 40,
+                                        background: siteMode === 'maintenance' ? '#fef3c7' : '#f5f5f5',
+                                        borderRadius: 8,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <ToolOutlined style={{ fontSize: 20, color: '#d97706' }} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: 600 }}>Bảo Trì</div>
+                                        <div style={{ fontSize: 12, color: '#666' }}>Hiển thị trang bảo trì với progress bar</div>
+                                    </div>
+                                </div>
+                            </Radio.Button>
+                        </Space>
+                    </Radio.Group>
+
+                    <Divider />
+
+                    <div style={{ background: '#f9fafb', padding: 16, borderRadius: 8 }}>
+                        <p style={{ margin: 0, fontSize: 13, color: '#666' }}>
+                            <strong>Lưu ý:</strong> Sau khi thay đổi chế độ, bạn cần cập nhật middleware trên website để áp dụng.
+                            Xem trang preview:
+                        </p>
+                        <Space style={{ marginTop: 8 }}>
+                            <Button size="small" onClick={() => window.open('https://nemmamnon.com/coming-soon', '_blank')}>
+                                Xem Coming Soon
+                            </Button>
+                            <Button size="small" onClick={() => window.open('https://nemmamnon.com/maintenance', '_blank')}>
+                                Xem Bảo Trì
+                            </Button>
+                        </Space>
+                    </div>
+                </div>
+            ),
+        },
         {
             key: 'general',
             label: 'Thông tin chung',
