@@ -3,16 +3,33 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Form, Input, Select, Button, Space, message, Spin, Upload } from 'antd';
-import { SaveOutlined, ArrowLeftOutlined, SendOutlined, UploadOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Select, Button, Space, message, Spin } from 'antd';
+import { SaveOutlined, ArrowLeftOutlined, SendOutlined } from '@ant-design/icons';
 import dynamic from 'next/dynamic';
 
 // Dynamic import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quill'), {
-    ssr: false,
-    loading: () => <div style={{ height: 300, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading editor...</div>
-});
-import 'react-quill/dist/quill.snow.css';
+const ReactQuill = dynamic(
+    async () => {
+        const { default: RQ } = await import('react-quill');
+        return RQ;
+    },
+    {
+        ssr: false,
+        loading: () => (
+            <div style={{
+                height: 300,
+                background: '#f5f5f5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 8,
+                border: '1px solid #d9d9d9',
+            }}>
+                Loading editor...
+            </div>
+        ),
+    }
+);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
