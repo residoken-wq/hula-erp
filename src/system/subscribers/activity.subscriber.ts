@@ -93,6 +93,7 @@ export class ActivitySubscriber implements EntitySubscriberInterface {
                 entity_id: String(entityId),
                 user_id: user?.id || null,
                 username: user?.username || 'System',
+                full_name: user?.full_name || user?.username || 'System',
                 description: desc,
                 details: action === 'UPDATE' ? details : (fullNewEntity ? { new: fullNewEntity } : null)
             });

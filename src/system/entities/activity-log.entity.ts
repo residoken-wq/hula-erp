@@ -11,6 +11,9 @@ export class ActivityLog {
     @Column({ nullable: true })
     username: string; // Cache username for display
 
+    @Column({ nullable: true })
+    full_name: string; // Họ và tên người dùng
+
     @Column()
     action: string; // e.g., 'CREATE', 'UPDATE', 'DELETE', 'LOGIN'
 

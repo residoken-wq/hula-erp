@@ -34,8 +34,14 @@ const ActivityLogPage: React.FC = () => {
         {
             title: 'User',
             dataIndex: 'username',
-            width: 150,
+            width: 120,
             render: (t: string) => <Tag color="blue">{t}</Tag>
+        },
+        {
+            title: 'Họ và tên',
+            dataIndex: 'full_name',
+            width: 160,
+            render: (t: string) => t ? <span style={{ fontWeight: 500 }}>{t}</span> : <span style={{ color: '#999' }}>-</span>
         },
         {
             title: 'Module',
