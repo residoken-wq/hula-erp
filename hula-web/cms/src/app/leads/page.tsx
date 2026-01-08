@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Table, Button, Space, Tag, Input, Modal, Form, Select, message, Drawer, Descriptions, Timeline } from 'antd';
-import { SearchOutlined, EyeOutlined, EditOutlined, PhoneOutlined, MailOutlined, EnvironmentOutlined, UserOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Space, Tag, Input, Modal, Form, Select, message, Drawer, Descriptions, Timeline, Alert, Popconfirm } from 'antd';
+import { SearchOutlined, EyeOutlined, EditOutlined, PhoneOutlined, MailOutlined, EnvironmentOutlined, CloudUploadOutlined, CheckCircleOutlined } from '@ant-design/icons';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -18,6 +18,8 @@ interface Lead {
     address: string;
     potential_value: number;
     created_at: string;
+    erp_synced: boolean;
+    erp_customer_id: number | null;
     history: any[];
 }
 
@@ -46,6 +48,7 @@ export default function LeadsPage() {
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editModal, setEditModal] = useState(false);
+    const [pushing, setPushing] = useState<number | null>(null);
     const [form] = Form.useForm();
 
     useEffect(() => {
@@ -57,18 +60,54 @@ export default function LeadsPage() {
         try {
             const res = await fetch(`${API_URL}/customers`);
             const data = await res.json();
-            // Filter only LEADs
             const leadsOnly = (Array.isArray(data) ? data : []).filter((c: any) => c.type === 'LEAD');
             setLeads(leadsOnly);
         } catch (error) {
-            // Fallback mock data
             setLeads([
-                { id: 1, code: 'LEAD-00001', name: 'Trường MN Hoa Sen', type: 'LEAD', lead_status: 'NEW', phone: '0901234567', email: 'hoasen@example.com', address: 'Q.1, HCM', potential_value: 50000000, created_at: '2026-01-07', history: [] },
-                { id: 2, code: 'LEAD-00002', name: 'Trường MN Ánh Dương', type: 'LEAD', lead_status: 'CONTACTED', phone: '0912345678', email: 'anhduong@example.com', address: 'Q.7, HCM', potential_value: 30000000, created_at: '2026-01-06', history: [] },
-                { id: 3, code: 'LEAD-00003', name: 'Đại lý ABC', type: 'LEAD', lead_status: 'QUALIFIED', phone: '0923456789', email: 'dailyabc@example.com', address: 'TP. Thủ Đức', potential_value: 100000000, created_at: '2026-01-05', history: [] },
+                { id: 1, code: 'LEAD-00001', name: 'Trường MN Hoa Sen', type: 'LEAD', lead_status: 'NEW', phone: '0901234567', email: 'hoasen@example.com', address: 'Q.1, HCM', potential_value: 50000000, created_at: '2026-01-07', erp_synced: false, erp_customer_id: null, history: [] },
+                { id: 2, code: 'LEAD-00002', name: 'Trường MN Ánh Dương', type: 'LEAD', lead_status: 'CONTACTED', phone: '0912345678', email: 'anhduong@example.com', address: 'Q.7, HCM', potential_value: 30000000, created_at: '2026-01-06', erp_synced: true, erp_customer_id: 123, history: [] },
             ]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePushToERP = async (lead: Lead) => {
+        setPushing(lead.id);
+        try {
+            // Call API to create customer in ERP
+            const res = await fetch(`${API_URL}/customers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: lead.name,
+                    phone: lead.phone,
+                    email: lead.email,
+                    address: lead.address,
+                    type: 'LEAD',
+                    lead_status: lead.lead_status,
+                    source: 'WEBSITE',
+                    notes: `Đồng bộ từ CMS Website - ${lead.code}`,
+                }),
+            });
+            const newCustomer = await res.json();
+
+            // Update lead with ERP sync status
+            await fetch(`${API_URL}/customers/${lead.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    erp_synced: true,
+                    erp_customer_id: newCustomer.id,
+                }),
+            });
+
+            message.success('Đã tạo Lead trên ERP thành công!');
+            loadLeads();
+        } catch {
+            message.error('Không thể đồng bộ lên ERP');
+        } finally {
+            setPushing(null);
         }
     };
 
@@ -145,23 +184,51 @@ export default function LeadsPage() {
             ),
         },
         {
-            title: 'Giá trị tiềm năng',
+            title: 'ERP',
+            key: 'erp_synced',
+            width: 100,
+            render: (_: any, record: Lead) => (
+                record.erp_synced ? (
+                    <Tag color="success" icon={<CheckCircleOutlined />}>Đã đồng bộ</Tag>
+                ) : (
+                    <Popconfirm
+                        title="Tạo Lead trên ERP?"
+                        description="Lead sẽ được tạo trong hệ thống ERP/CRM"
+                        onConfirm={() => handlePushToERP(record)}
+                        okText="Tạo"
+                        cancelText="Hủy"
+                    >
+                        <Button
+                            size="small"
+                            type="primary"
+                            ghost
+                            icon={<CloudUploadOutlined />}
+                            loading={pushing === record.id}
+                        >
+                            Push
+                        </Button>
+                    </Popconfirm>
+                )
+            ),
+        },
+        {
+            title: 'Giá trị',
             dataIndex: 'potential_value',
             key: 'potential_value',
-            width: 150,
+            width: 130,
             render: (value: number) => value > 0 ? formatPrice(value) : '-',
         },
         {
             title: 'Ngày tạo',
             dataIndex: 'created_at',
             key: 'created_at',
-            width: 120,
+            width: 100,
             render: (date: string) => date ? new Date(date).toLocaleDateString('vi-VN') : '-',
         },
         {
-            title: 'Thao tác',
+            title: '',
             key: 'actions',
-            width: 120,
+            width: 80,
             render: (_: any, record: Lead) => (
                 <Space>
                     <Button type="text" icon={<EyeOutlined />} onClick={() => handleView(record)} />
@@ -170,6 +237,8 @@ export default function LeadsPage() {
             ),
         },
     ];
+
+    const unsyncedCount = leads.filter(l => !l.erp_synced).length;
 
     return (
         <AdminLayout>
@@ -191,15 +260,27 @@ export default function LeadsPage() {
                     </Space>
                 }
             >
+                {unsyncedCount > 0 && (
+                    <Alert
+                        message={`Có ${unsyncedCount} lead chưa đồng bộ lên ERP`}
+                        description="Click nút 'Push' để tạo lead trên hệ thống ERP/CRM"
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                    />
+                )}
+
                 <p style={{ marginBottom: 16, color: '#666' }}>
-                    💡 Leads được tạo từ form đăng ký sỉ trên website. Cập nhật trạng thái để theo dõi quá trình chăm sóc.
+                    💡 Leads được tạo từ form đăng ký sỉ trên website. Push lên ERP để quản lý trong hệ thống CRM.
                 </p>
                 <Table
                     columns={columns}
                     dataSource={leads}
                     rowKey="id"
                     loading={loading}
+                    size="middle"
                     pagination={{ pageSize: 10, showTotal: (total) => `Tổng ${total} leads` }}
+                    rowClassName={(record) => record.erp_synced ? '' : 'row-unsynced'}
                 />
             </Card>
 
@@ -228,11 +309,15 @@ export default function LeadsPage() {
                                     {statusLabels[selectedLead.lead_status]}
                                 </Tag>
                             </Descriptions.Item>
+                            <Descriptions.Item label="ERP">
+                                {selectedLead.erp_synced ? (
+                                    <Tag color="success">Đã đồng bộ (ID: {selectedLead.erp_customer_id})</Tag>
+                                ) : (
+                                    <Tag color="warning">Chưa đồng bộ</Tag>
+                                )}
+                            </Descriptions.Item>
                             <Descriptions.Item label="Giá trị tiềm năng">
                                 {formatPrice(selectedLead.potential_value)}
-                            </Descriptions.Item>
-                            <Descriptions.Item label="Ngày tạo">
-                                {new Date(selectedLead.created_at).toLocaleDateString('vi-VN')}
                             </Descriptions.Item>
                         </Descriptions>
 
@@ -258,9 +343,21 @@ export default function LeadsPage() {
                         </div>
 
                         <div style={{ marginTop: 24 }}>
-                            <Button type="primary" block onClick={() => { setDrawerOpen(false); handleEdit(selectedLead); }}>
-                                Cập nhật trạng thái
-                            </Button>
+                            <Space direction="vertical" style={{ width: '100%' }}>
+                                {!selectedLead.erp_synced && (
+                                    <Button
+                                        type="primary"
+                                        block
+                                        icon={<CloudUploadOutlined />}
+                                        onClick={() => { setDrawerOpen(false); handlePushToERP(selectedLead); }}
+                                    >
+                                        Push lên ERP
+                                    </Button>
+                                )}
+                                <Button block onClick={() => { setDrawerOpen(false); handleEdit(selectedLead); }}>
+                                    Cập nhật trạng thái
+                                </Button>
+                            </Space>
                         </div>
                     </>
                 )}
@@ -288,6 +385,12 @@ export default function LeadsPage() {
                     </Form.Item>
                 </Form>
             </Modal>
+
+            <style>{`
+        .row-unsynced {
+          background-color: #fffbe6;
+        }
+      `}</style>
         </AdminLayout>
     );
 }

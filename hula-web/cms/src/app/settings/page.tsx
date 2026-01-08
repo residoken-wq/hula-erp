@@ -170,12 +170,17 @@ export default function SettingsPage() {
                 <Form form={form} layout="vertical" initialValues={{
                     site_name: 'Nệm Mầm Non HULA',
                     site_description: 'Nệm mầm non chất lượng cao, an toàn cho bé',
+                    logo_url: '',
                     contact_phone: '0123 456 789',
                     contact_email: 'info@nemmamnon.com',
                     contact_address: '123 Đường ABC, Quận XYZ, TP.HCM',
                 }}>
                     <Form.Item name="site_name" label="Tên website">
                         <Input placeholder="Tên website" />
+                    </Form.Item>
+
+                    <Form.Item name="logo_url" label="Logo URL" extra="Logo sẽ tự động scale để vừa với frame header">
+                        <Input placeholder="https://... hoặc link Google Drive" />
                     </Form.Item>
 
                     <Form.Item name="site_description" label="Mô tả website">

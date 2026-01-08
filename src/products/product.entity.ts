@@ -60,6 +60,16 @@ export class Product {
   @Column('text', { nullable: true })
   image_url: string; // Google Drive Link or Direct URL
 
+  // --- WEBSITE FIELDS ---
+  @Column({ default: false })
+  show_on_website: boolean;  // Hiển thị trên website
+
+  @Column('decimal', { precision: 15, scale: 2, nullable: true })
+  website_price: number;  // Giá bán trên website (nếu khác base_price)
+
+  @Column({ default: 0 })
+  website_order: number;  // Thứ tự hiển thị trên website
+
   @OneToMany(() => ProductRouting, (routing) => routing.product)
   routings: ProductRouting[];
 

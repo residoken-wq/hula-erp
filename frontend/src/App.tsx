@@ -48,6 +48,7 @@ const DocsPage = React.lazy(() => import('./pages/DocsPage'));
 const SystemSettingsPage = React.lazy(() => import('./pages/SystemSettingsPage'));
 const ActivityLogPage = React.lazy(() => import('./pages/ActivityLogPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage')); // <--- Import Dashboard
+const WebsiteProductsPage = React.lazy(() => import('./pages/WebsiteProductsPage')); // <--- Website Products
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
     return { key, icon, children, label } as MenuItem;
@@ -122,6 +123,7 @@ const App: React.FC = () => {
                 getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'),
                 getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
                 getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page'),
+                getItem(<Link to="/website-products">Website (Bán online)</Link>, 'web_prod'),
             ]));
         }
 
@@ -263,6 +265,7 @@ const App: React.FC = () => {
                                                         <Route path="/products" element={<ProductsPage />} />
                                                         <Route path="/combos" element={<CombosPage />} />
                                                         <Route path="/categories" element={<CategoriesPage />} />
+                                                        <Route path="/website-products" element={<WebsiteProductsPage />} />
                                                     </>
                                                 )}
 
