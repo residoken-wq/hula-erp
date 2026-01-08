@@ -6,7 +6,9 @@ import {
     FileTextOutlined,
     ShopOutlined,
     TeamOutlined,
-    SettingOutlined
+    SettingOutlined,
+    HomeOutlined,
+    LayoutOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -16,6 +18,18 @@ const menuItems = [
         path: '/dashboard',
         name: 'Dashboard',
         icon: <DashboardOutlined />,
+    },
+    {
+        path: '/pages',
+        name: 'Quản lý Trang',
+        icon: <LayoutOutlined />,
+        routes: [
+            {
+                path: '/home-content',
+                name: 'Trang Chủ',
+                icon: <HomeOutlined />,
+            },
+        ],
     },
     {
         path: '/blogs',

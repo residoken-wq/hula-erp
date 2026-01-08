@@ -1,0 +1,261 @@
+'use client';
+
+import { useState } from 'react';
+import AdminLayout from '@/components/AdminLayout';
+import { Card, Form, Input, Button, Space, message, Tabs, Collapse, Switch, InputNumber, Upload, List, Modal } from 'antd';
+import { SaveOutlined, PlusOutlined, DeleteOutlined, DragOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
+
+interface Feature {
+    id: string;
+    icon: string;
+    title: string;
+    description: string;
+}
+
+interface FeaturedProduct {
+    sku: string;
+    name: string;
+}
+
+export default function HomeContentPage() {
+    const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
+    const [features, setFeatures] = useState<Feature[]>([
+        { id: '1', icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', description: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
+        { id: '2', icon: '🏆', title: 'Chất Lượng Cao Cấp', description: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO và chứng nhận an toàn' },
+        { id: '3', icon: '💯', title: 'Bảo Hành 12 Tháng', description: 'Cam kết đổi mới nếu có lỗi từ nhà sản xuất trong 12 tháng' },
+        { id: '4', icon: '🚚', title: 'Giao Hàng Toàn Quốc', description: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
+    ]);
+    const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
+    const [featureModal, setFeatureModal] = useState(false);
+
+    const handleSave = async () => {
+        try {
+            const values = await form.validateFields();
+            setLoading(true);
+            // TODO: Save to backend
+            console.log('Home Content:', { ...values, features });
+            message.success('Đã lưu nội dung trang chủ');
+        } catch {
+            message.error('Có lỗi xảy ra');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddFeature = () => {
+        setEditingFeature(null);
+        setFeatureModal(true);
+    };
+
+    const handleEditFeature = (feature: Feature) => {
+        setEditingFeature(feature);
+        setFeatureModal(true);
+    };
+
+    const handleDeleteFeature = (id: string) => {
+        setFeatures(features.filter(f => f.id !== id));
+        message.success('Đã xóa');
+    };
+
+    const handleSaveFeature = (values: any) => {
+        if (editingFeature) {
+            setFeatures(features.map(f => f.id === editingFeature.id ? { ...f, ...values } : f));
+        } else {
+            setFeatures([...features, { id: Date.now().toString(), ...values }]);
+        }
+        setFeatureModal(false);
+        message.success(editingFeature ? 'Đã cập nhật' : 'Đã thêm');
+    };
+
+    const items = [
+        {
+            key: 'hero',
+            label: '🎯 Hero Section',
+            children: (
+                <Form form={form} layout="vertical" initialValues={{
+                    hero_title_1: 'Giấc Ngủ Ngon',
+                    hero_title_2: 'Cho Bé Yêu',
+                    hero_description: 'Nệm mầm non HULA - Được thiết kế đặc biệt cho trẻ em với chất liệu cao cấp, đảm bảo sức khỏe và giấc ngủ an lành cho bé yêu của bạn.',
+                    hero_button_1: 'Xem Sản Phẩm',
+                    hero_button_2: 'Liên Hệ Mua Sỉ',
+                    hero_image: '',
+                }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <Form.Item name="hero_title_1" label="Tiêu đề dòng 1">
+                            <Input placeholder="Giấc Ngủ Ngon" size="large" />
+                        </Form.Item>
+                        <Form.Item name="hero_title_2" label="Tiêu đề dòng 2 (highlight)">
+                            <Input placeholder="Cho Bé Yêu" size="large" />
+                        </Form.Item>
+                    </div>
+
+                    <Form.Item name="hero_description" label="Mô tả">
+                        <Input.TextArea rows={3} placeholder="Mô tả ngắn về sản phẩm..." />
+                    </Form.Item>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <Form.Item name="hero_button_1" label="Nút CTA chính">
+                            <Input placeholder="Xem Sản Phẩm" />
+                        </Form.Item>
+                        <Form.Item name="hero_button_2" label="Nút CTA phụ">
+                            <Input placeholder="Liên Hệ Mua Sỉ" />
+                        </Form.Item>
+                    </div>
+
+                    <Form.Item name="hero_image" label="Hình ảnh Hero (URL)">
+                        <Input placeholder="https://..." />
+                    </Form.Item>
+                </Form>
+            ),
+        },
+        {
+            key: 'features',
+            label: '✨ Tại Sao Chọn HULA',
+            children: (
+                <div>
+                    <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#666' }}>Quản lý các điểm nổi bật hiển thị trên trang chủ</span>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={handleAddFeature}>
+                            Thêm mới
+                        </Button>
+                    </div>
+
+                    <List
+                        dataSource={features}
+                        renderItem={(feature) => (
+                            <List.Item
+                                style={{
+                                    background: '#fff',
+                                    marginBottom: 8,
+                                    borderRadius: 8,
+                                    padding: '12px 16px',
+                                    border: '1px solid #f0f0f0',
+                                }}
+                                actions={[
+                                    <Button key="edit" type="text" icon={<EditOutlined />} onClick={() => handleEditFeature(feature)} />,
+                                    <Button key="delete" type="text" danger icon={<DeleteOutlined />} onClick={() => handleDeleteFeature(feature.id)} />,
+                                ]}
+                            >
+                                <List.Item.Meta
+                                    avatar={<span style={{ fontSize: 32 }}>{feature.icon}</span>}
+                                    title={feature.title}
+                                    description={feature.description}
+                                />
+                            </List.Item>
+                        )}
+                    />
+                </div>
+            ),
+        },
+        {
+            key: 'products',
+            label: '🛍️ Sản Phẩm Nổi Bật',
+            children: (
+                <Form layout="vertical" initialValues={{
+                    products_title: 'Sản Phẩm Nổi Bật',
+                    products_subtitle: 'Những sản phẩm được yêu thích nhất',
+                    products_limit: 4,
+                }}>
+                    <Form.Item name="products_title" label="Tiêu đề section">
+                        <Input placeholder="Sản Phẩm Nổi Bật" />
+                    </Form.Item>
+
+                    <Form.Item name="products_subtitle" label="Tiêu đề phụ">
+                        <Input placeholder="Những sản phẩm được yêu thích nhất" />
+                    </Form.Item>
+
+                    <Form.Item name="products_limit" label="Số sản phẩm hiển thị">
+                        <InputNumber min={2} max={8} style={{ width: 120 }} />
+                    </Form.Item>
+
+                    <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 8 }}>
+                        <p style={{ margin: 0, color: '#666', fontSize: 13 }}>
+                            💡 Sản phẩm được lấy tự động từ ERP (sắp xếp theo mới nhất).
+                            Để chỉ định sản phẩm cụ thể, vui lòng cấu hình trường "featured" trong ERP.
+                        </p>
+                    </div>
+                </Form>
+            ),
+        },
+        {
+            key: 'cta',
+            label: '📢 Banner CTA',
+            children: (
+                <Form layout="vertical" initialValues={{
+                    cta_title: 'Bạn là đại lý hoặc trường mầm non?',
+                    cta_description: 'Liên hệ ngay để nhận báo giá sỉ ưu đãi và chính sách hỗ trợ đặc biệt dành cho đối tác',
+                    cta_button: 'Đăng Ký Mua Sỉ Ngay',
+                    cta_enabled: true,
+                }}>
+                    <Form.Item name="cta_enabled" label="Hiển thị banner" valuePropName="checked">
+                        <Switch />
+                    </Form.Item>
+
+                    <Form.Item name="cta_title" label="Tiêu đề">
+                        <Input placeholder="Bạn là đại lý hoặc trường mầm non?" />
+                    </Form.Item>
+
+                    <Form.Item name="cta_description" label="Mô tả">
+                        <Input.TextArea rows={2} placeholder="Mô tả ngắn..." />
+                    </Form.Item>
+
+                    <Form.Item name="cta_button" label="Nội dung nút">
+                        <Input placeholder="Đăng Ký Mua Sỉ Ngay" />
+                    </Form.Item>
+                </Form>
+            ),
+        },
+    ];
+
+    return (
+        <AdminLayout>
+            <Card
+                title="Quản lý nội dung Trang Chủ"
+                extra={
+                    <Space>
+                        <Button icon={<EyeOutlined />} onClick={() => window.open('https://nemmamnon.com', '_blank')}>
+                            Xem trang
+                        </Button>
+                        <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={loading}>
+                            Lưu thay đổi
+                        </Button>
+                    </Space>
+                }
+            >
+                <Tabs items={items} />
+            </Card>
+
+            {/* Feature Edit Modal */}
+            <Modal
+                title={editingFeature ? 'Sửa điểm nổi bật' : 'Thêm điểm nổi bật'}
+                open={featureModal}
+                onCancel={() => setFeatureModal(false)}
+                footer={null}
+            >
+                <Form
+                    layout="vertical"
+                    initialValues={editingFeature || { icon: '⭐', title: '', description: '' }}
+                    onFinish={handleSaveFeature}
+                    style={{ marginTop: 16 }}
+                >
+                    <Form.Item name="icon" label="Icon (emoji)" rules={[{ required: true }]}>
+                        <Input placeholder="🌿" maxLength={4} style={{ width: 100, fontSize: 24, textAlign: 'center' }} />
+                    </Form.Item>
+
+                    <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
+                        <Input placeholder="Nguyên Liệu Tự Nhiên" />
+                    </Form.Item>
+
+                    <Form.Item name="description" label="Mô tả" rules={[{ required: true }]}>
+                        <Input.TextArea rows={2} placeholder="Chất liệu 100% cotton organic..." />
+                    </Form.Item>
+
+                    <Button type="primary" htmlType="submit" block>
+                        {editingFeature ? 'Cập nhật' : 'Thêm'}
+                    </Button>
+                </Form>
+            </Modal>
+        </AdminLayout>
+    );
+}
