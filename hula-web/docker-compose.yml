@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # HULA WEBSITE - Website công khai
+  # ============================================
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+    container_name: hula_website
+    restart: always
+    expose:
+      - "3000"
+    environment:
+      - VIRTUAL_HOST=nemmamnon.com,www.nemmamnon.com
+      - VIRTUAL_PORT=3000
+      - API_URL=http://hula_app:3000
+      - NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com
+    networks:
+      - default
+      - proxy_net
+    depends_on:
+      - hula_erp
+
+  # ============================================
+  # HULA CMS - Quản trị nội dung (Ant Design Pro)
+  # ============================================
+  cms:
+    build:
+      context: ./cms
+      dockerfile: Dockerfile
+    container_name: hula_cms
+    restart: always
+    expose:
+      - "3000"
+    environment:
+      - VIRTUAL_HOST=cms.nemmamnon.com
+      - VIRTUAL_PORT=3000
+      - API_URL=http://hula_app:3000
+      - NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com
+    networks:
+      - default
+      - proxy_net
+    depends_on:
+      - hula_erp
+
+  # ============================================
+  # Reference to ERP containers (external)
+  # ============================================
+  hula_erp:
+    # This is a reference to the ERP backend
+    # Assumes hula_app is running in the same network
+    external_links:
+      - hula_app
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge
+  proxy_net:
+    external: true # Join the Nginx Proxy Manager network

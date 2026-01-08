@@ -22,6 +22,8 @@ import { AuthModule } from './auth/auth.module';
 import { TasksModule } from './tasks/tasks.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SystemModule } from './system/system.module';
+import { BlogsModule } from './blogs/blogs.module';
+import { PublicModule } from './public/public.module';
 
 // Entities
 import { Product } from './products/product.entity';
@@ -76,6 +78,7 @@ import { User } from './users/entities/user.entity';
 import { UserGroup } from './users/entities/user-group.entity';
 import { GroupPermission } from './users/entities/group-permission.entity';
 import { SystemConfig } from './system/system-config.entity';
+import { BlogPost } from './blogs/blog-post.entity';
 import { ActivityInterceptor } from './common/interceptors/activity.interceptor';
 import { ActivityLog } from './system/entities/activity-log.entity';
 
@@ -113,7 +116,8 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           Customer, CustomerContact,
           ProductionPlan, Process, Category,
           User, UserGroup, GroupPermission,
-          SystemConfig, ActivityLog
+          SystemConfig, ActivityLog,
+          BlogPost
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         subscribers: [],
@@ -125,6 +129,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
     TasksModule, NotificationsModule, SystemModule,
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
     ProcessesModule, CategoriesModule, AiModule,
+    BlogsModule, PublicModule,
     TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
   ],
   providers: [

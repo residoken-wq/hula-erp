@@ -1,0 +1,162 @@
+import Link from 'next/link';
+import ProductCard from '@/components/ProductCard';
+
+// Mock data - sẽ được thay bằng API call
+const featuredProducts = [
+    { id: 1, sku: 'NEM-001', name: 'Nệm Mầm Non Cơ Bản', base_price: 450000, image_url: '/placeholder.jpg' },
+    { id: 2, sku: 'NEM-002', name: 'Nệm Mầm Non Cao Cấp', base_price: 650000, image_url: '/placeholder.jpg' },
+    { id: 3, sku: 'NEM-003', name: 'Combo Nệm + Gối', base_price: 850000, image_url: '/placeholder.jpg' },
+    { id: 4, sku: 'NEM-004', name: 'Nệm Mầm Non Premium', base_price: 950000, image_url: '/placeholder.jpg' },
+];
+
+const features = [
+    { icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', desc: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
+    { icon: '🏆', title: 'Chất Lượng Cao Cấp', desc: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO và chứng nhận an toàn' },
+    { icon: '💯', title: 'Bảo Hành 12 Tháng', desc: 'Cam kết đổi mới nếu có lỗi từ nhà sản xuất trong 12 tháng' },
+    { icon: '🚚', title: 'Giao Hàng Toàn Quốc', desc: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
+];
+
+export default function HomePage() {
+    return (
+        <>
+            {/* Hero Section */}
+            <section className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white overflow-hidden">
+                <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10"></div>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 relative">
+                    <div className="grid lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
+                                Giấc Ngủ Ngon
+                                <br />
+                                <span className="text-secondary-400">Cho Bé Yêu</span>
+                            </h1>
+                            <p className="mt-6 text-lg text-primary-100 max-w-xl">
+                                Nệm mầm non HULA - Được thiết kế đặc biệt cho trẻ em với chất liệu cao cấp,
+                                đảm bảo sức khỏe và giấc ngủ an lành cho bé yêu của bạn.
+                            </p>
+                            <div className="mt-8 flex flex-wrap gap-4">
+                                <Link
+                                    href="/san-pham"
+                                    className="inline-flex items-center px-6 py-3 bg-white text-primary-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
+                                >
+                                    Xem Sản Phẩm
+                                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                    </svg>
+                                </Link>
+                                <Link
+                                    href="/lien-he"
+                                    className="inline-flex items-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-primary-700 transition-colors"
+                                >
+                                    Liên Hệ Mua Sỉ
+                                </Link>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <div className="w-full h-80 lg:h-96 bg-white/10 rounded-2xl backdrop-blur-sm flex items-center justify-center">
+                                <div className="text-center">
+                                    <div className="w-32 h-32 mx-auto bg-white/20 rounded-full flex items-center justify-center">
+                                        <span className="text-6xl">🛏️</span>
+                                    </div>
+                                    <p className="mt-4 text-primary-100">Hero Image</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Wave decoration */}
+                <div className="absolute bottom-0 left-0 right-0">
+                    <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="#FAFBFC" />
+                    </svg>
+                </div>
+            </section>
+
+            {/* Features Section */}
+            <section className="py-16 lg:py-24 bg-gray-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
+                            Tại Sao Chọn HULA?
+                        </h2>
+                        <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+                            Chúng tôi cam kết mang đến sản phẩm chất lượng cao nhất cho bé yêu của bạn
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {features.map((feature, index) => (
+                            <div
+                                key={index}
+                                className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
+                            >
+                                <div className="w-14 h-14 bg-primary-50 rounded-lg flex items-center justify-center text-3xl mb-4">
+                                    {feature.icon}
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                    {feature.title}
+                                </h3>
+                                <p className="text-gray-600 text-sm">
+                                    {feature.desc}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Featured Products */}
+            <section className="py-16 lg:py-24">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between mb-12">
+                        <div>
+                            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
+                                Sản Phẩm Nổi Bật
+                            </h2>
+                            <p className="mt-2 text-gray-600">
+                                Những sản phẩm được yêu thích nhất
+                            </p>
+                        </div>
+                        <Link
+                            href="/san-pham"
+                            className="hidden sm:inline-flex items-center text-primary-600 hover:text-primary-700 font-medium"
+                        >
+                            Xem tất cả
+                            <svg className="ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                            </svg>
+                        </Link>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {featuredProducts.map((product) => (
+                            <ProductCard key={product.id} product={product} />
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* CTA Section */}
+            <section className="py-16 bg-gradient-to-r from-secondary-500 to-secondary-600">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+                        Bạn là đại lý hoặc trường mầm non?
+                    </h2>
+                    <p className="text-secondary-100 mb-8 max-w-2xl mx-auto">
+                        Liên hệ ngay để nhận báo giá sỉ ưu đãi và chính sách hỗ trợ đặc biệt dành cho đối tác
+                    </p>
+                    <Link
+                        href="/lien-he"
+                        className="inline-flex items-center px-8 py-4 bg-white text-secondary-700 font-bold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
+                    >
+                        Đăng Ký Mua Sỉ Ngay
+                        <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                    </Link>
+                </div>
+            </section>
+        </>
+    );
+}
