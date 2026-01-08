@@ -17,8 +17,16 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    
     /* QUAN TRỌNG: Tắt kiểm tra khởi tạo biến để fix lỗi Entity */
     "strictPropertyInitialization": false
-  }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "frontend",
+    "hula-web"
+  ]
 }
