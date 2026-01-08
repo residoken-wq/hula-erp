@@ -1,0 +1,8 @@
+{
+    "name": "HULA CMS",
+    "short_name": "CMS",
+    "icons": [],
+    "theme_color": "#2563eb",
+    "background_color": "#ffffff",
+    "display": "standalone"
+}

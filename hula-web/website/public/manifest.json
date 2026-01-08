@@ -1,0 +1,8 @@
+{
+    "name": "HULA Website",
+    "short_name": "HULA",
+    "icons": [],
+    "theme_color": "#2563eb",
+    "background_color": "#ffffff",
+    "display": "standalone"
+}
