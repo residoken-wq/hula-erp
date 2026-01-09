@@ -1,10 +1,11 @@
 import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Product } from '../products/product.entity';
 import { Category } from '../categories/category.entity';
 import { Customer, CustomerType } from '../customers/customer.entity';
 import { BlogPost, BlogStatus } from '../blogs/blog-post.entity';
+import { SystemConfig } from '../system/system-config.entity';
 import { SalesService } from '../sales/sales.service';
 
 @Controller('public')
@@ -18,8 +19,39 @@ export class PublicController {
         private readonly customerRepo: Repository<Customer>,
         @InjectRepository(BlogPost)
         private readonly blogRepo: Repository<BlogPost>,
+        @InjectRepository(SystemConfig)
+        private readonly configRepo: Repository<SystemConfig>,
         private readonly salesService: SalesService
     ) { }
+
+    // ========================================
+    // SETTINGS APIs (Contact Info)
+    // ========================================
+
+    @Get('settings')
+    async getPublicSettings() {
+        const keys = [
+            'site_name',
+            'site_description',
+            'logo_url',
+            'contact_phone',
+            'contact_email',
+            'contact_address',
+            'facebook_url',
+            'zalo_url'
+        ];
+
+        const configs = await this.configRepo.find({
+            where: { key: In(keys) }
+        });
+
+        const settings: Record<string, string> = {};
+        configs.forEach(config => {
+            settings[config.key] = config.value || '';
+        });
+
+        return settings;
+    }
 
     // ========================================
     // PRODUCTS APIs

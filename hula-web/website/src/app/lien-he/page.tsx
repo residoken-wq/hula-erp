@@ -1,8 +1,17 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
+
+interface Settings {
+    contact_phone?: string;
+    contact_email?: string;
+    contact_address?: string;
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function ContactPage() {
+    const [settings, setSettings] = useState<Settings>({});
     const [formData, setFormData] = useState({
         company_name: '',
         contact_person: '',
@@ -15,13 +24,28 @@ export default function ContactPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string } | null>(null);
 
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/public/settings`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSettings(data);
+                }
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+            }
+        };
+        fetchSettings();
+    }, []);
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         setSubmitResult(null);
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/public/leads`, {
+            const response = await fetch(`${API_URL}/api/public/leads`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -70,7 +94,9 @@ export default function ContactPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-gray-900">Hotline</h3>
-                                    <p className="text-gray-600">0123 456 789</p>
+                                    <a href={`tel:${settings.contact_phone || ''}`} className="text-primary-600 hover:text-primary-700 font-medium">
+                                        {settings.contact_phone || 'Đang cập nhật...'}
+                                    </a>
                                 </div>
                             </div>
 
@@ -82,7 +108,9 @@ export default function ContactPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-gray-900">Email</h3>
-                                    <p className="text-gray-600">sales@nemmamnon.com</p>
+                                    <a href={`mailto:${settings.contact_email || ''}`} className="text-primary-600 hover:text-primary-700">
+                                        {settings.contact_email || 'Đang cập nhật...'}
+                                    </a>
                                 </div>
                             </div>
 
@@ -95,7 +123,7 @@ export default function ContactPage() {
                                 </div>
                                 <div>
                                     <h3 className="font-semibold text-gray-900">Địa chỉ</h3>
-                                    <p className="text-gray-600">123 Đường ABC, Quận XYZ, TP.HCM</p>
+                                    <p className="text-gray-600">{settings.contact_address || 'Đang cập nhật...'}</p>
                                 </div>
                             </div>
                         </div>
@@ -153,7 +181,7 @@ export default function ContactPage() {
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-shadow"
-                                        placeholder="0123 456 789"
+                                        placeholder="0912 345 678"
                                     />
                                 </div>
                                 <div>
@@ -215,7 +243,7 @@ export default function ContactPage() {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full py-4 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full py-4 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold rounded-xl shadow-lg shadow-primary-500/30 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
                             >
                                 {isSubmitting ? 'Đang gửi...' : 'Đăng Ký Ngay'}
                             </button>
