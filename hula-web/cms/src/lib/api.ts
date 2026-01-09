@@ -47,4 +47,13 @@ export const categoriesApi = {
     getAll: () => api.get('/categories'),
 };
 
+// ============================================
+// SYSTEM CONFIG APIs
+// ============================================
+export const systemApi = {
+    getConfig: (key: string) => api.get(`/system/config/${key}`),
+    setConfig: (key: string, value: string, description?: string) =>
+        api.post('/system/config', { key, value, description }),
+};
+
 export default api;
