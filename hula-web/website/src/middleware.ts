@@ -25,9 +25,10 @@ async function getSiteMode(): Promise<string> {
         }
 
         const data = await res.json();
-        cachedMode = data.value || 'live';
+        const mode: string = data.value || 'live';
+        cachedMode = mode;
         cacheTime = now;
-        return cachedMode;
+        return mode;
     } catch (error) {
         console.error('Failed to fetch site mode:', error);
         return 'live'; // Default to live on error
