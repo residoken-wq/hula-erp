@@ -21,8 +21,8 @@ async function getSiteMode(): Promise<string> {
             console.log('[Middleware] API_URL not configured, defaulting to live mode');
             return 'live';
         }
-
-        const res = await fetch(`${apiUrl}/system/config/SITE_MODE`, {
+        // Backend uses global prefix /api
+        const res = await fetch(`${apiUrl}/api/system/config/SITE_MODE`, {
             cache: 'no-store',
         });
 

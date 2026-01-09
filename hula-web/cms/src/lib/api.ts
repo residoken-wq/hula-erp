@@ -1,9 +1,10 @@
 import axios from 'axios';
 
+// Backend uses global prefix /api - see main.ts: app.setGlobalPrefix('api')
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 const api = axios.create({
-    baseURL: API_URL,
+    baseURL: `${API_URL}/api`,
     headers: {
         'Content-Type': 'application/json',
     },
