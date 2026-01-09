@@ -1,6 +1,23 @@
 import type { Metadata } from 'next';
+import { Montserrat, Open_Sans } from 'next/font/google';
 import './globals.css';
 import LayoutWrapper from '@/components/LayoutWrapper';
+
+// Heading font - Montserrat: Strong and distinctive
+const montserrat = Montserrat({
+    subsets: ['latin', 'vietnamese'],
+    weight: ['400', '500', '600', '700', '800'],
+    variable: '--font-heading',
+    display: 'swap',
+});
+
+// Body font - Open Sans: Clean and easy to read
+const openSans = Open_Sans({
+    subsets: ['latin', 'vietnamese'],
+    weight: ['300', '400', '500', '600', '700'],
+    variable: '--font-body',
+    display: 'swap',
+});
 
 export const metadata: Metadata = {
     title: 'Nệm Mầm Non HULA - Giấc Ngủ Ngon Cho Bé Yêu',
@@ -20,8 +37,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="vi">
-            <body className="min-h-screen flex flex-col">
+        <html lang="vi" className={`${montserrat.variable} ${openSans.variable}`}>
+            <body className="min-h-screen flex flex-col font-body antialiased">
                 <LayoutWrapper>
                     {children}
                 </LayoutWrapper>
@@ -29,4 +46,3 @@ export default function RootLayout({
         </html>
     );
 }
-

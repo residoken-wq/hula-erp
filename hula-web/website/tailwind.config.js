@@ -34,7 +34,12 @@ module.exports = {
                 },
             },
             fontFamily: {
-                sans: ['Inter', 'sans-serif'],
+                // Heading font - Montserrat: Strong, modern, distinctive
+                heading: ['var(--font-heading)', 'Montserrat', 'sans-serif'],
+                // Body font - Open Sans: Clean, readable, comfortable
+                body: ['var(--font-body)', 'Open Sans', 'sans-serif'],
+                // Default sans uses body font
+                sans: ['var(--font-body)', 'Open Sans', 'sans-serif'],
             },
         },
     },
