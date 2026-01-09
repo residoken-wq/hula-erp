@@ -13,32 +13,61 @@ export default function SettingsPage() {
     const [modeLoading, setModeLoading] = useState(true);
     const [modeSaving, setModeSaving] = useState(false);
 
-    // Load current site mode from backend on mount
+    // Load settings from backend on mount
     useEffect(() => {
-        const loadSiteMode = async () => {
+        const loadSettings = async () => {
             try {
-                const res = await systemApi.getConfig('SITE_MODE');
-                if (res.data && res.data.value) {
-                    setSiteMode(res.data.value);
+                // Load site mode
+                const modeRes = await systemApi.getConfig('SITE_MODE');
+                if (modeRes.data && modeRes.data.value) {
+                    setSiteMode(modeRes.data.value);
+                }
+
+                // Load general settings
+                const configKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address'];
+                const configValues: Record<string, string> = {};
+
+                for (const key of configKeys) {
+                    try {
+                        const res = await systemApi.getConfig(key);
+                        if (res.data && res.data.value) {
+                            configValues[key] = res.data.value;
+                        }
+                    } catch (e) {
+                        // Key doesn't exist yet, use default
+                    }
+                }
+
+                if (Object.keys(configValues).length > 0) {
+                    form.setFieldsValue(configValues);
                 }
             } catch (error) {
-                console.error('Failed to load site mode:', error);
+                console.error('Failed to load settings:', error);
             } finally {
                 setModeLoading(false);
             }
         };
-        loadSiteMode();
-    }, []);
+        loadSettings();
+    }, [form]);
 
     const handleSave = async () => {
         try {
             const values = await form.validateFields();
             setLoading(true);
-            // TODO: Save to backend/localStorage
-            console.log('Settings:', values);
-            message.success('Đã lưu cài đặt');
-        } catch {
-            message.error('Có lỗi xảy ra');
+
+            // Save each config field to backend
+            const configKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address'];
+
+            for (const key of configKeys) {
+                if (values[key] !== undefined) {
+                    await systemApi.setConfig(key, values[key] || '', `Website ${key}`);
+                }
+            }
+
+            message.success('Đã lưu cài đặt thành công!');
+        } catch (error) {
+            console.error('Failed to save settings:', error);
+            message.error('Có lỗi xảy ra khi lưu cài đặt');
         } finally {
             setLoading(false);
         }
