@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 async function getBlogs() {
     try {
-        const res = await fetch(`${process.env.API_URL || 'http://localhost:3000'}/public/blogs`, {
+        const res = await fetch(`${process.env.API_URL || 'http://localhost:3000'}/api/public/blogs`, {
             cache: 'no-store',
         });
         if (!res.ok) return [];

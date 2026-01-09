@@ -4,7 +4,7 @@ import ProductCard from '@/components/ProductCard';
 // This would be fetched from API in production
 async function getProducts() {
     try {
-        const res = await fetch(`${process.env.API_URL || 'http://localhost:3000'}/public/products`, {
+        const res = await fetch(`${process.env.API_URL || 'http://localhost:3000'}/api/public/products`, {
             cache: 'no-store',
         });
         if (!res.ok) return [];
@@ -24,7 +24,7 @@ async function getProducts() {
 
 async function getCategories() {
     try {
-        const res = await fetch(`${process.env.API_URL || 'http://localhost:3000'}/public/categories`, {
+        const res = await fetch(`${process.env.API_URL || 'http://localhost:3000'}/api/public/categories`, {
             cache: 'no-store',
         });
         if (!res.ok) return [];

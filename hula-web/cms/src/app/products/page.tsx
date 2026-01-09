@@ -35,7 +35,7 @@ export default function ProductsPage() {
     const loadProducts = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/products`);
+            const res = await fetch(`${API_URL}/api/products`);
             const data = await res.json();
             setProducts(Array.isArray(data) ? data : []);
         } catch (error) {
@@ -63,7 +63,7 @@ export default function ProductsPage() {
         if (!editingProduct) return;
         try {
             const values = await form.validateFields();
-            await fetch(`${API_URL}/products/${editingProduct.id}`, {
+            await fetch(`${API_URL}/api/products/${editingProduct.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(values),
