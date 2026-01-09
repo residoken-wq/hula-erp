@@ -32,7 +32,9 @@ export class PublicController {
     ) {
         const query = this.productRepo.createQueryBuilder('p')
             .where('p.is_active = :active', { active: true })
-            .orderBy('p.created_at', 'DESC');
+            .andWhere('p.show_on_website = :show', { show: true })
+            .orderBy('p.website_order', 'ASC')
+            .addOrderBy('p.created_at', 'DESC');
 
         if (category) {
             query.andWhere('p.category = :category', { category });
@@ -50,7 +52,7 @@ export class PublicController {
             sku: p.sku,
             name: p.name,
             category: p.category,
-            base_price: p.base_price,
+            base_price: p.website_price || p.base_price, // Use website_price if set
             image_url: p.image_url,
             customer_description: p.customer_description,
             attributes: p.attributes
@@ -60,7 +62,7 @@ export class PublicController {
     @Get('products/:sku')
     async getProductBySku(@Param('sku') sku: string) {
         const product = await this.productRepo.findOne({
-            where: { sku, is_active: true }
+            where: { sku, is_active: true, show_on_website: true }
         });
 
         if (!product) {
@@ -72,7 +74,7 @@ export class PublicController {
             sku: product.sku,
             name: product.name,
             category: product.category,
-            base_price: product.base_price,
+            base_price: product.website_price || product.base_price,
             image_url: product.image_url,
             customer_description: product.customer_description,
             attributes: product.attributes
