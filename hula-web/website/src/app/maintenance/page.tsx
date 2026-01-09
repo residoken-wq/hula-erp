@@ -2,8 +2,38 @@
 
 import { useState, useEffect } from 'react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 export default function MaintenancePage() {
     const [progress, setProgress] = useState(75);
+
+    // Contact info from CMS
+    const [contactPhone, setContactPhone] = useState('0123 456 789');
+    const [contactEmail, setContactEmail] = useState('info@nemmamnon.com');
+
+    // Fetch contact info from backend
+    useEffect(() => {
+        const fetchContactInfo = async () => {
+            try {
+                const [phoneRes, emailRes] = await Promise.all([
+                    fetch(`${API_URL}/api/system/config/contact_phone`),
+                    fetch(`${API_URL}/api/system/config/contact_email`),
+                ]);
+
+                if (phoneRes.ok) {
+                    const phoneData = await phoneRes.json();
+                    if (phoneData.value) setContactPhone(phoneData.value);
+                }
+                if (emailRes.ok) {
+                    const emailData = await emailRes.json();
+                    if (emailData.value) setContactEmail(emailData.value);
+                }
+            } catch (error) {
+                console.error('Failed to fetch contact info:', error);
+            }
+        };
+        fetchContactInfo();
+    }, []);
 
     useEffect(() => {
         // Simulate progress
@@ -113,7 +143,7 @@ export default function MaintenancePage() {
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center gap-4">
                         <a
-                            href="tel:0123456789"
+                            href={`tel:${contactPhone.replace(/\s/g, '')}`}
                             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-colors"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,7 +152,7 @@ export default function MaintenancePage() {
                             Gọi ngay
                         </a>
                         <a
-                            href="mailto:info@nemmamnon.com"
+                            href={`mailto:${contactEmail}`}
                             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

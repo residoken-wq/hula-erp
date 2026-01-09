@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
 export default function ComingSoonPage() {
     const [email, setEmail] = useState('');
     const [submitted, setSubmitted] = useState(false);
@@ -9,6 +11,34 @@ export default function ComingSoonPage() {
     const [hours, setHours] = useState(8);
     const [minutes, setMinutes] = useState(42);
     const [seconds, setSeconds] = useState(30);
+
+    // Contact info from CMS
+    const [contactPhone, setContactPhone] = useState('0123 456 789');
+    const [contactEmail, setContactEmail] = useState('info@nemmamnon.com');
+
+    // Fetch contact info from backend
+    useEffect(() => {
+        const fetchContactInfo = async () => {
+            try {
+                const [phoneRes, emailRes] = await Promise.all([
+                    fetch(`${API_URL}/api/system/config/contact_phone`),
+                    fetch(`${API_URL}/api/system/config/contact_email`),
+                ]);
+
+                if (phoneRes.ok) {
+                    const phoneData = await phoneRes.json();
+                    if (phoneData.value) setContactPhone(phoneData.value);
+                }
+                if (emailRes.ok) {
+                    const emailData = await emailRes.json();
+                    if (emailData.value) setContactEmail(emailData.value);
+                }
+            } catch (error) {
+                console.error('Failed to fetch contact info:', error);
+            }
+        };
+        fetchContactInfo();
+    }, []);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -125,11 +155,11 @@ export default function ComingSoonPage() {
                 <div className="mt-16 pt-8 border-t border-white/10">
                     <p className="text-white/60 text-sm mb-4">Liên hệ trước:</p>
                     <div className="flex justify-center gap-6">
-                        <a href="tel:0123456789" className="text-white/80 hover:text-white transition-colors">
-                            📞 0123 456 789
+                        <a href={`tel:${contactPhone.replace(/\s/g, '')}`} className="text-white/80 hover:text-white transition-colors">
+                            📞 {contactPhone}
                         </a>
-                        <a href="mailto:info@nemmamnon.com" className="text-white/80 hover:text-white transition-colors">
-                            ✉️ info@nemmamnon.com
+                        <a href={`mailto:${contactEmail}`} className="text-white/80 hover:text-white transition-colors">
+                            ✉️ {contactEmail}
                         </a>
                     </div>
                 </div>

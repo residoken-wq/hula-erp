@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useCart } from '@/contexts/CartContext';
 
 interface Product {
     id: number;
@@ -16,11 +17,17 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+    const { addToCart } = useCart();
+
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('vi-VN', {
             style: 'currency',
             currency: 'VND',
         }).format(price);
+    };
+
+    const handleAddToCart = () => {
+        addToCart(product);
     };
 
     return (
@@ -41,15 +48,21 @@ export default function ProductCard({ product }: ProductCardProps) {
 
                 {/* Quick Actions */}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-700 hover:bg-primary-500 hover:text-white transition-colors">
+                    <Link
+                        href={`/san-pham/${product.sku}`}
+                        className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-700 hover:bg-primary-500 hover:text-white transition-colors"
+                    >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                    </button>
-                    <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-700 hover:bg-primary-500 hover:text-white transition-colors">
+                    </Link>
+                    <button
+                        onClick={handleAddToCart}
+                        className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-700 hover:bg-primary-500 hover:text-white transition-colors"
+                    >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                     </button>
                 </div>
@@ -74,7 +87,10 @@ export default function ProductCard({ product }: ProductCardProps) {
                         {formatPrice(product.base_price)}
                     </span>
 
-                    <button className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                    <button
+                        onClick={handleAddToCart}
+                        className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                    >
                         Thêm
                     </button>
                 </div>
@@ -82,3 +98,4 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
     );
 }
+

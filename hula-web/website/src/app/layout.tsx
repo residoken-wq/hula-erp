@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import LayoutWrapper from '@/components/LayoutWrapper';
 
 export const metadata: Metadata = {
     title: 'Nệm Mầm Non HULA - Giấc Ngủ Ngon Cho Bé Yêu',
@@ -23,12 +22,11 @@ export default function RootLayout({
     return (
         <html lang="vi">
             <body className="min-h-screen flex flex-col">
-                <Header />
-                <main className="flex-1">
+                <LayoutWrapper>
                     {children}
-                </main>
-                <Footer />
+                </LayoutWrapper>
             </body>
         </html>
     );
 }
+
