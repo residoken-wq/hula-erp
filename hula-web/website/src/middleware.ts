@@ -14,9 +14,16 @@ async function getSiteMode(): Promise<string> {
     }
 
     try {
-        const apiUrl = process.env.API_URL || 'http://localhost:3000';
+        // In Docker: API_URL should be http://hula_app:3000
+        // If not set, default to 'live' mode (safer than failing)
+        const apiUrl = process.env.API_URL;
+        if (!apiUrl) {
+            console.log('[Middleware] API_URL not configured, defaulting to live mode');
+            return 'live';
+        }
+
         const res = await fetch(`${apiUrl}/system/config/SITE_MODE`, {
-            cache: 'no-store', // We handle caching ourselves
+            cache: 'no-store',
         });
 
         if (!res.ok) {

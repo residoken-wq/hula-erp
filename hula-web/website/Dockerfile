@@ -11,6 +11,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
+# Set API_URL at build time for Next.js middleware (standalone mode)
+ARG API_URL=http://hula_app:3000
+ENV API_URL=${API_URL}
 
 RUN npm run build
 
