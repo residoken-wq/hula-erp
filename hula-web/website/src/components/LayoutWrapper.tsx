@@ -5,6 +5,7 @@ import Header from './Header';
 import Footer from './Footer';
 import CartDrawer from './CartDrawer';
 import { CartProvider } from '@/contexts/CartContext';
+import { SettingsProvider } from '@/contexts/SettingsContext';
 
 // Pages where Header and Footer should be hidden
 const STANDALONE_PAGES = ['/coming-soon', '/maintenance'];
@@ -22,14 +23,15 @@ export default function LayoutWrapper({
     }
 
     return (
-        <CartProvider>
-            <Header />
-            <main className="flex-1">
-                {children}
-            </main>
-            <Footer />
-            <CartDrawer />
-        </CartProvider>
+        <SettingsProvider>
+            <CartProvider>
+                <Header />
+                <main className="flex-1">
+                    {children}
+                </main>
+                <Footer />
+                <CartDrawer />
+            </CartProvider>
+        </SettingsProvider>
     );
 }
-

@@ -162,38 +162,47 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
 
             {/* Editor Section - Different for each tab */}
             <div style={{ marginBottom: 10 }}>
-                {activeTab === 'INTERNAL' ? (
-                    // INTERNAL: Use Mentions component for inline @user functionality
-                    <Mentions
-                        style={{ width: '100%', minHeight: 100 }}
-                        placeholder="Nhập tin nhắn... Gõ @ để mention đồng nghiệp"
-                        value={text}
-                        onChange={(val) => setText(val)}
-                        onSelect={(option) => {
-                            // Find user by full_name to get their ID
-                            const selectedUser = users.find((u: any) => u.full_name === option.value);
-                            if (selectedUser && !mentionedUserIds.includes(String(selectedUser.id))) {
-                                setMentionedUserIds([...mentionedUserIds, String(selectedUser.id)]);
-                            }
-                        }}
-                        rows={4}
-                        options={users.map((u: any) => ({
-                            value: u.full_name, // Display name gets inserted into text
-                            label: u.full_name,
-                            key: String(u.id), // Keep ID for reference
-                        }))}
-                    />
-                ) : (
-                    // CUSTOMER: Use ReactQuill for rich text
-                    <ReactQuill
-                        ref={quillRef}
-                        theme="snow"
-                        value={text}
-                        onChange={setText}
-                        modules={modules}
-                        style={{ background: 'white', minHeight: '100px' }}
-                    />
+                {activeTab === 'INTERNAL' && (
+                    // INTERNAL: Show @mention user selector above editor
+                    <div style={{ marginBottom: 8 }}>
+                        <Mentions
+                            style={{ width: '100%' }}
+                            placeholder="Gõ @ để mention đồng nghiệp..."
+                            prefix="@"
+                            onSelect={(option) => {
+                                const selectedUser = users.find((u: any) => u.full_name === option.value);
+                                if (selectedUser && !mentionedUserIds.includes(String(selectedUser.id))) {
+                                    setMentionedUserIds([...mentionedUserIds, String(selectedUser.id)]);
+                                    message.info(`Đã tag @${selectedUser.full_name}`);
+                                }
+                            }}
+                            options={users.map((u: any) => ({
+                                value: u.full_name,
+                                label: u.full_name,
+                                key: String(u.id),
+                            }))}
+                        />
+                        {mentionedUserIds.length > 0 && (
+                            <div style={{ marginTop: 4, fontSize: 12, color: '#1890ff' }}>
+                                📢 Sẽ thông báo: {mentionedUserIds.map(id => {
+                                    const user = users.find((u: any) => String(u.id) === id);
+                                    return user ? `@${user.full_name}` : '';
+                                }).filter(Boolean).join(', ')}
+                            </div>
+                        )}
+                    </div>
                 )}
+
+                {/* ReactQuill for both CUSTOMER and INTERNAL */}
+                <ReactQuill
+                    ref={quillRef}
+                    theme="snow"
+                    value={text}
+                    onChange={setText}
+                    modules={modules}
+                    style={{ background: 'white', minHeight: '100px' }}
+                    placeholder={activeTab === 'INTERNAL' ? 'Nhập nội dung chat nội bộ...' : 'Nhập nội dung trả lời khách hàng...'}
+                />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
