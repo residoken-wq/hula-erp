@@ -53,8 +53,9 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
     const fetchCarriers = async () => {
         try {
-            const res = await axios.get(`${API_URL}/inventory/shipping-carriers`);
-            setCarriers(res.data?.filter((c: any) => c.is_active) || []);
+            // Lấy danh sách nhà cung cấp vận chuyển (type = LOGISTICS)
+            const res = await axios.get(`${API_URL}/suppliers`);
+            setCarriers(res.data?.filter((c: any) => c.type === 'LOGISTICS') || []);
         } catch (e) { }
     };
 
