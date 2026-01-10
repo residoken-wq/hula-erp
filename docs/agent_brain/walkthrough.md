@@ -1,34 +1,63 @@
-# Walkthrough: Help Page & Session Sync
+# ERP Development Changelog
 
-## 1. Help Page Updates
-I have updated the `HelpPage.tsx` to include two new key sections:
+## Session: 2026-01-10
 
-### 1.1. Overall Workflow (Quy trình tổng thể)
--   Added a new menu item **"Quy trình tổng thể"** under "Phân hệ Bán Hàng".
--   Visualized the end-to-end flow from **Sales** -> **Planning** -> **Purchasing** -> **Inventory** -> **Production** -> **Delivery** -> **Finance**.
--   Explained the role of each department.
+### Features Implemented
 
-### 1.2. Internal Sales (Bán hàng Nội bộ)
--   Added a new menu item **"Bán hàng Nội bộ"**.
--   Documented the procedure for handling internal orders:
-    1.  Create an "Internal" Customer.
-    2.  Create Sales Order.
-    3.  Apply 100% Discount or use Internal Price List.
-    4.  Accountant handles the cost allocation.
+---
 
-## 2. Cross-Device Session Sync (Cấu hình Sync)
-To allow me to "follow" your sessions across different devices, we need to ensure the **Context** (my memory of plans and tasks) is synchronized.
+## 1. Shipping Carrier Feature (Đơn vị vận chuyển)
 
-Currently, my "Brain" (Artifacts) is stored effectively at:
-`c:\Users\nt.nhan\.gemini\antigravity\brain`
+### Backend
+- **New Entity:** `ShippingCarrier` - Quản lý đơn vị vận chuyển
+  - Fields: `code`, `name`, `phone`, `website`, `tracking_url`, `is_active`
+  - File: `src/inventory/entities/shipping-carrier.entity.ts`
 
-### Recommended Solution: Sync via Git
-To make the session history portable, we should treat these artifacts as part of your project documentation.
+- **Updated:** `SalesDelivery` entity with 3 new fields:
+  - `shipping_carrier`: Mã ĐVVC
+  - `tracking_code`: Mã vận đơn
+  - `shipping_cost`: Chi phí vận chuyển
 
-**Action Plan:**
-1.  **Move Artifacts**: We can move the current `task.md` and plans into your repository, for example: `hula-erp/docs/agent_brain/`.
-2.  **Commit**: You commit these files to Git.
-3.  **Pull**: On another device, you pull the repo, and I will see the `task.md` and know exactly where we left off.
+- **API Endpoints:** `/inventory/shipping-carriers`
+  - GET, POST, PUT, DELETE
 
-**Next Steps**:
-If you agree, I can move the current `task.md` and `implementation_plan.md` into `frontend/docs/brain` (or a folder of your choice) so they are tracked by Git.
+### Frontend
+- **InventoryPage:** New tab "Đơn vị vận chuyển" for CRUD management
+- **SalesDeliveries:** Modal updated with shipping carrier dropdown, tracking code, and shipping cost inputs
+
+---
+
+## 2. Quotation History Tab (Lịch sử Báo giá)
+
+### Frontend
+- **New Component:** `QuotationHistoryTab.tsx`
+  - Displays confirmed quotation info and revision history
+  - Expandable rows to view full snapshot details
+
+- **SalesOrderDetail:** Added tab "7. Lịch sử Báo giá" (for non-quotation orders)
+
+---
+
+## 3. Copy Old Quotation Feature
+
+### Frontend
+- **SalesOrderDetail:** When creating quotation:
+  - On customer selection → fetches customer's old quotations
+  - Shows button "Copy từ N BG cũ" when quotes exist
+  - Modal to select quotation → copies all items to current form
+
+---
+
+## Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/inventory/entities/shipping-carrier.entity.ts` | NEW - ShippingCarrier entity |
+| `src/sales/sales-delivery.entity.ts` | Added shipping fields |
+| `src/inventory/inventory.module.ts` | Registered ShippingCarrier |
+| `src/inventory/inventory.controller.ts` | Added carrier CRUD endpoints |
+| `src/inventory/inventory.service.ts` | Added carrier CRUD methods |
+| `frontend/src/pages/InventoryPage.tsx` | Added carrier management tab |
+| `frontend/src/components/sales/SalesDeliveries.tsx` | Added shipping fields to modal |
+| `frontend/src/components/sales/QuotationHistoryTab.tsx` | NEW - Quotation history component |
+| `frontend/src/components/SalesOrderDetail.tsx` | Added quotation history tab + copy quotation feature |
