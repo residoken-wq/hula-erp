@@ -3,7 +3,7 @@ import { Table, Button, message, Card, Modal, Form, Input, Select, InputNumber, 
 import {
     ReloadOutlined, SwapOutlined, HistoryOutlined,
     AppstoreOutlined, ArrowUpOutlined, ArrowDownOutlined,
-    InboxOutlined, ShopOutlined, AlertOutlined, CheckCircleOutlined
+    InboxOutlined, ShopOutlined, AlertOutlined, CheckCircleOutlined, CarOutlined, PlusOutlined, EditOutlined, DeleteOutlined
 } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
@@ -31,6 +31,7 @@ const InventoryPage: React.FC = () => {
     const [history, setHistory] = useState<any[]>([]);
     const [pendingReceipts, setPendingReceipts] = useState<any[]>([]);
     const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]); // <--- New State: Pending Export Requests // <--- New State
+    const [shippingCarriers, setShippingCarriers] = useState<any[]>([]); // <--- Shipping Carriers
 
     const [searchText, setSearchText] = useState('');
 
@@ -47,6 +48,11 @@ const InventoryPage: React.FC = () => {
     const [transferForm] = Form.useForm();
     const [transferTarget, setTransferTarget] = useState<{ item: any, fromWh: string, toWh: string, title: string } | null>(null);
 
+    // --- CARRIER MODAL STATE ---
+    const [isCarrierModalOpen, setIsCarrierModalOpen] = useState(false);
+    const [carrierForm] = Form.useForm();
+    const [editingCarrier, setEditingCarrier] = useState<any>(null);
+
     const [form] = Form.useForm();
 
 
@@ -57,13 +63,14 @@ const InventoryPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [pRes, mRes, sRes, hRes, grRes, dRes] = await Promise.all([
+            const [pRes, mRes, sRes, hRes, grRes, dRes, cRes] = await Promise.all([
                 api.get('/products'),
                 api.get('/materials'),
                 api.get('/inventory/stocks'),
                 api.get('/inventory/history'),
                 api.get('/inventory/goods-receipt/pending'),
-                api.get('/inventory/deliveries/pending')
+                api.get('/inventory/deliveries/pending'),
+                api.get('/inventory/shipping-carriers')
             ]);
             setProducts(pRes.data);
             setMaterials(mRes.data);
@@ -71,8 +78,9 @@ const InventoryPage: React.FC = () => {
             setHistory(hRes.data);
             setPendingReceipts(grRes.data || []);
             setPendingDeliveries(dRes.data || []); // <--- Set State
+            setShippingCarriers(cRes.data || []);
         } catch (error) {
-            message.error('Lỗi tải dữ liệu');
+            message.error('Đã xảy ra lỗi khi tải dữ liệu');
         } finally {
             setLoading(false);
         }
@@ -163,6 +171,45 @@ const InventoryPage: React.FC = () => {
             fetchData();
         } catch (e) {
             message.error('Lỗi xác nhận xuất kho');
+        }
+    };
+
+    // --- SHIPPING CARRIER CRUD ---
+    const openCarrierModal = (carrier?: any) => {
+        if (carrier) {
+            setEditingCarrier(carrier);
+            carrierForm.setFieldsValue(carrier);
+        } else {
+            setEditingCarrier(null);
+            carrierForm.resetFields();
+        }
+        setIsCarrierModalOpen(true);
+    };
+
+    const handleSaveCarrier = async () => {
+        try {
+            const values = await carrierForm.validateFields();
+            if (editingCarrier) {
+                await api.put(`/inventory/shipping-carriers/${editingCarrier.id}`, values);
+                message.success('Đã cập nhật đơn vị vận chuyển');
+            } else {
+                await api.post('/inventory/shipping-carriers', values);
+                message.success('Đã thêm đơn vị vận chuyển');
+            }
+            setIsCarrierModalOpen(false);
+            fetchData();
+        } catch (e) {
+            message.error('Lỗi lưu đơn vị vận chuyển');
+        }
+    };
+
+    const handleDeleteCarrier = async (id: number) => {
+        try {
+            await api.delete(`/inventory/shipping-carriers/${id}`);
+            message.success('Đã xóa đơn vị vận chuyển');
+            fetchData();
+        } catch (e) {
+            message.error('Lỗi xóa');
         }
     };
 
@@ -463,6 +510,35 @@ const InventoryPage: React.FC = () => {
                             ]}
                         />
                     </Tabs.TabPane>
+
+                    {/* TAB ĐƠN VỊ VẬN CHUYỂN */}
+                    <Tabs.TabPane tab={<span><CarOutlined /> Đơn vị vận chuyển</span>} key="CARRIERS">
+                        <div style={{ marginBottom: 10 }}>
+                            <Button type="primary" icon={<PlusOutlined />} onClick={() => openCarrierModal()}>Thêm ĐVVC</Button>
+                        </div>
+                        <Table
+                            dataSource={shippingCarriers}
+                            rowKey="id"
+                            size="small"
+                            columns={[
+                                { title: 'Mã', dataIndex: 'code', width: 100, render: (t: any) => <b>{t}</b> },
+                                { title: 'Tên đơn vị', dataIndex: 'name' },
+                                { title: 'SĐT', dataIndex: 'phone', width: 120 },
+                                { title: 'Website', dataIndex: 'website', render: (t: any) => t ? <a href={t} target="_blank" rel="noreferrer">{t}</a> : '-' },
+                                { title: 'Trạng thái', dataIndex: 'is_active', width: 100, render: (v: boolean) => v ? <Tag color="green">Hoạt động</Tag> : <Tag color="red">Đã tắt</Tag> },
+                                {
+                                    title: '', width: 100, render: (_: any, r: any) => (
+                                        <Space>
+                                            <Button size="small" icon={<EditOutlined />} onClick={() => openCarrierModal(r)} />
+                                            <Popconfirm title="Xóa đơn vị này?" onConfirm={() => handleDeleteCarrier(r.id)}>
+                                                <Button size="small" danger icon={<DeleteOutlined />} />
+                                            </Popconfirm>
+                                        </Space>
+                                    )
+                                }
+                            ]}
+                        />
+                    </Tabs.TabPane>
                 </Tabs>
             </Card>
 
@@ -561,6 +637,48 @@ const InventoryPage: React.FC = () => {
 
                     <Form.Item name="note" label="Ghi chú / Lý do">
                         <Input.TextArea rows={2} placeholder="VD: Hàng bị móp méo / Đã sửa xong..." />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* MODAL ĐƠN VỊ VẬN CHUYỂN */}
+            <Modal
+                title={editingCarrier ? 'Cập nhật ĐVVC' : 'Thêm Đơn vị vận chuyển'}
+                open={isCarrierModalOpen}
+                onCancel={() => setIsCarrierModalOpen(false)}
+                onOk={handleSaveCarrier}
+                okText="Lưu"
+            >
+                <Form form={carrierForm} layout="vertical" initialValues={{ is_active: true }}>
+                    <Row gutter={16}>
+                        <Col span={8}>
+                            <Form.Item name="code" label="Mã" rules={[{ required: true }]}>
+                                <Input placeholder="VD: GHTK" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={16}>
+                            <Form.Item name="name" label="Tên đơn vị" rules={[{ required: true }]}>
+                                <Input placeholder="VD: Giao Hàng Tiết Kiệm" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="phone" label="Số điện thoại">
+                                <Input placeholder="Hotline" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="website" label="Website">
+                                <Input placeholder="https://..." />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Form.Item name="tracking_url" label="URL tra cứu vận đơn">
+                        <Input placeholder="VD: https://ghtk.vn/tracking?code={code}" />
+                    </Form.Item>
+                    <Form.Item name="is_active" valuePropName="checked">
+                        <Checkbox>Đang hoạt động</Checkbox>
                     </Form.Item>
                 </Form>
             </Modal>

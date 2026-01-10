@@ -41,6 +41,16 @@ export class SalesDelivery {
   @Column({ nullable: true })
   contact_phone: string;
 
+  // Shipping carrier info
+  @Column({ nullable: true })
+  shipping_carrier: string; // ĐVVC code (VD: GHTK, GHN)
+
+  @Column({ nullable: true })
+  tracking_code: string; // Mã vận đơn
+
+  @Column('decimal', { precision: 15, scale: 2, nullable: true, default: 0 })
+  shipping_cost: number; // Chi phí vận chuyển
+
   @OneToMany(() => SalesDeliveryItem, (item) => item.delivery, { cascade: true })
   items: SalesDeliveryItem[];
 

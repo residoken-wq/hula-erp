@@ -12,6 +12,7 @@ import { Supplier } from '../suppliers/supplier.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { SalesDelivery } from '../sales/sales-delivery.entity'; // <--- Import SalesDelivery
+import { ShippingCarrier } from './entities/shipping-carrier.entity'; // <--- Import ShippingCarrier
 import { ProductsModule } from '../products/products.module'; // <--- Import ProductsModule for Combos
 
 @Module({
@@ -27,7 +28,8 @@ import { ProductsModule } from '../products/products.module'; // <--- Import Pro
       Supplier,
       PurchaseOrder,
       PurchaseOrderItem,
-      SalesDelivery // <--- Register SalesDelivery
+      SalesDelivery, // <--- Register SalesDelivery
+      ShippingCarrier // <--- Register ShippingCarrier
     ]),
     ProductsModule // <--- Register ProductsModule
   ],

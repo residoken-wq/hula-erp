@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Put, Delete, UsePipes, ValidationPipe } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './create-inventory.dto';
 
@@ -70,5 +70,26 @@ export class InventoryController {
     @Body('warehouse') warehouse: string
   ) {
     return this.inventoryService.confirmStockExport(Number(id), warehouse);
+  }
+
+  // --- SHIPPING CARRIERS API ---
+  @Get('shipping-carriers')
+  async getShippingCarriers() {
+    return this.inventoryService.getAllShippingCarriers();
+  }
+
+  @Post('shipping-carriers')
+  async createShippingCarrier(@Body() body: any) {
+    return this.inventoryService.createShippingCarrier(body);
+  }
+
+  @Put('shipping-carriers/:id')
+  async updateShippingCarrier(@Param('id') id: string, @Body() body: any) {
+    return this.inventoryService.updateShippingCarrier(Number(id), body);
+  }
+
+  @Delete('shipping-carriers/:id')
+  async deleteShippingCarrier(@Param('id') id: string) {
+    return this.inventoryService.deleteShippingCarrier(Number(id));
   }
 }

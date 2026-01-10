@@ -34,6 +34,12 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const [uploadDeliveryId, setUploadDeliveryId] = useState<number | null>(null);
     const [uploadAttachments, setUploadAttachments] = useState<string[]>([]);
 
+    // Shipping Carrier State
+    const [shippingCarrier, setShippingCarrier] = useState<string>('');
+    const [trackingCode, setTrackingCode] = useState<string>('');
+    const [shippingCost, setShippingCost] = useState<number>(0);
+    const [carriers, setCarriers] = useState<any[]>([]);
+
     // RESOLVE FULL CUSTOMER (to get contacts)
     const fullCustomer = customers.find(c => c.id === order?.customer?.id || c.id === order?.customer_id) || order?.customer || {};
     const contactList = fullCustomer?.contacts || [];
@@ -42,6 +48,13 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         try {
             const res = await axios.get(`${API_URL}/sales/${order.id}/deliveries`);
             setHistory(Array.isArray(res.data) ? res.data : []);
+        } catch (e) { }
+    };
+
+    const fetchCarriers = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/inventory/shipping-carriers`);
+            setCarriers(res.data?.filter((c: any) => c.is_active) || []);
         } catch (e) { }
     };
 
@@ -67,6 +80,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
     useEffect(() => {
         if (order?.id) fetchHistory();
+        fetchCarriers();
         axios.get(`${API_URL}/system/company`).then(res => setCompanyConfig(res.data)).catch(() => { });
     }, [order?.id]);
 
@@ -114,6 +128,11 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         setShipContactPhone(order.receiver_phone || contactList[0]?.phone || fullCustomer?.phone || '');
         setAttachments([]);
 
+        // Reset shipping carrier fields
+        setShippingCarrier(order.shipping_carrier || '');
+        setTrackingCode('');
+        setShippingCost(0);
+
         setIsModalOpen(true);
     };
 
@@ -125,6 +144,11 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         setShipContactPhone(delivery.contact_phone || '');
         setShipNote(delivery.note || '');
         setAttachments(delivery.attachments || []);
+
+        // Load shipping carrier fields
+        setShippingCarrier(delivery.shipping_carrier || '');
+        setTrackingCode(delivery.tracking_code || '');
+        setShippingCost(Number(delivery.shipping_cost) || 0);
 
         // Calculate Ship Items
         // Merge Order Items (summaryData) with Delivery Items
@@ -173,7 +197,10 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 contact_name: shipContactName,
                 contact_phone: shipContactPhone,
                 items: shipItems.filter(i => i.quantity > 0),
-                attachments: attachments
+                attachments: attachments,
+                shipping_carrier: shippingCarrier,
+                tracking_code: trackingCode,
+                shipping_cost: shippingCost
             };
 
             if (editingDeliveryId) {
@@ -508,6 +535,38 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                         />
                     </div>
                 )}
+
+                {/* SHIPPING CARRIER FIELDS */}
+                <div style={{ marginBottom: 10, padding: 10, background: '#f0f5ff', borderRadius: 6, border: '1px solid #adc6ff' }}>
+                    <div style={{ fontWeight: 500, marginBottom: 8, color: '#1d39c4' }}>Thông tin vận chuyển:</div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <div style={{ flex: 2 }}>
+                            <div style={{ fontSize: 12, marginBottom: 4 }}>Đơn vị vận chuyển</div>
+                            <Select
+                                style={{ width: '100%' }}
+                                placeholder="Chọn ĐVVC"
+                                value={shippingCarrier || undefined}
+                                onChange={setShippingCarrier}
+                                allowClear
+                                options={carriers.map((c: any) => ({ value: c.code, label: c.name }))}
+                            />
+                        </div>
+                        <div style={{ flex: 2 }}>
+                            <div style={{ fontSize: 12, marginBottom: 4 }}>Mã vận đơn</div>
+                            <Input placeholder="VD: GHN123456" value={trackingCode} onChange={e => setTrackingCode(e.target.value)} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 12, marginBottom: 4 }}>Chi phí VC</div>
+                            <InputNumber
+                                style={{ width: '100%' }}
+                                placeholder="0"
+                                value={shippingCost}
+                                onChange={(v: any) => setShippingCost(v || 0)}
+                                formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                            />
+                        </div>
+                    </div>
+                </div>
 
                 <Input.TextArea rows={2} placeholder="Ghi chú giao hàng..." value={shipNote} onChange={e => setShipNote(e.target.value)} style={{ marginBottom: 10 }} />
 

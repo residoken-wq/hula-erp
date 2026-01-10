@@ -5,6 +5,7 @@ import { StockHistory } from './stock-history.entity';
 import { InventoryStock } from './inventory-stock.entity';
 import { GoodsReceipt, GoodsReceiptStatus } from './entities/goods-receipt.entity';
 import { GoodsReceiptItem } from './entities/goods-receipt-item.entity';
+import { ShippingCarrier } from './entities/shipping-carrier.entity';
 import { Product } from '../products/product.entity';
 import { Material } from '../materials/material.entity';
 import { Supplier } from '../suppliers/supplier.entity';
@@ -22,12 +23,33 @@ export class InventoryService {
     @InjectRepository(Material) private materialRepo: Repository<Material>,
     @InjectRepository(GoodsReceipt) private receiptRepo: Repository<GoodsReceipt>,
     @InjectRepository(GoodsReceiptItem) private receiptItemRepo: Repository<GoodsReceiptItem>,
+    @InjectRepository(ShippingCarrier) private carrierRepo: Repository<ShippingCarrier>,
     @InjectRepository(Supplier) private supplierRepo: Repository<Supplier>,
     @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
     @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
     @InjectRepository(SalesDelivery) private deliveryRepo: Repository<SalesDelivery>,
     private productsService: ProductsService,
   ) { }
+
+  // --- SHIPPING CARRIER MANAGEMENT ---
+  async getAllShippingCarriers() {
+    return this.carrierRepo.find({ order: { name: 'ASC' } });
+  }
+
+  async createShippingCarrier(data: Partial<ShippingCarrier>) {
+    const carrier = this.carrierRepo.create(data);
+    return this.carrierRepo.save(carrier);
+  }
+
+  async updateShippingCarrier(id: number, data: Partial<ShippingCarrier>) {
+    await this.carrierRepo.update(id, data);
+    return this.carrierRepo.findOne({ where: { id } });
+  }
+
+  async deleteShippingCarrier(id: number) {
+    await this.carrierRepo.delete(id);
+    return { success: true, message: 'Đã xóa đơn vị vận chuyển' };
+  }
 
   // Lấy chi tiết tồn kho của tất cả item
   async getAllStocks() {

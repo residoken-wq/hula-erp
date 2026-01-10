@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox } from 'antd';
+import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table } from 'antd';
 import { PlusOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined } from '@ant-design/icons';
 import api from '../utils/api';
@@ -11,6 +11,7 @@ import SalesChecklistPanel from './SalesChecklistPanel';
 import SalesOrderItemsTable from './sales/SalesOrderItemsTable';
 import CancelOrderModal from './sales/CancelOrderModal';
 import RevisionHistoryModal from './sales/RevisionHistoryModal';
+import QuotationHistoryTab from './sales/QuotationHistoryTab';
 import useMobile from '../hooks/useMobile';
 
 const { Option } = Select;
@@ -41,6 +42,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     // Revisions State
     const [revisions, setRevisions] = useState<any[]>([]);
     const [revisionModalOpen, setRevisionModalOpen] = useState(false);
+
+    // Copy Quotation State
+    const [customerQuotations, setCustomerQuotations] = useState<any[]>([]);
+    const [copyQuotationModalOpen, setCopyQuotationModalOpen] = useState(false);
 
     const fetchRevisions = async (id: number) => {
         try {
@@ -150,8 +155,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     };
 
-    const handleCustomerChange = (customerId: number) => {
-        const customer = customers.find(c => c.id === customerId);
+    const handleCustomerChange = async (customerId: number) => {
+        const customer = customers.find((c: any) => c.id === customerId);
         if (customer) {
             form.setFieldsValue({
                 vat_company_name: customer.legal_name || customer.name || '',
@@ -160,6 +165,37 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 vat_email: customer.einvoice_email || customer.email || ''
             });
         }
+        // Fetch customer's old quotations
+        if (isQuotation && customerId && customerId !== -1) {
+            try {
+                const res = await api.get('/sales');
+                const quotes = (res.data || []).filter((o: any) =>
+                    o.customer?.id === customerId && o.status === 'QUOTATION' && o.id !== initialData?.id
+                );
+                setCustomerQuotations(quotes);
+            } catch (e) { setCustomerQuotations([]); }
+        } else {
+            setCustomerQuotations([]);
+        }
+    };
+
+    const handleCopyQuotation = (quotation: any) => {
+        const items = (quotation.items || []).map((i: any, idx: number) => ({
+            key: Date.now() + idx,
+            sku: i.product?.sku || i.sku,
+            quantity: Number(i.quantity) || 1,
+            unit_price: Number(i.unit_price) || 0,
+            total_price: (Number(i.quantity) || 1) * (Number(i.unit_price) || 0),
+            note: i.note || ''
+        }));
+        setOrderItems(items);
+        calculateTotal(items);
+        form.setFieldsValue({
+            delivery_date: quotation.delivery_date ? dayjs(quotation.delivery_date) : null,
+            note: quotation.note || ''
+        });
+        setCopyQuotationModalOpen(false);
+        message.success(`Đã copy ${items.length} sản phẩm từ ${quotation.order_code}`);
     };
 
     const handleItemChange = (index: number, field: string, value: any) => {
@@ -365,11 +401,21 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         optionFilterProp="label"
                                         options={[
                                             ...(initialData?.isInternal ? [{ label: '🏢 NỘI BỘ', value: -1 }] : []),
-                                            ...customers.map(c => ({ label: `${c.name} - ${c.phone}`, value: c.id }))
+                                            ...customers.map((c: any) => ({ label: `${c.name} - ${c.phone}`, value: c.id }))
                                         ]}
                                         disabled={initialData?.isInternal}
                                     />
                                 </Form.Item>
+                                {isQuotation && customerQuotations.length > 0 && (
+                                    <Button
+                                        size="small"
+                                        icon={<CopyOutlined />}
+                                        onClick={() => setCopyQuotationModalOpen(true)}
+                                        style={{ marginTop: -10, marginBottom: 10 }}
+                                    >
+                                        Copy từ {customerQuotations.length} BG cũ
+                                    </Button>
+                                )}
                             </Col>
                             <Col xs={24} sm={8}><Form.Item name="order_date" label="Ngày đặt" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                         </Row>
@@ -609,6 +655,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         <Tabs.TabPane tab={isMobile ? '6. CL' : '6. Checklist'} key="5">
                             <SalesChecklistPanel orderId={initialData.id} orderStatus={initialData.status} onRefresh={onSuccess} />
                         </Tabs.TabPane>
+                        <Tabs.TabPane tab={isMobile ? '7. BG' : '7. Lịch sử Báo giá'} key="quotation_history">
+                            <QuotationHistoryTab revisions={revisions} products={products} customers={customers} />
+                        </Tabs.TabPane>
                     </>
                 )}
             </Tabs>
@@ -630,6 +679,33 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 products={products}
                 customers={customers}
             />
+
+            {/* COPY QUOTATION MODAL */}
+            <Modal
+                title="Copy từ Báo giá cũ"
+                open={copyQuotationModalOpen}
+                onCancel={() => setCopyQuotationModalOpen(false)}
+                footer={null}
+                width={700}
+            >
+                <div style={{ marginBottom: 10, color: '#666' }}>Chọn báo giá để copy sản phẩm:</div>
+                <Table
+                    dataSource={customerQuotations}
+                    rowKey="id"
+                    size="small"
+                    pagination={false}
+                    onRow={(record: any) => ({
+                        onClick: () => handleCopyQuotation(record),
+                        style: { cursor: 'pointer' }
+                    })}
+                    columns={[
+                        { title: 'Mã BG', dataIndex: 'order_code', render: (v: string) => <Tag color="blue">{v}</Tag> },
+                        { title: 'Ngày', dataIndex: 'order_date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
+                        { title: 'Sản phẩm', render: (_: any, r: any) => `${r.items?.length || 0} SP` },
+                        { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b style={{ color: 'red' }}>{Number(v || 0).toLocaleString()} ₫</b> }
+                    ]}
+                />
+            </Modal>
         </Modal >
     );
 };
