@@ -113,19 +113,22 @@ export default function SettingsPage() {
                             disabled={modeSaving}
                         >
                             <Space direction="vertical" style={{ width: '100%' }}>
-                                <Radio.Button
-                                    value="live"
+                                <label
                                     style={{
-                                        width: '100%',
-                                        height: 'auto',
-                                        padding: '16px 20px',
                                         display: 'flex',
                                         alignItems: 'center',
+                                        width: '100%',
+                                        padding: '16px 20px',
                                         borderRadius: 8,
                                         marginBottom: 8,
+                                        cursor: modeSaving ? 'not-allowed' : 'pointer',
+                                        border: siteMode === 'live' ? '2px solid #16a34a' : '1px solid #d9d9d9',
+                                        background: siteMode === 'live' ? '#f0fdf4' : '#fff',
+                                        transition: 'all 0.2s ease',
                                     }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <Radio value="live" style={{ marginRight: 12 }} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
                                         <div style={{
                                             width: 40,
                                             height: 40,
@@ -142,21 +145,24 @@ export default function SettingsPage() {
                                             <div style={{ fontSize: 12, color: '#666' }}>Hiển thị đầy đủ nội dung website cho khách hàng</div>
                                         </div>
                                     </div>
-                                </Radio.Button>
+                                </label>
 
-                                <Radio.Button
-                                    value="coming-soon"
+                                <label
                                     style={{
-                                        width: '100%',
-                                        height: 'auto',
-                                        padding: '16px 20px',
                                         display: 'flex',
                                         alignItems: 'center',
+                                        width: '100%',
+                                        padding: '16px 20px',
                                         borderRadius: 8,
                                         marginBottom: 8,
+                                        cursor: modeSaving ? 'not-allowed' : 'pointer',
+                                        border: siteMode === 'coming-soon' ? '2px solid #2563eb' : '1px solid #d9d9d9',
+                                        background: siteMode === 'coming-soon' ? '#eff6ff' : '#fff',
+                                        transition: 'all 0.2s ease',
                                     }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <Radio value="coming-soon" style={{ marginRight: 12 }} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
                                         <div style={{
                                             width: 40,
                                             height: 40,
@@ -173,20 +179,23 @@ export default function SettingsPage() {
                                             <div style={{ fontSize: 12, color: '#666' }}>Hiển thị trang countdown + đăng ký email</div>
                                         </div>
                                     </div>
-                                </Radio.Button>
+                                </label>
 
-                                <Radio.Button
-                                    value="maintenance"
+                                <label
                                     style={{
-                                        width: '100%',
-                                        height: 'auto',
-                                        padding: '16px 20px',
                                         display: 'flex',
                                         alignItems: 'center',
+                                        width: '100%',
+                                        padding: '16px 20px',
                                         borderRadius: 8,
+                                        cursor: modeSaving ? 'not-allowed' : 'pointer',
+                                        border: siteMode === 'maintenance' ? '2px solid #d97706' : '1px solid #d9d9d9',
+                                        background: siteMode === 'maintenance' ? '#fffbeb' : '#fff',
+                                        transition: 'all 0.2s ease',
                                     }}
                                 >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <Radio value="maintenance" style={{ marginRight: 12 }} />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
                                         <div style={{
                                             width: 40,
                                             height: 40,
@@ -203,7 +212,7 @@ export default function SettingsPage() {
                                             <div style={{ fontSize: 12, color: '#666' }}>Hiển thị trang bảo trì với progress bar</div>
                                         </div>
                                     </div>
-                                </Radio.Button>
+                                </label>
                             </Space>
                         </Radio.Group>
                     )}
