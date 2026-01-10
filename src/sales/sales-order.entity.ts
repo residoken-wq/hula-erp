@@ -64,9 +64,10 @@ export class SalesOrder {
   @Column({ nullable: true }) tracking_code: string;
   @Column('decimal', { default: 0 }) shipping_fee: number;
 
+  // Source of order: ERP (manual), WEBSITE (from checkout), POS (point of sale)
+  @Column({ nullable: true, default: 'ERP' }) order_source: string;
 
-
-  @Column('text', { nullable: true }) note: string; // --- NEW NOTE FIELD ---
+  @Column('text', { nullable: true }) note: string; // Internal note
 
   @Column('text', { nullable: true })
   cancel_reason: string;

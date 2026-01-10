@@ -141,11 +141,18 @@ const SalesPage: React.FC = () => {
     // --- FILTERING LOGIC ---
     const filteredData = useMemo(() => {
         return data.filter((x: any) => {
-            const matchTab = activeTab === 'ALL'
-                ? true
-                : activeTab === 'DELIVERED'
-                    ? (x.status === 'DELIVERED' || x.status === 'PARTIAL_DELIVERY')
-                    : x.status === activeTab;
+            // Handle special WEB_ORDER tab (filter by order_source)
+            let matchTab = true;
+            if (activeTab === 'ALL') {
+                matchTab = true;
+            } else if (activeTab === 'WEB_ORDER') {
+                matchTab = x.order_source === 'WEBSITE';
+            } else if (activeTab === 'DELIVERED') {
+                matchTab = (x.status === 'DELIVERED' || x.status === 'PARTIAL_DELIVERY');
+            } else {
+                matchTab = x.status === activeTab;
+            }
+
             const matchSearch = x.order_code?.toLowerCase().includes(searchText.toLowerCase())
                 || x.customer_name?.toLowerCase().includes(searchText.toLowerCase())
                 || x.customer?.name?.toLowerCase().includes(searchText.toLowerCase());
@@ -406,6 +413,7 @@ const SalesPage: React.FC = () => {
                     onChange={setActiveTab}
                     items={[
                         { key: 'ALL', label: 'Tất cả' },
+                        { key: 'WEB_ORDER', label: '🛒 Đơn hàng lẻ' },
                         { key: 'SO_PENDING', label: 'Chờ Duyệt' },
                         { key: 'DEPOSITED', label: 'Đã Đặt Cọc' },
                         { key: 'SAMPLE_APPROVED', label: 'Đã Duyệt Mẫu SX' },

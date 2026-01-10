@@ -333,7 +333,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 style={{ backgroundColor: isQuotation ? '#d9d9d9' : '#52c41a', borderColor: isQuotation ? '#d9d9d9' : '#52c41a' }}
                                 icon={<CheckCircleOutlined />}
                                 onClick={handleApproveSamples}
-                                disabled={isQuotation || initialData?.status !== 'SO_PENDING'}
+                                disabled={isQuotation}
                             >
                                 {isMobile ? 'Duyệt' : 'Duyệt mẫu SX'}
                             </Button>

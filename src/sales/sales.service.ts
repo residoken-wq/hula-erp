@@ -87,7 +87,29 @@ export class SalesService {
     async getPriceListRules(id: number) { return this.priceListRuleRepo.find({ where: { price_list_id: id } }); }
 
     // --- HELPER: GENERATE ORDER CODE ---
-    async generateOrderCode(type: 'SO' | 'QUOTE'): Promise<string> {
+    async generateOrderCode(type: 'SO' | 'QUOTE' | 'SO_WEB'): Promise<string> {
+        // SO_WEB = Website order: SO_Web_0001
+        // SO = Regular order: SO-YYMM-0001
+        // QUOTE = Quotation: BG-YYMM-0001
+
+        if (type === 'SO_WEB') {
+            // Website orders: SO_Web_xxxx (simple sequential)
+            const codePrefix = 'SO_Web_';
+            const lastOrder = await this.orderRepo.createQueryBuilder('order')
+                .where('order.order_code LIKE :code', { code: `${codePrefix}%` })
+                .orderBy('order.id', 'DESC')
+                .getOne();
+
+            let sequence = 1;
+            if (lastOrder) {
+                const parts = lastOrder.order_code.split('_');
+                const lastSeq = parseInt(parts[parts.length - 1]);
+                if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+            }
+            return `${codePrefix}${String(sequence).padStart(4, '0')}`;
+        }
+
+        // Regular SO and QUOTE: XX-YYMM-0001
         const prefix = type === 'SO' ? 'SO' : 'BG'; // BG = Báo Giá
         const now = new Date();
         const year = String(now.getFullYear()).slice(-2);
@@ -113,8 +135,12 @@ export class SalesService {
     async createOrder(data: any) {
         // --- AUTO GENERATE CODE IF NEEDED ---
         let orderCode = data.order_code;
+        const isWebOrder = data.order_source === 'WEBSITE';
+
         if (!orderCode || orderCode.startsWith('AUTO-')) {
-            orderCode = await this.generateOrderCode(data.is_quotation ? 'QUOTE' : 'SO');
+            // Use SO_WEB for website orders, QUOTE for quotations, SO for regular
+            const codeType = data.is_quotation ? 'QUOTE' : (isWebOrder ? 'SO_WEB' : 'SO');
+            orderCode = await this.generateOrderCode(codeType);
         }
 
         const order = this.orderRepo.create({
@@ -132,7 +158,8 @@ export class SalesService {
             discount_amount: Number(data.discount_amount) || 0,
             payment_note: data.payment_note, terms_content: data.terms_content, note: data.note,
             assigned_to: data.assigned_to_id ? { id: data.assigned_to_id } as any : null,
-            paid_amount: 0 // Init
+            paid_amount: 0, // Init
+            order_source: data.order_source || 'ERP' // Track order source
         });
 
         const validItems = (data.items || []).filter((i: any) => i.sku);

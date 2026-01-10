@@ -252,14 +252,20 @@ export class PublicController {
     }) {
         // Create order via SalesService
         const orderData = {
+            // Customer info
             customer_name: body.customer_name,
-            customer_phone: body.customer_phone,
-            customer_email: body.customer_email,
-            delivery_address: body.delivery_address,
+
+            // Delivery info - map to correct fields
+            receiver_name: body.customer_name,    // Recipient is same as customer
+            receiver_phone: body.customer_phone,
+            shipping_address: body.delivery_address,
+
+            // Items and notes
             items: body.items,
-            notes: body.notes,
-            order_type: 'WEBSITE', // Mark as website order
-            status: 'PENDING'
+            note: body.notes ? `[Website] ${body.notes}\nPayment: ${body.payment_method || 'COD'}` : `[Website] Payment: ${body.payment_method || 'COD'}`,
+
+            // Mark as website order
+            order_source: 'WEBSITE'
         };
 
         try {
