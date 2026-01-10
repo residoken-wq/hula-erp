@@ -76,9 +76,29 @@ export default function SettingsPage() {
     const handleModeChange = async (mode: string) => {
         setModeSaving(true);
         try {
+            // Save mode to backend
             await systemApi.setConfig('SITE_MODE', mode, 'Website display mode: live, coming-soon, or maintenance');
             setSiteMode(mode);
-            message.success(`Đã chuyển sang chế độ: ${mode === 'live' ? 'Website hoạt động' : mode === 'coming-soon' ? 'Coming Soon' : 'Bảo trì'}`);
+
+            // Try to invalidate website cache (best effort - may fail in some environments)
+            try {
+                // Use the public website URL
+                const websiteUrl = process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://nemmamnon.com';
+                await fetch(`${websiteUrl}/api/revalidate`, {
+                    method: 'POST',
+                    mode: 'no-cors', // May be cross-origin
+                });
+            } catch (revalidateError) {
+                console.warn('Could not revalidate website cache:', revalidateError);
+                // Not critical - cache will expire in 30 seconds anyway
+            }
+
+            const modeNames: Record<string, string> = {
+                'live': 'Website hoạt động',
+                'coming-soon': 'Coming Soon',
+                'maintenance': 'Bảo trì'
+            };
+            message.success(`Đã chuyển sang chế độ: ${modeNames[mode] || mode}. Website sẽ cập nhật trong 30 giây.`);
         } catch (error) {
             console.error('Failed to save site mode:', error);
             message.error('Không thể lưu chế độ website. Vui lòng thử lại.');
