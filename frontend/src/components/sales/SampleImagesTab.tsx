@@ -171,7 +171,11 @@ const SampleImagesTab: React.FC<SampleImagesTabProps> = ({
                                             alt={`Mẫu ${index + 1}`}
                                             style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
                                             onError={(e) => {
-                                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Không+tải+được+hình';
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                if (target.parentElement) {
+                                                    target.parentElement.innerHTML = '<div style="color:#999;text-align:center;padding:20px;">⚠️ Không tải được hình<br/><small>Kiểm tra lại URL Google Drive</small></div>';
+                                                }
                                             }}
                                         />
                                     </div>

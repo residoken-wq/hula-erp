@@ -677,7 +677,11 @@ const PortalQuotePage: React.FC = () => {
                                                         alt={`Mẫu ${index + 1}`}
                                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                         onError={(e) => {
-                                                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/250x200?text=Image+Error';
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.style.display = 'none';
+                                                            if (target.parentElement) {
+                                                                target.parentElement.innerHTML = '<div style="color:#999;text-align:center;padding:20px;font-size:12px;">⚠️ Lỗi tải hình</div>';
+                                                            }
                                                         }}
                                                     />
                                                 </div>

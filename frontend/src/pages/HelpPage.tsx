@@ -516,6 +516,40 @@ const HelpPage: React.FC = () => {
                             type="info"
                             showIcon
                         />
+
+                        <Divider />
+                        <Title level={3}>📷 Tab 7: Mẫu SX Được Duyệt (Sample Images)</Title>
+                        <Paragraph>
+                            Tab mới cho phép quản lý hình ảnh mẫu sản xuất đã được khách hàng duyệt.
+                        </Paragraph>
+                        <Row gutter={[16, 16]}>
+                            <Col span={12}>
+                                <Card title="Tính năng chính" size="small" bordered style={{ borderColor: '#91caff' }}>
+                                    <ul>
+                                        <li><b>Nhập URL Google Drive:</b> Tối đa 10 hình ảnh mẫu.</li>
+                                        <li><b>Xem trước (Slideshow):</b> Carousel hiển thị các hình ảnh.</li>
+                                        <li><b>Nút Duyệt mẫu SX:</b> Chuyển từ footer lên tab này.</li>
+                                        <li><b>Ribbon Badge:</b> Hiện "✓ Đã duyệt" khi mẫu được approve.</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card title="Portal Khách Hàng" size="small" bordered style={{ borderColor: '#b7eb8f' }}>
+                                    <ul>
+                                        <li><b>Slideshow công khai:</b> Khách hàng xem được hình mẫu đã duyệt ngay trên Portal.</li>
+                                        <li><b>Click phóng to:</b> Xem chi tiết từng hình ảnh.</li>
+                                        <li><b>Minh bạch:</b> Khách biết chính xác mẫu sản xuất đã thống nhất.</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                        </Row>
+                        <Alert
+                            message="Hỗ trợ Google Drive"
+                            description="Hệ thống tự động chuyển đổi link chia sẻ Google Drive (https://drive.google.com/file/d/xxx/view) thành link trực tiếp để hiển thị hình ảnh."
+                            type="success"
+                            showIcon
+                            style={{ marginTop: 16 }}
+                        />
                     </div>
                 );
             case 'sales-portal':
