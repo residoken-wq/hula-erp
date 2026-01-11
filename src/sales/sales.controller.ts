@@ -136,6 +136,12 @@ export class SalesController {
         return this.s.deleteDelivery(deliveryId);
     }
 
+    // --- DELETE ORDER (Only SO_PENDING status allowed) ---
+    @Delete(':id')
+    deleteOrder(@Param('id') id: number) {
+        return this.s.deleteOrder(Number(id));
+    }
+
 
     // ============================================================
     // 4. CHECKLIST APIS

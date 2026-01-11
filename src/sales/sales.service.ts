@@ -514,6 +514,34 @@ export class SalesService {
         return saved;
     }
     async deleteQuote(id: number) { return this.orderRepo.delete(id); }
+
+    // --- DELETE ORDER (Only SO_PENDING status allowed) ---
+    async deleteOrder(id: number) {
+        const order = await this.orderRepo.findOne({ where: { id } });
+        if (!order) throw new NotFoundException('Order not found');
+
+        // Chỉ cho phép xóa SO ở trạng thái "Mới" (SO_PENDING)
+        if (order.status !== SalesOrderStatus.SO_PENDING) {
+            throw new Error('Chỉ có thể xóa đơn hàng ở trạng thái "Mới"');
+        }
+
+        // Xóa các items liên quan
+        await this.itemRepo.delete({ order: { id } });
+
+        // Xóa checklist nếu có
+        const checklist = await this.checklistRepo.findOne({ where: { order_id: id } });
+        if (checklist) {
+            await this.checklistItemRepo.delete({ checklist: { id: checklist.id } });
+            await this.checklistRepo.delete(checklist.id);
+        }
+
+        // Xóa comments nếu có
+        await this.commentRepo.delete({ order: { id } });
+
+        // Xóa đơn hàng
+        await this.systemService.logAction('SALES', 'DELETE_ORDER', `Deleted Order ${order.order_code}`, null, null, order.order_code);
+        return this.orderRepo.delete(id);
+    }
     async getQuoteByUuid(uuid: string) {
         const order = await this.orderRepo.findOne({
             where: { uuid },

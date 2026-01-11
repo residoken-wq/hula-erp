@@ -380,6 +380,26 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             {isMobile ? 'Hủy' : 'Hủy Đơn'}
                         </Button>
                     )}
+                    {(!isQuotation && initialData && initialData.status === 'SO_PENDING') && (
+                        <Popconfirm
+                            title="Xóa đơn hàng?"
+                            description="Đơn hàng sẽ bị xóa hoàn toàn khỏi hệ thống."
+                            onConfirm={async () => {
+                                try {
+                                    await api.delete(`/sales/${initialData.id}`);
+                                    message.success('Đã xóa đơn hàng');
+                                    onSuccess();
+                                    onClose();
+                                } catch (e: any) {
+                                    message.error(e.response?.data?.message || 'Lỗi xóa đơn hàng');
+                                }
+                            }}
+                        >
+                            <Button size={isMobile ? 'small' : 'middle'} danger type="dashed" icon={<DeleteOutlined />}>
+                                {isMobile ? 'Xóa' : 'Xóa đơn hàng'}
+                            </Button>
+                        </Popconfirm>
+                    )}
                     {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
                         <Button size={isMobile ? 'small' : 'middle'} type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>
                             {isMobile ? 'Hoàn tất' : 'Hoàn tất đơn hàng'}
