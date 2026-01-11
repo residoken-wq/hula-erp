@@ -282,6 +282,9 @@ export class SalesService {
         if (data.note !== undefined) order.note = data.note;
         if (data.is_production_sample_approved !== undefined) order.is_production_sample_approved = data.is_production_sample_approved;
 
+        // --- SAMPLE IMAGES ---
+        if (data.approved_sample_images !== undefined) order.approved_sample_images = data.approved_sample_images;
+
         // --- INVOICE INFO ---
         if (data.vat_company_name !== undefined) order.vat_company_name = data.vat_company_name;
         if (data.vat_tax_code !== undefined) order.vat_tax_code = data.vat_tax_code;
