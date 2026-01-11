@@ -15,22 +15,23 @@ interface SampleImagesTabProps {
 }
 
 // Convert Google Drive share link to direct image URL
+// Using thumbnail API which is more reliable than uc?export=view
 const getDirectImageUrl = (url: string): string => {
     if (!url) return '';
 
     // Handle Google Drive links
     // Format: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-    // Convert to: https://drive.google.com/uc?export=view&id=FILE_ID
+    // Convert to thumbnail API: https://drive.google.com/thumbnail?id=FILE_ID&sz=w1000
     const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
     if (driveMatch) {
-        return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+        return `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1000`;
     }
 
     // Handle direct Google Drive links
     // Format: https://drive.google.com/open?id=FILE_ID
     const openMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
     if (openMatch) {
-        return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
+        return `https://drive.google.com/thumbnail?id=${openMatch[1]}&sz=w1000`;
     }
 
     // Return as-is if not a Google Drive link
