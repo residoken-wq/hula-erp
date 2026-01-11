@@ -72,6 +72,101 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
 
     const quillRef = React.useRef<ReactQuill>(null);
 
+    // --- IMAGE COMPRESSION UTILITY ---
+    const compressImage = async (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let { width, height } = img;
+
+                    // Only resize if larger than maxWidth
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        reject(new Error('Failed to get canvas context'));
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            reject(new Error('Failed to compress image'));
+                            return;
+                        }
+                        const compressedFile = new File([blob], file.name || 'pasted-image.jpg', { type: 'image/jpeg' });
+                        console.log(`Image compressed: ${(file.size / 1024).toFixed(1)}KB → ${(compressedFile.size / 1024).toFixed(1)}KB`);
+                        resolve(compressedFile);
+                    }, 'image/jpeg', quality);
+                };
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    };
+
+    // --- UPLOAD IMAGE (with compression) ---
+    const uploadImage = async (file: File): Promise<string | null> => {
+        try {
+            message.loading({ content: 'Đang nén và upload ảnh...', key: 'upload' });
+            const compressed = await compressImage(file);
+            const formData = new FormData();
+            formData.append('file', compressed);
+
+            const res = await axios.post(`${API_URL}/upload/image`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            message.success({ content: 'Upload ảnh thành công!', key: 'upload', duration: 2 });
+            return res.data.url;
+        } catch (e) {
+            message.error({ content: 'Upload ảnh thất bại', key: 'upload' });
+            return null;
+        }
+    };
+
+    // --- PASTE EVENT HANDLER ---
+    useEffect(() => {
+        const handlePaste = async (e: ClipboardEvent) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) {
+                        const url = await uploadImage(file);
+                        if (url) {
+                            const quill = (quillRef.current as any)?.getEditor();
+                            const range = quill?.getSelection();
+                            if (quill) {
+                                const index = range ? range.index : quill.getLength();
+                                quill.insertEmbed(index, 'image', url);
+                                quill.setSelection(index + 1);
+                            }
+                        }
+                    }
+                    break; // Only handle first image
+                }
+            }
+        };
+
+        document.addEventListener('paste', handlePaste);
+        return () => document.removeEventListener('paste', handlePaste);
+    }, []);
+
+    // --- IMAGE BUTTON HANDLER (File Picker) ---
     const imageHandler = () => {
         const input = document.createElement('input');
         input.setAttribute('type', 'file');
@@ -81,22 +176,13 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
         input.onchange = async () => {
             const file = input.files ? input.files[0] : null;
             if (file) {
-                const formData = new FormData();
-                formData.append('file', file);
-                try {
-                    const res = await axios.post(`${API_URL}/upload/image`, formData, {
-                        headers: { 'Content-Type': 'multipart/form-data' }
-                    });
-                    // Use the URL returned by backend directly
-                    // Backend returns /uploads/filename, which NPM proxies to backend
-                    const url = res.data.url;
+                const url = await uploadImage(file);
+                if (url) {
                     const quill = (quillRef.current as any)?.getEditor();
                     const range = quill?.getSelection();
                     if (quill && range) {
                         quill.insertEmbed(range.index, 'image', url);
                     }
-                } catch (e) {
-                    message.error('Upload ảnh thất bại');
                 }
             }
         };
