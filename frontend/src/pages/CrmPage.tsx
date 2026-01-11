@@ -657,10 +657,55 @@ const CrmPage: React.FC = () => {
                 </Form>
             </Modal>
 
-            <Drawer title={`Chăm sóc: ${currentCustomer?.name}`} width={400} open={followDrawerOpen} onClose={() => setFollowDrawerOpen(false)} footer={<Button type="primary" block onClick={() => { setFollowDrawerOpen(false); setEditingOrder({ customer_id: currentCustomer.id }); setIsQuotationMode(true); setDetailModalOpen(true); }}>Tạo Báo Giá Ngay</Button>}>
-                <div style={{ marginBottom: 20 }}><Input.TextArea rows={3} value={followNote} onChange={e => setFollowNote(e.target.value)} placeholder="Nhập nội dung trao đổi..." /><Button block type="primary" style={{ marginTop: 10 }} onClick={handleFollowLead}>Lưu Ghi Chú</Button></div>
+            <Drawer title={`Chăm sóc: ${currentCustomer?.name}`} width={450} open={followDrawerOpen} onClose={() => setFollowDrawerOpen(false)} footer={<Button type="primary" block onClick={() => { setFollowDrawerOpen(false); setEditingOrder({ customer_id: currentCustomer.id }); setIsQuotationMode(true); setDetailModalOpen(true); }}>Tạo Báo Giá Ngay</Button>}>
+                {/* Customer Info Section */}
+                <div style={{ background: '#f6f8fa', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                        <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
+                        <div>
+                            <div style={{ fontWeight: 600, fontSize: 15 }}>{currentCustomer?.name}</div>
+                            <div style={{ fontSize: 12, color: '#666' }}>{currentCustomer?.code}</div>
+                        </div>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#555' }}>
+                        {currentCustomer?.phone && <div>📞 {currentCustomer.phone}</div>}
+                        {currentCustomer?.email && <div>📧 {currentCustomer.email}</div>}
+                        {currentCustomer?.address && <div>📍 {currentCustomer.address}</div>}
+                    </div>
+                </div>
+
+                {/* Add Note Section */}
+                <div style={{ marginBottom: 20 }}>
+                    <Input.TextArea rows={3} value={followNote} onChange={e => setFollowNote(e.target.value)} placeholder="Nhập nội dung trao đổi..." />
+                    <Button block type="primary" style={{ marginTop: 10 }} onClick={handleFollowLead}>Lưu Ghi Chú</Button>
+                </div>
                 <Divider>Lịch sử tương tác</Divider>
-                <Timeline mode="left">{currentCustomer?.history?.map((h: any, i: number) => <Timeline.Item key={i} color="blue" label={<span style={{ fontSize: 11, color: '#999' }}>{dayjs(h.date).format('DD/MM HH:mm')}</span>}>{h.note}</Timeline.Item>)}</Timeline>
+                <Timeline mode="left">
+                    {currentCustomer?.history?.map((h: any, i: number) => {
+                        // Check if this is a website-created lead
+                        const isWebsiteLead = h.action === 'CREATED_FROM_WEBSITE';
+                        const timestamp = h.timestamp || h.date;
+
+                        return (
+                            <Timeline.Item
+                                key={i}
+                                color={isWebsiteLead ? 'green' : 'blue'}
+                                label={<span style={{ fontSize: 11, color: '#999' }}>{dayjs(timestamp).format('DD/MM HH:mm')}</span>}
+                            >
+                                {isWebsiteLead ? (
+                                    <div style={{ background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 6, padding: 10 }}>
+                                        <div style={{ fontWeight: 600, color: '#52c41a', marginBottom: 6 }}>🌐 Đăng ký từ Website</div>
+                                        {h.data?.contact_person && <div style={{ fontSize: 13 }}>👤 Người liên hệ: <b>{h.data.contact_person}</b></div>}
+                                        {h.data?.expected_quantity && <div style={{ fontSize: 13 }}>📦 Số lượng dự kiến: <b>{h.data.expected_quantity}</b></div>}
+                                        {h.data?.notes && <div style={{ fontSize: 13, marginTop: 4 }}>📝 Ghi chú: {h.data.notes}</div>}
+                                    </div>
+                                ) : (
+                                    <span>{h.note}</span>
+                                )}
+                            </Timeline.Item>
+                        );
+                    })}
+                </Timeline>
             </Drawer>
         </div>
     );
