@@ -251,6 +251,27 @@ export class PublicController {
         payment_method?: string;
     }) {
         // Create order via SalesService
+        // Build formatted note with full buyer info
+        const noteLines = [
+            '📦 ĐƠN HÀNG TỪ WEBSITE',
+            '─────────────────────────',
+            `👤 Tên người mua: ${body.customer_name}`,
+            `📞 Số điện thoại: ${body.customer_phone}`,
+        ];
+
+        if (body.customer_email) {
+            noteLines.push(`📧 Email: ${body.customer_email}`);
+        }
+
+        noteLines.push(`📍 Địa chỉ giao hàng: ${body.delivery_address}`);
+        noteLines.push(`💳 Phương thức thanh toán: ${body.payment_method === 'BANK_TRANSFER' ? 'Chuyển khoản' : 'COD (Thanh toán khi nhận hàng)'}`);
+
+        if (body.notes) {
+            noteLines.push(`📝 Ghi chú: ${body.notes}`);
+        }
+
+        const formattedNote = noteLines.join('\n');
+
         const orderData = {
             // Customer info
             customer_name: body.customer_name,
@@ -260,9 +281,9 @@ export class PublicController {
             receiver_phone: body.customer_phone,
             shipping_address: body.delivery_address,
 
-            // Items and notes
+            // Items and formatted note
             items: body.items,
-            note: body.notes ? `[Website] ${body.notes}\nPayment: ${body.payment_method || 'COD'}` : `[Website] Payment: ${body.payment_method || 'COD'}`,
+            note: formattedNote,
 
             // Mark as website order
             order_source: 'WEBSITE'
