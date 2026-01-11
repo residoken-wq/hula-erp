@@ -12,6 +12,7 @@ import SalesOrderItemsTable from './sales/SalesOrderItemsTable';
 import CancelOrderModal from './sales/CancelOrderModal';
 import RevisionHistoryModal from './sales/RevisionHistoryModal';
 import QuotationHistoryTab from './sales/QuotationHistoryTab';
+import SampleImagesTab from './sales/SampleImagesTab';
 import useMobile from '../hooks/useMobile';
 
 const { Option } = Select;
@@ -361,20 +362,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             {isMobile ? 'LS' : 'Lịch sử'}
                         </Button>
                     )}
-                    {initialData && (
-                        <Tooltip title={isQuotation ? "Chuyển thành SO để duyệt mẫu" : "Xác nhận mẫu sản phẩm"}>
-                            <Button
-                                size={isMobile ? 'small' : 'middle'}
-                                type="primary"
-                                style={{ backgroundColor: isQuotation ? '#d9d9d9' : '#52c41a', borderColor: isQuotation ? '#d9d9d9' : '#52c41a' }}
-                                icon={<CheckCircleOutlined />}
-                                onClick={handleApproveSamples}
-                                disabled={isQuotation}
-                            >
-                                {isMobile ? 'Duyệt' : 'Duyệt mẫu SX'}
-                            </Button>
-                        </Tooltip>
-                    )}
+
                     {(!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
                         <Button size={isMobile ? 'small' : 'middle'} danger icon={<DeleteOutlined />} onClick={() => setCancelModalOpen(true)}>
                             {isMobile ? 'Hủy' : 'Hủy Đơn'}
@@ -675,7 +663,17 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         <Tabs.TabPane tab={isMobile ? '6. CL' : '6. Checklist'} key="5">
                             <SalesChecklistPanel orderId={initialData.id} orderStatus={initialData.status} onRefresh={onSuccess} />
                         </Tabs.TabPane>
-                        <Tabs.TabPane tab={isMobile ? '7. BG' : '7. Lịch sử Báo giá'} key="quotation_history">
+                        <Tabs.TabPane tab={isMobile ? '7. Mẫu' : '7. Mẫu SX'} key="sample_images">
+                            <SampleImagesTab
+                                orderId={initialData.id}
+                                initialImages={initialData.approved_sample_images || []}
+                                isApproved={initialData.is_production_sample_approved}
+                                onApprove={handleApproveSamples}
+                                onSave={(images) => { initialData.approved_sample_images = images; }}
+                                isQuotation={isQuotation}
+                            />
+                        </Tabs.TabPane>
+                        <Tabs.TabPane tab={isMobile ? '8. BG' : '8. Lịch sử Báo giá'} key="quotation_history">
                             <QuotationHistoryTab revisions={revisions} products={products} customers={customers} />
                         </Tabs.TabPane>
                     </>

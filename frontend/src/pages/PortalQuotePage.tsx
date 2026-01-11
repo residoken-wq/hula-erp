@@ -638,6 +638,57 @@ const PortalQuotePage: React.FC = () => {
                                     <div style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#555', lineHeight: 1.6 }}>{data.terms_content}</div>
                                 </div>
                             )}
+
+                            {/* SAMPLE IMAGES SLIDESHOW */}
+                            {data.approved_sample_images && data.approved_sample_images.length > 0 && (
+                                <div style={{ marginTop: 30, background: '#f0f5ff', padding: '20px', borderRadius: 8, border: '1px solid #adc6ff' }}>
+                                    <div style={{ fontWeight: 700, marginBottom: 15, fontSize: 14, color: '#1d39c4', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <EyeOutlined /> Mẫu Sản Xuất Đã Duyệt
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 10 }}>
+                                        {data.approved_sample_images.map((url: string, index: number) => {
+                                            // Convert Google Drive URLs
+                                            let imgSrc = url;
+                                            const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                                            if (driveMatch) {
+                                                imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1000`;
+                                            }
+                                            const openMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                                            if (openMatch) {
+                                                imgSrc = `https://drive.google.com/thumbnail?id=${openMatch[1]}&sz=w1000`;
+                                            }
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    style={{
+                                                        width: isMobile ? 200 : 250,
+                                                        height: isMobile ? 150 : 200,
+                                                        flexShrink: 0,
+                                                        borderRadius: 8,
+                                                        overflow: 'hidden',
+                                                        background: '#fff',
+                                                        border: '2px solid #91caff',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => handlePreview(imgSrc)}
+                                                >
+                                                    <img
+                                                        src={imgSrc}
+                                                        alt={`Mẫu ${index + 1}`}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/250x200?text=Image+Error';
+                                                        }}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: '#597ef7', marginTop: 5, textAlign: 'center' }}>
+                                        {data.approved_sample_images.length} hình mẫu • Click để xem lớn
+                                    </div>
+                                </div>
+                            )}
                         </Card>
                     </Col>
                 </Row>

@@ -93,6 +93,9 @@ export class SalesOrder {
 
   @Column({ default: false }) is_production_sample_approved: boolean; // Duyệt mẫu sản xuất (trước khi chạy mass)
 
+  // --- MẪU SX ĐƯỢC DUYỆT: Lưu URLs hình ảnh Google Drive (tối đa 10) ---
+  @Column('simple-array', { nullable: true }) approved_sample_images: string[];
+
   // --- MỚI: CỘT LƯU ĐIỀU KHOẢN ---
   @Column('text', { nullable: true }) terms_content: string;
 
