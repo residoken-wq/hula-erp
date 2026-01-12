@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
+import { WorkShift } from './work-shift.entity';
 
 export enum Gender {
     MALE = 'MALE',
@@ -46,6 +47,14 @@ export class Employee {
     @Column({ type: 'decimal', precision: 15, scale: 0, default: 0 })
     base_salary: number;
 
+    // Ca làm việc
+    @ManyToOne(() => WorkShift, { nullable: true })
+    @JoinColumn({ name: 'work_shift_id' })
+    work_shift: WorkShift;
+
+    @Column({ nullable: true })
+    work_shift_id: number;
+
     @Column({ type: 'text', nullable: true })
     note: string;
 
@@ -58,3 +67,4 @@ export class Employee {
     @UpdateDateColumn()
     updated_at: Date;
 }
+

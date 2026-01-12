@@ -1,0 +1,118 @@
+import React, { useState } from 'react';
+import { Table, Button, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Tag, message, Divider } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import api from '../../utils/api';
+
+const { Option } = Select;
+
+interface Props {
+    employees: any[];
+    payslips: any[];
+    onRefresh: () => void;
+}
+
+const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
+    const [modal, setModal] = useState(false);
+    const [form] = Form.useForm();
+    const [viewPayslip, setViewPayslip] = useState<any>(null);
+
+    const formatMoney = (v: number) => (v || 0).toLocaleString();
+
+    const handleSave = async (values: any) => {
+        try {
+            await api.post('/hr/payslips', values);
+            message.success('Đã tạo phiếu lương');
+            setModal(false);
+            form.resetFields();
+            onRefresh();
+        } catch (e) { message.error('Lỗi tạo phiếu'); }
+    };
+
+    const columns = [
+        { title: 'Nhân viên', dataIndex: ['employee', 'full_name'] },
+        { title: 'Tháng', render: (_: any, r: any) => `${r.month}/${r.year}` },
+        { title: 'Lương CB', dataIndex: 'base_salary', render: (v: number) => v?.toLocaleString() },
+        { title: 'Ngày công', dataIndex: 'actual_work_days' },
+        { title: 'Tổng thu', dataIndex: 'gross_income', render: (v: number) => v?.toLocaleString() },
+        { title: 'Thực nhận', dataIndex: 'net_salary', render: (v: number) => <b style={{ color: 'green' }}>{v?.toLocaleString()}</b> },
+        { title: '', render: (_: any, r: any) => <Button size="small" onClick={() => setViewPayslip(r)}>Xem phiếu</Button> }
+    ];
+
+    return (
+        <>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModal(true); }} style={{ marginBottom: 16 }}>
+                Tạo phiếu lương
+            </Button>
+            <Table dataSource={payslips} columns={columns} rowKey="id" size="small" />
+
+            {/* Create Modal */}
+            <Modal title="Tạo phiếu lương" open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()} width={600}>
+                <Form form={form} layout="vertical" onFinish={handleSave}>
+                    <Form.Item name="employee_id" label="Nhân viên" rules={[{ required: true }]}>
+                        <Select onChange={(id) => {
+                            const emp = employees.find(e => e.id === id);
+                            if (emp) form.setFieldsValue({ base_salary: emp.base_salary });
+                        }}>
+                            {employees.map(e => <Option key={e.id} value={e.id}>{e.full_name}</Option>)}
+                        </Select>
+                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={8}><Form.Item name="month" label="Tháng" rules={[{ required: true }]}><InputNumber min={1} max={12} style={{ width: '100%' }} /></Form.Item></Col>
+                        <Col span={8}><Form.Item name="year" label="Năm" rules={[{ required: true }]}><InputNumber min={2020} style={{ width: '100%' }} /></Form.Item></Col>
+                        <Col span={8}><Form.Item name="actual_work_days" label="Ngày công" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
+                    </Row>
+                    <Row gutter={16}>
+                        <Col span={12}><Form.Item name="base_salary" label="Lương cơ bản"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="bonus" label="Thưởng"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
+                    </Row>
+                    <Row gutter={16}>
+                        <Col span={8}><Form.Item name="allowance_meal" label="PC Ăn trưa"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
+                        <Col span={8}><Form.Item name="allowance_transport" label="PC Đi lại"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
+                        <Col span={8}><Form.Item name="allowance_phone" label="PC Điện thoại"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
+                    </Row>
+                </Form>
+            </Modal>
+
+            {/* View Payslip Modal */}
+            <Modal title="Phiếu Lương" open={!!viewPayslip} onCancel={() => setViewPayslip(null)} footer={null} width={400}>
+                {viewPayslip && (
+                    <div style={{ fontFamily: 'monospace' }}>
+                        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                            <h3 style={{ margin: 0 }}>BẢNG THANH TOÁN LƯƠNG</h3>
+                            <p>Tháng {viewPayslip.month} / {viewPayslip.year}</p>
+                        </div>
+                        <Divider style={{ margin: '8px 0' }} />
+                        <p><b>Nhân viên:</b> {viewPayslip.employee?.full_name}</p>
+                        <p><b>Chức vụ:</b> {viewPayslip.employee?.position}</p>
+                        <Divider style={{ margin: '8px 0' }} />
+
+                        <div style={{ background: '#f5f5f5', padding: 8, marginBottom: 8 }}><b>THU NHẬP</b></div>
+                        <Row><Col span={14}>Lương cơ bản</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.base_salary)}</Col></Row>
+                        <Row><Col span={14}>Ngày công: {viewPayslip.actual_work_days}/{viewPayslip.standard_work_days}</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.actual_salary)}</Col></Row>
+                        <Row><Col span={14}>PC Ăn trưa</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_meal)}</Col></Row>
+                        <Row><Col span={14}>PC Đi lại</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_transport)}</Col></Row>
+                        <Row><Col span={14}>Thưởng</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.bonus)}</Col></Row>
+                        <Row style={{ fontWeight: 'bold', marginTop: 8 }}><Col span={14}>TỔNG THU NHẬP</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.gross_income)}</Col></Row>
+
+                        <div style={{ background: '#fff1f0', padding: 8, margin: '16px 0 8px' }}><b>KHẤU TRỪ</b></div>
+                        <Row><Col span={14}>BHXH (8%)</Col><Col span={10} style={{ textAlign: 'right' }}>-{formatMoney(viewPayslip.bhxh_employee)}</Col></Row>
+                        <Row><Col span={14}>BHYT (1.5%)</Col><Col span={10} style={{ textAlign: 'right' }}>-{formatMoney(viewPayslip.bhyt_employee)}</Col></Row>
+                        <Row><Col span={14}>BHTN (1%)</Col><Col span={10} style={{ textAlign: 'right' }}>-{formatMoney(viewPayslip.bhtn_employee)}</Col></Row>
+
+                        <Divider style={{ margin: '16px 0 8px' }} />
+                        <Row style={{ fontSize: 18, fontWeight: 'bold', color: 'green' }}>
+                            <Col span={14}>THỰC NHẬN</Col>
+                            <Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.net_salary)}</Col>
+                        </Row>
+
+                        <div style={{ background: '#e6f7ff', padding: 8, marginTop: 16, fontSize: 11 }}>
+                            <b>Công ty đóng:</b> BHXH {formatMoney(viewPayslip.bhxh_company)} | BHYT {formatMoney(viewPayslip.bhyt_company)} | BHTN {formatMoney(viewPayslip.bhtn_company)}
+                        </div>
+                    </div>
+                )}
+            </Modal>
+        </>
+    );
+};
+
+export default PayslipTab;

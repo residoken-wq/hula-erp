@@ -50,6 +50,7 @@ const ActivityLogPage = React.lazy(() => import('./pages/ActivityLogPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage')); // <--- Import Dashboard
 const WebsiteProductsPage = React.lazy(() => import('./pages/WebsiteProductsPage')); // <--- Website Products
 const HRPage = React.lazy(() => import('./pages/HRPage')); // <--- HR Module
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage')); // <--- Profile Page
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
     return { key, icon, children, label } as MenuItem;
@@ -175,6 +176,7 @@ const App: React.FC = () => {
             items.push(getItem(<Link to="/help">Hướng dẫn sử dụng</Link>, '/help', <QuestionCircleOutlined />));
             items.push(getItem(<Link to="/docs">Dev Docs (Technical)</Link>, '/docs', <CodeOutlined />));
             items.push(getItem(<Link to="/hr">Nhân sự (HR)</Link>, '/hr', <IdcardOutlined />));
+            items.push(getItem(<Link to="/profile">Hồ sơ cá nhân</Link>, '/profile', <UserOutlined />));
         }
 
         // 9. Hệ thống
@@ -307,6 +309,7 @@ const App: React.FC = () => {
                                                 <Route path="/help" element={<HelpPage />} /> {/* Added by user instruction */}
                                                 <Route path="/docs" element={<DocsPage />} /> {/* <--- MỚI: Trang Docs kỹ thuật */}
                                                 <Route path="/hr" element={<HRPage />} /> {/* <--- HR Module */}
+                                                <Route path="/profile" element={<ProfilePage />} /> {/* <--- Profile */}
 
                                                 {hasPerm('USERS') && (
                                                     <>

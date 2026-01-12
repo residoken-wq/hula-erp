@@ -91,6 +91,7 @@ import { LeaveRequest } from './hr/entities/leave-request.entity';
 import { AssetAssignment } from './hr/entities/asset-assignment.entity';
 import { Payslip } from './hr/entities/payslip.entity';
 import { TrainingPlan } from './hr/entities/training-plan.entity';
+import { WorkShift } from './hr/entities/work-shift.entity';
 
 import { AppController } from './app.controller';
 
@@ -128,7 +129,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           User, UserGroup, GroupPermission,
           SystemConfig, ActivityLog,
           BlogPost,
-          Employee, Attendance, LeaveRequest, AssetAssignment, Payslip, TrainingPlan
+          Employee, Attendance, LeaveRequest, AssetAssignment, Payslip, TrainingPlan, WorkShift
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         subscribers: [],

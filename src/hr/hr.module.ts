@@ -8,6 +8,7 @@ import { LeaveRequest } from './entities/leave-request.entity';
 import { AssetAssignment } from './entities/asset-assignment.entity';
 import { Payslip } from './entities/payslip.entity';
 import { TrainingPlan } from './entities/training-plan.entity';
+import { WorkShift } from './entities/work-shift.entity';
 
 @Module({
     imports: [
@@ -18,6 +19,7 @@ import { TrainingPlan } from './entities/training-plan.entity';
             AssetAssignment,
             Payslip,
             TrainingPlan,
+            WorkShift,
         ]),
     ],
     controllers: [HrController],
@@ -25,3 +27,4 @@ import { TrainingPlan } from './entities/training-plan.entity';
     exports: [HrService],
 })
 export class HrModule { }
+

@@ -7,6 +7,7 @@ import { LeaveRequest, LeaveStatus } from './entities/leave-request.entity';
 import { AssetAssignment } from './entities/asset-assignment.entity';
 import { Payslip } from './entities/payslip.entity';
 import { TrainingPlan } from './entities/training-plan.entity';
+import { WorkShift, AttendanceCalcType } from './entities/work-shift.entity';
 
 @Injectable()
 export class HrService {
@@ -17,15 +18,35 @@ export class HrService {
         @InjectRepository(AssetAssignment) private assetRepo: Repository<AssetAssignment>,
         @InjectRepository(Payslip) private payslipRepo: Repository<Payslip>,
         @InjectRepository(TrainingPlan) private trainingRepo: Repository<TrainingPlan>,
+        @InjectRepository(WorkShift) private shiftRepo: Repository<WorkShift>,
     ) { }
+
+    // ==================== WORK SHIFT ====================
+    async findAllShifts() {
+        return this.shiftRepo.find({ order: { name: 'ASC' } });
+    }
+
+    async createShift(data: Partial<WorkShift>) {
+        const shift = this.shiftRepo.create(data);
+        return this.shiftRepo.save(shift);
+    }
+
+    async updateShift(id: number, data: Partial<WorkShift>) {
+        await this.shiftRepo.update(id, data);
+        return this.shiftRepo.findOne({ where: { id } });
+    }
+
+    async deleteShift(id: number) {
+        return this.shiftRepo.delete(id);
+    }
 
     // ==================== EMPLOYEE ====================
     async findAllEmployees() {
-        return this.employeeRepo.find({ relations: ['user'], order: { id: 'DESC' } });
+        return this.employeeRepo.find({ relations: ['user', 'work_shift'], order: { id: 'DESC' } });
     }
 
     async findOneEmployee(id: number) {
-        const emp = await this.employeeRepo.findOne({ where: { id }, relations: ['user'] });
+        const emp = await this.employeeRepo.findOne({ where: { id }, relations: ['user', 'work_shift'] });
         if (!emp) throw new NotFoundException('Employee not found');
         return emp;
     }

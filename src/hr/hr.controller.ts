@@ -8,6 +8,27 @@ import { LeaveStatus } from './entities/leave-request.entity';
 export class HrController {
     constructor(private readonly hrService: HrService) { }
 
+    // ==================== WORK SHIFT ====================
+    @Get('shifts')
+    findAllShifts() {
+        return this.hrService.findAllShifts();
+    }
+
+    @Post('shifts')
+    createShift(@Body() data: any) {
+        return this.hrService.createShift(data);
+    }
+
+    @Put('shifts/:id')
+    updateShift(@Param('id') id: string, @Body() data: any) {
+        return this.hrService.updateShift(+id, data);
+    }
+
+    @Delete('shifts/:id')
+    deleteShift(@Param('id') id: string) {
+        return this.hrService.deleteShift(+id);
+    }
+
     // ==================== EMPLOYEE ====================
     @Get('employees')
     findAllEmployees() {
