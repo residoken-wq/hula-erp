@@ -5,7 +5,6 @@ import api from '../../utils/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
-const { TextArea } = Form.Item;
 
 interface Props {
     employees: any[];
