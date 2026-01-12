@@ -30,7 +30,11 @@ import {
     CalculatorOutlined,
     ShoppingCartOutlined,
     WalletOutlined,
-    HeartOutlined
+    HeartOutlined,
+    TeamOutlined,
+    CalendarOutlined,
+    ClockCircleOutlined,
+    IdcardOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
@@ -1348,6 +1352,89 @@ const HelpPage: React.FC = () => {
                         </table>
                     </div>
                 );
+            case 'hr-overview':
+                return (
+                    <div>
+                        <Title level={2}>👥 Phân hệ Nhân sự (HR)</Title>
+                        <Paragraph>
+                            Phân hệ quản lý toàn bộ thông tin nhân viên, chấm công, nghỉ phép, lương và tài sản được cấp.
+                        </Paragraph>
+                        <Row gutter={16}>
+                            <Col span={6}><Card size="small"><ClockCircleOutlined style={{ fontSize: 24, color: '#1890ff' }} /><Title level={5}>Chấm công</Title><Text type="secondary">Check-in/out, Calendar view</Text></Card></Col>
+                            <Col span={6}><Card size="small"><CalendarOutlined style={{ fontSize: 24, color: '#52c41a' }} /><Title level={5}>Nghỉ phép</Title><Text type="secondary">Đăng ký, Duyệt, Số dư</Text></Card></Col>
+                            <Col span={6}><Card size="small"><DollarOutlined style={{ fontSize: 24, color: '#eb2f96' }} /><Title level={5}>Bảng lương</Title><Text type="secondary">Phiếu lương hàng tháng</Text></Card></Col>
+                            <Col span={6}><Card size="small"><IdcardOutlined style={{ fontSize: 24, color: '#722ed1' }} /><Title level={5}>Hồ sơ</Title><Text type="secondary">Thông tin cá nhân</Text></Card></Col>
+                        </Row>
+                        <Alert message="Lưu ý: Menu HR chỉ hiển thị cho user có quyền HR" type="info" style={{ marginTop: 16 }} />
+                    </div>
+                );
+            case 'hr-attendance':
+                return (
+                    <div>
+                        <Title level={2}>⏰ Chấm công & Calendar</Title>
+                        <Paragraph>Hệ thống hỗ trợ 2 chế độ xem chấm công:</Paragraph>
+                        <Row gutter={16}>
+                            <Col span={12}><Card size="small" title="📋 Xem danh sách"><ul><li>Hiển thị dạng bảng</li><li>Dễ dàng lọc/sắp xếp</li><li>Thao tác sửa/xóa nhanh</li></ul></Card></Col>
+                            <Col span={12}><Card size="small" title="📅 Xem Calendar"><ul><li>Tổng quan theo tháng</li><li>Tag màu theo trạng thái</li><li>Click để xem chi tiết</li></ul></Card></Col>
+                        </Row>
+                        <Divider />
+                        <Title level={4}>Thao tác chấm công</Title>
+                        <Steps direction="vertical" size="small" current={-1} items={[
+                            { title: 'Chọn nhân viên', description: 'Từ danh sách bên trái' },
+                            { title: 'Check IN', description: 'Nhấn nút CHECK IN khi bắt đầu làm việc' },
+                            { title: 'Check OUT', description: 'Nhấn nút CHECK OUT khi kết thúc' },
+                            { title: 'Tạo thủ công', description: 'Nếu cần bổ sung ngày đã qua' },
+                        ]} />
+                    </div>
+                );
+            case 'hr-leave':
+                return (
+                    <div>
+                        <Title level={2}>🏖️ Nghỉ phép & Số dư</Title>
+                        <Alert message="Tính năng mới: Quản lý số ngày phép năm" type="success" style={{ marginBottom: 16 }} />
+                        <Title level={4}>Thiết lập ngày phép</Title>
+                        <Steps direction="vertical" size="small" current={-1} items={[
+                            { title: 'Chọn nhân viên', description: 'Từ dropdown "Xem số dư phép"' },
+                            { title: 'Nhấn icon ⚙️', description: 'Mở form thiết lập ngày phép' },
+                            { title: 'Nhập số liệu', description: 'Phép năm được cấp + Phép tồn năm trước' },
+                            { title: 'Lưu', description: 'Hệ thống tự động tính số ngày còn lại' },
+                        ]} />
+                        <Divider />
+                        <Title level={4}>Công thức tính</Title>
+                        <Card size="small"><Text code>Còn lại = Phép năm + Tồn năm trước - Đã sử dụng (đơn APPROVED)</Text></Card>
+                    </div>
+                );
+            case 'hr-payslip':
+                return (
+                    <div>
+                        <Title level={2}>💰 Phiếu lương</Title>
+                        <Paragraph>Xem phiếu lương hàng tháng với đầy đủ thông tin thu nhập và khấu trừ.</Paragraph>
+                        <Title level={4}>Thông tin hiển thị</Title>
+                        <Row gutter={16}>
+                            <Col span={12}><Card size="small" title="Thu nhập" style={{ borderColor: '#52c41a' }}><ul><li>Lương cơ bản</li><li>PC Ăn trưa / Đi lại / Điện thoại</li><li>Thưởng</li></ul></Card></Col>
+                            <Col span={12}><Card size="small" title="Khấu trừ" style={{ borderColor: '#ff4d4f' }}><ul><li>BHXH (8%)</li><li>BHYT (1.5%)</li><li>BHTN (1%)</li></ul></Card></Col>
+                        </Row>
+                        <Divider />
+                        <Title level={4}>Trạng thái thanh toán</Title>
+                        <p><Tag color="green">Đã TT</Tag> Phiếu lương đã được thanh toán - hiển thị ngày thanh toán</p>
+                        <p><Tag color="orange">Chưa TT</Tag> Phiếu lương chưa được thanh toán</p>
+                    </div>
+                );
+            case 'hr-profile':
+                return (
+                    <div>
+                        <Title level={2}>👤 Hồ sơ cá nhân</Title>
+                        <Paragraph>Mỗi user có thể xem thông tin HR cá nhân tại Menu "Hồ sơ".</Paragraph>
+                        <Alert message="Điều kiện: Tài khoản phải được liên kết với Employee trong HR" type="warning" style={{ marginBottom: 16 }} />
+                        <Title level={4}>Các tab trong Hồ sơ</Title>
+                        <Row gutter={16}>
+                            <Col span={6}><Card size="small"><ClockCircleOutlined /><p><b>Chấm công</b></p><Text type="secondary">Check-in/out hôm nay + lịch sử</Text></Card></Col>
+                            <Col span={6}><Card size="small"><CalendarOutlined /><p><b>Nghỉ phép</b></p><Text type="secondary">Đăng ký + Số dư hiện tại</Text></Card></Col>
+                            <Col span={6}><Card size="small"><DollarOutlined /><p><b>Bảng lương</b></p><Text type="secondary">Xem phiếu lương các tháng</Text></Card></Col>
+                            <Col span={6}><Card size="small"><TagsOutlined /><p><b>Tài sản</b></p><Text type="secondary">Laptop, điện thoại được cấp</Text></Card></Col>
+                        </Row>
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -1419,6 +1506,18 @@ const HelpPage: React.FC = () => {
                             icon: <ContainerOutlined />,
                             children: [
                                 { key: 'inventory-guide', label: 'Kho & Quy đổi Đơn vị' },
+                            ]
+                        },
+                        {
+                            key: 'sub6',
+                            label: 'Phân hệ Nhân Sự (HR)',
+                            icon: <TeamOutlined />,
+                            children: [
+                                { key: 'hr-overview', label: 'Tổng quan HR' },
+                                { key: 'hr-attendance', label: 'Chấm công & Calendar' },
+                                { key: 'hr-leave', label: 'Nghỉ phép & Số dư' },
+                                { key: 'hr-payslip', label: 'Phiếu lương' },
+                                { key: 'hr-profile', label: 'Hồ sơ cá nhân' },
                             ]
                         }
                     ]}
