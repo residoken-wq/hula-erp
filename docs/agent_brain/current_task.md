@@ -1,5 +1,5 @@
 # Current Task
 
-Không có task đang thực hiện.
+Xem `tasks.md` để biết danh sách các task hiện tại.
 
 Xem logs theo tuần trong thư mục `logs/`.
