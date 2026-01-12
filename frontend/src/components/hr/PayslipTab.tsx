@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Tag, message, Divider } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Tag, message, Divider, Space, Popconfirm } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
+import dayjs from 'dayjs';
 
 const { Option } = Select;
 
@@ -15,8 +16,12 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
     const [modal, setModal] = useState(false);
     const [form] = Form.useForm();
     const [viewPayslip, setViewPayslip] = useState<any>(null);
+    const [editing, setEditing] = useState<any>(null);
 
-    const formatMoney = (v: number) => (v || 0).toLocaleString();
+    const formatMoney = (v: any) => {
+        const num = Number(v) || 0;
+        return num.toLocaleString('vi-VN');
+    };
 
     // Calculate standard work days in a month based on work days per week (5 or 6)
     const calcStandardWorkDays = (year: number, month: number, daysPerWeek: number = 6): number => {
@@ -50,12 +55,54 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
 
     const handleSave = async (values: any) => {
         try {
-            await api.post('/hr/payslips', values);
-            message.success('Đã tạo phiếu lương');
+            if (editing) {
+                await api.put(`/hr/payslips/${editing.id}`, values);
+                message.success('Đã cập nhật phiếu lương');
+            } else {
+                await api.post('/hr/payslips', values);
+                message.success('Đã tạo phiếu lương');
+            }
             setModal(false);
             form.resetFields();
+            setEditing(null);
             onRefresh();
-        } catch (e) { message.error('Lỗi tạo phiếu'); }
+        } catch (e) { message.error('Lỗi lưu phiếu'); }
+    };
+
+    const handleEdit = (payslip: any) => {
+        setEditing(payslip);
+        form.setFieldsValue({
+            ...payslip,
+            employee_id: payslip.employee_id || payslip.employee?.id,
+        });
+        setModal(true);
+    };
+
+    const handleDelete = async (id: number) => {
+        try {
+            await api.delete(`/hr/payslips/${id}`);
+            message.success('Đã xóa phiếu lương');
+            onRefresh();
+        } catch (e) { message.error('Lỗi xóa'); }
+    };
+
+    const handlePay = async (payslip: any) => {
+        try {
+            // Create expense transaction for salary payment
+            await api.post('/finance/transactions', {
+                type: 'expense',
+                category: 'CP_Lương',
+                amount: payslip.net_salary,
+                date: new Date().toISOString(),
+                description: `Thanh toán lương tháng ${payslip.month}/${payslip.year} - ${payslip.employee?.full_name}`,
+                ref_type: 'PAYSLIP',
+                ref_code: `PAYSLIP-${payslip.id}`,
+            });
+            // Update payslip status
+            await api.put(`/hr/payslips/${payslip.id}`, { is_paid: true, paid_date: new Date() });
+            message.success('Đã thanh toán và tạo phiếu chi!');
+            onRefresh();
+        } catch (e) { message.error('Lỗi thanh toán'); }
     };
 
     const columns = [
@@ -65,7 +112,28 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
         { title: 'Ngày công', dataIndex: 'actual_work_days' },
         { title: 'Tổng thu', dataIndex: 'gross_income', render: (v: number) => v?.toLocaleString() },
         { title: 'Thực nhận', dataIndex: 'net_salary', render: (v: number) => <b style={{ color: 'green' }}>{v?.toLocaleString()}</b> },
-        { title: '', render: (_: any, r: any) => <Button size="small" onClick={() => setViewPayslip(r)}>Xem phiếu</Button> }
+        {
+            title: 'Trạng thái', dataIndex: 'is_paid', render: (p: boolean) => p ?
+                <Tag color="green" icon={<CheckCircleOutlined />}>Đã thanh toán</Tag> :
+                <Tag color="orange">Chưa TT</Tag>
+        },
+        {
+            title: 'Thao tác',
+            render: (_: any, r: any) => (
+                <Space size="small">
+                    <Button size="small" onClick={() => setViewPayslip(r)}>Xem</Button>
+                    {!r.is_paid && (
+                        <Popconfirm title={`Thanh toán ${r.net_salary?.toLocaleString()}đ cho ${r.employee?.full_name}?`} onConfirm={() => handlePay(r)}>
+                            <Button size="small" type="primary" icon={<DollarOutlined />}>Thanh toán</Button>
+                        </Popconfirm>
+                    )}
+                    <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(r)} />
+                    <Popconfirm title="Xóa phiếu lương này?" onConfirm={() => handleDelete(r.id)}>
+                        <Button size="small" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                </Space>
+            )
+        }
     ];
 
     return (

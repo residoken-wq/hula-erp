@@ -159,6 +159,11 @@ export class HrController {
         return this.hrService.updatePayslip(+id, data);
     }
 
+    @Delete('payslips/:id')
+    deletePayslip(@Param('id') id: string) {
+        return this.hrService.deletePayslip(+id);
+    }
+
     // ==================== TRAINING PLAN ====================
     @Get('trainings')
     findTrainingPlans(@Query('employee_id') employeeId?: string) {

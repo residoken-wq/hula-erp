@@ -272,6 +272,10 @@ export class HrService {
         return this.payslipRepo.findOne({ where: { id }, relations: ['employee'] });
     }
 
+    async deletePayslip(id: number) {
+        return this.payslipRepo.delete(id);
+    }
+
     // ==================== TRAINING PLAN ====================
     async findTrainingPlans(employeeId?: number) {
         const where: any = {};

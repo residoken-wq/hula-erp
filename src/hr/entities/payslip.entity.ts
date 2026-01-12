@@ -90,6 +90,12 @@ export class Payslip {
     @Column({ type: 'text', nullable: true })
     note: string;
 
+    @Column({ default: false })
+    is_paid: boolean;
+
+    @Column({ type: 'timestamp', nullable: true })
+    paid_date: Date;
+
     @CreateDateColumn()
     created_at: Date;
 
