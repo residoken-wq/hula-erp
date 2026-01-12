@@ -37,6 +37,24 @@ const AssetsTab: React.FC<Props> = ({ employees, assets, onRefresh }) => {
         } catch (e) { message.error('Lỗi lưu tài sản'); }
     };
 
+    const handleEdit = (asset: any) => {
+        setEditing(asset);
+        form.setFieldsValue({
+            ...asset,
+            assigned_date: asset.assigned_date ? dayjs(asset.assigned_date) : null,
+            returned_date: asset.returned_date ? dayjs(asset.returned_date) : null,
+        });
+        setModal(true);
+    };
+
+    const handleDelete = async (id: number) => {
+        try {
+            await api.delete(`/hr/assets/${id}`);
+            message.success('Đã xóa');
+            onRefresh();
+        } catch (e) { message.error('Lỗi xóa'); }
+    };
+
     const columns = [
         { title: 'Nhân viên', dataIndex: ['employee', 'full_name'] },
         { title: 'Tên tài sản', dataIndex: 'asset_name' },
@@ -51,6 +69,17 @@ const AssetsTab: React.FC<Props> = ({ employees, assets, onRefresh }) => {
                 return <Tag color={colors[c]}>{labels[c]}</Tag>;
             }
         },
+        {
+            title: 'Thao tác',
+            render: (_: any, r: any) => (
+                <Space>
+                    <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(r)} />
+                    <Popconfirm title="Xóa tài sản này?" onConfirm={() => handleDelete(r.id)}>
+                        <Button size="small" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                </Space>
+            )
+        }
     ];
 
     return (

@@ -79,6 +79,21 @@ export class HrController {
         return this.hrService.checkOut(employeeId);
     }
 
+    @Post('attendances')
+    createAttendance(@Body() data: any) {
+        return this.hrService.createAttendance(data);
+    }
+
+    @Put('attendances/:id')
+    updateAttendance(@Param('id') id: string, @Body() data: any) {
+        return this.hrService.updateAttendance(+id, data);
+    }
+
+    @Delete('attendances/:id')
+    deleteAttendance(@Param('id') id: string) {
+        return this.hrService.deleteAttendance(+id);
+    }
+
     // ==================== LEAVE REQUEST ====================
     @Get('leaves')
     findAllLeaves(@Query('status') status?: LeaveStatus) {

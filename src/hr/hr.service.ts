@@ -142,6 +142,20 @@ export class HrService {
         return this.attendanceRepo.save(attendance);
     }
 
+    async createAttendance(data: Partial<Attendance>) {
+        const attendance = this.attendanceRepo.create(data);
+        return this.attendanceRepo.save(attendance);
+    }
+
+    async updateAttendance(id: number, data: Partial<Attendance>) {
+        await this.attendanceRepo.update(id, data);
+        return this.attendanceRepo.findOne({ where: { id }, relations: ['employee'] });
+    }
+
+    async deleteAttendance(id: number) {
+        return this.attendanceRepo.delete(id);
+    }
+
     // ==================== LEAVE REQUEST ====================
     async findAllLeaves(status?: LeaveStatus) {
         const where: any = {};

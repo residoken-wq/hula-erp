@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Table, Button, Modal, Form, Select, DatePicker, Row, Col, Tag, Space, message } from 'antd';
-import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Select, DatePicker, Row, Col, Tag, Space, message, Popconfirm, Input } from 'antd';
+import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
+const { TextArea } = Input;
 
 interface Props {
     employees: any[];
@@ -36,6 +37,14 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
         } catch (e) { message.error('Lỗi duyệt đơn'); }
     };
 
+    const handleDelete = async (id: number) => {
+        try {
+            await api.delete(`/hr/leaves/${id}`);
+            message.success('Đã xóa đơn');
+            onRefresh();
+        } catch (e) { message.error('Lỗi xóa đơn'); }
+    };
+
     const columns = [
         { title: 'Nhân viên', dataIndex: ['employee', 'full_name'] },
         {
@@ -56,11 +65,18 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
             }
         },
         {
-            title: 'Duyệt',
-            render: (_: any, r: any) => r.status === 'PENDING' && (
+            title: 'Thao tác',
+            render: (_: any, r: any) => (
                 <Space>
-                    <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleApprove(r.id, true)}>Duyệt</Button>
-                    <Button size="small" danger icon={<CloseCircleOutlined />} onClick={() => handleApprove(r.id, false)}>Từ chối</Button>
+                    {r.status === 'PENDING' && (
+                        <>
+                            <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleApprove(r.id, true)}>Duyệt</Button>
+                            <Button size="small" danger icon={<CloseCircleOutlined />} onClick={() => handleApprove(r.id, false)}>Từ chối</Button>
+                        </>
+                    )}
+                    <Popconfirm title="Xóa đơn này?" onConfirm={() => handleDelete(r.id)}>
+                        <Button size="small" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
                 </Space>
             )
         }
@@ -91,7 +107,7 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
                         <Col span={12}><Form.Item name="start_date" label="Từ ngày" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                         <Col span={12}><Form.Item name="end_date" label="Đến ngày" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                     </Row>
-                    <Form.Item name="reason" label="Lý do"><textarea className="ant-input" rows={3} /></Form.Item>
+                    <Form.Item name="reason" label="Lý do"><TextArea rows={3} /></Form.Item>
                 </Form>
             </Modal>
         </>

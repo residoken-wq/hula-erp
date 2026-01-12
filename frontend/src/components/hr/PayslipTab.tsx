@@ -74,38 +74,44 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
             </Modal>
 
             {/* View Payslip Modal */}
-            <Modal title="Phiếu Lương" open={!!viewPayslip} onCancel={() => setViewPayslip(null)} footer={null} width={400}>
+            <Modal title="Phiếu Lương" open={!!viewPayslip} onCancel={() => setViewPayslip(null)} footer={null} width={420}>
                 {viewPayslip && (
-                    <div style={{ fontFamily: 'monospace' }}>
+                    <div style={{ fontFamily: 'Arial, sans-serif', fontSize: 13 }}>
+                        {/* Header với Logo */}
                         <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                            <h3 style={{ margin: 0 }}>BẢNG THANH TOÁN LƯƠNG</h3>
-                            <p>Tháng {viewPayslip.month} / {viewPayslip.year}</p>
+                            <div style={{ fontSize: 28, fontWeight: 'bold', color: '#1890ff', marginBottom: 4 }}>HULA</div>
+                            <h3 style={{ margin: 0, fontSize: 16 }}>BẢNG THANH TOÁN LƯƠNG</h3>
+                            <p style={{ margin: '4px 0 0', color: '#666' }}>Tháng {viewPayslip.month} / {viewPayslip.year}</p>
                         </div>
                         <Divider style={{ margin: '8px 0' }} />
                         <p><b>Nhân viên:</b> {viewPayslip.employee?.full_name}</p>
-                        <p><b>Chức vụ:</b> {viewPayslip.employee?.position}</p>
+                        <p><b>Chức vụ:</b> {viewPayslip.employee?.position || '-'}</p>
+                        <p><b>Phòng ban:</b> {viewPayslip.employee?.department || '-'}</p>
                         <Divider style={{ margin: '8px 0' }} />
 
-                        <div style={{ background: '#f5f5f5', padding: 8, marginBottom: 8 }}><b>THU NHẬP</b></div>
+                        <div style={{ background: '#f5f5f5', padding: 8, marginBottom: 8, fontWeight: 'bold' }}>THU NHẬP</div>
                         <Row><Col span={14}>Lương cơ bản</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.base_salary)}</Col></Row>
-                        <Row><Col span={14}>Ngày công: {viewPayslip.actual_work_days}/{viewPayslip.standard_work_days}</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.actual_salary)}</Col></Row>
+                        <Row><Col span={14}>Ngày công: {viewPayslip.actual_work_days}/{viewPayslip.standard_work_days || 26}</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.actual_salary)}</Col></Row>
                         <Row><Col span={14}>PC Ăn trưa</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_meal)}</Col></Row>
                         <Row><Col span={14}>PC Đi lại</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_transport)}</Col></Row>
+                        <Row><Col span={14}>PC Điện thoại</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_phone)}</Col></Row>
                         <Row><Col span={14}>Thưởng</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.bonus)}</Col></Row>
-                        <Row style={{ fontWeight: 'bold', marginTop: 8 }}><Col span={14}>TỔNG THU NHẬP</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.gross_income)}</Col></Row>
+                        <Row style={{ fontWeight: 'bold', marginTop: 8, background: '#fafafa', padding: '4px 0' }}><Col span={14}>TỔNG THU NHẬP</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.gross_income)}</Col></Row>
 
-                        <div style={{ background: '#fff1f0', padding: 8, margin: '16px 0 8px' }}><b>KHẤU TRỪ</b></div>
-                        <Row><Col span={14}>BHXH (8%)</Col><Col span={10} style={{ textAlign: 'right' }}>-{formatMoney(viewPayslip.bhxh_employee)}</Col></Row>
-                        <Row><Col span={14}>BHYT (1.5%)</Col><Col span={10} style={{ textAlign: 'right' }}>-{formatMoney(viewPayslip.bhyt_employee)}</Col></Row>
-                        <Row><Col span={14}>BHTN (1%)</Col><Col span={10} style={{ textAlign: 'right' }}>-{formatMoney(viewPayslip.bhtn_employee)}</Col></Row>
+                        <div style={{ background: '#fff1f0', padding: 8, margin: '16px 0 8px', fontWeight: 'bold' }}>KHẤU TRỪ</div>
+                        <Row><Col span={14}>BHXH (8%)</Col><Col span={10} style={{ textAlign: 'right', color: '#cf1322' }}>-{formatMoney(viewPayslip.bhxh_employee)}</Col></Row>
+                        <Row><Col span={14}>BHYT (1.5%)</Col><Col span={10} style={{ textAlign: 'right', color: '#cf1322' }}>-{formatMoney(viewPayslip.bhyt_employee)}</Col></Row>
+                        <Row><Col span={14}>BHTN (1%)</Col><Col span={10} style={{ textAlign: 'right', color: '#cf1322' }}>-{formatMoney(viewPayslip.bhtn_employee)}</Col></Row>
+                        <Row><Col span={14}>Công đoàn</Col><Col span={10} style={{ textAlign: 'right', color: '#cf1322' }}>-{formatMoney(viewPayslip.union_fee)}</Col></Row>
+                        <Row><Col span={14}>Thuế TNCN</Col><Col span={10} style={{ textAlign: 'right', color: '#cf1322' }}>-{formatMoney(viewPayslip.tax_income)}</Col></Row>
 
                         <Divider style={{ margin: '16px 0 8px' }} />
-                        <Row style={{ fontSize: 18, fontWeight: 'bold', color: 'green' }}>
+                        <Row style={{ fontSize: 18, fontWeight: 'bold', color: '#52c41a', background: '#f6ffed', padding: '8px', borderRadius: 4 }}>
                             <Col span={14}>THỰC NHẬN</Col>
-                            <Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.net_salary)}</Col>
+                            <Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.net_salary)} đ</Col>
                         </Row>
 
-                        <div style={{ background: '#e6f7ff', padding: 8, marginTop: 16, fontSize: 11 }}>
+                        <div style={{ background: '#e6f7ff', padding: 8, marginTop: 16, fontSize: 11, borderRadius: 4 }}>
                             <b>Công ty đóng:</b> BHXH {formatMoney(viewPayslip.bhxh_company)} | BHYT {formatMoney(viewPayslip.bhyt_company)} | BHTN {formatMoney(viewPayslip.bhtn_company)}
                         </div>
                     </div>
