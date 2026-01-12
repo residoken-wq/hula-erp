@@ -175,8 +175,12 @@ const App: React.FC = () => {
             items.push(getItem(<Link to="/tasks">Công việc & Nhắc nhở</Link>, '/tasks', <CalendarOutlined />));
             items.push(getItem(<Link to="/help">Hướng dẫn sử dụng</Link>, '/help', <QuestionCircleOutlined />));
             items.push(getItem(<Link to="/docs">Dev Docs (Technical)</Link>, '/docs', <CodeOutlined />));
-            items.push(getItem(<Link to="/hr">Nhân sự (HR)</Link>, '/hr', <IdcardOutlined />));
             items.push(getItem(<Link to="/profile">Hồ sơ cá nhân</Link>, '/profile', <UserOutlined />));
+        }
+
+        // HR - Chỉ hiện cho user có quyền HR
+        if (hasPerm('HR')) {
+            items.push(getItem(<Link to="/hr">Nhân sự (HR)</Link>, '/hr', <IdcardOutlined />));
         }
 
         // 9. Hệ thống
@@ -306,10 +310,13 @@ const App: React.FC = () => {
                                                 )}
 
                                                 <Route path="/tasks" element={<TasksPage />} />
-                                                <Route path="/help" element={<HelpPage />} /> {/* Added by user instruction */}
-                                                <Route path="/docs" element={<DocsPage />} /> {/* <--- MỚI: Trang Docs kỹ thuật */}
-                                                <Route path="/hr" element={<HRPage />} /> {/* <--- HR Module */}
-                                                <Route path="/profile" element={<ProfilePage />} /> {/* <--- Profile */}
+                                                <Route path="/help" element={<HelpPage />} />
+                                                <Route path="/docs" element={<DocsPage />} />
+                                                <Route path="/profile" element={<ProfilePage />} />
+
+                                                {hasPerm('HR') && (
+                                                    <Route path="/hr" element={<HRPage />} />
+                                                )}
 
                                                 {hasPerm('USERS') && (
                                                     <>
