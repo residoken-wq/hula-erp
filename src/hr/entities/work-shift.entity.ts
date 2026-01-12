@@ -37,6 +37,9 @@ export class WorkShift {
     @Column({ type: 'int', default: 15 })
     late_tolerance_minutes: number; // Số phút trễ cho phép
 
+    @Column({ type: 'int', default: 6 })
+    work_days_per_week: number; // Số ngày làm việc/tuần: 5 hoặc 6
+
     @Column({ default: true })
     is_active: boolean;
 

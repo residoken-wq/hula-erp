@@ -18,6 +18,36 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
 
     const formatMoney = (v: number) => (v || 0).toLocaleString();
 
+    // Calculate standard work days in a month based on work days per week (5 or 6)
+    const calcStandardWorkDays = (year: number, month: number, daysPerWeek: number = 6): number => {
+        const daysInMonth = new Date(year, month, 0).getDate();
+        let workDays = 0;
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dow = new Date(year, month - 1, day).getDay(); // 0=Sun, 6=Sat
+            if (daysPerWeek === 5) {
+                // Mon-Fri (1-5)
+                if (dow >= 1 && dow <= 5) workDays++;
+            } else {
+                // Mon-Sat (1-6)
+                if (dow >= 1 && dow <= 6) workDays++;
+            }
+        }
+        return workDays;
+    };
+
+    // Auto calculate when month/year/employee changes
+    const autoCalcDays = () => {
+        const empId = form.getFieldValue('employee_id');
+        const month = form.getFieldValue('month');
+        const year = form.getFieldValue('year');
+        if (empId && month && year) {
+            const emp = employees.find(e => e.id === empId);
+            const daysPerWeek = emp?.work_shift?.work_days_per_week || 6;
+            const stdDays = calcStandardWorkDays(year, month, daysPerWeek);
+            form.setFieldsValue({ standard_work_days: stdDays, actual_work_days: stdDays });
+        }
+    };
+
     const handleSave = async (values: any) => {
         try {
             await api.post('/hr/payslips', values);
@@ -46,29 +76,45 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
             <Table dataSource={payslips} columns={columns} rowKey="id" size="small" />
 
             {/* Create Modal */}
-            <Modal title="Tạo phiếu lương" open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()} width={600}>
+            <Modal title="Tạo phiếu lương" open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()} width={650}>
                 <Form form={form} layout="vertical" onFinish={handleSave}>
                     <Form.Item name="employee_id" label="Nhân viên" rules={[{ required: true }]}>
                         <Select onChange={(id) => {
                             const emp = employees.find(e => e.id === id);
-                            if (emp) form.setFieldsValue({ base_salary: emp.base_salary });
+                            if (emp) {
+                                form.setFieldsValue({ base_salary: emp.base_salary });
+                                // Auto calc standard days if month/year set
+                                const month = form.getFieldValue('month');
+                                const year = form.getFieldValue('year');
+                                if (month && year) {
+                                    const stdDays = calcStandardWorkDays(year, month, emp.work_shift?.work_days_per_week || 6);
+                                    form.setFieldsValue({ standard_work_days: stdDays, actual_work_days: stdDays });
+                                }
+                            }
                         }}>
                             {employees.map(e => <Option key={e.id} value={e.id}>{e.full_name}</Option>)}
                         </Select>
                     </Form.Item>
                     <Row gutter={16}>
-                        <Col span={8}><Form.Item name="month" label="Tháng" rules={[{ required: true }]}><InputNumber min={1} max={12} style={{ width: '100%' }} /></Form.Item></Col>
-                        <Col span={8}><Form.Item name="year" label="Năm" rules={[{ required: true }]}><InputNumber min={2020} style={{ width: '100%' }} /></Form.Item></Col>
-                        <Col span={8}><Form.Item name="actual_work_days" label="Ngày công" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
+                        <Col span={6}>
+                            <Form.Item name="month" label="Tháng" rules={[{ required: true }]}>
+                                <Select onChange={() => autoCalcDays()}>
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => <Option key={m} value={m}>Tháng {m}</Option>)}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={6}><Form.Item name="year" label="Năm" rules={[{ required: true }]}><InputNumber min={2020} style={{ width: '100%' }} onChange={() => autoCalcDays()} /></Form.Item></Col>
+                        <Col span={6}><Form.Item name="standard_work_days" label="Ngày chuẩn"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
+                        <Col span={6}><Form.Item name="actual_work_days" label="Ngày công" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} step={0.5} /></Form.Item></Col>
                     </Row>
                     <Row gutter={16}>
                         <Col span={12}><Form.Item name="base_salary" label="Lương cơ bản"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
                         <Col span={12}><Form.Item name="bonus" label="Thưởng"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
                     </Row>
                     <Row gutter={16}>
-                        <Col span={8}><Form.Item name="allowance_meal" label="PC Ăn trưa"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
-                        <Col span={8}><Form.Item name="allowance_transport" label="PC Đi lại"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
-                        <Col span={8}><Form.Item name="allowance_phone" label="PC Điện thoại"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
+                        <Col span={8}><Form.Item name="allowance_meal" label="PC Ăn trưa"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
+                        <Col span={8}><Form.Item name="allowance_transport" label="PC Đi lại"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
+                        <Col span={8}><Form.Item name="allowance_phone" label="PC Điện thoại"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
                     </Row>
                 </Form>
             </Modal>
