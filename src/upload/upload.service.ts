@@ -67,7 +67,29 @@ export class UploadService {
     // Check 'uploads' at project root
     const filePath = path.join(process.cwd(), 'uploads', filename);
 
+    console.log(`Serving file: ${filename} from ${filePath}`); // Debug log
+
     if (fs.existsSync(filePath)) {
+      // Explicitly set Content-Type based on extension
+      const ext = path.extname(filename).toLowerCase();
+      const mimeTypes = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml',
+        '.pdf': 'application/pdf',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.xls': 'application/vnd.ms-excel',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      };
+
+      if (mimeTypes[ext]) {
+        res.set('Content-Type', mimeTypes[ext]);
+      }
+
       return res.sendFile(filePath);
     }
 
@@ -77,6 +99,7 @@ export class UploadService {
       return res.sendFile(fallbackPath);
     }
 
+    console.error(`File not found: ${filePath}`);
     return res.status(404).send('File not found');
   }
 
