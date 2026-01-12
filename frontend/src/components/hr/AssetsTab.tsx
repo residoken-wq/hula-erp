@@ -87,7 +87,14 @@ const AssetsTab: React.FC<Props> = ({ employees, assets, onRefresh }) => {
             <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(null); form.resetFields(); setModal(true); }} style={{ marginBottom: 16 }}>
                 Cấp phát tài sản
             </Button>
-            <Table dataSource={assets} columns={columns} rowKey="id" size="small" />
+            <Table
+                dataSource={assets}
+                columns={columns}
+                rowKey="id"
+                size="small"
+                scroll={{ x: 750 }}
+                pagination={{ pageSize: 10, showSizeChanger: false }}
+            />
 
             <Modal title="Cấp phát tài sản" open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()}>
                 <Form form={form} layout="vertical" onFinish={handleSave}>

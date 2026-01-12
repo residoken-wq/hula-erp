@@ -94,7 +94,14 @@ const EmployeesTab: React.FC<Props> = ({ employees, users, shifts, onRefresh }) 
             <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(null); form.resetFields(); setModal(true); }} style={{ marginBottom: 16 }}>
                 Thêm nhân viên
             </Button>
-            <Table dataSource={employees} columns={columns} rowKey="id" size="small" />
+            <Table
+                dataSource={employees}
+                columns={columns}
+                rowKey="id"
+                size="small"
+                scroll={{ x: 900 }}
+                pagination={{ pageSize: 10, showSizeChanger: false }}
+            />
 
             <Modal title={editing ? 'Sửa nhân viên' : 'Thêm nhân viên'} open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()} width={600}>
                 <Form form={form} layout="vertical" onFinish={handleSave}>

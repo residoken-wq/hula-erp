@@ -99,8 +99,8 @@ const AttendanceTab: React.FC<Props> = ({ employees, attendances, onRefresh }) =
 
     return (
         <>
-            <Row gutter={16}>
-                <Col span={8}>
+            <Row gutter={[12, 12]}>
+                <Col xs={24} md={8}>
                     <Card title="Chọn nhân viên" size="small">
                         <List
                             dataSource={employees}
@@ -115,7 +115,7 @@ const AttendanceTab: React.FC<Props> = ({ employees, attendances, onRefresh }) =
                         />
                     </Card>
                 </Col>
-                <Col span={16}>
+                <Col xs={24} md={16}>
                     {selectedEmp ? (
                         <Card title="Chấm công" size="small" extra={<Button type="primary" icon={<PlusOutlined />} onClick={openAddModal}>Tạo thủ công</Button>}>
                             <Space size="large" style={{ marginBottom: 16 }}>

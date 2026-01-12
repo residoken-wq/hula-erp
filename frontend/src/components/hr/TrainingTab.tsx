@@ -43,9 +43,9 @@ const TrainingTab: React.FC<Props> = ({ employees, trainings, onRefresh }) => {
             <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(null); form.resetFields(); setModal(true); }} style={{ marginBottom: 16 }}>
                 Thêm kế hoạch
             </Button>
-            <Row gutter={16}>
+            <Row gutter={[12, 12]}>
                 {trainings.map((t: any) => (
-                    <Col span={8} key={t.id} style={{ marginBottom: 16 }}>
+                    <Col xs={24} sm={12} md={8} key={t.id}>
                         <Card
                             title={t.title}
                             size="small"

@@ -74,7 +74,14 @@ const ShiftsTab: React.FC<Props> = ({ shifts, onRefresh }) => {
             <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(null); form.resetFields(); setModal(true); }} style={{ marginBottom: 16 }}>
                 Thêm ca làm việc
             </Button>
-            <Table dataSource={shifts} columns={columns} rowKey="id" size="small" />
+            <Table
+                dataSource={shifts}
+                columns={columns}
+                rowKey="id"
+                size="small"
+                scroll={{ x: 800 }}
+                pagination={{ pageSize: 10, showSizeChanger: false }}
+            />
 
             <Modal title={editing ? 'Sửa ca làm việc' : 'Thêm ca làm việc'} open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()} width={500}>
                 <Form form={form} layout="vertical" onFinish={handleSave}>

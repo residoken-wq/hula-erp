@@ -87,7 +87,14 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
             <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModal(true); }} style={{ marginBottom: 16 }}>
                 Đăng ký nghỉ phép
             </Button>
-            <Table dataSource={leaves} columns={columns} rowKey="id" size="small" />
+            <Table
+                dataSource={leaves}
+                columns={columns}
+                rowKey="id"
+                size="small"
+                scroll={{ x: 900 }}
+                pagination={{ pageSize: 10, showSizeChanger: false }}
+            />
 
             <Modal title="Đăng ký nghỉ phép" open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()}>
                 <Form form={form} layout="vertical" onFinish={handleSave}>

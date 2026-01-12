@@ -103,38 +103,58 @@ const HRPage: React.FC = () => {
     };
 
     return (
-        <div style={{ padding: 20 }}>
-            <Card title={<><TeamOutlined /> Quản Lý Nhân Sự (HR)</>}>
-                <Tabs activeKey={activeTab} onChange={setActiveTab}>
-                    <TabPane tab={<><UserOutlined /> Nhân viên</>} key="employees">
+        <div style={{ padding: '12px 8px' }}>
+            <Card
+                title={<><TeamOutlined /> Quản Lý Nhân Sự</>}
+                size="small"
+                bodyStyle={{ padding: '8px 0' }}
+            >
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={setActiveTab}
+                    tabPosition="top"
+                    size="small"
+                    style={{ overflow: 'auto' }}
+                    tabBarStyle={{ marginBottom: 8, paddingLeft: 8 }}
+                >
+                    <TabPane tab={<><UserOutlined /> <span className="hide-mobile">Nhân viên</span></>} key="employees">
                         <EmployeesTab employees={employees} users={users} shifts={shifts} onRefresh={loadEmployees} />
                     </TabPane>
 
-                    <TabPane tab={<><ClockCircleOutlined /> Chấm công</>} key="attendance">
+                    <TabPane tab={<><ClockCircleOutlined /> <span className="hide-mobile">Chấm công</span></>} key="attendance">
                         <AttendanceTab employees={employees} attendances={attendances} onRefresh={loadAttendances} />
                     </TabPane>
 
-                    <TabPane tab={<><CalendarOutlined /> Nghỉ phép</>} key="leave">
+                    <TabPane tab={<><CalendarOutlined /> <span className="hide-mobile">Nghỉ phép</span></>} key="leave">
                         <LeaveTab employees={employees} leaves={leaves} onRefresh={loadLeaves} />
                     </TabPane>
 
-                    <TabPane tab={<><GiftOutlined /> Tài sản</>} key="assets">
+                    <TabPane tab={<><GiftOutlined /> <span className="hide-mobile">Tài sản</span></>} key="assets">
                         <AssetsTab employees={employees} assets={assets} onRefresh={loadAssets} />
                     </TabPane>
 
-                    <TabPane tab={<><DollarOutlined /> Bảng lương</>} key="payslip">
+                    <TabPane tab={<><DollarOutlined /> <span className="hide-mobile">Lương</span></>} key="payslip">
                         <PayslipTab employees={employees} payslips={payslips} onRefresh={loadPayslips} />
                     </TabPane>
 
-                    <TabPane tab={<><ReadOutlined /> Đào tạo</>} key="training">
+                    <TabPane tab={<><ReadOutlined /> <span className="hide-mobile">Đào tạo</span></>} key="training">
                         <TrainingTab employees={employees} trainings={trainings} onRefresh={loadTrainings} />
                     </TabPane>
 
-                    <TabPane tab={<><ScheduleOutlined /> Ca làm việc</>} key="shifts">
+                    <TabPane tab={<><ScheduleOutlined /> <span className="hide-mobile">Ca</span></>} key="shifts">
                         <ShiftsTab shifts={shifts} onRefresh={loadShifts} />
                     </TabPane>
                 </Tabs>
             </Card>
+            <style>{`
+                @media (max-width: 768px) {
+                    .hide-mobile { display: none; }
+                    .ant-table { font-size: 12px !important; }
+                    .ant-modal { max-width: 95vw !important; margin: 8px auto !important; }
+                    .ant-modal-body { padding: 12px !important; }
+                    .ant-form-item { margin-bottom: 12px !important; }
+                }
+            `}</style>
         </div>
     );
 };

@@ -141,7 +141,14 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
             <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModal(true); }} style={{ marginBottom: 16 }}>
                 Tạo phiếu lương
             </Button>
-            <Table dataSource={payslips} columns={columns} rowKey="id" size="small" />
+            <Table
+                dataSource={payslips}
+                columns={columns}
+                rowKey="id"
+                size="small"
+                scroll={{ x: 800 }}
+                pagination={{ pageSize: 10, showSizeChanger: false }}
+            />
 
             {/* Create Modal */}
             <Modal title="Tạo phiếu lương" open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()} width={650}>
