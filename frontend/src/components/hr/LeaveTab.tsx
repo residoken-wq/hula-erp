@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Table, Button, Modal, Form, Select, DatePicker, Row, Col, Tag, Space, message, Popconfirm, Input } from 'antd';
-import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Table, Button, Modal, Form, Select, DatePicker, Row, Col, Tag, Space, message, Popconfirm, Input, Card, Statistic, InputNumber, Divider } from 'antd';
+import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined, CalendarOutlined, SettingOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 
@@ -16,6 +16,34 @@ interface Props {
 const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
     const [modal, setModal] = useState(false);
     const [form] = Form.useForm();
+    const [selectedEmpId, setSelectedEmpId] = useState<number | null>(null);
+    const [balance, setBalance] = useState<any>(null);
+    const [entitlementModal, setEntitlementModal] = useState(false);
+    const [entForm] = Form.useForm();
+
+    // Load balance when employee selected
+    useEffect(() => {
+        if (selectedEmpId) {
+            loadBalance(selectedEmpId);
+        }
+    }, [selectedEmpId]);
+
+    const loadBalance = async (empId: number) => {
+        try {
+            const res = await api.get(`/hr/balance/${empId}?year=${new Date().getFullYear()}`);
+            setBalance(res.data);
+        } catch (e) { setBalance(null); }
+    };
+
+    const handleSaveEntitlement = async (values: any) => {
+        try {
+            await api.post('/hr/entitlements', values);
+            message.success('Đã lưu số ngày phép');
+            setEntitlementModal(false);
+            entForm.resetFields();
+            if (selectedEmpId) loadBalance(selectedEmpId);
+        } catch (e) { message.error('Lỗi lưu'); }
+    };
 
     const handleSave = async (values: any) => {
         try {
@@ -84,9 +112,50 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
 
     return (
         <>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModal(true); }} style={{ marginBottom: 16 }}>
-                Đăng ký nghỉ phép
-            </Button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Space>
+                    <Select
+                        style={{ width: 250 }}
+                        placeholder="Xem số dư phép của nhân viên..."
+                        allowClear
+                        onChange={(val) => {
+                            setSelectedEmpId(val);
+                            if (!val) setBalance(null);
+                        }}
+                        showSearch
+                        optionFilterProp="children"
+                    >
+                        {employees.map(e => <Option key={e.id} value={e.id}>{e.full_name}</Option>)}
+                    </Select>
+                    {selectedEmpId && (
+                        <Button icon={<SettingOutlined />} onClick={() => {
+                            setEntitlementModal(true);
+                            entForm.setFieldsValue({
+                                employee_id: selectedEmpId,
+                                year: new Date().getFullYear(),
+                                annual_days: balance?.annual_days || 12,
+                                carried_days: balance?.carried_days || 0
+                            });
+                        }}>Thiết lập ngày phép</Button>
+                    )}
+                </Space>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModal(true); }}>
+                    Đăng ký nghỉ phép
+                </Button>
+            </div>
+
+            {balance && (
+                <div style={{ marginBottom: 16 }}>
+                    <Row gutter={16}>
+                        <Col span={6}><Statistic title="Phép năm" value={balance.annual_days} prefix={<CalendarOutlined />} /></Col>
+                        <Col span={6}><Statistic title="Tồn năm trước" value={balance.carried_days} /></Col>
+                        <Col span={6}><Statistic title="Đã sử dụng" value={balance.used_days} valueStyle={{ color: '#cf1322' }} /></Col>
+                        <Col span={6}><Statistic title="Còn lại" value={balance.remaining_days} valueStyle={{ color: '#3f8600' }} /></Col>
+                    </Row>
+                    <Divider style={{ margin: '12px 0' }} />
+                </div>
+            )}
+
             <Table
                 dataSource={leaves}
                 columns={columns}
@@ -99,14 +168,14 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
             <Modal title="Đăng ký nghỉ phép" open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()}>
                 <Form form={form} layout="vertical" onFinish={handleSave}>
                     <Form.Item name="employee_id" label="Nhân viên" rules={[{ required: true }]}>
-                        <Select>{employees.map(e => <Option key={e.id} value={e.id}>{e.full_name}</Option>)}</Select>
+                        <Select showSearch optionFilterProp="children">{employees.map(e => <Option key={e.id} value={e.id}>{e.full_name}</Option>)}</Select>
                     </Form.Item>
-                    <Form.Item name="leave_type" label="Loại nghỉ" rules={[{ required: true }]}>
+                    <Form.Item name="leave_type" label="Loại nghỉ" initialValue="ANNUAL">
                         <Select>
                             <Option value="ANNUAL">Phép năm</Option>
-                            <Option value="SICK">Ốm</Option>
-                            <Option value="UNPAID">Không lương</Option>
+                            <Option value="SICK">Nghỉ ốm</Option>
                             <Option value="MATERNITY">Thai sản</Option>
+                            <Option value="UNPAID">Không lương</Option>
                             <Option value="OTHER">Khác</Option>
                         </Select>
                     </Form.Item>
@@ -115,6 +184,18 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
                         <Col span={12}><Form.Item name="end_date" label="Đến ngày" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                     </Row>
                     <Form.Item name="reason" label="Lý do"><TextArea rows={3} /></Form.Item>
+                </Form>
+            </Modal>
+
+            {/* Entitlement Setup Modal */}
+            <Modal title="Thiết lập ngày phép năm" open={entitlementModal} onCancel={() => setEntitlementModal(false)} onOk={() => entForm.submit()} width={400}>
+                <Form form={entForm} layout="vertical" onFinish={handleSaveEntitlement}>
+                    <Form.Item name="employee_id" label="Nhân viên" rules={[{ required: true }]}>
+                        <Select disabled showSearch optionFilterProp="children">{employees.map(e => <Option key={e.id} value={e.id}>{e.full_name}</Option>)}</Select>
+                    </Form.Item>
+                    <Form.Item name="year" label="Năm" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} /></Form.Item>
+                    <Form.Item name="annual_days" label="Phép năm được cấp"><InputNumber style={{ width: '100%' }} /></Form.Item>
+                    <Form.Item name="carried_days" label="Phép tồn năm trước"><InputNumber style={{ width: '100%' }} /></Form.Item>
                 </Form>
             </Modal>
         </>

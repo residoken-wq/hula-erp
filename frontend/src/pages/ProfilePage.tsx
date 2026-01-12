@@ -34,6 +34,8 @@ const ProfilePage: React.FC = () => {
         }
     }, []);
 
+    const [leaveBalance, setLeaveBalance] = useState<any>(null);
+
     const loadEmployeeData = async (userId: number) => {
         setLoading(true);
         try {
@@ -44,16 +46,18 @@ const ProfilePage: React.FC = () => {
 
             if (emp) {
                 // Load related data
-                const [attRes, leaveRes, payRes, assetRes] = await Promise.all([
+                const [attRes, leaveRes, payRes, assetRes, balRes] = await Promise.all([
                     api.get(`/hr/attendances?employee_id=${emp.id}`),
                     api.get('/hr/leaves'),
                     api.get(`/hr/payslips?employee_id=${emp.id}`),
                     api.get(`/hr/assets?employee_id=${emp.id}`),
+                    api.get(`/hr/balance/${emp.id}?year=${new Date().getFullYear()}`),
                 ]);
                 setAttendances(attRes.data);
                 setLeaves(leaveRes.data.filter((l: any) => l.employee_id === emp.id));
                 setPayslips(payRes.data);
                 setAssets(assetRes.data);
+                setLeaveBalance(balRes.data);
             }
         } catch (e) {
             console.error(e);
@@ -102,14 +106,7 @@ const ProfilePage: React.FC = () => {
     if (!employee) {
         return (
             <Card>
-                <Empty
-                    description={
-                        <span>
-                            Tài khoản của bạn chưa được liên kết với hồ sơ nhân viên.<br />
-                            Vui lòng liên hệ Admin để được hỗ trợ.
-                        </span>
-                    }
-                />
+                <Empty description={<span>Tài khoản của bạn chưa được liên kết với hồ sơ nhân viên.<br />Vui lòng liên hệ Admin để được hỗ trợ.</span>} />
             </Card>
         );
     }
@@ -197,6 +194,20 @@ const ProfilePage: React.FC = () => {
                     {/* TAB: NGHỈ PHÉP */}
                     <TabPane tab={<><CalendarOutlined /> Nghỉ phép</>} key="leave">
                         <Row gutter={24}>
+                            <Col span={24}>
+                                {leaveBalance && (
+                                    <div style={{ marginBottom: 16 }}>
+                                        <Card size="small" title={`Số dư phép năm ${leaveBalance.year}`}>
+                                            <Row gutter={16}>
+                                                <Col span={6}><Statistic title="Phép năm" value={leaveBalance.annual_days} prefix={<CalendarOutlined />} /></Col>
+                                                <Col span={6}><Statistic title="Tồn năm trước" value={leaveBalance.carried_days} /></Col>
+                                                <Col span={6}><Statistic title="Đã sử dụng" value={leaveBalance.used_days} valueStyle={{ color: '#cf1322' }} /></Col>
+                                                <Col span={6}><Statistic title="Còn lại" value={leaveBalance.remaining_days} valueStyle={{ color: '#3f8600' }} /></Col>
+                                            </Row>
+                                        </Card>
+                                    </div>
+                                )}
+                            </Col>
                             <Col span={10}>
                                 <Card size="small" title="Đăng ký nghỉ phép">
                                     <Form form={leaveForm} layout="vertical" onFinish={handleRequestLeave}>
@@ -311,9 +322,9 @@ const ProfilePage: React.FC = () => {
                             size="small"
                         />
                     </TabPane>
-                </Tabs>
-            </Card>
-        </div>
+                </Tabs >
+            </Card >
+        </div >
     );
 };
 

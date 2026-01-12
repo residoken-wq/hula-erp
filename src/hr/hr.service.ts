@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Employee } from './entities/employee.entity';
 import { Attendance, AttendanceStatus } from './entities/attendance.entity';
-import { LeaveRequest, LeaveStatus } from './entities/leave-request.entity';
+import { LeaveRequest, LeaveStatus, LeaveType } from './entities/leave-request.entity';
+import { LeaveEntitlement } from './entities/leave-entitlement.entity';
 import { AssetAssignment } from './entities/asset-assignment.entity';
 import { Payslip } from './entities/payslip.entity';
 import { TrainingPlan } from './entities/training-plan.entity';
@@ -15,6 +16,7 @@ export class HrService {
         @InjectRepository(Employee) private employeeRepo: Repository<Employee>,
         @InjectRepository(Attendance) private attendanceRepo: Repository<Attendance>,
         @InjectRepository(LeaveRequest) private leaveRepo: Repository<LeaveRequest>,
+        @InjectRepository(LeaveEntitlement) private entitlementRepo: Repository<LeaveEntitlement>,
         @InjectRepository(AssetAssignment) private assetRepo: Repository<AssetAssignment>,
         @InjectRepository(Payslip) private payslipRepo: Repository<Payslip>,
         @InjectRepository(TrainingPlan) private trainingRepo: Repository<TrainingPlan>,
@@ -188,6 +190,63 @@ export class HrService {
         if (!approved && rejectReason) leave.reject_reason = rejectReason;
 
         return this.leaveRepo.save(leave);
+    }
+
+    async deleteLeave(id: number) {
+        return this.leaveRepo.delete(id);
+    }
+
+    // ==================== LEAVE ENTITLEMENT ====================
+    async findEntitlements(employeeId?: number, year?: number) {
+        const where: any = {};
+        if (employeeId) where.employee_id = employeeId;
+        if (year) where.year = year;
+        return this.entitlementRepo.find({ where, relations: ['employee'], order: { year: 'DESC' } });
+    }
+
+    async createEntitlement(data: Partial<LeaveEntitlement>) {
+        const entitlement = this.entitlementRepo.create(data);
+        return this.entitlementRepo.save(entitlement);
+    }
+
+    async updateEntitlement(id: number, data: Partial<LeaveEntitlement>) {
+        await this.entitlementRepo.update(id, data);
+        return this.entitlementRepo.findOne({ where: { id }, relations: ['employee'] });
+    }
+
+    async getLeaveBalance(employeeId: number, year: number) {
+        // Get entitlement for this year
+        const entitlement = await this.entitlementRepo.findOne({
+            where: { employee_id: employeeId, year }
+        });
+
+        // Get approved annual leaves for this year
+        const approvedLeaves = await this.leaveRepo.find({
+            where: {
+                employee_id: employeeId,
+                leave_type: LeaveType.ANNUAL,
+                status: LeaveStatus.APPROVED,
+            }
+        });
+
+        // Filter leaves within the year
+        const usedDays = approvedLeaves
+            .filter(l => new Date(l.start_date).getFullYear() === year)
+            .reduce((sum, l) => sum + Number(l.days), 0);
+
+        const annual = entitlement ? Number(entitlement.annual_days) : 12;
+        const carried = entitlement ? Number(entitlement.carried_days) : 0;
+        const total = annual + carried;
+        const remaining = total - usedDays;
+
+        return {
+            year,
+            annual_days: annual,
+            carried_days: carried,
+            total_days: total,
+            used_days: usedDays,
+            remaining_days: remaining,
+        };
     }
 
     // ==================== ASSET ASSIGNMENT ====================

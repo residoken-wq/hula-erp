@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Card, Row, Col, Button, Table, Tag, Space, Empty, Divider, List, Avatar, message, Modal, Form, DatePicker, TimePicker, Select, Popconfirm } from 'antd';
-import { UserOutlined, LoginOutlined, LogoutOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Button, Table, Tag, Space, Empty, Divider, List, Avatar, message, Modal, Form, DatePicker, TimePicker, Select, Popconfirm, Radio, Calendar, Badge } from 'antd';
+import { UserOutlined, LoginOutlined, LogoutOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 
@@ -17,6 +17,7 @@ const AttendanceTab: React.FC<Props> = ({ employees, attendances, onRefresh }) =
     const [modal, setModal] = useState(false);
     const [form] = Form.useForm();
     const [editing, setEditing] = useState<any>(null);
+    const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar');
 
     const handleCheckIn = async (empId: number) => {
         try {
@@ -117,7 +118,15 @@ const AttendanceTab: React.FC<Props> = ({ employees, attendances, onRefresh }) =
                 </Col>
                 <Col xs={24} md={16}>
                     {selectedEmp ? (
-                        <Card title="Chấm công" size="small" extra={<Button type="primary" icon={<PlusOutlined />} onClick={openAddModal}>Tạo thủ công</Button>}>
+                        <Card title="Chấm công" size="small" extra={
+                            <Space>
+                                <Radio.Group value={viewMode} onChange={e => setViewMode(e.target.value)} size="small" buttonStyle="solid">
+                                    <Radio.Button value="calendar"><CalendarOutlined /></Radio.Button>
+                                    <Radio.Button value="list"><UnorderedListOutlined /></Radio.Button>
+                                </Radio.Group>
+                                <Button type="primary" icon={<PlusOutlined />} onClick={openAddModal}>Tạo thủ công</Button>
+                            </Space>
+                        }>
                             <Space size="large" style={{ marginBottom: 16 }}>
                                 <Button type="primary" size="large" icon={<LoginOutlined />} onClick={() => handleCheckIn(selectedEmp)}>
                                     CHECK IN
@@ -127,34 +136,58 @@ const AttendanceTab: React.FC<Props> = ({ employees, attendances, onRefresh }) =
                                 </Button>
                             </Space>
                             <Divider />
-                            <Table
-                                dataSource={attendances.filter(a => a.employee_id === selectedEmp)}
-                                columns={[
-                                    { title: 'Ngày', dataIndex: 'date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
-                                    { title: 'Check-in', dataIndex: 'check_in', render: (d: string) => d ? dayjs(d).format('HH:mm') : '-' },
-                                    { title: 'Check-out', dataIndex: 'check_out', render: (d: string) => d ? dayjs(d).format('HH:mm') : '-' },
-                                    { title: 'Giờ làm', dataIndex: 'work_hours', render: (h: number) => h ? `${h}h` : '-' },
-                                    {
-                                        title: 'Trạng thái', dataIndex: 'status', render: (s: string) => {
-                                            const c: any = { PRESENT: 'green', LATE: 'orange', ABSENT: 'red', HALF_DAY: 'blue' };
-                                            return <Tag color={c[s]}>{s}</Tag>;
+
+                            {viewMode === 'list' ? (
+                                <Table
+                                    dataSource={attendances.filter(a => a.employee_id === selectedEmp)}
+                                    columns={[
+                                        { title: 'Ngày', dataIndex: 'date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
+                                        { title: 'Check-in', dataIndex: 'check_in', render: (d: string) => d ? dayjs(d).format('HH:mm') : '-' },
+                                        { title: 'Check-out', dataIndex: 'check_out', render: (d: string) => d ? dayjs(d).format('HH:mm') : '-' },
+                                        { title: 'Giờ làm', dataIndex: 'work_hours', render: (h: number) => h ? `${h}h` : '-' },
+                                        {
+                                            title: 'Trạng thái', dataIndex: 'status', render: (s: string) => {
+                                                const c: any = { PRESENT: 'green', LATE: 'orange', ABSENT: 'red', HALF_DAY: 'blue' };
+                                                return <Tag color={c[s]}>{s}</Tag>;
+                                            }
+                                        },
+                                        {
+                                            title: 'Thao tác',
+                                            render: (_: any, r: any) => (
+                                                <Space>
+                                                    <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(r)} />
+                                                    <Popconfirm title="Xóa bản ghi này?" onConfirm={() => handleDelete(r.id)}>
+                                                        <Button size="small" danger icon={<DeleteOutlined />} />
+                                                    </Popconfirm>
+                                                </Space>
+                                            )
                                         }
-                                    },
-                                    {
-                                        title: 'Thao tác',
-                                        render: (_: any, r: any) => (
-                                            <Space>
-                                                <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(r)} />
-                                                <Popconfirm title="Xóa bản ghi này?" onConfirm={() => handleDelete(r.id)}>
-                                                    <Button size="small" danger icon={<DeleteOutlined />} />
-                                                </Popconfirm>
-                                            </Space>
-                                        )
-                                    }
-                                ]}
-                                rowKey="id"
-                                size="small"
-                            />
+                                    ]}
+                                    rowKey="id"
+                                    size="small"
+                                />
+                            ) : (
+                                <Calendar
+                                    fullscreen={false}
+                                    dateCellRender={(value) => {
+                                        const listData = attendances.filter(a =>
+                                            a.employee_id === selectedEmp &&
+                                            dayjs(a.date).format('YYYY-MM-DD') === value.format('YYYY-MM-DD')
+                                        );
+                                        return (
+                                            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                                {listData.map(item => (
+                                                    <li key={item.id}>
+                                                        <Tag color={item.status === 'PRESENT' ? 'green' : item.status === 'ABSENT' ? 'red' : 'orange'} style={{ fontSize: 10, margin: '2px 0' }}>
+                                                            {item.check_in ? dayjs(item.check_in).format('HH:mm') : item.status}
+                                                        </Tag>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        );
+                                    }}
+                                />
+                            )}
                         </Card>
                     ) : <Empty description="Chọn nhân viên để chấm công" />}
                 </Col>

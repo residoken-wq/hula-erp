@@ -5,6 +5,7 @@ import { HrService } from './hr.service';
 import { Employee } from './entities/employee.entity';
 import { Attendance } from './entities/attendance.entity';
 import { LeaveRequest } from './entities/leave-request.entity';
+import { LeaveEntitlement } from './entities/leave-entitlement.entity';
 import { AssetAssignment } from './entities/asset-assignment.entity';
 import { Payslip } from './entities/payslip.entity';
 import { TrainingPlan } from './entities/training-plan.entity';
@@ -16,6 +17,7 @@ import { WorkShift } from './entities/work-shift.entity';
             Employee,
             Attendance,
             LeaveRequest,
+            LeaveEntitlement,
             AssetAssignment,
             Payslip,
             TrainingPlan,

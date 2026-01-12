@@ -114,6 +114,42 @@ export class HrController {
         return this.hrService.approveLeave(+id, req.user.userId, body.approved, body.reject_reason);
     }
 
+    @Delete('leaves/:id')
+    deleteLeave(@Param('id') id: string) {
+        return this.hrService.deleteLeave(+id);
+    }
+
+    // ==================== LEAVE ENTITLEMENT ====================
+    @Get('entitlements')
+    findEntitlements(
+        @Query('employee_id') employeeId?: string,
+        @Query('year') year?: string,
+    ) {
+        return this.hrService.findEntitlements(
+            employeeId ? +employeeId : undefined,
+            year ? +year : undefined,
+        );
+    }
+
+    @Post('entitlements')
+    createEntitlement(@Body() data: any) {
+        return this.hrService.createEntitlement(data);
+    }
+
+    @Put('entitlements/:id')
+    updateEntitlement(@Param('id') id: string, @Body() data: any) {
+        return this.hrService.updateEntitlement(+id, data);
+    }
+
+    @Get('balance/:employeeId')
+    getLeaveBalance(
+        @Param('employeeId') employeeId: string,
+        @Query('year') year?: string,
+    ) {
+        const y = year ? +year : new Date().getFullYear();
+        return this.hrService.getLeaveBalance(+employeeId, y);
+    }
+
     // ==================== ASSET ASSIGNMENT ====================
     @Get('assets')
     findAllAssets(@Query('employee_id') employeeId?: string) {
