@@ -24,6 +24,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { SystemModule } from './system/system.module';
 import { BlogsModule } from './blogs/blogs.module';
 import { PublicModule } from './public/public.module';
+import { HrModule } from './hr/hr.module';
 
 // Entities
 import { Product } from './products/product.entity';
@@ -83,6 +84,14 @@ import { BlogPost } from './blogs/blog-post.entity';
 import { ActivityInterceptor } from './common/interceptors/activity.interceptor';
 import { ActivityLog } from './system/entities/activity-log.entity';
 
+// HR Entities
+import { Employee } from './hr/entities/employee.entity';
+import { Attendance } from './hr/entities/attendance.entity';
+import { LeaveRequest } from './hr/entities/leave-request.entity';
+import { AssetAssignment } from './hr/entities/asset-assignment.entity';
+import { Payslip } from './hr/entities/payslip.entity';
+import { TrainingPlan } from './hr/entities/training-plan.entity';
+
 import { AppController } from './app.controller';
 
 import { AiModule } from './ai/ai.module';
@@ -118,7 +127,8 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           ProductionPlan, Process, Category,
           User, UserGroup, GroupPermission,
           SystemConfig, ActivityLog,
-          BlogPost
+          BlogPost,
+          Employee, Attendance, LeaveRequest, AssetAssignment, Payslip, TrainingPlan
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         subscribers: [],
@@ -130,7 +140,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
     TasksModule, NotificationsModule, SystemModule,
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
     ProcessesModule, CategoriesModule, AiModule,
-    BlogsModule, PublicModule,
+    BlogsModule, PublicModule, HrModule,
     TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
   ],
   providers: [
