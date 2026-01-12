@@ -226,7 +226,8 @@ export class HrService {
         const standard = Number(data.standard_work_days) || 26;
         const base = Number(data.base_salary) || 0;
 
-        data.actual_salary = Math.round(base * (actual / standard));
+        // Formula: ROUND(base_salary / 25 * actual_work_days, -3) = rounds to nearest 1000
+        data.actual_salary = Math.round((base / 25 * actual) / 1000) * 1000;
 
         const meal = Number(data.allowance_meal) || 0;
         const transport = Number(data.allowance_transport) || 0;
