@@ -5,7 +5,7 @@ import {
     ClockCircleOutlined, UserOutlined, ShopOutlined, CheckCircleOutlined,
     AlertOutlined, PlusOutlined, ExperimentOutlined, FileTextOutlined,
     CheckSquareOutlined, TeamOutlined, RightOutlined, FireOutlined,
-    PhoneOutlined, MessageOutlined
+    PhoneOutlined, MessageOutlined, IdcardOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -368,6 +368,7 @@ const DashboardPage: React.FC = () => {
                                 {hasPerm('PRODUCTION') && (
                                     <Col span={6}><QuickAction title="Lệnh Sản Xuất" icon={<ExperimentOutlined />} color="#fa541c" onClick={() => navigate('/planning')} /></Col>
                                 )}
+                                <Col span={6}><QuickAction title="Hồ Sơ Cá Nhân" icon={<IdcardOutlined />} color="#52c41a" onClick={() => navigate('/profile')} /></Col>
                             </Row>
                         </Card>
                     </Col>
