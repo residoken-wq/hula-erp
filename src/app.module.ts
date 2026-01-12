@@ -48,6 +48,7 @@ import { SalesOrderVersion } from './sales/sales-order-version.entity';
 
 import { StockHistory } from './inventory/stock-history.entity';
 import { InventoryStock } from './inventory/inventory-stock.entity';
+import { ShippingCarrier } from './inventory/entities/shipping-carrier.entity';
 
 import { PurchaseOrder } from './purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from './purchasing/entities/purchase-order-item.entity';
@@ -108,7 +109,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           SalesChecklist, SalesChecklistItem,
           PriceList, PriceListRule, SalesOrderVersion,
           PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
-          StockHistory, InventoryStock,
+          StockHistory, InventoryStock, ShippingCarrier,
           ProductionOrder,
           Transaction, TransactionCategory,
           Task, Notification,
