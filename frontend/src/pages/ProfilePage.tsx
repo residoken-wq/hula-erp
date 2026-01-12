@@ -264,6 +264,13 @@ const ProfilePage: React.FC = () => {
                                 { title: 'Ngày công', dataIndex: 'actual_work_days' },
                                 { title: 'Tổng thu', dataIndex: 'gross_income', render: (v: number) => formatMoney(v) },
                                 { title: 'Thực nhận', dataIndex: 'net_salary', render: (v: number) => <b style={{ color: 'green' }}>{formatMoney(v)}</b> },
+                                {
+                                    title: 'Trạng thái',
+                                    dataIndex: 'is_paid',
+                                    render: (p: boolean) => p ?
+                                        <Tag color="green" icon={<CheckCircleOutlined />}>Đã TT</Tag> :
+                                        <Tag color="orange">Chưa TT</Tag>
+                                },
                                 { title: '', render: (_: any, r: any) => <Button size="small" onClick={() => setViewPayslip(r)}>Xem chi tiết</Button> }
                             ]}
                             rowKey="id"
@@ -273,17 +280,25 @@ const ProfilePage: React.FC = () => {
                         {/* Payslip Detail Modal */}
                         {viewPayslip && (
                             <Card
-                                title={`Phiếu lương tháng ${viewPayslip.month}/${viewPayslip.year}`}
+                                title={
+                                    <Space>
+                                        <span>Phiếu lương tháng {viewPayslip.month}/{viewPayslip.year}</span>
+                                        {viewPayslip.is_paid ?
+                                            <Tag color="green" icon={<CheckCircleOutlined />}>ĐÃ THANH TOÁN</Tag> :
+                                            <Tag color="orange" icon={<ClockCircleOutlined />}>CHƯA THANH TOÁN</Tag>}
+                                    </Space>
+                                }
                                 style={{ marginTop: 16 }}
                                 extra={<Button onClick={() => setViewPayslip(null)}>Đóng</Button>}
                             >
-                                <div style={{ maxWidth: 400, margin: '0 auto', fontFamily: 'monospace' }}>
+                                <div style={{ maxWidth: 450, margin: '0 auto', fontFamily: 'monospace' }}>
                                     <Divider style={{ margin: '8px 0' }} />
                                     <div style={{ background: '#f5f5f5', padding: 8, marginBottom: 8 }}><b>THU NHẬP</b></div>
                                     <Row><Col span={14}>Lương cơ bản</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.base_salary)}</Col></Row>
                                     <Row><Col span={14}>Ngày công: {viewPayslip.actual_work_days}/{viewPayslip.standard_work_days}</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.actual_salary)}</Col></Row>
                                     <Row><Col span={14}>PC Ăn trưa</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_meal)}</Col></Row>
                                     <Row><Col span={14}>PC Đi lại</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_transport)}</Col></Row>
+                                    <Row><Col span={14}>PC Điện thoại</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_phone)}</Col></Row>
                                     <Row><Col span={14}>Thưởng</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.bonus)}</Col></Row>
                                     <Row style={{ fontWeight: 'bold', marginTop: 8 }}><Col span={14}>TỔNG THU NHẬP</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.gross_income)}</Col></Row>
 
@@ -297,6 +312,12 @@ const ProfilePage: React.FC = () => {
                                         <Col span={14}>THỰC NHẬN</Col>
                                         <Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.net_salary)}</Col>
                                     </Row>
+
+                                    {viewPayslip.is_paid && viewPayslip.paid_date && (
+                                        <div style={{ marginTop: 12, textAlign: 'center', color: '#888', fontSize: 12 }}>
+                                            Ngày thanh toán: {dayjs(viewPayslip.paid_date).format('DD/MM/YYYY')}
+                                        </div>
+                                    )}
                                 </div>
                             </Card>
                         )}
