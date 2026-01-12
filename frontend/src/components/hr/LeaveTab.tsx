@@ -112,11 +112,11 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
 
     return (
         <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                <Space>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+                <Space wrap>
                     <Select
                         style={{ width: 250 }}
-                        placeholder="Xem số dư phép của nhân viên..."
+                        placeholder="Chọn nhân viên xem số dư phép..."
                         allowClear
                         onChange={(val) => {
                             setSelectedEmpId(val);
@@ -127,8 +127,14 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
                     >
                         {employees.map(e => <Option key={e.id} value={e.id}>{e.full_name}</Option>)}
                     </Select>
-                    {selectedEmpId && (
-                        <Button icon={<SettingOutlined />} onClick={() => {
+                    <Button
+                        icon={<SettingOutlined />}
+                        type={selectedEmpId ? 'primary' : 'default'}
+                        onClick={() => {
+                            if (!selectedEmpId) {
+                                message.warning('Vui lòng chọn nhân viên trước');
+                                return;
+                            }
                             setEntitlementModal(true);
                             entForm.setFieldsValue({
                                 employee_id: selectedEmpId,
@@ -136,8 +142,10 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
                                 annual_days: balance?.annual_days || 12,
                                 carried_days: balance?.carried_days || 0
                             });
-                        }}>Thiết lập ngày phép</Button>
-                    )}
+                        }}
+                    >
+                        Thiết lập ngày phép
+                    </Button>
                 </Space>
                 <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModal(true); }}>
                     Đăng ký nghỉ phép
