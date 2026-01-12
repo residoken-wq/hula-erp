@@ -39,9 +39,9 @@ const ProfilePage: React.FC = () => {
     const loadEmployeeData = async (userId: number) => {
         setLoading(true);
         try {
-            // Find employee by user_id
-            const res = await api.get('/hr/employees');
-            const emp = res.data.find((e: any) => e.user_id === userId);
+            // Find employee by user_id using dedicated endpoint
+            const empRes = await api.get(`/hr/employees/by-user/${userId}`);
+            const emp = empRes.data;
             setEmployee(emp);
 
             if (emp) {
@@ -51,16 +51,16 @@ const ProfilePage: React.FC = () => {
                     api.get('/hr/leaves'),
                     api.get(`/hr/payslips?employee_id=${emp.id}`),
                     api.get(`/hr/assets?employee_id=${emp.id}`),
-                    api.get(`/hr/balance/${emp.id}?year=${new Date().getFullYear()}`),
+                    api.get(`/hr/balance/${emp.id}?year=${new Date().getFullYear()}`).catch(() => ({ data: null })),
                 ]);
-                setAttendances(attRes.data);
-                setLeaves(leaveRes.data.filter((l: any) => l.employee_id === emp.id));
-                setPayslips(payRes.data);
-                setAssets(assetRes.data);
+                setAttendances(attRes.data || []);
+                setLeaves((leaveRes.data || []).filter((l: any) => l.employee_id === emp.id));
+                setPayslips(payRes.data || []);
+                setAssets(assetRes.data || []);
                 setLeaveBalance(balRes.data);
             }
         } catch (e) {
-            console.error(e);
+            console.error('Error loading employee data:', e);
         }
         setLoading(false);
     };

@@ -35,6 +35,11 @@ export class HrController {
         return this.hrService.findAllEmployees();
     }
 
+    @Get('employees/by-user/:userId')
+    findEmployeeByUserId(@Param('userId') userId: string) {
+        return this.hrService.findEmployeeByUserId(+userId);
+    }
+
     @Get('employees/:id')
     findOneEmployee(@Param('id') id: string) {
         return this.hrService.findOneEmployee(+id);

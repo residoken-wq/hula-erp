@@ -53,6 +53,10 @@ export class HrService {
         return emp;
     }
 
+    async findEmployeeByUserId(userId: number) {
+        return this.employeeRepo.findOne({ where: { user_id: userId }, relations: ['user', 'work_shift'] });
+    }
+
     async createEmployee(data: Partial<Employee>) {
         const employee = this.employeeRepo.create(data);
         return this.employeeRepo.save(employee);
