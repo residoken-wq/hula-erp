@@ -344,64 +344,72 @@ const ProfilePage: React.FC = () => {
                                 marginBottom: 24,
                                 boxShadow: '0 4px 20px rgba(19, 194, 194, 0.3)'
                             }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                                    <div>
-                                        <div style={{ fontSize: 14, opacity: 0.85 }}>
-                                            <CalendarOutlined /> SỐ DƯ PHÉP NĂM {leaveBalance.year}
+                                {/* Main Stats */}
+                                <Row gutter={24} style={{ marginBottom: 20 }}>
+                                    <Col span={8}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>📋 TỔNG PHÉP NĂM</div>
+                                            <div style={{ fontSize: 36, fontWeight: 700 }}>
+                                                {(Number(leaveBalance.annual_days) || 0) + (Number(leaveBalance.carried_days) || 0)}
+                                            </div>
+                                            <div style={{ fontSize: 12, opacity: 0.7 }}>ngày (năm {leaveBalance.year})</div>
                                         </div>
-                                        <div style={{ fontSize: 32, fontWeight: 700, marginTop: 4 }}>
-                                            {leaveBalance.remaining_days} <span style={{ fontSize: 16, fontWeight: 400 }}>ngày còn lại</span>
+                                    </Col>
+                                    <Col span={8}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>✅ ĐÃ DUYỆT / ĐÃ NGHỈ</div>
+                                            <div style={{ fontSize: 36, fontWeight: 700, color: '#ffe58f' }}>
+                                                {Number(leaveBalance.used_days) || 0}
+                                            </div>
+                                            <div style={{ fontSize: 12, opacity: 0.7 }}>ngày</div>
                                         </div>
-                                    </div>
-                                    <div style={{
-                                        width: 80,
-                                        height: 80,
-                                        borderRadius: '50%',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: 28,
-                                        fontWeight: 700
-                                    }}>
-                                        {Math.round((leaveBalance.remaining_days / (leaveBalance.annual_days + leaveBalance.carried_days)) * 100)}%
-                                    </div>
-                                </div>
+                                    </Col>
+                                    <Col span={8}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>🎯 CÒN LẠI</div>
+                                            <div style={{ fontSize: 36, fontWeight: 700, color: '#b7eb8f' }}>
+                                                {Number(leaveBalance.remaining_days) || 0}
+                                            </div>
+                                            <div style={{ fontSize: 12, opacity: 0.7 }}>ngày</div>
+                                        </div>
+                                    </Col>
+                                </Row>
 
                                 {/* Progress bar */}
-                                <div style={{ background: 'rgba(255,255,255,0.3)', borderRadius: 8, height: 8, marginBottom: 16 }}>
-                                    <div style={{
-                                        background: '#fff',
-                                        borderRadius: 8,
-                                        height: 8,
-                                        width: `${Math.min(100, (leaveBalance.remaining_days / (leaveBalance.annual_days + leaveBalance.carried_days)) * 100)}%`,
-                                        transition: 'width 0.5s ease'
-                                    }} />
+                                <div style={{ marginBottom: 16 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, opacity: 0.8, marginBottom: 4 }}>
+                                        <span>Đã sử dụng: {leaveBalance.used_days} ngày</span>
+                                        <span>Còn lại: {leaveBalance.remaining_days} ngày</span>
+                                    </div>
+                                    <div style={{ background: 'rgba(255,255,255,0.3)', borderRadius: 8, height: 10, position: 'relative' }}>
+                                        <div style={{
+                                            background: '#ffe58f',
+                                            borderRadius: 8,
+                                            height: 10,
+                                            width: `${Math.min(100, (Number(leaveBalance.used_days) / ((Number(leaveBalance.annual_days) || 0) + (Number(leaveBalance.carried_days) || 0))) * 100)}%`,
+                                            transition: 'width 0.5s ease'
+                                        }} />
+                                    </div>
                                 </div>
 
-                                <Row gutter={16}>
-                                    <Col span={6}>
-                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '12px 16px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: 20, fontWeight: 600 }}>{leaveBalance.annual_days}</div>
-                                            <div style={{ fontSize: 12, opacity: 0.85 }}>Phép năm</div>
+                                {/* Breakdown */}
+                                <Row gutter={12}>
+                                    <Col span={8}>
+                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 18, fontWeight: 600 }}>{leaveBalance.annual_days}</div>
+                                            <div style={{ fontSize: 11, opacity: 0.85 }}>Phép năm nay</div>
                                         </div>
                                     </Col>
-                                    <Col span={6}>
-                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '12px 16px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: 20, fontWeight: 600 }}>{leaveBalance.carried_days}</div>
-                                            <div style={{ fontSize: 12, opacity: 0.85 }}>Tồn năm trước</div>
+                                    <Col span={8}>
+                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 18, fontWeight: 600 }}>{leaveBalance.carried_days}</div>
+                                            <div style={{ fontSize: 11, opacity: 0.85 }}>Tồn năm trước</div>
                                         </div>
                                     </Col>
-                                    <Col span={6}>
-                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '12px 16px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: 20, fontWeight: 600 }}>{leaveBalance.used_days}</div>
-                                            <div style={{ fontSize: 12, opacity: 0.85 }}>Đã sử dụng</div>
-                                        </div>
-                                    </Col>
-                                    <Col span={6}>
-                                        <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: 10, padding: '12px 16px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: 20, fontWeight: 600 }}>{leaveBalance.remaining_days}</div>
-                                            <div style={{ fontSize: 12, opacity: 0.85 }}>Còn lại ✓</div>
+                                    <Col span={8}>
+                                        <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 18, fontWeight: 600 }}>{leaveBalance.remaining_days}</div>
+                                            <div style={{ fontSize: 11, opacity: 0.85 }}>Còn lại ✓</div>
                                         </div>
                                     </Col>
                                 </Row>
