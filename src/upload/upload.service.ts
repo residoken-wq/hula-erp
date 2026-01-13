@@ -129,6 +129,8 @@ export class UploadService {
       res.set('Content-Type', contentType);
       res.set('Content-Length', stat.size);
       res.set('Cache-Control', 'public, max-age=86400'); // Cache 1 day
+      res.set('Access-Control-Allow-Origin', '*'); // CORS - allow all origins
+      res.set('X-Content-Type-Options', 'nosniff'); // Security header
 
       // Use stream for better proxy compatibility
       const stream = fs.createReadStream(filePath);
@@ -150,6 +152,8 @@ export class UploadService {
       const contentType = mimeTypes[ext] || 'application/octet-stream';
       res.set('Content-Type', contentType);
       res.set('Content-Length', stat.size);
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('X-Content-Type-Options', 'nosniff');
       const stream = fs.createReadStream(fallbackPath);
       return stream.pipe(res);
     }
