@@ -88,6 +88,7 @@ import { ActivityLog } from './system/entities/activity-log.entity';
 import { Employee } from './hr/entities/employee.entity';
 import { Attendance } from './hr/entities/attendance.entity';
 import { LeaveRequest } from './hr/entities/leave-request.entity';
+import { LeaveEntitlement } from './hr/entities/leave-entitlement.entity';
 import { AssetAssignment } from './hr/entities/asset-assignment.entity';
 import { Payslip } from './hr/entities/payslip.entity';
 import { TrainingPlan } from './hr/entities/training-plan.entity';
@@ -129,7 +130,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           User, UserGroup, GroupPermission,
           SystemConfig, ActivityLog,
           BlogPost,
-          Employee, Attendance, LeaveRequest, AssetAssignment, Payslip, TrainingPlan, WorkShift
+          Employee, Attendance, LeaveRequest, LeaveEntitlement, AssetAssignment, Payslip, TrainingPlan, WorkShift
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         subscribers: [],
