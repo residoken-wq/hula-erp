@@ -101,7 +101,10 @@ const ProfilePage: React.FC = () => {
         } catch (e) { message.error('Lỗi gửi đơn'); }
     };
 
-    const formatMoney = (v: number) => (v || 0).toLocaleString('vi-VN');
+    const formatMoney = (v: any) => {
+        const num = Number(v) || 0;
+        return num.toLocaleString('vi-VN');
+    };
 
     if (loading) return <Card loading />;
 
@@ -689,7 +692,7 @@ const ProfilePage: React.FC = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
                                             <span>Tổng khấu trừ</span>
                                             <span style={{ fontSize: 16, color: '#cf1322' }}>
-                                                -{formatMoney((viewPayslip.bhxh_employee || 0) + (viewPayslip.bhyt_employee || 0) + (viewPayslip.bhtn_employee || 0))}
+                                                -{formatMoney(Number(viewPayslip.bhxh_employee || 0) + Number(viewPayslip.bhyt_employee || 0) + Number(viewPayslip.bhtn_employee || 0))}
                                             </span>
                                         </div>
                                     </div>
