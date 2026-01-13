@@ -56,10 +56,31 @@ const ProfilePage: React.FC = () => {
                     api.get(`/hr/balance/${emp.id}?year=${new Date().getFullYear()}`).catch(() => ({ data: null })),
                 ]);
                 setAttendances(attRes.data || []);
-                setLeaves((leaveRes.data || []).filter((l: any) => l.employee_id === emp.id));
+                const myLeaves = (leaveRes.data || []).filter((l: any) => l.employee_id === emp.id);
+                setLeaves(myLeaves);
                 setPayslips(payRes.data || []);
                 setAssets(assetRes.data || []);
-                setLeaveBalance(balRes.data);
+
+                // Use API balance or calculate fallback from approved leaves
+                if (balRes.data) {
+                    setLeaveBalance(balRes.data);
+                } else {
+                    // Fallback: calculate from approved leaves
+                    const currentYear = new Date().getFullYear();
+                    const approvedLeaves = myLeaves.filter((l: any) =>
+                        l.status === 'APPROVED' && new Date(l.start_date).getFullYear() === currentYear
+                    );
+                    const usedDays = approvedLeaves.reduce((sum: number, l: any) => sum + Number(l.days || 0), 0);
+                    const defaultAnnual = 12; // Default annual leave days
+                    setLeaveBalance({
+                        year: currentYear,
+                        annual_days: defaultAnnual,
+                        carried_days: 0,
+                        total_days: defaultAnnual,
+                        used_days: usedDays,
+                        remaining_days: defaultAnnual - usedDays,
+                    });
+                }
             }
         } catch (e) {
             console.error('Error loading employee data:', e);

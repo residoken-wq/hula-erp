@@ -30,14 +30,14 @@ export class UploadService {
 
   // 0. UPLOAD IMAGE
   async uploadImage(file: Express.Multer.File) {
-    return this.saveFile(file, 'img');
+    return this.saveFile(file, 'img', true); // compress images
   }
 
   async uploadFile(file: Express.Multer.File) {
-    return this.saveFile(file, 'file');
+    return this.saveFile(file, 'file', true); // compress if image
   }
 
-  private async saveFile(file: Express.Multer.File, prefix: string) {
+  private async saveFile(file: Express.Multer.File, prefix: string, compressImages = true) {
     const fs = require('fs');
     const path = require('path');
 
@@ -48,12 +48,44 @@ export class UploadService {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
+    // Check if file is an image
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isImage = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
+
+    let buffer = file.buffer;
+    let finalExt = ext;
+
+    // Compress image if applicable
+    if (isImage && compressImages && buffer.length > 50 * 1024) { // Only compress if > 50KB
+      try {
+        const sharp = require('sharp');
+
+        // Compress to JPEG with 80% quality, max 1920px
+        const compressed = await sharp(buffer)
+          .resize(1920, 1920, {
+            fit: 'inside',
+            withoutEnlargement: true
+          })
+          .jpeg({ quality: 80 })
+          .toBuffer();
+
+        // Use compressed only if smaller
+        if (compressed.length < buffer.length) {
+          buffer = compressed;
+          finalExt = '.jpg'; // Convert to jpg after compression
+          console.log(`Image compressed: ${file.originalname} ${file.buffer.length} -> ${buffer.length} bytes (${Math.round((1 - buffer.length / file.buffer.length) * 100)}% saved)`);
+        }
+      } catch (err) {
+        console.warn('Image compression failed, using original:', err.message);
+        // Keep original buffer if compression fails
+      }
+    }
+
     // Generate unique name
-    const ext = path.extname(file.originalname);
-    const filename = `${prefix}_${Date.now()}${ext}`;
+    const filename = `${prefix}_${Date.now()}${finalExt}`;
     const filePath = path.join(uploadDir, filename);
 
-    fs.writeFileSync(filePath, file.buffer);
+    fs.writeFileSync(filePath, buffer);
 
     // Return backend API URL for serving
     return { url: `/uploads/${filename}` };
@@ -64,15 +96,21 @@ export class UploadService {
     const fs = require('fs');
     const path = require('path');
 
-    // Check 'uploads' at project root
-    const filePath = path.join(process.cwd(), 'uploads', filename);
+    // Security: Prevent path traversal
+    const safeName = path.basename(filename);
 
-    console.log(`Serving file: ${filename} from ${filePath}`); // Debug log
+    // Check 'uploads' at project root
+    const filePath = path.join(process.cwd(), 'uploads', safeName);
+
+    console.log(`Serving file: ${safeName} from ${filePath}`); // Debug log
 
     if (fs.existsSync(filePath)) {
+      // Get file stats for Content-Length
+      const stat = fs.statSync(filePath);
+
       // Explicitly set Content-Type based on extension
-      const ext = path.extname(filename).toLowerCase();
-      const mimeTypes = {
+      const ext = path.extname(safeName).toLowerCase();
+      const mimeTypes: Record<string, string> = {
         '.jpg': 'image/jpeg',
         '.jpeg': 'image/jpeg',
         '.png': 'image/png',
@@ -86,17 +124,34 @@ export class UploadService {
         '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       };
 
-      if (mimeTypes[ext]) {
-        res.set('Content-Type', mimeTypes[ext]);
-      }
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
 
-      return res.sendFile(filePath);
+      res.set('Content-Type', contentType);
+      res.set('Content-Length', stat.size);
+      res.set('Cache-Control', 'public, max-age=86400'); // Cache 1 day
+
+      // Use stream for better proxy compatibility
+      const stream = fs.createReadStream(filePath);
+      return stream.pipe(res);
     }
 
     // Fallback: Check 'frontend/public/uploads' (legacy/dev)
-    const fallbackPath = path.join(process.cwd(), 'frontend', 'public', 'uploads', filename);
+    const fallbackPath = path.join(process.cwd(), 'frontend', 'public', 'uploads', safeName);
     if (fs.existsSync(fallbackPath)) {
-      return res.sendFile(fallbackPath);
+      const stat = fs.statSync(fallbackPath);
+      const ext = path.extname(safeName).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+      };
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+      res.set('Content-Type', contentType);
+      res.set('Content-Length', stat.size);
+      const stream = fs.createReadStream(fallbackPath);
+      return stream.pipe(res);
     }
 
     console.error(`File not found: ${filePath}`);
