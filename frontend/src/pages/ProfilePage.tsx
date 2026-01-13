@@ -99,7 +99,7 @@ const ProfilePage: React.FC = () => {
         } catch (e) { message.error('Lỗi gửi đơn'); }
     };
 
-    const formatMoney = (v: number) => (v || 0).toLocaleString();
+    const formatMoney = (v: number) => (v || 0).toLocaleString('vi-VN');
 
     if (loading) return <Card loading />;
 
