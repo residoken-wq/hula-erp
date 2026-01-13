@@ -145,113 +145,380 @@ const ProfilePage: React.FC = () => {
 
             <Card style={{ marginTop: 16 }}>
                 <Tabs defaultActiveKey="attendance">
-                    {/* TAB: CHẤM CÔNG */}
+                    {/* TAB: CHẤM CÔNG - Premium Design */}
                     <TabPane tab={<><ClockCircleOutlined /> Chấm công</>} key="attendance">
                         <Row gutter={24}>
-                            <Col span={8}>
-                                <Card size="small" title="Hôm nay" style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 8 }}>
+                            {/* Today's Attendance Card */}
+                            <Col xs={24} md={10}>
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    borderRadius: 16,
+                                    padding: 24,
+                                    color: '#fff',
+                                    marginBottom: 16,
+                                    boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)'
+                                }}>
+                                    <div style={{ fontSize: 14, opacity: 0.85, marginBottom: 4 }}>
+                                        <CalendarOutlined /> HÔM NAY
+                                    </div>
+                                    <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 16 }}>
                                         {dayjs().format('DD/MM/YYYY')}
-                                    </p>
-                                    {todayAttendance ? (
-                                        <>
-                                            <p>Check-in: <b>{todayAttendance.check_in ? dayjs(todayAttendance.check_in).format('HH:mm') : '-'}</b></p>
-                                            <p>Check-out: <b>{todayAttendance.check_out ? dayjs(todayAttendance.check_out).format('HH:mm') : '-'}</b></p>
-                                            <Tag color={todayAttendance.status === 'PRESENT' ? 'green' : 'orange'}>{todayAttendance.status}</Tag>
-                                        </>
-                                    ) : (
-                                        <p style={{ color: '#999' }}>Chưa chấm công</p>
+                                    </div>
+                                    <div style={{ fontSize: 13, opacity: 0.9 }}>
+                                        {dayjs().format('dddd').charAt(0).toUpperCase() + dayjs().format('dddd').slice(1)}
+                                    </div>
+                                </div>
+
+                                {/* Check In/Out Status */}
+                                <div style={{
+                                    background: '#fff',
+                                    borderRadius: 16,
+                                    padding: 20,
+                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                                    marginBottom: 16
+                                }}>
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <div style={{
+                                                background: todayAttendance?.check_in ? '#f6ffed' : '#f5f5f5',
+                                                borderRadius: 12,
+                                                padding: 16,
+                                                textAlign: 'center'
+                                            }}>
+                                                <LoginOutlined style={{ fontSize: 24, color: todayAttendance?.check_in ? '#52c41a' : '#999' }} />
+                                                <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>Check-in</div>
+                                                <div style={{ fontSize: 20, fontWeight: 600, color: todayAttendance?.check_in ? '#52c41a' : '#999' }}>
+                                                    {todayAttendance?.check_in ? dayjs(todayAttendance.check_in).format('HH:mm') : '--:--'}
+                                                </div>
+                                            </div>
+                                        </Col>
+                                        <Col span={12}>
+                                            <div style={{
+                                                background: todayAttendance?.check_out ? '#fff7e6' : '#f5f5f5',
+                                                borderRadius: 12,
+                                                padding: 16,
+                                                textAlign: 'center'
+                                            }}>
+                                                <LogoutOutlined style={{ fontSize: 24, color: todayAttendance?.check_out ? '#fa8c16' : '#999' }} />
+                                                <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>Check-out</div>
+                                                <div style={{ fontSize: 20, fontWeight: 600, color: todayAttendance?.check_out ? '#fa8c16' : '#999' }}>
+                                                    {todayAttendance?.check_out ? dayjs(todayAttendance.check_out).format('HH:mm') : '--:--'}
+                                                </div>
+                                            </div>
+                                        </Col>
+                                    </Row>
+
+                                    {todayAttendance && (
+                                        <div style={{ textAlign: 'center', marginTop: 16 }}>
+                                            <Tag
+                                                color={todayAttendance.status === 'PRESENT' ? 'green' : 'orange'}
+                                                style={{ fontSize: 13, padding: '4px 16px' }}
+                                            >
+                                                {todayAttendance.status === 'PRESENT' ? '✓ Có mặt' : todayAttendance.status}
+                                            </Tag>
+                                        </div>
                                     )}
-                                    <Divider />
-                                    <Space>
-                                        <Button type="primary" icon={<LoginOutlined />} onClick={handleCheckIn} disabled={!!todayAttendance?.check_in}>
-                                            CHECK IN
-                                        </Button>
-                                        <Button icon={<LogoutOutlined />} onClick={handleCheckOut} disabled={!todayAttendance?.check_in || !!todayAttendance?.check_out}>
-                                            CHECK OUT
-                                        </Button>
-                                    </Space>
-                                </Card>
+
+                                    <Divider style={{ margin: '20px 0 16px' }} />
+
+                                    <Row gutter={12}>
+                                        <Col span={12}>
+                                            <Button
+                                                type="primary"
+                                                icon={<LoginOutlined />}
+                                                onClick={handleCheckIn}
+                                                disabled={!!todayAttendance?.check_in}
+                                                block
+                                                size="large"
+                                                style={{
+                                                    borderRadius: 10,
+                                                    height: 48,
+                                                    background: todayAttendance?.check_in ? undefined : 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                                                    border: 'none'
+                                                }}
+                                            >
+                                                CHECK IN
+                                            </Button>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Button
+                                                icon={<LogoutOutlined />}
+                                                onClick={handleCheckOut}
+                                                disabled={!todayAttendance?.check_in || !!todayAttendance?.check_out}
+                                                block
+                                                size="large"
+                                                style={{
+                                                    borderRadius: 10,
+                                                    height: 48,
+                                                    background: (!todayAttendance?.check_in || !!todayAttendance?.check_out) ? undefined : '#fa8c16',
+                                                    borderColor: (!todayAttendance?.check_in || !!todayAttendance?.check_out) ? undefined : '#fa8c16',
+                                                    color: (!todayAttendance?.check_in || !!todayAttendance?.check_out) ? undefined : '#fff'
+                                                }}
+                                            >
+                                                CHECK OUT
+                                            </Button>
+                                        </Col>
+                                    </Row>
+                                </div>
                             </Col>
-                            <Col span={16}>
-                                <Card size="small" title="Lịch sử chấm công">
+
+                            {/* Attendance History */}
+                            <Col xs={24} md={14}>
+                                <div style={{
+                                    background: '#fff',
+                                    borderRadius: 16,
+                                    padding: 20,
+                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
+                                }}>
+                                    <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <ClockCircleOutlined style={{ color: '#1890ff' }} /> Lịch sử chấm công
+                                    </div>
                                     <Table
                                         dataSource={attendances.slice(0, 10)}
                                         columns={[
-                                            { title: 'Ngày', dataIndex: 'date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
-                                            { title: 'Check-in', dataIndex: 'check_in', render: (d: string) => d ? dayjs(d).format('HH:mm') : '-' },
-                                            { title: 'Check-out', dataIndex: 'check_out', render: (d: string) => d ? dayjs(d).format('HH:mm') : '-' },
-                                            { title: 'Giờ làm', dataIndex: 'work_hours', render: (h: number) => h ? `${h}h` : '-' },
-                                            { title: 'Trạng thái', dataIndex: 'status', render: (s: string) => <Tag color={s === 'PRESENT' ? 'green' : 'orange'}>{s}</Tag> },
+                                            {
+                                                title: 'Ngày',
+                                                dataIndex: 'date',
+                                                render: (d: string) => (
+                                                    <span style={{ fontWeight: 500 }}>{dayjs(d).format('DD/MM')}</span>
+                                                )
+                                            },
+                                            {
+                                                title: 'Vào',
+                                                dataIndex: 'check_in',
+                                                render: (d: string) => (
+                                                    <span style={{ color: d ? '#52c41a' : '#999' }}>
+                                                        {d ? dayjs(d).format('HH:mm') : '-'}
+                                                    </span>
+                                                )
+                                            },
+                                            {
+                                                title: 'Ra',
+                                                dataIndex: 'check_out',
+                                                render: (d: string) => (
+                                                    <span style={{ color: d ? '#fa8c16' : '#999' }}>
+                                                        {d ? dayjs(d).format('HH:mm') : '-'}
+                                                    </span>
+                                                )
+                                            },
+                                            {
+                                                title: 'Giờ',
+                                                dataIndex: 'work_hours',
+                                                render: (h: number) => (
+                                                    <Tag color={h >= 8 ? 'green' : h > 0 ? 'orange' : 'default'}>
+                                                        {h ? `${h}h` : '-'}
+                                                    </Tag>
+                                                )
+                                            },
+                                            {
+                                                title: '',
+                                                dataIndex: 'status',
+                                                render: (s: string) => (
+                                                    s === 'PRESENT' ?
+                                                        <CheckCircleOutlined style={{ color: '#52c41a' }} /> :
+                                                        <CloseCircleOutlined style={{ color: '#faad14' }} />
+                                                )
+                                            },
                                         ]}
                                         rowKey="id"
                                         size="small"
                                         pagination={false}
                                     />
-                                </Card>
+                                </div>
                             </Col>
                         </Row>
                     </TabPane>
 
-                    {/* TAB: NGHỈ PHÉP */}
+                    {/* TAB: NGHỈ PHÉP - Premium Design */}
                     <TabPane tab={<><CalendarOutlined /> Nghỉ phép</>} key="leave">
-                        <Row gutter={24}>
-                            <Col span={24}>
-                                {leaveBalance && (
-                                    <div style={{ marginBottom: 16 }}>
-                                        <Card size="small" title={`Số dư phép năm ${leaveBalance.year}`}>
-                                            <Row gutter={16}>
-                                                <Col span={6}><Statistic title="Phép năm" value={leaveBalance.annual_days} prefix={<CalendarOutlined />} /></Col>
-                                                <Col span={6}><Statistic title="Tồn năm trước" value={leaveBalance.carried_days} /></Col>
-                                                <Col span={6}><Statistic title="Đã sử dụng" value={leaveBalance.used_days} valueStyle={{ color: '#cf1322' }} /></Col>
-                                                <Col span={6}><Statistic title="Còn lại" value={leaveBalance.remaining_days} valueStyle={{ color: '#3f8600' }} /></Col>
-                                            </Row>
-                                        </Card>
+                        {/* Leave Balance Summary */}
+                        {leaveBalance && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
+                                borderRadius: 16,
+                                padding: 24,
+                                color: '#fff',
+                                marginBottom: 24,
+                                boxShadow: '0 4px 20px rgba(19, 194, 194, 0.3)'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                    <div>
+                                        <div style={{ fontSize: 14, opacity: 0.85 }}>
+                                            <CalendarOutlined /> SỐ DƯ PHÉP NĂM {leaveBalance.year}
+                                        </div>
+                                        <div style={{ fontSize: 32, fontWeight: 700, marginTop: 4 }}>
+                                            {leaveBalance.remaining_days} <span style={{ fontSize: 16, fontWeight: 400 }}>ngày còn lại</span>
+                                        </div>
                                     </div>
-                                )}
-                            </Col>
-                            <Col span={10}>
-                                <Card size="small" title="Đăng ký nghỉ phép">
+                                    <div style={{
+                                        width: 80,
+                                        height: 80,
+                                        borderRadius: '50%',
+                                        background: 'rgba(255,255,255,0.2)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: 28,
+                                        fontWeight: 700
+                                    }}>
+                                        {Math.round((leaveBalance.remaining_days / (leaveBalance.annual_days + leaveBalance.carried_days)) * 100)}%
+                                    </div>
+                                </div>
+
+                                {/* Progress bar */}
+                                <div style={{ background: 'rgba(255,255,255,0.3)', borderRadius: 8, height: 8, marginBottom: 16 }}>
+                                    <div style={{
+                                        background: '#fff',
+                                        borderRadius: 8,
+                                        height: 8,
+                                        width: `${Math.min(100, (leaveBalance.remaining_days / (leaveBalance.annual_days + leaveBalance.carried_days)) * 100)}%`,
+                                        transition: 'width 0.5s ease'
+                                    }} />
+                                </div>
+
+                                <Row gutter={16}>
+                                    <Col span={6}>
+                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '12px 16px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 600 }}>{leaveBalance.annual_days}</div>
+                                            <div style={{ fontSize: 12, opacity: 0.85 }}>Phép năm</div>
+                                        </div>
+                                    </Col>
+                                    <Col span={6}>
+                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '12px 16px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 600 }}>{leaveBalance.carried_days}</div>
+                                            <div style={{ fontSize: 12, opacity: 0.85 }}>Tồn năm trước</div>
+                                        </div>
+                                    </Col>
+                                    <Col span={6}>
+                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '12px 16px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 600 }}>{leaveBalance.used_days}</div>
+                                            <div style={{ fontSize: 12, opacity: 0.85 }}>Đã sử dụng</div>
+                                        </div>
+                                    </Col>
+                                    <Col span={6}>
+                                        <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: 10, padding: '12px 16px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: 20, fontWeight: 600 }}>{leaveBalance.remaining_days}</div>
+                                            <div style={{ fontSize: 12, opacity: 0.85 }}>Còn lại ✓</div>
+                                        </div>
+                                    </Col>
+                                </Row>
+                            </div>
+                        )}
+
+                        <Row gutter={24}>
+                            {/* Leave Request Form */}
+                            <Col xs={24} md={10}>
+                                <div style={{
+                                    background: '#fff',
+                                    borderRadius: 16,
+                                    padding: 24,
+                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
+                                }}>
+                                    <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <CalendarOutlined style={{ color: '#13c2c2' }} /> Đăng ký nghỉ phép
+                                    </div>
                                     <Form form={leaveForm} layout="vertical" onFinish={handleRequestLeave}>
                                         <Row gutter={16}>
                                             <Col span={12}>
-                                                <Form.Item name="start_date" label="Từ ngày" rules={[{ required: true }]}>
-                                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                                                <Form.Item name="start_date" label={<span style={{ fontWeight: 500 }}>Từ ngày</span>} rules={[{ required: true, message: 'Chọn ngày bắt đầu' }]}>
+                                                    <DatePicker
+                                                        style={{ width: '100%', borderRadius: 8 }}
+                                                        format="DD/MM/YYYY"
+                                                        placeholder="Chọn ngày"
+                                                    />
                                                 </Form.Item>
                                             </Col>
                                             <Col span={12}>
-                                                <Form.Item name="end_date" label="Đến ngày" rules={[{ required: true }]}>
-                                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                                                <Form.Item name="end_date" label={<span style={{ fontWeight: 500 }}>Đến ngày</span>} rules={[{ required: true, message: 'Chọn ngày kết thúc' }]}>
+                                                    <DatePicker
+                                                        style={{ width: '100%', borderRadius: 8 }}
+                                                        format="DD/MM/YYYY"
+                                                        placeholder="Chọn ngày"
+                                                    />
                                                 </Form.Item>
                                             </Col>
                                         </Row>
-                                        <Form.Item name="reason" label="Lý do">
-                                            <TextArea rows={3} />
+                                        <Form.Item name="reason" label={<span style={{ fontWeight: 500 }}>Lý do nghỉ phép</span>}>
+                                            <TextArea
+                                                rows={3}
+                                                placeholder="Nhập lý do nghỉ phép..."
+                                                style={{ borderRadius: 8 }}
+                                            />
                                         </Form.Item>
-                                        <Button type="primary" htmlType="submit">Gửi đơn</Button>
+                                        <Button
+                                            type="primary"
+                                            htmlType="submit"
+                                            block
+                                            size="large"
+                                            style={{
+                                                borderRadius: 10,
+                                                height: 48,
+                                                background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
+                                                border: 'none'
+                                            }}
+                                        >
+                                            <CalendarOutlined /> Gửi đơn nghỉ phép
+                                        </Button>
                                     </Form>
-                                </Card>
+                                </div>
                             </Col>
-                            <Col span={14}>
-                                <Card size="small" title="Đơn nghỉ phép của tôi">
+
+                            {/* Leave History */}
+                            <Col xs={24} md={14}>
+                                <div style={{
+                                    background: '#fff',
+                                    borderRadius: 16,
+                                    padding: 24,
+                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
+                                }}>
+                                    <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <ClockCircleOutlined style={{ color: '#1890ff' }} /> Lịch sử đơn nghỉ phép
+                                    </div>
                                     <Table
                                         dataSource={leaves}
                                         columns={[
-                                            { title: 'Từ ngày', dataIndex: 'start_date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
-                                            { title: 'Đến ngày', dataIndex: 'end_date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
-                                            { title: 'Số ngày', dataIndex: 'days' },
                                             {
-                                                title: 'Trạng thái', dataIndex: 'status', render: (s: string) => {
-                                                    const c: any = { PENDING: 'orange', APPROVED: 'green', REJECTED: 'red' };
-                                                    const t: any = { PENDING: 'Chờ duyệt', APPROVED: 'Đã duyệt', REJECTED: 'Từ chối' };
-                                                    return <Tag color={c[s]}>{t[s]}</Tag>;
+                                                title: 'Từ ngày',
+                                                dataIndex: 'start_date',
+                                                render: (d: string) => (
+                                                    <span style={{ fontWeight: 500 }}>{dayjs(d).format('DD/MM/YYYY')}</span>
+                                                )
+                                            },
+                                            {
+                                                title: 'Đến ngày',
+                                                dataIndex: 'end_date',
+                                                render: (d: string) => dayjs(d).format('DD/MM/YYYY')
+                                            },
+                                            {
+                                                title: 'Ngày',
+                                                dataIndex: 'days',
+                                                render: (d: number) => (
+                                                    <Tag color="blue">{d} ngày</Tag>
+                                                )
+                                            },
+                                            {
+                                                title: 'Trạng thái',
+                                                dataIndex: 'status',
+                                                render: (s: string) => {
+                                                    const config: any = {
+                                                        PENDING: { color: 'orange', icon: <ClockCircleOutlined />, text: 'Chờ duyệt' },
+                                                        APPROVED: { color: 'green', icon: <CheckCircleOutlined />, text: 'Đã duyệt' },
+                                                        REJECTED: { color: 'red', icon: <CloseCircleOutlined />, text: 'Từ chối' }
+                                                    };
+                                                    const item = config[s] || config.PENDING;
+                                                    return (
+                                                        <Tag color={item.color} icon={item.icon} style={{ borderRadius: 6 }}>
+                                                            {item.text}
+                                                        </Tag>
+                                                    );
                                                 }
                                             }
                                         ]}
                                         rowKey="id"
                                         size="small"
+                                        pagination={{ pageSize: 5 }}
                                     />
-                                </Card>
+                                </div>
                             </Col>
                         </Row>
                     </TabPane>
