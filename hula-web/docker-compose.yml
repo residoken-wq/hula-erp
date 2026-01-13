@@ -21,6 +21,7 @@ services:
     networks:
       - hula_network
       - proxy_net
+      - nexus-network
 
   # ============================================
   # HULA CMS - Quản trị nội dung (Ant Design Pro)
@@ -41,6 +42,7 @@ services:
     networks:
       - hula_network
       - proxy_net
+      - nexus-network
 
 networks:
   # Network chung với ERP containers (hula_app, hula_db)
@@ -49,3 +51,5 @@ networks:
     name: hula-erp_default # Tên network mặc định của hula-erp docker-compose
   proxy_net:
     external: true # Nginx Proxy Manager network
+  nexus-network:
+    external: true # NPM network - auto connect on rebuild
