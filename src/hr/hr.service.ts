@@ -209,6 +209,21 @@ export class HrService {
     }
 
     async createEntitlement(data: Partial<LeaveEntitlement>) {
+        // Check if entitlement already exists for this employee+year
+        const existing = await this.entitlementRepo.findOne({
+            where: { employee_id: data.employee_id, year: data.year }
+        });
+
+        if (existing) {
+            // Update existing
+            await this.entitlementRepo.update(existing.id, {
+                annual_days: data.annual_days,
+                carried_days: data.carried_days,
+            });
+            return this.entitlementRepo.findOne({ where: { id: existing.id }, relations: ['employee'] });
+        }
+
+        // Create new
         const entitlement = this.entitlementRepo.create(data);
         return this.entitlementRepo.save(entitlement);
     }
