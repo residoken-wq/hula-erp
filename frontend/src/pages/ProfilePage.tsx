@@ -6,7 +6,9 @@ import {
 import {
     UserOutlined, ClockCircleOutlined, CalendarOutlined, DollarOutlined,
     LoginOutlined, LogoutOutlined, CheckCircleOutlined, CloseCircleOutlined,
-    ManOutlined, WomanOutlined
+    ManOutlined, WomanOutlined, BankOutlined, GiftOutlined, CarOutlined,
+    CoffeeOutlined, PhoneOutlined, SafetyCertificateOutlined, PrinterOutlined,
+    WalletOutlined, RiseOutlined, FallOutlined
 } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
@@ -277,47 +279,177 @@ const ProfilePage: React.FC = () => {
                             size="small"
                         />
 
-                        {/* Payslip Detail Modal */}
+                        {/* Payslip Detail Modal - Premium Design */}
                         {viewPayslip && (
                             <Card
-                                title={
-                                    <Space>
-                                        <span>Phiếu lương tháng {viewPayslip.month}/{viewPayslip.year}</span>
-                                        {viewPayslip.is_paid ?
-                                            <Tag color="green" icon={<CheckCircleOutlined />}>ĐÃ THANH TOÁN</Tag> :
-                                            <Tag color="orange" icon={<ClockCircleOutlined />}>CHƯA THANH TOÁN</Tag>}
-                                    </Space>
-                                }
-                                style={{ marginTop: 16 }}
-                                extra={<Button onClick={() => setViewPayslip(null)}>Đóng</Button>}
+                                style={{
+                                    marginTop: 16,
+                                    borderRadius: 16,
+                                    overflow: 'hidden',
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+                                }}
+                                bodyStyle={{ padding: 0 }}
                             >
-                                <div style={{ maxWidth: 450, margin: '0 auto', fontFamily: 'monospace' }}>
-                                    <Divider style={{ margin: '8px 0' }} />
-                                    <div style={{ background: '#f5f5f5', padding: 8, marginBottom: 8 }}><b>THU NHẬP</b></div>
-                                    <Row><Col span={14}>Lương cơ bản</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.base_salary)}</Col></Row>
-                                    <Row><Col span={14}>Ngày công: {viewPayslip.actual_work_days}/{viewPayslip.standard_work_days}</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.actual_salary)}</Col></Row>
-                                    <Row><Col span={14}>PC Ăn trưa</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_meal)}</Col></Row>
-                                    <Row><Col span={14}>PC Đi lại</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_transport)}</Col></Row>
-                                    <Row><Col span={14}>PC Điện thoại</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_phone)}</Col></Row>
-                                    <Row><Col span={14}>Thưởng</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.bonus)}</Col></Row>
-                                    <Row style={{ fontWeight: 'bold', marginTop: 8 }}><Col span={14}>TỔNG THU NHẬP</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.gross_income)}</Col></Row>
+                                {/* Header with Gradient */}
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    padding: '24px 24px 20px',
+                                    color: '#fff',
+                                    position: 'relative'
+                                }}>
+                                    <Button
+                                        type="text"
+                                        onClick={() => setViewPayslip(null)}
+                                        style={{ position: 'absolute', top: 12, right: 12, color: '#fff' }}
+                                    >
+                                        ✕ Đóng
+                                    </Button>
+                                    <div style={{ fontSize: 14, opacity: 0.85, marginBottom: 4 }}>
+                                        <WalletOutlined /> PHIẾU LƯƠNG
+                                    </div>
+                                    <div style={{ fontSize: 28, fontWeight: 700 }}>
+                                        Tháng {viewPayslip.month}/{viewPayslip.year}
+                                    </div>
+                                    <div style={{ marginTop: 12 }}>
+                                        {viewPayslip.is_paid ? (
+                                            <Tag color="#52c41a" icon={<CheckCircleOutlined />} style={{ fontSize: 13, padding: '4px 12px' }}>
+                                                ĐÃ THANH TOÁN {viewPayslip.paid_date && `• ${dayjs(viewPayslip.paid_date).format('DD/MM/YYYY')}`}
+                                            </Tag>
+                                        ) : (
+                                            <Tag color="#faad14" icon={<ClockCircleOutlined />} style={{ fontSize: 13, padding: '4px 12px' }}>
+                                                CHƯA THANH TOÁN
+                                            </Tag>
+                                        )}
+                                    </div>
+                                </div>
 
-                                    <div style={{ background: '#fff1f0', padding: 8, margin: '16px 0 8px' }}><b>KHẤU TRỪ</b></div>
-                                    <Row><Col span={14}>BHXH (8%)</Col><Col span={10} style={{ textAlign: 'right' }}>-{formatMoney(viewPayslip.bhxh_employee)}</Col></Row>
-                                    <Row><Col span={14}>BHYT (1.5%)</Col><Col span={10} style={{ textAlign: 'right' }}>-{formatMoney(viewPayslip.bhyt_employee)}</Col></Row>
-                                    <Row><Col span={14}>BHTN (1%)</Col><Col span={10} style={{ textAlign: 'right' }}>-{formatMoney(viewPayslip.bhtn_employee)}</Col></Row>
-
-                                    <Divider style={{ margin: '16px 0 8px' }} />
-                                    <Row style={{ fontSize: 18, fontWeight: 'bold', color: 'green' }}>
-                                        <Col span={14}>THỰC NHẬN</Col>
-                                        <Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.net_salary)}</Col>
+                                <div style={{ padding: 24 }}>
+                                    {/* Summary Stats Row */}
+                                    <Row gutter={16} style={{ marginBottom: 24 }}>
+                                        <Col span={8}>
+                                            <div style={{ textAlign: 'center', padding: '16px 8px', background: '#f0f5ff', borderRadius: 12 }}>
+                                                <BankOutlined style={{ fontSize: 20, color: '#1890ff' }} />
+                                                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Lương cơ bản</div>
+                                                <div style={{ fontSize: 16, fontWeight: 600, color: '#1890ff' }}>{formatMoney(viewPayslip.base_salary)}</div>
+                                            </div>
+                                        </Col>
+                                        <Col span={8}>
+                                            <div style={{ textAlign: 'center', padding: '16px 8px', background: '#fff7e6', borderRadius: 12 }}>
+                                                <CalendarOutlined style={{ fontSize: 20, color: '#fa8c16' }} />
+                                                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Ngày công</div>
+                                                <div style={{ fontSize: 16, fontWeight: 600, color: '#fa8c16' }}>{viewPayslip.actual_work_days}/{viewPayslip.standard_work_days}</div>
+                                            </div>
+                                        </Col>
+                                        <Col span={8}>
+                                            <div style={{ textAlign: 'center', padding: '16px 8px', background: '#f6ffed', borderRadius: 12 }}>
+                                                <RiseOutlined style={{ fontSize: 20, color: '#52c41a' }} />
+                                                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Tổng thu</div>
+                                                <div style={{ fontSize: 16, fontWeight: 600, color: '#52c41a' }}>{formatMoney(viewPayslip.gross_income)}</div>
+                                            </div>
+                                        </Col>
                                     </Row>
 
-                                    {viewPayslip.is_paid && viewPayslip.paid_date && (
-                                        <div style={{ marginTop: 12, textAlign: 'center', color: '#888', fontSize: 12 }}>
-                                            Ngày thanh toán: {dayjs(viewPayslip.paid_date).format('DD/MM/YYYY')}
+                                    {/* Income Section */}
+                                    <div style={{
+                                        background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%)',
+                                        borderRadius: 12,
+                                        padding: 16,
+                                        marginBottom: 16
+                                    }}>
+                                        <div style={{ fontWeight: 600, fontSize: 14, color: '#1890ff', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <RiseOutlined /> THU NHẬP
                                         </div>
-                                    )}
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span><BankOutlined style={{ color: '#1890ff', marginRight: 8 }} />Lương theo ngày công</span>
+                                                <span style={{ fontWeight: 500 }}>{formatMoney(viewPayslip.actual_salary)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span><CoffeeOutlined style={{ color: '#fa8c16', marginRight: 8 }} />Phụ cấp ăn trưa</span>
+                                                <span style={{ fontWeight: 500 }}>{formatMoney(viewPayslip.allowance_meal)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span><CarOutlined style={{ color: '#722ed1', marginRight: 8 }} />Phụ cấp đi lại</span>
+                                                <span style={{ fontWeight: 500 }}>{formatMoney(viewPayslip.allowance_transport)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span><PhoneOutlined style={{ color: '#13c2c2', marginRight: 8 }} />Phụ cấp điện thoại</span>
+                                                <span style={{ fontWeight: 500 }}>{formatMoney(viewPayslip.allowance_phone)}</span>
+                                            </div>
+                                            {viewPayslip.bonus > 0 && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <span><GiftOutlined style={{ color: '#eb2f96', marginRight: 8 }} />Thưởng</span>
+                                                    <span style={{ fontWeight: 500, color: '#eb2f96' }}>+{formatMoney(viewPayslip.bonus)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <Divider style={{ margin: '12px 0' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
+                                            <span>Tổng thu nhập</span>
+                                            <span style={{ fontSize: 16, color: '#1890ff' }}>{formatMoney(viewPayslip.gross_income)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Deductions Section */}
+                                    <div style={{
+                                        background: 'linear-gradient(135deg, #fff1f0 0%, #fff0f6 100%)',
+                                        borderRadius: 12,
+                                        padding: 16,
+                                        marginBottom: 16
+                                    }}>
+                                        <div style={{ fontWeight: 600, fontSize: 14, color: '#cf1322', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <FallOutlined /> KHẤU TRỪ
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span><SafetyCertificateOutlined style={{ color: '#cf1322', marginRight: 8 }} />BHXH (8%)</span>
+                                                <span style={{ fontWeight: 500, color: '#cf1322' }}>-{formatMoney(viewPayslip.bhxh_employee)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span><SafetyCertificateOutlined style={{ color: '#cf1322', marginRight: 8 }} />BHYT (1.5%)</span>
+                                                <span style={{ fontWeight: 500, color: '#cf1322' }}>-{formatMoney(viewPayslip.bhyt_employee)}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span><SafetyCertificateOutlined style={{ color: '#cf1322', marginRight: 8 }} />BHTN (1%)</span>
+                                                <span style={{ fontWeight: 500, color: '#cf1322' }}>-{formatMoney(viewPayslip.bhtn_employee)}</span>
+                                            </div>
+                                        </div>
+
+                                        <Divider style={{ margin: '12px 0' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
+                                            <span>Tổng khấu trừ</span>
+                                            <span style={{ fontSize: 16, color: '#cf1322' }}>
+                                                -{formatMoney((viewPayslip.bhxh_employee || 0) + (viewPayslip.bhyt_employee || 0) + (viewPayslip.bhtn_employee || 0))}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Net Salary - Hero Section */}
+                                    <div style={{
+                                        background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                                        borderRadius: 16,
+                                        padding: '24px 20px',
+                                        textAlign: 'center',
+                                        color: '#fff',
+                                        boxShadow: '0 4px 12px rgba(82, 196, 26, 0.3)'
+                                    }}>
+                                        <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
+                                            <WalletOutlined /> THỰC NHẬN
+                                        </div>
+                                        <div style={{ fontSize: 32, fontWeight: 700 }}>
+                                            {formatMoney(viewPayslip.net_salary)} <span style={{ fontSize: 16, fontWeight: 400 }}>VNĐ</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Print Button */}
+                                    <div style={{ marginTop: 20, textAlign: 'center' }}>
+                                        <Button icon={<PrinterOutlined />} size="large" style={{ borderRadius: 8 }}>
+                                            In phiếu lương
+                                        </Button>
+                                    </div>
                                 </div>
                             </Card>
                         )}
