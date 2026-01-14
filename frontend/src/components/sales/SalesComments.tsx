@@ -339,6 +339,30 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                                     className="comment-content"
                                     dangerouslySetInnerHTML={{ __html: item.content }}
                                 />
+
+                                {/* Show mentioned users */}
+                                {item.mentioned_user_ids && item.mentioned_user_ids.length > 0 && (
+                                    <div className="mentioned-users-display" style={{
+                                        marginTop: 8,
+                                        padding: '6px 10px',
+                                        background: 'linear-gradient(135deg, #f0f5ff 0%, #e6f0ff 100%)',
+                                        borderRadius: 6,
+                                        fontSize: 12,
+                                        color: '#1890ff',
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: 6,
+                                        alignItems: 'center'
+                                    }}>
+                                        <span style={{ color: '#666' }}>📢 Đã nhắc đến:</span>
+                                        {item.mentioned_user_ids.split(',').filter(Boolean).map((id: string) => (
+                                            <Tag key={id} color="blue" style={{ margin: 0 }}>
+                                                @{getUserName(id)}
+                                            </Tag>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <div className="comment-actions">
                                     {activeTab === 'CUSTOMER' && (
                                         <Button
