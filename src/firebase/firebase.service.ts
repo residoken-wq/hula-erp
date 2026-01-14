@@ -1,35 +1,77 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as admin from 'firebase-admin';
+import * as fs from 'fs';
 import * as path from 'path';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
     private readonly logger = new Logger(FirebaseService.name);
-    private db: admin.database.Database;
+    private db: admin.database.Database | null = null;
+    private initialized = false;
 
     onModuleInit() {
+        this.initializeFirebase();
+    }
+
+    private initializeFirebase() {
+        if (this.initialized) return;
+
         try {
-            // Load service account from JSON file
-            const serviceAccountPath = path.join(__dirname, 'firebase-service-account.json');
-            const serviceAccount = require(serviceAccountPath);
+            // Try multiple paths to find the service account file
+            const possiblePaths = [
+                // Development: src folder
+                path.join(process.cwd(), 'src', 'firebase', 'firebase-service-account.json'),
+                // Production: dist folder
+                path.join(process.cwd(), 'dist', 'firebase', 'firebase-service-account.json'),
+                // Docker: relative to current file
+                path.join(__dirname, 'firebase-service-account.json'),
+                // Root folder
+                path.join(process.cwd(), 'firebase-service-account.json'),
+            ];
+
+            let serviceAccount = null;
+            let foundPath = '';
+
+            for (const p of possiblePaths) {
+                if (fs.existsSync(p)) {
+                    serviceAccount = require(p);
+                    foundPath = p;
+                    break;
+                }
+            }
+
+            if (!serviceAccount) {
+                this.logger.warn('Firebase service account file not found. Tried paths:');
+                possiblePaths.forEach(p => this.logger.warn(`  - ${p}`));
+                this.logger.warn('Firebase real-time notifications will be disabled.');
+                return;
+            }
 
             if (!admin.apps.length) {
                 admin.initializeApp({
                     credential: admin.credential.cert(serviceAccount),
                     databaseURL: 'https://hula-erp-default-rtdb.asia-southeast1.firebasedatabase.app'
                 });
-                this.logger.log('Firebase Admin SDK initialized successfully');
+                this.logger.log(`Firebase Admin SDK initialized from: ${foundPath}`);
             }
 
             this.db = admin.database();
+            this.initialized = true;
         } catch (error) {
-            this.logger.error('Failed to initialize Firebase Admin SDK:', error);
+            this.logger.error('Failed to initialize Firebase Admin SDK:', error.message);
+            this.logger.warn('Firebase real-time notifications will be disabled.');
         }
     }
 
     /**
+     * Check if Firebase is available
+     */
+    isAvailable(): boolean {
+        return this.db !== null;
+    }
+
+    /**
      * Push a new notification to Firebase Realtime Database
-     * Path: /notifications/user_{userId}/{pushId}
      */
     async pushNotification(userId: number, notification: {
         id: number;
@@ -41,8 +83,7 @@ export class FirebaseService implements OnModuleInit {
         created_at: Date;
     }): Promise<void> {
         if (!this.db) {
-            this.logger.warn('Firebase DB not initialized, skipping push');
-            return;
+            return; // Silently skip if Firebase not available
         }
 
         try {
@@ -54,7 +95,7 @@ export class FirebaseService implements OnModuleInit {
             });
             this.logger.debug(`Pushed notification to Firebase for user ${userId}`);
         } catch (error) {
-            this.logger.error(`Failed to push notification to Firebase:`, error);
+            this.logger.error(`Failed to push notification to Firebase:`, error.message);
         }
     }
 
@@ -65,7 +106,6 @@ export class FirebaseService implements OnModuleInit {
         if (!this.db) return;
 
         try {
-            // Find and update the notification by ID
             const ref = this.db.ref(`notifications/user_${userId}`);
             const snapshot = await ref.orderByChild('id').equalTo(notificationId).once('value');
 
@@ -77,7 +117,7 @@ export class FirebaseService implements OnModuleInit {
                 await ref.update(updates);
             }
         } catch (error) {
-            this.logger.error(`Failed to mark notification as read in Firebase:`, error);
+            this.logger.error(`Failed to mark notification as read in Firebase:`, error.message);
         }
     }
 
@@ -103,12 +143,12 @@ export class FirebaseService implements OnModuleInit {
                 }
             }
         } catch (error) {
-            this.logger.error(`Failed to mark all notifications as read in Firebase:`, error);
+            this.logger.error(`Failed to mark all notifications as read in Firebase:`, error.message);
         }
     }
 
     /**
-     * Clear old notifications (keep last 50) - call periodically
+     * Clear old notifications (keep last 50)
      */
     async cleanupOldNotifications(userId: number, keepCount: number = 50): Promise<void> {
         if (!this.db) return;
@@ -125,7 +165,6 @@ export class FirebaseService implements OnModuleInit {
                 });
             });
 
-            // Sort by timestamp descending and remove old ones
             notifications.sort((a, b) => b.timestamp - a.timestamp);
 
             if (notifications.length > keepCount) {
@@ -138,7 +177,7 @@ export class FirebaseService implements OnModuleInit {
                 this.logger.debug(`Cleaned up ${toDelete.length} old notifications for user ${userId}`);
             }
         } catch (error) {
-            this.logger.error(`Failed to cleanup notifications:`, error);
+            this.logger.error(`Failed to cleanup notifications:`, error.message);
         }
     }
 }
