@@ -3,10 +3,10 @@ import { List, Avatar, Button, message, Tabs, Tag, Empty } from 'antd';
 import { UserOutlined, MessageOutlined, EyeInvisibleOutlined, EyeOutlined, TeamOutlined, CustomerServiceOutlined, SendOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import ReactQuill, { Quill } from 'react-quill';
+import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
-// Import quill-mention
+// Import quill-mention - it auto-registers with Quill
 import 'quill-mention';
 import 'quill-mention/dist/quill.mention.css';
 
@@ -14,9 +14,6 @@ import { API_URL } from '../../config';
 import api from '../../utils/api';
 import useMobile from '../../hooks/useMobile';
 import './SalesComments.css';
-
-// Get the Mention module from Quill
-const MentionModule = Quill.import('modules/mention');
 
 interface User {
     id: number;
@@ -74,7 +71,7 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
     }, [orderId]);
 
     // Filter comments by tab
-    const filteredComments = comments.filter(c => 
+    const filteredComments = comments.filter(c =>
         c.comment_type === activeTab || (!c.comment_type && activeTab === 'CUSTOMER')
     );
 
@@ -112,7 +109,7 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                     comment_type: activeTab,
                     mentioned_user_ids: mentionIds.join(',')
                 });
-                
+
                 if (mentionIds.length > 0) {
                     message.success(`Đã gửi và thông báo cho ${mentionIds.length} người`);
                 }

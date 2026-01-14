@@ -3,3 +3,7 @@ dist
 .env
 postgres_data
 *.log
+
+# Firebase credentials (DO NOT COMMIT)
+**/firebase-service-account.json
+**/firebase-credentials.json

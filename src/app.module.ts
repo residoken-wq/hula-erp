@@ -25,6 +25,7 @@ import { SystemModule } from './system/system.module';
 import { BlogsModule } from './blogs/blogs.module';
 import { PublicModule } from './public/public.module';
 import { HrModule } from './hr/hr.module';
+import { FirebaseModule } from './firebase/firebase.module';
 
 // Entities
 import { Product } from './products/product.entity';
@@ -143,6 +144,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
     ProcessesModule, CategoriesModule, AiModule,
     BlogsModule, PublicModule, HrModule,
+    FirebaseModule, // Firebase real-time notifications
     TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
   ],
   providers: [
