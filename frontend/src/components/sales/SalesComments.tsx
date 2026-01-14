@@ -1,27 +1,62 @@
-import React, { useEffect, useState } from 'react';
-import { List, Avatar, Button, message, Tabs, Mentions } from 'antd';
-import { UserOutlined, MessageOutlined, EyeInvisibleOutlined, EyeOutlined, TeamOutlined, CustomerServiceOutlined } from '@ant-design/icons';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import { List, Avatar, Button, message, Tabs, Tag, Empty } from 'antd';
+import { UserOutlined, MessageOutlined, EyeInvisibleOutlined, EyeOutlined, TeamOutlined, CustomerServiceOutlined, SendOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import ReactQuill from 'react-quill';
+import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+
+// Import quill-mention
+import 'quill-mention';
+import 'quill-mention/dist/quill.mention.css';
+
 import { API_URL } from '../../config';
 import api from '../../utils/api';
 import useMobile from '../../hooks/useMobile';
+import './SalesComments.css';
+
+// Get the Mention module from Quill
+const MentionModule = Quill.import('modules/mention');
+
+interface User {
+    id: number;
+    full_name: string;
+    avatar_url?: string;
+}
+
+interface Comment {
+    id: number;
+    sender_type: 'STAFF' | 'CUSTOMER';
+    sender_name: string;
+    content: string;
+    is_visible: boolean;
+    comment_type: 'CUSTOMER' | 'INTERNAL';
+    mentioned_user_ids?: string;
+    created_at: string;
+    deleted_at?: string;
+}
 
 const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
-    const [comments, setComments] = useState<any[]>([]);
+    const [comments, setComments] = useState<Comment[]>([]);
     const [text, setText] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'CUSTOMER' | 'INTERNAL'>('CUSTOMER');
-    const [users, setUsers] = useState<any[]>([]);
-    const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
+    const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(new Set());
     const isMobile = useMobile();
+    const quillRef = useRef<ReactQuill>(null);
 
+    // Fetch comments
     const fetchComments = async () => {
-        try { const res = await axios.get(`${API_URL}/sales/${orderId}/comments`); setComments(res.data); } catch (e) { }
+        try {
+            const res = await axios.get(`${API_URL}/sales/${orderId}/comments`);
+            setComments(res.data);
+        } catch (e) {
+            console.error('Failed to fetch comments:', e);
+        }
     };
 
+    // Fetch users for mentions
     const fetchUsers = async () => {
         try {
             const res = await api.get('/users');
@@ -31,46 +66,82 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
         }
     };
 
-    useEffect(() => { if (orderId) { fetchComments(); fetchUsers(); } }, [orderId]);
+    useEffect(() => {
+        if (orderId) {
+            fetchComments();
+            fetchUsers();
+        }
+    }, [orderId]);
 
-    const filteredComments = comments.filter(c => c.comment_type === activeTab || (!c.comment_type && activeTab === 'CUSTOMER'));
+    // Filter comments by tab
+    const filteredComments = comments.filter(c => 
+        c.comment_type === activeTab || (!c.comment_type && activeTab === 'CUSTOMER')
+    );
 
+    // Extract mentioned user IDs from Quill content
+    const extractMentionedUserIds = useCallback((html: string): string[] => {
+        const ids: string[] = [];
+        // Match data-id attributes in mention spans
+        const regex = /data-id="(\d+)"/g;
+        let match;
+        while ((match = regex.exec(html)) !== null) {
+            ids.push(match[1]);
+        }
+        return [...new Set(ids)];
+    }, []);
+
+    // Send/Update comment
     const send = async () => {
         // Strip HTML tags to check if empty
         const stripped = text.replace(/<[^>]*>?/gm, '').trim();
         if (!stripped) return;
 
-        if (editingId) {
-            await axios.put(`${API_URL}/sales/comment/${editingId}`, { content: text });
-            message.success('Cập nhật tin nhắn thành công');
-            setEditingId(null);
-        } else {
-            await axios.post(`${API_URL}/sales/${orderId}/comment`, {
-                content: text,
-                sender: 'STAFF',
-                name: 'Nhân viên',
-                comment_type: activeTab,
-                mentioned_user_ids: mentionedUserIds.join(',')
-            });
+        // Extract mentioned users from content
+        const mentionIds = extractMentionedUserIds(text);
+
+        try {
+            if (editingId) {
+                await axios.put(`${API_URL}/sales/comment/${editingId}`, { content: text });
+                message.success('Cập nhật tin nhắn thành công');
+                setEditingId(null);
+            } else {
+                await axios.post(`${API_URL}/sales/${orderId}/comment`, {
+                    content: text,
+                    sender: 'STAFF',
+                    name: 'Nhân viên',
+                    comment_type: activeTab,
+                    mentioned_user_ids: mentionIds.join(',')
+                });
+                
+                if (mentionIds.length > 0) {
+                    message.success(`Đã gửi và thông báo cho ${mentionIds.length} người`);
+                }
+            }
+            setText('');
+            setMentionedUserIds(new Set());
+            fetchComments();
+        } catch (e) {
+            message.error('Gửi tin nhắn thất bại');
         }
-        setText('');
-        setMentionedUserIds([]);
+    };
+
+    // Toggle visibility
+    const toggle = async (id: number) => {
+        await axios.post(`${API_URL}/sales/comment/${id}/toggle`);
         fetchComments();
     };
 
-    const toggle = async (id: number) => { await axios.post(`${API_URL}/sales/comment/${id}/toggle`); fetchComments(); };
-
-    const handleEdit = (item: any) => {
+    // Edit comment
+    const handleEdit = (item: Comment) => {
         setText(item.content);
         setEditingId(item.id);
     };
 
+    // Cancel edit
     const cancelEdit = () => {
         setText('');
         setEditingId(null);
     };
-
-    const quillRef = React.useRef<ReactQuill>(null);
 
     // --- IMAGE COMPRESSION UTILITY ---
     const compressImage = async (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
@@ -82,7 +153,6 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                     const canvas = document.createElement('canvas');
                     let { width, height } = img;
 
-                    // Only resize if larger than maxWidth
                     if (width > maxWidth) {
                         height = Math.round((height * maxWidth) / width);
                         width = maxWidth;
@@ -115,7 +185,7 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
         });
     };
 
-    // --- UPLOAD IMAGE (with compression) ---
+    // --- UPLOAD IMAGE ---
     const uploadImage = async (file: File): Promise<string | null> => {
         try {
             message.loading({ content: 'Đang nén và upload ảnh...', key: 'upload' });
@@ -157,7 +227,7 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                             }
                         }
                     }
-                    break; // Only handle first image
+                    break;
                 }
             }
         };
@@ -166,8 +236,8 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
         return () => document.removeEventListener('paste', handlePaste);
     }, []);
 
-    // --- IMAGE BUTTON HANDLER (File Picker) ---
-    const imageHandler = () => {
+    // --- IMAGE BUTTON HANDLER ---
+    const imageHandler = useCallback(() => {
         const input = document.createElement('input');
         input.setAttribute('type', 'file');
         input.setAttribute('accept', 'image/*');
@@ -186,12 +256,13 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                 }
             }
         };
-    };
+    }, []);
 
-    const modules = React.useMemo(() => ({
+    // --- QUILL MODULES with MENTION ---
+    const modules = useMemo(() => ({
         toolbar: {
             container: [
-                ['bold', 'italic', 'underline', 'strike'],
+                ['bold', 'italic', 'underline'],
                 [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                 ['link', 'image'],
                 ['clean']
@@ -199,103 +270,158 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
             handlers: {
                 image: imageHandler
             }
+        },
+        mention: {
+            allowedChars: /^[A-Za-z\sÀ-ỹ0-9]*$/,
+            mentionDenotationChars: ['@'],
+            showDenotationChar: false,
+            spaceAfterInsert: true,
+            defaultMenuOrientation: 'bottom',
+            dataAttributes: ['id', 'value', 'denotationChar'],
+            renderItem: (item: any) => {
+                const initials = item.value.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+                return `<div class="mention-item">
+                    <span class="mention-avatar">${initials}</span>
+                    <span>${item.value}</span>
+                </div>`;
+            },
+            source: (searchTerm: string, renderList: Function, mentionChar: string) => {
+                const matches = users.filter(u =>
+                    u.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+                renderList(matches.map(u => ({
+                    id: u.id,
+                    value: u.full_name
+                })), searchTerm);
+            },
+            onSelect: (item: any, insertItem: Function) => {
+                insertItem(item);
+                // Track mentioned user (for UI preview)
+                setMentionedUserIds(prev => new Set([...prev, String(item.id)]));
+            }
         }
-    }), []);
+    }), [users, imageHandler]);
+
+    // Get user name by ID
+    const getUserName = (id: string): string => {
+        const user = users.find(u => String(u.id) === id);
+        return user ? user.full_name : `User ${id}`;
+    };
 
     return (
-        <div>
+        <div className="sales-comments-container">
             <Tabs
+                className="chat-tabs"
                 activeKey={activeTab}
                 onChange={(key) => setActiveTab(key as 'CUSTOMER' | 'INTERNAL')}
                 items={[
                     {
                         key: 'CUSTOMER',
-                        label: <span><CustomerServiceOutlined /> Chat Khách Hàng</span>,
+                        label: <span><CustomerServiceOutlined /> {!isMobile && 'Chat Khách Hàng'}</span>,
                     },
                     {
                         key: 'INTERNAL',
-                        label: <span><TeamOutlined /> Chat Nội Bộ</span>,
+                        label: <span><TeamOutlined /> {!isMobile && 'Chat Nội Bộ'}</span>,
                     }
                 ]}
             />
 
-            <div style={{ maxHeight: 300, overflowY: 'auto', background: '#fafafa', padding: 10, borderRadius: 8, marginBottom: 10, border: '1px solid #eee' }}>
-                <List dataSource={filteredComments} renderItem={(item: any) => (
-                    <List.Item>
-                        <List.Item.Meta
-                            avatar={<Avatar icon={<UserOutlined />} style={{ backgroundColor: item.sender_type === 'STAFF' ? '#1890ff' : '#87d068' }} />}
-                            title={<div style={{ display: 'flex', justifyContent: 'space-between' }}><span>{item.sender_name} ({item.sender_type})</span><span style={{ fontSize: 11, color: '#999' }}>{dayjs(item.created_at).format('DD/MM HH:mm')}</span></div>}
-                            description={
-                                <div>
-                                    <div style={{ color: '#333' }} dangerouslySetInnerHTML={{ __html: item.content }} />
+            {/* Comments List */}
+            <div className="comments-list">
+                {filteredComments.length === 0 ? (
+                    <Empty description="Chưa có tin nhắn" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                ) : (
+                    <List
+                        dataSource={filteredComments}
+                        renderItem={(item: Comment) => (
+                            <div className={`comment-item ${item.sender_type === 'STAFF' ? 'staff' : 'customer'}`}>
+                                <div className="comment-header">
+                                    <span className="comment-sender">
+                                        <Avatar
+                                            size="small"
+                                            icon={<UserOutlined />}
+                                            style={{ backgroundColor: item.sender_type === 'STAFF' ? '#1890ff' : '#52c41a' }}
+                                        />
+                                        {item.sender_name}
+                                        <Tag color={item.sender_type === 'STAFF' ? 'blue' : 'green'} style={{ marginLeft: 4 }}>
+                                            {item.sender_type === 'STAFF' ? 'NV' : 'KH'}
+                                        </Tag>
+                                    </span>
+                                    <span className="comment-time">
+                                        {dayjs(item.created_at).format('DD/MM HH:mm')}
+                                    </span>
+                                </div>
+                                <div
+                                    className="comment-content"
+                                    dangerouslySetInnerHTML={{ __html: item.content }}
+                                />
+                                <div className="comment-actions">
                                     {activeTab === 'CUSTOMER' && (
-                                        <div style={{ marginTop: 5 }}>
-                                            <Button type="text" size="small" icon={item.is_visible ? <EyeOutlined /> : <EyeInvisibleOutlined />} onClick={() => toggle(item.id)}>{item.is_visible ? 'Hiện ở Portal' : 'Ẩn ở Portal'}</Button>
-                                            {item.sender_type === 'STAFF' && (
-                                                <Button type="link" size="small" onClick={() => handleEdit(item)}>Sửa</Button>
-                                            )}
-                                        </div>
+                                        <Button
+                                            type="text"
+                                            size="small"
+                                            icon={item.is_visible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+                                            onClick={() => toggle(item.id)}
+                                        >
+                                            {item.is_visible ? 'Hiện' : 'Ẩn'}
+                                        </Button>
                                     )}
-                                    {activeTab === 'INTERNAL' && item.sender_type === 'STAFF' && (
-                                        <Button type="link" size="small" onClick={() => handleEdit(item)}>Sửa</Button>
+                                    {item.sender_type === 'STAFF' && (
+                                        <Button type="link" size="small" onClick={() => handleEdit(item)}>
+                                            Sửa
+                                        </Button>
                                     )}
                                 </div>
-                            }
-                        />
-                    </List.Item>
-                )} />
-            </div>
-
-            {/* Editor Section - Different for each tab */}
-            <div style={{ marginBottom: 10 }}>
-                {activeTab === 'INTERNAL' && (
-                    // INTERNAL: Show @mention user selector above editor
-                    <div style={{ marginBottom: 8 }}>
-                        <Mentions
-                            style={{ width: '100%' }}
-                            placeholder="Gõ @ để mention đồng nghiệp..."
-                            prefix="@"
-                            onSelect={(option) => {
-                                const selectedUser = users.find((u: any) => u.full_name === option.value);
-                                if (selectedUser && !mentionedUserIds.includes(String(selectedUser.id))) {
-                                    setMentionedUserIds([...mentionedUserIds, String(selectedUser.id)]);
-                                    message.info(`Đã tag @${selectedUser.full_name}`);
-                                }
-                            }}
-                            options={users.map((u: any) => ({
-                                value: u.full_name,
-                                label: u.full_name,
-                                key: String(u.id),
-                            }))}
-                        />
-                        {mentionedUserIds.length > 0 && (
-                            <div style={{ marginTop: 4, fontSize: 12, color: '#1890ff' }}>
-                                📢 Sẽ thông báo: {mentionedUserIds.map(id => {
-                                    const user = users.find((u: any) => String(u.id) === id);
-                                    return user ? `@${user.full_name}` : '';
-                                }).filter(Boolean).join(', ')}
                             </div>
                         )}
+                    />
+                )}
+            </div>
+
+            {/* Editor Section */}
+            <div className="editor-section">
+                {/* Mentioned users preview (for Internal chat) */}
+                {activeTab === 'INTERNAL' && mentionedUserIds.size > 0 && (
+                    <div className="mentioned-preview">
+                        <span className="label">📢 Sẽ thông báo:</span>
+                        {[...mentionedUserIds].map(id => (
+                            <span key={id} className="user-tag">@{getUserName(id)}</span>
+                        ))}
                     </div>
                 )}
 
-                {/* ReactQuill for both CUSTOMER and INTERNAL */}
+                {/* Hint for Internal chat */}
+                {activeTab === 'INTERNAL' && (
+                    <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>
+                        💡 Gõ <strong>@</strong> để mention đồng nghiệp
+                    </div>
+                )}
+
                 <ReactQuill
                     ref={quillRef}
                     theme="snow"
                     value={text}
                     onChange={setText}
                     modules={modules}
-                    style={{ background: 'white', minHeight: '100px' }}
-                    placeholder={activeTab === 'INTERNAL' ? 'Nhập nội dung chat nội bộ...' : 'Nhập nội dung trả lời khách hàng...'}
+                    placeholder={activeTab === 'INTERNAL' ? 'Nhập nội dung chat nội bộ... (Gõ @ để mention)' : 'Nhập nội dung trả lời khách hàng...'}
                 />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                {editingId && <Button onClick={cancelEdit}>Hủy</Button>}
-                <Button type="primary" icon={<MessageOutlined />} onClick={send}>{editingId ? 'Cập nhật' : 'Gửi'}</Button>
+            {/* Action Buttons */}
+            <div className="action-buttons">
+                {editingId && (
+                    <Button onClick={cancelEdit}>Hủy</Button>
+                )}
+                <Button
+                    type="primary"
+                    icon={<SendOutlined />}
+                    onClick={send}
+                >
+                    {editingId ? 'Cập nhật' : 'Gửi'}
+                </Button>
             </div>
         </div>
     );
 };
+
 export default SalesComments;
