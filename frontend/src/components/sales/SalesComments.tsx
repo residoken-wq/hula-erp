@@ -9,12 +9,11 @@ import 'react-quill/dist/quill.snow.css';
 // Import Quill directly for module registration
 import Quill from 'quill';
 
-// Import and register quill-mention module
-import Mention from 'quill-mention';
+// Import quill-mention - use require for CommonJS module
+import 'quill-mention';
 import 'quill-mention/dist/quill.mention.css';
 
-// Register the mention module with Quill
-Quill.register('modules/mention', Mention);
+// Note: quill-mention auto-registers itself when imported
 
 import { API_URL } from '../../config';
 import api from '../../utils/api';
