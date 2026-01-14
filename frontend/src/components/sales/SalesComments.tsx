@@ -1,19 +1,13 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
-import { List, Avatar, Button, message, Tabs, Tag, Empty } from 'antd';
+import { List, Avatar, Button, message, Tabs, Tag, Empty, Mentions } from 'antd';
 import { UserOutlined, MessageOutlined, EyeInvisibleOutlined, EyeOutlined, TeamOutlined, CustomerServiceOutlined, SendOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
-// Import Quill directly for module registration
-import Quill from 'quill';
-
-// Import quill-mention - use require for CommonJS module
-import 'quill-mention';
-import 'quill-mention/dist/quill.mention.css';
-
-// Note: quill-mention auto-registers itself when imported
+// Note: quill-mention temporarily disabled due to react-quill conflict
+// TODO: Consider using @yaireo/tagify or custom implementation later
 
 import { API_URL } from '../../config';
 import api from '../../utils/api';
@@ -272,37 +266,9 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
             handlers: {
                 image: imageHandler
             }
-        },
-        mention: {
-            allowedChars: /^[A-Za-z\sÀ-ỹ0-9]*$/,
-            mentionDenotationChars: ['@'],
-            showDenotationChar: false,
-            spaceAfterInsert: true,
-            defaultMenuOrientation: 'bottom',
-            dataAttributes: ['id', 'value', 'denotationChar'],
-            renderItem: (item: any) => {
-                const initials = item.value.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-                return `<div class="mention-item">
-                    <span class="mention-avatar">${initials}</span>
-                    <span>${item.value}</span>
-                </div>`;
-            },
-            source: (searchTerm: string, renderList: Function, mentionChar: string) => {
-                const matches = users.filter(u =>
-                    u.full_name.toLowerCase().includes(searchTerm.toLowerCase())
-                );
-                renderList(matches.map(u => ({
-                    id: u.id,
-                    value: u.full_name
-                })), searchTerm);
-            },
-            onSelect: (item: any, insertItem: Function) => {
-                insertItem(item);
-                // Track mentioned user (for UI preview)
-                setMentionedUserIds(prev => new Set([...prev, String(item.id)]));
-            }
         }
-    }), [users, imageHandler]);
+        // Note: mention module disabled - using Ant Design Mentions component instead
+    }), [imageHandler]);
 
     // Get user name by ID
     const getUserName = (id: string): string => {
