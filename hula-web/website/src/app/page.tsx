@@ -106,6 +106,33 @@ export default function HomePage() {
                 </div>
             </section>
 
+            {/* Video Section */}
+            <section className="py-16 lg:py-24 bg-white">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
+                            Khám Phá HULA
+                        </h2>
+                        <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+                            Xem video giới thiệu về sản phẩm nệm mầm non HULA
+                        </p>
+                    </div>
+
+                    <div className="max-w-4xl mx-auto">
+                        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                            <iframe
+                                className="absolute top-0 left-0 w-full h-full rounded-2xl shadow-lg"
+                                src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+                                title="HULA - Nệm Mầm Non"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                            ></iframe>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* Featured Products */}
             <section className="py-16 lg:py-24">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

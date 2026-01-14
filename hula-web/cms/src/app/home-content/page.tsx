@@ -149,6 +149,55 @@ export default function HomeContentPage() {
             ),
         },
         {
+            key: 'video',
+            label: '🎬 Video Giới Thiệu',
+            children: (
+                <Form layout="vertical" initialValues={{
+                    video_enabled: true,
+                    video_title: 'Khám Phá HULA',
+                    video_subtitle: 'Xem video giới thiệu về sản phẩm nệm mầm non HULA',
+                    video_youtube_url: '',
+                }}>
+                    <Form.Item name="video_enabled" label="Hiển thị video section" valuePropName="checked">
+                        <Switch />
+                    </Form.Item>
+
+                    <Form.Item name="video_title" label="Tiêu đề section">
+                        <Input placeholder="Khám Phá HULA" />
+                    </Form.Item>
+
+                    <Form.Item name="video_subtitle" label="Tiêu đề phụ">
+                        <Input placeholder="Xem video giới thiệu về sản phẩm..." />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="video_youtube_url"
+                        label="YouTube Video URL"
+                        extra="Nhập link video YouTube. Ví dụ: https://www.youtube.com/watch?v=abc123"
+                        rules={[
+                            {
+                                pattern: /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/)|youtu\.be\/)[\w-]+/,
+                                message: 'Vui lòng nhập đúng định dạng link YouTube'
+                            }
+                        ]}
+                    >
+                        <Input
+                            placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                            size="large"
+                            prefix={<span style={{ color: '#ff0000' }}>▶</span>}
+                        />
+                    </Form.Item>
+
+                    <div style={{ background: '#f0f5ff', padding: 16, borderRadius: 8 }}>
+                        <p style={{ margin: 0, color: '#1890ff', fontSize: 13 }}>
+                            💡 <strong>Hướng dẫn:</strong> Sao chép URL video từ YouTube và dán vào ô trên.<br />
+                            Video sẽ hiển thị responsive (16:9) trên trang chủ bên dưới section "Tại Sao Chọn HULA".
+                        </p>
+                    </div>
+                </Form>
+            ),
+        },
+        {
             key: 'products',
             label: '🛍️ Sản Phẩm Nổi Bật',
             children: (

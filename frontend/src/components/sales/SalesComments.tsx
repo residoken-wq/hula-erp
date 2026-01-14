@@ -39,8 +39,21 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
     const [activeTab, setActiveTab] = useState<'CUSTOMER' | 'INTERNAL'>('CUSTOMER');
     const [users, setUsers] = useState<User[]>([]);
     const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(new Set());
+    const [mentionInputValue, setMentionInputValue] = useState('');
     const isMobile = useMobile();
     const quillRef = useRef<ReactQuill>(null);
+
+    // Get current user from localStorage
+    const getCurrentUser = (): { id: number; full_name: string } | null => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr) return JSON.parse(userStr);
+        } catch (e) {
+            console.error('Failed to parse user from localStorage');
+        }
+        return null;
+    };
+    const currentUser = getCurrentUser();
 
     // Fetch comments
     const fetchComments = async () => {
@@ -101,12 +114,15 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                 message.success('Cập nhật tin nhắn thành công');
                 setEditingId(null);
             } else {
+                // Combine mentionIds from content + manually selected
+                const allMentionIds = [...new Set([...mentionIds, ...mentionedUserIds])];
+
                 await axios.post(`${API_URL}/sales/${orderId}/comment`, {
                     content: text,
                     sender: 'STAFF',
-                    name: 'Nhân viên',
+                    name: currentUser?.full_name || 'Nhân viên',
                     comment_type: activeTab,
-                    mentioned_user_ids: mentionIds.join(',')
+                    mentioned_user_ids: allMentionIds.join(',')
                 });
 
                 if (mentionIds.length > 0) {
@@ -361,24 +377,45 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                 {/* Mentions Input for Internal chat */}
                 {activeTab === 'INTERNAL' && (
                     <div className="mentions-input-wrapper" style={{ marginBottom: 8 }}>
-                        <Mentions
-                            style={{ width: '100%' }}
-                            placeholder="Gõ @ để tag đồng nghiệp nhận thông báo..."
-                            prefix={['@']}
-                            onSelect={(option: any) => {
-                                setMentionedUserIds(prev => new Set([...prev, String(option.key)]));
-                            }}
-                            options={users.map(u => ({
-                                key: String(u.id),
-                                value: u.full_name,
-                                label: (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
-                                        <span>{u.full_name}</span>
-                                    </div>
-                                ),
-                            }))}
-                        />
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <Mentions
+                                style={{ flex: 1 }}
+                                value={mentionInputValue}
+                                onChange={setMentionInputValue}
+                                placeholder="Gõ @ để tag đồng nghiệp..."
+                                prefix={['@']}
+                                onSelect={(option: any) => {
+                                    // Add to tracking
+                                    setMentionedUserIds(prev => new Set([...prev, String(option.key)]));
+
+                                    // Insert mention badge into editor content
+                                    const mentionHtml = `<span class="mention" data-id="${option.key}" data-value="${option.value}" contenteditable="false" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 500; font-size: 13px; margin: 0 2px;">@${option.value}</span>&nbsp;`;
+
+                                    // Append to current text
+                                    setText(prev => prev.replace(/<\/p>$/, mentionHtml + '</p>') || mentionHtml);
+
+                                    setMentionInputValue(''); // Clear after select
+                                }}
+                                options={users.map(u => ({
+                                    key: String(u.id),
+                                    value: u.full_name,
+                                    label: (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+                                            <span>{u.full_name}</span>
+                                        </div>
+                                    ),
+                                }))}
+                            />
+                            <Button
+                                type="primary"
+                                ghost
+                                onClick={() => setMentionInputValue('@')}
+                                style={{ whiteSpace: 'nowrap' }}
+                            >
+                                + Tag
+                            </Button>
+                        </div>
                     </div>
                 )}
 
