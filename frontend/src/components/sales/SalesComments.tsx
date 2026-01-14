@@ -32,16 +32,42 @@ interface Comment {
     deleted_at?: string;
 }
 
-const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
+interface SalesCommentsProps {
+    orderId: number;
+    defaultTab?: string;  // 'CUSTOMER' | 'INTERNAL' from notification deep link
+    highlightCommentId?: string;  // e.g., 'comment-123' to scroll and highlight
+}
+
+const SalesComments: React.FC<SalesCommentsProps> = ({ orderId, defaultTab, highlightCommentId }) => {
     const [comments, setComments] = useState<Comment[]>([]);
     const [text, setText] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [activeTab, setActiveTab] = useState<'CUSTOMER' | 'INTERNAL'>('CUSTOMER');
+    const [activeTab, setActiveTab] = useState<'CUSTOMER' | 'INTERNAL'>(
+        (defaultTab === 'INTERNAL' ? 'INTERNAL' : 'CUSTOMER')
+    );
     const [users, setUsers] = useState<User[]>([]);
     const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(new Set());
     const [mentionInputValue, setMentionInputValue] = useState('');
     const isMobile = useMobile();
     const quillRef = useRef<ReactQuill>(null);
+
+    // Scroll to highlighted comment when loaded
+    useEffect(() => {
+        if (highlightCommentId && comments.length > 0) {
+            // Extract comment ID from format "comment-123"
+            const commentId = highlightCommentId.replace('comment-', '');
+            const element = document.getElementById(`comment-${commentId}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Add highlight effect
+                element.style.transition = 'background-color 0.3s';
+                element.style.backgroundColor = '#e6f7ff';
+                setTimeout(() => {
+                    element.style.backgroundColor = '';
+                }, 3000);
+            }
+        }
+    }, [highlightCommentId, comments]);
 
     // Get current user from localStorage
     const getCurrentUser = (): { id: number; full_name: string } | null => {
@@ -318,7 +344,10 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                     <List
                         dataSource={filteredComments}
                         renderItem={(item: Comment) => (
-                            <div className={`comment-item ${item.sender_type === 'STAFF' ? 'staff' : 'customer'}`}>
+                            <div
+                                id={`comment-${item.id}`}
+                                className={`comment-item ${item.sender_type === 'STAFF' ? 'staff' : 'customer'}`}
+                            >
                                 <div className="comment-header">
                                     <span className="comment-sender">
                                         <Avatar

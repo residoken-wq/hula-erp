@@ -29,7 +29,7 @@ export class TasksService {
                 message: `Công việc "${task.title}" đã được giao cho bạn.`,
                 type: 'INFO',
                 user_id: task.assignee_id,
-                link: '/tasks',
+                link: `/tasks?task=${task.id}&highlight=task-${task.id}`,
                 is_read: false
             });
             this.logger.log(`Notified User ${task.assignee_id} about new Task ${task.id}`);
@@ -53,7 +53,7 @@ export class TasksService {
                 message: `Công việc "${updatedTask?.title}" đã được giao cho bạn.`,
                 type: 'INFO',
                 user_id: data.assignee_id,
-                link: '/tasks',
+                link: `/tasks?task=${id}&highlight=task-${id}`,
                 is_read: false
             });
             this.logger.log(`Notified User ${data.assignee_id} about reassigned Task ${id}`);
@@ -76,7 +76,7 @@ export class TasksService {
                     message: `Công việc "${updatedTask.title}" đã chuyển sang: ${statusLabel}`,
                     type: data.status === 'DONE' ? 'SUCCESS' : 'INFO',
                     user_id: updatedTask.creator_id,
-                    link: '/tasks',
+                    link: `/tasks?task=${id}&highlight=task-${id}`,
                     is_read: false
                 });
                 this.logger.log(`Notified Creator ${updatedTask.creator_id} about Task ${id} status change`);
@@ -89,7 +89,7 @@ export class TasksService {
                     message: `Công việc "${updatedTask.title}" đã chuyển sang: ${statusLabel}`,
                     type: data.status === 'DONE' ? 'SUCCESS' : 'INFO',
                     user_id: updatedTask.assignee_id,
-                    link: '/tasks',
+                    link: `/tasks?task=${id}&highlight=task-${id}`,
                     is_read: false
                 });
                 this.logger.log(`Notified Assignee ${updatedTask.assignee_id} about Task ${id} status change`);
@@ -127,7 +127,7 @@ export class TasksService {
                     message: `Công việc "${task.title}" sắp đến hạn hoặc đã quá hạn!`,
                     type: 'WARNING',
                     user_id: task.assignee.id,
-                    link: '/tasks',
+                    link: `/tasks?task=${task.id}&highlight=task-${task.id}`,
                     is_read: false
                 });
 

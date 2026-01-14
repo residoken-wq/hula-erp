@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Table, Button, Tag, Modal, Form, Input, Select, DatePicker, Row, Col, message, Progress, Avatar, Tooltip, Radio, Space } from 'antd';
 import { PlusOutlined, EditOutlined, CheckCircleOutlined, ClockCircleOutlined, FlagOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -9,6 +10,7 @@ import useMobile from '../hooks/useMobile';
 const { Option } = Select;
 
 const TasksPage: React.FC = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [tasks, setTasks] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -16,6 +18,7 @@ const TasksPage: React.FC = () => {
     const [editingTask, setEditingTask] = useState<any>(null);
     const [form] = Form.useForm();
     const [filterStatus, setFilterStatus] = useState('ALL');
+    const [highlightTaskId, setHighlightTaskId] = useState<number | null>(null);
     const isMobile = useMobile();
 
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -34,6 +37,31 @@ const TasksPage: React.FC = () => {
     };
 
     useEffect(() => { fetchData(); }, []);
+
+    // Handle URL params from notifications (deep linking)
+    useEffect(() => {
+        const taskId = searchParams.get('task');
+        const highlight = searchParams.get('highlight');
+
+        if (taskId) {
+            const id = parseInt(taskId);
+            setHighlightTaskId(id);
+
+            // Scroll to task row after data loads
+            setTimeout(() => {
+                const element = document.getElementById(`task-row-${id}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 500);
+
+            // Clear highlight after 3 seconds
+            setTimeout(() => setHighlightTaskId(null), 3000);
+
+            // Clear URL params
+            setSearchParams({});
+        }
+    }, [searchParams, tasks]);
 
     const handleSave = async (values: any) => {
         try {
@@ -139,7 +167,19 @@ const TasksPage: React.FC = () => {
                         <Radio.Button value="DONE">{isMobile ? 'Xong' : 'Hoàn thành'}</Radio.Button>
                     </Radio.Group>
                 </div>
-                <Table dataSource={filteredTasks} columns={columns} rowKey="id" loading={loading} scroll={{ x: isMobile ? 600 : undefined }} />
+                <Table
+                    dataSource={filteredTasks}
+                    columns={columns}
+                    rowKey="id"
+                    loading={loading}
+                    scroll={{ x: isMobile ? 600 : undefined }}
+                    onRow={(record: any) => ({
+                        id: `task-row-${record.id}`
+                    })}
+                    rowClassName={(record: any) =>
+                        highlightTaskId === record.id ? 'highlight-row' : ''
+                    }
+                />
             </Card>
 
             <Modal

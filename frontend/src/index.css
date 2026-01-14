@@ -1,1 +1,25 @@
-body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+/* Notification deep link highlight animation */
+.highlight-row td {
+    background-color: #e6f7ff !important;
+    animation: highlight-pulse 0.5s ease-in-out 2;
+}
+
+@keyframes highlight-pulse {
+    0% {
+        background-color: #e6f7ff;
+    }
+
+    50% {
+        background-color: #91d5ff;
+    }
+
+    100% {
+        background-color: #e6f7ff;
+    }
+}

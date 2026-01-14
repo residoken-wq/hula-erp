@@ -26,9 +26,11 @@ interface Props {
     products: any[];
     users?: any[];
     isQuotation?: boolean;
+    defaultCommentTab?: string;  // For deep linking from notifications
+    highlightCommentId?: string; // Comment to highlight/scroll to
 }
 
-const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, customers, products, users = [], isQuotation = false }) => {
+const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialData, customers, products, users = [], isQuotation = false, defaultCommentTab, highlightCommentId }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('1');
@@ -658,7 +660,11 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             <SalesDeliveries order={initialData} products={products} customers={customers} onSuccess={onSuccess} />
                         </Tabs.TabPane>
                         <Tabs.TabPane tab={isMobile ? '5. Chat' : '5. Trao đổi'} key="4">
-                            <SalesComments orderId={initialData.id} />
+                            <SalesComments
+                                orderId={initialData.id}
+                                defaultTab={defaultCommentTab}
+                                highlightCommentId={highlightCommentId}
+                            />
                         </Tabs.TabPane>
                         <Tabs.TabPane tab={isMobile ? '6. CL' : '6. Checklist'} key="5">
                             <SalesChecklistPanel orderId={initialData.id} orderStatus={initialData.status} onRefresh={onSuccess} />

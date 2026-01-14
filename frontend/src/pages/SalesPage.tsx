@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Tag, Button, message, Card, Input, Space, Row, Col, Tabs, Progress, Tooltip, Statistic, DatePicker, Select, List } from 'antd';
 // --- FIX: Thêm PlusOutlined đã bị thiếu trước đó ---
 import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, FileTextOutlined, CalendarOutlined, WalletOutlined, AuditOutlined, AppstoreAddOutlined, ShopOutlined, RightOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -16,6 +16,7 @@ const { RangePicker } = DatePicker;
 
 const SalesPage: React.FC = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const isMobile = useMobile();
     const [activeTab, setActiveTab] = useState('ALL');
     const [searchText, setSearchText] = useState('');
@@ -33,9 +34,48 @@ const SalesPage: React.FC = () => {
     const [detailModalOpen, setDetailModalOpen] = useState(false);
     const [editingOrder, setEditingOrder] = useState<any>(null);
 
+    // Deep link params from URL (for notifications)
+    const [deepLinkTab, setDeepLinkTab] = useState<string | null>(null);
+    const [deepLinkHighlight, setDeepLinkHighlight] = useState<string | null>(null);
+
     // --- STATS FILTER STATE ---
     const [selectedYear, setSelectedYear] = useState(dayjs().year());
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+
+    // Handle URL params from notifications (deep linking)
+    useEffect(() => {
+        const orderId = searchParams.get('order');
+        const tab = searchParams.get('tab');
+        const highlight = searchParams.get('highlight');
+
+        if (orderId) {
+            // Store deep link params
+            if (tab) setDeepLinkTab(tab);
+            if (highlight) setDeepLinkHighlight(highlight);
+
+            // Open order by ID
+            const openOrderById = async () => {
+                try {
+                    const res = await api.get(`/sales/by-id/${orderId}`);
+                    if (res.data) {
+                        setEditingOrder(res.data);
+                        setDetailModalOpen(true);
+                    }
+                } catch (e) {
+                    // Fallback: try to find in loaded data
+                    const found = data.find(d => d.id === parseInt(orderId));
+                    if (found) {
+                        setEditingOrder(found);
+                        setDetailModalOpen(true);
+                    }
+                }
+            };
+            openOrderById();
+
+            // Clear URL params after handling
+            setSearchParams({});
+        }
+    }, [searchParams, data]);
 
     // Generate years (e.g., current year - 2 to current year + 2)
     const years = Array.from({ length: 5 }, (_, i) => dayjs().year() - 2 + i);
@@ -498,13 +538,19 @@ const SalesPage: React.FC = () => {
 
                 <SalesOrderDetail
                     open={detailModalOpen}
-                    onClose={() => setDetailModalOpen(false)}
+                    onClose={() => {
+                        setDetailModalOpen(false);
+                        setDeepLinkTab(null);
+                        setDeepLinkHighlight(null);
+                    }}
                     onSuccess={fetchData}
                     initialData={editingOrder}
                     customers={customers}
                     products={products}
-                    users={users} // Pass users list
+                    users={users}
                     isQuotation={false}
+                    defaultCommentTab={deepLinkTab || undefined}
+                    highlightCommentId={deepLinkHighlight || undefined}
                 />
             </Card>
         </div >
