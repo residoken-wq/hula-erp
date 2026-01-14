@@ -1,6 +1,7 @@
 'use client';
 
 import { ProLayout, PageContainer } from '@ant-design/pro-components';
+import { Dropdown, Avatar, Badge, Space, Typography } from 'antd';
 import {
     DashboardOutlined,
     FileTextOutlined,
@@ -8,10 +9,16 @@ import {
     TeamOutlined,
     SettingOutlined,
     HomeOutlined,
-    LayoutOutlined
+    LayoutOutlined,
+    BellOutlined,
+    LogoutOutlined,
+    UserOutlined,
+    MoonOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+const { Text } = Typography;
 
 const menuItems = [
     {
@@ -53,6 +60,34 @@ const menuItems = [
     },
 ];
 
+// User dropdown menu
+const userMenuItems = [
+    {
+        key: 'profile',
+        icon: <UserOutlined />,
+        label: 'Hồ sơ cá nhân',
+    },
+    {
+        key: 'settings',
+        icon: <SettingOutlined />,
+        label: 'Cài đặt tài khoản',
+    },
+    {
+        key: 'theme',
+        icon: <MoonOutlined />,
+        label: 'Chế độ tối',
+    },
+    {
+        type: 'divider' as const,
+    },
+    {
+        key: 'logout',
+        icon: <LogoutOutlined />,
+        label: 'Đăng xuất',
+        danger: true,
+    },
+];
+
 export default function AdminLayout({
     children,
 }: {
@@ -65,15 +100,17 @@ export default function AdminLayout({
             title="HULA CMS"
             logo={
                 <div style={{
-                    width: 32,
-                    height: 32,
-                    background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                    borderRadius: 8,
+                    width: 36,
+                    height: 36,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: 10,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: 'white',
-                    fontWeight: 'bold'
+                    fontWeight: 'bold',
+                    fontSize: 18,
+                    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
                 }}>
                     H
                 </div>
@@ -82,6 +119,18 @@ export default function AdminLayout({
             fixedHeader
             fixSiderbar
             contentWidth="Fluid"
+            siderWidth={240}
+            token={{
+                header: {
+                    colorBgHeader: 'rgba(255, 255, 255, 0.85)',
+                },
+                sider: {
+                    colorMenuBackground: 'transparent',
+                    colorTextMenu: 'rgba(255, 255, 255, 0.75)',
+                    colorTextMenuSelected: '#ffffff',
+                    colorBgMenuItemSelected: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                },
+            }}
             route={{
                 path: '/',
                 routes: menuItems.map(item => ({
@@ -95,18 +144,66 @@ export default function AdminLayout({
                 <Link href={item.path || '/'}>{dom}</Link>
             )}
             headerTitleRender={(logo, title) => (
-                <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     {logo}
-                    {title}
+                    <span style={{
+                        fontWeight: 700,
+                        fontSize: 18,
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                    }}>
+                        HULA CMS
+                    </span>
                 </Link>
             )}
-            avatarProps={{
-                src: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
-                size: 'small',
-                title: 'Admin',
-            }}
+            actionsRender={() => [
+                // Notifications
+                <Badge key="notifications" count={3} size="small" offset={[-4, 4]}>
+                    <div style={{
+                        width: 36,
+                        height: 36,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 10,
+                        background: '#f8fafc',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                    }}>
+                        <BellOutlined style={{ fontSize: 18, color: '#64748b' }} />
+                    </div>
+                </Badge>,
+
+                // User Avatar Dropdown
+                <Dropdown
+                    key="user"
+                    menu={{ items: userMenuItems }}
+                    placement="bottomRight"
+                    trigger={['click']}
+                >
+                    <Space style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 10 }}>
+                        <Avatar
+                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin"
+                            size={36}
+                            style={{
+                                border: '2px solid #667eea',
+                                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
+                            }}
+                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                            <Text strong style={{ fontSize: 13 }}>Admin</Text>
+                            <Text type="secondary" style={{ fontSize: 11 }}>Quản trị viên</Text>
+                        </div>
+                    </Space>
+                </Dropdown>,
+            ]}
         >
-            <PageContainer>
+            <PageContainer
+                header={{
+                    ghost: true,
+                }}
+            >
                 {children}
             </PageContainer>
         </ProLayout>

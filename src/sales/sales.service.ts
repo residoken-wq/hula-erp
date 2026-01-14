@@ -449,7 +449,7 @@ export class SalesService {
                     title: `${name || 'Nhân viên'} đã nhắc đến bạn`,
                     message: `Trong đơn hàng ${order.order_code}: ${content.replace(/<[^>]*>/g, '').substring(0, 100)}...`,
                     type: 'INFO',
-                    link: `/sales?order=${order.id}`, // Link to sales page with order param
+                    link: `/sales?order=${order.id}&tab=INTERNAL&highlight=comment-${savedComment.id}`,
                     is_read: false
                 });
             }

@@ -111,29 +111,33 @@ export default function DashboardPage() {
         {
             title: 'Bài viết',
             value: stats.blogs,
-            icon: <FileTextOutlined style={{ fontSize: 28, color: '#2563eb' }} />,
-            color: '#dbeafe',
+            icon: <FileTextOutlined style={{ fontSize: 28, color: '#fff' }} />,
+            gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            shadowColor: 'rgba(102, 126, 234, 0.4)',
             link: '/blogs',
         },
         {
             title: 'Sản phẩm',
             value: stats.products,
-            icon: <ShopOutlined style={{ fontSize: 28, color: '#16a34a' }} />,
-            color: '#dcfce7',
+            icon: <ShopOutlined style={{ fontSize: 28, color: '#fff' }} />,
+            gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            shadowColor: 'rgba(16, 185, 129, 0.4)',
             link: '/products',
         },
         {
             title: 'Leads mới',
             value: stats.leads,
-            icon: <TeamOutlined style={{ fontSize: 28, color: '#ea580c' }} />,
-            color: '#ffedd5',
+            icon: <TeamOutlined style={{ fontSize: 28, color: '#fff' }} />,
+            gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+            shadowColor: 'rgba(245, 158, 11, 0.4)',
             link: '/leads',
         },
         {
             title: 'Tổng lượt xem',
             value: stats.views,
-            icon: <EyeOutlined style={{ fontSize: 28, color: '#7c3aed' }} />,
-            color: '#ede9fe',
+            icon: <EyeOutlined style={{ fontSize: 28, color: '#fff' }} />,
+            gradient: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+            shadowColor: 'rgba(139, 92, 246, 0.4)',
             link: null,
         },
     ];
@@ -150,19 +154,22 @@ export default function DashboardPage() {
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                 <div style={{
-                                    width: 56,
-                                    height: 56,
-                                    background: stat.color,
-                                    borderRadius: 12,
+                                    width: 60,
+                                    height: 60,
+                                    background: stat.gradient,
+                                    borderRadius: 14,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
+                                    boxShadow: `0 8px 20px ${stat.shadowColor}`,
                                 }}>
                                     {stat.icon}
                                 </div>
                                 <div>
-                                    <div style={{ color: '#666', fontSize: 14 }}>{stat.title}</div>
-                                    <div style={{ fontSize: 28, fontWeight: 600 }}>{stat.value.toLocaleString()}</div>
+                                    <div style={{ color: '#64748b', fontSize: 13, fontWeight: 500 }}>{stat.title}</div>
+                                    <div style={{ fontSize: 32, fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>
+                                        {stat.value.toLocaleString()}
+                                    </div>
                                 </div>
                             </div>
                         </Card>

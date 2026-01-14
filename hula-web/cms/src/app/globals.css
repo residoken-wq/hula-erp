@@ -7,36 +7,382 @@
     box-sizing: border-box;
 }
 
+:root {
+    /* Modern Color Palette */
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    --dark-gradient: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+
+    /* Base Colors */
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.3);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --shadow-glow: 0 0 30px rgba(102, 126, 234, 0.15);
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Ant Design overrides */
+/* ========================================
+   PRO LAYOUT OVERRIDES
+   ======================================== */
 .ant-layout {
     min-height: 100vh;
+    background: var(--bg-primary) !important;
 }
 
+/* Header - Glassmorphism Style */
+.ant-pro-layout .ant-layout-header {
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-bottom: 1px solid var(--glass-border) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+/* Sidebar - Modern Dark Gradient */
+.ant-pro-sider {
+    background: var(--dark-gradient) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+.ant-pro-sider .ant-menu {
+    background: transparent !important;
+}
+
+.ant-pro-sider .ant-menu-item,
+.ant-pro-sider .ant-menu-submenu-title {
+    color: rgba(255, 255, 255, 0.8) !important;
+    border-radius: 8px !important;
+    margin: 4px 8px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-pro-sider .ant-menu-item:hover,
+.ant-pro-sider .ant-menu-submenu-title:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    transform: translateX(4px);
+}
+
+.ant-pro-sider .ant-menu-item-selected {
+    background: var(--primary-gradient) !important;
+    color: white !important;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
+}
+
+/* Logo Area */
 .ant-pro-sider-logo {
     display: flex;
     align-items: center;
-    padding: 16px;
+    padding: 16px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Custom scrollbar */
+.ant-pro-sider-logo h1 {
+    color: white !important;
+    font-weight: 700 !important;
+}
+
+/* ========================================
+   CARDS & CONTAINERS
+   ======================================== */
+.ant-card {
+    border-radius: 16px !important;
+    border: none !important;
+    background: white !important;
+    box-shadow: var(--shadow-md) !important;
+    transition: all 0.3s ease !important;
+}
+
+.ant-card:hover {
+    box-shadow: var(--shadow-lg) !important;
+    transform: translateY(-2px);
+}
+
+.ant-card-head {
+    border-bottom: 1px solid #f0f0f0 !important;
+    font-weight: 600 !important;
+}
+
+/* Page Container */
+.ant-pro-page-container {
+    background: transparent !important;
+}
+
+.ant-pro-page-container-children-content {
+    padding: 24px !important;
+}
+
+/* ========================================
+   BUTTONS - Modern with Gradients
+   ======================================== */
+.ant-btn-primary {
+    background: var(--primary-gradient) !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+}
+
+.ant-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+}
+
+.ant-btn-default {
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+}
+
+.ant-btn-default:hover {
+    border-color: #667eea !important;
+    color: #667eea !important;
+}
+
+/* ========================================
+   FORM CONTROLS
+   ======================================== */
+.ant-input,
+.ant-select-selector,
+.ant-picker {
+    border-radius: 10px !important;
+    border: 1px solid #e2e8f0 !important;
+    transition: all 0.3s ease !important;
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-select-focused .ant-select-selector {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+}
+
+.ant-form-item-label>label {
+    font-weight: 500 !important;
+    color: #334155 !important;
+}
+
+/* ========================================
+   TABLES - Clean & Modern
+   ======================================== */
+.ant-table {
+    border-radius: 12px !important;
+    overflow: hidden;
+}
+
+.ant-table-thead>tr>th {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+}
+
+.ant-table-tbody>tr:hover>td {
+    background: #f8fafc !important;
+}
+
+.ant-table-tbody>tr>td {
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+/* ========================================
+   TABS - Modern Style
+   ======================================== */
+.ant-tabs .ant-tabs-tab {
+    padding: 12px 20px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+}
+
+.ant-tabs .ant-tabs-tab:hover {
+    color: #667eea !important;
+}
+
+.ant-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: #667eea !important;
+    font-weight: 600 !important;
+}
+
+.ant-tabs .ant-tabs-ink-bar {
+    background: var(--primary-gradient) !important;
+    height: 3px !important;
+    border-radius: 3px !important;
+}
+
+/* ========================================
+   MODAL - Elegant Style
+   ======================================== */
+.ant-modal-content {
+    border-radius: 16px !important;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.ant-modal-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 20px 24px !important;
+}
+
+.ant-modal-title {
+    font-weight: 600 !important;
+}
+
+/* ========================================
+   TAGS & BADGES
+   ======================================== */
+.ant-tag {
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+    padding: 4px 12px !important;
+    border: none !important;
+}
+
+.ant-badge-status-dot {
+    width: 8px !important;
+    height: 8px !important;
+}
+
+/* ========================================
+   SWITCH - Modern Style
+   ======================================== */
+.ant-switch-checked {
+    background: var(--primary-gradient) !important;
+}
+
+/* ========================================
+   SCROLLBAR
+   ======================================== */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
     background: #f1f5f9;
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
+    background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.ant-card {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Page transitions */
+.ant-pro-page-container-children-content>* {
+    animation: fadeIn 0.4s ease;
+}
+
+/* ========================================
+   STAT CARDS
+   ======================================== */
+.stat-card {
+    background: white !important;
+    border-radius: 16px !important;
+    padding: 24px !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--primary-gradient);
+}
+
+.stat-card.success::before {
+    background: var(--success-gradient);
+}
+
+.stat-card.warning::before {
+    background: var(--warning-gradient);
+}
+
+.stat-card.secondary::before {
+    background: var(--secondary-gradient);
+}
+
+/* ========================================
+   EMPTY STATE
+   ======================================== */
+.ant-empty-description {
+    color: #94a3b8 !important;
+}
+
+/* ========================================
+   LIST ITEMS
+   ======================================== */
+.ant-list-item {
+    border-radius: 12px !important;
+    padding: 16px !important;
+    transition: all 0.2s ease !important;
+}
+
+.ant-list-item:hover {
+    background: #f8fafc !important;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 768px) {
+    .ant-pro-page-container-children-content {
+        padding: 16px !important;
+    }
+
+    .ant-card {
+        border-radius: 12px !important;
+    }
 }
