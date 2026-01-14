@@ -233,32 +233,51 @@
   .comments-list {
     max-height: 250px;
     padding: 8px;
-  }They
-  
+  }
+
   .comment-item {
     padding: 10px 12px;
   }
-  
+
   .editor-section .ql-toolbar {
     padding: 4px;
   }
-  
+
   .editor-section .ql-toolbar button {
     width: 24px;
     height: 24px;
   }
-  
+
   .ql-mention-list-container {
     max-width: calc(100vw - 32px);
   }
-  
+
   .action-buttons {
     flex-direction: column;
   }
-  
+
   .action-buttons button {
     width: 100%;
   }
+}
+
+/* ========================================
+   MENTIONS INPUT WRAPPER
+   ======================================== */
+.mentions-input-wrapper {
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f0ff 100%);
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px dashed #91caff;
+}
+
+.mentions-input-wrapper .ant-mentions {
+  border-radius: 6px;
+}
+
+.mentions-input-wrapper .ant-mentions:hover,
+.mentions-input-wrapper .ant-mentions:focus-within {
+  border-color: #1890ff;
 }
 
 /* ========================================

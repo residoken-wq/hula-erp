@@ -358,10 +358,27 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                     </div>
                 )}
 
-                {/* Hint for Internal chat */}
+                {/* Mentions Input for Internal chat */}
                 {activeTab === 'INTERNAL' && (
-                    <div style={{ fontSize: 12, color: '#999', marginBottom: 6 }}>
-                        💡 Gõ <strong>@</strong> để mention đồng nghiệp
+                    <div className="mentions-input-wrapper" style={{ marginBottom: 8 }}>
+                        <Mentions
+                            style={{ width: '100%' }}
+                            placeholder="Gõ @ để tag đồng nghiệp nhận thông báo..."
+                            prefix={['@']}
+                            onSelect={(option: any) => {
+                                setMentionedUserIds(prev => new Set([...prev, String(option.key)]));
+                            }}
+                            options={users.map(u => ({
+                                key: String(u.id),
+                                value: u.full_name,
+                                label: (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Avatar size="small" icon={<UserOutlined />} style={{ backgroundColor: '#1890ff' }} />
+                                        <span>{u.full_name}</span>
+                                    </div>
+                                ),
+                            }))}
+                        />
                     </div>
                 )}
 
@@ -371,7 +388,7 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                     value={text}
                     onChange={setText}
                     modules={modules}
-                    placeholder={activeTab === 'INTERNAL' ? 'Nhập nội dung chat nội bộ... (Gõ @ để mention)' : 'Nhập nội dung trả lời khách hàng...'}
+                    placeholder={activeTab === 'INTERNAL' ? 'Nhập nội dung chat nội bộ...' : 'Nhập nội dung trả lời khách hàng...'}
                 />
             </div>
 
