@@ -4,37 +4,43 @@
 
 ### Features Implemented Today
 
-1. **SalesComments Inline @Mentions**
-   - Replaced separate Ant Design Mentions with quill-mention
-   - Inline mentions in ReactQuill editor
+1. **CMS UI/UX Upgrade**
+   - Complete visual overhaul with gradients, glassmorphism
+   - Modern dashboard with gradient stat cards
+   - Notification badge, user dropdown in header
 
-2. **Firebase Real-time Notifications**
-   - Replaced 10s polling with Firebase Realtime Database
-   - Backend pushes to Firebase on notification create
-   - Frontend subscribes with real-time listener
-   - Graceful fallback to polling if Firebase unavailable
+2. **Notification Deep Links**
+   - Sales Comments: Click → open order → scroll to comment
+   - Tasks: Click → scroll & highlight task row
+   - URL params: `?order=X&tab=Y&highlight=comment-Z`
+
+3. **Docker Build Optimization**
+   - Added `.dockerignore` to frontend
+   - Reduced COPY time significantly
 
 ### Deploy Checklist
-- [x] `firebase-service-account.json` in `src/firebase/`
-- [x] `nest-cli.json` created for asset copying
+- [x] All changes committed
 - [x] Run `docker-compose build --no-cache`
 - [x] Run `docker-compose up -d`
 
 ### Files Changed
 
 **Backend:**
-- `src/firebase/` - NEW directory
-- `src/notifications/notifications.service.ts`
-- `src/app.module.ts`
-- `package.json`
-- `nest-cli.json` - NEW
+- `src/sales/sales.service.ts` - Deep link params in comment notifications
+- `src/tasks/tasks.service.ts` - Deep link params in task notifications
 
 **Frontend:**
-- `frontend/src/components/sales/SalesComments.tsx`
-- `frontend/src/components/sales/SalesComments.css` - NEW
-- `frontend/src/components/HeaderNotifications.tsx`
-- `frontend/src/utils/firebaseConfig.ts` - NEW
-- `frontend/package.json`
+- `frontend/src/pages/SalesPage.tsx` - URL param parsing
+- `frontend/src/components/SalesOrderDetail.tsx` - Pass deepLink props
+- `frontend/src/components/sales/SalesComments.tsx` - Handle tab & highlight
+- `frontend/src/pages/TasksPage.tsx` - URL param parsing, row highlight
+- `frontend/src/index.css` - Highlight animation
+
+**CMS:**
+- `hula-web/cms/src/app/globals.css` - Complete redesign
+- `hula-web/cms/src/app/layout.tsx` - Theme tokens
+- `hula-web/cms/src/components/AdminLayout.tsx` - Header redesign
+- `hula-web/cms/src/app/dashboard/page.tsx` - Gradient stat cards
 
 ## Next Session
 Ready for new tasks.

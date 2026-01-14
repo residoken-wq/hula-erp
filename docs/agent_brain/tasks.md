@@ -2,43 +2,50 @@
 
 ## Active Tasks
 - [x] Project review and self-learning from docs/agent_brain
+- [x] CMS UI/UX Upgrade (gradients, glassmorphism, modern design)
+- [x] Notification Deep Links (Sales Comments + Tasks)
+- [x] Documentation Update (agent_brain + Technical Docs)
 
-## Pending Tasks
-(Awaiting user instructions)
+## Completed Today
 
----
+### 1. CMS UI/UX Upgrade
+- Complete visual overhaul with modern gradients
+- Glassmorphism cards and headers
+- Dashboard stat cards with gradient backgrounds
 
-## Previous Session Summary (13/01/2026)
+### 2. Notification Deep Links
+- **Sales Comments:** Click → open order → scroll to exact comment
+- **Tasks:** Click → scroll & highlight task row with animation
+- URL params: `?order=X&tab=Y&highlight=comment-Z`
 
-### ProfilePage UI Upgrades
-- [x] Fix `formatMoney` function to handle string values properly
-- [x] Fix "Tổng khấu trừ" calculation bug (string concatenation → addition)
-- [x] Upgrade Leave Tab UI with gradient header and 3 main stats
-- [x] Add fallback leave balance calculation when API returns null
-
-### Upload Service Improvements
-- [x] Replace `res.sendFile()` with `fs.createReadStream().pipe()` for proxy compatibility
-- [x] Add Content-Length, Cache-Control headers
-- [x] Add image compression on upload using sharp library
-- [x] Fix ERR_BLOCKED_BY_ORB with CORS headers
+### 3. Documentation Update
+- Updated `docs/agent_brain/logs/2026-W03.md` with all features
+- Updated `docs/agent_brain/current_task.md`
+- Created `docs/TECHNICAL_ARCHITECTURE.md` (comprehensive)
+- Rewrote `frontend/src/pages/DocsPage.tsx`:
+  - Architecture diagram (ASCII art)
+  - All 25 backend modules listed
+  - Key features (Firebase, Deep Links, @Mentions)
+  - Deployment guide
 
 ---
 
 ## Key Project Files Reference
 
 ### Backend
-- `src/app.module.ts` - Main module with all 24 feature modules
-- `src/sales/` - Sales orders, deliveries, quotations
-- `src/hr/` - Employees, attendance, leave, payslip
-- `src/upload/upload.service.ts` - File handling with compression
+- `src/app.module.ts` - Main module with all 25 feature modules
+- `src/sales/` - Sales orders, deliveries, quotations, comments
+- `src/tasks/` - Task management with CRON reminders
+- `src/firebase/` - Firebase Admin SDK for real-time
+- `src/notifications/` - Notification service
 
 ### Frontend
 - `frontend/src/App.tsx` - Main routing and layout
-- `frontend/src/pages/ProfilePage.tsx` - User profile with payslip/leave
-- `frontend/src/pages/SalesPage.tsx` - Sales order management
-- `frontend/src/pages/HRPage.tsx` - HR module tabs
+- `frontend/src/pages/DocsPage.tsx` - Dev Docs (Technical)
+- `frontend/src/pages/SalesPage.tsx` - Sales with deep link handling
+- `frontend/src/pages/TasksPage.tsx` - Tasks with deep link handling
+- `frontend/src/components/sales/SalesComments.tsx` - Comments with @mentions
 
 ### Documentation
-- `docs/agent_brain/logs/2026-W02.md` - Full Week 02 progress
-- `docs/agent_brain/logs/2026-W03.md` - Current week (started)
-- `docs/agent_brain/guides/deployment_vps.md` - VPS deployment guide
+- `docs/agent_brain/logs/2026-W03.md` - Current week progress
+- `docs/TECHNICAL_ARCHITECTURE.md` - Full technical architecture
