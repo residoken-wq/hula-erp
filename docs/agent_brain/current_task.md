@@ -1,34 +1,40 @@
-# Current Task: Session Active - 14/01/2026
+# Current Task: Session 14/01/2026
 
-## Status: 🟢 Ready for Work
+## Status: ✅ Completed
 
-Agent has completed project review and is now ready to accept new tasks.
+### Features Implemented Today
 
-## Project Understanding
+1. **SalesComments Inline @Mentions**
+   - Replaced separate Ant Design Mentions with quill-mention
+   - Inline mentions in ReactQuill editor
 
-### Backend (NestJS - src/)
-- **Core Modules**: auth, users, products, materials, bom, sales, inventory, production, purchasing, finance
-- **Support Modules**: hr, tasks, notifications, system, upload, suppliers, customers, planning, processes, categories
-- **AI/Public**: ai (Gemini), blogs, public (website checkout/lead forms)
-- **Database**: PostgreSQL with TypeORM, 40+ entities
+2. **Firebase Real-time Notifications**
+   - Replaced 10s polling with Firebase Realtime Database
+   - Backend pushes to Firebase on notification create
+   - Frontend subscribes with real-time listener
+   - Graceful fallback to polling if Firebase unavailable
 
-### Frontend (React - frontend/src/)
-- 32 pages covering all ERP functions
-- Ant Design components
-- Key files recently modified: ProfilePage.tsx, upload.service.ts
+### Deploy Checklist
+- [x] `firebase-service-account.json` in `src/firebase/`
+- [x] `nest-cli.json` created for asset copying
+- [x] Run `docker-compose build --no-cache`
+- [x] Run `docker-compose up -d`
 
-### Website (hula-web/)
-- Public website + CMS
-- Separate Docker deployment
+### Files Changed
 
-## Recent Completed Features (Week 02/2026)
-- HR Mobile UI optimization
-- Leave Balance System
-- Attendance Calendar View
-- Profile Page Payslip enhancement
-- Upload service improvements (compression, CORS)
-- Shipping Carrier management
-- Sample Images Tab
+**Backend:**
+- `src/firebase/` - NEW directory
+- `src/notifications/notifications.service.ts`
+- `src/app.module.ts`
+- `package.json`
+- `nest-cli.json` - NEW
 
-## Available for Next Task
-Ready to implement new features or fix issues.
+**Frontend:**
+- `frontend/src/components/sales/SalesComments.tsx`
+- `frontend/src/components/sales/SalesComments.css` - NEW
+- `frontend/src/components/HeaderNotifications.tsx`
+- `frontend/src/utils/firebaseConfig.ts` - NEW
+- `frontend/package.json`
+
+## Next Session
+Ready for new tasks.

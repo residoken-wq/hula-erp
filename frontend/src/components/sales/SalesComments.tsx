@@ -6,9 +6,15 @@ import dayjs from 'dayjs';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
-// Import quill-mention - it auto-registers with Quill
-import 'quill-mention';
+// Import Quill directly for module registration
+import Quill from 'quill';
+
+// Import and register quill-mention module
+import Mention from 'quill-mention';
 import 'quill-mention/dist/quill.mention.css';
+
+// Register the mention module with Quill
+Quill.register('modules/mention', Mention);
 
 import { API_URL } from '../../config';
 import api from '../../utils/api';
