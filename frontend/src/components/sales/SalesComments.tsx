@@ -341,7 +341,7 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                                 />
 
                                 {/* Show mentioned users */}
-                                {item.mentioned_user_ids && item.mentioned_user_ids.length > 0 && (
+                                {item.mentioned_user_ids && typeof item.mentioned_user_ids === 'string' && item.mentioned_user_ids.length > 0 && (
                                     <div className="mentioned-users-display" style={{
                                         marginTop: 8,
                                         padding: '6px 10px',
@@ -355,7 +355,7 @@ const SalesComments: React.FC<{ orderId: number }> = ({ orderId }) => {
                                         alignItems: 'center'
                                     }}>
                                         <span style={{ color: '#666' }}>📢 Đã nhắc đến:</span>
-                                        {item.mentioned_user_ids.split(',').filter(Boolean).map((id: string) => (
+                                        {String(item.mentioned_user_ids).split(',').filter(Boolean).map((id: string) => (
                                             <Tag key={id} color="blue" style={{ margin: 0 }}>
                                                 @{getUserName(id)}
                                             </Tag>
