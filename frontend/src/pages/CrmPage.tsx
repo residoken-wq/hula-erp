@@ -4,10 +4,13 @@ import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOu
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import dayjs from 'dayjs';
+import isBetween from 'dayjs/plugin/isBetween';
 import QuotationTemplate from '../components/QuotationTemplate';
 import SalesOrderDetail from '../components/SalesOrderDetail';
 import QuickTaskModal from '../components/QuickTaskModal';
 import useMobile from '../hooks/useMobile';
+
+dayjs.extend(isBetween);
 
 const { Text } = Typography;
 
