@@ -26,6 +26,8 @@ import { BlogsModule } from './blogs/blogs.module';
 import { PublicModule } from './public/public.module';
 import { HrModule } from './hr/hr.module';
 import { FirebaseModule } from './firebase/firebase.module';
+import { SocialModule } from './social/social.module';
+import { MarketingModule } from './marketing/marketing.module';
 
 // Entities
 import { Product } from './products/product.entity';
@@ -99,6 +101,14 @@ import { AppController } from './app.controller';
 
 import { AiModule } from './ai/ai.module';
 
+// Social & Marketing Entities
+import { SocialChannel } from './social/entities/social-channel.entity';
+import { SocialOrder } from './social/entities/social-order.entity';
+import { SocialProductMapping } from './social/entities/social-product-mapping.entity';
+import { MarketingCampaign } from './marketing/entities/marketing-campaign.entity';
+import { CustomerSegment } from './marketing/entities/customer-segment.entity';
+import { AutomationWorkflow } from './marketing/entities/automation-workflow.entity';
+
 import { MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
 import { UserContextInterceptor } from './common/interceptors/user-context.interceptor';
 
@@ -131,7 +141,10 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           User, UserGroup, GroupPermission,
           SystemConfig, ActivityLog,
           BlogPost,
-          Employee, Attendance, LeaveRequest, LeaveEntitlement, AssetAssignment, Payslip, TrainingPlan, WorkShift
+          Employee, Attendance, LeaveRequest, LeaveEntitlement, AssetAssignment, Payslip, TrainingPlan, WorkShift,
+          // Social & Marketing
+          SocialChannel, SocialOrder, SocialProductMapping,
+          MarketingCampaign, CustomerSegment, AutomationWorkflow
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         subscribers: [],
@@ -145,6 +158,8 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
     ProcessesModule, CategoriesModule, AiModule,
     BlogsModule, PublicModule, HrModule,
     FirebaseModule, // Firebase real-time notifications
+    SocialModule, // Social integration (Facebook, Shopee, TikTok)
+    MarketingModule, // Marketing campaigns, segments, automation
     TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
   ],
   providers: [

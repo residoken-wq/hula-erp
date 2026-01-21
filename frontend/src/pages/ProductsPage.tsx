@@ -76,7 +76,10 @@ const ProductsPage: React.FC = () => {
             setData(Array.isArray(res.data) ? res.data : []);
 
             const resCat = await axios.get(`${API_URL}/categories`);
-            setCategories(Array.isArray(resCat.data) ? resCat.data : []);
+            const sortedCategories = Array.isArray(resCat.data)
+                ? resCat.data.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
+                : [];
+            setCategories(sortedCategories);
 
             const resMat = await axios.get(`${API_URL}/materials`);
             const normalizedMaterials = Array.isArray(resMat.data)
@@ -433,7 +436,7 @@ const ProductsPage: React.FC = () => {
                                             <Col span={12}><Form.Item name="unit" label="ĐVT"><Input /></Form.Item></Col>
                                             <Col span={12}><Form.Item name="is_active" label="Trạng thái"><Select><Option value={true}>Hoạt động</Option><Option value={false}>Ngừng bán</Option></Select></Form.Item></Col>
                                         </Row>
-                                        <Form.Item name="category_id" label="Phân loại"><Select showSearch optionFilterProp="children" options={categories.map(c => ({ label: c.name, value: c.id }))} /></Form.Item>
+                                        <Form.Item name="category_id" label="Phân loại"><Select showSearch optionFilterProp="label" options={categories.map(c => ({ label: c.name, value: c.id }))} /></Form.Item>
                                     </Col>
 
                                     <Col span={8}>

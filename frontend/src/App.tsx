@@ -3,7 +3,8 @@ import { Layout, Menu, theme, Button, Avatar, Dropdown, Modal, Form, Input, mess
 import type { MenuProps } from 'antd';
 import {
     DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
-    SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined, MenuOutlined, IdcardOutlined
+    SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined, MenuOutlined, IdcardOutlined,
+    LinkOutlined, RocketOutlined, FacebookOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Drawer } from 'antd'; // <--- Import Drawer
@@ -51,6 +52,9 @@ const DashboardPage = React.lazy(() => import('./pages/DashboardPage')); // <---
 const WebsiteProductsPage = React.lazy(() => import('./pages/WebsiteProductsPage')); // <--- Website Products
 const HRPage = React.lazy(() => import('./pages/HRPage')); // <--- HR Module
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage')); // <--- Profile Page
+const SocialChannelsPage = React.lazy(() => import('./pages/SocialChannelsPage')); // <--- Social Channels
+const SocialOrdersPage = React.lazy(() => import('./pages/SocialOrdersPage')); // <--- Social Orders
+const MarketingPage = React.lazy(() => import('./pages/MarketingPage')); // <--- Marketing
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
     return { key, icon, children, label } as MenuItem;
@@ -181,6 +185,15 @@ const App: React.FC = () => {
         // HR - Chỉ hiện cho user có quyền HR
         if (hasPerm('HR')) {
             items.push(getItem(<Link to="/hr">Nhân sự (HR)</Link>, '/hr', <IdcardOutlined />));
+        }
+
+        // SOCIAL & MARKETING
+        if (hasPerm('SALES')) {
+            items.push(getItem('Kênh Bán Hàng Social', 'sub_social', <FacebookOutlined />, [
+                getItem(<Link to="/social/channels">Quản lý Kênh</Link>, 'social_channels'),
+                getItem(<Link to="/social/orders">Đơn hàng từ Sàn</Link>, 'social_orders'),
+            ]));
+            items.push(getItem(<Link to="/marketing">Marketing</Link>, 'marketing', <RocketOutlined />));
         }
 
         // 9. Hệ thống
@@ -316,6 +329,15 @@ const App: React.FC = () => {
 
                                                 {hasPerm('HR') && (
                                                     <Route path="/hr" element={<HRPage />} />
+                                                )}
+
+                                                {/* SOCIAL & MARKETING ROUTES */}
+                                                {hasPerm('SALES') && (
+                                                    <>
+                                                        <Route path="/social/channels" element={<SocialChannelsPage />} />
+                                                        <Route path="/social/orders" element={<SocialOrdersPage />} />
+                                                        <Route path="/marketing" element={<MarketingPage />} />
+                                                    </>
                                                 )}
 
                                                 {hasPerm('USERS') && (
