@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Upload, Button, message, Popover, Image } from 'antd';
-import { UploadOutlined, FileOutlined, DeleteOutlined, PaperClipOutlined } from '@ant-design/icons';
+import { Upload, Button, message, Popover } from 'antd';
+import { UploadOutlined, FileOutlined, DeleteOutlined, PaperClipOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import { API_URL } from '../../config';
 import axios from 'axios';
 
@@ -13,6 +13,9 @@ interface Props {
 
 const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5, title = "Đính kèm chứng từ" }) => {
     const [uploading, setUploading] = useState(false);
+
+    // Read-only mode when maxFiles is 0
+    const isReadOnly = maxFiles === 0;
 
     const handleUpload = async (options: any) => {
         const { file, onSuccess, onError } = options;
@@ -84,107 +87,159 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
         return `${API_URL}/upload/files/${filename}`;
     };
 
+    const openFile = (url: string) => {
+        const fullUrl = getDownloadUrl(url);
+        if (fullUrl) {
+            window.open(fullUrl, '_blank');
+        }
+    };
+
+    // Don't render anything if read-only mode and no attachments
+    if (isReadOnly && (!value || value.length === 0)) {
+        return null;
+    }
+
     return (
-        <div style={{ marginTop: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                <span style={{ fontWeight: 500 }}>
-                    <PaperClipOutlined /> {title} ({value.length}/{maxFiles})
-                </span>
-            </div>
+        <div style={{ marginTop: isReadOnly ? 0 : 10 }}>
+            {/* Hide title in read-only mode */}
+            {!isReadOnly && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <span style={{ fontWeight: 500 }}>
+                        <PaperClipOutlined /> {title} ({value.length}/{maxFiles})
+                    </span>
+                </div>
+            )}
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                <Image.PreviewGroup>
-                    {value.map((url, index) => {
-                        const fileName = url ? url.split('/').pop() : 'file';
-                        const fullUrl = getDownloadUrl(url);
-                        // Improved isImage detection - check filename for common extensions
-                        const isImage = fileName ? /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(fileName) : false;
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: isReadOnly ? 0 : 8 }}>
+                {value.map((url, index) => {
+                    const fileName = url ? url.split('/').pop() : 'file';
+                    const fullUrl = getDownloadUrl(url);
+                    // Improved isImage detection - check filename for common extensions
+                    const isImage = fileName ? /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(fileName) : false;
 
-                        return (
-                            <div key={index} style={{ position: 'relative', display: 'inline-block' }}>
-                                <Popover content={fileName} trigger="hover">
-                                    {isImage ? (
-                                        <div style={{
+                    return (
+                        <div key={index} style={{ position: 'relative', display: 'inline-block' }}>
+                            <Popover
+                                content={
+                                    <div style={{ maxWidth: 200 }}>
+                                        <div style={{ marginBottom: 8, wordBreak: 'break-all' }}>{fileName}</div>
+                                        <Button
+                                            size="small"
+                                            icon={<EyeOutlined />}
+                                            onClick={() => openFile(url)}
+                                            style={{ marginRight: 4 }}
+                                        >
+                                            Xem
+                                        </Button>
+                                        <Button
+                                            size="small"
+                                            icon={<DownloadOutlined />}
+                                            onClick={() => {
+                                                const link = document.createElement('a');
+                                                link.href = fullUrl;
+                                                link.download = fileName || 'file';
+                                                link.target = '_blank';
+                                                link.click();
+                                            }}
+                                        >
+                                            Tải
+                                        </Button>
+                                    </div>
+                                }
+                                trigger="hover"
+                            >
+                                {isImage ? (
+                                    <div
+                                        style={{
                                             width: 40, height: 40,
                                             border: '1px solid #d9d9d9',
                                             borderRadius: 4,
                                             overflow: 'hidden',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            cursor: 'pointer'
-                                        }}>
-                                            <Image
-                                                width={40}
-                                                height={40}
-                                                src={fullUrl}
-                                                style={{ objectFit: 'cover' }}
-                                                fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect fill='%23f5f5f5' width='40' height='40'/%3E%3Ctext x='50%25' y='50%25' font-size='20' text-anchor='middle' dominant-baseline='middle' fill='%23bbb'%3E?%3C/text%3E%3C/svg%3E"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <a
-                                            href={fullUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                width: 40,
-                                                height: 40,
-                                                border: '1px solid #d9d9d9',
-                                                borderRadius: 4,
-                                                background: '#fafafa',
-                                                color: '#1890ff',
-                                                fontSize: 20
+                                            cursor: 'pointer',
+                                            background: '#fafafa'
+                                        }}
+                                        onClick={() => openFile(url)}
+                                    >
+                                        <img
+                                            src={fullUrl}
+                                            alt={fileName}
+                                            style={{ width: 40, height: 40, objectFit: 'cover' }}
+                                            onError={(e) => {
+                                                // On error, replace with file icon
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                target.parentElement!.innerHTML = '<span style="font-size:20px;color:#1890ff">📷</span>';
                                             }}
-                                        >
-                                            <FileOutlined />
-                                        </a>
-                                    )}
-                                </Popover>
-                                {onChange && maxFiles > 0 && (
-                                    <Button
-                                        type="text"
-                                        size="small"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div
+                                        onClick={() => openFile(url)}
                                         style={{
-                                            position: 'absolute',
-                                            top: -8,
-                                            right: -8,
-                                            background: 'white',
-                                            border: '1px solid #eee',
-                                            borderRadius: '50%',
-                                            width: 16,
-                                            height: 16,
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            padding: 0,
-                                            fontSize: 10,
-                                            color: 'red',
-                                            zIndex: 10,
-                                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                            width: 40,
+                                            height: 40,
+                                            border: '1px solid #d9d9d9',
+                                            borderRadius: 4,
+                                            background: '#fafafa',
+                                            color: '#1890ff',
+                                            fontSize: 20,
+                                            cursor: 'pointer'
                                         }}
-                                        onClick={() => handleRemove(index)}
                                     >
-                                        <DeleteOutlined />
-                                    </Button>
+                                        <FileOutlined />
+                                    </div>
                                 )}
-                            </div>
-                        );
-                    })}
-                </Image.PreviewGroup>
+                            </Popover>
+                            {onChange && !isReadOnly && (
+                                <Button
+                                    type="text"
+                                    size="small"
+                                    style={{
+                                        position: 'absolute',
+                                        top: -8,
+                                        right: -8,
+                                        background: 'white',
+                                        border: '1px solid #eee',
+                                        borderRadius: '50%',
+                                        width: 16,
+                                        height: 16,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: 0,
+                                        fontSize: 10,
+                                        color: 'red',
+                                        zIndex: 10,
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                    }}
+                                    onClick={() => handleRemove(index)}
+                                >
+                                    <DeleteOutlined />
+                                </Button>
+                            )}
+                        </div>
+                    );
+                })}
 
-                <Upload
-                    customRequest={handleUpload}
-                    showUploadList={false}
-                    multiple={false}
-                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx"
-                >
-                    <Button icon={<UploadOutlined />} loading={uploading} disabled={value.length >= maxFiles} type="dashed" style={{ height: 40, width: 40, padding: 0 }} />
-                </Upload>
+                {/* Only show upload button if not read-only */}
+                {!isReadOnly && (
+                    <Upload
+                        customRequest={handleUpload}
+                        showUploadList={false}
+                        multiple={false}
+                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx"
+                    >
+                        <Button icon={<UploadOutlined />} loading={uploading} disabled={value.length >= maxFiles} type="dashed" style={{ height: 40, width: 40, padding: 0 }} />
+                    </Upload>
+                )}
             </div>
         </div>
     );
 };
 
 export default AttachmentUpload;
+
