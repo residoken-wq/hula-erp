@@ -564,6 +564,11 @@ export class SalesService {
             }
         }
 
+        // Feature: Auto-populate description for COMBO products if empty
+        if (order.items && order.items.length > 0) {
+            await this.productsService.populateComboDescriptions(order.items);
+        }
+
         // Filter out deleted comments for Portal View (Manual filter because relations loading ignores where condition)
         if (order.comments) {
             order.comments = order.comments.filter(c => !c.deleted_at);

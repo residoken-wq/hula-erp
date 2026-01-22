@@ -35,28 +35,34 @@ export class ProductsService {
         });
 
         // For COMBO products, fetch and attach component info
-        const comboProducts = products.filter(p => p.product_type === 'COMBO');
-        for (const combo of comboProducts) {
+        // For COMBO products, fetch and attach component info
+        await this.populateComboDescriptions(products);
+        return products;
+    }
+
+    async populateComboDescriptions(products: any[]) {
+        const comboProducts = products.filter(p => p.product_type === 'COMBO' || (p.product && p.product.product_type === 'COMBO'));
+
+        for (const item of comboProducts) {
+            // Handle both structure: Product entity directly OR OrderItem with .product relation
+            const product = item.product || item;
+
+            if (!product.id) continue;
+
             const components = await this.componentRepo.find({
-                where: { parent_product: { id: combo.id } },
+                where: { parent_product: { id: product.id } },
                 relations: ['child_product']
             });
-            // Build description from child products if customer_description is empty
-            if (!combo.customer_description && components.length > 0) {
-                combo.customer_description = components
+
+            // Build description if empty
+            if (!product.customer_description && components.length > 0) {
+                product.customer_description = components
                     .map(c => `• ${c.child_product?.name || 'N/A'} (x${c.quantity})`)
                     .join('\n');
             }
-            // Also attach components array for frontend access
-            (combo as any).components = components.map(c => ({
-                name: c.child_product?.name,
-                sku: c.child_product?.sku,
-                quantity: c.quantity
-            }));
         }
-
-        return products;
     }
+
 
 
     async searchProducts(keyword: string) {
