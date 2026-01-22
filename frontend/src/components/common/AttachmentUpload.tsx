@@ -92,6 +92,7 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
 
     const openFile = (url: string) => {
         const fullUrl = getDownloadUrl(url);
+        console.log('[AttachmentUpload] Opening file:', { originalUrl: url, fullUrl, API_URL });
         if (fullUrl) {
             // Open in new tab - fullUrl is now always an absolute URL
             window.open(fullUrl, '_blank', 'noopener,noreferrer');

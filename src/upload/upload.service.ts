@@ -125,11 +125,15 @@ export class UploadService {
       };
 
       const contentType = mimeTypes[ext] || 'application/octet-stream';
+      const isImage = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(ext);
 
       res.set('Content-Type', contentType);
       res.set('Content-Length', stat.size);
+      res.set('Content-Disposition', isImage ? 'inline' : `attachment; filename="${safeName}"`);
       res.set('Cache-Control', 'public, max-age=86400'); // Cache 1 day
       res.set('Access-Control-Allow-Origin', '*'); // CORS - allow all origins
+      res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.set('Access-Control-Allow-Headers', '*');
       res.set('X-Content-Type-Options', 'nosniff'); // Security header
 
       // Use stream for better proxy compatibility
