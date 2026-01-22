@@ -297,41 +297,40 @@ const PortalQuotePage: React.FC = () => {
                             {!customerDesc ? (
                                 <div style={{ fontSize: 12, color: '#8c8c8c', fontStyle: 'italic' }}>Chưa có mô tả chi tiết</div>
                             ) : (
-                                <div style={{ background: '#fafafa', padding: '8px 10px', borderRadius: 6, border: '1px solid #f0f0f0' }}>
+                                <div style={{ background: '#fff', padding: '4px 0' }}>
                                     {customerDesc.split('\n').map((line: string, idx: number) => {
                                         const cleanLine = line.trim();
                                         if (!cleanLine) return null;
 
-                                        // Check combo item
+                                        // Regex to capture Combo Item: "• Name (xQty) - [Desc]"
                                         const comboMatch = cleanLine.match(/^•\s*(.*?)\s*\(x(\d+)\)(?:\s*-\s*(.*))?$/);
 
                                         if (comboMatch) {
-                                            const [_, name, qty, subDesc] = comboMatch;
+                                            const [_, name, qty, trailingDesc] = comboMatch;
                                             return (
-                                                <div key={idx} style={{
-                                                    marginBottom: idx === customerDesc.split('\n').length - 1 ? 0 : 6,
-                                                    fontSize: 13,
-                                                    lineHeight: 1.5
-                                                }}>
-                                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                                                        <span style={{ color: '#bfbfbf', fontSize: 10 }}>●</span>
-                                                        <span style={{ fontStyle: 'italic', fontWeight: 500, color: '#595959' }}>{name}</span>
+                                                <div key={idx} style={{ marginTop: idx > 0 ? 8 : 0 }}>
+                                                    {/* Header: *** Name */}
+                                                    <div style={{ fontWeight: 700, color: '#333', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                        <span>*** {name}</span>
+                                                        {Number(qty) > 1 && <span style={{ fontWeight: 400, color: '#666', fontSize: 12 }}>(x{qty})</span>}
                                                     </div>
-                                                    <div style={{ paddingLeft: 14 }}>
-                                                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>
-                                                            {subDesc ? subDesc : <span style={{ opacity: 0.7 }}>...</span>}
-                                                            {Number(qty) > 1 && <Tag style={{ marginLeft: 6, fontSize: 10, padding: '0 4px' }}>x{qty}</Tag>}
+
+                                                    {/* If there's a description on the same line, render it as first row */}
+                                                    {trailingDesc && (
+                                                        <div style={{ paddingLeft: 16, marginTop: 2, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                                                            <span style={{ fontSize: 14, color: '#999', lineHeight: 1 }}>.</span>
+                                                            <span style={{ fontSize: 13, color: '#666', fontStyle: 'italic', lineHeight: 1.4 }}>{trailingDesc}</span>
                                                         </div>
-                                                    </div>
+                                                    )}
                                                 </div>
                                             );
                                         }
 
-                                        // Regular line
+                                        // Regular line (or subsequent lines of a combo item description)
                                         return (
-                                            <div key={idx} style={{ fontSize: 13, color: '#595959', marginBottom: 4, lineHeight: 1.5, display: 'flex', gap: 6 }}>
-                                                {cleanLine.startsWith('•') || cleanLine.startsWith('-') ? <span style={{ color: '#bfbfbf' }}>•</span> : null}
-                                                <span style={{ flex: 1, fontStyle: 'italic' }}>{cleanLine.replace(/^[•-]\s*/, '')}</span>
+                                            <div key={idx} style={{ paddingLeft: 16, marginTop: 2, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                                                <span style={{ fontSize: 14, color: '#999', lineHeight: 1 }}>.</span>
+                                                <span style={{ fontSize: 13, color: '#666', fontStyle: 'italic', lineHeight: 1.4 }}>{cleanLine.replace(/^[•-]\s*/, '')}</span>
                                             </div>
                                         );
                                     })}
