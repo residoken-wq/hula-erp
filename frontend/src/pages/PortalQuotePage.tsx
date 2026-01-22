@@ -218,7 +218,7 @@ const PortalQuotePage: React.FC = () => {
             }
         },
         {
-            title: 'Sản Phẩm',
+            title: 'Mô tả Sản Phẩm',
             key: 'product_details',
             width: 280,
             render: (_: any, r: any) => {
@@ -271,7 +271,7 @@ const PortalQuotePage: React.FC = () => {
             }
         },
         {
-            title: 'Mô Tả Sản Phẩm (VAT)',
+            title: 'Tên Sản Phẩm (VAT)',
             dataIndex: 'vat_content',
             key: 'vat_content',
             width: 180,
