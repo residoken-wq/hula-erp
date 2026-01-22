@@ -282,780 +282,763 @@ const PortalQuotePage: React.FC = () => {
                 const customerDesc = r.product?.customer_description;
                 return (
                     <div>
-                        <div style={{ marginBottom: 4 }}>
-                            {!customerDesc ? (
-                                <div style={{ fontWeight: 600, fontSize: 14, color: '#1f1f1f', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {/* --- HEADER: Name + Tag --- */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <div style={{ fontWeight: 700, fontSize: 15, color: '#262626', lineHeight: 1.3 }}>
                                     {r.product_name_real || r.product?.name || r.sku}
                                 </div>
+                                {/* Auto-detect tags based on SKU or Type */}
+                                {r.product?.product_type === 'COMBO' && <Tag color="geekblue" style={{ margin: 0, borderRadius: 4, fontSize: 10, fontWeight: 600 }}>COMBO</Tag>}
+                                {(r.sku.includes('TUI') || r.sku.includes('PHU_KIEN')) && <Tag color="default" style={{ margin: 0, borderRadius: 4, fontSize: 10 }}>PHỤ KIỆN</Tag>}
+                            </div>
+
+                            {/* --- BODY: Description --- */}
+                            {!customerDesc ? (
+                                <div style={{ fontSize: 12, color: '#8c8c8c', fontStyle: 'italic' }}>Chưa có mô tả chi tiết</div>
                             ) : (
-                                <div>
-                                    {/* Render Description Rich Text */}
+                                <div style={{ background: '#fafafa', padding: '8px 10px', borderRadius: 6, border: '1px solid #f0f0f0' }}>
                                     {customerDesc.split('\n').map((line: string, idx: number) => {
                                         const cleanLine = line.trim();
                                         if (!cleanLine) return null;
 
-                                        // Check if line looks like a combo item: "• Name (xQty) - Desc"
+                                        // Check combo item
                                         const comboMatch = cleanLine.match(/^•\s*(.*?)\s*\(x(\d+)\)(?:\s*-\s*(.*))?$/);
 
                                         if (comboMatch) {
                                             const [_, name, qty, subDesc] = comboMatch;
                                             return (
                                                 <div key={idx} style={{
-                                                    display: 'flex',
-                                                    alignItems: 'baseline',
-                                                    gap: 6,
-                                                    marginBottom: 6,
+                                                    marginBottom: idx === customerDesc.split('\n').length - 1 ? 0 : 6,
                                                     fontSize: 13,
-                                                    lineHeight: 1.5,
-                                                    borderBottom: '1px dashed #f0f0f0',
-                                                    paddingBottom: 4
+                                                    lineHeight: 1.5
                                                 }}>
-                                                    <div style={{ color: '#1890ff', fontSize: 8, flexShrink: 0 }}>●</div>
-                                                    <div style={{ flex: 1 }}>
-                                                        <span style={{ fontWeight: 500, color: '#262626' }}>{name}</span>
-                                                        <span style={{
-                                                            display: 'inline-block',
-                                                            background: '#f5f5f5',
-                                                            color: '#595959',
-                                                            fontSize: 11,
-                                                            padding: '0 4px',
-                                                            borderRadius: 4,
-                                                            marginLeft: 6,
-                                                            border: '1px solid #d9d9d9'
-                                                        }}>x{qty}</span>
-                                                        {subDesc && (
-                                                            <div style={{ fontSize: 12, color: '#8c8c8c', fontStyle: 'italic', marginTop: 2 }}>{subDesc}</div>
-                                                        )}
+                                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                                        <span style={{ color: '#bfbfbf', fontSize: 10 }}>●</span>
+                                                        <span style={{ fontStyle: 'italic', fontWeight: 500, color: '#595959' }}>{name}</span>
+                                                    </div>
+                                                    <div style={{ paddingLeft: 14 }}>
+                                                        <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                                                            {subDesc ? subDesc : <span style={{ opacity: 0.7 }}>...</span>}
+                                                            {Number(qty) > 1 && <Tag style={{ marginLeft: 6, fontSize: 10, padding: '0 4px' }}>x{qty}</Tag>}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
                                         }
 
-                                        // Regular line (bullet or not)
+                                        // Regular line
                                         return (
-                                            <div key={idx} style={{
-                                                fontSize: 13,
-                                                color: '#595959',
-                                                marginBottom: 4,
-                                                lineHeight: 1.5,
-                                                display: 'flex',
-                                                gap: 6
-                                            }}>
+                                            <div key={idx} style={{ fontSize: 13, color: '#595959', marginBottom: 4, lineHeight: 1.5, display: 'flex', gap: 6 }}>
                                                 {cleanLine.startsWith('•') || cleanLine.startsWith('-') ? <span style={{ color: '#bfbfbf' }}>•</span> : null}
-                                                <span style={{ flex: 1 }}>{cleanLine.replace(/^[•-]\s*/, '')}</span>
+                                                <span style={{ flex: 1, fontStyle: 'italic' }}>{cleanLine.replace(/^[•-]\s*/, '')}</span>
                                             </div>
                                         );
                                     })}
                                 </div>
                             )}
-                        </div>
-                        {/* 
-                        {customerDesc && (
-                            <div style={{ fontSize: 12, color: '#666', fontStyle: 'italic', marginBottom: 4, whiteSpace: 'pre-wrap', background: '#fafafa', padding: 5, borderRadius: 4, border: '1px dashed #e8e8e8' }}>
-                                {customerDesc}
+
+                            {/* --- FOOTER: SKU Tags --- */}
+                            <div style={{ marginTop: 2 }}>
+                                <Tag style={{ fontSize: 10, margin: 0, padding: '0 6px', background: '#f5f5f5', border: '1px solid #d9d9d9', color: '#595959' }}>{r.sku}</Tag>
                             </div>
-                        )} 
-                        */}
-                        <div>
-                            <Tag style={{ fontSize: 10, margin: 0, padding: '0 4px' }}>{r.sku}</Tag>
-                            {r.variant_color && <Tag color="blue" style={{ fontSize: 10, margin: 0, padding: '0 4px', marginLeft: 4 }}>{r.variant_color}</Tag>}
                         </div>
-                    </div>
-                );
+
+                        );
             }
         },
-        {
-            title: 'Tên Sản Phẩm (VAT)',
-            dataIndex: 'vat_content',
-            key: 'vat_content',
-            width: 180,
-            render: (text: string) => {
-                return (
-                    <div style={{
-                        fontSize: 13,
-                        color: '#555',
-                        whiteSpace: 'pre-wrap',
-                        lineHeight: 1.5,
-                        minWidth: 200
-                    }}>
-                        {text || '-'}
-                    </div>
-                );
-            }
-        },
-        {
-            title: 'ĐVT',
-            dataIndex: 'unit',
-            width: 50,
-            align: 'center' as const,
-            render: () => <span style={{ color: '#666' }}>Cái</span>
-        },
-        {
-            title: 'SL',
-            dataIndex: 'quantity',
-            width: 50,
-            align: 'center' as const,
-            render: (v: any) => <b style={{ fontSize: 14 }}>{Number(v)}</b>
-        },
-        {
-            title: 'Đơn Giá',
-            dataIndex: 'unit_price',
-            width: 100,
-            align: 'right' as const,
-            render: (v: any) => <span style={{ color: '#555' }}>{Number(v).toLocaleString()}</span>
-        },
-        {
-            title: 'Thành Tiền',
-            dataIndex: 'subtotal',
-            width: 110,
-            align: 'right' as const,
-            render: (v: any) => <b style={{ fontSize: 14, color: '#1f1f1f' }}>{Number(v).toLocaleString()}</b>
-        }
-    ];
-
-    return (
-        <div style={{ background: '#f4f7f6', minHeight: '100vh', paddingBottom: 60, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial' }}>
-            {/* --- HEADER --- */}
-            <div style={{ background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 1000 }}>
-                <div style={{ maxWidth: 1200, margin: '0 auto', padding: '15px 20px' }}>
-                    <Row justify="space-between" align="middle" gutter={[16, 16]}>
-                        <Col>
-                            <Space size={15} align="center">
-                                {/* Place Logo Here if needed */}
-                                <div>
-                                    <div style={{ fontSize: 18, fontWeight: 800, color: '#1890ff', textTransform: 'uppercase', letterSpacing: 1 }}>HULA ERP</div>
-                                    <div style={{ fontSize: 12, color: '#999' }}>Cổng thông tin khách hàng</div>
-                                </div>
-                                <Divider type="vertical" style={{ height: 30 }} />
-                                <div>
-                                    <div style={{ fontSize: 12, color: '#888' }}>Mã đơn hàng</div>
-                                    <div style={{ fontWeight: 700, fontSize: 16 }}>#{data.order_code}</div>
-                                </div>
-                            </Space>
-                        </Col>
-                        <Col>
-                            <Space>
-                                <Button icon={<LinkOutlined />} onClick={() => { navigator.clipboard.writeText(window.location.href); message.success('Đã copy link!'); }}>Copy Link</Button>
-                                <Button icon={<PrinterOutlined />} onClick={() => window.print()}>In Trang Này</Button>
-                            </Space>
-                        </Col>
-                    </Row>
-                </div>
-
-                {!isMobile && data.status === 'QUOTATION' && (
-                    <div style={{ borderTop: '1px solid #f0f0f0', background: '#fff' }}>
-                        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <InfoCircleOutlined style={{ color: '#faad14', fontSize: 18 }} />
-                                <span style={{ fontSize: 14 }}>Vui lòng kiểm tra kỹ thông tin và phản hồi báo giá này.</span>
-                            </div>
-                            <Space>
-                                <Button danger size="large" onClick={() => handleAction('REJECT')}>Từ Chối</Button>
-                                <Button type="primary" size="large" style={{ background: '#52c41a', borderColor: '#52c41a', boxShadow: '0 4px 10px rgba(82, 196, 26, 0.3)' }} onClick={() => handleAction('ACCEPT')}>Xác Nhận Đồng Ý</Button>
-                            </Space>
+                        {
+                            title: 'Tên Sản Phẩm (VAT)',
+                        dataIndex: 'vat_content',
+                        key: 'vat_content',
+                        width: 180,
+                    render: (text: string) => {
+                        return (
+                        <div style={{
+                            fontSize: 13,
+                            color: '#555',
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.5,
+                            minWidth: 200
+                        }}>
+                            {text || '-'}
                         </div>
-                    </div>
-                )}
-            </div>
+                        );
+                    }
+},
+                        {
+                            title: 'ĐVT',
+                        dataIndex: 'unit',
+                        width: 50,
+                        align: 'center' as const,
+                    render: () => <span style={{ color: '#666' }}>Cái</span>
+},
+                        {
+                            title: 'SL',
+                        dataIndex: 'quantity',
+                        width: 50,
+                        align: 'center' as const,
+                    render: (v: any) => <b style={{ fontSize: 14 }}>{Number(v)}</b>
+},
+                        {
+                            title: 'Đơn Giá',
+                        dataIndex: 'unit_price',
+                        width: 100,
+                        align: 'right' as const,
+                    render: (v: any) => <span style={{ color: '#555' }}>{Number(v).toLocaleString()}</span>
+},
+                        {
+                            title: 'Thành Tiền',
+                        dataIndex: 'subtotal',
+                        width: 110,
+                        align: 'right' as const,
+                    render: (v: any) => <b style={{ fontSize: 14, color: '#1f1f1f' }}>{Number(v).toLocaleString()}</b>
+}
+                        ];
 
-            {/* --- MOBILE FIXED BOTTOM ACTIONS --- */}
-            {isMobile && data.status === 'QUOTATION' && (
-                <div style={{
-                    position: 'fixed', bottom: 0, left: 0, right: 0,
-                    background: '#fff', padding: '12px 16px',
-                    boxShadow: '0 -2px 10px rgba(0,0,0,0.1)', zIndex: 9999,
-                    display: 'flex', gap: 10
-                }}>
-                    <Button danger size="large" block onClick={() => handleAction('REJECT')}>Từ Chối</Button>
-                    <Button type="primary" size="large" block style={{ background: '#52c41a', borderColor: '#52c41a' }} onClick={() => handleAction('ACCEPT')}>Đồng Ý</Button>
-                </div>
-            )}
+                        return (
+                        <div style={{ background: '#f4f7f6', minHeight: '100vh', paddingBottom: 60, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial' }}>
+                            {/* --- HEADER --- */}
+                            <div style={{ background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 1000 }}>
+                                <div style={{ maxWidth: 1200, margin: '0 auto', padding: '15px 20px' }}>
+                                    <Row justify="space-between" align="middle" gutter={[16, 16]}>
+                                        <Col>
+                                            <Space size={15} align="center">
+                                                {/* Place Logo Here if needed */}
+                                                <div>
+                                                    <div style={{ fontSize: 18, fontWeight: 800, color: '#1890ff', textTransform: 'uppercase', letterSpacing: 1 }}>HULA ERP</div>
+                                                    <div style={{ fontSize: 12, color: '#999' }}>Cổng thông tin khách hàng</div>
+                                                </div>
+                                                <Divider type="vertical" style={{ height: 30 }} />
+                                                <div>
+                                                    <div style={{ fontSize: 12, color: '#888' }}>Mã đơn hàng</div>
+                                                    <div style={{ fontWeight: 700, fontSize: 16 }}>#{data.order_code}</div>
+                                                </div>
+                                            </Space>
+                                        </Col>
+                                        <Col>
+                                            <Space>
+                                                <Button icon={<LinkOutlined />} onClick={() => { navigator.clipboard.writeText(window.location.href); message.success('Đã copy link!'); }}>Copy Link</Button>
+                                                <Button icon={<PrinterOutlined />} onClick={() => window.print()}>In Trang Này</Button>
+                                            </Space>
+                                        </Col>
+                                    </Row>
+                                </div>
 
-            {/* --- MAIN CONTENT --- */}
-            <div style={{ maxWidth: 1200, margin: isMobile ? '16px auto' : '30px auto', padding: isMobile ? '0 12px' : '0 20px' }}>
-
-                {/* STATUS BAR */}
-                <Card bordered={false} style={{ marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                    <Steps
-                        current={currentStep}
-                        size={isMobile ? "small" : "small"}
-                        direction={isMobile ? "vertical" : "horizontal"} // <--- Vertical on Mobile
-                        items={[
-                            { title: 'Báo Giá', icon: <SolutionOutlined /> },
-                            { title: 'Xác Nhận & Cọc', icon: <DollarOutlined /> },
-                            { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> },
-                            { title: 'Sản Xuất', icon: <AppstoreAddOutlined /> },
-                            { title: 'Xong SX', icon: <CheckCircleOutlined /> },
-                            { title: 'Giao Hàng', icon: <CarOutlined /> },
-                            { title: 'Hoàn Tất', icon: <DollarOutlined /> }
-                        ]}
-                    />
-                </Card>
-
-                {/* --- INFO ROW: CUSTOMER / VAT / PAYMENT --- */}
-                <Row gutter={24} style={{ marginBottom: 24 }}>
-                    <Col xs={24} md={8}>
-                        <Card title={<span><UserOutlined /> Thông Tin Khách Hàng</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                            <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
-                                <Descriptions.Item label="Đơn vị">{data.customer_name || data.customer?.name || 'Khách lẻ'}</Descriptions.Item>
-                                <Descriptions.Item label="Người nhận">{data.receiver_name || data.customer?.contacts?.[0]?.full_name || data.customer?.name || '-'}</Descriptions.Item>
-                                <Descriptions.Item label="SĐT">{maskPhone(data.receiver_phone || data.customer?.contacts?.[0]?.phone || data.customer?.phone)}</Descriptions.Item>
-                                <Descriptions.Item label="Địa chỉ">{data.shipping_address || data.customer?.address || '-'}</Descriptions.Item>
-                            </Descriptions>
-                        </Card>
-                    </Col>
-                    <Col xs={24} md={8}>
-                        <Card title={<span><ShopOutlined /> Thông Tin Xuất Hóa Đơn</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                            <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
-                                <Descriptions.Item label="Công ty">{data.customer?.legal_name || data.vat_company_name || data.customer?.name || '-'}</Descriptions.Item>
-                                <Descriptions.Item label="MST">{data.customer?.tax_code || data.vat_tax_code || '-'}</Descriptions.Item>
-                                <Descriptions.Item label="Địa chỉ">{data.customer?.legal_address || data.vat_address || data.customer?.address || '-'}</Descriptions.Item>
-                                {(data.vat_email || data.customer?.einvoice_email) && <Descriptions.Item label="Email nhận HĐ">{data.vat_email || data.customer.einvoice_email}</Descriptions.Item>}
-                                {data.vat_invoice_link && (
-                                    <Descriptions.Item label="Hóa đơn">
-                                        <Button
-                                            type="link"
-                                            size="small"
-                                            icon={<FilePdfOutlined />}
-                                            onClick={() => window.open(data.vat_invoice_link, '_blank')}
-                                            style={{ padding: 0 }}
-                                        >
-                                            Xem/Tải Hóa Đơn
-                                        </Button>
-                                    </Descriptions.Item>
+                                {!isMobile && data.status === 'QUOTATION' && (
+                                    <div style={{ borderTop: '1px solid #f0f0f0', background: '#fff' }}>
+                                        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <InfoCircleOutlined style={{ color: '#faad14', fontSize: 18 }} />
+                                                <span style={{ fontSize: 14 }}>Vui lòng kiểm tra kỹ thông tin và phản hồi báo giá này.</span>
+                                            </div>
+                                            <Space>
+                                                <Button danger size="large" onClick={() => handleAction('REJECT')}>Từ Chối</Button>
+                                                <Button type="primary" size="large" style={{ background: '#52c41a', borderColor: '#52c41a', boxShadow: '0 4px 10px rgba(82, 196, 26, 0.3)' }} onClick={() => handleAction('ACCEPT')}>Xác Nhận Đồng Ý</Button>
+                                            </Space>
+                                        </div>
+                                    </div>
                                 )}
-                            </Descriptions>
-                        </Card>
-                    </Col>
-                    <Col xs={24} md={8}>
-                        <Card title={<span><CreditCardOutlined /> Thông Tin Thanh Toán</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                            {/* DEPOSIT REQUIREMENT */}
-                            {Number(data.deposit_amount) > 0 && (
-                                <div style={{ background: '#f9f0ff', padding: 10, borderRadius: 8, border: '1px solid #d3adf7', textAlign: 'center', marginBottom: 10 }}>
-                                    <div style={{ color: '#722ed1', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>💰 Cần đặt cọc ({data.deposit_percent || 0}%)</div>
-                                    <div style={{ fontSize: 18, fontWeight: '700', color: '#531dab' }}>{Number(data.deposit_amount).toLocaleString()} ₫</div>
-                                </div>
-                            )}
-
-                            {Number(data.paid_amount) > 0 && (
-                                <div style={{ background: '#f0f5ff', padding: 8, borderRadius: 8, border: '1px solid #adc6ff', textAlign: 'center', marginBottom: 8 }}>
-                                    <div style={{ color: '#2f54eb', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Đã thanh toán</div>
-                                    <div style={{ fontSize: 18, fontWeight: '700', color: '#1d39c4' }}>{Number(data.paid_amount).toLocaleString()} ₫</div>
-                                </div>
-                            )}
-
-                            <div style={{ background: '#f6ffed', padding: 10, borderRadius: 8, border: '1px solid #b7eb8f', textAlign: 'center', marginBottom: 10 }}>
-                                <div style={{ color: '#52c41a', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Cần thanh toán</div>
-                                <div style={{ fontSize: 20, fontWeight: '800', color: '#389e0d' }}>{(Number(data.total_amount) - Number(data.paid_amount)).toLocaleString()} ₫</div>
                             </div>
-                            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-                                <div><b>ACB - TP.HCM</b></div>
-                                <div>STK: <span style={{ fontFamily: 'monospace', background: '#f0f0f0', padding: '0 4px' }}>141847859</span></div>
-                                <div>Chủ TK: CTY TNHH TM DV TƯỜNG LINH</div>
-                                <div>Nội dung: <b>{data.order_code}</b></div>
-                            </div>
-                        </Card>
-                    </Col>
-                </Row>
 
-                {/* --- DETAILS ROW: TABLE --- */}
-                <Row gutter={24}>
-                    <Col span={24}>
-                        <Card title={<span style={{ fontWeight: 700, fontSize: 16 }}>📋 Chi Tiết Đơn Hàng</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                            {data.note && (
-                                <div style={{ display: 'flex', gap: 10, marginBottom: 20, background: '#fff7e6', padding: 15, borderRadius: 8, border: '1px solid #ffec3d' }}>
-                                    <InfoCircleOutlined style={{ color: '#faad14', marginTop: 4 }} />
-                                    <div>
-                                        <div style={{ fontWeight: 700, color: '#d48806', marginBottom: 5 }}>Ghi chú từ người bán:</div>
-                                        <div style={{ color: '#595959', whiteSpace: 'pre-line' }}>{data.note}</div>
-                                    </div>
+                            {/* --- MOBILE FIXED BOTTOM ACTIONS --- */}
+                            {isMobile && data.status === 'QUOTATION' && (
+                                <div style={{
+                                    position: 'fixed', bottom: 0, left: 0, right: 0,
+                                    background: '#fff', padding: '12px 16px',
+                                    boxShadow: '0 -2px 10px rgba(0,0,0,0.1)', zIndex: 9999,
+                                    display: 'flex', gap: 10
+                                }}>
+                                    <Button danger size="large" block onClick={() => handleAction('REJECT')}>Từ Chối</Button>
+                                    <Button type="primary" size="large" block style={{ background: '#52c41a', borderColor: '#52c41a' }} onClick={() => handleAction('ACCEPT')}>Đồng Ý</Button>
                                 </div>
                             )}
 
-                            {isMobile ? (
-                                // MOBILE LIST VIEW
-                                <List
-                                    dataSource={data.items}
-                                    rowKey="id"
-                                    renderItem={(item: any, index: number) => {
-                                        // Re-use logic for image
-                                        // Fix: Check item.image_url first (Snapshot/Custom Link), then sample_image, then product.image_url
-                                        const rawUrl = item.image_url || item.sample_image || item.product?.image_url;
-                                        let finalSrc = rawUrl;
-                                        let isImage = false;
+                            {/* --- MAIN CONTENT --- */}
+                            <div style={{ maxWidth: 1200, margin: isMobile ? '16px auto' : '30px auto', padding: isMobile ? '0 12px' : '0 20px' }}>
 
-                                        if (rawUrl && rawUrl.includes('drive.google.com')) {
-                                            let id = '';
-                                            try {
-                                                const urlObj = new URL(rawUrl);
-                                                if (urlObj.pathname.includes('/d/')) {
-                                                    const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                                                    if (match && match[1]) id = match[1];
-                                                } else if (urlObj.searchParams.has('id')) {
-                                                    id = urlObj.searchParams.get('id') || '';
-                                                }
-                                            } catch (e) {
-                                                const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                                                if (match && match[1]) id = match[1];
-                                            }
-
-                                            if (id) {
-                                                finalSrc = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
-                                                isImage = true;
-                                            }
-                                        } else if (rawUrl && rawUrl.includes('googleusercontent.com')) { isImage = true; }
-                                        else if (rawUrl && (rawUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || rawUrl.startsWith('data:image'))) {
-                                            if (!rawUrl.startsWith('http') && !rawUrl.startsWith('data:')) finalSrc = `${API_URL}${rawUrl}`;
-                                            isImage = true;
-                                        }
-
-                                        return (
-                                            <Card
-                                                size="small"
-                                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}
-                                                bodyStyle={{ padding: 12 }}
-                                            >
-                                                <div style={{ display: 'flex', gap: 12 }}>
-                                                    {/* Image */}
-                                                    <div style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #eee' }}>
-                                                        {isImage ? (
-                                                            <img
-                                                                src={finalSrc} alt="prod"
-                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                                onClick={() => handlePreview(finalSrc)}
-                                                            />
-                                                        ) : <div style={{ width: '100%', height: '100%', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}><ShopOutlined /></div>}
-                                                    </div>
-
-                                                    {/* Content */}
-                                                    <div style={{ flex: 1 }}>
-                                                        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
-                                                            {item.product?.customer_description || item.product_name_real || item.product?.name}
-                                                        </div>
-                                                        <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>{item.sku} {item.variant_color && `• ${item.variant_color}`}</div>
-
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <div style={{ fontSize: 12 }}>
-                                                                <b>{Number(item.quantity)}</b> x {Number(item.unit_price).toLocaleString()}
-                                                            </div>
-                                                            <div style={{ fontWeight: 700, fontSize: 14 }}>
-                                                                {Number(item.subtotal).toLocaleString()}₫
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                {item.vat_content && (
-                                                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #f0f0f0', fontSize: 11, color: '#888' }}>
-                                                        {item.vat_content}
-                                                    </div>
-                                                )}
-                                            </Card>
-                                        );
-                                    }}
-                                />
-                            ) : (
-                                // DESKTOP TABLE VIEW
-                                <Table
-                                    dataSource={data.items}
-                                    columns={columns}
-                                    rowKey="id"
-                                    pagination={false}
-                                    bordered={false}
-                                    scroll={{ x: '100%' }}
-                                    className="quote-table"
-                                    summary={() => {
-                                        // Summary handled below for both views actually, but Antd Table Summary is properly placed inside Table.
-                                        // For mobile, we might need a separate summary block or use specific mobile summary logic. 
-                                        // Let's keep the Desktop summary here and add a visual summary for mobile below the list.
-                                        const vatRate = data.vat_rate || 0;
-                                        const subTotal = data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0);
-                                        const discountAmount = Number(data.discount_amount || 0);
-                                        const taxable = Math.max(0, subTotal - discountAmount);
-                                        const vatAmount = taxable * (vatRate / 100);
-                                        const total = taxable + vatAmount + Number(data.shipping_fee || 0);
-
-                                        return (
-                                            <Table.Summary fixed>
-                                                <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Tổng tiền hàng</span></Table.Summary.Cell>
-                                                    <Table.Summary.Cell index={1} align="right"><b>{subTotal.toLocaleString()}</b></Table.Summary.Cell>
-                                                </Table.Summary.Row>
-                                                {discountAmount > 0 && (
-                                                    <Table.Summary.Row>
-                                                        <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Giảm giá ({data.discount_rate}%)</span></Table.Summary.Cell>
-                                                        <Table.Summary.Cell index={1} align="right"><span style={{ color: '#52c41a' }}>-{discountAmount.toLocaleString()}</span></Table.Summary.Cell>
-                                                    </Table.Summary.Row>
-                                                )}
-                                                <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span></Table.Summary.Cell>
-                                                    <Table.Summary.Cell index={1} align="right">{vatAmount.toLocaleString()}</Table.Summary.Cell>
-                                                </Table.Summary.Row>
-                                                <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Phí vận chuyển</span></Table.Summary.Cell>
-                                                    <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee || 0).toLocaleString()}</Table.Summary.Cell>
-                                                </Table.Summary.Row>
-                                                <Table.Summary.Row style={{ background: '#fafafa' }}>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><b style={{ fontSize: 18, color: '#1890ff' }}>TỔNG CỘNG</b></Table.Summary.Cell>
-                                                    <Table.Summary.Cell index={1} align="right"><b style={{ fontSize: 20, color: '#cf1322' }}>{total.toLocaleString()} ₫</b></Table.Summary.Cell>
-                                                </Table.Summary.Row>
-                                            </Table.Summary>
-                                        );
-                                    }}
-                                />
-                            )}
-
-                            {/* MOBILE SUMMARY BLOCK (Since Table Summary won't show in List) */}
-                            {isMobile && (
-                                <div style={{ background: '#fafafa', padding: 12, borderRadius: 8, marginTop: 12 }}>
-                                    {[
-                                        { label: 'Tổng tiền hàng', value: data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0).toLocaleString() },
-                                        { log: data.discount_amount > 0, label: `Giảm giá (${data.discount_rate}%)`, value: `-${Number(data.discount_amount).toLocaleString()}`, color: 'green' },
-                                        { label: `Thuế VAT (${data.vat_rate || 0}%)`, value: ((Math.max(0, data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0) - Number(data.discount_amount || 0))) * ((data.vat_rate || 0) / 100)).toLocaleString() },
-                                        { label: 'Phí vận chuyển', value: Number(data.shipping_fee || 0).toLocaleString() }
-                                    ].map((row, idx) => {
-                                        if (row.log === false) return null;
-                                        return (
-                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                                                <span style={{ color: '#888' }}>{row.label}</span>
-                                                <span style={{ fontWeight: 600, color: row.color || '#333' }}>{row.value}</span>
-                                            </div>
-                                        )
-                                    })}
-                                    <Divider style={{ margin: '8px 0' }} />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 15 }}>TỔNG CỘNG</span>
-                                        <span style={{ fontWeight: 700, fontSize: 18, color: '#ff4d4f' }}>
-                                            {(
-                                                (Math.max(0, data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0) - Number(data.discount_amount || 0))) * (1 + (data.vat_rate || 0) / 100) + Number(data.shipping_fee || 0)
-                                            ).toLocaleString()} ₫
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Terms */}
-                            {data.terms_content && (
-                                <div style={{ marginTop: 30, background: '#f9f9f9', padding: '20px', borderRadius: 8, border: '1px solid #f0f0f0' }}>
-                                    <div style={{ fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', fontSize: 12, color: '#999' }}>Điều khoản & Quy định</div>
-                                    <div style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#555', lineHeight: 1.6 }}>{data.terms_content}</div>
-                                </div>
-                            )}
-
-                            {/* SAMPLE IMAGES SLIDESHOW */}
-                            {data.approved_sample_images && data.approved_sample_images.length > 0 && (
-                                <div style={{ marginTop: 30, background: '#f0f5ff', padding: '20px', borderRadius: 8, border: '1px solid #adc6ff' }}>
-                                    <div style={{ fontWeight: 700, marginBottom: 15, fontSize: 14, color: '#1d39c4', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <EyeOutlined /> Mẫu Sản Xuất Đã Duyệt
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 10 }}>
-                                        {data.approved_sample_images.map((url: string, index: number) => {
-                                            // Convert Google Drive URLs
-                                            let imgSrc = url;
-                                            const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                                            if (driveMatch) {
-                                                imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1000`;
-                                            }
-                                            const openMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                                            if (openMatch) {
-                                                imgSrc = `https://drive.google.com/thumbnail?id=${openMatch[1]}&sz=w1000`;
-                                            }
-                                            return (
-                                                <div
-                                                    key={index}
-                                                    style={{
-                                                        width: isMobile ? 200 : 250,
-                                                        height: isMobile ? 150 : 200,
-                                                        flexShrink: 0,
-                                                        borderRadius: 8,
-                                                        overflow: 'hidden',
-                                                        background: '#fff',
-                                                        border: '2px solid #91caff',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                    onClick={() => handlePreview(imgSrc)}
-                                                >
-                                                    <img
-                                                        src={imgSrc}
-                                                        alt={`Mẫu ${index + 1}`}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                        onError={(e) => {
-                                                            const target = e.target as HTMLImageElement;
-                                                            target.style.display = 'none';
-                                                            if (target.parentElement) {
-                                                                target.parentElement.innerHTML = '<div style="color:#999;text-align:center;padding:20px;font-size:12px;">⚠️ Lỗi tải hình</div>';
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <div style={{ fontSize: 12, color: '#597ef7', marginTop: 5, textAlign: 'center' }}>
-                                        {data.approved_sample_images.length} hình mẫu • Click để xem lớn
-                                    </div>
-                                </div>
-                            )}
-                        </Card>
-                    </Col>
-                </Row>
-
-                {/* --- BOTTOM ROW: COMMENTS & HISTORY --- */}
-                <Row gutter={24}>
-                    <Col xs={24} md={12}>
-                        <Card title="💬 Thảo Luận" bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12, overflow: 'hidden', height: '100%' }}>
-                            <div style={{ height: 300, overflowY: 'auto', padding: 20, background: '#f9f9f9' }}>
-                                <List dataSource={visibleComments} renderItem={(item: any) => (
-                                    <div style={{ display: 'flex', gap: 10, marginBottom: 15, flexDirection: item.sender_type === 'CUSTOMER' ? 'row-reverse' : 'row' }}>
-                                        <Avatar style={{ backgroundColor: item.sender_type === 'CUSTOMER' ? '#87d068' : '#1890ff' }} icon={item.sender_type === 'CUSTOMER' ? <UserOutlined /> : <SolutionOutlined />} />
-                                        <div style={{ maxWidth: '80%' }}>
-                                            <div style={{ fontSize: 11, color: '#999', marginBottom: 2, textAlign: item.sender_type === 'CUSTOMER' ? 'right' : 'left' }}>
-                                                {item.sender_name} • {dayjs(item.created_at).format('HH:mm DD/MM')}
-                                            </div>
-                                            <div style={{
-                                                padding: '8px 12px',
-                                                background: item.sender_type === 'CUSTOMER' ? '#d9f7be' : '#fff',
-                                                borderRadius: 8,
-                                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                                color: '#333',
-                                                position: 'relative'
-                                            }}>
-                                                <div dangerouslySetInnerHTML={{ __html: item.content }} />
-                                                {item.sender_type === 'CUSTOMER' && (
-                                                    <Button
-                                                        type="text"
-                                                        size="small"
-                                                        danger
-                                                        onClick={() => handleDeleteComment(item.id)}
-                                                        style={{
-                                                            position: 'absolute',
-                                                            top: -8,
-                                                            right: -8,
-                                                            background: '#fff',
-                                                            borderRadius: '50%',
-                                                            padding: '2px 6px',
-                                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                                            fontSize: 10
-                                                        }}
-                                                    >
-                                                        Thu hồi
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )} />
-                                {visibleComments.length === 0 && <Empty description="Chưa có tin nhắn nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
-                            </div>
-                            <div style={{ padding: 15, background: '#fff', borderTop: '1px solid #f0f0f0' }}>
-                                <div style={{ display: 'flex', gap: 10 }}>
-                                    <ReactQuill
-                                        theme="snow"
-                                        value={commentText}
-                                        onChange={setCommentText}
-                                        placeholder="Nhập tin nhắn..."
-                                        style={{ background: 'white', flex: 1 }}
-                                        modules={{
-                                            toolbar: [
-                                                ['bold', 'italic', 'underline'],
-                                                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                                                ['clean']
-                                            ]
-                                        }}
+                                {/* STATUS BAR */}
+                                <Card bordered={false} style={{ marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                                    <Steps
+                                        current={currentStep}
+                                        size={isMobile ? "small" : "small"}
+                                        direction={isMobile ? "vertical" : "horizontal"} // <--- Vertical on Mobile
+                                        items={[
+                                            { title: 'Báo Giá', icon: <SolutionOutlined /> },
+                                            { title: 'Xác Nhận & Cọc', icon: <DollarOutlined /> },
+                                            { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> },
+                                            { title: 'Sản Xuất', icon: <AppstoreAddOutlined /> },
+                                            { title: 'Xong SX', icon: <CheckCircleOutlined /> },
+                                            { title: 'Giao Hàng', icon: <CarOutlined /> },
+                                            { title: 'Hoàn Tất', icon: <DollarOutlined /> }
+                                        ]}
                                     />
-                                    <Button type="primary" icon={<SendOutlined />} onClick={handleSendComment} />
-                                </div>
-                            </div>
-                        </Card>
-                    </Col>
+                                </Card>
 
-                    <Col xs={24} md={12}>
-                        {/* --- DELIVERY HISTORY --- */}
-                        {data.deliveries && data.deliveries.length > 0 && (
-                            <Card title={<span><CarOutlined /> Lịch Sử Giao Hàng</span>} size="small" style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                                {isMobile ? (
-                                    <List dataSource={data.deliveries} renderItem={(r: any) => (
-                                        <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                                <span style={{ fontWeight: 700, color: '#1890ff' }}>{r.code}</span>
-                                                <span style={{ fontSize: 12, color: '#999' }}>{dayjs(r.delivery_date).format('DD/MM/YY')}</span>
+                                {/* --- INFO ROW: CUSTOMER / VAT / PAYMENT --- */}
+                                <Row gutter={24} style={{ marginBottom: 24 }}>
+                                    <Col xs={24} md={8}>
+                                        <Card title={<span><UserOutlined /> Thông Tin Khách Hàng</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                                            <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
+                                                <Descriptions.Item label="Đơn vị">{data.customer_name || data.customer?.name || 'Khách lẻ'}</Descriptions.Item>
+                                                <Descriptions.Item label="Người nhận">{data.receiver_name || data.customer?.contacts?.[0]?.full_name || data.customer?.name || '-'}</Descriptions.Item>
+                                                <Descriptions.Item label="SĐT">{maskPhone(data.receiver_phone || data.customer?.contacts?.[0]?.phone || data.customer?.phone)}</Descriptions.Item>
+                                                <Descriptions.Item label="Địa chỉ">{data.shipping_address || data.customer?.address || '-'}</Descriptions.Item>
+                                            </Descriptions>
+                                        </Card>
+                                    </Col>
+                                    <Col xs={24} md={8}>
+                                        <Card title={<span><ShopOutlined /> Thông Tin Xuất Hóa Đơn</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                                            <Descriptions column={1} size="small" labelStyle={{ color: '#888' }} contentStyle={{ fontWeight: 500 }}>
+                                                <Descriptions.Item label="Công ty">{data.customer?.legal_name || data.vat_company_name || data.customer?.name || '-'}</Descriptions.Item>
+                                                <Descriptions.Item label="MST">{data.customer?.tax_code || data.vat_tax_code || '-'}</Descriptions.Item>
+                                                <Descriptions.Item label="Địa chỉ">{data.customer?.legal_address || data.vat_address || data.customer?.address || '-'}</Descriptions.Item>
+                                                {(data.vat_email || data.customer?.einvoice_email) && <Descriptions.Item label="Email nhận HĐ">{data.vat_email || data.customer.einvoice_email}</Descriptions.Item>}
+                                                {data.vat_invoice_link && (
+                                                    <Descriptions.Item label="Hóa đơn">
+                                                        <Button
+                                                            type="link"
+                                                            size="small"
+                                                            icon={<FilePdfOutlined />}
+                                                            onClick={() => window.open(data.vat_invoice_link, '_blank')}
+                                                            style={{ padding: 0 }}
+                                                        >
+                                                            Xem/Tải Hóa Đơn
+                                                        </Button>
+                                                    </Descriptions.Item>
+                                                )}
+                                            </Descriptions>
+                                        </Card>
+                                    </Col>
+                                    <Col xs={24} md={8}>
+                                        <Card title={<span><CreditCardOutlined /> Thông Tin Thanh Toán</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                                            {/* DEPOSIT REQUIREMENT */}
+                                            {Number(data.deposit_amount) > 0 && (
+                                                <div style={{ background: '#f9f0ff', padding: 10, borderRadius: 8, border: '1px solid #d3adf7', textAlign: 'center', marginBottom: 10 }}>
+                                                    <div style={{ color: '#722ed1', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>💰 Cần đặt cọc ({data.deposit_percent || 0}%)</div>
+                                                    <div style={{ fontSize: 18, fontWeight: '700', color: '#531dab' }}>{Number(data.deposit_amount).toLocaleString()} ₫</div>
+                                                </div>
+                                            )}
+
+                                            {Number(data.paid_amount) > 0 && (
+                                                <div style={{ background: '#f0f5ff', padding: 8, borderRadius: 8, border: '1px solid #adc6ff', textAlign: 'center', marginBottom: 8 }}>
+                                                    <div style={{ color: '#2f54eb', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Đã thanh toán</div>
+                                                    <div style={{ fontSize: 18, fontWeight: '700', color: '#1d39c4' }}>{Number(data.paid_amount).toLocaleString()} ₫</div>
+                                                </div>
+                                            )}
+
+                                            <div style={{ background: '#f6ffed', padding: 10, borderRadius: 8, border: '1px solid #b7eb8f', textAlign: 'center', marginBottom: 10 }}>
+                                                <div style={{ color: '#52c41a', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Cần thanh toán</div>
+                                                <div style={{ fontSize: 20, fontWeight: '800', color: '#389e0d' }}>{(Number(data.total_amount) - Number(data.paid_amount)).toLocaleString()} ₫</div>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                                <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>{r.status === 'SHIPPED' ? 'Đã Giao' : 'Đang Giao'}</Tag>
+                                            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+                                                <div><b>ACB - TP.HCM</b></div>
+                                                <div>STK: <span style={{ fontFamily: 'monospace', background: '#f0f0f0', padding: '0 4px' }}>141847859</span></div>
+                                                <div>Chủ TK: CTY TNHH TM DV TƯỜNG LINH</div>
+                                                <div>Nội dung: <b>{data.order_code}</b></div>
                                             </div>
-                                            <div style={{ background: '#fafafa', padding: 8, borderRadius: 4, fontSize: 12 }}>
-                                                {r.items?.map((item: any, idx: number) => {
-                                                    const p = data.items.find((x: any) => x.sku === item.sku);
-                                                    const name = p ? (p.product_name_real || p.product?.name) : item.sku;
-                                                    return (
-                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                            <span>{name}</span>
-                                                            <b>x{item.quantity}</b>
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
-                                    )} />
-                                ) : (
-                                    <Table
-                                        dataSource={data.deliveries}
-                                        rowKey="id"
-                                        pagination={false}
-                                        size="small"
-                                        columns={[
-                                            { title: 'Ngày', width: 90, align: 'center', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YY') },
-                                            { title: 'Mã Phiếu', width: 100, dataIndex: 'code', render: (t: string) => <div style={{ fontWeight: 700, color: '#1890ff' }}>{t}</div> },
-                                            {
-                                                title: 'Trạng thái', width: 90, align: 'center',
-                                                render: (r: any) => (
-                                                    <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>
-                                                        {r.status === 'SHIPPED' ? 'Đã Giao' : 'Đang Giao'}
-                                                    </Tag>
-                                                )
-                                            },
-                                            {
-                                                title: 'Chi tiết sản phẩm',
-                                                render: (r: any) => (
-                                                    <div style={{ fontSize: 12 }}>
-                                                        {r.items?.map((item: any, idx: number) => {
-                                                            const p = data.items.find((x: any) => x.sku === item.sku);
-                                                            const name = p ? (p.product_name_real || p.product?.name) : item.sku;
+                                        </Card>
+                                    </Col>
+                                </Row>
+
+                                {/* --- DETAILS ROW: TABLE --- */}
+                                <Row gutter={24}>
+                                    <Col span={24}>
+                                        <Card title={<span style={{ fontWeight: 700, fontSize: 16 }}>📋 Chi Tiết Đơn Hàng</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                                            {data.note && (
+                                                <div style={{ display: 'flex', gap: 10, marginBottom: 20, background: '#fff7e6', padding: 15, borderRadius: 8, border: '1px solid #ffec3d' }}>
+                                                    <InfoCircleOutlined style={{ color: '#faad14', marginTop: 4 }} />
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, color: '#d48806', marginBottom: 5 }}>Ghi chú từ người bán:</div>
+                                                        <div style={{ color: '#595959', whiteSpace: 'pre-line' }}>{data.note}</div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {isMobile ? (
+                                                // MOBILE LIST VIEW
+                                                <List
+                                                    dataSource={data.items}
+                                                    rowKey="id"
+                                                    renderItem={(item: any, index: number) => {
+                                                        // Re-use logic for image
+                                                        // Fix: Check item.image_url first (Snapshot/Custom Link), then sample_image, then product.image_url
+                                                        const rawUrl = item.image_url || item.sample_image || item.product?.image_url;
+                                                        let finalSrc = rawUrl;
+                                                        let isImage = false;
+
+                                                        if (rawUrl && rawUrl.includes('drive.google.com')) {
+                                                            let id = '';
+                                                            try {
+                                                                const urlObj = new URL(rawUrl);
+                                                                if (urlObj.pathname.includes('/d/')) {
+                                                                    const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                                                                    if (match && match[1]) id = match[1];
+                                                                } else if (urlObj.searchParams.has('id')) {
+                                                                    id = urlObj.searchParams.get('id') || '';
+                                                                }
+                                                            } catch (e) {
+                                                                const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                                                                if (match && match[1]) id = match[1];
+                                                            }
+
+                                                            if (id) {
+                                                                finalSrc = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+                                                                isImage = true;
+                                                            }
+                                                        } else if (rawUrl && rawUrl.includes('googleusercontent.com')) { isImage = true; }
+                                                        else if (rawUrl && (rawUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || rawUrl.startsWith('data:image'))) {
+                                                            if (!rawUrl.startsWith('http') && !rawUrl.startsWith('data:')) finalSrc = `${API_URL}${rawUrl}`;
+                                                            isImage = true;
+                                                        }
+
+                                                        return (
+                                                            <Card
+                                                                size="small"
+                                                                style={{ marginBottom: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}
+                                                                bodyStyle={{ padding: 12 }}
+                                                            >
+                                                                <div style={{ display: 'flex', gap: 12 }}>
+                                                                    {/* Image */}
+                                                                    <div style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #eee' }}>
+                                                                        {isImage ? (
+                                                                            <img
+                                                                                src={finalSrc} alt="prod"
+                                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                                onClick={() => handlePreview(finalSrc)}
+                                                                            />
+                                                                        ) : <div style={{ width: '100%', height: '100%', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}><ShopOutlined /></div>}
+                                                                    </div>
+
+                                                                    {/* Content */}
+                                                                    <div style={{ flex: 1 }}>
+                                                                        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+                                                                            {item.product?.customer_description || item.product_name_real || item.product?.name}
+                                                                        </div>
+                                                                        <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>{item.sku} {item.variant_color && `• ${item.variant_color}`}</div>
+
+                                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                            <div style={{ fontSize: 12 }}>
+                                                                                <b>{Number(item.quantity)}</b> x {Number(item.unit_price).toLocaleString()}
+                                                                            </div>
+                                                                            <div style={{ fontWeight: 700, fontSize: 14 }}>
+                                                                                {Number(item.subtotal).toLocaleString()}₫
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                {item.vat_content && (
+                                                                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #f0f0f0', fontSize: 11, color: '#888' }}>
+                                                                        {item.vat_content}
+                                                                    </div>
+                                                                )}
+                                                            </Card>
+                                                        );
+                                                    }}
+                                                />
+                                            ) : (
+                                                // DESKTOP TABLE VIEW
+                                                <Table
+                                                    dataSource={data.items}
+                                                    columns={columns}
+                                                    rowKey="id"
+                                                    pagination={false}
+                                                    bordered={false}
+                                                    scroll={{ x: '100%' }}
+                                                    className="quote-table"
+                                                    summary={() => {
+                                                        // Summary handled below for both views actually, but Antd Table Summary is properly placed inside Table.
+                                                        // For mobile, we might need a separate summary block or use specific mobile summary logic. 
+                                                        // Let's keep the Desktop summary here and add a visual summary for mobile below the list.
+                                                        const vatRate = data.vat_rate || 0;
+                                                        const subTotal = data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0);
+                                                        const discountAmount = Number(data.discount_amount || 0);
+                                                        const taxable = Math.max(0, subTotal - discountAmount);
+                                                        const vatAmount = taxable * (vatRate / 100);
+                                                        const total = taxable + vatAmount + Number(data.shipping_fee || 0);
+
+                                                        return (
+                                                            <Table.Summary fixed>
+                                                                <Table.Summary.Row>
+                                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Tổng tiền hàng</span></Table.Summary.Cell>
+                                                                    <Table.Summary.Cell index={1} align="right"><b>{subTotal.toLocaleString()}</b></Table.Summary.Cell>
+                                                                </Table.Summary.Row>
+                                                                {discountAmount > 0 && (
+                                                                    <Table.Summary.Row>
+                                                                        <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Giảm giá ({data.discount_rate}%)</span></Table.Summary.Cell>
+                                                                        <Table.Summary.Cell index={1} align="right"><span style={{ color: '#52c41a' }}>-{discountAmount.toLocaleString()}</span></Table.Summary.Cell>
+                                                                    </Table.Summary.Row>
+                                                                )}
+                                                                <Table.Summary.Row>
+                                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span></Table.Summary.Cell>
+                                                                    <Table.Summary.Cell index={1} align="right">{vatAmount.toLocaleString()}</Table.Summary.Cell>
+                                                                </Table.Summary.Row>
+                                                                <Table.Summary.Row>
+                                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Phí vận chuyển</span></Table.Summary.Cell>
+                                                                    <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee || 0).toLocaleString()}</Table.Summary.Cell>
+                                                                </Table.Summary.Row>
+                                                                <Table.Summary.Row style={{ background: '#fafafa' }}>
+                                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><b style={{ fontSize: 18, color: '#1890ff' }}>TỔNG CỘNG</b></Table.Summary.Cell>
+                                                                    <Table.Summary.Cell index={1} align="right"><b style={{ fontSize: 20, color: '#cf1322' }}>{total.toLocaleString()} ₫</b></Table.Summary.Cell>
+                                                                </Table.Summary.Row>
+                                                            </Table.Summary>
+                                                        );
+                                                    }}
+                                                />
+                                            )}
+
+                                            {/* MOBILE SUMMARY BLOCK (Since Table Summary won't show in List) */}
+                                            {isMobile && (
+                                                <div style={{ background: '#fafafa', padding: 12, borderRadius: 8, marginTop: 12 }}>
+                                                    {[
+                                                        { label: 'Tổng tiền hàng', value: data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0).toLocaleString() },
+                                                        { log: data.discount_amount > 0, label: `Giảm giá (${data.discount_rate}%)`, value: `-${Number(data.discount_amount).toLocaleString()}`, color: 'green' },
+                                                        { label: `Thuế VAT (${data.vat_rate || 0}%)`, value: ((Math.max(0, data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0) - Number(data.discount_amount || 0))) * ((data.vat_rate || 0) / 100)).toLocaleString() },
+                                                        { label: 'Phí vận chuyển', value: Number(data.shipping_fee || 0).toLocaleString() }
+                                                    ].map((row, idx) => {
+                                                        if (row.log === false) return null;
+                                                        return (
+                                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                                                                <span style={{ color: '#888' }}>{row.label}</span>
+                                                                <span style={{ fontWeight: 600, color: row.color || '#333' }}>{row.value}</span>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                    <Divider style={{ margin: '8px 0' }} />
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span style={{ fontWeight: 700, fontSize: 15 }}>TỔNG CỘNG</span>
+                                                        <span style={{ fontWeight: 700, fontSize: 18, color: '#ff4d4f' }}>
+                                                            {(
+                                                                (Math.max(0, data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0) - Number(data.discount_amount || 0))) * (1 + (data.vat_rate || 0) / 100) + Number(data.shipping_fee || 0)
+                                                            ).toLocaleString()} ₫
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Terms */}
+                                            {data.terms_content && (
+                                                <div style={{ marginTop: 30, background: '#f9f9f9', padding: '20px', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+                                                    <div style={{ fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', fontSize: 12, color: '#999' }}>Điều khoản & Quy định</div>
+                                                    <div style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#555', lineHeight: 1.6 }}>{data.terms_content}</div>
+                                                </div>
+                                            )}
+
+                                            {/* SAMPLE IMAGES SLIDESHOW */}
+                                            {data.approved_sample_images && data.approved_sample_images.length > 0 && (
+                                                <div style={{ marginTop: 30, background: '#f0f5ff', padding: '20px', borderRadius: 8, border: '1px solid #adc6ff' }}>
+                                                    <div style={{ fontWeight: 700, marginBottom: 15, fontSize: 14, color: '#1d39c4', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        <EyeOutlined /> Mẫu Sản Xuất Đã Duyệt
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 10 }}>
+                                                        {data.approved_sample_images.map((url: string, index: number) => {
+                                                            // Convert Google Drive URLs
+                                                            let imgSrc = url;
+                                                            const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                                                            if (driveMatch) {
+                                                                imgSrc = `https://drive.google.com/thumbnail?id=${driveMatch[1]}&sz=w1000`;
+                                                            }
+                                                            const openMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                                                            if (openMatch) {
+                                                                imgSrc = `https://drive.google.com/thumbnail?id=${openMatch[1]}&sz=w1000`;
+                                                            }
                                                             return (
-                                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #f0f0f0', padding: '3px 0' }}>
-                                                                    <span style={{ color: '#444', marginRight: 5 }}>{name}</span>
-                                                                    <b>x{item.quantity}</b>
+                                                                <div
+                                                                    key={index}
+                                                                    style={{
+                                                                        width: isMobile ? 200 : 250,
+                                                                        height: isMobile ? 150 : 200,
+                                                                        flexShrink: 0,
+                                                                        borderRadius: 8,
+                                                                        overflow: 'hidden',
+                                                                        background: '#fff',
+                                                                        border: '2px solid #91caff',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                    onClick={() => handlePreview(imgSrc)}
+                                                                >
+                                                                    <img
+                                                                        src={imgSrc}
+                                                                        alt={`Mẫu ${index + 1}`}
+                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                        onError={(e) => {
+                                                                            const target = e.target as HTMLImageElement;
+                                                                            target.style.display = 'none';
+                                                                            if (target.parentElement) {
+                                                                                target.parentElement.innerHTML = '<div style="color:#999;text-align:center;padding:20px;font-size:12px;">⚠️ Lỗi tải hình</div>';
+                                                                            }
+                                                                        }}
+                                                                    />
                                                                 </div>
                                                             );
                                                         })}
-                                                        {r.note && <div style={{ color: '#999', fontStyle: 'italic', marginTop: 4 }}>Example: {r.note}</div>}
                                                     </div>
-                                                )
-                                            },
-                                        ]}
-                                    />
-                                )}
-                            </Card>
-                        )}
+                                                    <div style={{ fontSize: 12, color: '#597ef7', marginTop: 5, textAlign: 'center' }}>
+                                                        {data.approved_sample_images.length} hình mẫu • Click để xem lớn
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </Card>
+                                    </Col>
+                                </Row>
 
-                        {/* --- PAYMENT HISTORY & QR --- */}
-                        <Card title={<span><DollarOutlined /> Thanh Toán & Lịch Sử</span>} size="small" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                            <div style={{ textAlign: 'center', marginBottom: 20, padding: 10, background: '#fcfcfc', borderRadius: 8 }}>
-                                <div style={{ fontSize: 12, color: '#999', marginBottom: 8 }}>Quét mã để thanh toán</div>
-                                <img src={`https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(Number(data.total_amount) - Number(data.paid_amount))}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`} alt="VietQR" style={{ width: 160 }} />
+                                {/* --- BOTTOM ROW: COMMENTS & HISTORY --- */}
+                                <Row gutter={24}>
+                                    <Col xs={24} md={12}>
+                                        <Card title="💬 Thảo Luận" bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12, overflow: 'hidden', height: '100%' }}>
+                                            <div style={{ height: 300, overflowY: 'auto', padding: 20, background: '#f9f9f9' }}>
+                                                <List dataSource={visibleComments} renderItem={(item: any) => (
+                                                    <div style={{ display: 'flex', gap: 10, marginBottom: 15, flexDirection: item.sender_type === 'CUSTOMER' ? 'row-reverse' : 'row' }}>
+                                                        <Avatar style={{ backgroundColor: item.sender_type === 'CUSTOMER' ? '#87d068' : '#1890ff' }} icon={item.sender_type === 'CUSTOMER' ? <UserOutlined /> : <SolutionOutlined />} />
+                                                        <div style={{ maxWidth: '80%' }}>
+                                                            <div style={{ fontSize: 11, color: '#999', marginBottom: 2, textAlign: item.sender_type === 'CUSTOMER' ? 'right' : 'left' }}>
+                                                                {item.sender_name} • {dayjs(item.created_at).format('HH:mm DD/MM')}
+                                                            </div>
+                                                            <div style={{
+                                                                padding: '8px 12px',
+                                                                background: item.sender_type === 'CUSTOMER' ? '#d9f7be' : '#fff',
+                                                                borderRadius: 8,
+                                                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                                                color: '#333',
+                                                                position: 'relative'
+                                                            }}>
+                                                                <div dangerouslySetInnerHTML={{ __html: item.content }} />
+                                                                {item.sender_type === 'CUSTOMER' && (
+                                                                    <Button
+                                                                        type="text"
+                                                                        size="small"
+                                                                        danger
+                                                                        onClick={() => handleDeleteComment(item.id)}
+                                                                        style={{
+                                                                            position: 'absolute',
+                                                                            top: -8,
+                                                                            right: -8,
+                                                                            background: '#fff',
+                                                                            borderRadius: '50%',
+                                                                            padding: '2px 6px',
+                                                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                                                            fontSize: 10
+                                                                        }}
+                                                                    >
+                                                                        Thu hồi
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )} />
+                                                {visibleComments.length === 0 && <Empty description="Chưa có tin nhắn nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+                                            </div>
+                                            <div style={{ padding: 15, background: '#fff', borderTop: '1px solid #f0f0f0' }}>
+                                                <div style={{ display: 'flex', gap: 10 }}>
+                                                    <ReactQuill
+                                                        theme="snow"
+                                                        value={commentText}
+                                                        onChange={setCommentText}
+                                                        placeholder="Nhập tin nhắn..."
+                                                        style={{ background: 'white', flex: 1 }}
+                                                        modules={{
+                                                            toolbar: [
+                                                                ['bold', 'italic', 'underline'],
+                                                                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                                                ['clean']
+                                                            ]
+                                                        }}
+                                                    />
+                                                    <Button type="primary" icon={<SendOutlined />} onClick={handleSendComment} />
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </Col>
+
+                                    <Col xs={24} md={12}>
+                                        {/* --- DELIVERY HISTORY --- */}
+                                        {data.deliveries && data.deliveries.length > 0 && (
+                                            <Card title={<span><CarOutlined /> Lịch Sử Giao Hàng</span>} size="small" style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                                                {isMobile ? (
+                                                    <List dataSource={data.deliveries} renderItem={(r: any) => (
+                                                        <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                                                <span style={{ fontWeight: 700, color: '#1890ff' }}>{r.code}</span>
+                                                                <span style={{ fontSize: 12, color: '#999' }}>{dayjs(r.delivery_date).format('DD/MM/YY')}</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                                                <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>{r.status === 'SHIPPED' ? 'Đã Giao' : 'Đang Giao'}</Tag>
+                                                            </div>
+                                                            <div style={{ background: '#fafafa', padding: 8, borderRadius: 4, fontSize: 12 }}>
+                                                                {r.items?.map((item: any, idx: number) => {
+                                                                    const p = data.items.find((x: any) => x.sku === item.sku);
+                                                                    const name = p ? (p.product_name_real || p.product?.name) : item.sku;
+                                                                    return (
+                                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                            <span>{name}</span>
+                                                                            <b>x{item.quantity}</b>
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )} />
+                                                ) : (
+                                                    <Table
+                                                        dataSource={data.deliveries}
+                                                        rowKey="id"
+                                                        pagination={false}
+                                                        size="small"
+                                                        columns={[
+                                                            { title: 'Ngày', width: 90, align: 'center', render: (r: any) => dayjs(r.delivery_date).format('DD/MM/YY') },
+                                                            { title: 'Mã Phiếu', width: 100, dataIndex: 'code', render: (t: string) => <div style={{ fontWeight: 700, color: '#1890ff' }}>{t}</div> },
+                                                            {
+                                                                title: 'Trạng thái', width: 90, align: 'center',
+                                                                render: (r: any) => (
+                                                                    <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>
+                                                                        {r.status === 'SHIPPED' ? 'Đã Giao' : 'Đang Giao'}
+                                                                    </Tag>
+                                                                )
+                                                            },
+                                                            {
+                                                                title: 'Chi tiết sản phẩm',
+                                                                render: (r: any) => (
+                                                                    <div style={{ fontSize: 12 }}>
+                                                                        {r.items?.map((item: any, idx: number) => {
+                                                                            const p = data.items.find((x: any) => x.sku === item.sku);
+                                                                            const name = p ? (p.product_name_real || p.product?.name) : item.sku;
+                                                                            return (
+                                                                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #f0f0f0', padding: '3px 0' }}>
+                                                                                    <span style={{ color: '#444', marginRight: 5 }}>{name}</span>
+                                                                                    <b>x{item.quantity}</b>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                        {r.note && <div style={{ color: '#999', fontStyle: 'italic', marginTop: 4 }}>Example: {r.note}</div>}
+                                                                    </div>
+                                                                )
+                                                            },
+                                                        ]}
+                                                    />
+                                                )}
+                                            </Card>
+                                        )}
+
+                                        {/* --- PAYMENT HISTORY & QR --- */}
+                                        <Card title={<span><DollarOutlined /> Thanh Toán & Lịch Sử</span>} size="small" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                                            <div style={{ textAlign: 'center', marginBottom: 20, padding: 10, background: '#fcfcfc', borderRadius: 8 }}>
+                                                <div style={{ fontSize: 12, color: '#999', marginBottom: 8 }}>Quét mã để thanh toán</div>
+                                                <img src={`https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(Number(data.total_amount) - Number(data.paid_amount))}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`} alt="VietQR" style={{ width: 160 }} />
+                                            </div>
+
+                                            <Divider orientation="left" style={{ fontSize: 12, color: '#bbb' }}>Chi tiết giao dịch</Divider>
+
+                                            {data.payments && data.payments.length > 0 ? (
+                                                isMobile ? (
+                                                    <List dataSource={data.payments} renderItem={(r: any) => {
+                                                        let text = r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền';
+                                                        let color = r.type === 'INCOME' ? 'success' : 'red';
+                                                        let desc = r.description || '';
+                                                        const match = desc.match(/^\[(.*?)\]/);
+                                                        if (match) {
+                                                            text = match[1]; desc = desc.replace(match[0], '').trim();
+                                                            if (text.includes('ĐẶT CỌC')) color = 'orange';
+                                                            if (text.includes('TẤT TOÁN')) color = 'blue';
+                                                        }
+                                                        return (
+                                                            <div style={{ padding: '8px 0', borderBottom: '1px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <div>
+                                                                    <div style={{ fontSize: 12, color: '#999' }}>{dayjs(r.date).format('DD/MM/YYYY')}</div>
+                                                                    <div><Tag color={color}>{text}</Tag></div>
+                                                                    {desc && <div style={{ fontSize: 11, color: '#666' }}>{desc}</div>}
+                                                                </div>
+                                                                <div style={{ fontWeight: 700, fontSize: 14 }}>{Number(r.amount).toLocaleString()}</div>
+                                                            </div>
+                                                        )
+                                                    }} />
+                                                ) : (
+                                                    <Table
+                                                        dataSource={data.payments}
+                                                        rowKey="id"
+                                                        pagination={false}
+                                                        size="small"
+                                                        columns={[
+                                                            { title: 'Ngày', render: (r: any) => dayjs(r.date).format('DD/MM/YYYY') },
+                                                            {
+                                                                title: 'Loại',
+                                                                render: (r: any) => {
+                                                                    let text = r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền';
+                                                                    let color = r.type === 'INCOME' ? 'success' : 'red';
+                                                                    let desc = r.description || '';
+
+                                                                    // Try to parse [TYPE] from description (saved in SalesPayments.tsx)
+                                                                    // Format: [ĐẶT CỌC] Note...
+                                                                    const match = desc.match(/^\[(.*?)\]/);
+                                                                    if (match) {
+                                                                        text = match[1]; // e.g. "ĐẶT CỌC", "TẤT TOÁN"
+                                                                        desc = desc.replace(match[0], '').trim();
+                                                                        if (text.includes('ĐẶT CỌC')) color = 'orange';
+                                                                        if (text.includes('TẤT TOÁN')) color = 'blue';
+                                                                        if (text.includes('THANH TOÁN')) color = 'green';
+                                                                    }
+
+                                                                    return (
+                                                                        <div>
+                                                                            <Tag color={color}>{text}</Tag>
+                                                                            {desc && <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{desc}</div>}
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                            },
+                                                            { title: 'Số tiền', align: 'right', render: (r: any) => <b>{Number(r.amount).toLocaleString()}</b> },
+                                                        ]}
+                                                    />
+                                                )
+                                            ) : (
+                                                <Empty description="Chưa có giao dịch nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                                            )}
+                                        </Card>
+                                    </Col>
+                                </Row>
                             </div>
 
-                            <Divider orientation="left" style={{ fontSize: 12, color: '#bbb' }}>Chi tiết giao dịch</Divider>
+                            <div style={{ textAlign: 'center', padding: '20px 0', color: '#ccc', fontSize: 12 }}>
+                                Powered by HULA ERP Technology
+                            </div>
 
-                            {data.payments && data.payments.length > 0 ? (
-                                isMobile ? (
-                                    <List dataSource={data.payments} renderItem={(r: any) => {
-                                        let text = r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền';
-                                        let color = r.type === 'INCOME' ? 'success' : 'red';
-                                        let desc = r.description || '';
-                                        const match = desc.match(/^\[(.*?)\]/);
-                                        if (match) {
-                                            text = match[1]; desc = desc.replace(match[0], '').trim();
-                                            if (text.includes('ĐẶT CỌC')) color = 'orange';
-                                            if (text.includes('TẤT TOÁN')) color = 'blue';
-                                        }
-                                        return (
-                                            <div style={{ padding: '8px 0', borderBottom: '1px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <div>
-                                                    <div style={{ fontSize: 12, color: '#999' }}>{dayjs(r.date).format('DD/MM/YYYY')}</div>
-                                                    <div><Tag color={color}>{text}</Tag></div>
-                                                    {desc && <div style={{ fontSize: 11, color: '#666' }}>{desc}</div>}
-                                                </div>
-                                                <div style={{ fontWeight: 700, fontSize: 14 }}>{Number(r.amount).toLocaleString()}</div>
-                                            </div>
-                                        )
-                                    }} />
-                                ) : (
-                                    <Table
-                                        dataSource={data.payments}
-                                        rowKey="id"
-                                        pagination={false}
-                                        size="small"
-                                        columns={[
-                                            { title: 'Ngày', render: (r: any) => dayjs(r.date).format('DD/MM/YYYY') },
-                                            {
-                                                title: 'Loại',
-                                                render: (r: any) => {
-                                                    let text = r.type === 'INCOME' ? 'Thanh toán' : 'Hoàn tiền';
-                                                    let color = r.type === 'INCOME' ? 'success' : 'red';
-                                                    let desc = r.description || '';
-
-                                                    // Try to parse [TYPE] from description (saved in SalesPayments.tsx)
-                                                    // Format: [ĐẶT CỌC] Note...
-                                                    const match = desc.match(/^\[(.*?)\]/);
-                                                    if (match) {
-                                                        text = match[1]; // e.g. "ĐẶT CỌC", "TẤT TOÁN"
-                                                        desc = desc.replace(match[0], '').trim();
-                                                        if (text.includes('ĐẶT CỌC')) color = 'orange';
-                                                        if (text.includes('TẤT TOÁN')) color = 'blue';
-                                                        if (text.includes('THANH TOÁN')) color = 'green';
-                                                    }
-
-                                                    return (
-                                                        <div>
-                                                            <Tag color={color}>{text}</Tag>
-                                                            {desc && <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{desc}</div>}
-                                                        </div>
-                                                    );
-                                                }
-                                            },
-                                            { title: 'Số tiền', align: 'right', render: (r: any) => <b>{Number(r.amount).toLocaleString()}</b> },
-                                        ]}
+                            <Modal
+                                open={previewVisible}
+                                footer={null}
+                                onCancel={() => setPreviewVisible(false)}
+                                width={800}
+                                centered
+                                styles={{ body: { padding: 0, background: 'transparent' } }}
+                                closeIcon={<span style={{ color: '#fff', fontSize: 20 }}>×</span>}
+                            >
+                                {previewImage && (
+                                    <img
+                                        alt="preview"
+                                        style={{ width: '100%', borderRadius: 8 }}
+                                        src={previewImage}
                                     />
-                                )
-                            ) : (
-                                <Empty description="Chưa có giao dịch nào" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                            )}
-                        </Card>
-                    </Col>
-                </Row>
-            </div>
-
-            <div style={{ textAlign: 'center', padding: '20px 0', color: '#ccc', fontSize: 12 }}>
-                Powered by HULA ERP Technology
-            </div>
-
-            <Modal
-                open={previewVisible}
-                footer={null}
-                onCancel={() => setPreviewVisible(false)}
-                width={800}
-                centered
-                styles={{ body: { padding: 0, background: 'transparent' } }}
-                closeIcon={<span style={{ color: '#fff', fontSize: 20 }}>×</span>}
-            >
-                {previewImage && (
-                    <img
-                        alt="preview"
-                        style={{ width: '100%', borderRadius: 8 }}
-                        src={previewImage}
-                    />
-                )}
-            </Modal>
-            <Modal
-                title="Xác thực thông tin"
-                visible={isVerifyModalOpen}
-                onOk={handleVerifyAndAccept}
-                onCancel={() => setIsVerifyModalOpen(false)}
-                okText="Xác nhận & Đặt cọc"
-                cancelText="Hủy"
-            >
-                <div>
-                    <p>Vui lòng nhập <b>Số điện thoại</b> hoặc <b>Email</b> của bạn để xác nhận đơn hàng này.</p>
-                    <Input
-                        placeholder="Nhập SĐT hoặc Email..."
-                        value={verifyInput}
-                        onChange={e => setVerifyInput(e.target.value)}
-                        onPressEnter={handleVerifyAndAccept}
-                    />
-                </div>
-            </Modal>
-        </div >
-    );
+                                )}
+                            </Modal>
+                            <Modal
+                                title="Xác thực thông tin"
+                                visible={isVerifyModalOpen}
+                                onOk={handleVerifyAndAccept}
+                                onCancel={() => setIsVerifyModalOpen(false)}
+                                okText="Xác nhận & Đặt cọc"
+                                cancelText="Hủy"
+                            >
+                                <div>
+                                    <p>Vui lòng nhập <b>Số điện thoại</b> hoặc <b>Email</b> của bạn để xác nhận đơn hàng này.</p>
+                                    <Input
+                                        placeholder="Nhập SĐT hoặc Email..."
+                                        value={verifyInput}
+                                        onChange={e => setVerifyInput(e.target.value)}
+                                        onPressEnter={handleVerifyAndAccept}
+                                    />
+                                </div>
+                            </Modal>
+                        </div >
+                        );
 };
 
-export default PortalQuotePage;
+                        export default PortalQuotePage;
