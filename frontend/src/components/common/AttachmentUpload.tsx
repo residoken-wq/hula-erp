@@ -85,9 +85,11 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
         const filename = path.split('/').pop();
         if (!filename) return '';
 
-        // Always construct absolute URL using backend API
-        // API_URL is like 'https://erp.nemmamnon.com/api'
-        return `${API_URL}/upload/files/${filename}`;
+        // IMPORTANT: Use static /uploads/ route, NOT /api/upload/files/
+        // NestJS useStaticAssets serves files at /uploads/ WITHOUT the /api prefix
+        // API_URL = 'https://erp.nemmamnon.com/api' -> Base URL = 'https://erp.nemmamnon.com'
+        const baseUrl = API_URL.replace('/api', '');
+        return `${baseUrl}/uploads/${filename}`;
     };
 
     const openFile = (url: string) => {
