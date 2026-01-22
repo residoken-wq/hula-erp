@@ -11,6 +11,36 @@ import 'react-quill/dist/quill.snow.css';
 
 const { Title, Text } = Typography;
 
+// --- CSS FOR PRINT ---
+const printStyles = `
+@media print {
+    @page { 
+        size: landscape; 
+        margin: 5mm 10mm; 
+    }
+    body { 
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
+    }
+    .no-print { 
+        display: none !important; 
+    }
+    .ant-card {
+        box-shadow: none !important;
+        border: 1px solid #eee !important;
+    }
+    .ant-table {
+        font-size: 11px !important;
+    }
+    /* Hide URL/Page info if possible (browser dependent) or adjust scaling */
+    #root {
+        width: 100% !important;
+        margin: 0 !important;
+        max-width: none !important;
+    }
+}
+`;
+
 const PortalQuotePage: React.FC = () => {
     const { uuid } = useParams();
     const [data, setData] = useState<any>(null);
@@ -252,8 +282,72 @@ const PortalQuotePage: React.FC = () => {
                 const customerDesc = r.product?.customer_description;
                 return (
                     <div>
-                        <div style={{ fontWeight: 600, fontSize: 14, color: '#1f1f1f', lineHeight: 1.4, marginBottom: 4, whiteSpace: 'pre-wrap' }}>
-                            {r.product?.customer_description || r.product_name_real || r.product?.name || r.sku}
+                        <div style={{ marginBottom: 4 }}>
+                            {!customerDesc ? (
+                                <div style={{ fontWeight: 600, fontSize: 14, color: '#1f1f1f', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+                                    {r.product_name_real || r.product?.name || r.sku}
+                                </div>
+                            ) : (
+                                <div>
+                                    {/* Render Description Rich Text */}
+                                    {customerDesc.split('\n').map((line: string, idx: number) => {
+                                        const cleanLine = line.trim();
+                                        if (!cleanLine) return null;
+
+                                        // Check if line looks like a combo item: "• Name (xQty) - Desc"
+                                        const comboMatch = cleanLine.match(/^•\s*(.*?)\s*\(x(\d+)\)(?:\s*-\s*(.*))?$/);
+
+                                        if (comboMatch) {
+                                            const [_, name, qty, subDesc] = comboMatch;
+                                            return (
+                                                <div key={idx} style={{
+                                                    display: 'flex',
+                                                    alignItems: 'baseline',
+                                                    gap: 6,
+                                                    marginBottom: 6,
+                                                    fontSize: 13,
+                                                    lineHeight: 1.5,
+                                                    borderBottom: '1px dashed #f0f0f0',
+                                                    paddingBottom: 4
+                                                }}>
+                                                    <div style={{ color: '#1890ff', fontSize: 8, flexShrink: 0 }}>●</div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <span style={{ fontWeight: 500, color: '#262626' }}>{name}</span>
+                                                        <span style={{
+                                                            display: 'inline-block',
+                                                            background: '#f5f5f5',
+                                                            color: '#595959',
+                                                            fontSize: 11,
+                                                            padding: '0 4px',
+                                                            borderRadius: 4,
+                                                            marginLeft: 6,
+                                                            border: '1px solid #d9d9d9'
+                                                        }}>x{qty}</span>
+                                                        {subDesc && (
+                                                            <div style={{ fontSize: 12, color: '#8c8c8c', fontStyle: 'italic', marginTop: 2 }}>{subDesc}</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+
+                                        // Regular line (bullet or not)
+                                        return (
+                                            <div key={idx} style={{
+                                                fontSize: 13,
+                                                color: '#595959',
+                                                marginBottom: 4,
+                                                lineHeight: 1.5,
+                                                display: 'flex',
+                                                gap: 6
+                                            }}>
+                                                {cleanLine.startsWith('•') || cleanLine.startsWith('-') ? <span style={{ color: '#bfbfbf' }}>•</span> : null}
+                                                <span style={{ flex: 1 }}>{cleanLine.replace(/^[•-]\s*/, '')}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                         {/* 
                         {customerDesc && (
