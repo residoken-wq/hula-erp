@@ -303,14 +303,14 @@ const PortalQuotePage: React.FC = () => {
                                         if (!cleanLine) return null;
 
                                         // Regex to capture Combo Item: "• Name (xQty) - [Desc]"
-                                        const comboMatch = cleanLine.match(/^•\s*(.*?)\s*\(x(\d+)\)(?:\s*-\s*(.*))?$/);
+                                        const comboMatch = cleanLine.match(/^•\s*(.*?)\s*\(x([\d\.]+)\)(?:\s*-\s*(.*))?$/);
 
                                         if (comboMatch) {
                                             const [_, name, qty, trailingDesc] = comboMatch;
                                             return (
                                                 <div key={idx} style={{ marginTop: idx > 0 ? 8 : 0 }}>
                                                     {/* Header: *** Name */}
-                                                    <div style={{ fontWeight: 700, color: '#333', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <div style={{ fontWeight: 700, color: '#333', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
                                                         <span>*** {name}</span>
                                                         {Number(qty) > 1 && <span style={{ fontWeight: 400, color: '#666', fontSize: 12 }}>(x{qty})</span>}
                                                     </div>
