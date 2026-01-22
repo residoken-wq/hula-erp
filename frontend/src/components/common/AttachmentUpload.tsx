@@ -77,20 +77,24 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
 
     const getDownloadUrl = (path: string) => {
         if (!path) return '';
-        if (path.startsWith('http')) return path;
 
-        // Extract just the filename from any path format
+        // If already a full URL, return as-is
+        if (path.startsWith('http://') || path.startsWith('https://')) return path;
+
+        // Extract just the filename from any path format (handles /uploads/filename or just filename)
         const filename = path.split('/').pop();
         if (!filename) return '';
 
-        // Always use backend API to serve files (works in all environments)
+        // Always construct absolute URL using backend API
+        // API_URL is like 'https://erp.nemmamnon.com/api'
         return `${API_URL}/upload/files/${filename}`;
     };
 
     const openFile = (url: string) => {
         const fullUrl = getDownloadUrl(url);
         if (fullUrl) {
-            window.open(fullUrl, '_blank');
+            // Open in new tab - fullUrl is now always an absolute URL
+            window.open(fullUrl, '_blank', 'noopener,noreferrer');
         }
     };
 
@@ -134,12 +138,24 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
                                         <Button
                                             size="small"
                                             icon={<DownloadOutlined />}
-                                            onClick={() => {
-                                                const link = document.createElement('a');
-                                                link.href = fullUrl;
-                                                link.download = fileName || 'file';
-                                                link.target = '_blank';
-                                                link.click();
+                                            onClick={async () => {
+                                                try {
+                                                    // Use fetch to download as blob (handles CORS properly)
+                                                    const response = await fetch(fullUrl);
+                                                    if (!response.ok) throw new Error('Download failed');
+                                                    const blob = await response.blob();
+                                                    const blobUrl = window.URL.createObjectURL(blob);
+                                                    const link = document.createElement('a');
+                                                    link.href = blobUrl;
+                                                    link.download = fileName || 'file';
+                                                    document.body.appendChild(link);
+                                                    link.click();
+                                                    document.body.removeChild(link);
+                                                    window.URL.revokeObjectURL(blobUrl);
+                                                } catch (e) {
+                                                    // Fallback: open in new tab
+                                                    window.open(fullUrl, '_blank', 'noopener,noreferrer');
+                                                }
                                             }}
                                         >
                                             Tải
