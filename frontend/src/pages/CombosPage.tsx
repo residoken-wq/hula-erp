@@ -47,7 +47,8 @@ const CombosPage: React.FC = () => {
                 price: Number(p.price) || 0,        // Giá bán lẻ
                 cost: Number(p.cost_price) || 0,    // Giá vốn
                 name: p.label.split(' - ')[1],
-                unit: p.unit
+                unit: p.unit,
+                customer_description: p.customer_description // NEW
             };
             return acc;
         }, {});
@@ -63,7 +64,8 @@ const CombosPage: React.FC = () => {
                     value: p.sku,
                     price: Number(p.base_price) || 0,
                     cost_price: Number(p.cost_price) || 0, // Lấy thêm giá vốn
-                    unit: p.unit
+                    unit: p.unit,
+                    customer_description: p.customer_description // NEW
                 })));
 
                 const comboList = resProd.data.filter((p: any) => p.product_type === 'COMBO');
@@ -256,6 +258,7 @@ const CombosPage: React.FC = () => {
                                                 </Form.Item>
                                                 <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
                                                     {canViewCost && <span>Giá vốn: {info.cost.toLocaleString()} | </span>} Giá bán lẻ: {info.price.toLocaleString()}
+                                                    {info.customer_description && <div style={{ marginTop: 2, fontStyle: 'italic', color: '#666' }}>{info.customer_description}</div>}
                                                 </div>
                                             </Col>
                                             <Col span={4}>

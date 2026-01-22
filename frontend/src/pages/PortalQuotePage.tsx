@@ -438,7 +438,7 @@ const PortalQuotePage: React.FC = () => {
                             {/* DEPOSIT REQUIREMENT */}
                             {Number(data.deposit_amount) > 0 && (
                                 <div style={{ background: '#f9f0ff', padding: 10, borderRadius: 8, border: '1px solid #d3adf7', textAlign: 'center', marginBottom: 10 }}>
-                                    <div style={{ color: '#722ed1', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>💰 Yêu cầu đặt cọc ({data.deposit_percent || 0}%)</div>
+                                    <div style={{ color: '#722ed1', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>💰 Cần đặt cọc ({data.deposit_percent || 0}%)</div>
                                     <div style={{ fontSize: 18, fontWeight: '700', color: '#531dab' }}>{Number(data.deposit_amount).toLocaleString()} ₫</div>
                                 </div>
                             )}

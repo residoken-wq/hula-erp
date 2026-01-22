@@ -54,10 +54,9 @@ export class ProductsService {
                 relations: ['child_product']
             });
 
-            // Build description if empty
             if (!product.customer_description && components.length > 0) {
                 product.customer_description = components
-                    .map(c => `• ${c.child_product?.name || 'N/A'} (x${c.quantity})`)
+                    .map(c => `• ${c.child_product?.name || 'N/A'} (x${c.quantity})${c.child_product?.customer_description ? ` - ${c.child_product.customer_description}` : ''}`)
                     .join('\n');
             }
         }
