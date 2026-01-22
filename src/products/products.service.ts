@@ -26,13 +26,38 @@ export class ProductsService {
         @Inject(forwardRef(() => CategoriesService)) private categoriesService: CategoriesService,
     ) { }
 
+
     async findAll() {
-        return this.productRepo.find({
+        const products = await this.productRepo.find({
             select: ['id', 'sku', 'name', 'category_id', 'product_type', 'cost_price', 'base_price', 'quantity_in_stock', 'profit_margin', 'is_active', 'unit', 'customer_description', 'processing_description', 'image_url'],
             order: { id: 'DESC' },
             relations: ['category_link']
         });
+
+        // For COMBO products, fetch and attach component info
+        const comboProducts = products.filter(p => p.product_type === 'COMBO');
+        for (const combo of comboProducts) {
+            const components = await this.componentRepo.find({
+                where: { parent_product: { id: combo.id } },
+                relations: ['child_product']
+            });
+            // Build description from child products if customer_description is empty
+            if (!combo.customer_description && components.length > 0) {
+                combo.customer_description = components
+                    .map(c => `• ${c.child_product?.name || 'N/A'} (x${c.quantity})`)
+                    .join('\n');
+            }
+            // Also attach components array for frontend access
+            (combo as any).components = components.map(c => ({
+                name: c.child_product?.name,
+                sku: c.child_product?.sku,
+                quantity: c.quantity
+            }));
+        }
+
+        return products;
     }
+
 
     async searchProducts(keyword: string) {
         return this.productRepo.createQueryBuilder('p')

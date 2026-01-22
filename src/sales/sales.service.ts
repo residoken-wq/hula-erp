@@ -156,6 +156,8 @@ export class SalesService {
             shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone, shipping_carrier: data.shipping_carrier, shipping_fee: Number(data.shipping_fee) || 0,
             discount_rate: Number(data.discount_rate) || 0,
             discount_amount: Number(data.discount_amount) || 0,
+            deposit_percent: Number(data.deposit_percent) || 0,
+            deposit_amount: Number(data.deposit_amount) || 0,
             payment_note: data.payment_note, terms_content: data.terms_content, note: data.note,
             assigned_to: data.assigned_to_id ? { id: data.assigned_to_id } as any : null,
             paid_amount: 0, // Init
@@ -297,6 +299,8 @@ export class SalesService {
 
         if (data.discount_rate !== undefined) order.discount_rate = Number(data.discount_rate);
         if (data.discount_amount !== undefined) order.discount_amount = Number(data.discount_amount);
+        if (data.deposit_percent !== undefined) order.deposit_percent = Number(data.deposit_percent);
+        if (data.deposit_amount !== undefined) order.deposit_amount = Number(data.deposit_amount);
         if (data.assigned_to_id !== undefined) order.assigned_to = data.assigned_to_id ? { id: data.assigned_to_id } as any : null;
 
         if (data.items) {

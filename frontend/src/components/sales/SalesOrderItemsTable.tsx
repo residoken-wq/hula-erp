@@ -127,11 +127,17 @@ const SalesOrderItemsTable: React.FC<Props> = ({
                             options={products}
                         />
                         {prodInfo && (
-                            <div style={{ marginTop: 4, lineHeight: '1.2' }}>
+                            <div style={{ marginTop: 4, lineHeight: '1.4' }}>
                                 {prodInfo.type === 'COMBO' && <Tag color="purple" style={{ fontSize: 10, marginRight: 4 }}><GiftOutlined /> Combo</Tag>}
-                                <span style={{ fontSize: 11, color: '#666', fontStyle: 'italic' }}>
+                                <div style={{
+                                    fontSize: 11,
+                                    color: '#666',
+                                    fontStyle: 'italic',
+                                    whiteSpace: 'pre-wrap',  // Support newlines in description
+                                    marginTop: prodInfo.type === 'COMBO' ? 4 : 0
+                                }}>
                                     {prodInfo.description || 'Chưa có mô tả'}
-                                </span>
+                                </div>
                             </div>
                         )}
                         <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>

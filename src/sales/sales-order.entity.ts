@@ -84,6 +84,12 @@ export class SalesOrder {
   @Column('decimal', { precision: 15, scale: 2, default: 0 }) discount_amount: number; // Fixed Amount
   // ----------------------
 
+  // --- DEPOSIT REQUIREMENTS (FOR QUOTATION) ---
+  @Column('float', { default: 0 }) deposit_percent: number; // % cọc yêu cầu
+  @Column('decimal', { precision: 15, scale: 2, default: 0 }) deposit_amount: number; // Số tiền cọc yêu cầu
+  // --------------------------------------------
+
+
   @Column('text', { nullable: true }) payment_note: string;
   @Column('decimal', { precision: 15, scale: 2, default: 0 }) paid_amount: number;
   @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.UNPAID }) payment_status: PaymentStatus;

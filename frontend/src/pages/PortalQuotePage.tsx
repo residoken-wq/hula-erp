@@ -435,6 +435,14 @@ const PortalQuotePage: React.FC = () => {
                     </Col>
                     <Col xs={24} md={8}>
                         <Card title={<span><CreditCardOutlined /> Thông Tin Thanh Toán</span>} bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                            {/* DEPOSIT REQUIREMENT */}
+                            {Number(data.deposit_amount) > 0 && (
+                                <div style={{ background: '#f9f0ff', padding: 10, borderRadius: 8, border: '1px solid #d3adf7', textAlign: 'center', marginBottom: 10 }}>
+                                    <div style={{ color: '#722ed1', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>💰 Yêu cầu đặt cọc ({data.deposit_percent || 0}%)</div>
+                                    <div style={{ fontSize: 18, fontWeight: '700', color: '#531dab' }}>{Number(data.deposit_amount).toLocaleString()} ₫</div>
+                                </div>
+                            )}
+
                             {Number(data.paid_amount) > 0 && (
                                 <div style={{ background: '#f0f5ff', padding: 8, borderRadius: 8, border: '1px solid #adc6ff', textAlign: 'center', marginBottom: 8 }}>
                                     <div style={{ color: '#2f54eb', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Đã thanh toán</div>

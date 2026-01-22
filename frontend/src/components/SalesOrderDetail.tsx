@@ -73,6 +73,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     is_production_sample_approved: initialData.is_production_sample_approved || false,
 
                     shipping_fee: initialData.shipping_fee || 0,
+                    deposit_percent: initialData.deposit_percent || 0,
+                    deposit_amount: initialData.deposit_amount || 0,
                     vat_company_name: initialData.vat_company_name || initialData.customer?.legal_name || initialData.customer?.name || '',
                     vat_tax_code: initialData.vat_tax_code || initialData.customer?.tax_code || '',
                     vat_address: initialData.vat_address || initialData.customer?.legal_address || initialData.customer?.address || '',
@@ -479,6 +481,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         <Form.Item name="discount_amount" hidden><InputNumber /></Form.Item>
                         <Form.Item name="vat_rate" hidden><InputNumber /></Form.Item>
                         <Form.Item name="shipping_fee" hidden><InputNumber /></Form.Item>
+                        <Form.Item name="deposit_percent" hidden><InputNumber /></Form.Item>
+                        <Form.Item name="deposit_amount" hidden><InputNumber /></Form.Item>
 
                         <Divider orientation="left">Danh sách sản phẩm</Divider>
                         <SalesOrderItemsTable
@@ -592,8 +596,48 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                                             {total.toLocaleString()} ₫
                                                         </Col>
                                                     </Row>
-                                                </>
-                                            );
+
+                                                    {/* DEPOSIT SECTION */}
+                                                    <Divider style={{ margin: '12px 0' }} dashed />
+                                                    <Row style={rowStyle}>
+                                                        <Col span={10} style={{ ...labelStyle, fontWeight: 500, color: '#722ed1' }}>Đặt cọc:</Col>
+                                                        <Col span={14} style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                                                            <InputNumber
+                                                                size="small"
+                                                                min={0} max={100}
+                                                                formatter={v => `${v}%`}
+                                                                parser={v => v!.replace('%', '')}
+                                                                placeholder="%"
+                                                                style={{ width: 70 }}
+                                                                value={getFieldValue('deposit_percent')}
+                                                                onChange={(val) => {
+                                                                    const rate = Number(val) || 0;
+                                                                    const amt = Math.floor(total * rate / 100);
+                                                                    form.setFieldsValue({ deposit_percent: rate, deposit_amount: amt });
+                                                                }}
+                                                            />
+                                                            <InputNumber
+                                                                size="small"
+                                                                style={{ width: 120 }}
+                                                                value={getFieldValue('deposit_amount')}
+                                                                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                parser={v => v!.replace(/\$\s?|(,*)/g, '')}
+                                                                onChange={(val) => {
+                                                                    const amt = Number(val) || 0;
+                                                                    const rate = total > 0 ? Number((amt / total * 100).toFixed(0)) : 0;
+                                                                    form.setFieldsValue({ deposit_amount: amt, deposit_percent: rate });
+                                                                }}
+                                                            />
+                                                        </Col>
+                                                    </Row>
+                                                    {getFieldValue('deposit_amount') > 0 && (
+                                                        <Row style={{ marginTop: 4 }}>
+                                                            <Col span={24} style={{ textAlign: 'right', fontSize: 12, color: '#722ed1', fontStyle: 'italic' }}>
+                                                                💰 Yêu cầu đặt cọc: {Number(getFieldValue('deposit_amount') || 0).toLocaleString()} ₫
+                                                            </Col>
+                                                        </Row>
+                                                    )}
+                                                </>);
                                         }}
                                     </Form.Item>
                                 </div>
