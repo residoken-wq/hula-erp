@@ -177,13 +177,14 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                     {
                         title: 'Chứng từ', render: (r: any) => {
                             const isOrderCompleted = orderStatus === 'COMPLETED';
-                            return r.attachments?.length > 0
-                                ? <AttachmentUpload
-                                    value={r.attachments}
+                            return (
+                                <AttachmentUpload
+                                    value={r.attachments || []}
                                     allowDelete={!isOrderCompleted}
-                                    allowUpload={r.attachments.length < 5}
+                                    allowUpload={true}
+                                    maxFiles={5}
                                 />
-                                : '-';
+                            );
                         }
                     }
                 ]}
