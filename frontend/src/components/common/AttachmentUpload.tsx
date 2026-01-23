@@ -9,13 +9,22 @@ interface Props {
     onChange?: (urls: string[]) => void;
     maxFiles?: number;
     title?: string;
+    allowDelete?: boolean; // NEW: explicit control over delete button
+    allowUpload?: boolean; // NEW: explicit control over upload button
 }
 
-const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5, title = "Đính kèm chứng từ" }) => {
+const AttachmentUpload: React.FC<Props> = ({
+    value = [],
+    onChange,
+    maxFiles = 5,
+    title = "Đính kèm chứng từ",
+    allowDelete = true, // Default: allow delete
+    allowUpload = true  // Default: allow upload
+}) => {
     const [uploading, setUploading] = useState(false);
 
-    // Read-only mode when maxFiles is 0
-    const isReadOnly = maxFiles === 0;
+    // Read-only mode when maxFiles is 0 (legacy behavior) OR both delete and upload are false
+    const isReadOnly = maxFiles === 0 || (!allowDelete && !allowUpload);
 
     const handleUpload = async (options: any) => {
         const { file, onSuccess, onError } = options;
@@ -213,7 +222,7 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
                                     </div>
                                 )}
                             </Popover>
-                            {onChange && !isReadOnly && (
+                            {onChange && allowDelete && (
                                 <Button
                                     type="text"
                                     size="small"
@@ -244,15 +253,15 @@ const AttachmentUpload: React.FC<Props> = ({ value = [], onChange, maxFiles = 5,
                     );
                 })}
 
-                {/* Only show upload button if not read-only */}
-                {!isReadOnly && (
+                {/* Only show upload button if allowUpload is true and under max files */}
+                {allowUpload && value.length < maxFiles && (
                     <Upload
                         customRequest={handleUpload}
                         showUploadList={false}
                         multiple={false}
                         accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx"
                     >
-                        <Button icon={<UploadOutlined />} loading={uploading} disabled={value.length >= maxFiles} type="dashed" style={{ height: 40, width: 40, padding: 0 }} />
+                        <Button icon={<UploadOutlined />} loading={uploading} type="dashed" style={{ height: 40, width: 40, padding: 0 }} />
                     </Upload>
                 )}
             </div>

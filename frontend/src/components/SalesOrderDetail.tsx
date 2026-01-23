@@ -697,6 +697,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 totalAmount={totalAmount}
                                 paidAmount={initialData.paid_amount || 0}
                                 customerName={initialData?.customer?.name || initialData?.customer_name}
+                                orderStatus={initialData.status}
                                 onSuccess={onSuccess}
                             />
                         </Tabs.TabPane>

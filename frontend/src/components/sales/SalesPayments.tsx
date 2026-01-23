@@ -14,10 +14,11 @@ interface Props {
     paidAmount: number;
     customerName?: string;
     customerId?: number;
+    orderStatus?: string; // NEW: order status to control delete/upload
     onSuccess: () => void;
 }
 
-const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidAmount, customerName, customerId, onSuccess }) => {
+const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidAmount, customerName, customerId, orderStatus, onSuccess }) => {
     const [history, setHistory] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [amount, setAmount] = useState<number>(0);
@@ -173,7 +174,18 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                     { title: 'Ngày thanh toán', dataIndex: 'date', render: (t: any) => t ? dayjs(t).format('DD/MM/YYYY HH:mm') : '-', width: 140 },
                     { title: 'Số tiền', dataIndex: 'amount', align: 'right' as const, render: (v: any) => <b style={{ color: 'green' }}>{Number(v).toLocaleString()}</b>, width: 120 },
                     { title: 'Nội dung', dataIndex: 'description' },
-                    { title: 'Chứng từ', render: (r: any) => r.attachments?.length > 0 ? <AttachmentUpload value={r.attachments} maxFiles={0} /> : '-' }
+                    {
+                        title: 'Chứng từ', render: (r: any) => {
+                            const isOrderCompleted = orderStatus === 'COMPLETED';
+                            return r.attachments?.length > 0
+                                ? <AttachmentUpload
+                                    value={r.attachments}
+                                    allowDelete={!isOrderCompleted}
+                                    allowUpload={r.attachments.length < 5}
+                                />
+                                : '-';
+                        }
+                    }
                 ]}
             />
 
