@@ -202,6 +202,22 @@ export class SalesService {
         await this.initChecklist(saved.id, saved.status);
 
         await this.systemService.logAction('SALES', 'CREATE_ORDER', `Created Order/Quote ${saved.order_code}`, data.user_id, data.username, saved.order_code);
+
+        // --- NOTIFICATION: Assignee ---
+        if (saved.assigned_to) {
+            const assigneeId = saved.assigned_to.id; // Relations are not fully loaded but id should be there
+            if (assigneeId && Number(assigneeId) !== Number(data.user_id)) {
+                await this.notificationsService.create({
+                    user_id: Number(assigneeId),
+                    title: '📦 Bạn được giao đơn hàng mới',
+                    message: `Bạn được giao phụ trách đơn hàng ${saved.order_code}`,
+                    type: 'INFO',
+                    link: `/sales?order=${saved.id}&highlight=order-${saved.id}`,
+                    is_read: false
+                });
+            }
+        }
+
         return saved;
     }
 
@@ -376,15 +392,42 @@ export class SalesService {
         }
 
         // Log Update with Details
-        await this.systemService.logAction(
-            'SALES',
-            'UPDATE_ORDER',
-            `Updated Order ${saved.order_code}`,
-            data.user_id,
-            data.username,
-            saved.order_code,
-            Object.keys(changes).length > 0 ? changes : null // Pass diff as details
+        Object.keys(changes).length > 0 ? changes : null // Pass diff as details
         );
+
+        // --- NOTIFICATIONS ---
+        const oldAssigneeId = oldOrder.assigned_to?.id;
+        const newAssigneeId = saved.assigned_to?.id;
+        const currentUserId = Number(data.user_id);
+
+        // 1. Assignee Changed
+        if (newAssigneeId && newAssigneeId !== oldAssigneeId) {
+            if (Number(newAssigneeId) !== currentUserId) {
+                await this.notificationsService.create({
+                    user_id: Number(newAssigneeId),
+                    title: '📦 Bạn được giao đơn hàng',
+                    message: `Đơn hàng ${saved.order_code} đã được chuyển giao cho bạn.`,
+                    type: 'INFO',
+                    link: `/sales?order=${saved.id}&highlight=order-${saved.id}`,
+                    is_read: false
+                });
+            }
+        }
+
+        // 2. Status Changed
+        if (oldOrder.status !== saved.status) {
+            // Notify Assignee (if they didn't change it themselves)
+            if (newAssigneeId && Number(newAssigneeId) !== currentUserId) {
+                await this.notificationsService.create({
+                    user_id: Number(newAssigneeId),
+                    title: '🔄 Cập nhật trạng thái đơn hàng',
+                    message: `Đơn hàng ${saved.order_code} đã chuyển sang: ${saved.status}`,
+                    type: 'INFO',
+                    link: `/sales?order=${saved.id}&highlight=order-${saved.id}`,
+                    is_read: false
+                });
+            }
+        }
         // Return fresh data with payment info
         return this.findOne(saved.id);
     }

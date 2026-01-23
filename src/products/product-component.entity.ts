@@ -7,7 +7,7 @@ export class ProductComponent {
   id: number;
 
   // Sửa: Bỏ tham số thứ 2 sai cú pháp
-  @ManyToOne(() => Product, { onDelete: 'CASCADE' }) 
+  @ManyToOne(() => Product, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'parent_product_id' })
   parent_product: Product;
 
@@ -18,4 +18,7 @@ export class ProductComponent {
 
   @Column('decimal', { precision: 10, scale: 2 })
   quantity: number;
+
+  @Column({ default: 0 })
+  sort_order: number;
 }

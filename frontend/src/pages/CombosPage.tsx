@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Select, Row, Col, Space, Divider, Tooltip, Statistic, Popconfirm, Tag } from 'antd';
-import { PlusOutlined, DeleteOutlined, GiftOutlined, DollarOutlined, EditOutlined, WarningOutlined, SearchOutlined, CalculatorOutlined, RiseOutlined, FallOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, GiftOutlined, DollarOutlined, EditOutlined, WarningOutlined, SearchOutlined, CalculatorOutlined, RiseOutlined, FallOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 
@@ -245,7 +245,7 @@ const CombosPage: React.FC = () => {
                     <Divider orientation="left" style={{ marginTop: 0 }}>Thành phần Combo</Divider>
 
                     <Form.List name="items">
-                        {(fields, { add, remove }) => (
+                        {(fields, { add, remove, move }) => (
                             <div style={{ maxHeight: 300, overflowY: 'auto', paddingRight: 5 }}>
                                 {fields.map(({ key, name, ...restField }, index) => {
                                     const sku = form.getFieldValue(['items', name, 'sku']);
@@ -266,11 +266,27 @@ const CombosPage: React.FC = () => {
                                                     <InputNumber min={1} placeholder="SL" addonAfter={info.unit} style={{ width: '100%' }} />
                                                 </Form.Item>
                                             </Col>
-                                            <Col span={8} style={{ textAlign: 'right', color: '#555' }}>
+                                            <Col span={7} style={{ textAlign: 'right', color: '#555' }}>
                                                 Thành tiền (Bán): <b>{(info.price * (form.getFieldValue(['items', name, 'quantity']) || 0)).toLocaleString()} ₫</b>
                                             </Col>
-                                            <Col span={2} style={{ textAlign: 'center' }}>
-                                                <DeleteOutlined onClick={() => remove(name)} style={{ color: 'red', cursor: 'pointer' }} />
+                                            <Col span={3} style={{ textAlign: 'center' }}>
+                                                <Space>
+                                                    <Button
+                                                        icon={<ArrowUpOutlined />}
+                                                        size="small"
+                                                        type="text"
+                                                        disabled={index === 0}
+                                                        onClick={() => move(index, index - 1)}
+                                                    />
+                                                    <Button
+                                                        icon={<ArrowDownOutlined />}
+                                                        size="small"
+                                                        type="text"
+                                                        disabled={index === fields.length - 1}
+                                                        onClick={() => move(index, index + 1)}
+                                                    />
+                                                    <DeleteOutlined onClick={() => remove(name)} style={{ color: 'red', cursor: 'pointer', marginLeft: 4 }} />
+                                                </Space>
                                             </Col>
                                         </Row>
                                     );

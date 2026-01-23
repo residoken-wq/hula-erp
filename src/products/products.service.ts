@@ -51,7 +51,8 @@ export class ProductsService {
 
             const components = await this.componentRepo.find({
                 where: { parent_product: { id: product.id } },
-                relations: ['child_product']
+                relations: ['child_product'],
+                order: { sort_order: 'ASC' }
             });
 
             if (!product.customer_description && components.length > 0) {
@@ -508,13 +509,15 @@ export class ProductsService {
 
         await this.componentRepo.delete({ parent_product: { id: pId } });
 
-        for (const item of items) {
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
             const child = await this.productRepo.findOne({ where: { sku: item.sku } });
             if (child) {
                 await this.componentRepo.save(this.componentRepo.create({
                     parent_product: { id: pId },
                     child_product: child,
-                    quantity: Number(item.quantity)
+                    quantity: Number(item.quantity),
+                    sort_order: i + 1 // Save sort order (1-based)
                 }));
             }
         }
