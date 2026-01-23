@@ -3,12 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SystemConfig } from './system-config.entity';
 import { ActivityLog } from './entities/activity-log.entity';
+import { ContractTemplate } from './contract-template.entity';
 
 @Injectable()
 export class SystemService {
     constructor(
         @InjectRepository(SystemConfig) private configRepo: Repository<SystemConfig>,
-        @InjectRepository(ActivityLog) private logRepo: Repository<ActivityLog>
+        @InjectRepository(ActivityLog) private logRepo: Repository<ActivityLog>,
+        @InjectRepository(ContractTemplate) private templateRepo: Repository<ContractTemplate> // <--- Inject
     ) { }
 
     async getValue(key: string): Promise<string | null> {
@@ -91,5 +93,31 @@ export class SystemService {
             order: { timestamp: 'DESC' },
             take: limit
         });
+    }
+    async getLogs(limit: number = 100) {
+        return this.logRepo.find({
+            order: { timestamp: 'DESC' },
+            take: limit
+        });
+    }
+
+    // --- CONTRACT TEMPLATES ---
+    async getTemplates() {
+        return this.templateRepo.find({ order: { updated_at: 'DESC' } });
+    }
+
+    async saveTemplate(data: any) {
+        // Create or Update
+        if (data.id) {
+            await this.templateRepo.update(data.id, data);
+            return this.templateRepo.findOne({ where: { id: data.id } });
+        } else {
+            const t = this.templateRepo.create(data);
+            return this.templateRepo.save(t);
+        }
+    }
+
+    async deleteTemplate(id: number) {
+        return this.templateRepo.delete(id);
     }
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table } from 'antd';
 import { PlusOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined } from '@ant-design/icons';
+import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import SalesPayments from './sales/SalesPayments';
@@ -13,6 +13,7 @@ import CancelOrderModal from './sales/CancelOrderModal';
 import RevisionHistoryModal from './sales/RevisionHistoryModal';
 import QuotationHistoryTab from './sales/QuotationHistoryTab';
 import SampleImagesTab from './sales/SampleImagesTab';
+import ContractBuilderModal from './sales/ContractBuilderModal';
 import useMobile from '../hooks/useMobile';
 
 const { Option } = Select;
@@ -49,6 +50,19 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     // Copy Quotation State
     const [customerQuotations, setCustomerQuotations] = useState<any[]>([]);
     const [copyQuotationModalOpen, setCopyQuotationModalOpen] = useState(false);
+
+    // Contract State
+    const [contractTemplates, setContractTemplates] = useState<any[]>([]);
+    const [contractBuilderOpen, setContractBuilderOpen] = useState(false);
+
+    const fetchContractTemplates = async () => {
+        try {
+            const res = await api.get('/system/templates');
+            setContractTemplates(res.data);
+        } catch (e) { console.error('Failed to load templates'); }
+    };
+
+    useEffect(() => { fetchContractTemplates(); }, []);
 
     const fetchRevisions = async (id: number) => {
         try {
@@ -326,457 +340,492 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         } catch (e) {
             message.error('Lỗi tạo revision');
         }
-    };
-
-
-    return (
-        <Modal
-            title={
-                <span style={{ fontSize: isMobile ? 14 : 16 }}>
-                    {isQuotation ? 'Báo Giá' : 'Đơn Hàng'} #{initialData?.order_code}
-                    {initialData?.version > 1 && <Tag color="orange" style={{ marginLeft: 5 }}>v{initialData?.version}</Tag>}
-                    {initialData?.status === 'COMPLETED' && <Tag color="green" style={{ marginLeft: 5 }}>Hoàn tất</Tag>}
-                </span>
+        const handleCreateRevision = async () => {
+            if (!initialData?.id) return;
+            try {
+                await api.post(`/sales/${initialData.id}/revision`, {}); // User info handled by interceptor/token
+                message.success('Đã tạo phiên bản mới');
+                // Reload data
+                onSuccess();
+                onClose();
+            } catch (e) {
+                message.error('Lỗi tạo revision');
             }
-            open={open}
-            onCancel={onClose}
-            width={isMobile ? '100%' : 1100}
-            style={{ top: isMobile ? 0 : 20, maxWidth: '100vw' }}
-            bodyStyle={{ padding: isMobile ? 8 : 24, maxHeight: isMobile ? 'calc(100vh - 120px)' : '70vh', overflowY: 'auto' }}
-            footer={
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
-                    <Button size={isMobile ? 'small' : 'middle'} onClick={onClose}>Đóng</Button>
-                    <Button size={isMobile ? 'small' : 'middle'} type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>
-                        {isMobile ? 'Lưu' : 'Lưu Thông Tin'}
-                    </Button>
-                    {isQuotation && initialData && (
-                        <Button size={isMobile ? 'small' : 'middle'} icon={<CopyOutlined />} onClick={handleCreateRevision}>
-                            {isMobile ? 'Tạo Ver' : 'Tạo Version Mới'}
-                        </Button>
-                    )}
-                    {isQuotation && initialData && (
-                        <Popconfirm title="Xóa báo giá?" onConfirm={async () => {
-                            try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); }
-                        }}>
-                            <Button size={isMobile ? 'small' : 'middle'} danger icon={<DeleteOutlined />}>{isMobile ? 'Xóa' : 'Xóa Báo Giá'}</Button>
-                        </Popconfirm>
-                    )}
-                    {isQuotation && initialData && (
-                        <Button size={isMobile ? 'small' : 'middle'} icon={<HistoryOutlined />} onClick={() => setRevisionModalOpen(true)}>
-                            {isMobile ? 'LS' : 'Lịch sử'}
-                        </Button>
-                    )}
+        };
 
-                    {(!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
-                        <Button size={isMobile ? 'small' : 'middle'} danger icon={<DeleteOutlined />} onClick={() => setCancelModalOpen(true)}>
-                            {isMobile ? 'Hủy' : 'Hủy Đơn'}
+
+
+
+        return (
+            <Modal
+                title={
+                    <span style={{ fontSize: isMobile ? 14 : 16 }}>
+                        {isQuotation ? 'Báo Giá' : 'Đơn Hàng'} #{initialData?.order_code}
+                        {initialData?.version > 1 && <Tag color="orange" style={{ marginLeft: 5 }}>v{initialData?.version}</Tag>}
+                        {initialData?.status === 'COMPLETED' && <Tag color="green" style={{ marginLeft: 5 }}>Hoàn tất</Tag>}
+                    </span>
+                }
+                open={open}
+                onCancel={onClose}
+                width={isMobile ? '100%' : 1100}
+                style={{ top: isMobile ? 0 : 20, maxWidth: '100vw' }}
+                bodyStyle={{ padding: isMobile ? 8 : 24, maxHeight: isMobile ? 'calc(100vh - 120px)' : '70vh', overflowY: 'auto' }}
+                footer={
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
+                        <Button size={isMobile ? 'small' : 'middle'} onClick={onClose}>Đóng</Button>
+                        <Button size={isMobile ? 'small' : 'middle'} type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>
+                            {isMobile ? 'Lưu' : 'Lưu Thông Tin'}
                         </Button>
-                    )}
-                    {(!isQuotation && initialData && initialData.status === 'SO_PENDING') && (
-                        <Popconfirm
-                            title="Xóa đơn hàng?"
-                            description="Đơn hàng sẽ bị xóa hoàn toàn khỏi hệ thống."
-                            onConfirm={async () => {
-                                try {
-                                    await api.delete(`/sales/${initialData.id}`);
-                                    message.success('Đã xóa đơn hàng');
-                                    onSuccess();
-                                    onClose();
-                                } catch (e: any) {
-                                    message.error(e.response?.data?.message || 'Lỗi xóa đơn hàng');
-                                }
-                            }}
-                        >
-                            <Button size={isMobile ? 'small' : 'middle'} danger type="dashed" icon={<DeleteOutlined />}>
-                                {isMobile ? 'Xóa' : 'Xóa đơn hàng'}
+                        {isQuotation && initialData && (
+                            <Button size={isMobile ? 'small' : 'middle'} icon={<CopyOutlined />} onClick={handleCreateRevision}>
+                                {isMobile ? 'Tạo Ver' : 'Tạo Version Mới'}
                             </Button>
-                        </Popconfirm>
-                    )}
-                    {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
-                        <Button size={isMobile ? 'small' : 'middle'} type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>
-                            {isMobile ? 'Hoàn tất' : 'Hoàn tất đơn hàng'}
-                        </Button>
-                    )}
-                </div>
-            }
-        >
-            <Tabs activeKey={activeTab} onChange={setActiveTab} size={isMobile ? 'small' : 'middle'}>
-                <Tabs.TabPane tab={isMobile ? '1. SP' : '1. Thông tin & Sản phẩm'} key="1">
-                    <Form form={form} layout="vertical" onValuesChange={handleFormValuesChange}>
-                        <Row gutter={[16, isMobile ? 0 : 16]}>
-                            <Col xs={24} sm={8}><Form.Item name="order_code" label="Mã đơn"><Input disabled placeholder="Tự động" /></Form.Item></Col>
-                            <Col xs={24} sm={8}>
-                                <Form.Item name="customer_id" label="Khách hàng" rules={[{ required: true }]}>
-                                    <Select
-                                        showSearch
-                                        placeholder="Chọn KH"
-                                        optionFilterProp="label"
-                                        options={[
-                                            ...(initialData?.isInternal ? [{ label: '🏢 NỘI BỘ', value: -1 }] : []),
-                                            ...customers.map((c: any) => ({ label: `${c.name} - ${c.phone}`, value: c.id }))
-                                        ]}
-                                        disabled={initialData?.isInternal}
-                                    />
-                                </Form.Item>
-                                {isQuotation && customerQuotations.length > 0 && (
-                                    <Button
-                                        size="small"
-                                        icon={<CopyOutlined />}
-                                        onClick={() => setCopyQuotationModalOpen(true)}
-                                        style={{ marginTop: -10, marginBottom: 10 }}
-                                    >
-                                        Copy từ {customerQuotations.length} BG cũ
-                                    </Button>
-                                )}
-                            </Col>
-                            <Col xs={24} sm={8}><Form.Item name="order_date" label="Ngày đặt" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
-                        </Row>
-                        <Row gutter={[16, isMobile ? 0 : 16]}>
-                            <Col xs={24} sm={8}>
-                                <Form.Item name="status" label="Trạng thái">
-                                    <Select>
-                                        {isQuotation ? (
-                                            <Option value="QUOTATION">Báo Giá</Option>
-                                        ) : (
-                                            <>
-                                                <Option value="SO_PENDING">Xác nhận đơn hàng</Option>
-                                                <Option value="DEPOSITED">Đã đặt cọc</Option>
-                                                <Option value="SAMPLE_APPROVED">Đã duyệt mẫu SX</Option>
-                                                <Option value="IN_PRODUCTION">Đang sản xuất</Option>
-                                                <Option value="PARTIAL_DELIVERY">Giao 1 phần</Option>
-                                                <Option value="DELIVERED">Đã giao hàng</Option>
-                                                <Option value="COMPLETED">Hoàn tất</Option>
-                                            </>
-                                        )}
-                                        <Option value="CANCELLED">Đã Hủy</Option>
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col xs={24} sm={8}><Form.Item name="delivery_date" label={isMobile ? 'Ngày giao' : 'Ngày giao dự kiến'}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
-                            <Col xs={24} sm={8}>
-                                <Form.Item name="assigned_to_id" label={isMobile ? 'Phụ trách' : 'Nhân sự phụ trách'}>
-                                    <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} placeholder="Chọn NV" />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col span={24}>
-                                <Form.Item name="is_production_sample_approved" valuePropName="checked">
-                                    <Checkbox style={{ fontWeight: 600, color: '#1890ff' }}>
-                                        {isMobile ? 'Đã duyệt mẫu SX' : 'Đã duyệt mẫu tiêu chuẩn - Production Sample Approved'}
-                                    </Checkbox>
-                                </Form.Item>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col span={24}>
-                                <Form.Item name="note" label="Ghi chú nội bộ (Hiển thị trên Portal)">
-                                    <Input.TextArea rows={2} placeholder="Nhập ghi chú cho khách hàng..." />
-                                </Form.Item>
-                            </Col>
-                        </Row>
+                        )}
+                        {isQuotation && initialData && (
+                            <Popconfirm title="Xóa báo giá?" onConfirm={async () => {
+                                try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); }
+                            }}>
+                                <Button size={isMobile ? 'small' : 'middle'} danger icon={<DeleteOutlined />}>{isMobile ? 'Xóa' : 'Xóa Báo Giá'}</Button>
+                            </Popconfirm>
+                        )}
+                        {isQuotation && initialData && (
+                            <Button size={isMobile ? 'small' : 'middle'} icon={<HistoryOutlined />} onClick={() => setRevisionModalOpen(true)}>
+                                {isMobile ? 'LS' : 'Lịch sử'}
+                            </Button>
+                        )}
 
-                        {/* HIDDEN FIELDS TO REGISTER VALUES */}
-                        <Form.Item name="discount_rate" hidden><InputNumber /></Form.Item>
-                        <Form.Item name="discount_amount" hidden><InputNumber /></Form.Item>
-                        <Form.Item name="vat_rate" hidden><InputNumber /></Form.Item>
-                        <Form.Item name="shipping_fee" hidden><InputNumber /></Form.Item>
-                        <Form.Item name="deposit_percent" hidden><InputNumber /></Form.Item>
-                        <Form.Item name="deposit_amount" hidden><InputNumber /></Form.Item>
-
-                        <Divider orientation="left">Danh sách sản phẩm</Divider>
-                        <SalesOrderItemsTable
-                            items={orderItems}
-                            products={products}
-                            isMobile={isMobile ?? false}
-                            onItemChange={handleItemChange}
-                            onRemoveItem={handleRemoveItem}
-                            onReorder={handleReorderItems}
-                        />
-                        <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>Thêm sản phẩm</Button>
-
-                        {/* NEW TOTALS SECTION */}
-                        <Row justify="end" style={{ marginTop: 24 }}>
-                            <Col span={10}>
-                                <div style={{ background: '#fafafa', padding: 16, borderRadius: 8 }}>
-                                    <Form.Item shouldUpdate noStyle>
-                                        {({ getFieldValue }) => {
-                                            const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
-                                            const discountAmt = Number(getFieldValue('discount_amount')) || 0;
-                                            const vatRate = Number(getFieldValue('vat_rate')) || 0;
-                                            const shipping = Number(getFieldValue('shipping_fee')) || 0;
-
-                                            const taxable = Math.max(0, subtotal - discountAmt);
-                                            const total = taxable * (1 + vatRate / 100) + shipping;
-
-                                            // Common styles
-                                            const labelStyle: React.CSSProperties = { color: '#666', fontSize: 13 };
-                                            const valStyle: React.CSSProperties = { fontWeight: 500, fontSize: 13, textAlign: 'right' as const };
-                                            const rowStyle: React.CSSProperties = { marginBottom: 12, alignItems: 'center' };
-
-                                            return (
+                        {(!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
+                            <Button size={isMobile ? 'small' : 'middle'} danger icon={<DeleteOutlined />} onClick={() => setCancelModalOpen(true)}>
+                                {isMobile ? 'Hủy' : 'Hủy Đơn'}
+                            </Button>
+                        )}
+                        {(!isQuotation && initialData && initialData.status === 'SO_PENDING') && (
+                            <Popconfirm
+                                title="Xóa đơn hàng?"
+                                description="Đơn hàng sẽ bị xóa hoàn toàn khỏi hệ thống."
+                                onConfirm={async () => {
+                                    try {
+                                        await api.delete(`/sales/${initialData.id}`);
+                                        message.success('Đã xóa đơn hàng');
+                                        onSuccess();
+                                        onClose();
+                                    } catch (e: any) {
+                                        message.error(e.response?.data?.message || 'Lỗi xóa đơn hàng');
+                                    }
+                                }}
+                            >
+                                <Button size={isMobile ? 'small' : 'middle'} danger type="dashed" icon={<DeleteOutlined />}>
+                                    {isMobile ? 'Xóa' : 'Xóa đơn hàng'}
+                                </Button>
+                            </Popconfirm>
+                        )}
+                        {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
+                            <Button size={isMobile ? 'small' : 'middle'} type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>
+                                {isMobile ? 'Hoàn tất' : 'Hoàn tất đơn hàng'}
+                            </Button>
+                        )}
+                    </div>
+                }
+            >
+                <Tabs activeKey={activeTab} onChange={setActiveTab} size={isMobile ? 'small' : 'middle'}>
+                    <Tabs.TabPane tab={isMobile ? '1. SP' : '1. Thông tin & Sản phẩm'} key="1">
+                        <Form form={form} layout="vertical" onValuesChange={handleFormValuesChange}>
+                            <Row gutter={[16, isMobile ? 0 : 16]}>
+                                <Col xs={24} sm={8}><Form.Item name="order_code" label="Mã đơn"><Input disabled placeholder="Tự động" /></Form.Item></Col>
+                                <Col xs={24} sm={8}>
+                                    <Form.Item name="customer_id" label="Khách hàng" rules={[{ required: true }]}>
+                                        <Select
+                                            showSearch
+                                            placeholder="Chọn KH"
+                                            optionFilterProp="label"
+                                            options={[
+                                                ...(initialData?.isInternal ? [{ label: '🏢 NỘI BỘ', value: -1 }] : []),
+                                                ...customers.map((c: any) => ({ label: `${c.name} - ${c.phone}`, value: c.id }))
+                                            ]}
+                                            disabled={initialData?.isInternal}
+                                        />
+                                    </Form.Item>
+                                    {isQuotation && customerQuotations.length > 0 && (
+                                        <Button
+                                            size="small"
+                                            icon={<CopyOutlined />}
+                                            onClick={() => setCopyQuotationModalOpen(true)}
+                                            style={{ marginTop: -10, marginBottom: 10 }}
+                                        >
+                                            Copy từ {customerQuotations.length} BG cũ
+                                        </Button>
+                                    )}
+                                </Col>
+                                <Col xs={24} sm={8}><Form.Item name="order_date" label="Ngày đặt" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
+                            </Row>
+                            <Row gutter={[16, isMobile ? 0 : 16]}>
+                                <Col xs={24} sm={8}>
+                                    <Form.Item name="status" label="Trạng thái">
+                                        <Select>
+                                            {isQuotation ? (
+                                                <Option value="QUOTATION">Báo Giá</Option>
+                                            ) : (
                                                 <>
-                                                    <Row style={rowStyle}>
-                                                        <Col span={10} style={labelStyle}>Tổng tiền hàng:</Col>
-                                                        <Col span={14} style={valStyle}>{subtotal.toLocaleString()} ₫</Col>
-                                                    </Row>
+                                                    <Option value="SO_PENDING">Xác nhận đơn hàng</Option>
+                                                    <Option value="DEPOSITED">Đã đặt cọc</Option>
+                                                    <Option value="SAMPLE_APPROVED">Đã duyệt mẫu SX</Option>
+                                                    <Option value="IN_PRODUCTION">Đang sản xuất</Option>
+                                                    <Option value="PARTIAL_DELIVERY">Giao 1 phần</Option>
+                                                    <Option value="DELIVERED">Đã giao hàng</Option>
+                                                    <Option value="COMPLETED">Hoàn tất</Option>
+                                                </>
+                                            )}
+                                            <Option value="CANCELLED">Đã Hủy</Option>
+                                        </Select>
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={8}><Form.Item name="delivery_date" label={isMobile ? 'Ngày giao' : 'Ngày giao dự kiến'}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
+                                <Col xs={24} sm={8}>
+                                    <Form.Item name="assigned_to_id" label={isMobile ? 'Phụ trách' : 'Nhân sự phụ trách'}>
+                                        <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} placeholder="Chọn NV" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col span={24}>
+                                    <Form.Item name="is_production_sample_approved" valuePropName="checked">
+                                        <Checkbox style={{ fontWeight: 600, color: '#1890ff' }}>
+                                            {isMobile ? 'Đã duyệt mẫu SX' : 'Đã duyệt mẫu tiêu chuẩn - Production Sample Approved'}
+                                        </Checkbox>
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                            <Row>
+                                <Col span={24}>
+                                    <Form.Item name="note" label="Ghi chú nội bộ (Hiển thị trên Portal)">
+                                        <Input.TextArea rows={2} placeholder="Nhập ghi chú cho khách hàng..." />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
 
-                                                    <Row style={rowStyle}>
-                                                        <Col span={10} style={labelStyle}>Giảm giá:</Col>
-                                                        <Col span={14} style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                                                            <InputNumber
-                                                                size="small"
-                                                                min={0} max={100}
-                                                                formatter={v => `${v}%`}
-                                                                parser={v => v!.replace('%', '')}
-                                                                placeholder="%"
-                                                                style={{ width: 60 }}
-                                                                value={getFieldValue('discount_rate')}
-                                                                onChange={(val) => {
-                                                                    const rate = Number(val);
-                                                                    const amt = Math.floor(subtotal * rate / 100);
-                                                                    form.setFieldsValue({ discount_rate: rate, discount_amount: amt });
-                                                                    calculateTotal(orderItems);
-                                                                }}
-                                                            />
-                                                            <InputNumber
-                                                                size="small"
-                                                                style={{ width: 110 }}
-                                                                value={getFieldValue('discount_amount')}
-                                                                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                parser={v => v!.replace(/\$\s?|(,*)/g, '')}
-                                                                onChange={(val) => {
-                                                                    const amt = Number(val);
-                                                                    const rate = subtotal > 0 ? Number((amt / subtotal * 100).toFixed(2)) : 0;
-                                                                    form.setFieldsValue({ discount_amount: amt, discount_rate: rate });
-                                                                    calculateTotal(orderItems);
-                                                                }}
-                                                            />
-                                                        </Col>
-                                                    </Row>
+                            {/* HIDDEN FIELDS TO REGISTER VALUES */}
+                            <Form.Item name="discount_rate" hidden><InputNumber /></Form.Item>
+                            <Form.Item name="discount_amount" hidden><InputNumber /></Form.Item>
+                            <Form.Item name="vat_rate" hidden><InputNumber /></Form.Item>
+                            <Form.Item name="shipping_fee" hidden><InputNumber /></Form.Item>
+                            <Form.Item name="deposit_percent" hidden><InputNumber /></Form.Item>
+                            <Form.Item name="deposit_amount" hidden><InputNumber /></Form.Item>
 
-                                                    <Row style={rowStyle}>
-                                                        <Col span={10} style={labelStyle}>VAT ({vatRate}%):</Col>
-                                                        <Col span={14} style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, alignItems: 'center' }}>
-                                                            <div style={{ color: '#888', marginRight: 4 }}>
-                                                                {vatRate > 0 ? (taxable * vatRate / 100).toLocaleString() : '0'} ₫
-                                                            </div>
-                                                            <InputNumber
-                                                                size="small"
-                                                                min={0} max={100}
-                                                                formatter={v => `${v}%`}
-                                                                parser={v => v!.replace('%', '')}
-                                                                style={{ width: 60 }}
-                                                                value={getFieldValue('vat_rate')}
-                                                                onChange={(v) => { form.setFieldsValue({ vat_rate: v }); calculateTotal(orderItems); }}
-                                                            />
-                                                        </Col>
-                                                    </Row>
+                            <Divider orientation="left">Danh sách sản phẩm</Divider>
+                            <SalesOrderItemsTable
+                                items={orderItems}
+                                products={products}
+                                isMobile={isMobile ?? false}
+                                onItemChange={handleItemChange}
+                                onRemoveItem={handleRemoveItem}
+                                onReorder={handleReorderItems}
+                            />
+                            <Button type="dashed" onClick={handleAddItem} block icon={<PlusOutlined />} style={{ marginTop: 10 }}>Thêm sản phẩm</Button>
 
-                                                    <Row style={rowStyle}>
-                                                        <Col span={10} style={labelStyle}>Phí vận chuyển:</Col>
-                                                        <Col span={14} style={{ textAlign: 'right' }}>
-                                                            <InputNumber
-                                                                size="small"
-                                                                min={0}
-                                                                style={{ width: 110 }}
-                                                                value={getFieldValue('shipping_fee')}
-                                                                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                parser={v => v!.replace(/\$\s?|(,*)/g, '')}
-                                                                onChange={(v) => { form.setFieldsValue({ shipping_fee: v }); calculateTotal(orderItems); }}
-                                                            />
-                                                        </Col>
-                                                    </Row>
+                            {/* NEW TOTALS SECTION */}
+                            <Row justify="end" style={{ marginTop: 24 }}>
+                                <Col span={10}>
+                                    <div style={{ background: '#fafafa', padding: 16, borderRadius: 8 }}>
+                                        <Form.Item shouldUpdate noStyle>
+                                            {({ getFieldValue }) => {
+                                                const subtotal = orderItems.reduce((sum, item) => sum + (Number(item.total_price) || 0), 0);
+                                                const discountAmt = Number(getFieldValue('discount_amount')) || 0;
+                                                const vatRate = Number(getFieldValue('vat_rate')) || 0;
+                                                const shipping = Number(getFieldValue('shipping_fee')) || 0;
 
-                                                    <Divider style={{ margin: '12px 0' }} />
+                                                const taxable = Math.max(0, subtotal - discountAmt);
+                                                const total = taxable * (1 + vatRate / 100) + shipping;
 
-                                                    <Row style={{ alignItems: 'center' }}>
-                                                        <Col span={10} style={{ fontSize: 15, fontWeight: 700, color: '#333' }}>TỔNG CỘNG:</Col>
-                                                        <Col span={14} style={{ textAlign: 'right', fontSize: 18, fontWeight: 700, color: '#f5222d' }}>
-                                                            {total.toLocaleString()} ₫
-                                                        </Col>
-                                                    </Row>
+                                                // Common styles
+                                                const labelStyle: React.CSSProperties = { color: '#666', fontSize: 13 };
+                                                const valStyle: React.CSSProperties = { fontWeight: 500, fontSize: 13, textAlign: 'right' as const };
+                                                const rowStyle: React.CSSProperties = { marginBottom: 12, alignItems: 'center' };
 
-                                                    {/* DEPOSIT SECTION */}
-                                                    <Divider style={{ margin: '12px 0' }} dashed />
-                                                    <Row style={rowStyle}>
-                                                        <Col span={10} style={{ ...labelStyle, fontWeight: 500, color: '#722ed1' }}>Đặt cọc:</Col>
-                                                        <Col span={14} style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                                                            <InputNumber
-                                                                size="small"
-                                                                min={0} max={100}
-                                                                formatter={v => `${v}%`}
-                                                                parser={v => v!.replace('%', '')}
-                                                                placeholder="%"
-                                                                style={{ width: 70 }}
-                                                                value={getFieldValue('deposit_percent')}
-                                                                onChange={(val) => {
-                                                                    const rate = Number(val) || 0;
-                                                                    const amt = Math.floor(total * rate / 100);
-                                                                    form.setFieldsValue({ deposit_percent: rate, deposit_amount: amt });
-                                                                }}
-                                                            />
-                                                            <InputNumber
-                                                                size="small"
-                                                                style={{ width: 120 }}
-                                                                value={getFieldValue('deposit_amount')}
-                                                                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                                parser={v => v!.replace(/\$\s?|(,*)/g, '')}
-                                                                onChange={(val) => {
-                                                                    const amt = Number(val) || 0;
-                                                                    const rate = total > 0 ? Number((amt / total * 100).toFixed(0)) : 0;
-                                                                    form.setFieldsValue({ deposit_amount: amt, deposit_percent: rate });
-                                                                }}
-                                                            />
-                                                        </Col>
-                                                    </Row>
-                                                    {getFieldValue('deposit_amount') > 0 && (
-                                                        <Row style={{ marginTop: 4 }}>
-                                                            <Col span={24} style={{ textAlign: 'right', fontSize: 12, color: '#722ed1', fontStyle: 'italic' }}>
-                                                                💰 Yêu cầu đặt cọc: {Number(getFieldValue('deposit_amount') || 0).toLocaleString()} ₫
+                                                return (
+                                                    <>
+                                                        <Row style={rowStyle}>
+                                                            <Col span={10} style={labelStyle}>Tổng tiền hàng:</Col>
+                                                            <Col span={14} style={valStyle}>{subtotal.toLocaleString()} ₫</Col>
+                                                        </Row>
+
+                                                        <Row style={rowStyle}>
+                                                            <Col span={10} style={labelStyle}>Giảm giá:</Col>
+                                                            <Col span={14} style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                                                                <InputNumber
+                                                                    size="small"
+                                                                    min={0} max={100}
+                                                                    formatter={v => `${v}%`}
+                                                                    parser={v => v!.replace('%', '')}
+                                                                    placeholder="%"
+                                                                    style={{ width: 60 }}
+                                                                    value={getFieldValue('discount_rate')}
+                                                                    onChange={(val) => {
+                                                                        const rate = Number(val);
+                                                                        const amt = Math.floor(subtotal * rate / 100);
+                                                                        form.setFieldsValue({ discount_rate: rate, discount_amount: amt });
+                                                                        calculateTotal(orderItems);
+                                                                    }}
+                                                                />
+                                                                <InputNumber
+                                                                    size="small"
+                                                                    style={{ width: 110 }}
+                                                                    value={getFieldValue('discount_amount')}
+                                                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                    parser={v => v!.replace(/\$\s?|(,*)/g, '')}
+                                                                    onChange={(val) => {
+                                                                        const amt = Number(val);
+                                                                        const rate = subtotal > 0 ? Number((amt / subtotal * 100).toFixed(2)) : 0;
+                                                                        form.setFieldsValue({ discount_amount: amt, discount_rate: rate });
+                                                                        calculateTotal(orderItems);
+                                                                    }}
+                                                                />
                                                             </Col>
                                                         </Row>
-                                                    )}
-                                                </>);
-                                        }}
-                                    </Form.Item>
-                                </div>
-                            </Col>
-                        </Row>
-                    </Form>
-                </Tabs.TabPane>
-                <Tabs.TabPane tab={isMobile ? '2. HĐ' : '2. Xuất Hóa Đơn & VAT'} key="invoice">
-                    <Form form={form} layout="vertical">
-                        <div style={{ padding: isMobile ? 6 : 10, background: '#f5f5f5', borderRadius: 4, marginBottom: 15 }}>
-                            {!isMobile && (
-                                <div style={{ fontStyle: 'italic', color: '#666', marginBottom: 10, fontSize: 12 }}>
-                                    <InfoCircleOutlined /> Lấy từ "Pháp Nhân" của KH
-                                </div>
-                            )}
-                            <Row gutter={16}>
-                                <Col span={12}>
-                                    <Form.Item name="vat_company_name" label="Tên đơn vị (Xuất HĐ)">
-                                        <Input placeholder="Công ty TNHH..." />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={12}>
-                                    <Form.Item name="vat_tax_code" label="Mã số thuế">
-                                        <Input placeholder="VD: 031..." />
-                                    </Form.Item>
+
+                                                        <Row style={rowStyle}>
+                                                            <Col span={10} style={labelStyle}>VAT ({vatRate}%):</Col>
+                                                            <Col span={14} style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, alignItems: 'center' }}>
+                                                                <div style={{ color: '#888', marginRight: 4 }}>
+                                                                    {vatRate > 0 ? (taxable * vatRate / 100).toLocaleString() : '0'} ₫
+                                                                </div>
+                                                                <InputNumber
+                                                                    size="small"
+                                                                    min={0} max={100}
+                                                                    formatter={v => `${v}%`}
+                                                                    parser={v => v!.replace('%', '')}
+                                                                    style={{ width: 60 }}
+                                                                    value={getFieldValue('vat_rate')}
+                                                                    onChange={(v) => { form.setFieldsValue({ vat_rate: v }); calculateTotal(orderItems); }}
+                                                                />
+                                                            </Col>
+                                                        </Row>
+
+                                                        <Row style={rowStyle}>
+                                                            <Col span={10} style={labelStyle}>Phí vận chuyển:</Col>
+                                                            <Col span={14} style={{ textAlign: 'right' }}>
+                                                                <InputNumber
+                                                                    size="small"
+                                                                    min={0}
+                                                                    style={{ width: 110 }}
+                                                                    value={getFieldValue('shipping_fee')}
+                                                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                    parser={v => v!.replace(/\$\s?|(,*)/g, '')}
+                                                                    onChange={(v) => { form.setFieldsValue({ shipping_fee: v }); calculateTotal(orderItems); }}
+                                                                />
+                                                            </Col>
+                                                        </Row>
+
+                                                        <Divider style={{ margin: '12px 0' }} />
+
+                                                        <Row style={{ alignItems: 'center' }}>
+                                                            <Col span={10} style={{ fontSize: 15, fontWeight: 700, color: '#333' }}>TỔNG CỘNG:</Col>
+                                                            <Col span={14} style={{ textAlign: 'right', fontSize: 18, fontWeight: 700, color: '#f5222d' }}>
+                                                                {total.toLocaleString()} ₫
+                                                            </Col>
+                                                        </Row>
+
+                                                        {/* DEPOSIT SECTION */}
+                                                        <Divider style={{ margin: '12px 0' }} dashed />
+                                                        <Row style={rowStyle}>
+                                                            <Col span={10} style={{ ...labelStyle, fontWeight: 500, color: '#722ed1' }}>Đặt cọc:</Col>
+                                                            <Col span={14} style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                                                                <InputNumber
+                                                                    size="small"
+                                                                    min={0} max={100}
+                                                                    formatter={v => `${v}%`}
+                                                                    parser={v => v!.replace('%', '')}
+                                                                    placeholder="%"
+                                                                    style={{ width: 70 }}
+                                                                    value={getFieldValue('deposit_percent')}
+                                                                    onChange={(val) => {
+                                                                        const rate = Number(val) || 0;
+                                                                        const amt = Math.floor(total * rate / 100);
+                                                                        form.setFieldsValue({ deposit_percent: rate, deposit_amount: amt });
+                                                                    }}
+                                                                />
+                                                                <InputNumber
+                                                                    size="small"
+                                                                    style={{ width: 120 }}
+                                                                    value={getFieldValue('deposit_amount')}
+                                                                    formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                                    parser={v => v!.replace(/\$\s?|(,*)/g, '')}
+                                                                    onChange={(val) => {
+                                                                        const amt = Number(val) || 0;
+                                                                        const rate = total > 0 ? Number((amt / total * 100).toFixed(0)) : 0;
+                                                                        form.setFieldsValue({ deposit_amount: amt, deposit_percent: rate });
+                                                                    }}
+                                                                />
+                                                            </Col>
+                                                        </Row>
+                                                        {getFieldValue('deposit_amount') > 0 && (
+                                                            <Row style={{ marginTop: 4 }}>
+                                                                <Col span={24} style={{ textAlign: 'right', fontSize: 12, color: '#722ed1', fontStyle: 'italic' }}>
+                                                                    💰 Yêu cầu đặt cọc: {Number(getFieldValue('deposit_amount') || 0).toLocaleString()} ₫
+                                                                </Col>
+                                                            </Row>
+                                                        )}
+                                                    </>);
+                                            }}
+                                        </Form.Item>
+                                    </div>
                                 </Col>
                             </Row>
+                        </Form>
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab={isMobile ? '2. HĐ' : '2. Hợp đồng & Hóa đơn'} key="invoice">
+                        <Form form={form} layout="vertical">
+                            <div style={{ padding: 10, background: '#fff', border: '1px solid #d9d9d9', borderRadius: 4, marginBottom: 15 }}>
+                                <div style={{ fontWeight: 600, marginBottom: 10, color: '#1890ff' }}><FileTextOutlined /> TẠO HỢP ĐỒNG</div>
+                                <Row gutter={16} align="middle">
+                                    <Col flex="auto">
+                                        <i>Soạn thảo hợp đồng, chọn mẫu và thêm phụ lục hình ảnh.</i>
+                                    </Col>
+                                    <Col>
+                                        <Button type="primary" icon={<PrinterOutlined />} onClick={() => setContractBuilderOpen(true)}>
+                                            Soạn Thảo & In Hợp Đồng
+                                        </Button>
+                                    </Col>
+                                </Row>
+                            </div>
 
-                            <Row gutter={16}>
-                                <Col span={24}>
-                                    <Form.Item name="vat_address" label="Địa chỉ xuất HĐ">
-                                        <Input placeholder="Địa chỉ theo ĐKKD" />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                            <Row gutter={16}>
-                                <Col span={12}>
-                                    <Form.Item name="vat_email" label="Email Nhận Hóa Đơn">
-                                        <Input placeholder="email@company.com" />
-                                    </Form.Item>
-                                </Col>
-                                <Col span={12}>
-                                    <Form.Item name="vat_invoice_link" label="Link Hóa Đơn (PDF/Drive)">
-                                        <Input placeholder="https://..." prefix={<LinkOutlined />} />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </div>
-                    </Form>
-                </Tabs.TabPane>
-                {initialData?.id && !isQuotation && (
-                    <>
-                        <Tabs.TabPane tab={isMobile ? '3. TT' : '3. Thanh toán'} key="2">
-                            <SalesPayments
-                                orderId={initialData.id}
-                                orderCode={initialData.order_code}
-                                totalAmount={totalAmount}
-                                paidAmount={initialData.paid_amount || 0}
-                                customerName={initialData?.customer?.name || initialData?.customer_name}
-                                orderStatus={initialData.status}
-                                onSuccess={onSuccess}
-                            />
-                        </Tabs.TabPane>
-                        <Tabs.TabPane tab={isMobile ? '4. GH' : '4. Giao hàng'} key="3">
-                            <SalesDeliveries order={initialData} products={products} customers={customers} onSuccess={onSuccess} />
-                        </Tabs.TabPane>
-                        <Tabs.TabPane tab={isMobile ? '5. Chat' : '5. Trao đổi'} key="4">
-                            <SalesComments
-                                orderId={initialData.id}
-                                defaultTab={defaultCommentTab}
-                                highlightCommentId={highlightCommentId}
-                            />
-                        </Tabs.TabPane>
-                        <Tabs.TabPane tab={isMobile ? '6. CL' : '6. Checklist'} key="5">
-                            <SalesChecklistPanel orderId={initialData.id} orderStatus={initialData.status} onRefresh={onSuccess} />
-                        </Tabs.TabPane>
-                        <Tabs.TabPane tab={isMobile ? '7. Mẫu' : '7. Mẫu SX'} key="sample_images">
-                            <SampleImagesTab
-                                orderId={initialData.id}
-                                initialImages={initialData.approved_sample_images || []}
-                                isApproved={initialData.is_production_sample_approved}
-                                onApprove={handleApproveSamples}
-                                onSave={(images) => { initialData.approved_sample_images = images; }}
-                                isQuotation={isQuotation}
-                            />
-                        </Tabs.TabPane>
-                        <Tabs.TabPane tab={isMobile ? '8. BG' : '8. Lịch sử Báo giá'} key="quotation_history">
-                            <QuotationHistoryTab revisions={revisions} products={products} customers={customers} />
-                        </Tabs.TabPane>
-                    </>
-                )}
-            </Tabs>
+                            <div style={{ padding: isMobile ? 6 : 10, background: '#f5f5f5', borderRadius: 4, marginBottom: 15 }}>
+                                {!isMobile && (
+                                    <div style={{ fontStyle: 'italic', color: '#666', marginBottom: 10, fontSize: 12 }}>
+                                        <InfoCircleOutlined /> Lấy từ "Pháp Nhân" của KH
+                                    </div>
+                                )}
+                                <Row gutter={16}>
+                                    <Col span={12}>
+                                        <Form.Item name="vat_company_name" label="Tên đơn vị (Xuất HĐ)">
+                                            <Input placeholder="Công ty TNHH..." />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item name="vat_tax_code" label="Mã số thuế">
+                                            <Input placeholder="VD: 031..." />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
 
-            {/* CANCEL REASON MODAL */}
-            <CancelOrderModal
-                open={cancelModalOpen}
-                cancelReason={cancelReason}
-                onReasonChange={setCancelReason}
-                onConfirm={handleCancelOrder}
-                onCancel={() => setCancelModalOpen(false)}
-            />
+                                <Row gutter={16}>
+                                    <Col span={24}>
+                                        <Form.Item name="vat_address" label="Địa chỉ xuất HĐ">
+                                            <Input placeholder="Địa chỉ theo ĐKKD" />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                                <Row gutter={16}>
+                                    <Col span={12}>
+                                        <Form.Item name="vat_email" label="Email Nhận Hóa Đơn">
+                                            <Input placeholder="email@company.com" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item name="vat_invoice_link" label="Link Hóa Đơn (PDF/Drive)">
+                                            <Input placeholder="https://..." prefix={<LinkOutlined />} />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                            </div>
+                        </Form>
+                    </Tabs.TabPane>
+                    {initialData?.id && !isQuotation && (
+                        <>
+                            <Tabs.TabPane tab={isMobile ? '3. TT' : '3. Thanh toán'} key="2">
+                                <SalesPayments
+                                    orderId={initialData.id}
+                                    orderCode={initialData.order_code}
+                                    totalAmount={totalAmount}
+                                    paidAmount={initialData.paid_amount || 0}
+                                    customerName={initialData?.customer?.name || initialData?.customer_name}
+                                    orderStatus={initialData.status}
+                                    onSuccess={onSuccess}
+                                />
+                            </Tabs.TabPane>
+                            <Tabs.TabPane tab={isMobile ? '4. GH' : '4. Giao hàng'} key="3">
+                                <SalesDeliveries order={initialData} products={products} customers={customers} onSuccess={onSuccess} />
+                            </Tabs.TabPane>
+                            <Tabs.TabPane tab={isMobile ? '5. Chat' : '5. Trao đổi'} key="4">
+                                <SalesComments
+                                    orderId={initialData.id}
+                                    defaultTab={defaultCommentTab}
+                                    highlightCommentId={highlightCommentId}
+                                />
+                            </Tabs.TabPane>
+                            <Tabs.TabPane tab={isMobile ? '6. CL' : '6. Checklist'} key="5">
+                                <SalesChecklistPanel orderId={initialData.id} orderStatus={initialData.status} onRefresh={onSuccess} />
+                            </Tabs.TabPane>
+                            <Tabs.TabPane tab={isMobile ? '7. Mẫu' : '7. Mẫu SX'} key="sample_images">
+                                <SampleImagesTab
+                                    orderId={initialData.id}
+                                    initialImages={initialData.approved_sample_images || []}
+                                    isApproved={initialData.is_production_sample_approved}
+                                    onApprove={handleApproveSamples}
+                                    onSave={(images) => { initialData.approved_sample_images = images; }}
+                                    isQuotation={isQuotation}
+                                />
+                            </Tabs.TabPane>
+                            <Tabs.TabPane tab={isMobile ? '8. BG' : '8. Lịch sử Báo giá'} key="quotation_history">
+                                <QuotationHistoryTab revisions={revisions} products={products} customers={customers} />
+                            </Tabs.TabPane>
+                        </>
+                    )}
+                </Tabs>
 
-            {/* REVISION HISTORY MODAL */}
-            <RevisionHistoryModal
-                open={revisionModalOpen}
-                onClose={() => setRevisionModalOpen(false)}
-                revisions={revisions}
-                products={products}
-                customers={customers}
-            />
-
-            {/* COPY QUOTATION MODAL */}
-            <Modal
-                title="Copy từ Báo giá cũ"
-                open={copyQuotationModalOpen}
-                onCancel={() => setCopyQuotationModalOpen(false)}
-                footer={null}
-                width={700}
-            >
-                <div style={{ marginBottom: 10, color: '#666' }}>Chọn báo giá để copy sản phẩm:</div>
-                <Table
-                    dataSource={customerQuotations}
-                    rowKey="id"
-                    size="small"
-                    pagination={false}
-                    onRow={(record: any) => ({
-                        onClick: () => handleCopyQuotation(record),
-                        style: { cursor: 'pointer' }
-                    })}
-                    columns={[
-                        { title: 'Mã BG', dataIndex: 'order_code', render: (v: string) => <Tag color="blue">{v}</Tag> },
-                        { title: 'Ngày', dataIndex: 'order_date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
-                        { title: 'Sản phẩm', render: (_: any, r: any) => `${r.items?.length || 0} SP` },
-                        { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b style={{ color: 'red' }}>{Number(v || 0).toLocaleString()} ₫</b> }
-                    ]}
+                {/* CANCEL REASON MODAL */}
+                <CancelOrderModal
+                    open={cancelModalOpen}
+                    cancelReason={cancelReason}
+                    onReasonChange={setCancelReason}
+                    onConfirm={handleCancelOrder}
+                    onCancel={() => setCancelModalOpen(false)}
                 />
-            </Modal>
-        </Modal >
-    );
-};
 
-export default SalesOrderDetail;
+                {/* REVISION HISTORY MODAL */}
+                <RevisionHistoryModal
+                    open={revisionModalOpen}
+                    onClose={() => setRevisionModalOpen(false)}
+                    revisions={revisions}
+                    products={products}
+                    customers={customers}
+                />
+
+                {/* CONTRACT BUILDER MODAL */}
+                <ContractBuilderModal
+                    open={contractBuilderOpen}
+                    onCancel={() => setContractBuilderOpen(false)}
+                    initialData={initialData}
+                    templates={contractTemplates}
+                />
+
+                {/* COPY QUOTATION MODAL */}
+                <Modal
+                    title="Copy từ Báo giá cũ"
+                    open={copyQuotationModalOpen}
+                    onCancel={() => setCopyQuotationModalOpen(false)}
+                    footer={null}
+                    width={700}
+                >
+                    <div style={{ marginBottom: 10, color: '#666' }}>Chọn báo giá để copy sản phẩm:</div>
+                    <Table
+                        dataSource={customerQuotations}
+                        rowKey="id"
+                        size="small"
+                        pagination={false}
+                        onRow={(record: any) => ({
+                            onClick: () => handleCopyQuotation(record),
+                            style: { cursor: 'pointer' }
+                        })}
+                        columns={[
+                            { title: 'Mã BG', dataIndex: 'order_code', render: (v: string) => <Tag color="blue">{v}</Tag> },
+                            { title: 'Ngày', dataIndex: 'order_date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
+                            { title: 'Sản phẩm', render: (_: any, r: any) => `${r.items?.length || 0} SP` },
+                            { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b style={{ color: 'red' }}>{Number(v || 0).toLocaleString()} ₫</b> }
+                        ]}
+                    />
+                </Modal>
+            </Modal >
+        );
+    };
+
+    export default SalesOrderDetail;

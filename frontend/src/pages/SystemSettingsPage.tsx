@@ -1,10 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert } from 'antd';
-import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined } from '@ant-design/icons';
+import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip } from 'antd';
+import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
+import dayjs from 'dayjs';
 
 const SystemSettingsPage: React.FC = () => {
+    return (
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+            <Card bordered={false} bodyStyle={{ padding: 0 }}>
+                <Tabs defaultActiveKey="1" tabPosition="left" style={{ minHeight: 600 }}>
+                    <Tabs.TabPane tab={<span><MailOutlined /> Cấu hình Email & Chung</span>} key="1">
+                        <div style={{ padding: 24 }}>
+                            <GeneralSettingsTab />
+                        </div>
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab={<span><FileTextOutlined /> Mẫu Hợp Đồng</span>} key="2">
+                        <div style={{ padding: 24 }}>
+                            <ContractTemplatesTab />
+                        </div>
+                    </Tabs.TabPane>
+                </Tabs>
+            </Card>
+        </div>
+    );
+};
+
+const GeneralSettingsTab: React.FC = () => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -13,7 +35,6 @@ const SystemSettingsPage: React.FC = () => {
         setLoading(true);
         try {
             const res = await axios.get(`${API_URL}/system/smtp`);
-            // Convert 'true'/'false' string to boolean for Switch
             const data = { ...res.data, SMTP_SECURE: res.data.SMTP_SECURE === 'true' };
             form.setFieldsValue(data);
         } catch (error) {
@@ -29,7 +50,6 @@ const SystemSettingsPage: React.FC = () => {
     const onFinish = async (values: any) => {
         setSubmitting(true);
         try {
-            // Convert boolean back to string if needed by backend, though backend treated it as string in my impl
             const payload = { ...values, SMTP_SECURE: String(values.SMTP_SECURE) };
             await axios.post(`${API_URL}/system/smtp`, payload);
             message.success('Đã lưu cấu hình SMTP thành công!');
@@ -40,113 +60,150 @@ const SystemSettingsPage: React.FC = () => {
     };
 
     return (
-        <div style={{ maxWidth: 800, margin: '0 auto' }}>
-            <Card
-                title={<span><MailOutlined /> Cấu Hình Email (SMTP)</span>}
-                bordered={false}
-                extra={<Button type="primary" icon={<SaveOutlined />} onClick={form.submit} loading={submitting}>Lưu Cấu Hình</Button>}
-            >
+        <>
+            <Card title="Cấu Hình Email (SMTP)" bordered={false} size="small">
                 <Alert message="Cấu hình này dùng để gửi Email thông báo và Báo giá cho khách hàng." type="info" showIcon style={{ marginBottom: 24 }} />
-
-                {loading ? <div style={{ textAlign: 'center', padding: 50 }}><Spin /></div> : (
+                {loading ? <Spin /> : (
                     <Form form={form} layout="vertical" onFinish={onFinish}>
                         <Row gutter={24}>
-                            <Col span={16}>
-                                <Form.Item name="SMTP_HOST" label="SMTP Host" rules={[{ required: true, message: 'Nhập SMTP Host' }]}>
-                                    <Input placeholder="smtp.gmail.com" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item name="SMTP_PORT" label="Port" rules={[{ required: true, message: 'Nhập Port' }]}>
-                                    <Input placeholder="587" />
-                                </Form.Item>
-                            </Col>
+                            <Col span={16}><Form.Item name="SMTP_HOST" label="SMTP Host" rules={[{ required: true }]}><Input placeholder="smtp.gmail.com" /></Form.Item></Col>
+                            <Col span={8}><Form.Item name="SMTP_PORT" label="Port" rules={[{ required: true }]}><Input placeholder="587" /></Form.Item></Col>
                         </Row>
-
                         <Row gutter={24}>
-                            <Col span={12}>
-                                <Form.Item name="SMTP_USER" label="Username / Email" rules={[{ required: true }]}>
-                                    <Input placeholder="email@domain.com" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item name="SMTP_PASS" label="Password / App Password" rules={[{ required: true }]}>
-                                    <Input.Password placeholder="Nhập mật khẩu" />
-                                </Form.Item>
-                            </Col>
+                            <Col span={12}><Form.Item name="SMTP_USER" label="Username / Email" rules={[{ required: true }]}><Input placeholder="email@domain.com" /></Form.Item></Col>
+                            <Col span={12}><Form.Item name="SMTP_PASS" label="Password"><Input.Password placeholder="Nhập mật khẩu" /></Form.Item></Col>
                         </Row>
-
-                        <Divider />
-
                         <Row gutter={24}>
-                            <Col span={12}>
-                                <Form.Item name="SMTP_FROM_NAME" label="Tên người gửi (From Name)" rules={[{ required: true }]}>
-                                    <Input placeholder="Hula ERP System" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item name="SMTP_FROM_EMAIL" label="Email người gửi (From Email)" rules={[{ required: true }]}>
-                                    <Input placeholder="no-reply@domain.com" />
-                                </Form.Item>
-                            </Col>
+                            <Col span={12}><Form.Item name="SMTP_FROM_NAME" label="Tên người gửi" rules={[{ required: true }]}><Input placeholder="Hula ERP System" /></Form.Item></Col>
+                            <Col span={12}><Form.Item name="SMTP_FROM_EMAIL" label="Email người gửi" rules={[{ required: true }]}><Input placeholder="no-reply@domain.com" /></Form.Item></Col>
                         </Row>
-
-                        <Form.Item name="SMTP_SECURE" valuePropName="checked" label="Sử dụng kết nối an toàn (SSL/TLS)">
-                            <Switch />
-                        </Form.Item>
+                        <Form.Item name="SMTP_SECURE" valuePropName="checked" label="Sử dụng SSL/TLS"><Switch /></Form.Item>
+                        <Button type="primary" icon={<SaveOutlined />} onClick={form.submit} loading={submitting}>Lưu Cấu Hình Email</Button>
                     </Form>
                 )}
             </Card>
 
-            <div style={{ marginBottom: 24 }} />
+            <Divider />
 
-            <div style={{ marginBottom: 24 }} />
-
-            <Card
-                title={<span><ShopOutlined /> Thông tin Doanh nghiệp</span>}
-                bordered={false}
-            >
+            <Card title="Thông tin Doanh nghiệp" bordered={false} size="small">
                 <CompanyConfigForm />
             </Card>
 
-            <div style={{ marginBottom: 24 }} />
+            <Divider />
 
-            <Card
-                title={<span><LinkOutlined /> Quản Lý Link Tài Nguyên</span>}
-                bordered={false}
-            >
-                <div style={{ marginBottom: 16 }}>
-                    <Alert message="Cấu hình các link tài nguyên dùng chung cho hệ thống (VD: Google Drive ảnh sản phẩm)." type="info" showIcon />
-                </div>
-
-                <LinkConfigItem
-                    label="Folder Ảnh Sản Phẩm (Google Drive)"
-                    configKey="SALES_SHARED_DRIVE_LINK"
-                    placeholder="https://drive.google.com/drive/folders/..."
-                />
+            <Card title="Quản Lý Link Tài Nguyên" bordered={false} size="small">
+                <LinkConfigItem label="Folder Ảnh Sản Phẩm (Google Drive)" configKey="SALES_SHARED_DRIVE_LINK" placeholder="https://drive.google.com/..." />
             </Card>
 
-            <div style={{ marginBottom: 24 }} />
+            <Divider />
 
-            <Card
-                title={<span>💰 Cấu Hình Dòng Tiền</span>}
-                bordered={false}
-            >
-                <Alert
-                    message="Cấu hình ngưỡng cảnh báo cho hệ thống quản lý dòng tiền. Khi số dư quỹ tiền mặt dưới ngưỡng này, hệ thống sẽ hiển thị cảnh báo."
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 16 }}
-                />
-                <NumberConfigItem
-                    label="Ngưỡng cảnh báo quỹ thấp (VNĐ)"
-                    configKey="CASH_FLOW_THRESHOLD"
-                    defaultValue={50000000}
-                />
+            <Card title="Cấu Hình Dòng Tiền" bordered={false} size="small">
+                <NumberConfigItem label="Ngưỡng cảnh báo quỹ thấp (VNĐ)" configKey="CASH_FLOW_THRESHOLD" defaultValue={50000000} />
             </Card>
-        </div >
+        </>
     );
 };
+
+const ContractTemplatesTab: React.FC = () => {
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editingTemplate, setEditingTemplate] = useState<any>(null);
+    const [form] = Form.useForm();
+
+    const fetchTemplates = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(`${API_URL}/system/templates`);
+            setTemplates(res.data);
+        } catch (e) { message.error('Lỗi tải danh sách mẫu'); }
+        setLoading(false);
+    };
+
+    useEffect(() => { fetchTemplates(); }, []);
+
+    const handleSave = async (values: any) => {
+        try {
+            await axios.post(`${API_URL}/system/templates`, { ...values, id: editingTemplate?.id });
+            message.success('Đã lưu mẫu hợp đồng');
+            setModalOpen(false);
+            fetchTemplates();
+        } catch (e) { message.error('Lỗi lưu mẫu'); }
+    };
+
+    const handleDelete = async (id: number) => {
+        try {
+            await axios.delete(`${API_URL}/system/templates/${id}`);
+            message.success('Đã xóa mẫu');
+            fetchTemplates();
+        } catch (e) { message.error('Lỗi xóa mẫu'); }
+    };
+
+    const columns = [
+        { title: 'Tên Mẫu', dataIndex: 'name', key: 'name', width: '30%', render: (t: string) => <b>{t}</b> },
+        { title: 'Cập nhật lần cuối', dataIndex: 'updated_at', key: 'updated_at', render: (t: string) => dayjs(t).format('DD/MM/YYYY HH:mm') },
+        {
+            title: 'Hành động', key: 'action', width: 150, render: (_: any, r: any) => (
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <Button icon={<EditOutlined />} size="small" onClick={() => { setEditingTemplate(r); form.setFieldsValue(r); setModalOpen(true); }} />
+                    <Popconfirm title="Xóa mẫu này?" onConfirm={() => handleDelete(r.id)}>
+                        <Button icon={<DeleteOutlined />} danger size="small" />
+                    </Popconfirm>
+                </div>
+            )
+        }
+    ];
+
+    return (
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h3>Danh Sách Mẫu Hợp Đồng</h3>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTemplate(null); form.resetFields(); setModalOpen(true); }}>Tạo Mẫu Mới</Button>
+            </div>
+
+            <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="Hướng dẫn"
+                description={
+                    <span>
+                        Sử dụng các placeholder sau trong nội dung:
+                        <Tag style={{ marginLeft: 5 }}>{'{{customer_name}}'}</Tag>
+                        <Tag>{'{{customer_address}}'}</Tag>
+                        <Tag>{'{{customer_tax_code}}'}</Tag>
+                        <Tag>{'{{order_code}}'}</Tag>
+                        <Tag>{'{{order_date}}'}</Tag>
+                        <Tag>{'{{total_amount_text}}'}</Tag>
+                        <Tag>{'{{items_table}}'}</Tag>
+                    </span>
+                }
+            />
+
+            <Table dataSource={templates} columns={columns} rowKey="id" loading={loading} pagination={false} />
+
+            <Modal
+                title={editingTemplate ? "Chỉnh Sửa Mẫu" : "Tạo Mẫu Mới"}
+                open={modalOpen}
+                onCancel={() => setModalOpen(false)}
+                onOk={form.submit}
+                width={800}
+                maskClosable={false}
+            >
+                <Form form={form} layout="vertical" onFinish={handleSave}>
+                    <Form.Item name="name" label="Tên mẫu" rules={[{ required: true, message: 'Nhập tên mẫu' }]}>
+                        <Input placeholder="VD: Hợp đồng nguyên tắc 2024" />
+                    </Form.Item>
+                    <Form.Item name="content" label="Nội dung hợp đồng (HTML/Text)" rules={[{ required: true }]}>
+                        <Input.TextArea rows={15} showCount />
+                    </Form.Item>
+                </Form>
+            </Modal>
+        </div>
+    );
+};
+
+// ... Helper components (LinkConfigItem, NumberConfigItem, CompanyConfigForm) ...
 
 const LinkConfigItem = ({ label, configKey, placeholder }: { label: string, configKey: string, placeholder: string }) => {
     const [val, setVal] = useState('');
@@ -172,7 +229,7 @@ const LinkConfigItem = ({ label, configKey, placeholder }: { label: string, conf
     }
 
     return (
-        <Form.Item label={label}>
+        <Form.Item label={label} style={{ marginBottom: 0 }}>
             <div style={{ display: 'flex', gap: 8 }}>
                 <Input value={val} onChange={e => setVal(e.target.value)} placeholder={placeholder} />
                 <Button type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu</Button>
@@ -205,7 +262,7 @@ const NumberConfigItem = ({ label, configKey, defaultValue }: { label: string, c
     }
 
     return (
-        <Form.Item label={label}>
+        <Form.Item label={label} style={{ marginBottom: 0 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <InputNumber
                     style={{ width: 200 }}
@@ -254,5 +311,9 @@ const CompanyConfigForm = () => {
         </Form>
     );
 };
+
+// Simple Tag component since I don't want to import from antd if it's not already there? 
+// Wait, Tag is in antd. I added it to imports.
+import { Tag } from 'antd'; // Adding to top imports
 
 export default SystemSettingsPage;

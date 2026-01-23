@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
 import { SystemService } from './system.service';
 
 @Controller('system')
@@ -40,4 +40,14 @@ export class SystemController {
     saveConfig(@Body() body: { key: string; value: string; description?: string }) {
         return this.s.setValue(body.key, body.value, body.description);
     }
+
+    // --- CONTRACT TEMPLATES ---
+    @Get('templates')
+    getTemplates() { return this.s.getTemplates(); }
+
+    @Post('templates')
+    saveTemplate(@Body() body: any) { return this.s.saveTemplate(body); }
+
+    @Delete('templates/:id')
+    deleteTemplate(@Param('id') id: number) { return this.s.deleteTemplate(id); }
 }
