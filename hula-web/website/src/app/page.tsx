@@ -1,13 +1,20 @@
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 
-// Mock data - sẽ được thay bằng API call
-const featuredProducts = [
-    { id: 1, sku: 'NEM-001', name: 'Nệm Mầm Non Cơ Bản', base_price: 450000, image_url: '/placeholder.jpg' },
-    { id: 2, sku: 'NEM-002', name: 'Nệm Mầm Non Cao Cấp', base_price: 650000, image_url: '/placeholder.jpg' },
-    { id: 3, sku: 'NEM-003', name: 'Combo Nệm + Gối', base_price: 850000, image_url: '/placeholder.jpg' },
-    { id: 4, sku: 'NEM-004', name: 'Nệm Mầm Non Premium', base_price: 950000, image_url: '/placeholder.jpg' },
-];
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+async function getFeaturedProducts() {
+    try {
+        const res = await fetch(`${API_URL}/products`, { next: { revalidate: 60 } });
+        if (!res.ok) return [];
+        const products = await res.json();
+        // Assuming /products returns all products, we slice 4. 
+        // Ideally backend should support filtering ?featured=true
+        return Array.isArray(products) ? products.slice(0, 4) : [];
+    } catch (error) {
+        return [];
+    }
+}
 
 const features = [
     { icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', desc: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
@@ -16,7 +23,9 @@ const features = [
     { icon: '🚚', title: 'Giao Hàng Toàn Quốc', desc: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+    const featuredProducts = await getFeaturedProducts();
+
     return (
         <>
             {/* Hero Section */}

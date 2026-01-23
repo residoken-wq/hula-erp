@@ -37,7 +37,19 @@ async function bootstrap() {
 
     // Enable /api prefix
     app.setGlobalPrefix('api');
-    app.enableCors();
+    // Enable CORS
+    app.enableCors({
+      origin: [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://erp.nemmamnon.com',
+        'https://cms.nemmamnon.com',
+        'https://nemmamnon.com',
+        'https://www.nemmamnon.com'
+      ],
+      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+      credentials: true,
+    });
 
     const port = process.env.PORT || 3000;
     await app.listen(port, '0.0.0.0');

@@ -35,16 +35,12 @@ export default function ProductsPage() {
     const loadProducts = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/api/public/products`);
+            const res = await fetch(`${API_URL}/products`); // Updated to standard API
             const data = await res.json();
             setProducts(Array.isArray(data) ? data : []);
         } catch (error) {
             message.error('Không thể tải danh sách sản phẩm');
-            // Fallback mock data
-            setProducts([
-                { id: 1, sku: 'NEM-001', name: 'Nệm Mầm Non Cơ Bản', category: 'Nệm Đơn', base_price: 450000, cost_price: 300000, quantity_in_stock: 100, is_active: true, image_url: '', customer_description: '' },
-                { id: 2, sku: 'NEM-002', name: 'Nệm Mầm Non Cao Cấp', category: 'Nệm Cao Cấp', base_price: 650000, cost_price: 400000, quantity_in_stock: 50, is_active: true, image_url: '', customer_description: '' },
-            ]);
+            setProducts([]);
         } finally {
             setLoading(false);
         }

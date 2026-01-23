@@ -78,13 +78,10 @@ export default function DashboardPage() {
             // Get recent leads (last 5)
             setRecentLeads(leads.slice(0, 5));
         } catch (error) {
-            // Fallback mock data
-            setStats({ blogs: 12, products: 45, leads: 8, views: 3250 });
-            setRecentLeads([
-                { id: 1, code: 'LEAD-00001', name: 'Trường MN Hoa Sen', phone: '0901234567', lead_status: 'NEW', created_at: '2026-01-07' },
-                { id: 2, code: 'LEAD-00002', name: 'Trường MN Ánh Dương', phone: '0912345678', lead_status: 'CONTACTED', created_at: '2026-01-06' },
-                { id: 3, code: 'LEAD-00003', name: 'Đại lý ABC', phone: '0923456789', lead_status: 'QUALIFIED', created_at: '2026-01-05' },
-            ]);
+            console.error('Failed to load dashboard:', error);
+            // Initialize with empty/zero values on error
+            setStats({ blogs: 0, products: 0, leads: 0, views: 0 });
+            setRecentLeads([]);
         } finally {
             setLoading(false);
         }
