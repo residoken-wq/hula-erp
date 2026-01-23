@@ -392,7 +392,14 @@ export class SalesService {
         }
 
         // Log Update with Details
-        Object.keys(changes).length > 0 ? changes : null // Pass diff as details
+        await this.systemService.logAction(
+            'SALES',
+            'UPDATE_ORDER',
+            `Updated Order ${saved.order_code}`,
+            data.user_id,
+            data.username,
+            saved.order_code,
+            Object.keys(changes).length > 0 ? changes : null // Pass diff as details
         );
 
         // --- NOTIFICATIONS ---
