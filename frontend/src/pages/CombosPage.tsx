@@ -1,8 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Select, Row, Col, Space, Divider, Tooltip, Statistic, Popconfirm, Tag } from 'antd';
-import { PlusOutlined, DeleteOutlined, GiftOutlined, DollarOutlined, EditOutlined, WarningOutlined, SearchOutlined, CalculatorOutlined, RiseOutlined, FallOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, GiftOutlined, DollarOutlined, EditOutlined, WarningOutlined, SearchOutlined, CalculatorOutlined, RiseOutlined, FallOutlined, MenuOutlined } from '@ant-design/icons';
+import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import axios from 'axios';
 import { API_URL } from '../config';
+import DraggableRow from '../components/common/DraggableRow';
 
 const CombosPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
@@ -245,55 +250,64 @@ const CombosPage: React.FC = () => {
                     <Divider orientation="left" style={{ marginTop: 0 }}>Thành phần Combo</Divider>
 
                     <Form.List name="items">
-                        {(fields, { add, remove, move }) => (
-                            <div style={{ maxHeight: 300, overflowY: 'auto', paddingRight: 5 }}>
-                                {fields.map(({ key, name, ...restField }, index) => {
-                                    const sku = form.getFieldValue(['items', name, 'sku']);
-                                    const info = productMap[sku] || { price: 0, cost: 0, unit: '' };
-                                    return (
-                                        <Row key={key} gutter={8} align="middle" style={{ marginBottom: 10, background: '#fafafa', padding: 8, borderRadius: 6, border: '1px solid #f0f0f0' }}>
-                                            <Col span={10}>
-                                                <Form.Item {...restField} name={[name, 'sku']} noStyle rules={[{ required: true }]}>
-                                                    <Select placeholder="Chọn sản phẩm con" options={products} showSearch optionFilterProp="label" style={{ width: '100%' }} />
-                                                </Form.Item>
-                                                <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
-                                                    {canViewCost && <span>Giá vốn: {info.cost.toLocaleString()} | </span>} Giá bán lẻ: {info.price.toLocaleString()}
-                                                    {info.customer_description && <div style={{ marginTop: 2, fontStyle: 'italic', color: '#666' }}>{info.customer_description}</div>}
-                                                </div>
-                                            </Col>
-                                            <Col span={4}>
-                                                <Form.Item {...restField} name={[name, 'quantity']} noStyle rules={[{ required: true }]}>
-                                                    <InputNumber min={1} placeholder="SL" addonAfter={info.unit} style={{ width: '100%' }} />
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={7} style={{ textAlign: 'right', color: '#555' }}>
-                                                Thành tiền (Bán): <b>{(info.price * (form.getFieldValue(['items', name, 'quantity']) || 0)).toLocaleString()} ₫</b>
-                                            </Col>
-                                            <Col span={3} style={{ textAlign: 'center' }}>
-                                                <Space>
-                                                    <Button
-                                                        icon={<ArrowUpOutlined />}
-                                                        size="small"
-                                                        type="text"
-                                                        disabled={index === 0}
-                                                        onClick={() => move(index, index - 1)}
-                                                    />
-                                                    <Button
-                                                        icon={<ArrowDownOutlined />}
-                                                        size="small"
-                                                        type="text"
-                                                        disabled={index === fields.length - 1}
-                                                        onClick={() => move(index, index + 1)}
-                                                    />
-                                                    <DeleteOutlined onClick={() => remove(name)} style={{ color: 'red', cursor: 'pointer', marginLeft: 4 }} />
-                                                </Space>
-                                            </Col>
-                                        </Row>
-                                    );
-                                })}
-                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm sản phẩm</Button>
-                            </div>
-                        )}
+                        {(fields, { add, remove, move }) => {
+                            // --- DRAG END HANDLER ---
+                            const onDragEnd = (event: DragEndEvent) => {
+                                const { active, over } = event;
+                                if (active.id !== over?.id) {
+                                    const activeIndex = fields.findIndex((i) => i.key === active.id);
+                                    const overIndex = fields.findIndex((i) => i.key === over?.id);
+                                    move(activeIndex, overIndex);
+                                }
+                            };
+
+                            const sensors = useSensors(
+                                useSensor(PointerSensor, { activationConstraint: { distance: 1 } })
+                            );
+
+                            return (
+                                <div style={{ maxHeight: 300, overflowY: 'auto', paddingRight: 5 }}>
+                                    <DndContext sensors={sensors} modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
+                                        <SortableContext items={fields.map(i => i.key)} strategy={verticalListSortingStrategy}>
+                                            {fields.map(({ key, name, ...restField }, index) => {
+                                                const sku = form.getFieldValue(['items', name, 'sku']);
+                                                const info = productMap[sku] || { price: 0, cost: 0, unit: '' };
+                                                return (
+                                                    <DraggableRow key={key} id={key.toString()}>
+                                                        <Row gutter={8} align="middle" style={{ marginBottom: 10, background: '#fafafa', padding: 8, borderRadius: 6, border: '1px solid #f0f0f0' }}>
+                                                            <Col span={1} style={{ textAlign: 'center', cursor: 'grab' }}>
+                                                                <MenuOutlined style={{ color: '#999' }} />
+                                                            </Col>
+                                                            <Col span={10}>
+                                                                <Form.Item {...restField} name={[name, 'sku']} noStyle rules={[{ required: true }]}>
+                                                                    <Select placeholder="Chọn sản phẩm con" options={products} showSearch optionFilterProp="label" style={{ width: '100%' }} />
+                                                                </Form.Item>
+                                                                <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
+                                                                    {canViewCost && <span>Giá vốn: {info.cost.toLocaleString()} | </span>} Giá bán lẻ: {info.price.toLocaleString()}
+                                                                    {info.customer_description && <div style={{ marginTop: 2, fontStyle: 'italic', color: '#666' }}>{info.customer_description}</div>}
+                                                                </div>
+                                                            </Col>
+                                                            <Col span={4}>
+                                                                <Form.Item {...restField} name={[name, 'quantity']} noStyle rules={[{ required: true }]}>
+                                                                    <InputNumber min={1} placeholder="SL" addonAfter={info.unit} style={{ width: '100%' }} />
+                                                                </Form.Item>
+                                                            </Col>
+                                                            <Col span={6} style={{ textAlign: 'right', color: '#555' }}>
+                                                                Thành tiền: <b>{(info.price * (form.getFieldValue(['items', name, 'quantity']) || 0)).toLocaleString()}</b>
+                                                            </Col>
+                                                            <Col span={3} style={{ textAlign: 'center' }}>
+                                                                <DeleteOutlined onClick={() => remove(name)} style={{ color: 'red', cursor: 'pointer' }} />
+                                                            </Col>
+                                                        </Row>
+                                                    </DraggableRow>
+                                                );
+                                            })}
+                                        </SortableContext>
+                                    </DndContext>
+                                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>Thêm sản phẩm</Button>
+                                </div>
+                            );
+                        }}
                     </Form.List>
 
                     <Divider />
