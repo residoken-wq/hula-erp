@@ -113,6 +113,27 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
         }
     };
 
+    const handleUpdateAttachments = async (transactionId: number, newAttachments: string[]) => {
+        // 1. Optimistic Update
+        const oldHistory = [...history];
+        setHistory(prev => prev.map(item =>
+            item.id === transactionId ? { ...item, attachments: newAttachments } : item
+        ));
+
+        try {
+            // 2. Call API
+            await axios.put(`${API_URL}/finance/transactions/${transactionId}`, {
+                attachments: newAttachments
+            });
+            message.success('Đã cập nhật chứng từ');
+        } catch (e) {
+            console.error(e);
+            message.error('Lỗi lưu chứng từ');
+            // Revert on error
+            setHistory(oldHistory);
+        }
+    };
+
     const openModal = () => {
         // Gợi ý số tiền còn lại khi mở modal
         const remain = totalAmount - realTimePaidAmount;
@@ -183,6 +204,7 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                                     allowDelete={!isOrderCompleted}
                                     allowUpload={true}
                                     maxFiles={5}
+                                    onChange={(newFiles) => handleUpdateAttachments(r.id, newFiles)}
                                 />
                             );
                         }
