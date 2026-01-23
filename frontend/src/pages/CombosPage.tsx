@@ -19,6 +19,11 @@ const CombosPage: React.FC = () => {
     const [editingItem, setEditingItem] = useState<any>(null);
     const [form] = Form.useForm();
 
+    // DnD Sensors (must be at component level)
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 1 } })
+    );
+
     // Permission State
     const [canViewCost, setCanViewCost] = useState(false);
 
@@ -261,9 +266,7 @@ const CombosPage: React.FC = () => {
                                 }
                             };
 
-                            const sensors = useSensors(
-                                useSensor(PointerSensor, { activationConstraint: { distance: 1 } })
-                            );
+                            // sensors moved to component level
 
                             return (
                                 <div style={{ maxHeight: 300, overflowY: 'auto', paddingRight: 5 }}>
