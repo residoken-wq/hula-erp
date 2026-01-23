@@ -74,6 +74,7 @@ import { SupplierMaterial } from './suppliers/supplier-material.entity';
 import { SupplierContact } from './suppliers/supplier-contact.entity';
 import { Customer } from './customers/customer.entity';
 import { CustomerContact } from './customers/customer-contact.entity';
+import { CustomerComment } from './customers/customer-comment.entity';
 import { ProductionPlan } from './planning/production-plan.entity';
 import { Process } from './processes/process.entity';
 import { Category } from './categories/category.entity';
@@ -136,7 +137,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           Transaction, TransactionCategory,
           Task, Notification,
           Supplier, SupplierMaterial, SupplierContact,
-          Customer, CustomerContact,
+          Customer, CustomerContact, CustomerComment,
           ProductionPlan, Process, Category,
           User, UserGroup, GroupPermission,
           SystemConfig, ActivityLog,
