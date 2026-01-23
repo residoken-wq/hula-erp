@@ -53,6 +53,18 @@ export class BlogsService {
         if (!data.slug && data.title) {
             data.slug = this.generateSlug(data.title);
         }
+
+        // Ensure slug is unique
+        if (data.slug) {
+            let slug = data.slug;
+            let counter = 1;
+            while (await this.blogRepo.findOne({ where: { slug } })) {
+                slug = `${data.slug}-${counter}`;
+                counter++;
+            }
+            data.slug = slug;
+        }
+
         const post = this.blogRepo.create(data);
         return this.blogRepo.save(post);
     }

@@ -56,7 +56,8 @@ export default function BlogsPage() {
             cancelText: 'Hủy',
             onOk: async () => {
                 try {
-                    await fetch(`${API_URL}/blogs/${id}`, { method: 'DELETE' });
+                    const res = await fetch(`${API_URL}/blogs/${id}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('Failed to delete');
                     setBlogs(blogs.filter(b => b.id !== id));
                     message.success('Đã xóa bài viết');
                 } catch {
@@ -68,7 +69,8 @@ export default function BlogsPage() {
 
     const handlePublish = async (id: number, publish: boolean) => {
         try {
-            await fetch(`${API_URL}/blogs/${id}/${publish ? 'publish' : 'unpublish'}`, { method: 'POST' });
+            const res = await fetch(`${API_URL}/blogs/${id}/${publish ? 'publish' : 'unpublish'}`, { method: 'POST' });
+            if (!res.ok) throw new Error('Failed to update status');
             loadBlogs();
             message.success(publish ? 'Đã đăng bài viết' : 'Đã gỡ bài viết');
         } catch {

@@ -104,24 +104,27 @@ export default function BlogEditorPage() {
             };
 
             if (blogId) {
-                await fetch(`${API_URL}/blogs/${blogId}`, {
+                const res = await fetch(`${API_URL}/blogs/${blogId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                 });
+                if (!res.ok) throw new Error('Failed to update');
                 message.success('Đã cập nhật bài viết');
             } else {
-                await fetch(`${API_URL}/blogs`, {
+                const res = await fetch(`${API_URL}/blogs`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                 });
+                if (!res.ok) throw new Error('Failed to create');
                 message.success('Đã tạo bài viết mới');
                 router.push('/blogs');
             }
 
             if (publish && blogId) {
-                await fetch(`${API_URL}/blogs/${blogId}/publish`, { method: 'POST' });
+                const res = await fetch(`${API_URL}/blogs/${blogId}/publish`, { method: 'POST' });
+                if (!res.ok) throw new Error('Failed to publish');
                 message.success('Đã đăng bài viết');
             }
         } catch (error) {
