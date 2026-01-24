@@ -9,9 +9,49 @@ import { leadsApi } from '@/lib/api';
 
 // ... 
 
+interface Lead {
+    id: number;
+    code: string;
+    name: string;
+    type: string;
+    lead_status: string;
+    phone: string;
+    email: string;
+    address: string;
+    potential_value: number;
+    created_at: string;
+    erp_synced: boolean;
+    erp_customer_id: number | null;
+    history: any[];
+}
+
+const statusColors: Record<string, string> = {
+    NEW: 'blue',
+    CONTACTED: 'cyan',
+    QUALIFIED: 'purple',
+    NEGOTIATION: 'orange',
+    WON: 'green',
+    LOST: 'red',
+};
+
+const statusLabels: Record<string, string> = {
+    NEW: 'Mới',
+    CONTACTED: 'Đã liên hệ',
+    QUALIFIED: 'Đủ điều kiện',
+    NEGOTIATION: 'Đang thương lượng',
+    WON: 'Thành công',
+    LOST: 'Thất bại',
+};
+
 export default function LeadsPage() {
-    // ...
-    // Remove API_URL
+    const [leads, setLeads] = useState<Lead[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchText, setSearchText] = useState('');
+    const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [editModal, setEditModal] = useState(false);
+    const [pushing, setPushing] = useState<number | null>(null);
+    const [form] = Form.useForm();
 
     const loadLeads = async () => {
         setLoading(true);
@@ -60,7 +100,22 @@ export default function LeadsPage() {
         }
     };
 
-    // ...
+    useEffect(() => {
+        loadLeads();
+    }, []);
+
+    const handleView = (lead: Lead) => {
+        setSelectedLead(lead);
+        setDrawerOpen(true);
+    };
+
+    const handleEdit = (lead: Lead) => {
+        setSelectedLead(lead);
+        form.setFieldsValue({
+            lead_status: lead.lead_status,
+        });
+        setEditModal(true);
+    };
 
     const handleUpdateStatus = async () => {
         if (!selectedLead) return;

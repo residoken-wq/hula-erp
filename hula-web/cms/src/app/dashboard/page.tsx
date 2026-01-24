@@ -10,11 +10,45 @@ import { blogsApi, productsApi, leadsApi } from '@/lib/api';
 
 // ...
 
+interface DashboardStats {
+    blogs: number;
+    products: number;
+    leads: number;
+    views: number;
+}
+
+interface RecentLead {
+    id: number;
+    code: string;
+    name: string;
+    phone: string;
+    lead_status: string;
+    created_at: string;
+}
+
+const statusColors: Record<string, string> = {
+    NEW: 'blue',
+    CONTACTED: 'cyan',
+    QUALIFIED: 'purple',
+    NEGOTIATION: 'orange',
+    WON: 'green',
+    LOST: 'red',
+};
+
+const statusLabels: Record<string, string> = {
+    NEW: 'Mới',
+    CONTACTED: 'Đã liên hệ',
+    QUALIFIED: 'Đủ điều kiện',
+    NEGOTIATION: 'Đang thương lượng',
+    WON: 'Thành công',
+    LOST: 'Thất bại',
+};
+
 export default function DashboardPage() {
     const router = useRouter();
     const [stats, setStats] = useState<DashboardStats>({ blogs: 0, products: 0, leads: 0, views: 0 });
     const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
-    // ... 
+    const [loading, setLoading] = useState(true);
 
     const loadDashboard = async () => {
         setLoading(true);
@@ -50,6 +84,10 @@ export default function DashboardPage() {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        loadDashboard();
+    }, []);
 
     const leadsColumns = [
         { title: 'Mã', dataIndex: 'code', key: 'code', width: 120 },
