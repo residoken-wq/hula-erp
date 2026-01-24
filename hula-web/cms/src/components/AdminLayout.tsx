@@ -88,12 +88,48 @@ const userMenuItems = [
     },
 ];
 
+import { useAuth } from '../hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { Spin } from 'antd';
+
+// ... (other imports)
+
 export default function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
+    const { user, loading, logout } = useAuth();
+    const router = useRouter();
+
+    // If loading or checking auth
+    if (loading) {
+        return (
+            <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <Spin size="large" />
+            </div>
+        );
+    }
+
+    // Require Login check is handled in useAuth or individual pages or middleware.
+    // However, AdminLayout is generally used for protected pages.
+    // We can add a simple check here if not on login page.
+    if (!user && pathname !== '/login') {
+        // This might cause hydration issues if not handled carefully, 
+        // but since useAuth handles redirection, we can just return null or loader.
+        router.push('/login');
+        return null;
+    }
+
+    // User menu items with logic
+    const handleMenuClick = ({ key }: { key: string }) => {
+        if (key === 'logout') {
+            logout();
+        } else if (key === 'profile') {
+            // router.push('/profile');
+        }
+    };
 
     return (
         <ProLayout
@@ -178,13 +214,13 @@ export default function AdminLayout({
                 // User Avatar Dropdown
                 <Dropdown
                     key="user"
-                    menu={{ items: userMenuItems }}
+                    menu={{ items: userMenuItems, onClick: handleMenuClick }}
                     placement="bottomRight"
                     trigger={['click']}
                 >
                     <Space style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 10 }}>
                         <Avatar
-                            src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin"
+                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'admin'}`}
                             size={36}
                             style={{
                                 border: '2px solid #667eea',
@@ -192,8 +228,8 @@ export default function AdminLayout({
                             }}
                         />
                         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                            <Text strong style={{ fontSize: 13 }}>Admin</Text>
-                            <Text type="secondary" style={{ fontSize: 11 }}>Quản trị viên</Text>
+                            <Text strong style={{ fontSize: 13 }}>{user?.fullName || user?.username || 'Admin'}</Text>
+                            <Text type="secondary" style={{ fontSize: 11 }}>{user?.group?.name || 'User'}</Text>
                         </div>
                     </Space>
                 </Dropdown>,

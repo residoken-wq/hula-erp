@@ -14,6 +14,7 @@ const SYSTEM_MODULES = [
     { code: 'FINANCE', name: 'Tài chính (Thu/Chi)' },
     { code: 'HR', name: 'Nhân sự (HR)' },
     { code: 'USERS', name: 'Hệ thống & User' },
+    { code: 'CMS', name: 'CMS Website' },
 ];
 
 const UserGroupsPage: React.FC = () => {

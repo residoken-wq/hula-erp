@@ -4,6 +4,8 @@ import { ConfigProvider, App } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import './globals.css';
 
+import { AuthProvider } from '../hooks/useAuth';
+
 export default function RootLayout({
     children,
 }: {
@@ -51,9 +53,11 @@ export default function RootLayout({
                         },
                     }}
                 >
-                    <App>
-                        {children}
-                    </App>
+                    <AuthProvider>
+                        <App>
+                            {children}
+                        </App>
+                    </AuthProvider>
                 </ConfigProvider>
             </body>
         </html>
