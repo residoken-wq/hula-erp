@@ -31,7 +31,7 @@ const ReactQuill = dynamic(
     }
 );
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { blogsApi } from '@/lib/api';
 
 interface BlogPost {
     id?: number;
@@ -81,8 +81,8 @@ export default function BlogEditorPage() {
     const loadBlog = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/blogs/${blogId}`);
-            const data = await res.json();
+            const res = await blogsApi.getOne(blogId!);
+            const data = res.data;
             form.setFieldsValue(data);
             setContent(data.content || '');
         } catch (error) {
@@ -104,30 +104,20 @@ export default function BlogEditorPage() {
             };
 
             if (blogId) {
-                const res = await fetch(`${API_URL}/blogs/${blogId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-                if (!res.ok) throw new Error('Failed to update');
+                await blogsApi.update(blogId, payload);
                 message.success('Đã cập nhật bài viết');
             } else {
-                const res = await fetch(`${API_URL}/blogs`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
-                if (!res.ok) throw new Error('Failed to create');
+                await blogsApi.create(payload);
                 message.success('Đã tạo bài viết mới');
                 router.push('/blogs');
             }
 
             if (publish && blogId) {
-                const res = await fetch(`${API_URL}/blogs/${blogId}/publish`, { method: 'POST' });
-                if (!res.ok) throw new Error('Failed to publish');
+                await blogsApi.publish(blogId);
                 message.success('Đã đăng bài viết');
             }
         } catch (error) {
+            console.error(error);
             message.error('Có lỗi xảy ra');
         } finally {
             setSaving(false);

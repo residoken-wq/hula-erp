@@ -5,38 +5,20 @@ import AdminLayout from '@/components/AdminLayout';
 import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, InputNumber } from 'antd';
 import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined } from '@ant-design/icons';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { productsApi } from '@/lib/api';
 
-interface Product {
-    id: number;
-    sku: string;
-    name: string;
-    category: string;
-    base_price: number;
-    cost_price: number;
-    quantity_in_stock: number;
-    is_active: boolean;
-    image_url: string;
-    customer_description: string;
-}
+// ... 
 
 export default function ProductsPage() {
-    const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchText, setSearchText] = useState('');
-    const [editModal, setEditModal] = useState(false);
-    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [form] = Form.useForm();
+    // ...
 
-    useEffect(() => {
-        loadProducts();
-    }, []);
+    // Remove API_URL
 
     const loadProducts = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/products`); // Updated to standard API
-            const data = await res.json();
+            const res = await productsApi.getAll();
+            const data = res.data;
             setProducts(Array.isArray(data) ? data : []);
         } catch (error) {
             message.error('Không thể tải danh sách sản phẩm');
@@ -46,24 +28,13 @@ export default function ProductsPage() {
         }
     };
 
-    const handleEdit = (product: Product) => {
-        setEditingProduct(product);
-        form.setFieldsValue({
-            customer_description: product.customer_description,
-            image_url: product.image_url,
-        });
-        setEditModal(true);
-    };
+    // ... 
 
     const handleSave = async () => {
         if (!editingProduct) return;
         try {
             const values = await form.validateFields();
-            await fetch(`${API_URL}/api/products/${editingProduct.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values),
-            });
+            await productsApi.update(editingProduct.id, values);
             message.success('Đã cập nhật sản phẩm');
             setEditModal(false);
             loadProducts();

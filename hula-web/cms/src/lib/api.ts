@@ -1,14 +1,9 @@
-import axios from 'axios';
+import api from '../utils/api';
 
-// Backend uses global prefix /api - see main.ts: app.setGlobalPrefix('api')
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// Remove local axios instance creation as we use the one from utils/api which has interceptors
+// const API_URL = ... 
+// const api = axios.create(...)
 
-const api = axios.create({
-    baseURL: `${API_URL}/api`,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-});
 
 // ============================================
 // BLOGS APIs
@@ -38,6 +33,7 @@ export const productsApi = {
 export const leadsApi = {
     getAll: () => api.get('/customers'),
     getOne: (id: number) => api.get(`/customers/${id}`),
+    create: (data: any) => api.post('/customers', data),
     update: (id: number, data: any) => api.put(`/customers/${id}`, data),
 };
 

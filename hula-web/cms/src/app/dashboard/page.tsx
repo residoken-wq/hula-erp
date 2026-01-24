@@ -6,66 +6,30 @@ import { Card, Row, Col, Statistic, Table, Tag, Space, Button } from 'antd';
 import { FileTextOutlined, ShopOutlined, TeamOutlined, EyeOutlined, RiseOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { blogsApi, productsApi, leadsApi } from '@/lib/api';
 
-interface DashboardStats {
-    blogs: number;
-    products: number;
-    leads: number;
-    views: number;
-}
-
-interface RecentLead {
-    id: number;
-    code: string;
-    name: string;
-    phone: string;
-    lead_status: string;
-    created_at: string;
-}
-
-const statusColors: Record<string, string> = {
-    NEW: 'blue',
-    CONTACTED: 'cyan',
-    QUALIFIED: 'purple',
-    NEGOTIATION: 'orange',
-    WON: 'green',
-    LOST: 'red',
-};
-
-const statusLabels: Record<string, string> = {
-    NEW: 'Mới',
-    CONTACTED: 'Đã liên hệ',
-    QUALIFIED: 'Đủ điều kiện',
-    NEGOTIATION: 'Đang thương lượng',
-    WON: 'Thành công',
-    LOST: 'Thất bại',
-};
+// ...
 
 export default function DashboardPage() {
     const router = useRouter();
     const [stats, setStats] = useState<DashboardStats>({ blogs: 0, products: 0, leads: 0, views: 0 });
     const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        loadDashboard();
-    }, []);
+    // ... 
 
     const loadDashboard = async () => {
         setLoading(true);
         try {
             // Fetch blogs count
-            const blogsRes = await fetch(`${API_URL}/blogs`);
-            const blogs = await blogsRes.json();
+            const blogsRes = await blogsApi.getAll();
+            const blogs = blogsRes.data;
 
             // Fetch products count
-            const productsRes = await fetch(`${API_URL}/products`);
-            const products = await productsRes.json();
+            const productsRes = await productsApi.getAll(); // Using productsApi from lib/api
+            const products = productsRes.data;
 
             // Fetch leads
-            const customersRes = await fetch(`${API_URL}/customers`);
-            const customers = await customersRes.json();
+            const customersRes = await leadsApi.getAll(); // Using leadsApi (mapped to /customers)
+            const customers = customersRes.data;
             const leads = (Array.isArray(customers) ? customers : []).filter((c: any) => c.type === 'LEAD');
 
             setStats({

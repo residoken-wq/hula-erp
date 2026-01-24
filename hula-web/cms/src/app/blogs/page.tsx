@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, Table, Button, Space, Tag, Modal, message, Input } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { blogsApi } from '@/lib/api';
 
 interface BlogPost {
     id: number;
@@ -32,11 +31,13 @@ export default function BlogsPage() {
     const loadBlogs = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/blogs`);
-            const data = await res.json();
+            const res = await blogsApi.getAll();
+            // Assuming res.data is the array of blogs
+            const data = res.data;
             setBlogs(Array.isArray(data) ? data : []);
         } catch (error) {
-            // Fallback mock data for development
+            console.error(error);
+            // Fallback mock data if API fails or is unreachable
             setBlogs([
                 { id: 1, slug: 'cach-chon-nem', title: 'Cách Chọn Nệm Mầm Non Phù Hợp', status: 'PUBLISHED', category: 'Hướng dẫn', view_count: 1250, published_at: '2026-01-05', created_at: '2026-01-04' },
                 { id: 2, slug: 'bao-quan-nem', title: 'Bảo Quản Nệm Đúng Cách', status: 'PUBLISHED', category: 'Mẹo vặt', view_count: 980, published_at: '2026-01-03', created_at: '2026-01-02' },
@@ -56,8 +57,7 @@ export default function BlogsPage() {
             cancelText: 'Hủy',
             onOk: async () => {
                 try {
-                    const res = await fetch(`${API_URL}/blogs/${id}`, { method: 'DELETE' });
-                    if (!res.ok) throw new Error('Failed to delete');
+                    await blogsApi.delete(id);
                     setBlogs(blogs.filter(b => b.id !== id));
                     message.success('Đã xóa bài viết');
                 } catch {
@@ -69,8 +69,11 @@ export default function BlogsPage() {
 
     const handlePublish = async (id: number, publish: boolean) => {
         try {
-            const res = await fetch(`${API_URL}/blogs/${id}/${publish ? 'publish' : 'unpublish'}`, { method: 'POST' });
-            if (!res.ok) throw new Error('Failed to update status');
+            if (publish) {
+                await blogsApi.publish(id);
+            } else {
+                await blogsApi.unpublish(id);
+            }
             loadBlogs();
             message.success(publish ? 'Đã đăng bài viết' : 'Đã gỡ bài viết');
         } catch {

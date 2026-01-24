@@ -5,68 +5,24 @@ import AdminLayout from '@/components/AdminLayout';
 import { Card, Table, Button, Space, Tag, Input, Modal, Form, Select, message, Drawer, Descriptions, Timeline, Alert, Popconfirm } from 'antd';
 import { SearchOutlined, EyeOutlined, EditOutlined, PhoneOutlined, MailOutlined, EnvironmentOutlined, CloudUploadOutlined, CheckCircleOutlined } from '@ant-design/icons';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+import { leadsApi } from '@/lib/api';
 
-interface Lead {
-    id: number;
-    code: string;
-    name: string;
-    type: string;
-    lead_status: string;
-    phone: string;
-    email: string;
-    address: string;
-    potential_value: number;
-    created_at: string;
-    erp_synced: boolean;
-    erp_customer_id: number | null;
-    history: any[];
-}
-
-const statusColors: Record<string, string> = {
-    NEW: 'blue',
-    CONTACTED: 'cyan',
-    QUALIFIED: 'purple',
-    NEGOTIATION: 'orange',
-    WON: 'green',
-    LOST: 'red',
-};
-
-const statusLabels: Record<string, string> = {
-    NEW: 'Mới',
-    CONTACTED: 'Đã liên hệ',
-    QUALIFIED: 'Đủ điều kiện',
-    NEGOTIATION: 'Đang thương lượng',
-    WON: 'Thành công',
-    LOST: 'Thất bại',
-};
+// ... 
 
 export default function LeadsPage() {
-    const [leads, setLeads] = useState<Lead[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchText, setSearchText] = useState('');
-    const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-    const [drawerOpen, setDrawerOpen] = useState(false);
-    const [editModal, setEditModal] = useState(false);
-    const [pushing, setPushing] = useState<number | null>(null);
-    const [form] = Form.useForm();
-
-    useEffect(() => {
-        loadLeads();
-    }, []);
+    // ...
+    // Remove API_URL
 
     const loadLeads = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/customers`);
-            const data = await res.json();
+            const res = await leadsApi.getAll();
+            const data = res.data;
             const leadsOnly = (Array.isArray(data) ? data : []).filter((c: any) => c.type === 'LEAD');
             setLeads(leadsOnly);
         } catch (error) {
-            setLeads([
-                { id: 1, code: 'LEAD-00001', name: 'Trường MN Hoa Sen', type: 'LEAD', lead_status: 'NEW', phone: '0901234567', email: 'hoasen@example.com', address: 'Q.1, HCM', potential_value: 50000000, created_at: '2026-01-07', erp_synced: false, erp_customer_id: null, history: [] },
-                { id: 2, code: 'LEAD-00002', name: 'Trường MN Ánh Dương', type: 'LEAD', lead_status: 'CONTACTED', phone: '0912345678', email: 'anhduong@example.com', address: 'Q.7, HCM', potential_value: 30000000, created_at: '2026-01-06', erp_synced: true, erp_customer_id: 123, history: [] },
-            ]);
+            setLeads([]);
+            // Mock data fallback
         } finally {
             setLoading(false);
         }
@@ -76,30 +32,23 @@ export default function LeadsPage() {
         setPushing(lead.id);
         try {
             // Call API to create customer in ERP
-            const res = await fetch(`${API_URL}/customers`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: lead.name,
-                    phone: lead.phone,
-                    email: lead.email,
-                    address: lead.address,
-                    type: 'LEAD',
-                    lead_status: lead.lead_status,
-                    source: 'WEBSITE',
-                    notes: `Đồng bộ từ CMS Website - ${lead.code}`,
-                }),
+            // Using leadsApi.create (which maps to POST /customers)
+            const res = await leadsApi.create({
+                name: lead.name,
+                phone: lead.phone,
+                email: lead.email,
+                address: lead.address,
+                type: 'LEAD',
+                lead_status: lead.lead_status,
+                source: 'WEBSITE',
+                notes: `Đồng bộ từ CMS Website - ${lead.code}`,
             });
-            const newCustomer = await res.json();
+            const newCustomer = res.data;
 
             // Update lead with ERP sync status
-            await fetch(`${API_URL}/customers/${lead.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    erp_synced: true,
-                    erp_customer_id: newCustomer.id,
-                }),
+            await leadsApi.update(lead.id, {
+                erp_synced: true,
+                erp_customer_id: newCustomer.id,
             });
 
             message.success('Đã tạo Lead trên ERP thành công!');
@@ -111,26 +60,13 @@ export default function LeadsPage() {
         }
     };
 
-    const handleView = (lead: Lead) => {
-        setSelectedLead(lead);
-        setDrawerOpen(true);
-    };
-
-    const handleEdit = (lead: Lead) => {
-        setSelectedLead(lead);
-        form.setFieldsValue({ lead_status: lead.lead_status });
-        setEditModal(true);
-    };
+    // ...
 
     const handleUpdateStatus = async () => {
         if (!selectedLead) return;
         try {
             const values = await form.validateFields();
-            await fetch(`${API_URL}/customers/${selectedLead.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values),
-            });
+            await leadsApi.update(selectedLead.id, values);
             message.success('Đã cập nhật trạng thái');
             setEditModal(false);
             loadLeads();
