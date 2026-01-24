@@ -18,6 +18,7 @@ interface Product {
     cost_price: number;
     quantity_in_stock: number;
     is_active: boolean;
+    show_on_website: boolean; // Add this field
     image_url: string;
     customer_description: string;
 }
@@ -121,12 +122,12 @@ export default function ProductsPage() {
         },
         {
             title: 'Trạng thái',
-            dataIndex: 'is_active',
-            key: 'is_active',
+            dataIndex: 'show_on_website', // Change to show_on_website
+            key: 'show_on_website',
             width: 100,
-            render: (active: boolean) => (
-                <Tag color={active ? 'success' : 'default'}>
-                    {active ? 'Hiển thị' : 'Ẩn'}
+            render: (show: boolean) => (
+                <Tag color={show ? 'success' : 'default'}>
+                    {show ? 'Hiển thị' : 'Ẩn'}
                 </Tag>
             ),
         },
