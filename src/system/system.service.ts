@@ -94,12 +94,7 @@ export class SystemService {
             take: limit
         });
     }
-    async getLogs(limit: number = 100) {
-        return this.logRepo.find({
-            order: { timestamp: 'DESC' },
-            take: limit
-        });
-    }
+
 
     // --- CONTRACT TEMPLATES ---
     async getTemplates() {
