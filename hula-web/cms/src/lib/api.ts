@@ -25,6 +25,8 @@ export const productsApi = {
     getAll: () => api.get('/products'),
     getOne: (id: number) => api.get(`/products/${id}`),
     update: (id: number, data: any) => api.put(`/products/${id}`, data),
+    getWebsiteConfig: (id: number) => api.get(`/products/${id}/website-config`),
+    saveWebsiteConfig: (id: number, data: any) => api.post(`/products/${id}/website-config`, data),
 };
 
 // ============================================

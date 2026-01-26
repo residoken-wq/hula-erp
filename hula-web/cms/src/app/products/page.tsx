@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, InputNumber } from 'antd';
-import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, InputNumber, Tabs, Switch, Typography } from 'antd';
+import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 
 import { productsApi } from '@/lib/api';
 
@@ -21,6 +21,12 @@ interface Product {
     show_on_website: boolean; // Add this field
     image_url: string;
     customer_description: string;
+    customization_config?: {
+        allow_logo?: boolean;
+        logo_price?: number;
+        colors?: Array<{ name: string; code: string; image_url?: string }>;
+        accessories?: Array<{ name: string; price: number; image_url?: string }>;
+    };
 }
 
 export default function ProductsPage() {
@@ -52,20 +58,46 @@ export default function ProductsPage() {
         loadProducts();
     }, []);
 
-    const handleEdit = (product: Product) => {
+    const handleEdit = async (product: Product) => {
         setEditingProduct(product);
-        form.setFieldsValue({
-            image_url: product.image_url,
-            customer_description: product.customer_description,
-        });
-        setEditModal(true);
+        // Fetch separate website config
+        try {
+            const res = await productsApi.getWebsiteConfig(product.id);
+            const config = res.data?.customization_config || { colors: [], accessories: [], allow_logo: false };
+
+            form.setFieldsValue({
+                image_url: product.image_url,
+                customer_description: product.customer_description,
+                customization_config: config
+            });
+            setEditModal(true);
+        } catch (error) {
+            console.error('Failed to load website config', error);
+            form.setFieldsValue({
+                image_url: product.image_url,
+                customer_description: product.customer_description,
+                customization_config: { colors: [], accessories: [], allow_logo: false }
+            });
+            setEditModal(true);
+        }
     };
 
     const handleSave = async () => {
         if (!editingProduct) return;
         try {
             const values = await form.validateFields();
-            await productsApi.update(editingProduct.id, values);
+
+            // 1. Save Core Product Info (Image/Desc)
+            await productsApi.update(editingProduct.id, {
+                image_url: values.image_url,
+                customer_description: values.customer_description
+            });
+
+            // 2. Save Separate Website Config
+            if (values.customization_config) {
+                await productsApi.saveWebsiteConfig(editingProduct.id, values.customization_config);
+            }
+
             message.success('Đã cập nhật sản phẩm');
             setEditModal(false);
             loadProducts();
@@ -197,15 +229,116 @@ export default function ProductsPage() {
                 onCancel={() => setEditModal(false)}
                 okText="Lưu"
                 cancelText="Hủy"
-                width={600}
+                width={800} // Increased width
             >
                 <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-                    <Form.Item name="image_url" label="URL Hình ảnh">
-                        <Input placeholder="https://... hoặc link Google Drive" />
-                    </Form.Item>
-                    <Form.Item name="customer_description" label="Mô tả cho khách hàng">
-                        <Input.TextArea rows={5} placeholder="Mô tả chi tiết sản phẩm hiển thị trên website..." />
-                    </Form.Item>
+                    <Tabs defaultActiveKey="1" items={[
+                        {
+                            key: '1',
+                            label: 'Thông tin chung',
+                            children: (
+                                <>
+                                    <Form.Item name="image_url" label="URL Hình ảnh">
+                                        <Input placeholder="https://... hoặc link Google Drive" />
+                                    </Form.Item>
+                                    <Form.Item name="customer_description" label="Mô tả cho khách hàng">
+                                        <Input.TextArea rows={5} placeholder="Mô tả chi tiết sản phẩm hiển thị trên website..." />
+                                    </Form.Item>
+                                </>
+                            ),
+                        },
+                        {
+                            key: '2',
+                            label: 'Tùy chỉnh (Màu sắc/Logo)',
+                            children: (
+                                <>
+                                    <Form.Item name={['customization_config', 'allow_logo']} valuePropName="checked" label="Cho phép In Logo?">
+                                        <Switch />
+                                    </Form.Item>
+                                    <Form.Item
+                                        noStyle
+                                        shouldUpdate={(prev, curr) => prev.customization_config?.allow_logo !== curr.customization_config?.allow_logo}
+                                    >
+                                        {({ getFieldValue }) =>
+                                            getFieldValue(['customization_config', 'allow_logo']) ? (
+                                                <Form.Item name={['customization_config', 'logo_price']} label="Phí in Logo (VNĐ)">
+                                                    <InputNumber style={{ width: '100%' }} formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(displayVal) => displayVal?.replace(/\$\s?|(,*)/g, '') as unknown as number} />
+                                                </Form.Item>
+                                            ) : null
+                                        }
+                                    </Form.Item>
+
+                                    <Typography.Title level={5}>Màu sắc tùy chọn</Typography.Title>
+                                    <Form.List name={['customization_config', 'colors']}>
+                                        {(fields, { add, remove }) => (
+                                            <>
+                                                {fields.map(({ key, name, ...restField }) => (
+                                                    <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                                        <Form.Item
+                                                            {...restField}
+                                                            name={[name, 'name']}
+                                                            rules={[{ required: true, message: 'Nhập tên màu' }]}
+                                                        >
+                                                            <Input placeholder="Tên màu (Vd: Xanh coban)" />
+                                                        </Form.Item>
+                                                        <Form.Item
+                                                            {...restField}
+                                                            name={[name, 'code']}
+                                                            rules={[{ required: true, message: 'Nhập mã màu' }]}
+                                                        >
+                                                            <Input type="color" style={{ width: 50, padding: 0, border: 'none' }} />
+                                                        </Form.Item>
+                                                        <MinusCircleOutlined onClick={() => remove(name)} />
+                                                    </Space>
+                                                ))}
+                                                <Form.Item>
+                                                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                        Thêm màu sắc
+                                                    </Button>
+                                                </Form.Item>
+                                            </>
+                                        )}
+                                    </Form.List>
+                                </>
+                            ),
+                        },
+                        {
+                            key: '3',
+                            label: 'Phụ kiện đi kèm',
+                            children: (
+                                <Form.List name={['customization_config', 'accessories']}>
+                                    {(fields, { add, remove }) => (
+                                        <>
+                                            {fields.map(({ key, name, ...restField }) => (
+                                                <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                                    <Form.Item
+                                                        {...restField}
+                                                        name={[name, 'name']}
+                                                        rules={[{ required: true, message: 'Tên phụ kiện' }]}
+                                                    >
+                                                        <Input placeholder="Tên phụ kiện (Vd: Túi đựng)" />
+                                                    </Form.Item>
+                                                    <Form.Item
+                                                        {...restField}
+                                                        name={[name, 'price']}
+                                                        rules={[{ required: true, message: 'Giá thêm' }]}
+                                                    >
+                                                        <InputNumber placeholder="Giá thêm" formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(displayVal) => displayVal?.replace(/\$\s?|(,*)/g, '') as unknown as number} />
+                                                    </Form.Item>
+                                                    <MinusCircleOutlined onClick={() => remove(name)} />
+                                                </Space>
+                                            ))}
+                                            <Form.Item>
+                                                <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                                    Thêm phụ kiện
+                                                </Button>
+                                            </Form.Item>
+                                        </>
+                                    )}
+                                </Form.List>
+                            ),
+                        }
+                    ]} />
                 </Form>
             </Modal>
         </AdminLayout>

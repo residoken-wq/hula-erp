@@ -27,7 +27,11 @@ export class ProductsController {
   // --- API PATTERN ---
   @Get(':id/pattern') getPattern(@Param('id') id: number) { return this.service.getPattern(id); }
   @Post(':id/pattern') savePattern(@Param('id') id: number, @Body() b: any) { return this.service.savePattern(id, b); }
-  // -------------------
+
+  // --- API WEBSITE CONFIG ---
+  @Get(':id/website-config') getWebsiteConfig(@Param('id') id: number) { return this.service.getWebsiteConfig(Number(id)); }
+  @Post(':id/website-config') saveWebsiteConfig(@Param('id') id: number, @Body() b: any) { return this.service.saveWebsiteConfig(Number(id), b); }
+  // --------------------------
 
   @Get(':sku/boms') getBoms(@Param('sku') sku: string) { return this.service.getBomByProductSku(sku); }
   @Post(':id/boms') saveBoms(@Param('id') id: number, @Body() b: any) { return this.service.saveBoms(Number(id), b); }

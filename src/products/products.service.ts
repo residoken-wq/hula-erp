@@ -7,6 +7,7 @@ import { ProductComponent } from './product-component.entity';
 import { ProductRouting } from './product-routing.entity';
 import { ProductLogistics } from './product-logistics.entity';
 import { ProductPattern } from './product-pattern.entity';
+import { ProductWebsiteConfig } from './entities/product-website-config.entity';
 import { Supplier } from '../suppliers/supplier.entity';
 import { SupplierMaterial } from '../suppliers/supplier-material.entity';
 import { CategoriesService } from '../categories/categories.service';
@@ -23,6 +24,7 @@ export class ProductsService {
         @InjectRepository(ProductPattern) private patternRepo: Repository<ProductPattern>,
         @InjectRepository(Supplier) private supplierRepo: Repository<Supplier>,
         @InjectRepository(SupplierMaterial) private priceRepo: Repository<SupplierMaterial>,
+        @InjectRepository(ProductWebsiteConfig) private websiteConfigRepo: Repository<ProductWebsiteConfig>,
         @Inject(forwardRef(() => CategoriesService)) private categoriesService: CategoriesService,
     ) { }
 
@@ -187,6 +189,23 @@ export class ProductsService {
         return this.patternRepo.save(pattern);
     }
     // --------------------
+
+    async getWebsiteConfig(productId: number) {
+        return this.websiteConfigRepo.findOne({ where: { product_id: productId } });
+    }
+
+    async saveWebsiteConfig(productId: number, config: any) {
+        let entry = await this.websiteConfigRepo.findOne({ where: { product_id: productId } });
+        if (!entry) {
+            entry = this.websiteConfigRepo.create({
+                product_id: productId,
+                customization_config: config
+            });
+        } else {
+            entry.customization_config = config;
+        }
+        return this.websiteConfigRepo.save(entry);
+    }
 
     async getProductBOM(sku: string): Promise<BOM[]> {
         const product = await this.productRepo.findOne({ where: { sku } });

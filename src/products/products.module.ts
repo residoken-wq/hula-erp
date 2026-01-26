@@ -9,7 +9,8 @@ import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from './product-component.entity';
 import { ProductRouting } from './product-routing.entity';
 import { ProductLogistics } from './product-logistics.entity';
-import { ProductPattern } from './product-pattern.entity'; // <--- MỚI: Import Entity Pattern
+import { ProductPattern } from './product-pattern.entity';
+import { ProductWebsiteConfig } from './entities/product-website-config.entity';
 
 import { Supplier } from '../suppliers/supplier.entity';
 import { SupplierMaterial } from '../suppliers/supplier-material.entity';
@@ -18,13 +19,14 @@ import { CategoriesModule } from '../categories/categories.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Product, 
-      BOM, 
-      ProductComponent, 
-      ProductRouting, 
+      Product,
+      BOM,
+      ProductComponent,
+      ProductRouting,
       ProductLogistics,
-      ProductPattern, // <--- MỚI: Đăng ký Entity Pattern
-      Supplier, 
+      ProductPattern,
+      ProductWebsiteConfig,
+      Supplier,
       SupplierMaterial
     ]),
     forwardRef(() => CategoriesModule),
@@ -33,4 +35,4 @@ import { CategoriesModule } from '../categories/categories.module';
   providers: [ProductsService],
   exports: [ProductsService],
 })
-export class ProductsModule {}
+export class ProductsModule { }
