@@ -6,6 +6,7 @@ import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, In
 import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 
 import { productsApi } from '@/lib/api';
+import { ProductVisualEditor } from './ProductVisualEditor';
 
 // ... 
 
@@ -25,7 +26,10 @@ interface Product {
     customization_config?: {
         allow_logo?: boolean;
         logo_price?: number;
-        colors?: Array<{ name: string; code: string; image_url?: string }>;
+        logo_position?: { x: number; y: number; width: number; height: number };
+        base_image?: string;
+        pillow_image?: string;
+        colors?: Array<{ name: string; code: string; image_url?: string; pillow_image_url?: string }>;
         accessories?: Array<{ name: string; price: number; image_url?: string }>;
     };
 }
@@ -348,6 +352,15 @@ export default function ProductsPage() {
                                         </>
                                     )}
                                 </Form.List>
+                            ),
+                        },
+                        {
+                            key: '4',
+                            label: 'Cấu hình Hình ảnh (Visual)',
+                            children: (
+                                <Form.Item name="customization_config" noStyle>
+                                    <ProductVisualEditor />
+                                </Form.Item>
                             ),
                         }
                     ]} />

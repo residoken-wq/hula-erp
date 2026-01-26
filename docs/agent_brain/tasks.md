@@ -5,6 +5,7 @@
 - [x] CMS UI/UX Upgrade (gradients, glassmorphism, modern design)
 - [x] Notification Deep Links (Sales Comments + Tasks)
 - [x] Documentation Update (agent_brain + Technical Docs)
+- [ ] Product Customization UI (Frame picture, Layers, Logo Position)
 
 ## Completed Today
 
