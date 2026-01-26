@@ -207,16 +207,21 @@ export class ProductsService {
     }
 
     async saveWebsiteConfig(productId: number, config: any) {
-        let entry = await this.websiteConfigRepo.findOne({ where: { product_id: productId } });
-        if (!entry) {
-            entry = this.websiteConfigRepo.create({
-                product_id: productId,
-                customization_config: config
-            });
-        } else {
-            entry.customization_config = config;
+        try {
+            let entry = await this.websiteConfigRepo.findOne({ where: { product_id: productId } });
+            if (!entry) {
+                entry = this.websiteConfigRepo.create({
+                    product_id: productId,
+                    customization_config: config
+                });
+            } else {
+                entry.customization_config = config;
+            }
+            return await this.websiteConfigRepo.save(entry);
+        } catch (error) {
+            console.error('Error in saveWebsiteConfig:', error);
+            throw error;
         }
-        return this.websiteConfigRepo.save(entry);
     }
 
     async getProductBOM(sku: string): Promise<BOM[]> {
