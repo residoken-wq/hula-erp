@@ -4,21 +4,23 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 // Types
 export interface CartItem {
+    instanceId: string; // Unique ID for this item instance (handles variants)
     id: number;
     sku: string;
     name: string;
     price: number;
     quantity: number;
     image_url?: string;
+    customization?: any;
 }
 
 interface CartContextType {
     items: CartItem[];
     itemCount: number;
     total: number;
-    addToCart: (product: { id: number; sku: string; name: string; base_price: number; image_url?: string }) => void;
-    removeFromCart: (sku: string) => void;
-    updateQuantity: (sku: string, quantity: number) => void;
+    addToCart: (product: { id: number; sku: string; name: string; base_price: number; image_url?: string; customization?: any; quantity?: number }) => void;
+    removeFromCart: (instanceId: string) => void;
+    updateQuantity: (instanceId: string, quantity: number) => void;
     clearCart: () => void;
     isCartOpen: boolean;
     setIsCartOpen: (open: boolean) => void;
@@ -38,7 +40,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         try {
             const stored = localStorage.getItem(CART_STORAGE_KEY);
             if (stored) {
-                setItems(JSON.parse(stored));
+                const parsed = JSON.parse(stored);
+                // Migration: Ensure all items have instanceId
+                const migrated = parsed.map((item: any) => ({
+                    ...item,
+                    instanceId: item.instanceId || `${item.sku}-${Date.now()}-${Math.random()}`
+                }));
+                setItems(migrated);
             }
         } catch (error) {
             console.error('Failed to load cart from localStorage:', error);
@@ -58,42 +66,52 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     // Add product to cart
-    const addToCart = (product: { id: number; sku: string; name: string; base_price: number; image_url?: string }) => {
+    const addToCart = (product: { id: number; sku: string; name: string; base_price: number; image_url?: string; customization?: any; quantity?: number }) => {
         setItems(prev => {
-            const existing = prev.find(item => item.sku === product.sku);
-            if (existing) {
-                return prev.map(item =>
-                    item.sku === product.sku
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item
-                );
+            // If has customization, always add new item. 
+            // If no customization, try to find existing matching SKU without customization.
+
+            const isCustom = !!product.customization;
+            const qty = product.quantity || 1;
+
+            if (!isCustom) {
+                const existingIndex = prev.findIndex(item => item.sku === product.sku && !item.customization);
+                if (existingIndex > -1) {
+                    const newItems = [...prev];
+                    newItems[existingIndex].quantity += qty;
+                    return newItems;
+                }
             }
+
+            // Add new item
             return [...prev, {
+                instanceId: `${product.sku}-${Date.now()}`,
                 id: product.id,
                 sku: product.sku,
                 name: product.name,
                 price: product.base_price,
-                quantity: 1,
-                image_url: product.image_url
+                quantity: qty,
+                image_url: product.image_url,
+                customization: product.customization
             }];
         });
         setIsCartOpen(true); // Open cart drawer when adding
     };
 
     // Remove product from cart
-    const removeFromCart = (sku: string) => {
-        setItems(prev => prev.filter(item => item.sku !== sku));
+    const removeFromCart = (instanceId: string) => {
+        setItems(prev => prev.filter(item => item.instanceId !== instanceId));
     };
 
     // Update quantity
-    const updateQuantity = (sku: string, quantity: number) => {
+    const updateQuantity = (instanceId: string, quantity: number) => {
         if (quantity <= 0) {
-            removeFromCart(sku);
+            removeFromCart(instanceId);
             return;
         }
         setItems(prev =>
             prev.map(item =>
-                item.sku === sku ? { ...item, quantity } : item
+                item.instanceId === instanceId ? { ...item, quantity } : item
             )
         );
     };

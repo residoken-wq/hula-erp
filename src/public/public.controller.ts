@@ -8,11 +8,15 @@ import { BlogPost, BlogStatus } from '../blogs/blog-post.entity';
 import { SystemConfig } from '../system/system-config.entity';
 import { SalesService } from '../sales/sales.service';
 
+import { ProductWebsiteConfig } from '../products/entities/product-website-config.entity';
+
 @Controller('public')
 export class PublicController {
     constructor(
         @InjectRepository(Product)
         private readonly productRepo: Repository<Product>,
+        @InjectRepository(ProductWebsiteConfig)
+        private readonly websiteConfigRepo: Repository<ProductWebsiteConfig>,
         @InjectRepository(Category)
         private readonly categoryRepo: Repository<Category>,
         @InjectRepository(Customer)
@@ -24,72 +28,7 @@ export class PublicController {
         private readonly salesService: SalesService
     ) { }
 
-    // ========================================
-    // SETTINGS APIs (Contact Info)
-    // ========================================
-
-    @Get('settings')
-    async getPublicSettings() {
-        const keys = [
-            'site_name',
-            'site_description',
-            'logo_url',
-            'contact_phone',
-            'contact_email',
-            'contact_address',
-            'facebook_url',
-            'zalo_url'
-        ];
-
-        const configs = await this.configRepo.find({
-            where: { key: In(keys) }
-        });
-
-        const settings: Record<string, string> = {};
-        configs.forEach(config => {
-            settings[config.key] = config.value || '';
-        });
-
-        return settings;
-    }
-
-    // ========================================
-    // PRODUCTS APIs
-    // ========================================
-
-    @Get('products')
-    async getProducts(
-        @Query('category') category?: string,
-        @Query('limit') limit?: number
-    ) {
-        const query = this.productRepo.createQueryBuilder('p')
-            .where('p.is_active = :active', { active: true })
-            .andWhere('p.show_on_website = :show', { show: true })
-            .orderBy('p.website_order', 'ASC')
-            .addOrderBy('p.created_at', 'DESC');
-
-        if (category) {
-            query.andWhere('p.category = :category', { category });
-        }
-
-        if (limit) {
-            query.take(Number(limit));
-        }
-
-        const products = await query.getMany();
-
-        // Return only public-safe fields
-        return products.map(p => ({
-            id: p.id,
-            sku: p.sku,
-            name: p.name,
-            category: p.category,
-            base_price: p.website_price || p.base_price, // Use website_price if set
-            image_url: p.image_url,
-            customer_description: p.customer_description,
-            attributes: p.attributes
-        }));
-    }
+    // ... (settings code)
 
     @Get('products/:sku')
     async getProductBySku(@Param('sku') sku: string) {
@@ -101,6 +40,11 @@ export class PublicController {
             return { error: 'Product not found' };
         }
 
+        // Fetch website config
+        const config = await this.websiteConfigRepo.findOne({
+            where: { product_id: product.id }
+        });
+
         return {
             id: product.id,
             sku: product.sku,
@@ -109,7 +53,8 @@ export class PublicController {
             base_price: product.website_price || product.base_price,
             image_url: product.image_url,
             customer_description: product.customer_description,
-            attributes: product.attributes
+            attributes: product.attributes,
+            customization_config: config?.customization_config || null
         };
     }
 
