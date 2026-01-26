@@ -88,12 +88,15 @@ export default function WebsiteProductsPage() {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
     };
 
+    const [showOnlyWebsite, setShowOnlyWebsite] = useState(false);
+
     const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        p.sku.toLowerCase().includes(searchText.toLowerCase())
+        (p.name.toLowerCase().includes(searchText.toLowerCase()) ||
+            p.sku.toLowerCase().includes(searchText.toLowerCase())) &&
+        (!showOnlyWebsite || p.show_on_website)
     );
 
-    const websiteProducts = filteredProducts.filter(p => p.show_on_website);
+    const websiteProducts = products.filter(p => p.show_on_website);
 
     const columns = [
         {
@@ -207,6 +210,12 @@ export default function WebsiteProductsPage() {
                             style={{ width: 200 }}
                             allowClear
                         />
+                        <Button
+                            type={showOnlyWebsite ? 'primary' : 'default'}
+                            onClick={() => setShowOnlyWebsite(!showOnlyWebsite)}
+                        >
+                            {showOnlyWebsite ? 'Đang lọc: Hiển thị' : 'Lọc: Đang hiển thị'}
+                        </Button>
                         <Button icon={<SyncOutlined />} onClick={loadProducts} loading={loading}>
                             Làm mới
                         </Button>

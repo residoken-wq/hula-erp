@@ -18,7 +18,8 @@ interface Product {
     cost_price: number;
     quantity_in_stock: number;
     is_active: boolean;
-    show_on_website: boolean; // Add this field
+    show_on_website: boolean;
+    website_price?: number; // Add this field
     image_url: string;
     customer_description: string;
     customization_config?: {
@@ -143,7 +144,18 @@ export default function ProductsPage() {
             dataIndex: 'base_price',
             key: 'base_price',
             width: 130,
-            render: (price: number) => <strong style={{ color: '#1890ff' }}>{formatPrice(price)}</strong>,
+            render: (_: any, record: Product) => (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <strong style={{ color: '#1890ff' }}>
+                        {formatPrice(record.website_price || record.base_price)}
+                    </strong>
+                    {record.website_price && record.website_price !== record.base_price && (
+                        <span style={{ fontSize: 11, color: '#999', textDecoration: 'line-through' }}>
+                            {formatPrice(record.base_price)}
+                        </span>
+                    )}
+                </div>
+            ),
         },
         {
             title: 'Tồn kho',
