@@ -7,6 +7,7 @@
 - [x] Documentation Update (agent_brain + Technical Docs)
 - [ ] Product Customization UI (Frame picture, Layers, Logo Position)
 - [ ] Upgrade Customization UI (Mattress F/B, Pillow F/B, Google Drive Fix)
+- [x] 3D Visualization Phase 1 (Model-Viewer Integration)
 
 ## Completed Today
 

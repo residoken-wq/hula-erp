@@ -24,6 +24,7 @@ export class ProductWebsiteConfig {
             pillow?: { width: number; height: number }; // cm
             logo?: { width: number; height: number }; // cm
         };
+        model_3d_url?: string; // URL to .glb/.gltf 3D model file
         colors: Array<{ name: string; code: string; image_url?: string; pillow_image_url?: string }>;
         accessories: Array<{ name: string; price: number; image_url?: string }>;
     };

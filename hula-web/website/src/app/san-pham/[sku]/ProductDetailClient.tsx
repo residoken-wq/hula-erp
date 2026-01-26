@@ -1,7 +1,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { useCart } from '@/contexts/CartContext';
+
+// Dynamically import ModelViewer (client-only, no SSR)
+const ModelViewer3D = dynamic(() => import('@/components/ModelViewer'), {
+    ssr: false,
+    loading: () => <div className="w-full h-96 bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">⏳ Loading 3D...</div>
+});
 
 interface Product {
     id: number;
@@ -18,6 +25,7 @@ interface Product {
         logo_position?: { x: number; y: number; width: number; height: number };
         base_image?: string;
         pillow_image?: string;
+        model_3d_url?: string;
         colors?: Array<{ name: string; code: string; image_url?: string; pillow_image_url?: string }>;
         accessories?: Array<{ name: string; price: number; image_url?: string }>;
     };
@@ -110,9 +118,18 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-12">
 
-                    {/* Left: Image Gallery */}
+                    {/* Left: 3D Model or Image Gallery */}
                     <div className="p-8 bg-gray-50 flex items-center justify-center">
-                        {product.image_url ? (
+                        {product.customization_config?.model_3d_url ? (
+                            <div className="w-full">
+                                <ModelViewer3D
+                                    src={product.customization_config.model_3d_url}
+                                    poster={product.image_url}
+                                    alt={product.name}
+                                />
+                                <p className="text-center text-xs text-gray-500 mt-2">🔄 Xoay để xem 360° | 📱 Nhấn AR để xem trong không gian thực</p>
+                            </div>
+                        ) : product.image_url ? (
                             <img src={product.image_url} alt={product.name} className="max-w-full h-auto rounded-lg shadow-md" />
                         ) : (
                             <div className="text-9xl">📦</div>

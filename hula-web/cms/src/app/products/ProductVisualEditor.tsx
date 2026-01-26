@@ -189,6 +189,21 @@ export const ProductVisualEditor: React.FC<ProductVisualEditorProps> = ({ value,
                 </Form.Item>
             </Card>
 
+            <Card title="🎮 Mô hình 3D (Tùy chọn)" size="small" style={{ marginBottom: 16, background: 'linear-gradient(135deg, #667eea11, #764ba211)' }}>
+                <Form.Item label="Link file 3D (.glb/.gltf)">
+                    <Input
+                        placeholder="URL đến file 3D model (ví dụ: https://...model.glb)"
+                        value={config.model_3d_url}
+                        onChange={e => triggerChange({ model_3d_url: e.target.value })}
+                        prefix={<LinkOutlined />}
+                    />
+                </Form.Item>
+                <Paragraph style={{ fontSize: 11, color: '#666' }}>
+                    💡 Nếu có link file .glb, khách sẽ thấy mô hình 3D xoay 360° và AR trên website.
+                    <br />Bạn có thể tạo model 3D từ <a href="https://meshy.ai" target="_blank" rel="noopener noreferrer">Meshy.ai</a> hoặc thuê thiết kế.
+                </Paragraph>
+            </Card>
+
             <Card title="3. Kích thước & Vị trí Logo" size="small">
                 <Row gutter={16}>
                     <Col span={12}>
