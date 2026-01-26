@@ -35,7 +35,11 @@ export default function ProductsPage() {
         try {
             const res = await productsApi.getAll();
             const data = res.data;
-            setProducts(Array.isArray(data) ? data : []);
+            // Only show products enabled for website
+            const filteredData = Array.isArray(data)
+                ? data.filter((p: Product) => p.show_on_website)
+                : [];
+            setProducts(filteredData);
         } catch (error) {
             message.error('Không thể tải danh sách sản phẩm');
             setProducts([]);
