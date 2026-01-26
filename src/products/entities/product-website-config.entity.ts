@@ -15,8 +15,15 @@ export class ProductWebsiteConfig {
         allow_logo: boolean;
         logo_price?: number;
         logo_position?: { x: number; y: number; width: number; height: number };
-        base_image?: string; // Frame/Matress base
-        pillow_image?: string; // Pillow default
+        base_image?: string; // Standard Front View (Mattress)
+        mattress_back_image?: string; // Mattress Back View
+        pillow_image?: string; // Standard Pillow Front
+        pillow_back_image?: string; // Pillow Back View
+        dimensions?: {
+            mattress?: { width: number; height: number }; // cm
+            pillow?: { width: number; height: number }; // cm
+            logo?: { width: number; height: number }; // cm
+        };
         colors: Array<{ name: string; code: string; image_url?: string; pillow_image_url?: string }>;
         accessories: Array<{ name: string; price: number; image_url?: string }>;
     };

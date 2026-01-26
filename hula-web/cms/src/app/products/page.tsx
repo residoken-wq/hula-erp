@@ -28,7 +28,14 @@ interface Product {
         logo_price?: number;
         logo_position?: { x: number; y: number; width: number; height: number };
         base_image?: string;
+        mattress_back_image?: string;
         pillow_image?: string;
+        pillow_back_image?: string;
+        dimensions?: {
+            mattress?: { width: number; height: number };
+            pillow?: { width: number; height: number };
+            logo?: { width: number; height: number };
+        };
         colors?: Array<{ name: string; code: string; image_url?: string; pillow_image_url?: string }>;
         accessories?: Array<{ name: string; price: number; image_url?: string }>;
     };

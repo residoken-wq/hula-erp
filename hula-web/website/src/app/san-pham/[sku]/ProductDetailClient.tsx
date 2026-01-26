@@ -15,7 +15,10 @@ interface Product {
     customization_config?: {
         allow_logo?: boolean;
         logo_price?: number;
-        colors?: Array<{ name: string; code: string; image_url?: string }>;
+        logo_position?: { x: number; y: number; width: number; height: number };
+        base_image?: string;
+        pillow_image?: string;
+        colors?: Array<{ name: string; code: string; image_url?: string; pillow_image_url?: string }>;
         accessories?: Array<{ name: string; price: number; image_url?: string }>;
     };
 }
@@ -27,6 +30,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
     const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
     const [isLogoSelected, setIsLogoSelected] = useState(false);
+    const [uploadedLogo, setUploadedLogo] = useState<string | null>(null);
     const [quantity, setQuantity] = useState(1);
 
     // Initial check for default color
@@ -152,11 +156,13 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                             </div>
                         )}
 
-                        {/* 2. Logo */}
+                        {/* 2. Logo Service */}
                         {allowLogo && (
                             <div className="mb-6">
                                 <h3 className="text-sm font-medium text-gray-900 mb-3">Dịch vụ in Logo</h3>
-                                <label className="flex items-center space-x-3 cursor-pointer p-4 border border-gray-200 rounded-lg hover:border-primary-500 transition-colors">
+
+                                {/* Checkbox Option */}
+                                <label className="flex items-center space-x-3 cursor-pointer p-4 border border-gray-200 rounded-lg hover:border-primary-500 transition-colors mb-3">
                                     <input
                                         type="checkbox"
                                         checked={isLogoSelected}
@@ -168,6 +174,80 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                                         <p className="text-xs text-gray-500">Thêm {formatPrice(logoPrice)} / sản phẩm</p>
                                     </div>
                                 </label>
+
+                                {/* Logo Upload & Preview Area */}
+                                {isLogoSelected && (
+                                    <div className="p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                                        <div className="mb-3">
+                                            <p className="text-sm font-medium mb-2">Tải lên Logo của bạn (để xem demo):</p>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            setUploadedLogo(reader.result as string);
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                                className="block w-full text-sm text-gray-500
+                                                    file:mr-4 file:py-2 file:px-4
+                                                    file:rounded-full file:border-0
+                                                    file:text-sm file:font-semibold
+                                                    file:bg-primary-50 file:text-primary-700
+                                                    hover:file:bg-primary-100"
+                                            />
+                                        </div>
+
+                                        {/* Visual Preview */}
+                                        {(product.customization_config?.base_image || uploadedLogo) && (
+                                            <div className="relative w-full aspect-[3/4] bg-white rounded border overflow-hidden">
+                                                {/* Base Image (Product/Mattress) */}
+                                                <img
+                                                    src={product.customization_config?.base_image || product.image_url}
+                                                    alt="Base"
+                                                    className="w-full h-full object-cover"
+                                                />
+
+                                                {/* Pillow Layer (Optional) */}
+                                                {product.customization_config?.pillow_image && (
+                                                    <img
+                                                        src={product.customization_config.pillow_image}
+                                                        alt="Pillow"
+                                                        className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
+                                                    />
+                                                )}
+
+                                                {/* Logo Overlay */}
+                                                {uploadedLogo && product.customization_config?.logo_position && (
+                                                    <div
+                                                        style={{
+                                                            position: 'absolute',
+                                                            left: `${product.customization_config.logo_position.x}%`,
+                                                            top: `${product.customization_config.logo_position.y}%`,
+                                                            width: `${product.customization_config.logo_position.width}%`,
+                                                            height: `${product.customization_config.logo_position.height}%`,
+                                                            zIndex: 20
+                                                        }}
+                                                        className="flex items-center justify-center overflow-hidden"
+                                                    >
+                                                        <img src={uploadedLogo} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+                                                    </div>
+                                                )}
+
+                                                {/* Text Hint if no logo uploaded yet */}
+                                                {!uploadedLogo && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/5 z-20 pointer-events-none">
+                                                        <span className="bg-white/80 px-3 py-1 rounded text-xs">Preview Area</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -178,8 +258,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                                 <div className="space-y-3">
                                     {accessories.map((acc) => (
                                         <label key={acc.name} className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${selectedAccessories.includes(acc.name)
-                                                ? 'border-primary-600 bg-primary-50'
-                                                : 'border-gray-200 hover:border-gray-300'
+                                            ? 'border-primary-600 bg-primary-50'
+                                            : 'border-gray-200 hover:border-gray-300'
                                             }`}>
                                             <div className="flex items-center space-x-3">
                                                 <input
@@ -201,9 +281,9 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                         <div className="flex items-center gap-4 pt-6 border-t border-gray-100">
                             {/* Quantity (Visual Only for now as Context adds 1) */}
                             <div className="flex items-center border border-gray-300 rounded-lg">
-                                <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="px-3 py-2 text-gray-600 hover:bg-gray-100">-</button>
+                                <button onClick={() => setQuantity((q: number) => Math.max(1, q - 1))} className="px-3 py-2 text-gray-600 hover:bg-gray-100">-</button>
                                 <span className="px-3 py-2 font-medium text-gray-900 w-12 text-center">{quantity}</span>
-                                <button onClick={() => setQuantity(q => q + 1)} className="px-3 py-2 text-gray-600 hover:bg-gray-100">+</button>
+                                <button onClick={() => setQuantity((q: number) => q + 1)} className="px-3 py-2 text-gray-600 hover:bg-gray-100">+</button>
                             </div>
 
                             <button

@@ -76,10 +76,22 @@ export class ProductsService {
     }
 
     async findOne(id: number) {
-        return this.productRepo.findOne({ where: { id }, relations: ['category_link'] });
+        const product = await this.productRepo.findOne({ where: { id }, relations: ['category_link'] });
+        if (product) {
+            const config = await this.websiteConfigRepo.findOne({ where: { product_id: product.id } });
+            if (config) (product as any).customization_config = config.customization_config;
+        }
+        return product;
     }
 
-    async findOneBySku(sku: string) { return this.productRepo.findOne({ where: { sku }, relations: ['category_link'] }); }
+    async findOneBySku(sku: string) {
+        const product = await this.productRepo.findOne({ where: { sku }, relations: ['category_link'] });
+        if (product) {
+            const config = await this.websiteConfigRepo.findOne({ where: { product_id: product.id } });
+            if (config) (product as any).customization_config = config.customization_config;
+        }
+        return product;
+    }
 
     private cleanData(data: any) {
         const { boms, routings, logistics, components, patterns, color, size, fabric, customer_description, processing_description, ...clean } = data;
