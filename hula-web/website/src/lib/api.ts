@@ -1,12 +1,14 @@
 import axios from 'axios';
 
-const API_URL = process.env.API_URL || 'http://localhost:3000';
+// Use NEXT_PUBLIC_ for client-side access, fallback to production URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://erp.nemmamnon.com/api';
 
 const api = axios.create({
     baseURL: `${API_URL}/public`,
     headers: {
         'Content-Type': 'application/json',
     },
+    timeout: 10000, // 10 second timeout
 });
 
 // Products

@@ -7,22 +7,31 @@ export const dynamic = 'force-dynamic';
 export default async function ProductsPage({
     searchParams,
 }: {
-    searchParams: { category?: string; sort?: string; page?: string };
+    searchParams: Promise<{ category?: string; sort?: string; page?: string }>;
 }) {
-    const categoryId = searchParams.category ? Number(searchParams.category) : undefined;
-    const sort = searchParams.sort || 'newest';
-    const page = Number(searchParams.page) || 1;
+    const resolvedParams = await searchParams;
+    const categoryId = resolvedParams.category ? Number(resolvedParams.category) : undefined;
+    const sort = resolvedParams.sort || 'newest';
+    const page = Number(resolvedParams.page) || 1;
 
-    // Fetch data in parallel
-    const [productsRes, categoriesRes] = await Promise.all([
-        getProducts({ limit: 12, page, sort, category: categoryId?.toString() }),
-        getCategories()
-    ]);
+    // Fetch data in parallel with error handling
+    let products: any[] = [];
+    let categories: any[] = [];
+    let meta: any = {};
 
-    // Handle products response (expecting { data: [], meta: {} })
-    const products = productsRes?.data || [];
-    const meta = productsRes?.meta || {};
-    const categories = Array.isArray(categoriesRes) ? categoriesRes : [];
+    try {
+        const [productsRes, categoriesRes] = await Promise.all([
+            getProducts({ limit: 12, page, sort, category: categoryId?.toString() }).catch(() => ({ data: [], meta: {} })),
+            getCategories().catch(() => [])
+        ]);
+
+        // Handle products response (expecting { data: [], meta: {} })
+        products = productsRes?.data || [];
+        meta = productsRes?.meta || {};
+        categories = Array.isArray(categoriesRes) ? categoriesRes : [];
+    } catch (error) {
+        console.error('Error fetching products:', error);
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
