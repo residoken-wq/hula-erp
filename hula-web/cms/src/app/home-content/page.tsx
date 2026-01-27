@@ -1,9 +1,9 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, Form, Input, Button, Space, message, Tabs, Collapse, Switch, InputNumber, Upload, List, Modal } from 'antd';
 import { SaveOutlined, PlusOutlined, DeleteOutlined, DragOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { systemApi } from '@/lib/api';
+import { convertGoogleDriveLink } from '@/utils/image';
 
 interface Feature {
     id: string;
@@ -17,27 +17,63 @@ interface FeaturedProduct {
     name: string;
 }
 
+const DEFAULT_FEATURES = [
+    { id: '1', icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', description: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
+    { id: '2', icon: '🏆', title: 'Chất Lượng Cao Cấp', description: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO và chứng nhận an toàn' },
+    { id: '3', icon: '💯', title: 'Bảo Hành 12 Tháng', description: 'Cam kết đổi mới nếu có lỗi từ nhà sản xuất trong 12 tháng' },
+    { id: '4', icon: '🚚', title: 'Giao Hàng Toàn Quốc', description: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
+];
+
 export default function HomeContentPage() {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
-    const [features, setFeatures] = useState<Feature[]>([
-        { id: '1', icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', description: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
-        { id: '2', icon: '🏆', title: 'Chất Lượng Cao Cấp', description: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO và chứng nhận an toàn' },
-        { id: '3', icon: '💯', title: 'Bảo Hành 12 Tháng', description: 'Cam kết đổi mới nếu có lỗi từ nhà sản xuất trong 12 tháng' },
-        { id: '4', icon: '🚚', title: 'Giao Hàng Toàn Quốc', description: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
-    ]);
+    const [features, setFeatures] = useState<Feature[]>(DEFAULT_FEATURES);
     const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
     const [featureModal, setFeatureModal] = useState(false);
+
+    useEffect(() => {
+        loadConfig();
+    }, []);
+
+    const loadConfig = async () => {
+        try {
+            setLoading(true);
+            const { data } = await systemApi.getConfig('home_config');
+            if (data && data.value) {
+                const config = JSON.parse(data.value);
+                form.setFieldsValue(config);
+                if (config.features) {
+                    setFeatures(config.features);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load config:', error);
+            // Don't show error as it might be first time
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleSave = async () => {
         try {
             const values = await form.validateFields();
             setLoading(true);
-            // TODO: Save to backend
-            console.log('Home Content:', { ...values, features });
+
+            // Clean up drive links
+            if (values.hero_image) {
+                values.hero_image = convertGoogleDriveLink(values.hero_image);
+            }
+
+            const config = {
+                ...values,
+                features
+            };
+
+            await systemApi.setConfig('home_config', JSON.stringify(config), 'Home Page Configuration');
             message.success('Đã lưu nội dung trang chủ');
-        } catch {
-            message.error('Có lỗi xảy ra');
+        } catch (error) {
+            console.error('Save error:', error);
+            message.error('Có lỗi xảy ra khi lưu');
         } finally {
             setLoading(false);
         }
@@ -55,7 +91,7 @@ export default function HomeContentPage() {
 
     const handleDeleteFeature = (id: string) => {
         setFeatures(features.filter(f => f.id !== id));
-        message.success('Đã xóa');
+        // message.success('Đã xóa'); 
     };
 
     const handleSaveFeature = (values: any) => {
@@ -65,7 +101,7 @@ export default function HomeContentPage() {
             setFeatures([...features, { id: Date.now().toString(), ...values }]);
         }
         setFeatureModal(false);
-        message.success(editingFeature ? 'Đã cập nhật' : 'Đã thêm');
+        // message.success(editingFeature ? 'Đã cập nhật' : 'Đã thêm');
     };
 
     const items = [

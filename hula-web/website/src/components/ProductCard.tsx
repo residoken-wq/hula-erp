@@ -1,8 +1,7 @@
-'use client';
-
 import Link from 'next/link';
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
+import { convertGoogleDriveLink } from '@/utils/image';
 
 interface Product {
     id: number;
@@ -50,7 +49,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <Link href={`/san-pham/${product.sku}`} className="block relative aspect-square bg-gray-50 overflow-hidden">
                 {product.image_url ? (
                     <img
-                        src={product.image_url}
+                        src={convertGoogleDriveLink(product.image_url)}
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -95,8 +94,8 @@ export default function ProductCard({ product }: ProductCardProps) {
                         onClick={handleAddToCart}
                         disabled={isAdding}
                         className={`relative px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 ${showSuccess
-                                ? 'bg-green-500 text-white'
-                                : 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-md shadow-primary-500/30 hover:shadow-lg hover:shadow-primary-500/40'
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-md shadow-primary-500/30 hover:shadow-lg hover:shadow-primary-500/40'
                             }`}
                     >
                         {showSuccess ? (
