@@ -60,15 +60,21 @@ export default async function HomePage() {
                                 </Link>
                             </div>
                         </div>
+                        import {getGoogleDriveImageUrl} from '@/lib/utils';
+
+                        // ... (top of file)
+
+                        // ...
                         <div className="relative">
                             {config.hero_image ? (
                                 <img
-                                    src={config.hero_image}
+                                    src={getGoogleDriveImageUrl(config.hero_image)}
                                     alt="Hero"
                                     className="w-full h-auto rounded-2xl shadow-xl transform hover:scale-105 transition-transform duration-500"
                                     style={{ maxHeight: 500, objectFit: 'contain' }}
                                 />
                             ) : (
+                                // ...
                                 <div className="w-full h-80 lg:h-96 bg-white/10 rounded-2xl backdrop-blur-sm flex items-center justify-center">
                                     <div className="text-center">
                                         <div className="w-32 h-32 mx-auto bg-white/20 rounded-full flex items-center justify-center">

@@ -21,21 +21,25 @@ interface FeaturedProduct {
 
 const getGoogleDriveImageUrl = (url?: string) => {
     if (!url) return '';
-    if (url.includes('drive.google.com')) {
-        let id = '';
-        const parts = url.split('/');
-        const fileIndex = parts.indexOf('d');
-        if (fileIndex !== -1 && fileIndex + 1 < parts.length) {
-            id = parts[fileIndex + 1].split('/')[0].split('?')[0];
-        } else {
-            const match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-            if (match) id = match[1];
+    try {
+        // Handle common Google Drive formats
+        if (url.includes('drive.google.com')) {
+            // Case 1: /file/d/VIDEO_ID/view
+            const standardMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (standardMatch) {
+                return `https://drive.google.com/thumbnail?id=${standardMatch[1]}&sz=w1000`;
+            }
+
+            // Case 2: ?id=VIDEO_ID
+            const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (idMatch) {
+                return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
+            }
         }
-        if (id) {
-            return `https://drive.google.com/uc?export=view&id=${id}`;
-        }
+        return url;
+    } catch {
+        return url || '';
     }
-    return url;
 };
 
 const ImagePreview = ({ url }: { url?: string }) => {
