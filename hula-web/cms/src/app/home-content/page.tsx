@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, Form, Input, Button, Space, message, Tabs, Collapse, Switch, InputNumber, Upload, List, Modal } from 'antd';
 import { SaveOutlined, PlusOutlined, DeleteOutlined, DragOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
@@ -131,20 +131,33 @@ export default function HomeContentPage() {
                         {({ getFieldValue }) => {
                             const heroImage = getFieldValue('hero_image');
                             const imageUrl = getGoogleDriveImageUrl(heroImage);
-                            return imageUrl ? (
+                            const [hasError, setHasError] = useState(false);
+
+                            // Reset error when URL changes
+                            useEffect(() => {
+                                setHasError(false);
+                            }, [imageUrl]);
+
+                            if (!imageUrl) return null;
+
+                            return (
                                 <div style={{ marginTop: 10, border: '1px dashed #d9d9d9', padding: 8, borderRadius: 8, textAlign: 'center' }}>
                                     <p style={{ marginBottom: 8, color: '#888', fontSize: 12 }}>Xem trước hình ảnh:</p>
-                                    <img
-                                        src={imageUrl}
-                                        alt="Preview"
-                                        style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 4 }}
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).onerror = null;
-                                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=Lỗi+tải+ảnh';
-                                        }}
-                                    />
+                                    {hasError ? (
+                                        <div style={{ padding: 20, color: '#ff4d4f', background: '#fff1f0', borderRadius: 4 }}>
+                                            <p style={{ margin: 0 }}>⚠️ Không thể tải hình ảnh</p>
+                                            <p style={{ margin: 0, fontSize: 12, opacity: 0.8 }}>Vui lòng kiểm tra lại đường dẫn</p>
+                                        </div>
+                                    ) : (
+                                        <img
+                                            src={imageUrl}
+                                            alt="Preview"
+                                            style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 4 }}
+                                            onError={() => setHasError(true)}
+                                        />
+                                    )}
                                 </div>
-                            ) : null;
+                            );
                         }}
                     </Form.Item>
                 </Form>
