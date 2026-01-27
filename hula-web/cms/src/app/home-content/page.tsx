@@ -93,7 +93,16 @@ export default function HomeContentPage() {
             setLoading(true);
             const res = await systemApi.getHomeConfig();
             if (res.data) {
-                form.setFieldsValue(res.data);
+                const data = { ...res.data };
+                // Backward compatibility for single image
+                if (!data.hero_images || data.hero_images.length === 0) {
+                    if (data.hero_image) {
+                        data.hero_images = [data.hero_image];
+                    } else {
+                        data.hero_images = [];
+                    }
+                }
+                form.setFieldsValue(data);
                 if (res.data.features && Array.isArray(res.data.features)) {
                     setFeatures(res.data.features);
                 }
@@ -178,15 +187,49 @@ export default function HomeContentPage() {
                         </Form.Item>
                     </div>
 
-                    <Form.Item name="hero_image" label="Hình ảnh Hero (URL)" extra="Hỗ trợ link Google Drive (quyền chia sẻ công khai)">
-                        <Input placeholder="https://drive.google.com/..." />
-                    </Form.Item>
+                    <Form.List name="hero_images">
+                        {(fields, { add, remove }) => (
+                            <>
+                                {fields.map((field, index) => (
+                                    <div key={field.key} style={{ marginBottom: 24, padding: 16, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <Form.Item
+                                                {...field}
+                                                label={`Hình ảnh Slider ${index + 1}`}
+                                                style={{ flex: 1, marginBottom: 0 }}
+                                                rules={[{ required: true, message: 'Vui lòng nhập URL hình ảnh' }]}
+                                                extra="Hỗ trợ link Google Drive (quyền chia sẻ công khai)"
+                                            >
+                                                <Input placeholder="https://drive.google.com/..." />
+                                            </Form.Item>
+                                            <Button
+                                                type="text"
+                                                danger
+                                                icon={<DeleteOutlined />}
+                                                onClick={() => remove(field.name)}
+                                                style={{ marginTop: 30 }}
+                                            />
+                                        </div>
 
-                    <Form.Item shouldUpdate={(prev, current) => prev.hero_image !== current.hero_image}>
-                        {({ getFieldValue }) => (
-                            <ImagePreview url={getFieldValue('hero_image')} />
+                                        <Form.Item shouldUpdate={(prev, cur) => prev.hero_images?.[index] !== cur.hero_images?.[index]}>
+                                            {({ getFieldValue }) => {
+                                                const images = getFieldValue('hero_images') || [];
+                                                return <ImagePreview url={images[index]} />;
+                                            }}
+                                        </Form.Item>
+                                    </div>
+                                ))}
+
+                                {fields.length < 5 && (
+                                    <Form.Item>
+                                        <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                            Thêm hình ảnh ({fields.length}/5)
+                                        </Button>
+                                    </Form.Item>
+                                )}
+                            </>
                         )}
-                    </Form.Item>
+                    </Form.List>
                 </Form>
             ),
         },

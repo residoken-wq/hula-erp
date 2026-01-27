@@ -27,6 +27,10 @@ export default async function HomePage() {
         ? config.features
         : defaultFeatures;
 
+    const heroImages = (config.hero_images && config.hero_images.length > 0)
+        ? config.hero_images
+        : (config.hero_image ? [config.hero_image] : []);
+
     return (
         <>
             {/* Hero Section */}
@@ -62,24 +66,7 @@ export default async function HomePage() {
                             </div>
                         </div>
                         <div className="relative">
-                            {config.hero_image ? (
-                                <img
-                                    src={getGoogleDriveImageUrl(config.hero_image)}
-                                    alt="Hero"
-                                    className="w-full h-auto rounded-2xl shadow-xl transform hover:scale-105 transition-transform duration-500"
-                                    style={{ maxHeight: 500, objectFit: 'contain' }}
-                                />
-                            ) : (
-                                // ...
-                                <div className="w-full h-80 lg:h-96 bg-white/10 rounded-2xl backdrop-blur-sm flex items-center justify-center">
-                                    <div className="text-center">
-                                        <div className="w-32 h-32 mx-auto bg-white/20 rounded-full flex items-center justify-center">
-                                            <span className="text-6xl">🛏️</span>
-                                        </div>
-                                        <p className="mt-4 text-primary-100">Hero Image</p>
-                                    </div>
-                                </div>
-                            )}
+                            <HeroCarousel images={heroImages} />
                         </div>
                     </div>
                 </div>
