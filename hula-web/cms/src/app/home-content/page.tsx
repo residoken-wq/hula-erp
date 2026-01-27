@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, Form, Input, Button, Space, message, Tabs, Collapse, Switch, InputNumber, Upload, List, Modal } from 'antd';
 import { SaveOutlined, PlusOutlined, DeleteOutlined, DragOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { systemApi } from '@/lib/api';
 
 interface Feature {
     id: string;
@@ -37,6 +38,36 @@ const getGoogleDriveImageUrl = (url?: string) => {
     return url;
 };
 
+const ImagePreview = ({ url }: { url?: string }) => {
+    const [hasError, setHasError] = useState(false);
+    const imageUrl = getGoogleDriveImageUrl(url);
+
+    useEffect(() => {
+        setHasError(false);
+    }, [imageUrl]);
+
+    if (!imageUrl) return null;
+
+    return (
+        <div style={{ marginTop: 10, border: '1px dashed #d9d9d9', padding: 8, borderRadius: 8, textAlign: 'center' }}>
+            <p style={{ marginBottom: 8, color: '#888', fontSize: 12 }}>Xem trước hình ảnh:</p>
+            {hasError ? (
+                <div style={{ padding: 20, color: '#ff4d4f', background: '#fff1f0', borderRadius: 4 }}>
+                    <p style={{ margin: 0 }}>⚠️ Không thể tải hình ảnh</p>
+                    <p style={{ margin: 0, fontSize: 12, opacity: 0.8 }}>Vui lòng kiểm tra lại đường dẫn</p>
+                </div>
+            ) : (
+                <img
+                    src={imageUrl}
+                    alt="Preview"
+                    style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 4 }}
+                    onError={() => setHasError(true)}
+                />
+            )}
+        </div>
+    );
+};
+
 export default function HomeContentPage() {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
@@ -49,12 +80,32 @@ export default function HomeContentPage() {
     const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
     const [featureModal, setFeatureModal] = useState(false);
 
+    useEffect(() => {
+        loadConfig();
+    }, []);
+
+    const loadConfig = async () => {
+        try {
+            setLoading(true);
+            const res = await systemApi.getHomeConfig();
+            if (res.data) {
+                form.setFieldsValue(res.data);
+                if (res.data.features && Array.isArray(res.data.features)) {
+                    setFeatures(res.data.features);
+                }
+            }
+        } catch (error) {
+            message.error('Không thể tải cấu hình');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSave = async () => {
         try {
             const values = await form.validateFields();
             setLoading(true);
-            // TODO: Save to backend
-            console.log('Home Content:', { ...values, features });
+            await systemApi.saveHomeConfig({ ...values, features });
             message.success('Đã lưu nội dung trang chủ');
         } catch {
             message.error('Có lỗi xảy ra');
@@ -128,37 +179,9 @@ export default function HomeContentPage() {
                     </Form.Item>
 
                     <Form.Item shouldUpdate={(prev, current) => prev.hero_image !== current.hero_image}>
-                        {({ getFieldValue }) => {
-                            const heroImage = getFieldValue('hero_image');
-                            const imageUrl = getGoogleDriveImageUrl(heroImage);
-                            const [hasError, setHasError] = useState(false);
-
-                            // Reset error when URL changes
-                            useEffect(() => {
-                                setHasError(false);
-                            }, [imageUrl]);
-
-                            if (!imageUrl) return null;
-
-                            return (
-                                <div style={{ marginTop: 10, border: '1px dashed #d9d9d9', padding: 8, borderRadius: 8, textAlign: 'center' }}>
-                                    <p style={{ marginBottom: 8, color: '#888', fontSize: 12 }}>Xem trước hình ảnh:</p>
-                                    {hasError ? (
-                                        <div style={{ padding: 20, color: '#ff4d4f', background: '#fff1f0', borderRadius: 4 }}>
-                                            <p style={{ margin: 0 }}>⚠️ Không thể tải hình ảnh</p>
-                                            <p style={{ margin: 0, fontSize: 12, opacity: 0.8 }}>Vui lòng kiểm tra lại đường dẫn</p>
-                                        </div>
-                                    ) : (
-                                        <img
-                                            src={imageUrl}
-                                            alt="Preview"
-                                            style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 4 }}
-                                            onError={() => setHasError(true)}
-                                        />
-                                    )}
-                                </div>
-                            );
-                        }}
+                        {({ getFieldValue }) => (
+                            <ImagePreview url={getFieldValue('hero_image')} />
+                        )}
                     </Form.Item>
                 </Form>
             ),

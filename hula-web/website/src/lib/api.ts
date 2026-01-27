@@ -60,8 +60,17 @@ export const createOrder = async (data: {
     items: Array<{ sku: string; quantity: number; unit_price: number }>;
     notes?: string;
 }) => {
-    const response = await api.post('/orders', data);
     return response.data;
+};
+
+// Config
+export const getHomeConfig = async () => {
+    try {
+        const { data } = await api.get('/home-config');
+        return data;
+    } catch {
+        return null;
+    }
 };
 
 export default api;

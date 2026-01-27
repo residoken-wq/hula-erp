@@ -1,30 +1,30 @@
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
+import { getProducts, getHomeConfig } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
-async function getFeaturedProducts() {
+async function getFeaturedProducts(limit = 4) {
     try {
-        const res = await fetch(`${API_URL}/products`, { next: { revalidate: 60 } });
-        if (!res.ok) return [];
-        const products = await res.json();
-        // Assuming /products returns all products, we slice 4. 
-        // Ideally backend should support filtering ?featured=true
-        return Array.isArray(products) ? products.slice(0, 4) : [];
+        const res = await getProducts({ limit });
+        return res.data || [];
     } catch (error) {
         return [];
     }
 }
 
-const features = [
-    { icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', desc: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
-    { icon: '🏆', title: 'Chất Lượng Cao Cấp', desc: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO và chứng nhận an toàn' },
-    { icon: '💯', title: 'Bảo Hành 12 Tháng', desc: 'Cam kết đổi mới nếu có lỗi từ nhà sản xuất trong 12 tháng' },
-    { icon: '🚚', title: 'Giao Hàng Toàn Quốc', desc: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
+const defaultFeatures = [
+    { icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', description: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
+    { icon: '🏆', title: 'Chất Lượng Cao Cấp', description: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO và chứng nhận an toàn' },
+    { icon: '💯', title: 'Bảo Hành 12 Tháng', description: 'Cam kết đổi mới nếu có lỗi từ nhà sản xuất trong 12 tháng' },
+    { icon: '🚚', title: 'Giao Hàng Toàn Quốc', description: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
 ];
 
 export default async function HomePage() {
-    const featuredProducts = await getFeaturedProducts();
+    const config = await getHomeConfig() || {};
+    const featuredProducts = await getFeaturedProducts(config.products_limit || 4);
+
+    const features = (config.features && Array.isArray(config.features) && config.features.length > 0)
+        ? config.features
+        : defaultFeatures;
 
     return (
         <>
@@ -35,20 +35,19 @@ export default async function HomePage() {
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         <div>
                             <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
-                                Giấc Ngủ Ngon
+                                {config.hero_title_1 || 'Giấc Ngủ Ngon'}
                                 <br />
-                                <span className="text-secondary-400">Cho Bé Yêu</span>
+                                <span className="text-secondary-400">{config.hero_title_2 || 'Cho Bé Yêu'}</span>
                             </h1>
                             <p className="mt-6 text-lg text-primary-100 max-w-xl">
-                                Nệm mầm non HULA - Được thiết kế đặc biệt cho trẻ em với chất liệu cao cấp,
-                                đảm bảo sức khỏe và giấc ngủ an lành cho bé yêu của bạn.
+                                {config.hero_description || 'Nệm mầm non HULA - Được thiết kế đặc biệt cho trẻ em với chất liệu cao cấp, đảm bảo sức khỏe và giấc ngủ an lành cho bé yêu của bạn.'}
                             </p>
                             <div className="mt-8 flex flex-wrap gap-4">
                                 <Link
                                     href="/san-pham"
                                     className="inline-flex items-center px-6 py-3 bg-white text-primary-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
                                 >
-                                    Xem Sản Phẩm
+                                    {config.hero_button_1 || 'Xem Sản Phẩm'}
                                     <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                     </svg>
@@ -57,19 +56,28 @@ export default async function HomePage() {
                                     href="/lien-he"
                                     className="inline-flex items-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-primary-700 transition-colors"
                                 >
-                                    Liên Hệ Mua Sỉ
+                                    {config.hero_button_2 || 'Liên Hệ Mua Sỉ'}
                                 </Link>
                             </div>
                         </div>
                         <div className="relative">
-                            <div className="w-full h-80 lg:h-96 bg-white/10 rounded-2xl backdrop-blur-sm flex items-center justify-center">
-                                <div className="text-center">
-                                    <div className="w-32 h-32 mx-auto bg-white/20 rounded-full flex items-center justify-center">
-                                        <span className="text-6xl">🛏️</span>
+                            {config.hero_image ? (
+                                <img
+                                    src={config.hero_image}
+                                    alt="Hero"
+                                    className="w-full h-auto rounded-2xl shadow-xl transform hover:scale-105 transition-transform duration-500"
+                                    style={{ maxHeight: 500, objectFit: 'contain' }}
+                                />
+                            ) : (
+                                <div className="w-full h-80 lg:h-96 bg-white/10 rounded-2xl backdrop-blur-sm flex items-center justify-center">
+                                    <div className="text-center">
+                                        <div className="w-32 h-32 mx-auto bg-white/20 rounded-full flex items-center justify-center">
+                                            <span className="text-6xl">🛏️</span>
+                                        </div>
+                                        <p className="mt-4 text-primary-100">Hero Image</p>
                                     </div>
-                                    <p className="mt-4 text-primary-100">Hero Image</p>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -95,7 +103,7 @@ export default async function HomePage() {
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {features.map((feature, index) => (
+                        {features.map((feature: any, index: number) => (
                             <div
                                 key={index}
                                 className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
@@ -107,7 +115,7 @@ export default async function HomePage() {
                                     {feature.title}
                                 </h3>
                                 <p className="text-gray-600 text-sm">
-                                    {feature.desc}
+                                    {feature.description || feature.desc}
                                 </p>
                             </div>
                         ))}
@@ -116,31 +124,33 @@ export default async function HomePage() {
             </section>
 
             {/* Video Section */}
-            <section className="py-16 lg:py-24 bg-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
-                            Khám Phá HULA
-                        </h2>
-                        <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-                            Xem video giới thiệu về sản phẩm nệm mầm non HULA
-                        </p>
-                    </div>
+            {config.video_enabled && (
+                <section className="py-16 lg:py-24 bg-white">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-12">
+                            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
+                                {config.video_title || 'Khám Phá HULA'}
+                            </h2>
+                            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+                                {config.video_subtitle || 'Xem video giới thiệu về sản phẩm nệm mầm non HULA'}
+                            </p>
+                        </div>
 
-                    <div className="max-w-4xl mx-auto">
-                        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                            <iframe
-                                className="absolute top-0 left-0 w-full h-full rounded-2xl shadow-lg"
-                                src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-                                title="HULA - Nệm Mầm Non"
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                allowFullScreen
-                            ></iframe>
+                        <div className="max-w-4xl mx-auto">
+                            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                                <iframe
+                                    className="absolute top-0 left-0 w-full h-full rounded-2xl shadow-lg"
+                                    src={config.video_youtube_url || "https://www.youtube.com/embed/dQw4w9WgXcQ"}
+                                    title="HULA - Nệm Mầm Non"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             {/* Featured Products */}
             <section className="py-16 lg:py-24">
@@ -148,10 +158,10 @@ export default async function HomePage() {
                     <div className="flex items-center justify-between mb-12">
                         <div>
                             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
-                                Sản Phẩm Nổi Bật
+                                {config.products_title || 'Sản Phẩm Nổi Bật'}
                             </h2>
                             <p className="mt-2 text-gray-600">
-                                Những sản phẩm được yêu thích nhất
+                                {config.products_subtitle || 'Những sản phẩm được yêu thích nhất'}
                             </p>
                         </div>
                         <Link
@@ -166,33 +176,41 @@ export default async function HomePage() {
                     </div>
 
                     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {featuredProducts.map((product) => (
-                            <ProductCard key={product.id} product={product} />
-                        ))}
+                        {featuredProducts.length > 0 ? (
+                            featuredProducts.map((product: any) => (
+                                <ProductCard key={product.id} product={product} />
+                            ))
+                        ) : (
+                            <p className="text-center text-gray-500 w-full col-span-4 py-10">
+                                Đang cập nhật sản phẩm...
+                            </p>
+                        )}
                     </div>
                 </div>
             </section>
 
             {/* CTA Section */}
-            <section className="py-16 bg-gradient-to-r from-secondary-500 to-secondary-600">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-                        Bạn là đại lý hoặc trường mầm non?
-                    </h2>
-                    <p className="text-secondary-100 mb-8 max-w-2xl mx-auto">
-                        Liên hệ ngay để nhận báo giá sỉ ưu đãi và chính sách hỗ trợ đặc biệt dành cho đối tác
-                    </p>
-                    <Link
-                        href="/lien-he"
-                        className="inline-flex items-center px-8 py-4 bg-white text-secondary-700 font-bold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
-                    >
-                        Đăng Ký Mua Sỉ Ngay
-                        <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                    </Link>
-                </div>
-            </section>
+            {config.cta_enabled !== false && (
+                <section className="py-16 bg-gradient-to-r from-secondary-500 to-secondary-600">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                        <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+                            {config.cta_title || 'Bạn là đại lý hoặc trường mầm non?'}
+                        </h2>
+                        <p className="text-secondary-100 mb-8 max-w-2xl mx-auto">
+                            {config.cta_description || 'Liên hệ ngay để nhận báo giá sỉ ưu đãi và chính sách hỗ trợ đặc biệt dành cho đối tác'}
+                        </p>
+                        <Link
+                            href="/lien-he"
+                            className="inline-flex items-center px-8 py-4 bg-white text-secondary-700 font-bold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
+                        >
+                            {config.cta_button || 'Đăng Ký Mua Sỉ Ngay'}
+                            <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                            </svg>
+                        </Link>
+                    </div>
+                </section>
+            )}
         </>
     );
 }

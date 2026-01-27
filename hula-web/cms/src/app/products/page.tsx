@@ -53,11 +53,7 @@ export default function ProductsPage() {
         try {
             const res = await productsApi.getAll();
             const data = res.data;
-            // Only show products enabled for website
-            const filteredData = Array.isArray(data)
-                ? data.filter((p: Product) => p.show_on_website)
-                : [];
-            setProducts(filteredData);
+            setProducts(Array.isArray(data) ? data : []);
         } catch (error) {
             message.error('Không thể tải danh sách sản phẩm');
             setProducts([]);
@@ -115,6 +111,18 @@ export default function ProductsPage() {
             loadProducts();
         } catch {
             message.error('Có lỗi xảy ra');
+        }
+    };
+
+    const handleToggleShow = async (record: Product, checked: boolean) => {
+        try {
+            await productsApi.update(record.id, { show_on_website: checked });
+            message.success(checked ? 'Đã hiển thị sản phẩm' : 'Đã ẩn sản phẩm');
+            // Optimistic update
+            setProducts(products.map(p => p.id === record.id ? { ...p, show_on_website: checked } : p));
+        } catch (error) {
+            message.error('Không thể cập nhật trạng thái');
+            loadProducts();
         }
     };
 
@@ -184,10 +192,13 @@ export default function ProductsPage() {
             dataIndex: 'show_on_website', // Change to show_on_website
             key: 'show_on_website',
             width: 100,
-            render: (show: boolean) => (
-                <Tag color={show ? 'success' : 'default'}>
-                    {show ? 'Hiển thị' : 'Ẩn'}
-                </Tag>
+            render: (show: boolean, record: Product) => (
+                <Switch
+                    checked={show}
+                    onChange={(checked) => handleToggleShow(record, checked)}
+                    checkedChildren="Hiện"
+                    unCheckedChildren="Ẩn"
+                />
             ),
         },
         {

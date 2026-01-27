@@ -12,7 +12,8 @@ import { ProductWebsiteConfig } from '../products/entities/product-website-confi
 @Module({
     imports: [
         TypeOrmModule.forFeature([Product, Category, Customer, BlogPost, SystemConfig, ProductWebsiteConfig]),
-        SalesModule
+        SalesModule,
+        SystemModule // <--- Import for SystemService
     ],
     controllers: [PublicController]
 })

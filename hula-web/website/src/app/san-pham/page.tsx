@@ -1,46 +1,28 @@
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
+import { getProducts, getCategories } from '@/lib/api';
 
-// This would be fetched from API in production
-async function getProducts() {
-    try {
-        const res = await fetch(`${process.env.API_URL || 'http://localhost:3000'}/api/public/products`, {
-            cache: 'no-store',
-        });
-        if (!res.ok) return [];
-        return res.json();
-    } catch {
-        // Return mock data for development
-        return [
-            { id: 1, sku: 'NEM-001', name: 'Nệm Mầm Non Cơ Bản', base_price: 450000, category: 'Nệm Đơn' },
-            { id: 2, sku: 'NEM-002', name: 'Nệm Mầm Non Cao Cấp', base_price: 650000, category: 'Nệm Đơn' },
-            { id: 3, sku: 'NEM-003', name: 'Combo Nệm + Gối', base_price: 850000, category: 'Combo' },
-            { id: 4, sku: 'NEM-004', name: 'Nệm Mầm Non Premium', base_price: 950000, category: 'Nệm Cao Cấp' },
-            { id: 5, sku: 'NEM-005', name: 'Nệm Nhập Khẩu Hàn Quốc', base_price: 1200000, category: 'Nệm Cao Cấp' },
-            { id: 6, sku: 'NEM-006', name: 'Nệm Organic Cotton', base_price: 780000, category: 'Nệm Đơn' },
-        ];
-    }
-}
+export const dynamic = 'force-dynamic';
 
-async function getCategories() {
-    try {
-        const res = await fetch(`${process.env.API_URL || 'http://localhost:3000'}/api/public/categories`, {
-            cache: 'no-store',
-        });
-        if (!res.ok) return [];
-        return res.json();
-    } catch {
-        return [
-            { id: 1, name: 'Tất cả', code: 'all' },
-            { id: 2, name: 'Nệm Đơn', code: 'nem-don' },
-            { id: 3, name: 'Nệm Cao Cấp', code: 'nem-cao-cap' },
-            { id: 4, name: 'Combo', code: 'combo' },
-        ];
-    }
-}
+export default async function ProductsPage({
+    searchParams,
+}: {
+    searchParams: { category?: string; sort?: string; page?: string };
+}) {
+    const categoryId = searchParams.category ? Number(searchParams.category) : undefined;
+    const sort = searchParams.sort || 'newest';
+    const page = Number(searchParams.page) || 1;
 
-export default async function ProductsPage() {
-    const [products, categories] = await Promise.all([getProducts(), getCategories()]);
+    // Fetch data in parallel
+    const [productsRes, categoriesRes] = await Promise.all([
+        getProducts({ limit: 12, page, sort, category: categoryId?.toString() }),
+        getCategories()
+    ]);
+
+    // Handle products response (expecting { data: [], meta: {} })
+    const products = productsRes?.data || [];
+    const meta = productsRes?.meta || {};
+    const categories = Array.isArray(categoriesRes) ? categoriesRes : [];
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -62,37 +44,32 @@ export default async function ProductsPage() {
                             <h3 className="font-semibold text-gray-900 mb-4">Danh mục</h3>
                             <ul className="space-y-2">
                                 <li>
-                                    <button className="w-full text-left px-3 py-2 rounded-lg bg-primary-50 text-primary-700 font-medium">
+                                    <Link
+                                        href="/san-pham"
+                                        className={`block w-full text-left px-3 py-2 rounded-lg font-medium transition-colors ${!categoryId ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                                    >
                                         Tất cả sản phẩm
-                                    </button>
+                                    </Link>
                                 </li>
                                 {categories.map((cat: any) => (
                                     <li key={cat.id}>
-                                        <button className="w-full text-left px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
+                                        <Link
+                                            href={`/san-pham?category=${cat.id}`}
+                                            className={`block w-full text-left px-3 py-2 rounded-lg font-medium transition-colors ${categoryId === cat.id ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                                        >
                                             {cat.name}
-                                        </button>
+                                        </Link>
                                     </li>
                                 ))}
                             </ul>
 
-                            <div className="mt-6 pt-6 border-t border-gray-100">
+                            {/* Simple Price Filter (Placeholder for now as backend needs update to support range) */}
+                            <div className="mt-6 pt-6 border-t border-gray-100 opacity-50 pointer-events-none">
                                 <h3 className="font-semibold text-gray-900 mb-4">Khoảng giá</h3>
                                 <div className="space-y-2">
                                     <label className="flex items-center cursor-pointer">
                                         <input type="radio" name="price" className="w-4 h-4 text-primary-600" defaultChecked />
                                         <span className="ml-2 text-gray-600">Tất cả</span>
-                                    </label>
-                                    <label className="flex items-center cursor-pointer">
-                                        <input type="radio" name="price" className="w-4 h-4 text-primary-600" />
-                                        <span className="ml-2 text-gray-600">Dưới 500,000đ</span>
-                                    </label>
-                                    <label className="flex items-center cursor-pointer">
-                                        <input type="radio" name="price" className="w-4 h-4 text-primary-600" />
-                                        <span className="ml-2 text-gray-600">500,000đ - 800,000đ</span>
-                                    </label>
-                                    <label className="flex items-center cursor-pointer">
-                                        <input type="radio" name="price" className="w-4 h-4 text-primary-600" />
-                                        <span className="ml-2 text-gray-600">Trên 800,000đ</span>
                                     </label>
                                 </div>
                             </div>
@@ -103,14 +80,14 @@ export default async function ProductsPage() {
                     <main className="flex-1">
                         <div className="flex items-center justify-between mb-6">
                             <p className="text-gray-600">
-                                Hiển thị <span className="font-medium">{products.length}</span> sản phẩm
+                                Hiển thị <span className="font-medium">{products.length}</span> sản phẩm {meta.total ? `trên tổng số ${meta.total}` : ''}
                             </p>
-                            <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                                <option>Mới nhất</option>
-                                <option>Giá: Thấp đến Cao</option>
-                                <option>Giá: Cao đến Thấp</option>
-                                <option>Phổ biến nhất</option>
-                            </select>
+                            {/* Sort Dropdown - Needs Client Component or simple Link based sort */}
+                            <div className="flex gap-2 text-sm">
+                                <Link href={{ query: { ...searchParams, sort: 'newest' } }} className={`px-3 py-1 rounded border ${sort === 'newest' ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-gray-200'}`}>Mới nhất</Link>
+                                <Link href={{ query: { ...searchParams, sort: 'price_asc' } }} className={`px-3 py-1 rounded border ${sort === 'price_asc' ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-gray-200'}`}>Giá tăng dần</Link>
+                                <Link href={{ query: { ...searchParams, sort: 'price_desc' } }} className={`px-3 py-1 rounded border ${sort === 'price_desc' ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-gray-200'}`}>Giá giảm dần</Link>
+                            </div>
                         </div>
 
                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -127,6 +104,21 @@ export default async function ProductsPage() {
                                 </div>
                                 <h3 className="text-lg font-semibold text-gray-900">Chưa có sản phẩm</h3>
                                 <p className="text-gray-600 mt-2">Sản phẩm đang được cập nhật, vui lòng quay lại sau.</p>
+                            </div>
+                        )}
+
+                        {/* Pagination */}
+                        {meta.last_page > 1 && (
+                            <div className="mt-8 flex justify-center gap-2">
+                                {Array.from({ length: meta.last_page }, (_, i) => i + 1).map(p => (
+                                    <Link
+                                        key={p}
+                                        href={{ query: { ...searchParams, page: p } }}
+                                        className={`w-10 h-10 flex items-center justify-center rounded-lg font-medium transition-colors ${page === p ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
+                                    >
+                                        {p}
+                                    </Link>
+                                ))}
                             </div>
                         )}
                     </main>

@@ -53,6 +53,8 @@ export const systemApi = {
     getConfig: (key: string) => api.get(`/system/config/${key}`),
     setConfig: (key: string, value: string, description?: string) =>
         api.post('/system/config', { key, value, description }),
+    getHomeConfig: () => api.get('/system/home-config'),
+    saveHomeConfig: (data: any) => api.post('/system/home-config', data),
 };
 
 export default api;

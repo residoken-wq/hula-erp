@@ -10,6 +10,8 @@ import { SalesService } from '../sales/sales.service';
 
 import { ProductWebsiteConfig } from '../products/entities/product-website-config.entity';
 
+import { SystemService } from '../system/system.service';
+
 @Controller('public')
 export class PublicController {
     constructor(
@@ -25,8 +27,20 @@ export class PublicController {
         private readonly blogRepo: Repository<BlogPost>,
         @InjectRepository(SystemConfig)
         private readonly configRepo: Repository<SystemConfig>,
-        private readonly salesService: SalesService
+        private readonly salesService: SalesService,
+        private readonly systemService: SystemService // <--- Inject
     ) { }
+
+    // ... (settings code)
+
+    // ========================================
+    // PUBLIC CONFIG APIs
+    // ========================================
+
+    @Get('home-config')
+    async getHomeConfig() {
+        return this.systemService.getHomeConfig();
+    }
 
     // ... (settings code)
 
@@ -248,5 +262,69 @@ export class PublicController {
                 error: error.message
             };
         }
+    }
+    // ========================================
+    // PUBLIC CONFIG APIs
+    // ========================================
+
+
+
+    // ========================================
+    // PRODUCTS APIs (Public)
+    // ========================================
+
+    @Get('products')
+    async getProducts(
+        @Query('page') page = 1,
+        @Query('limit') limit = 12,
+        @Query('sort') sort = 'newest', // newest, price_asc, price_desc
+        @Query('category') categoryId?: number
+    ) {
+        const qb = this.productRepo.createQueryBuilder('p')
+            .leftJoinAndSelect('p.category_link', 'cat')
+            .where('p.is_active = :isActive', { isActive: true })
+            .andWhere('p.show_on_website = :show', { show: true });
+
+        if (categoryId) {
+            qb.andWhere('p.category_id = :catId', { catId: categoryId });
+        }
+
+        // Sorting
+        switch (sort) {
+            case 'price_asc':
+                // Use website_price if available, else base_price
+                qb.orderBy('COALESCE(p.website_price, p.base_price)', 'ASC');
+                break;
+            case 'price_desc':
+                qb.orderBy('COALESCE(p.website_price, p.base_price)', 'DESC');
+                break;
+            case 'newest':
+            default:
+                qb.orderBy('p.id', 'DESC');
+                break;
+        }
+
+        const [items, total] = await qb
+            .skip((page - 1) * limit)
+            .take(limit)
+            .getManyAndCount();
+
+        return {
+            data: items.map(p => ({
+                id: p.id,
+                sku: p.sku,
+                name: p.name,
+                image_url: p.image_url,
+                price: p.website_price || p.base_price || 0,
+                original_price: p.base_price, // Show strike-through if website_price < base_price
+                category: p.category_link?.name || 'Uncategorized',
+                slug: p.sku // In Hula, SKU is effectively the slug
+            })),
+            meta: {
+                total,
+                page: Number(page),
+                last_page: Math.ceil(total / limit)
+            }
+        };
     }
 }
