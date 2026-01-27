@@ -2,6 +2,7 @@ import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import { getProducts, getHomeConfig } from '@/lib/api';
 import { getGoogleDriveImageUrl } from '@/lib/utils';
+import HeroCarousel from '@/components/HeroCarousel';
 
 async function getFeaturedProducts(limit = 4) {
     try {
