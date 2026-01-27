@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
+import api from '@/utils/api';
 import { Card, Form, Input, Button, Space, message, Tabs, Collapse, Switch, InputNumber, Upload, List, Modal } from 'antd';
 import { SaveOutlined, PlusOutlined, DeleteOutlined, DragOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
 
@@ -20,24 +21,86 @@ interface FeaturedProduct {
 export default function HomeContentPage() {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
-    const [features, setFeatures] = useState<Feature[]>([
-        { id: '1', icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', description: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
-        { id: '2', icon: '🏆', title: 'Chất Lượng Cao Cấp', description: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO và chứng nhận an toàn' },
-        { id: '3', icon: '💯', title: 'Bảo Hành 12 Tháng', description: 'Cam kết đổi mới nếu có lỗi từ nhà sản xuất trong 12 tháng' },
-        { id: '4', icon: '🚚', title: 'Giao Hàng Toàn Quốc', description: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
-    ]);
+    const [features, setFeatures] = useState<Feature[]>([]);
     const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
     const [featureModal, setFeatureModal] = useState(false);
+
+    // Initial load
+    useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                // Assuming api utility is configured with base URL
+                // If utilizing axios directly, ensure baseURL is correct or use relative path if proxy is set up
+                // Creating a local instance if import issues arise, but ideally should import fromutils
+                // For now, let's use fetch or axios. Using window.location.origin might be safer if in same domain, 
+                // but this is CMS separate form API likely.
+                // Re-using the stub for now but targeting the route we just made.
+                // checking imports... no api import. 
+                // Let's add api import at top of file separately or just use relative path if proxied.
+                // Wait, previous file content didn't have api import.
+                // I will assume /api proxy exists or I should use full URL.
+                // Actually, I'll use the 'api' util I saw earlier in `utils/api.ts` but I need to import it.
+                // Since I cannot easy add import with this tool without rewriting whole file or using multi_replace.
+                // I'll assume axios is imported (it was in line 6 of original file? NO, line 4 was AdminLayout).
+                // Ah, line 10 in original file `import axios from 'axios';` was NOT there.
+                // I need to add imports too.
+
+                // WAIT, I should use `multi_replace_file_content` to add imports AND update the body.
+                // But for now, let's just write the body and I'll do a separate tool call for import if needed.
+                // Actually, I can use `fetch` or `axios` if I import them.
+                // The original file DOES NOT import axios. 
+                // I will add the import in a separate step or use `multi_replace`.
+
+                // Let's stick to `replace_file_content` for the body and I will add import in next step.
+                // Or better, I'll just use `fetch` with full path or relative.
+                // But I should use `api` from `@/utils/api`.
+
+                // I will proceed with `api` usage and add import in next step.
+            } catch (e) { }
+        };
+        // fetchConfig();
+    }, []);
+
+    const fetchConfig = async () => {
+        setLoading(true);
+        try {
+            // Using absolute path for now to be safe or relative? 
+            // The cms `api.ts` uses process.env.NEXT_PUBLIC_API_URL.
+            // I'll rely on `api` utility.
+            const res = await api.get('/system/home-config');
+            const data = res.data;
+
+            form.setFieldsValue(data);
+            if (data.features && Array.isArray(data.features)) {
+                setFeatures(data.features);
+            }
+        } catch (error) {
+            message.error('Không thể tải cấu hình');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchConfig();
+    }, []);
 
     const handleSave = async () => {
         try {
             const values = await form.validateFields();
             setLoading(true);
-            // TODO: Save to backend
-            console.log('Home Content:', { ...values, features });
+
+            // Combine form values with features
+            const payload = {
+                ...values,
+                features: features
+            };
+
+            await api.post('/system/home-config', payload);
             message.success('Đã lưu nội dung trang chủ');
-        } catch {
-            message.error('Có lỗi xảy ra');
+        } catch (e) {
+            message.error('Có lỗi xảy ra khi lưu');
+            console.error(e);
         } finally {
             setLoading(false);
         }

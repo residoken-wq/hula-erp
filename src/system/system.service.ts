@@ -115,4 +115,75 @@ export class SystemService {
     async deleteTemplate(id: number) {
         return this.templateRepo.delete(id);
     }
+
+    // --- HOME PAGE CONFIG ---
+    async getHomeConfig() {
+        // Fetch all configs related to Home Page
+        const keys = [
+            'hero_title_1', 'hero_title_2', 'hero_description', 'hero_button_1', 'hero_button_2', 'hero_image',
+            'video_enabled', 'video_title', 'video_subtitle', 'video_youtube_url',
+            'products_title', 'products_subtitle', 'products_limit',
+            'cta_enabled', 'cta_title', 'cta_description', 'cta_button',
+            'HOME_FEATURES' // JSON string
+        ];
+
+        const configs = await this.configRepo.find();
+        const result: any = {};
+
+        // Initialize defaults
+        keys.forEach(k => result[k] = '');
+        result['video_enabled'] = 'true';
+        result['cta_enabled'] = 'true';
+        result['products_limit'] = '4';
+
+        configs.forEach(c => {
+            if (keys.includes(c.key)) {
+                result[c.key] = c.value;
+            }
+        });
+
+        // Parse features if exists
+        try {
+            if (result['HOME_FEATURES']) {
+                result['features'] = JSON.parse(result['HOME_FEATURES']);
+            }
+        } catch (e) {
+            result['features'] = [];
+        }
+
+        // Convert booleans/numbers
+        result['video_enabled'] = result['video_enabled'] === 'true';
+        result['cta_enabled'] = result['cta_enabled'] === 'true';
+        result['products_limit'] = Number(result['products_limit']) || 4;
+
+        return result;
+    }
+
+    async saveHomeConfig(data: any) {
+        const keys = [
+            'hero_title_1', 'hero_title_2', 'hero_description', 'hero_button_1', 'hero_button_2', 'hero_image',
+            'video_title', 'video_subtitle', 'video_youtube_url',
+            'products_title', 'products_subtitle',
+            'cta_title', 'cta_description', 'cta_button'
+        ];
+
+        // Save simple string keys
+        for (const key of keys) {
+            if (data[key] !== undefined) {
+                await this.setValue(key, String(data[key]), 'Home Page Config');
+            }
+        }
+
+        // Save Booleans/Numbers
+        if (data.video_enabled !== undefined) await this.setValue('video_enabled', String(data.video_enabled), 'Home Page Config');
+        if (data.cta_enabled !== undefined) await this.setValue('cta_enabled', String(data.cta_enabled), 'Home Page Config');
+        if (data.products_limit !== undefined) await this.setValue('products_limit', String(data.products_limit), 'Home Page Config');
+
+        // Save Features as JSON
+        if (data.features) {
+            await this.setValue('HOME_FEATURES', JSON.stringify(data.features), 'Home Page Features List');
+        }
+
+        return { success: true };
+    }
 }
