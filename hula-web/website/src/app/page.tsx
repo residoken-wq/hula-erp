@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import { getProducts, getHomeConfig } from '@/lib/api';
+import { getGoogleDriveImageUrl } from '@/lib/utils';
 
 async function getFeaturedProducts(limit = 4) {
     try {
@@ -60,11 +61,6 @@ export default async function HomePage() {
                                 </Link>
                             </div>
                         </div>
-                        import {getGoogleDriveImageUrl} from '@/lib/utils';
-
-                        // ... (top of file)
-
-                        // ...
                         <div className="relative">
                             {config.hero_image ? (
                                 <img
