@@ -17,6 +17,26 @@ interface FeaturedProduct {
     name: string;
 }
 
+
+const getGoogleDriveImageUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.includes('drive.google.com')) {
+        let id = '';
+        const parts = url.split('/');
+        const fileIndex = parts.indexOf('d');
+        if (fileIndex !== -1 && fileIndex + 1 < parts.length) {
+            id = parts[fileIndex + 1].split('/')[0].split('?')[0];
+        } else {
+            const match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (match) id = match[1];
+        }
+        if (id) {
+            return `https://drive.google.com/uc?export=view&id=${id}`;
+        }
+    }
+    return url;
+};
+
 export default function HomeContentPage() {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
@@ -103,8 +123,29 @@ export default function HomeContentPage() {
                         </Form.Item>
                     </div>
 
-                    <Form.Item name="hero_image" label="Hình ảnh Hero (URL)">
-                        <Input placeholder="https://..." />
+                    <Form.Item name="hero_image" label="Hình ảnh Hero (URL)" extra="Hỗ trợ link Google Drive (quyền chia sẻ công khai)">
+                        <Input placeholder="https://drive.google.com/..." />
+                    </Form.Item>
+
+                    <Form.Item shouldUpdate={(prev, current) => prev.hero_image !== current.hero_image}>
+                        {({ getFieldValue }) => {
+                            const heroImage = getFieldValue('hero_image');
+                            const imageUrl = getGoogleDriveImageUrl(heroImage);
+                            return imageUrl ? (
+                                <div style={{ marginTop: 10, border: '1px dashed #d9d9d9', padding: 8, borderRadius: 8, textAlign: 'center' }}>
+                                    <p style={{ marginBottom: 8, color: '#888', fontSize: 12 }}>Xem trước hình ảnh:</p>
+                                    <img
+                                        src={imageUrl}
+                                        alt="Preview"
+                                        style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 4 }}
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).onerror = null;
+                                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=Lỗi+tải+ảnh';
+                                        }}
+                                    />
+                                </div>
+                            ) : null;
+                        }}
                     </Form.Item>
                 </Form>
             ),

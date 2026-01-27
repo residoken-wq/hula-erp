@@ -17,6 +17,29 @@ interface ProductCardProps {
     product: Product;
 }
 
+const getGoogleDriveImageUrl = (url?: string) => {
+    if (!url) return '';
+    // Check if it's a Google Drive link
+    if (url.includes('drive.google.com')) {
+        // Extract ID from /file/d/ID/view or ?id=ID
+        let id = '';
+        const parts = url.split('/');
+        const fileIndex = parts.indexOf('d');
+
+        if (fileIndex !== -1 && fileIndex + 1 < parts.length) {
+            id = parts[fileIndex + 1].split('/')[0].split('?')[0];
+        } else {
+            const match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (match) id = match[1];
+        }
+
+        if (id) {
+            return `https://drive.google.com/uc?export=view&id=${id}`;
+        }
+    }
+    return url;
+};
+
 export default function ProductCard({ product }: ProductCardProps) {
     const { addToCart } = useCart();
     const [isAdding, setIsAdding] = useState(false);
@@ -44,13 +67,15 @@ export default function ProductCard({ product }: ProductCardProps) {
         }, 1500);
     };
 
+    const imageUrl = getGoogleDriveImageUrl(product.image_url);
+
     return (
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
             {/* Image Container */}
             <Link href={`/san-pham/${product.sku}`} className="block relative aspect-square bg-gray-50 overflow-hidden">
-                {product.image_url ? (
+                {imageUrl ? (
                     <img
-                        src={product.image_url}
+                        src={imageUrl}
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
