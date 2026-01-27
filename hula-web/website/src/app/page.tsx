@@ -4,6 +4,8 @@ import { getProducts, getHomeConfig } from '@/lib/api';
 import { getGoogleDriveImageUrl } from '@/lib/utils';
 import HeroCarousel from '@/components/HeroCarousel';
 
+export const dynamic = 'force-dynamic';
+
 async function getFeaturedProducts(limit = 4) {
     try {
         const res = await getProducts({ limit });
