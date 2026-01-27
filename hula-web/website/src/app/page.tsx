@@ -2,9 +2,26 @@ import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import HeroSection from '@/components/HeroSection';
 
+interface Feature {
+    icon: string;
+    title: string;
+    description: string;
+}
+
+interface Product {
+    id: number;
+    sku: string;
+    name: string;
+    base_price: number;
+    image_url?: string;
+    category?: string;
+    description?: string;
+    slug?: string;
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-async function getFeaturedProducts() {
+async function getFeaturedProducts(): Promise<Product[]> {
     try {
         const res = await fetch(`${API_URL}/products`, { next: { revalidate: 60 } });
         if (!res.ok) return [];
@@ -62,7 +79,7 @@ export default async function HomePage() {
     // const displayImage = heroImages.length > 0 ? heroImages[0] : '';
 
     // Features from Config or Default
-    const features = (config?.features && config.features.length > 0)
+    const features: Feature[] = (config?.features && config.features.length > 0)
         ? config.features
         : [
             { icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', description: 'Chất liệu 100% cotton organic...' },
@@ -104,7 +121,7 @@ export default async function HomePage() {
                                     {feature.title}
                                 </h3>
                                 <p className="text-gray-600 text-sm">
-                                    {feature.desc}
+                                    {feature.description}
                                 </p>
                             </div>
                         ))}
