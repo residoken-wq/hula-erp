@@ -1,18 +1,18 @@
 import type { Metadata } from 'next';
-import { Montserrat, Open_Sans } from 'next/font/google';
+import { Baloo_2, Be_Vietnam_Pro } from 'next/font/google';
 import './globals.css';
 import LayoutWrapper from '@/components/LayoutWrapper';
 
-// Heading font - Montserrat: Strong and distinctive
-const montserrat = Montserrat({
+// Heading font - Baloo 2: Friendly and playful (for kids/education)
+const headingFont = Baloo_2({
     subsets: ['latin', 'vietnamese'],
     weight: ['400', '500', '600', '700', '800'],
     variable: '--font-heading',
     display: 'swap',
 });
 
-// Body font - Open Sans: Clean and easy to read
-const openSans = Open_Sans({
+// Body font - Be Vietnam Pro: Modern and highly readable
+const bodyFont = Be_Vietnam_Pro({
     subsets: ['latin', 'vietnamese'],
     weight: ['300', '400', '500', '600', '700'],
     variable: '--font-body',
@@ -37,7 +37,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="vi" className={`${montserrat.variable} ${openSans.variable}`}>
+        <html lang="vi" className={`${headingFont.variable} ${bodyFont.variable}`}>
             <body className="min-h-screen flex flex-col font-body antialiased">
                 <LayoutWrapper>
                     {children}
