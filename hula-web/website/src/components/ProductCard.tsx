@@ -1,7 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { useState } from 'react';
 import { useCart } from '@/contexts/CartContext';
-import { convertGoogleDriveLink } from '@/utils/image';
 
 interface Product {
     id: number;
@@ -49,7 +50,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <Link href={`/san-pham/${product.sku}`} className="block relative aspect-square bg-gray-50 overflow-hidden">
                 {product.image_url ? (
                     <img
-                        src={convertGoogleDriveLink(product.image_url)}
+                        src={product.image_url}
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
