@@ -193,14 +193,14 @@ export default function HomeContentPage() {
                                             setHeroImages(newImages);
                                         }}
                                     />
-                                    {/* Preview Small */}
+                                    {/* Preview Large */}
                                     {img && (
-                                        <div style={{ border: '1px solid #ddd', padding: 2, borderRadius: 4, width: 40, height: 40, overflow: 'hidden' }}>
+                                        <div style={{ border: '1px solid #ddd', padding: 4, borderRadius: 8, height: 120, width: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f5f5', overflow: 'hidden' }}>
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img
-                                                src={img.includes('drive.google.com') ? `https://lh3.googleusercontent.com/d/${img.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1] || ''}` : img}
+                                                src={img.includes('drive.google.com') ? `https://drive.google.com/uc?export=view&id=${img.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1] || ''}` : img}
                                                 alt="Preview"
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                style={{ height: '100%', width: 'auto', objectFit: 'contain' }}
                                                 onError={(e: any) => e.target.style.display = 'none'}
                                             />
                                         </div>
