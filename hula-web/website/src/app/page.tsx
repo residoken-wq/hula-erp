@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
+import HeroSection from '@/components/HeroSection';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -16,71 +17,67 @@ async function getFeaturedProducts() {
     }
 }
 
-const features = [
-    { icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', desc: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
-    { icon: '🏆', title: 'Chất Lượng Cao Cấp', desc: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO và chứng nhận an toàn' },
-    { icon: '💯', title: 'Bảo Hành 12 Tháng', desc: 'Cam kết đổi mới nếu có lỗi từ nhà sản xuất trong 12 tháng' },
-    { icon: '🚚', title: 'Giao Hàng Toàn Quốc', desc: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
-];
+// --- FETCH HOME CONFIG ---
+async function getHomeConfig() {
+    try {
+        const res = await fetch(`${API_URL}/system/home-config`, { next: { revalidate: 60 } });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (error) {
+        return null;
+    }
+}
+
+// --- HELPER: Google Drive Image URL ---
+const getImageUrl = (url: string) => {
+    if (!url) return '';
+    // Check if Google Drive
+    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+        return `https://lh3.googleusercontent.com/d/${match[1]}`;
+    }
+    return url;
+};
 
 export default async function HomePage() {
     const featuredProducts = await getFeaturedProducts();
+    const config = await getHomeConfig();
+
+    // Default values if config is missing
+    const heroTitle1 = config?.hero_title_1 || 'Giấc Ngủ Ngon';
+    const heroTitle2 = config?.hero_title_2 || 'Cho Bé Yêu';
+    const heroDesc = config?.hero_description || 'Nệm mầm non HULA - Được thiết kế đặc biệt cho trẻ em...';
+    const heroBtn1 = config?.hero_button_1 || 'Xem Sản Phẩm';
+    const heroBtn2 = config?.hero_button_2 || 'Liên Hệ Mua Sỉ';
+
+    // Process Images
+    let heroImages = config?.hero_images || [];
+    if (heroImages.length === 0 && config?.hero_image) {
+        heroImages = [config.hero_image];
+    }
+    // Convert all to displayable URLs
+    heroImages = heroImages.map(getImageUrl);
+
+    // If no images, use placeholder or empty
+    // const displayImage = heroImages.length > 0 ? heroImages[0] : '';
+
+    // Features from Config or Default
+    const features = (config?.features && config.features.length > 0)
+        ? config.features
+        : [
+            { icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', description: 'Chất liệu 100% cotton organic...' },
+            { icon: '🏆', title: 'Chất Lượng Cao Cấp', description: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO...' },
+            { icon: '💯', title: 'Bảo Hành 12 Tháng', description: 'Cam kết đổi mới nếu có lỗi...' },
+            { icon: '🚚', title: 'Giao Hàng Toàn Quốc', description: 'Miễn phí vận chuyển cho đơn hàng...' },
+        ];
 
     return (
         <>
             {/* Hero Section */}
-            <section className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white overflow-hidden">
-                <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10"></div>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 relative">
-                    <div className="grid lg:grid-cols-2 gap-12 items-center">
-                        <div>
-                            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
-                                Giấc Ngủ Ngon
-                                <br />
-                                <span className="text-secondary-400">Cho Bé Yêu</span>
-                            </h1>
-                            <p className="mt-6 text-lg text-primary-100 max-w-xl">
-                                Nệm mầm non HULA - Được thiết kế đặc biệt cho trẻ em với chất liệu cao cấp,
-                                đảm bảo sức khỏe và giấc ngủ an lành cho bé yêu của bạn.
-                            </p>
-                            <div className="mt-8 flex flex-wrap gap-4">
-                                <Link
-                                    href="/san-pham"
-                                    className="inline-flex items-center px-6 py-3 bg-white text-primary-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
-                                >
-                                    Xem Sản Phẩm
-                                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                    </svg>
-                                </Link>
-                                <Link
-                                    href="/lien-he"
-                                    className="inline-flex items-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-primary-700 transition-colors"
-                                >
-                                    Liên Hệ Mua Sỉ
-                                </Link>
-                            </div>
-                        </div>
-                        <div className="relative">
-                            <div className="w-full h-80 lg:h-96 bg-white/10 rounded-2xl backdrop-blur-sm flex items-center justify-center">
-                                <div className="text-center">
-                                    <div className="w-32 h-32 mx-auto bg-white/20 rounded-full flex items-center justify-center">
-                                        <span className="text-6xl">🛏️</span>
-                                    </div>
-                                    <p className="mt-4 text-primary-100">Hero Image</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Wave decoration */}
-                <div className="absolute bottom-0 left-0 right-0">
-                    <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="#FAFBFC" />
-                    </svg>
-                </div>
-            </section>
+            <HeroSection
+                title1={heroTitle1} title2={heroTitle2} description={heroDesc}
+                btn1={heroBtn1} btn2={heroBtn2} images={heroImages}
+            />
 
             {/* Features Section */}
             <section className="py-16 lg:py-24 bg-gray-50">

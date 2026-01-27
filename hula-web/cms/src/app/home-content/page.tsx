@@ -22,6 +22,7 @@ export default function HomeContentPage() {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [features, setFeatures] = useState<Feature[]>([]);
+    const [heroImages, setHeroImages] = useState<string[]>([]);
     const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
     const [featureModal, setFeatureModal] = useState(false);
 
@@ -64,15 +65,18 @@ export default function HomeContentPage() {
     const fetchConfig = async () => {
         setLoading(true);
         try {
-            // Using absolute path for now to be safe or relative? 
-            // The cms `api.ts` uses process.env.NEXT_PUBLIC_API_URL.
-            // I'll rely on `api` utility.
             const res = await api.get('/system/home-config');
             const data = res.data;
 
             form.setFieldsValue(data);
             if (data.features && Array.isArray(data.features)) {
                 setFeatures(data.features);
+            }
+            if (data.hero_images && Array.isArray(data.hero_images)) {
+                setHeroImages(data.hero_images);
+            } else if (data.hero_image) {
+                // Backward compatibility
+                setHeroImages([data.hero_image]);
             }
         } catch (error) {
             message.error('Không thể tải cấu hình');
@@ -93,7 +97,8 @@ export default function HomeContentPage() {
             // Combine form values with features
             const payload = {
                 ...values,
-                features: features
+                features: features,
+                hero_images: heroImages
             };
 
             await api.post('/system/home-config', payload);
@@ -166,8 +171,53 @@ export default function HomeContentPage() {
                         </Form.Item>
                     </div>
 
-                    <Form.Item name="hero_image" label="Hình ảnh Hero (URL)">
-                        <Input placeholder="https://..." />
+                    {/* HERO IMAGES - MAX 5 */}
+                    <Form.Item label={`Hình ảnh Hero (Tối đa 5 hình) - ${heroImages.length}/5`}>
+                        <div style={{ marginBottom: 16 }}>
+                            {heroImages.map((img, idx) => (
+                                <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                                    <Input
+                                        value={img}
+                                        onChange={(e) => {
+                                            const newImages = [...heroImages];
+                                            newImages[idx] = e.target.value;
+                                            setHeroImages(newImages);
+                                        }}
+                                        placeholder="Nhập link Google Drive hoặc URL ảnh..."
+                                    />
+                                    <Button
+                                        danger
+                                        icon={<DeleteOutlined />}
+                                        onClick={() => {
+                                            const newImages = heroImages.filter((_, i) => i !== idx);
+                                            setHeroImages(newImages);
+                                        }}
+                                    />
+                                    {/* Preview Small */}
+                                    {img && (
+                                        <div style={{ border: '1px solid #ddd', padding: 2, borderRadius: 4, width: 40, height: 40, overflow: 'hidden' }}>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={img.includes('drive.google.com') ? `https://lh3.googleusercontent.com/d/${img.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1] || ''}` : img}
+                                                alt="Preview"
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                onError={(e: any) => e.target.style.display = 'none'}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {heroImages.length < 5 && (
+                            <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setHeroImages([...heroImages, ''])}>
+                                Thêm hình ảnh
+                            </Button>
+                        )}
+
+                        <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>
+                            💡 Hỗ trợ link Google Drive (View mode). Link sẽ tự động hiển thị preview.
+                        </div>
                     </Form.Item>
                 </Form>
             ),
