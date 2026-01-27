@@ -124,7 +124,7 @@ export class SystemService {
             'video_enabled', 'video_title', 'video_subtitle', 'video_youtube_url',
             'products_title', 'products_subtitle', 'products_limit',
             'cta_enabled', 'cta_title', 'cta_description', 'cta_button',
-            'HOME_FEATURES' // JSON string
+            'HOME_FEATURES', 'hero_images' // JSON string
         ];
 
         const configs = await this.configRepo.find();
@@ -149,6 +149,17 @@ export class SystemService {
             }
         } catch (e) {
             result['features'] = [];
+        }
+
+        // Parse hero_images if exists
+        try {
+            if (result['hero_images']) {
+                result['hero_images'] = JSON.parse(result['hero_images']);
+            } else {
+                result['hero_images'] = [];
+            }
+        } catch (e) {
+            result['hero_images'] = [];
         }
 
         // Convert booleans/numbers
@@ -182,6 +193,11 @@ export class SystemService {
         // Save Features as JSON
         if (data.features) {
             await this.setValue('HOME_FEATURES', JSON.stringify(data.features), 'Home Page Features List');
+        }
+
+        // Save Hero Images as JSON
+        if (data.hero_images) {
+            await this.setValue('hero_images', JSON.stringify(data.hero_images), 'Home Page Hero Slideshow');
         }
 
         return { success: true };
