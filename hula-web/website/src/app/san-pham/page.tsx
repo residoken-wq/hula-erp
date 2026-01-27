@@ -122,7 +122,7 @@ export default async function ProductsPage({
                                 {Array.from({ length: meta.last_page }, (_, i) => i + 1).map(p => (
                                     <Link
                                         key={p}
-                                        href={{ query: { ...searchParams, page: p } }}
+                                        href={{ query: { ...resolvedParams, page: p } }}
                                         className={`w-10 h-10 flex items-center justify-center rounded-lg font-medium transition-colors ${page === p ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
                                     >
                                         {p}
