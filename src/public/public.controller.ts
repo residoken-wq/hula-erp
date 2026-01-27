@@ -42,6 +42,17 @@ export class PublicController {
         return this.systemService.getHomeConfig();
     }
 
+    @Get('settings')
+    async getSettings() {
+        // Return public system settings (logo, title, contact info)
+        return {
+            title: 'Hula ERP',
+            logo: '/logo.png',
+            contact_email: 'contact@hula.vn',
+            contact_phone: '1900 1234'
+        };
+    }
+
     // ... (settings code)
 
     @Get('products/:sku')

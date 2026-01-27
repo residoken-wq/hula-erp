@@ -8,6 +8,7 @@ import { BlogPost } from '../blogs/blog-post.entity';
 import { SystemConfig } from '../system/system-config.entity';
 import { SalesModule } from '../sales/sales.module';
 import { ProductWebsiteConfig } from '../products/entities/product-website-config.entity';
+import { SystemModule } from '../system/system.module';
 
 @Module({
     imports: [

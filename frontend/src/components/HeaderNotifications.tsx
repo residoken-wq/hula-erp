@@ -9,7 +9,7 @@ import 'dayjs/locale/vi';
 
 // Firebase imports
 import { database } from '../utils/firebaseConfig';
-import { ref, onValue, off, query, orderByChild, limitToLast } from 'firebase/database';
+import { ref, onValue, off, query, orderByChild, limitToLast, DataSnapshot } from 'firebase/database';
 
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
@@ -56,7 +56,7 @@ const HeaderNotifications: React.FC = () => {
         const notificationsRef = ref(database, `notifications/user_${userId}`);
         const notificationsQuery = query(notificationsRef, orderByChild('timestamp'), limitToLast(50));
 
-        const unsubscribe = onValue(notificationsQuery, (snapshot) => {
+        const unsubscribe = onValue(notificationsQuery, (snapshot: DataSnapshot) => {
             setLoading(false);
 
             if (snapshot.exists()) {
@@ -81,7 +81,7 @@ const HeaderNotifications: React.FC = () => {
                 setList([]);
                 setUnreadCount(0);
             }
-        }, (error) => {
+        }, (error: Error) => {
             console.error('Firebase listener error:', error);
             // Fallback to polling if Firebase fails
             setUseFirebase(false);

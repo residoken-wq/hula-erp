@@ -1,12 +1,13 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import * as admin from 'firebase-admin';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const admin = require('firebase-admin');
 import * as fs from 'fs';
 import * as path from 'path';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
     private readonly logger = new Logger(FirebaseService.name);
-    private db: admin.database.Database | null = null;
+    private db: any = null; // Relaxed type from admin.database.Database
     private initialized = false;
 
     onModuleInit() {
