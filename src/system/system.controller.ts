@@ -50,4 +50,11 @@ export class SystemController {
 
     @Delete('templates/:id')
     deleteTemplate(@Param('id') id: number) { return this.s.deleteTemplate(id); }
+
+    // --- HOME PAGE CONFIG ---
+    @Get('home-config')
+    getHomeConfig() { return this.s.getHomeConfig(); }
+
+    @Post('home-config')
+    saveHomeConfig(@Body() body: any) { return this.s.saveHomeConfig(body); }
 }
