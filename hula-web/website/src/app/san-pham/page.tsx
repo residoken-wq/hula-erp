@@ -93,9 +93,9 @@ export default async function ProductsPage({
                             </p>
                             {/* Sort Dropdown - Needs Client Component or simple Link based sort */}
                             <div className="flex gap-2 text-sm">
-                                <Link href={{ query: { ...searchParams, sort: 'newest' } }} className={`px-3 py-1 rounded border ${sort === 'newest' ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-gray-200'}`}>Mới nhất</Link>
-                                <Link href={{ query: { ...searchParams, sort: 'price_asc' } }} className={`px-3 py-1 rounded border ${sort === 'price_asc' ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-gray-200'}`}>Giá tăng dần</Link>
-                                <Link href={{ query: { ...searchParams, sort: 'price_desc' } }} className={`px-3 py-1 rounded border ${sort === 'price_desc' ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-gray-200'}`}>Giá giảm dần</Link>
+                                <Link href={{ query: { ...resolvedParams, sort: 'newest' } }} className={`px-3 py-1 rounded border ${sort === 'newest' ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-gray-200'}`}>Mới nhất</Link>
+                                <Link href={{ query: { ...resolvedParams, sort: 'price_asc' } }} className={`px-3 py-1 rounded border ${sort === 'price_asc' ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-gray-200'}`}>Giá tăng dần</Link>
+                                <Link href={{ query: { ...resolvedParams, sort: 'price_desc' } }} className={`px-3 py-1 rounded border ${sort === 'price_desc' ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-gray-200'}`}>Giá giảm dần</Link>
                             </div>
                         </div>
 

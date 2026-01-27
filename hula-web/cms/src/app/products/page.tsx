@@ -2,13 +2,64 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, InputNumber, Tabs, Switch, Typography } from 'antd';
-import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, InputNumber, Tabs, Switch, Typography, Segmented } from 'antd';
+import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, MinusCircleOutlined, EyeInvisibleOutlined, AppstoreOutlined } from '@ant-design/icons';
 
 import { productsApi } from '@/lib/api';
 import { ProductVisualEditor } from './ProductVisualEditor';
 
-// ... 
+// Helper to convert Google Drive URLs to thumbnail URLs
+const getGoogleDriveImageUrl = (url?: string) => {
+    if (!url) return '';
+    try {
+        if (url.includes('drive.google.com')) {
+            // Case 1: /file/d/FILE_ID/view
+            const standardMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (standardMatch) {
+                return `https://drive.google.com/thumbnail?id=${standardMatch[1]}&sz=w1000`;
+            }
+            // Case 2: ?id=FILE_ID
+            const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (idMatch) {
+                return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
+            }
+        }
+        return url;
+    } catch {
+        return url || '';
+    }
+};
+
+// Image Preview Component with Google Drive support
+const ImagePreview = ({ url }: { url?: string }) => {
+    const [hasError, setHasError] = useState(false);
+    const imageUrl = getGoogleDriveImageUrl(url);
+
+    useEffect(() => {
+        setHasError(false);
+    }, [imageUrl]);
+
+    if (!imageUrl) return null;
+
+    return (
+        <div style={{ marginTop: 10, border: '1px dashed #d9d9d9', padding: 8, borderRadius: 8, textAlign: 'center' }}>
+            <p style={{ marginBottom: 8, color: '#888', fontSize: 12 }}>Xem trước hình ảnh:</p>
+            {hasError ? (
+                <div style={{ padding: 20, color: '#ff4d4f', background: '#fff1f0', borderRadius: 4 }}>
+                    <p style={{ margin: 0 }}>⚠️ Không thể tải hình ảnh</p>
+                    <p style={{ margin: 0, fontSize: 12, opacity: 0.8 }}>Vui lòng kiểm tra lại đường dẫn hoặc quyền chia sẻ</p>
+                </div>
+            ) : (
+                <img
+                    src={imageUrl}
+                    alt="Preview"
+                    style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 4 }}
+                    onError={() => setHasError(true)}
+                />
+            )}
+        </div>
+    );
+};
 
 interface Product {
     id: number;
@@ -45,6 +96,7 @@ export default function ProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
+    const [showFilter, setShowFilter] = useState<'all' | 'visible' | 'hidden'>('all');
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [editModal, setEditModal] = useState(false);
     const [form] = Form.useForm();
@@ -130,16 +182,27 @@ export default function ProductsPage() {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
     };
 
+    // Filter products based on visibility filter
+    const filteredProducts = products.filter(p => {
+        if (showFilter === 'visible') return p.show_on_website;
+        if (showFilter === 'hidden') return !p.show_on_website;
+        return true;
+    });
+
     const columns = [
         {
             title: 'Hình ảnh',
             dataIndex: 'image_url',
             key: 'image_url',
             width: 80,
-            render: (url: string) => (
-                url ? <Image src={url} width={50} height={50} style={{ objectFit: 'cover', borderRadius: 4 }} />
-                    : <div style={{ width: 50, height: 50, background: '#f5f5f5', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📦</div>
-            ),
+            render: (url: string) => {
+                const imageUrl = getGoogleDriveImageUrl(url);
+                return imageUrl ? (
+                    <Image src={imageUrl} width={50} height={50} style={{ objectFit: 'cover', borderRadius: 4 }} fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" />
+                ) : (
+                    <div style={{ width: 50, height: 50, background: '#f5f5f5', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📦</div>
+                );
+            },
         },
         {
             title: 'SKU',
@@ -230,6 +293,15 @@ export default function ProductsPage() {
                 title="Sản phẩm (Đồng bộ từ ERP)"
                 extra={
                     <Space>
+                        <Segmented
+                            value={showFilter}
+                            onChange={(val) => setShowFilter(val as 'all' | 'visible' | 'hidden')}
+                            options={[
+                                { label: 'Tất cả', value: 'all', icon: <AppstoreOutlined /> },
+                                { label: 'Hiển', value: 'visible', icon: <EyeOutlined /> },
+                                { label: 'Ẩn', value: 'hidden', icon: <EyeInvisibleOutlined /> },
+                            ]}
+                        />
                         <Input
                             placeholder="Tìm kiếm..."
                             prefix={<SearchOutlined />}
@@ -249,7 +321,7 @@ export default function ProductsPage() {
                 </p>
                 <Table
                     columns={columns}
-                    dataSource={products}
+                    dataSource={filteredProducts}
                     rowKey="id"
                     loading={loading}
                     pagination={{ pageSize: 10, showTotal: (total) => `Tổng ${total} sản phẩm` }}
@@ -272,8 +344,11 @@ export default function ProductsPage() {
                             label: 'Thông tin chung',
                             children: (
                                 <>
-                                    <Form.Item name="image_url" label="URL Hình ảnh">
-                                        <Input placeholder="https://... hoặc link Google Drive" />
+                                    <Form.Item name="image_url" label="URL Hình ảnh" extra="Hỗ trợ link Google Drive (đã chia sẻ Anyone with link)">
+                                        <Input placeholder="https://drive.google.com/file/d/.../view" />
+                                    </Form.Item>
+                                    <Form.Item shouldUpdate={(prev, cur) => prev.image_url !== cur.image_url}>
+                                        {({ getFieldValue }) => <ImagePreview url={getFieldValue('image_url')} />}
                                     </Form.Item>
                                     <Form.Item name="customer_description" label="Mô tả cho khách hàng">
                                         <Input.TextArea rows={5} placeholder="Mô tả chi tiết sản phẩm hiển thị trên website..." />
