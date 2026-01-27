@@ -10,7 +10,12 @@ const api = axios.create({
 });
 
 // Products
-export const getProducts = async (params?: { category?: string; limit?: number }) => {
+export const getProducts = async (params?: {
+    category?: string;
+    limit?: number;
+    page?: number;
+    sort?: string;
+}) => {
     const { data } = await api.get('/products', { params });
     return data;
 };
@@ -60,7 +65,8 @@ export const createOrder = async (data: {
     items: Array<{ sku: string; quantity: number; unit_price: number }>;
     notes?: string;
 }) => {
-    return response.data;
+    const { data: response } = await api.post('/orders', data);
+    return response;
 };
 
 // Config
