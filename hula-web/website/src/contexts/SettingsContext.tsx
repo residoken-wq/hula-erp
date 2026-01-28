@@ -47,7 +47,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             try {
                 // Use environment variable or fallback to relative path for same-origin
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-                const res = await fetch(`${apiUrl}/api/public/settings`, {
+                const res = await fetch(`${apiUrl}/public/settings`, {
                     cache: 'no-store',
                     headers: {
                         'Accept': 'application/json',

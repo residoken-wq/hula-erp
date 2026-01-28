@@ -27,7 +27,7 @@ export default function ContactPage() {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/public/settings`);
+                const res = await fetch(`${API_URL}/public/settings`);
                 if (res.ok) {
                     const data = await res.json();
                     setSettings(data);
@@ -45,7 +45,7 @@ export default function ContactPage() {
         setSubmitResult(null);
 
         try {
-            const response = await fetch(`${API_URL}/api/public/leads`, {
+            const response = await fetch(`${API_URL}/public/leads`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
