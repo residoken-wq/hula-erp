@@ -1,7 +1,21 @@
 import axios from 'axios';
 
-// Use NEXT_PUBLIC_ for client-side access, fallback to production URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://erp.nemmamnon.com/api';
+// Client-side: NEXT_PUBLIC_API_URL already has /api suffix
+// Server-side: API_URL does NOT have /api suffix, need to add it
+const getApiUrl = () => {
+    // Client-side - use NEXT_PUBLIC_API_URL (already includes /api)
+    if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL;
+    }
+    // Server-side - use API_URL and add /api
+    if (process.env.API_URL) {
+        return `${process.env.API_URL}/api`;
+    }
+    // Fallback
+    return 'https://erp.nemmamnon.com/api';
+};
+
+const API_URL = getApiUrl();
 
 const api = axios.create({
     baseURL: `${API_URL}/public`,
