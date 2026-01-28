@@ -9,7 +9,7 @@ services:
       context: ./website
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com
+        - NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com/api
     container_name: hula_website
     restart: always
     expose:
@@ -38,7 +38,7 @@ services:
       - VIRTUAL_HOST=cms.nemmamnon.com
       - VIRTUAL_PORT=3000
       - API_URL=http://hula_app:3000
-      - NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com
+      - NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com/api
     networks:
       - hula_network
       - proxy_net

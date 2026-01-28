@@ -17,7 +17,7 @@ ARG API_URL=http://hula_app:3000
 ENV API_URL=${API_URL}
 
 # IMPORTANT: NEXT_PUBLIC_* variables must be set at BUILD time for client-side code
-ARG NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com
+ARG NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 RUN npm run build
