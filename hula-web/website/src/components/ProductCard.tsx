@@ -37,7 +37,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         e.stopPropagation();
 
         setIsAdding(true);
-        addToCart(product);
+        addToCart({
+            ...product,
+            base_price: product.price ?? product.base_price ?? 0
+        });
 
         // Show success feedback
         setShowSuccess(true);
