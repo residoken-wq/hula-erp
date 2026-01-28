@@ -8,7 +8,8 @@ interface Product {
     id: number;
     sku: string;
     name: string;
-    base_price: number;
+    base_price?: number;  // From product detail API
+    price?: number;       // From product list API
     image_url?: string;
     category?: string;
 }
@@ -90,7 +91,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 <div className="mt-3 flex items-center justify-between gap-2">
                     <div>
                         <span className="text-lg sm:text-xl font-bold text-primary-600">
-                            {formatPrice(product.base_price)}
+                            {formatPrice(product.price ?? product.base_price ?? 0)}
                         </span>
                     </div>
 
