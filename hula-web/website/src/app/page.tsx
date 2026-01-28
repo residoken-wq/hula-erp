@@ -22,6 +22,35 @@ const defaultFeatures = [
     { icon: '🚚', title: 'Giao Hàng Toàn Quốc', description: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
 ];
 
+// Helper function to render description with bullet points
+// CMS format: lines starting with ". " are bullet points
+const renderDescription = (text: string) => {
+    if (!text) return null;
+
+    // Split by lines that start with ". " (bullet format from CMS)
+    const lines = text.split(/(?=\. [A-ZÀÁẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ])/);
+
+    // If no bullet format detected, return as regular text
+    if (lines.length <= 1 || !text.includes('. ')) {
+        return <span>{text}</span>;
+    }
+
+    return (
+        <ul className="list-disc list-inside space-y-1 text-left">
+            {lines.map((line, idx) => {
+                // Remove leading ". " from each line
+                const cleanLine = line.replace(/^\. /, '').trim();
+                if (!cleanLine) return null;
+                return (
+                    <li key={idx} className="leading-relaxed">
+                        {cleanLine}
+                    </li>
+                );
+            })}
+        </ul>
+    );
+};
+
 export default async function HomePage() {
     const config = await getHomeConfig() || {};
     const featuredProducts = await getFeaturedProducts(config.products_limit || 4);
@@ -106,9 +135,9 @@ export default async function HomePage() {
                                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                                     {feature.title}
                                 </h3>
-                                <p className="text-gray-600 text-sm">
-                                    {feature.description || feature.desc}
-                                </p>
+                                <div className="text-gray-600 text-sm">
+                                    {renderDescription(feature.description || feature.desc || '')}
+                                </div>
                             </div>
                         ))}
                     </div>
