@@ -1,21 +1,35 @@
 import axios from 'axios';
 
-// Client-side: NEXT_PUBLIC_API_URL already has /api suffix
-// Server-side: API_URL does NOT have /api suffix, need to add it
+// CRITICAL: SSR runs on server, need to use internal Docker network (fast)
+// Client-side runs in browser, needs to use public URL
 const getApiUrl = () => {
-    // Client-side - use NEXT_PUBLIC_API_URL (already includes /api)
-    if (process.env.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL;
+    const isServer = typeof window === 'undefined';
+
+    if (isServer) {
+        // Server-side (SSR): Use internal Docker network URL for fast container-to-container communication
+        // API_URL = http://hula_app:3000 (no /api suffix), we add /api here
+        if (process.env.API_URL) {
+            return `${process.env.API_URL}/api`;
+        }
+        // Fallback for SSR if API_URL not set
+        if (process.env.NEXT_PUBLIC_API_URL) {
+            return process.env.NEXT_PUBLIC_API_URL;
+        }
+    } else {
+        // Client-side (browser): Use public URL
+        // NEXT_PUBLIC_API_URL = https://erp.nemmamnon.com/api (already has /api)
+        if (process.env.NEXT_PUBLIC_API_URL) {
+            return process.env.NEXT_PUBLIC_API_URL;
+        }
     }
-    // Server-side - use API_URL and add /api
-    if (process.env.API_URL) {
-        return `${process.env.API_URL}/api`;
-    }
-    // Fallback
+
+    // Ultimate fallback
     return 'https://erp.nemmamnon.com/api';
 };
 
 const API_URL = getApiUrl();
+
+console.log('[API] Using API_URL:', API_URL, '| isServer:', typeof window === 'undefined');
 
 const api = axios.create({
     baseURL: `${API_URL}/public`,
