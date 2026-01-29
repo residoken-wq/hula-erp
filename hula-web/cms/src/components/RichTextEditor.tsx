@@ -37,9 +37,6 @@ export default function RichTextEditor({
                     BlockQuote, Indent, IndentBlock, Image, ImageUpload,
                     MediaEmbed, HtmlEmbed, SourceEditing, GeneralHtmlSupport } = await import('ckeditor5');
 
-                // Import CSS
-                await import('ckeditor5/ckeditor5.css');
-
                 if (editorRef.current) return; // Already initialized
 
                 editorInstance = await ClassicEditor.create(editorContainerRef.current!, {
