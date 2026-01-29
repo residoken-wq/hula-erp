@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Product } from '../products/product.entity';
@@ -7,10 +7,9 @@ import { Customer, CustomerType } from '../customers/customer.entity';
 import { BlogPost, BlogStatus } from '../blogs/blog-post.entity';
 import { SystemConfig } from '../system/system-config.entity';
 import { SalesService } from '../sales/sales.service';
-
 import { ProductWebsiteConfig } from '../products/entities/product-website-config.entity';
-
 import { SystemService } from '../system/system.service';
+import { WebsitePolicy } from './entities/website-policy.entity';
 
 @Controller('public')
 export class PublicController {
@@ -27,8 +26,10 @@ export class PublicController {
         private readonly blogRepo: Repository<BlogPost>,
         @InjectRepository(SystemConfig)
         private readonly configRepo: Repository<SystemConfig>,
+        @InjectRepository(WebsitePolicy)
+        private readonly policyRepo: Repository<WebsitePolicy>,
         private readonly salesService: SalesService,
-        private readonly systemService: SystemService // <--- Inject
+        private readonly systemService: SystemService
     ) { }
 
     // ... (settings code)
@@ -364,4 +365,84 @@ export class PublicController {
             }
         };
     }
+
+    // ========================================
+    // POLICIES APIs
+    // ========================================
+
+    @Get('policies')
+    async getPolicies() {
+        // Return all active policies (for website sidebar/footer)
+        const policies = await this.policyRepo.find({
+            where: { is_active: true },
+            order: { display_order: 'ASC' }
+        });
+
+        // If no policies exist, seed default ones
+        if (policies.length === 0) {
+            const defaultPolicies = [
+                { slug: 'bao-hanh', title: 'Chính sách bảo hành', display_order: 1, icon: '🛡️' },
+                { slug: 'doi-tra', title: 'Chính sách đổi trả', display_order: 2, icon: '↩️' },
+                { slug: 'bao-mat', title: 'Chính sách bảo mật', display_order: 3, icon: '🔒' },
+                { slug: 'van-chuyen', title: 'Vận chuyển & giao nhận', display_order: 4, icon: '🚚' },
+                { slug: 'thanh-toan', title: 'Phương thức thanh toán', display_order: 5, icon: '💳' },
+            ];
+
+            for (const policy of defaultPolicies) {
+                await this.policyRepo.save({
+                    ...policy,
+                    content: `<p>Nội dung ${policy.title} đang được cập nhật...</p>`,
+                    is_active: true,
+                });
+            }
+
+            return this.policyRepo.find({
+                where: { is_active: true },
+                order: { display_order: 'ASC' }
+            });
+        }
+
+        return policies;
+    }
+
+    @Get('policies/:slug')
+    async getPolicy(@Param('slug') slug: string) {
+        const policy = await this.policyRepo.findOne({
+            where: { slug, is_active: true }
+        });
+
+        if (!policy) {
+            return { error: 'Policy not found' };
+        }
+
+        return policy;
+    }
+
+    @Put('policies/:slug')
+    async updatePolicy(@Param('slug') slug: string, @Body() data: any) {
+        // Upsert policy
+        const existing = await this.policyRepo.findOne({ where: { slug } });
+
+        if (existing) {
+            await this.policyRepo.update({ slug }, {
+                title: data.title || existing.title,
+                content: data.content || existing.content,
+                icon: data.icon || existing.icon,
+                is_active: data.is_active !== undefined ? data.is_active : existing.is_active,
+                display_order: data.display_order !== undefined ? data.display_order : existing.display_order,
+            });
+        } else {
+            await this.policyRepo.save({
+                slug,
+                title: data.title || slug,
+                content: data.content || '',
+                icon: data.icon || '',
+                is_active: data.is_active !== undefined ? data.is_active : true,
+                display_order: data.display_order || 0,
+            });
+        }
+
+        return { success: true, message: 'Policy updated successfully' };
+    }
 }
+

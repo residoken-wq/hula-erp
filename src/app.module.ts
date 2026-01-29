@@ -89,6 +89,7 @@ import { BlogPost } from './blogs/blog-post.entity';
 import { ActivityInterceptor } from './common/interceptors/activity.interceptor';
 import { ActivityLog } from './system/entities/activity-log.entity';
 import { ProductWebsiteConfig } from './products/entities/product-website-config.entity';
+import { WebsitePolicy } from './public/entities/website-policy.entity';
 
 // HR Entities
 import { Employee } from './hr/entities/employee.entity';
@@ -146,7 +147,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           BlogPost,
           Employee, Attendance, LeaveRequest, LeaveEntitlement, AssetAssignment, Payslip, TrainingPlan, WorkShift,
           // Website Config & Templates
-          ProductWebsiteConfig, ContractTemplate,
+          ProductWebsiteConfig, ContractTemplate, WebsitePolicy,
           // Social & Marketing
           SocialChannel, SocialOrder, SocialProductMapping,
           MarketingCampaign, CustomerSegment, AutomationWorkflow

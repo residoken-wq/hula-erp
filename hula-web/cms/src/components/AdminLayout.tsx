@@ -54,6 +54,11 @@ const menuItems = [
         icon: <TeamOutlined />,
     },
     {
+        path: '/policies',
+        name: 'Chính sách',
+        icon: <FileTextOutlined />,
+    },
+    {
         path: '/settings',
         name: 'Cài đặt',
         icon: <SettingOutlined />,

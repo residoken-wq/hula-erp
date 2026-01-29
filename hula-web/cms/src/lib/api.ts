@@ -57,4 +57,14 @@ export const systemApi = {
     saveHomeConfig: (data: any) => api.post('/system/home-config', data),
 };
 
+// ============================================
+// POLICIES APIs
+// ============================================
+export const policiesApi = {
+    getAll: () => api.get('/public/policies'),
+    getOne: (slug: string) => api.get(`/public/policies/${slug}`),
+    update: (slug: string, data: any) => api.put(`/public/policies/${slug}`, data),
+};
+
 export default api;
+

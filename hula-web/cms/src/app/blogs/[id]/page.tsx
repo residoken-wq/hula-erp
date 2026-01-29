@@ -7,12 +7,9 @@ import { Card, Form, Input, Select, Button, Space, message, Spin } from 'antd';
 import { SaveOutlined, ArrowLeftOutlined, SendOutlined } from '@ant-design/icons';
 import dynamic from 'next/dynamic';
 
-// Dynamic import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(
-    async () => {
-        const { default: RQ } = await import('react-quill');
-        return RQ;
-    },
+// Dynamic import CKEditor to avoid SSR issues
+const RichTextEditor = dynamic(
+    () => import('@/components/RichTextEditor'),
     {
         ssr: false,
         loading: () => (
@@ -47,19 +44,6 @@ interface BlogPost {
     tags: string[];
 }
 
-const quillModules = {
-    toolbar: [
-        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-        [{ 'indent': '-1' }, { 'indent': '+1' }],
-        [{ 'align': [] }],
-        ['link', 'image', 'video'],
-        ['blockquote', 'code-block'],
-        ['clean']
-    ],
-};
 
 export default function BlogEditorPage() {
     const params = useParams();
@@ -170,12 +154,11 @@ export default function BlogEditorPage() {
                         </Form.Item>
 
                         <Form.Item label="Nội dung">
-                            <ReactQuill
-                                theme="snow"
+                            <RichTextEditor
                                 value={content}
                                 onChange={setContent}
-                                modules={quillModules}
-                                style={{ height: 400, marginBottom: 50 }}
+                                minHeight={400}
+                                placeholder="Nhập nội dung bài viết..."
                             />
                         </Form.Item>
                     </Form>
