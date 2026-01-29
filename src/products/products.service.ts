@@ -78,8 +78,12 @@ export class ProductsService {
     async findOne(id: number) {
         const product = await this.productRepo.findOne({ where: { id }, relations: ['category_link'] });
         if (product) {
-            const config = await this.websiteConfigRepo.findOne({ where: { product_id: product.id } });
-            if (config) (product as any).customization_config = config.customization_config;
+            try {
+                const config = await this.websiteConfigRepo.findOne({ where: { product_id: product.id } });
+                if (config) (product as any).customization_config = config.customization_config;
+            } catch {
+                // Table might not exist yet, ignore
+            }
         }
         return product;
     }
@@ -87,8 +91,12 @@ export class ProductsService {
     async findOneBySku(sku: string) {
         const product = await this.productRepo.findOne({ where: { sku }, relations: ['category_link'] });
         if (product) {
-            const config = await this.websiteConfigRepo.findOne({ where: { product_id: product.id } });
-            if (config) (product as any).customization_config = config.customization_config;
+            try {
+                const config = await this.websiteConfigRepo.findOne({ where: { product_id: product.id } });
+                if (config) (product as any).customization_config = config.customization_config;
+            } catch {
+                // Table might not exist yet, ignore
+            }
         }
         return product;
     }
