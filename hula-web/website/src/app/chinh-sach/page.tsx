@@ -14,12 +14,24 @@ interface Policy {
 }
 
 async function getPolicies(): Promise<Policy[]> {
+    // Server-side: use internal API_URL, fallback to NEXT_PUBLIC_API_URL
+    const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com/api';
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/policies`, {
-            cache: 'no-store'
+        const res = await fetch(`${apiUrl}/public/policies`, {
+            cache: 'no-store',
+            next: { revalidate: 0 }
         });
-        if (!res.ok) return [];
-        return res.json();
+        if (!res.ok) {
+            console.error('Policies API response not OK:', res.status);
+            return [];
+        }
+        const data = await res.json();
+        // Ensure we return an array
+        if (!Array.isArray(data)) {
+            console.error('Policies API did not return array:', typeof data);
+            return [];
+        }
+        return data;
     } catch (error) {
         console.error('Failed to fetch policies:', error);
         return [];

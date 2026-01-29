@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Tabs, Table, Button, Modal, Form, Input, InputNumber, message, Space, Tag, Switch, Popconfirm } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, DragOutlined, SaveOutlined } from '@ant-design/icons';
+import { Card, Tabs, Table, Button, Modal, Form, Input, InputNumber, message, Space, Popconfirm } from 'antd';
+import { PlusOutlined, DeleteOutlined, EditOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
 import { productsApi, wizardApi } from '@/lib/api';
+import AdminLayout from '@/components/AdminLayout';
 
 interface WizardProduct {
     product_id: number;
@@ -48,6 +49,7 @@ export default function WizardConfigPage() {
     const [addType, setAddType] = useState<'main' | 'accessory'>('main');
     const [serviceModalVisible, setServiceModalVisible] = useState(false);
     const [editingService, setEditingService] = useState<WizardService | null>(null);
+    const [searchText, setSearchText] = useState('');
     const [form] = Form.useForm();
 
     useEffect(() => {
@@ -353,112 +355,137 @@ export default function WizardConfigPage() {
         }
     ];
 
+    // Filter products by search text
+    const filteredProducts = availableProducts.filter(p =>
+        p.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        p.sku.toLowerCase().includes(searchText.toLowerCase())
+    );
+
     return (
-        <div style={{ padding: 24 }}>
-            <Card
-                title={
-                    <Space>
-                        <span style={{ fontSize: 20 }}>🧙‍♂️</span>
-                        <span>Cấu hình Wizard Đặt Hàng Sỉ</span>
-                    </Space>
-                }
-                extra={
-                    <Button
-                        type="primary"
-                        icon={<SaveOutlined />}
-                        loading={saving}
-                        onClick={handleSave}
-                    >
-                        Lưu cấu hình
-                    </Button>
-                }
-                loading={loading}
-            >
-                <Tabs items={tabItems} />
-            </Card>
+        <AdminLayout>
+            <div style={{ padding: 24 }}>
+                <Card
+                    title={
+                        <Space>
+                            <span style={{ fontSize: 20 }}>🧙‍♂️</span>
+                            <span>Cấu hình Wizard Đặt Hàng Sỉ</span>
+                        </Space>
+                    }
+                    extra={
+                        <Button
+                            type="primary"
+                            icon={<SaveOutlined />}
+                            loading={saving}
+                            onClick={handleSave}
+                        >
+                            Lưu cấu hình
+                        </Button>
+                    }
+                    loading={loading}
+                >
+                    <Tabs items={tabItems} />
+                </Card>
 
-            {/* Modal thêm sản phẩm */}
-            <Modal
-                title={`Thêm ${addType === 'main' ? 'sản phẩm chính' : 'phụ kiện'}`}
-                open={addModalVisible}
-                onCancel={() => setAddModalVisible(false)}
-                footer={null}
-                width={700}
-            >
-                <Table
-                    dataSource={availableProducts}
-                    rowKey="id"
-                    size="small"
-                    pagination={{ pageSize: 10 }}
-                    columns={[
-                        { title: 'SKU', dataIndex: 'sku', width: 100 },
-                        { title: 'Tên', dataIndex: 'name', ellipsis: true },
-                        {
-                            title: 'Giá',
-                            dataIndex: 'website_price',
-                            width: 120,
-                            render: (price: number, record: Product) =>
-                                (price || record.base_price)?.toLocaleString('vi-VN') + 'đ'
-                        },
-                        {
-                            title: '',
-                            width: 80,
-                            render: (_: any, record: Product) => (
-                                <Button
-                                    type="primary"
-                                    size="small"
-                                    onClick={() => handleAddProduct(record)}
-                                >
-                                    Thêm
-                                </Button>
-                            )
-                        }
-                    ]}
-                />
-            </Modal>
-
-            {/* Modal thêm/sửa dịch vụ */}
-            <Modal
-                title={editingService ? 'Sửa dịch vụ' : 'Thêm dịch vụ mới'}
-                open={serviceModalVisible}
-                onCancel={() => setServiceModalVisible(false)}
-                onOk={handleSaveService}
-                okText="Lưu"
-            >
-                <Form form={form} layout="vertical">
-                    <Form.Item
-                        name="name"
-                        label="Tên dịch vụ"
-                        rules={[{ required: true, message: 'Vui lòng nhập tên dịch vụ' }]}
-                    >
-                        <Input placeholder="VD: Thêu logo chăn" />
-                    </Form.Item>
-                    <Form.Item
-                        name="price"
-                        label="Giá tham khảo (VNĐ)"
-                        rules={[{ required: true, message: 'Vui lòng nhập giá' }]}
-                    >
-                        <InputNumber
-                            style={{ width: '100%' }}
-                            formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                            parser={value => Number(value?.replace(/\$\s?|(,*)/g, '') || 0)}
-                            placeholder="15000"
+                {/* Modal thêm sản phẩm */}
+                <Modal
+                    title={`Thêm ${addType === 'main' ? 'sản phẩm chính' : 'phụ kiện'}`}
+                    open={addModalVisible}
+                    onCancel={() => { setAddModalVisible(false); setSearchText(''); }}
+                    footer={null}
+                    width={800}
+                >
+                    <div style={{ marginBottom: 16 }}>
+                        <Input
+                            placeholder="Tìm theo tên hoặc SKU..."
+                            prefix={<SearchOutlined />}
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            allowClear
+                            style={{ width: 300 }}
                         />
-                    </Form.Item>
-                    <Form.Item
-                        name="note"
-                        label="Ghi chú"
-                    >
-                        <Input placeholder="VD: Giá/cái, tối thiểu 50 cái" />
-                    </Form.Item>
-                    <Form.Item
-                        name="icon"
-                        label="Icon (emoji)"
-                    >
-                        <Input placeholder="VD: 🪡" maxLength={4} style={{ width: 80 }} />
-                    </Form.Item>
-                </Form>
-            </Modal>
-        </div>
+                        <span style={{ marginLeft: 16, color: '#666' }}>
+                            {filteredProducts.length} sản phẩm
+                        </span>
+                    </div>
+                    <Table
+                        dataSource={filteredProducts}
+                        rowKey="id"
+                        size="small"
+                        pagination={{ pageSize: 10, showSizeChanger: true }}
+                        columns={[
+                            { title: 'SKU', dataIndex: 'sku', width: 120 },
+                            { title: 'Tên sản phẩm', dataIndex: 'name', ellipsis: true },
+                            {
+                                title: 'Giá (VNĐ)',
+                                dataIndex: 'website_price',
+                                width: 140,
+                                align: 'right' as const,
+                                render: (price: number, record: Product) => (
+                                    <span style={{ fontWeight: 500, color: '#1890ff' }}>
+                                        {(price || record.base_price)?.toLocaleString('vi-VN')}đ
+                                    </span>
+                                )
+                            },
+                            {
+                                title: '',
+                                width: 80,
+                                render: (_: any, record: Product) => (
+                                    <Button
+                                        type="primary"
+                                        size="small"
+                                        onClick={() => handleAddProduct(record)}
+                                    >
+                                        Thêm
+                                    </Button>
+                                )
+                            }
+                        ]}
+                    />
+                </Modal>
+
+                {/* Modal thêm/sửa dịch vụ */}
+                <Modal
+                    title={editingService ? 'Sửa dịch vụ' : 'Thêm dịch vụ mới'}
+                    open={serviceModalVisible}
+                    onCancel={() => setServiceModalVisible(false)}
+                    onOk={handleSaveService}
+                    okText="Lưu"
+                >
+                    <Form form={form} layout="vertical">
+                        <Form.Item
+                            name="name"
+                            label="Tên dịch vụ"
+                            rules={[{ required: true, message: 'Vui lòng nhập tên dịch vụ' }]}
+                        >
+                            <Input placeholder="VD: Thêu logo chăn" />
+                        </Form.Item>
+                        <Form.Item
+                            name="price"
+                            label="Giá tham khảo (VNĐ)"
+                            rules={[{ required: true, message: 'Vui lòng nhập giá' }]}
+                        >
+                            <InputNumber
+                                style={{ width: '100%' }}
+                                formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                parser={value => Number(value?.replace(/\$\s?|(,*)/g, '') || 0)}
+                                placeholder="15000"
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            name="note"
+                            label="Ghi chú"
+                        >
+                            <Input placeholder="VD: Giá/cái, tối thiểu 50 cái" />
+                        </Form.Item>
+                        <Form.Item
+                            name="icon"
+                            label="Icon (emoji)"
+                        >
+                            <Input placeholder="VD: 🪡" maxLength={4} style={{ width: 80 }} />
+                        </Form.Item>
+                    </Form>
+                </Modal>
+            </div>
+        </AdminLayout>
     );
 }
