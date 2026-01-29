@@ -59,6 +59,11 @@ const menuItems = [
         icon: <FileTextOutlined />,
     },
     {
+        path: '/wizard-config',
+        name: 'Cấu hình Wizard',
+        icon: <SettingOutlined />,
+    },
+    {
         path: '/settings',
         name: 'Cài đặt',
         icon: <SettingOutlined />,

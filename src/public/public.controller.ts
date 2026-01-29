@@ -10,6 +10,7 @@ import { SalesService } from '../sales/sales.service';
 import { ProductWebsiteConfig } from '../products/entities/product-website-config.entity';
 import { SystemService } from '../system/system.service';
 import { WebsitePolicy } from './entities/website-policy.entity';
+import { WizardConfig, WizardConfigData } from './entities/wizard-config.entity';
 
 @Controller('public')
 export class PublicController {
@@ -28,6 +29,8 @@ export class PublicController {
         private readonly configRepo: Repository<SystemConfig>,
         @InjectRepository(WebsitePolicy)
         private readonly policyRepo: Repository<WebsitePolicy>,
+        @InjectRepository(WizardConfig)
+        private readonly wizardConfigRepo: Repository<WizardConfig>,
         private readonly salesService: SalesService,
         private readonly systemService: SystemService
     ) { }
@@ -444,5 +447,106 @@ export class PublicController {
 
         return { success: true, message: 'Policy updated successfully' };
     }
-}
 
+    // ========================================
+    // WIZARD CUSTOMIZATION APIs
+    // ========================================
+
+    @Get('wizard/config')
+    async getWizardConfig() {
+        const config = await this.wizardConfigRepo.findOne({ where: { key: 'wizard_products' } });
+        if (!config) {
+            // Return default empty config
+            return {
+                main: [],
+                accessory: [],
+                service: []
+            };
+        }
+        return config.value;
+    }
+
+    @Put('wizard/config')
+    async updateWizardConfig(@Body() data: WizardConfigData) {
+        const existing = await this.wizardConfigRepo.findOne({ where: { key: 'wizard_products' } });
+        if (existing) {
+            existing.value = data;
+            await this.wizardConfigRepo.save(existing);
+        } else {
+            await this.wizardConfigRepo.save({
+                key: 'wizard_products',
+                value: data
+            });
+        }
+        return { success: true, message: 'Wizard config updated' };
+    }
+
+    @Post('wizard/submit')
+    async submitWizardLead(@Body() body: {
+        customer_name: string;
+        company_name?: string;
+        phone: string;
+        email?: string;
+        address?: string;
+        notes?: string;
+        selected_products: Array<{
+            product_id?: number;
+            name: string;
+            quantity: number;
+            price: number;
+            type: 'main' | 'accessory' | 'service';
+        }>;
+        total_price: number;
+        render_image?: string; // base64 image
+    }) {
+        // Build product summary for notes
+        const productSummary = body.selected_products.map(p =>
+            `- ${p.name} x${p.quantity} = ${p.price.toLocaleString('vi-VN')}đ (${p.type})`
+        ).join('\n');
+
+        const fullNotes = `
+=== ĐƠN HÀNG SỈ TỪ WIZARD ===
+
+Sản phẩm đã chọn:
+${productSummary}
+
+Tổng tạm tính: ${body.total_price.toLocaleString('vi-VN')}đ
+
+Ghi chú khách hàng: ${body.notes || 'Không có'}
+${body.render_image ? '\n[Có hình render đính kèm]' : ''}
+        `.trim();
+
+        // Generate unique code for lead
+        const count = await this.customerRepo.count({ where: { type: CustomerType.LEAD } });
+        const code = `LEAD-${String(count + 1).padStart(5, '0')}`;
+
+        const lead = this.customerRepo.create({
+            code,
+            name: body.company_name || body.customer_name,
+            phone: body.phone,
+            email: body.email,
+            address: body.address,
+            type: CustomerType.LEAD,
+            lead_status: 'NEW',
+            history: [{
+                action: 'CREATED_FROM_WIZARD',
+                timestamp: new Date(),
+                data: {
+                    contact_person: body.customer_name,
+                    selected_products: body.selected_products,
+                    total_price: body.total_price,
+                    notes: fullNotes,
+                    has_render_image: !!body.render_image
+                }
+            }]
+        });
+
+        await this.customerRepo.save(lead);
+
+        return {
+            success: true,
+            message: 'Lead created successfully',
+            lead_code: code
+        };
+    }
+}

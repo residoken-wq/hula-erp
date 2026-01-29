@@ -10,10 +10,11 @@ import { SalesModule } from '../sales/sales.module';
 import { ProductWebsiteConfig } from '../products/entities/product-website-config.entity';
 import { SystemModule } from '../system/system.module';
 import { WebsitePolicy } from './entities/website-policy.entity';
+import { WizardConfig } from './entities/wizard-config.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Product, Category, Customer, BlogPost, SystemConfig, ProductWebsiteConfig, WebsitePolicy]),
+        TypeOrmModule.forFeature([Product, Category, Customer, BlogPost, SystemConfig, ProductWebsiteConfig, WebsitePolicy, WizardConfig]),
         SalesModule,
         SystemModule // <--- Import for SystemService
     ],

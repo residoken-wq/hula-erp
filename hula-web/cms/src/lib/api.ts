@@ -66,5 +66,13 @@ export const policiesApi = {
     update: (slug: string, data: any) => api.put(`/public/policies/${slug}`, data),
 };
 
+// ============================================
+// WIZARD CONFIG APIs
+// ============================================
+export const wizardApi = {
+    getConfig: () => api.get('/public/wizard/config'),
+    saveConfig: (data: any) => api.put('/public/wizard/config', data),
+};
+
 export default api;
 
