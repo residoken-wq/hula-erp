@@ -44,12 +44,17 @@ export class PublicController {
 
     @Get('settings')
     async getSettings() {
-        // Return public system settings (logo, title, contact info)
+        // Fetch company config from database
+        const config = await this.systemService.getCompanyConfig();
+
+        // Return public system settings formatted for website
         return {
-            title: 'Hula ERP',
+            title: config.COMPANY_NAME || 'Hula ERP',
             logo: '/logo.png',
-            contact_email: 'contact@hula.vn',
-            contact_phone: '1900 1234'
+            contact_email: config.COMPANY_EMAIL || '',
+            contact_phone: config.COMPANY_PHONE || '',
+            contact_address: config.COMPANY_ADDRESS || '',
+            website: config.COMPANY_WEBSITE || ''
         };
     }
 
@@ -89,10 +94,17 @@ export class PublicController {
 
     @Get('categories')
     async getCategories() {
-        const categories = await this.categoryRepo.find({
-            order: { name: 'ASC' }
-        });
-        return categories.map(c => ({
+        // Only return categories that have at least one product visible on website
+        const categoriesWithProducts = await this.categoryRepo
+            .createQueryBuilder('c')
+            .innerJoin('c.products', 'p', 'p.is_active = :active AND p.show_on_website = :show', {
+                active: true,
+                show: true
+            })
+            .orderBy('c.name', 'ASC')
+            .getMany();
+
+        return categoriesWithProducts.map(c => ({
             id: c.id,
             code: c.code,
             name: c.name
