@@ -45,7 +45,7 @@ export default function WizardConfigPage() {
     const [config, setConfig] = useState<WizardConfig>({ main: [], accessory: [], service: [] });
     const [products, setProducts] = useState<Product[]>([]);
     const [addModalVisible, setAddModalVisible] = useState(false);
-    const [addType, setAddType] = useState<'main' | 'accessory' | 'service'>('main');
+    const [addType, setAddType] = useState<'main' | 'accessory'>('main');
     const [serviceModalVisible, setServiceModalVisible] = useState(false);
     const [editingService, setEditingService] = useState<WizardService | null>(null);
     const [form] = Form.useForm();
