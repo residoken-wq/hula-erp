@@ -14,8 +14,14 @@ interface Policy {
 }
 
 async function getPolicies(): Promise<Policy[]> {
-    // Server-side: use internal API_URL, fallback to NEXT_PUBLIC_API_URL
-    const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com/api';
+    // Server-side: use internal API_URL + /api, fallback to NEXT_PUBLIC_API_URL (already has /api)
+    const getApiUrl = () => {
+        if (process.env.API_URL) {
+            return `${process.env.API_URL}/api`;  // Internal: http://hula_app:3000/api
+        }
+        return process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com/api';
+    };
+    const apiUrl = getApiUrl();
     try {
         const res = await fetch(`${apiUrl}/public/policies`, {
             cache: 'no-store',
