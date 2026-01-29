@@ -44,17 +44,31 @@ export class PublicController {
 
     @Get('settings')
     async getSettings() {
-        // Fetch company config from database
-        const config = await this.systemService.getCompanyConfig();
+        // Fetch settings from CMS config keys (lowercase format from Website CMS)
+        const cmsKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address', 'facebook_url', 'zalo_url'];
+        const configs = await this.configRepo.find({
+            where: { key: In(cmsKeys) }
+        });
+
+        const result: any = {};
+        cmsKeys.forEach(key => {
+            const found = configs.find(c => c.key === key);
+            result[key] = found ? found.value : '';
+        });
 
         // Return public system settings formatted for website
         return {
-            title: config.COMPANY_NAME || 'Hula ERP',
-            logo: '/logo.png',
-            contact_email: config.COMPANY_EMAIL || '',
-            contact_phone: config.COMPANY_PHONE || '',
-            contact_address: config.COMPANY_ADDRESS || '',
-            website: config.COMPANY_WEBSITE || ''
+            site_name: result.site_name || 'Nệm Mầm Non HULA',
+            site_description: result.site_description || '',
+            logo_url: result.logo_url || '',
+            contact_phone: result.contact_phone || '',
+            contact_email: result.contact_email || '',
+            contact_address: result.contact_address || '',
+            facebook_url: result.facebook_url || '',
+            zalo_url: result.zalo_url || '',
+            // Legacy fields for backward compatibility
+            title: result.site_name || 'Nệm Mầm Non HULA',
+            logo: result.logo_url || '/logo.png',
         };
     }
 
