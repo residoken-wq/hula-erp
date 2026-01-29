@@ -454,31 +454,46 @@ export class PublicController {
 
     @Get('wizard/config')
     async getWizardConfig() {
-        const config = await this.wizardConfigRepo.findOne({ where: { key: 'wizard_products' } });
-        if (!config) {
-            // Return default empty config
+        try {
+            const config = await this.wizardConfigRepo.findOne({ where: { key: 'wizard_products' } });
+            if (!config) {
+                // Return default empty config
+                return {
+                    main: [],
+                    accessory: [],
+                    service: []
+                };
+            }
+            return config.value;
+        } catch (error) {
+            // Table may not exist yet, return empty config
+            console.error('Wizard config error:', error);
             return {
                 main: [],
                 accessory: [],
                 service: []
             };
         }
-        return config.value;
     }
 
     @Put('wizard/config')
     async updateWizardConfig(@Body() data: WizardConfigData) {
-        const existing = await this.wizardConfigRepo.findOne({ where: { key: 'wizard_products' } });
-        if (existing) {
-            existing.value = data;
-            await this.wizardConfigRepo.save(existing);
-        } else {
-            await this.wizardConfigRepo.save({
-                key: 'wizard_products',
-                value: data
-            });
+        try {
+            const existing = await this.wizardConfigRepo.findOne({ where: { key: 'wizard_products' } });
+            if (existing) {
+                existing.value = data;
+                await this.wizardConfigRepo.save(existing);
+            } else {
+                await this.wizardConfigRepo.save({
+                    key: 'wizard_products',
+                    value: data
+                });
+            }
+            return { success: true, message: 'Wizard config updated' };
+        } catch (error) {
+            console.error('Wizard config update error:', error);
+            return { success: false, message: 'Failed to update wizard config - table may not exist' };
         }
-        return { success: true, message: 'Wizard config updated' };
     }
 
     @Post('wizard/submit')
