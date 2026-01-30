@@ -10,9 +10,18 @@ interface Policy {
     updated_at: string;
 }
 
+// Server-side: use internal API_URL + /api, fallback to NEXT_PUBLIC_API_URL
+const getApiUrl = () => {
+    if (process.env.API_URL) {
+        return `${process.env.API_URL}/api`;  // Internal: http://hula_app:3000/api
+    }
+    return process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com/api';
+};
+
 async function getPolicy(slug: string): Promise<Policy | null> {
+    const apiUrl = getApiUrl();
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/policies/${slug}`, {
+        const res = await fetch(`${apiUrl}/public/policies/${slug}`, {
             cache: 'no-store'
         });
         if (!res.ok) return null;
@@ -26,12 +35,14 @@ async function getPolicy(slug: string): Promise<Policy | null> {
 }
 
 async function getAllPolicies(): Promise<Policy[]> {
+    const apiUrl = getApiUrl();
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/policies`, {
+        const res = await fetch(`${apiUrl}/public/policies`, {
             cache: 'no-store'
         });
         if (!res.ok) return [];
-        return res.json();
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
     } catch (error) {
         console.error('Failed to fetch policies:', error);
         return [];
@@ -97,8 +108,8 @@ export default async function PolicyDetailPage({ params }: { params: Promise<{ s
                                             key={p.slug}
                                             href={`/chinh-sach/${p.slug}`}
                                             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${p.slug === policy.slug
-                                                    ? 'bg-gradient-to-r from-primary-50 to-purple-50 text-primary-700 font-medium'
-                                                    : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
+                                                ? 'bg-gradient-to-r from-primary-50 to-purple-50 text-primary-700 font-medium'
+                                                : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
                                                 }`}
                                         >
                                             <span className="text-xl">{p.icon || '📋'}</span>
