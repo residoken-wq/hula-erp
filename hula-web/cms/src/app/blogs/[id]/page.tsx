@@ -177,7 +177,11 @@ export default function BlogEditorPage() {
                                 </Select>
                             </Form.Item>
 
-                            <Form.Item name="featured_image" label="Ảnh đại diện">
+                            <Form.Item
+                                name="featured_image"
+                                label="Ảnh đại diện"
+                                extra="Kích thước khuyến nghị: 1200x630px (tỷ lệ 1.91:1) - Tối ưu cho SEO và chia sẻ mạng xã hội"
+                            >
                                 <Input placeholder="URL hình ảnh" />
                             </Form.Item>
 

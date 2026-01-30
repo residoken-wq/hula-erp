@@ -198,7 +198,7 @@ export default function HomeContentPage() {
                                                 label={`Hình ảnh Slider ${index + 1}`}
                                                 style={{ flex: 1, marginBottom: 0 }}
                                                 rules={[{ required: true, message: 'Vui lòng nhập URL hình ảnh' }]}
-                                                extra="Hỗ trợ link Google Drive (quyền chia sẻ công khai)"
+                                                extra="📐 Kích thước: 1920x800px (tỷ lệ 2.4:1) | Hỗ trợ link Google Drive (quyền chia sẻ công khai)"
                                             >
                                                 <Input placeholder="https://drive.google.com/..." />
                                             </Form.Item>

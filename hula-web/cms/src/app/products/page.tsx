@@ -344,7 +344,7 @@ export default function ProductsPage() {
                             label: 'Thông tin chung',
                             children: (
                                 <>
-                                    <Form.Item name="image_url" label="URL Hình ảnh" extra="Hỗ trợ link Google Drive (đã chia sẻ Anyone with link)">
+                                    <Form.Item name="image_url" label="URL Hình ảnh" extra="📐 Kích thước: 800x800px (tỷ lệ 1:1, vuông) | Hỗ trợ link Google Drive (đã chia sẻ Anyone with link)">
                                         <Input placeholder="https://drive.google.com/file/d/.../view" />
                                     </Form.Item>
                                     <Form.Item shouldUpdate={(prev, cur) => prev.image_url !== cur.image_url}>
