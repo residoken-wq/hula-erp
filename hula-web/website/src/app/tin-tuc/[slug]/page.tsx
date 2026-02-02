@@ -14,9 +14,18 @@ interface Blog {
     view_count: number;
 }
 
+// Server-side: use internal API_URL + /api, fallback to NEXT_PUBLIC_API_URL
+const getApiUrl = () => {
+    if (process.env.API_URL) {
+        return `${process.env.API_URL}/api`;  // Internal: http://hula_app:3000/api
+    }
+    return process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com/api';
+};
+
 async function getBlog(slug: string): Promise<Blog | null> {
+    const apiUrl = getApiUrl();
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/blogs/${slug}`, {
+        const res = await fetch(`${apiUrl}/public/blogs/${slug}`, {
             cache: 'no-store'
         });
         if (!res.ok) return null;
@@ -30,13 +39,16 @@ async function getBlog(slug: string): Promise<Blog | null> {
 }
 
 async function getRelatedBlogs(category: string, currentSlug: string): Promise<Blog[]> {
+    const apiUrl = getApiUrl();
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/blogs`, {
+        const res = await fetch(`${apiUrl}/public/blogs`, {
             cache: 'no-store'
         });
         if (!res.ok) return [];
         const blogs = await res.json();
-        return blogs.filter((b: Blog) => b.category === category && b.slug !== currentSlug).slice(0, 3);
+        return Array.isArray(blogs)
+            ? blogs.filter((b: Blog) => b.category === category && b.slug !== currentSlug).slice(0, 3)
+            : [];
     } catch {
         return [];
     }
