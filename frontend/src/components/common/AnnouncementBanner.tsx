@@ -78,8 +78,8 @@ const AnnouncementBanner: React.FC = () => {
         }
     };
 
-    // Show pinned important announcements as alerts at top
-    const pinnedImportant = announcements.filter(a => a.is_pinned && !a.is_read);
+    // Show pinned announcements as alerts at top - always show during validity regardless of read status
+    const pinnedImportant = announcements.filter(a => a.is_pinned);
 
     if (announcements.length === 0) return null;
 
@@ -99,8 +99,6 @@ const AnnouncementBanner: React.FC = () => {
                     }
                     type={TYPE_COLORS[a.type]}
                     showIcon
-                    closable
-                    onClose={() => handleMarkAsRead(a.id)}
                     style={{ marginBottom: 8 }}
                     action={
                         <Button size="small" onClick={() => openDetail(a)}>
