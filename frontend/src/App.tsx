@@ -4,7 +4,7 @@ import type { MenuProps } from 'antd';
 import {
     DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
     SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined, MenuOutlined, IdcardOutlined,
-    LinkOutlined, RocketOutlined, FacebookOutlined
+    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Drawer } from 'antd'; // <--- Import Drawer
@@ -15,6 +15,7 @@ import api from './utils/api';
 import HeaderNotifications from './components/HeaderNotifications';
 import LoadingDisplay from './components/LoadingDisplay';
 import AiChatWidget from './components/common/AiChatWidget'; // <--- Import AI Widget
+import AnnouncementBanner from './components/common/AnnouncementBanner'; // <--- Import Announcement Banner
 
 const { Header, Content, Footer, Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
@@ -55,6 +56,7 @@ const ProfilePage = React.lazy(() => import('./pages/ProfilePage')); // <--- Pro
 const SocialChannelsPage = React.lazy(() => import('./pages/SocialChannelsPage')); // <--- Social Channels
 const SocialOrdersPage = React.lazy(() => import('./pages/SocialOrdersPage')); // <--- Social Orders
 const MarketingPage = React.lazy(() => import('./pages/MarketingPage')); // <--- Marketing
+const AnnouncementsPage = React.lazy(() => import('./pages/AnnouncementsPage')); // <--- Announcements
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
     return { key, icon, children, label } as MenuItem;
@@ -201,6 +203,7 @@ const App: React.FC = () => {
             items.push(getItem('Hệ thống & Phân quyền', 'sub_sys', <SettingOutlined />, [
                 getItem(<Link to="/users">Danh sách User</Link>, 'user_list'),
                 getItem(<Link to="/users/groups">Nhóm & Phân quyền</Link>, 'group_perm'),
+                getItem(<Link to="/announcements">Thông báo nội bộ</Link>, 'announcements'),
                 getItem(<Link to="/system/settings">Cấu hình Email (SMTP)</Link>, 'sys_smtp'),
                 getItem(<Link to="/system/logs">Nhật ký hoạt động</Link>, 'sys_logs'), // <--- Activity Log Menu
             ]));
@@ -275,6 +278,7 @@ const App: React.FC = () => {
                                 </Header>
                                 <Content style={{ margin: isMobile ? '16px 8px' : '0 16px' }}> {/* Less margin on mobile */}
                                     <div style={{ padding: isMobile ? 12 : 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG, marginTop: 16 }}>
+                                        <AnnouncementBanner />
                                         <React.Suspense fallback={<LoadingDisplay />}>
                                             <Routes>
                                                 <Route path="/" element={<DashboardPage />} />
@@ -344,6 +348,7 @@ const App: React.FC = () => {
                                                     <>
                                                         <Route path="/users" element={<UsersPage />} />
                                                         <Route path="/users/groups" element={<UserGroupsPage />} />
+                                                        <Route path="/announcements" element={<AnnouncementsPage />} />
                                                         <Route path="/system/settings" element={<SystemSettingsPage />} />
                                                         <Route path="/system/logs" element={<ActivityLogPage />} /> {/* <--- Activity Log Route */}
                                                     </>
