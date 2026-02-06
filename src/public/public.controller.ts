@@ -183,7 +183,6 @@ export class PublicController {
             meta_title: blog.meta_title,
             meta_description: blog.meta_description,
             tags: blog.tags,
-            tags: blog.tags,
             author: blog.author ? { id: blog.author.id, username: blog.author.username } : null,
             // SEO RankMath
             focus_keyword: blog.focus_keyword,
