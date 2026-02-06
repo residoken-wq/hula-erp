@@ -157,14 +157,7 @@ export default function HomeContentPage() {
             key: 'hero',
             label: '🎯 Hero Section',
             children: (
-                <Form form={form} layout="vertical" initialValues={{
-                    hero_title_1: 'Giấc Ngủ Ngon',
-                    hero_title_2: 'Cho Bé Yêu',
-                    hero_description: 'Nệm mầm non HULA - Được thiết kế đặc biệt cho trẻ em với chất liệu cao cấp, đảm bảo sức khỏe và giấc ngủ an lành cho bé yêu của bạn.',
-                    hero_button_1: 'Xem Sản Phẩm',
-                    hero_button_2: 'Liên Hệ Mua Sỉ',
-                    hero_image: '',
-                }}>
+                <>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                         <Form.Item name="hero_title_1" label="Tiêu đề dòng 1">
                             <Input placeholder="Giấc Ngủ Ngon" size="large" />
@@ -230,7 +223,7 @@ export default function HomeContentPage() {
                             </>
                         )}
                     </Form.List>
-                </Form>
+                </>
             ),
         },
         {
@@ -276,12 +269,7 @@ export default function HomeContentPage() {
             key: 'video',
             label: '🎬 Video Giới Thiệu',
             children: (
-                <Form layout="vertical" initialValues={{
-                    video_enabled: true,
-                    video_title: 'Khám Phá HULA',
-                    video_subtitle: 'Xem video giới thiệu về sản phẩm nệm mầm non HULA',
-                    video_youtube_url: '',
-                }}>
+                <>
                     <Form.Item name="video_enabled" label="Hiển thị video section" valuePropName="checked">
                         <Switch />
                     </Form.Item>
@@ -318,18 +306,14 @@ export default function HomeContentPage() {
                             Video sẽ hiển thị responsive (16:9) trên trang chủ bên dưới section "Tại Sao Chọn HULA".
                         </p>
                     </div>
-                </Form>
+                </>
             ),
         },
         {
             key: 'products',
             label: '🛍️ Sản Phẩm Nổi Bật',
             children: (
-                <Form layout="vertical" initialValues={{
-                    products_title: 'Sản Phẩm Nổi Bật',
-                    products_subtitle: 'Những sản phẩm được yêu thích nhất',
-                    products_limit: 4,
-                }}>
+                <>
                     <Form.Item name="products_title" label="Tiêu đề section">
                         <Input placeholder="Sản Phẩm Nổi Bật" />
                     </Form.Item>
@@ -348,19 +332,14 @@ export default function HomeContentPage() {
                             Để chỉ định sản phẩm cụ thể, vui lòng cấu hình trường "featured" trong ERP.
                         </p>
                     </div>
-                </Form>
+                </>
             ),
         },
         {
             key: 'cta',
             label: '📢 Banner CTA',
             children: (
-                <Form layout="vertical" initialValues={{
-                    cta_title: 'Bạn là đại lý hoặc trường mầm non?',
-                    cta_description: 'Liên hệ ngay để nhận báo giá sỉ ưu đãi và chính sách hỗ trợ đặc biệt dành cho đối tác',
-                    cta_button: 'Đăng Ký Mua Sỉ Ngay',
-                    cta_enabled: true,
-                }}>
+                <>
                     <Form.Item name="cta_enabled" label="Hiển thị banner" valuePropName="checked">
                         <Switch />
                     </Form.Item>
@@ -376,7 +355,7 @@ export default function HomeContentPage() {
                     <Form.Item name="cta_button" label="Nội dung nút">
                         <Input placeholder="Đăng Ký Mua Sỉ Ngay" />
                     </Form.Item>
-                </Form>
+                </>
             ),
         },
     ];
@@ -396,7 +375,9 @@ export default function HomeContentPage() {
                     </Space>
                 }
             >
-                <Tabs items={items} />
+                <Form form={form} layout="vertical">
+                    <Tabs items={items} />
+                </Form>
             </Card>
 
             {/* Feature Edit Modal */}
