@@ -57,6 +57,23 @@ export class BlogPost {
     @Column('jsonb', { nullable: true, default: [] })
     tags: string[];
 
+    // RankMath-like SEO Fields
+    @Column({ nullable: true })
+    focus_keyword: string;
+
+    @Column({ default: 0 })
+    seo_score: number;
+
+    @Column('jsonb', { nullable: true })
+    seo_meta: {
+        title?: string;
+        description?: string;
+        canonicalUrl?: string;
+        schemaType?: 'Article' | 'NewsArticle' | 'BlogPosting';
+        ogImage?: string;
+        robots?: string[]; // index, noindex, follow, nofollow
+    };
+
     @Column({ default: 0 })
     view_count: number;
 

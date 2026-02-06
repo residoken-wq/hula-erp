@@ -102,7 +102,8 @@ export class PublicController {
             image_url: product.image_url,
             customer_description: product.customer_description,
             attributes: product.attributes,
-            customization_config: config?.customization_config || null
+            customization_config: config?.customization_config || null,
+            seo_meta: product.seo_meta // SEO RankMath
         };
     }
 
@@ -182,7 +183,12 @@ export class PublicController {
             meta_title: blog.meta_title,
             meta_description: blog.meta_description,
             tags: blog.tags,
-            author: blog.author ? { id: blog.author.id, username: blog.author.username } : null
+            tags: blog.tags,
+            author: blog.author ? { id: blog.author.id, username: blog.author.username } : null,
+            // SEO RankMath
+            focus_keyword: blog.focus_keyword,
+            seo_score: blog.seo_score,
+            seo_meta: blog.seo_meta
         };
     }
 

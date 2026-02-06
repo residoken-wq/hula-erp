@@ -4,8 +4,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, Form, Input, Select, Button, Space, message, Spin } from 'antd';
-import { SaveOutlined, ArrowLeftOutlined, SendOutlined } from '@ant-design/icons';
+import { SaveOutlined, ArrowLeftOutlined, SendOutlined, RocketOutlined, SettingOutlined, GoogleOutlined, ShareAltOutlined } from '@ant-design/icons';
 import dynamic from 'next/dynamic';
+import { SeoAnalysis } from '@/components/seo/SeoAnalysis';
+import { SnippetPreview } from '@/components/seo/SnippetPreview';
+import { SchemaGenerator } from '@/components/seo/SchemaGenerator';
+import { Tabs } from 'antd';
 
 // Dynamic import CKEditor to avoid SSR issues
 const RichTextEditor = dynamic(
@@ -42,6 +46,10 @@ interface BlogPost {
     meta_title: string;
     meta_description: string;
     tags: string[];
+    // SEO Fields
+    focus_keyword?: string;
+    seo_score?: number;
+    seo_meta?: any;
 }
 
 
@@ -107,6 +115,87 @@ export default function BlogEditorPage() {
             setSaving(false);
         }
     };
+
+    // Watch values for SEO Analysis
+    const title = Form.useWatch('title', form);
+    const metaTitle = Form.useWatch('meta_title', form);
+    const metaDesc = Form.useWatch('meta_description', form);
+    const slug = Form.useWatch('slug', form);
+    const keyword = Form.useWatch('focus_keyword', form);
+
+    const SeoPanel = () => (
+        <Card
+            title={<span><RocketOutlined /> RankMath SEO</span>}
+            bodyStyle={{ padding: 0 }}
+        >
+            <Tabs
+                defaultActiveKey="general"
+                tabPosition="top"
+                type="card"
+                items={[
+                    {
+                        key: 'general',
+                        label: 'Chung',
+                        icon: <GoogleOutlined />,
+                        children: (
+                            <div style={{ padding: 16 }}>
+                                <SnippetPreview
+                                    title={metaTitle || title}
+                                    description={metaDesc}
+                                    slug={slug}
+                                    date={new Date().toLocaleDateString('vi-VN')}
+                                />
+
+                                <div style={{ marginTop: 16 }}>
+                                    <Form.Item name="focus_keyword" label="Từ khóa tập trung (Focus Keyword)">
+                                        <Input placeholder="ví dụ: nệm mầm non" prefix={<span style={{ color: '#faad14' }}>🔑</span>} />
+                                    </Form.Item>
+                                </div>
+
+                                <SeoAnalysis
+                                    content={content}
+                                    keyword={keyword}
+                                    title={metaTitle || title}
+                                    description={metaDesc}
+                                    slug={slug}
+                                    onScoreChange={(score) => form.setFieldValue('seo_score', score)}
+                                />
+                                <Form.Item name="seo_score" hidden><Input /></Form.Item>
+                            </div>
+                        )
+                    },
+                    {
+                        key: 'schema',
+                        label: 'Schema',
+                        icon: <SettingOutlined />,
+                        children: (
+                            <div style={{ padding: 16 }}>
+                                <Form.Item name="seo_meta" noStyle>
+                                    <SchemaGenerator />
+                                </Form.Item>
+                            </div>
+                        )
+                    },
+                    {
+                        key: 'social',
+                        label: 'Social',
+                        icon: <ShareAltOutlined />,
+                        children: (
+                            <div style={{ padding: 16 }}>
+                                <p>Cấu hình chia sẻ Facebook / Zalo (Sử dụng ảnh đại diện mặc định nếu trống)</p>
+                                <Form.Item name="meta_title" label="Social Title">
+                                    <Input placeholder="Tiêu đề khi chia sẻ..." />
+                                </Form.Item>
+                                <Form.Item name="meta_description" label="Social Description">
+                                    <Input.TextArea rows={2} placeholder="Mô tả khi chia sẻ..." />
+                                </Form.Item>
+                            </div>
+                        )
+                    }
+                ]}
+            />
+        </Card>
+    );
 
     if (loading) {
         return (
@@ -191,17 +280,7 @@ export default function BlogEditorPage() {
                         </Form>
                     </Card>
 
-                    <Card title="SEO">
-                        <Form form={form} layout="vertical">
-                            <Form.Item name="meta_title" label="Meta Title">
-                                <Input placeholder="Tiêu đề SEO" />
-                            </Form.Item>
-
-                            <Form.Item name="meta_description" label="Meta Description">
-                                <Input.TextArea rows={3} placeholder="Mô tả SEO..." />
-                            </Form.Item>
-                        </Form>
-                    </Card>
+                    <SeoPanel />
                 </div>
             </div>
         </AdminLayout>

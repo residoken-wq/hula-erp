@@ -70,6 +70,17 @@ export class Product {
   @Column({ default: 0 })
   website_order: number;  // Thứ tự hiển thị trên website
 
+  // RankMath-like SEO Fields
+  @Column('jsonb', { nullable: true })
+  seo_meta: {
+    title?: string;
+    description?: string;
+    canonicalUrl?: string;
+    schemaType?: 'Product';
+    ogImage?: string;
+    robots?: string[]; // index, noindex, follow, nofollow
+  };
+
   @OneToMany(() => ProductRouting, (routing) => routing.product)
   routings: ProductRouting[];
 
