@@ -132,7 +132,7 @@ export class SystemService {
 
         // Initialize defaults
         keys.forEach(k => result[k] = '');
-        result['video_enabled'] = 'true';
+        result['video_enabled'] = 'false'; // Default to hidden for safety
         result['cta_enabled'] = 'true';
         result['products_limit'] = '4';
 
@@ -186,6 +186,7 @@ export class SystemService {
         }
 
         // Save Booleans/Numbers
+        console.log('[System] Saving Home Config:', data);
         if (data.video_enabled !== undefined) await this.setValue('video_enabled', String(data.video_enabled), 'Home Page Config');
         if (data.cta_enabled !== undefined) await this.setValue('cta_enabled', String(data.cta_enabled), 'Home Page Config');
         if (data.products_limit !== undefined) await this.setValue('products_limit', String(data.products_limit), 'Home Page Config');
