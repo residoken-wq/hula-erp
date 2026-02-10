@@ -564,4 +564,57 @@ export class PlanningService {
             await this.planRepo.save(plan);
         }
     }
+
+    // --- Gantt Chart: Lấy các kế hoạch chưa hoàn thiện kèm công đoạn sản phẩm ---
+    async getGanttData() {
+        const plans = await this.planRepo.find({
+            where: { status: In([PlanStatus.DRAFT, PlanStatus.CALCULATED]) },
+            relations: [
+                'sales_orders',
+                'sales_orders.items',
+                'sales_orders.items.product',
+                'sales_orders.items.product.routings',
+                'sales_orders.items.product.routings.process'
+            ],
+            order: { id: 'DESC' }
+        });
+
+        return plans.map(plan => {
+            // Collect unique products across all sales orders
+            const productMap = new Map<string, { sku: string; product_name: string; steps: any[] }>();
+
+            for (const so of (plan.sales_orders || [])) {
+                for (const item of (so.items || [])) {
+                    if (!item.product) continue;
+                    const sku = item.sku || item.product.sku;
+                    if (productMap.has(sku)) continue;
+
+                    const steps = (item.product.routings || [])
+                        .sort((a, b) => (a.step_order || 0) - (b.step_order || 0))
+                        .map(r => ({
+                            step_name: r.step_name || r.process?.name || 'N/A',
+                            step_order: r.step_order || 0,
+                            process_code: r.process?.code || '',
+                            supplier_name: r.supplier?.name || null
+                        }));
+
+                    productMap.set(sku, {
+                        sku,
+                        product_name: item.product.name || sku,
+                        steps
+                    });
+                }
+            }
+
+            return {
+                plan_id: plan.id,
+                plan_code: plan.code,
+                plan_name: plan.name,
+                start_date: plan.start_date,
+                end_date: plan.end_date,
+                status: plan.status,
+                products: Array.from(productMap.values())
+            };
+        });
+    }
 }

@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber, Checkbox, Space } from 'antd';
-import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined, TruckOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber, Checkbox, Space, Empty, Tooltip } from 'antd';
+import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined, TruckOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import isBetween from 'dayjs/plugin/isBetween';
 import { API_URL } from '../config';
 import useMobile from '../hooks/useMobile';
+
+dayjs.extend(isBetween);
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -18,6 +21,10 @@ const PlanningPage: React.FC = () => {
     const [pendingOrders, setPendingOrders] = useState<any[]>([]);
     const [plans, setPlans] = useState<any[]>([]);
     const [suppliers, setSuppliers] = useState<any[]>([]); // <--- MỚI: Danh sách NCC
+    const [ganttPlans, setGanttPlans] = useState<any[]>([]);
+
+    // Filter State
+    const [deliveryDateRange, setDeliveryDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
     // Analysis Data (Editable)
     const [mrpData, setMrpData] = useState<any>(null);
@@ -34,14 +41,16 @@ const PlanningPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [resSuggest, resPlans, resSupp] = await Promise.all([
+            const [resSuggest, resPlans, resSupp, resGantt] = await Promise.all([
                 axios.get(`${API_URL}/planning/suggestion`),
                 axios.get(`${API_URL}/planning`),
-                axios.get(`${API_URL}/suppliers`)
+                axios.get(`${API_URL}/suppliers`),
+                axios.get(`${API_URL}/planning/gantt`).catch(() => ({ data: [] }))
             ]);
             setPendingOrders(Array.isArray(resSuggest.data) ? resSuggest.data : []);
             setPlans(Array.isArray(resPlans.data) ? resPlans.data : []);
             setSuppliers(Array.isArray(resSupp.data) ? resSupp.data : []);
+            setGanttPlans(Array.isArray(resGantt.data) ? resGantt.data : []);
         } catch (e) { message.error('Lỗi tải dữ liệu'); }
         setLoading(false);
     };
@@ -228,7 +237,7 @@ const PlanningPage: React.FC = () => {
                 </div>
             )
         },
-        { title: 'Ngày Giao', dataIndex: 'delivery_date', render: (t: any) => t ? <Tag color="red">{dayjs(t).format('DD/MM')}</Tag> : '-' },
+        { title: 'Ngày Giao', dataIndex: 'delivery_date', render: (t: any) => t ? <Tag color="red">{dayjs(t).format('DD/MM/YYYY')}</Tag> : '-' },
         { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v: any) => Number(v).toLocaleString() },
         {
             title: 'Hành động',
@@ -556,8 +565,149 @@ const PlanningPage: React.FC = () => {
                 }
             >
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
-                    { key: 'PENDING', label: isMobile ? 'Gom Đơn' : '1. Gom Đơn Lập Kế Hoạch', children: <div><div style={{ marginBottom: 10, background: '#fffbe6', padding: 10 }}><AlertOutlined /> Chọn đơn hàng để lập kế hoạch.</div><Table rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }} dataSource={pendingOrders} columns={pendingColumns} rowKey="id" expandable={{ expandedRowRender }} scroll={{ x: isMobile ? 600 : undefined }} footer={() => (<Button type="primary" disabled={selectedRowKeys.length === 0} onClick={() => setIsCreateModalOpen(true)}>Lập Kế Hoạch</Button>)} /></div> },
-                    { key: 'PLANS', label: isMobile ? 'Kế Hoạch' : '2. Danh Sách Kế Hoạch', children: <Table dataSource={plans} columns={planColumns} rowKey="id" scroll={{ x: isMobile ? 500 : undefined }} /> }
+                    {
+                        key: 'PENDING', label: isMobile ? 'Gom Đơn' : '1. Gom Đơn Lập Kế Hoạch', children: (
+                            <div>
+                                <div style={{ marginBottom: 10, background: '#fffbe6', padding: 10, borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                                    <span><AlertOutlined /> Chọn đơn hàng để lập kế hoạch.</span>
+                                    <Space wrap>
+                                        <FilterOutlined style={{ color: '#1890ff' }} />
+                                        <span style={{ fontSize: 13 }}>Lọc ngày giao:</span>
+                                        <RangePicker
+                                            size="small"
+                                            format="DD/MM/YYYY"
+                                            value={deliveryDateRange}
+                                            onChange={(dates) => setDeliveryDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+                                            allowClear
+                                            placeholder={['Từ ngày', 'Đến ngày']}
+                                            style={{ width: isMobile ? '100%' : 240 }}
+                                        />
+                                    </Space>
+                                </div>
+                                <Table
+                                    rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
+                                    dataSource={pendingOrders.filter(o => {
+                                        if (!deliveryDateRange || !deliveryDateRange[0] || !deliveryDateRange[1]) return true;
+                                        if (!o.delivery_date) return false;
+                                        return dayjs(o.delivery_date).isBetween(deliveryDateRange[0], deliveryDateRange[1], 'day', '[]');
+                                    })}
+                                    columns={pendingColumns}
+                                    rowKey="id"
+                                    expandable={{ expandedRowRender }}
+                                    scroll={{ x: isMobile ? 600 : undefined }}
+                                    footer={() => (<Button type="primary" disabled={selectedRowKeys.length === 0} onClick={() => setIsCreateModalOpen(true)}>Lập Kế Hoạch</Button>)}
+                                />
+                            </div>
+                        )
+                    },
+                    { key: 'PLANS', label: isMobile ? 'Kế Hoạch' : '2. Danh Sách Kế Hoạch', children: <Table dataSource={plans} columns={planColumns} rowKey="id" scroll={{ x: isMobile ? 500 : undefined }} /> },
+                    {
+                        key: 'GANTT', label: isMobile ? 'Gantt' : '📊 Gantt Chart', children: (
+                            <div>
+                                {ganttPlans.length === 0 ? (
+                                    <Empty description="Không có kế hoạch chưa hoàn thiện" />
+                                ) : (
+                                    <div>
+                                        {ganttPlans.map((plan: any) => {
+                                            const planStart = dayjs(plan.start_date);
+                                            const planEnd = dayjs(plan.end_date);
+                                            const totalDays = Math.max(planEnd.diff(planStart, 'day'), 1);
+                                            const statusColor = plan.status === 'CALCULATED' ? '#52c41a' : '#faad14';
+
+                                            return (
+                                                <Card
+                                                    key={plan.plan_id}
+                                                    size="small"
+                                                    style={{ marginBottom: 16, borderLeft: `4px solid ${statusColor}` }}
+                                                    title={
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                                                            <span>
+                                                                <b>{plan.plan_code}</b> - {plan.plan_name}
+                                                            </span>
+                                                            <Space size={8}>
+                                                                <Tag color={plan.status === 'CALCULATED' ? 'green' : 'orange'}>{plan.status === 'CALCULATED' ? 'Đã tính MRP' : 'Mới'}</Tag>
+                                                                <small style={{ color: '#888' }}>{planStart.format('DD/MM/YYYY')} → {planEnd.format('DD/MM/YYYY')}</small>
+                                                            </Space>
+                                                        </div>
+                                                    }
+                                                >
+                                                    {/* Timeline Header */}
+                                                    <div style={{ position: 'relative', marginBottom: 8, height: 24, background: '#fafafa', borderRadius: 4, overflow: 'hidden', fontSize: 11 }}>
+                                                        {Array.from({ length: Math.min(totalDays + 1, 31) }).map((_, i) => {
+                                                            const d = planStart.add(i, 'day');
+                                                            const left = (i / totalDays) * 100;
+                                                            return (
+                                                                <span key={i} style={{ position: 'absolute', left: `${left}%`, top: 4, color: '#999', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
+                                                                    {d.format('DD')}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Product Rows */}
+                                                    {(plan.products || []).length === 0 ? (
+                                                        <div style={{ textAlign: 'center', color: '#999', padding: 10 }}>Chưa có dữ liệu công đoạn</div>
+                                                    ) : (
+                                                        plan.products.map((prod: any, pi: number) => {
+                                                            const stepCount = Math.max((prod.steps || []).length, 1);
+                                                            const stepDuration = totalDays / stepCount;
+                                                            const colors = ['#1890ff', '#13c2c2', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#eb2f96'];
+
+                                                            return (
+                                                                <div key={pi} style={{ marginBottom: 12 }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                                                                        <Tag color="blue" style={{ margin: 0 }}>{prod.sku}</Tag>
+                                                                        <span style={{ marginLeft: 8, fontSize: 13, color: '#333' }}>{prod.product_name}</span>
+                                                                    </div>
+                                                                    <div style={{ position: 'relative', height: 28, background: '#f5f5f5', borderRadius: 4, overflow: 'hidden' }}>
+                                                                        {(prod.steps || []).length === 0 ? (
+                                                                            <div style={{ lineHeight: '28px', textAlign: 'center', color: '#bbb', fontSize: 12 }}>Chưa có công đoạn</div>
+                                                                        ) : (
+                                                                            prod.steps.map((step: any, si: number) => {
+                                                                                const left = (si / stepCount) * 100;
+                                                                                const width = (1 / stepCount) * 100;
+                                                                                const bgColor = colors[si % colors.length];
+
+                                                                                return (
+                                                                                    <Tooltip key={si} title={`${step.step_name}${step.supplier_name ? ` (NCC: ${step.supplier_name})` : ''}`}>
+                                                                                        <div style={{
+                                                                                            position: 'absolute',
+                                                                                            left: `${left}%`,
+                                                                                            width: `${width}%`,
+                                                                                            height: '100%',
+                                                                                            background: bgColor,
+                                                                                            opacity: 0.85,
+                                                                                            borderRight: '1px solid #fff',
+                                                                                            display: 'flex',
+                                                                                            alignItems: 'center',
+                                                                                            justifyContent: 'center',
+                                                                                            cursor: 'pointer',
+                                                                                            transition: 'opacity 0.2s'
+                                                                                        }}
+                                                                                            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                                                                                            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.85')}
+                                                                                        >
+                                                                                            <span style={{ color: '#fff', fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 4px' }}>
+                                                                                                {step.step_name}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </Tooltip>
+                                                                                );
+                                                                            })
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    )}
+                                                </Card>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    }
                 ]} />
             </Card>
             <Modal

@@ -6,6 +6,7 @@ export class PlanningController {
   constructor(private readonly s: PlanningService) { }
 
   @Get('suggestion') getSuggestion() { return this.s.getSuggestion(); }
+  @Get('gantt') getGantt() { return this.s.getGanttData(); }
   @Post('create') create(@Body() b: any) { return this.s.createPlan(b); }
   @Get() findAll() { return this.s.findAll(); }
   @Get(':id') getOne(@Param('id') id: number) { return this.s.findOne(id); }
