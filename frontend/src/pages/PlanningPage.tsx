@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber, Checkbox, Space, Empty, Tooltip } from 'antd';
-import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined, TruckOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber, Checkbox, Space, Empty, Tooltip, Badge, Alert } from 'antd';
+import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined, TruckOutlined, DeleteOutlined, FilterOutlined, WarningOutlined, CheckCircleOutlined, ClockCircleOutlined, DragOutlined } from '@ant-design/icons';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -8,6 +11,60 @@ import { API_URL } from '../config';
 import useMobile from '../hooks/useMobile';
 
 dayjs.extend(isBetween);
+
+// --- Sortable Step Bar Component ---
+const SortableStepBar = ({ step, si, stepCount, totalDays, planStart, colors, onClick }: any) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.step_name + '_' + si });
+    const bgColor = colors[si % colors.length];
+
+    // Custom position if step has start/end dates
+    let left: number, width: number;
+    if (step.start_date && step.end_date && totalDays > 0) {
+        const sStart = dayjs(step.start_date).diff(planStart, 'day');
+        const sEnd = dayjs(step.end_date).diff(planStart, 'day');
+        left = Math.max(0, (sStart / totalDays) * 100);
+        width = Math.max(2, ((sEnd - sStart + 1) / totalDays) * 100);
+    } else {
+        left = (si / stepCount) * 100;
+        width = (1 / stepCount) * 100;
+    }
+
+    const style: React.CSSProperties = {
+        position: 'absolute',
+        left: `${left}%`,
+        width: `${width}%`,
+        height: '100%',
+        background: isDragging ? '#40a9ff' : bgColor,
+        opacity: isDragging ? 1 : 0.85,
+        borderRight: '1px solid #fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'grab',
+        transition: transition || 'opacity 0.2s',
+        transform: CSS.Transform.toString(transform && { ...transform, scaleY: 1 }),
+        zIndex: isDragging ? 100 : 1,
+        boxShadow: isDragging ? '0 2px 8px rgba(0,0,0,0.3)' : 'none'
+    };
+
+    return (
+        <Tooltip title={`${step.step_name}${step.supplier_name ? ` (NCC: ${step.supplier_name})` : ''}${step.start_date ? `\n${dayjs(step.start_date).format('DD/MM')} → ${dayjs(step.end_date).format('DD/MM')}` : ''}\n🖱 Click để chỉnh thời gian | ✋ Kéo để đổi thứ tự`}>
+            <div
+                ref={setNodeRef}
+                style={style}
+                {...attributes}
+                {...listeners}
+                onClick={(e) => { e.stopPropagation(); onClick(step, si); }}
+                onMouseEnter={(e) => { if (!isDragging) e.currentTarget.style.opacity = '1'; }}
+                onMouseLeave={(e) => { if (!isDragging) e.currentTarget.style.opacity = '0.85'; }}
+            >
+                <span style={{ color: '#fff', fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 4px' }}>
+                    {step.step_name}
+                </span>
+            </div>
+        </Tooltip>
+    );
+};
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -25,6 +82,13 @@ const PlanningPage: React.FC = () => {
 
     // Filter State
     const [deliveryDateRange, setDeliveryDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+
+    // Gantt Step Edit Modal
+    const [editingStep, setEditingStep] = useState<any>(null); // { planId, sku, step, stepIndex }
+    const [stepDateRange, setStepDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+
+    // DnD sensors
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
     // Analysis Data (Editable)
     const [mrpData, setMrpData] = useState<any>(null);
@@ -613,98 +677,213 @@ const PlanningPage: React.FC = () => {
                                             const planEnd = dayjs(plan.end_date);
                                             const totalDays = Math.max(planEnd.diff(planStart, 'day'), 1);
                                             const statusColor = plan.status === 'CALCULATED' ? '#52c41a' : '#faad14';
+                                            const npl = plan.npl_status || { total: 0, purchased: 0, status: 'NONE' };
+                                            const warnings = plan.delivery_warnings || [];
+
+                                            // NPL badge color
+                                            const nplColor = npl.status === 'FULL' ? '#52c41a' : npl.status === 'PARTIAL' ? '#faad14' : '#f5222d';
+                                            const nplIcon = npl.status === 'FULL' ? <CheckCircleOutlined /> : npl.status === 'PARTIAL' ? <ClockCircleOutlined /> : <WarningOutlined />;
+                                            const nplText = npl.status === 'FULL' ? 'Đã mua đủ NPL' : npl.status === 'PARTIAL' ? `NPL: ${npl.purchased}/${npl.total}` : 'Chưa mua NPL';
 
                                             return (
-                                                <Card
-                                                    key={plan.plan_id}
-                                                    size="small"
-                                                    style={{ marginBottom: 16, borderLeft: `4px solid ${statusColor}` }}
-                                                    title={
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                                                            <span>
-                                                                <b>{plan.plan_code}</b> - {plan.plan_name}
-                                                            </span>
-                                                            <Space size={8}>
-                                                                <Tag color={plan.status === 'CALCULATED' ? 'green' : 'orange'}>{plan.status === 'CALCULATED' ? 'Đã tính MRP' : 'Mới'}</Tag>
-                                                                <small style={{ color: '#888' }}>{planStart.format('DD/MM/YYYY')} → {planEnd.format('DD/MM/YYYY')}</small>
-                                                            </Space>
+                                                <div key={plan.plan_id} style={{ marginBottom: 20 }}>
+                                                    {/* Feature 4: Delivery Warnings */}
+                                                    {warnings.length > 0 && (
+                                                        <div style={{ marginBottom: 8 }}>
+                                                            {warnings.map((w: any, wi: number) => (
+                                                                <Alert
+                                                                    key={wi}
+                                                                    type={w.level === 'OVERDUE' ? 'error' : 'warning'}
+                                                                    showIcon
+                                                                    banner
+                                                                    style={{ marginBottom: 4, borderRadius: 4 }}
+                                                                    message={
+                                                                        w.level === 'OVERDUE'
+                                                                            ? <span>🔴 <b>{w.order_code}</b> — Đã quá hạn giao {Math.abs(w.days_left)} ngày!</span>
+                                                                            : <span>🟠 <b>{w.order_code}</b> — Còn <b>{w.days_left}</b> ngày đến hạn giao ({dayjs(w.delivery_date).format('DD/MM/YYYY')})</span>
+                                                                    }
+                                                                />
+                                                            ))}
                                                         </div>
-                                                    }
-                                                >
-                                                    {/* Timeline Header */}
-                                                    <div style={{ position: 'relative', marginBottom: 8, height: 24, background: '#fafafa', borderRadius: 4, overflow: 'hidden', fontSize: 11 }}>
-                                                        {Array.from({ length: Math.min(totalDays + 1, 31) }).map((_, i) => {
-                                                            const d = planStart.add(i, 'day');
-                                                            const left = (i / totalDays) * 100;
-                                                            return (
-                                                                <span key={i} style={{ position: 'absolute', left: `${left}%`, top: 4, color: '#999', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
-                                                                    {d.format('DD')}
-                                                                </span>
-                                                            );
-                                                        })}
-                                                    </div>
-
-                                                    {/* Product Rows */}
-                                                    {(plan.products || []).length === 0 ? (
-                                                        <div style={{ textAlign: 'center', color: '#999', padding: 10 }}>Chưa có dữ liệu công đoạn</div>
-                                                    ) : (
-                                                        plan.products.map((prod: any, pi: number) => {
-                                                            const stepCount = Math.max((prod.steps || []).length, 1);
-                                                            const stepDuration = totalDays / stepCount;
-                                                            const colors = ['#1890ff', '#13c2c2', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#eb2f96'];
-
-                                                            return (
-                                                                <div key={pi} style={{ marginBottom: 12 }}>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-                                                                        <Tag color="blue" style={{ margin: 0 }}>{prod.sku}</Tag>
-                                                                        <span style={{ marginLeft: 8, fontSize: 13, color: '#333' }}>{prod.product_name}</span>
-                                                                    </div>
-                                                                    <div style={{ position: 'relative', height: 28, background: '#f5f5f5', borderRadius: 4, overflow: 'hidden' }}>
-                                                                        {(prod.steps || []).length === 0 ? (
-                                                                            <div style={{ lineHeight: '28px', textAlign: 'center', color: '#bbb', fontSize: 12 }}>Chưa có công đoạn</div>
-                                                                        ) : (
-                                                                            prod.steps.map((step: any, si: number) => {
-                                                                                const left = (si / stepCount) * 100;
-                                                                                const width = (1 / stepCount) * 100;
-                                                                                const bgColor = colors[si % colors.length];
-
-                                                                                return (
-                                                                                    <Tooltip key={si} title={`${step.step_name}${step.supplier_name ? ` (NCC: ${step.supplier_name})` : ''}`}>
-                                                                                        <div style={{
-                                                                                            position: 'absolute',
-                                                                                            left: `${left}%`,
-                                                                                            width: `${width}%`,
-                                                                                            height: '100%',
-                                                                                            background: bgColor,
-                                                                                            opacity: 0.85,
-                                                                                            borderRight: '1px solid #fff',
-                                                                                            display: 'flex',
-                                                                                            alignItems: 'center',
-                                                                                            justifyContent: 'center',
-                                                                                            cursor: 'pointer',
-                                                                                            transition: 'opacity 0.2s'
-                                                                                        }}
-                                                                                            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                                                                                            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.85')}
-                                                                                        >
-                                                                                            <span style={{ color: '#fff', fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 4px' }}>
-                                                                                                {step.step_name}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </Tooltip>
-                                                                                );
-                                                                            })
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })
                                                     )}
-                                                </Card>
+
+                                                    <Card
+                                                        size="small"
+                                                        style={{ borderLeft: `4px solid ${statusColor}` }}
+                                                        title={
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                                                                <span>
+                                                                    <b>{plan.plan_code}</b> - {plan.plan_name}
+                                                                </span>
+                                                                <Space size={8} wrap>
+                                                                    {/* Feature 2: NPL Status Badge */}
+                                                                    <Tag icon={nplIcon} color={nplColor} style={{ fontWeight: 500 }}>{nplText}</Tag>
+                                                                    <Tag color={plan.status === 'CALCULATED' ? 'green' : 'orange'}>{plan.status === 'CALCULATED' ? 'Đã tính MRP' : 'Mới'}</Tag>
+                                                                    <small style={{ color: '#888' }}>{planStart.format('DD/MM/YYYY')} → {planEnd.format('DD/MM/YYYY')}</small>
+                                                                </Space>
+                                                            </div>
+                                                        }
+                                                    >
+                                                        {/* Timeline Header */}
+                                                        <div style={{ position: 'relative', marginBottom: 8, height: 24, background: '#fafafa', borderRadius: 4, overflow: 'hidden', fontSize: 11 }}>
+                                                            {Array.from({ length: Math.min(totalDays + 1, 31) }).map((_, i) => {
+                                                                const d = planStart.add(i, 'day');
+                                                                const left = (i / totalDays) * 100;
+                                                                return (
+                                                                    <span key={i} style={{ position: 'absolute', left: `${left}%`, top: 4, color: '#999', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
+                                                                        {d.format('DD')}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        <div style={{ fontSize: 11, color: '#999', marginBottom: 6 }}><DragOutlined /> Kéo để đổi thứ tự công đoạn | 🖱 Click để chỉnh thời gian</div>
+
+                                                        {/* Product Rows with DnD */}
+                                                        {(plan.products || []).length === 0 ? (
+                                                            <div style={{ textAlign: 'center', color: '#999', padding: 10 }}>Chưa có dữ liệu công đoạn</div>
+                                                        ) : (
+                                                            plan.products.map((prod: any, pi: number) => {
+                                                                const stepCount = Math.max((prod.steps || []).length, 1);
+                                                                const colors = ['#1890ff', '#13c2c2', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#eb2f96'];
+                                                                const stepIds = (prod.steps || []).map((s: any, i: number) => s.step_name + '_' + i);
+
+                                                                const handleDragEnd = async (event: any) => {
+                                                                    const { active, over } = event;
+                                                                    if (!over || active.id === over.id) return;
+                                                                    const oldIndex = stepIds.indexOf(active.id);
+                                                                    const newIndex = stepIds.indexOf(over.id);
+                                                                    if (oldIndex === -1 || newIndex === -1) return;
+
+                                                                    // Reorder locally
+                                                                    const newSteps = arrayMove([...prod.steps], oldIndex, newIndex);
+                                                                    const updatedPlans = ganttPlans.map((p: any) => {
+                                                                        if (p.plan_id !== plan.plan_id) return p;
+                                                                        return { ...p, products: p.products.map((pr: any) => pr.sku === prod.sku ? { ...pr, steps: newSteps } : pr) };
+                                                                    });
+                                                                    setGanttPlans(updatedPlans);
+
+                                                                    // Build config and save
+                                                                    const existingConfig = updatedPlans.find((p: any) => p.plan_id === plan.plan_id);
+                                                                    const config: any = {};
+                                                                    for (const pr of (existingConfig?.products || [])) {
+                                                                        config[pr.sku] = {
+                                                                            step_order: pr.steps.map((_: any, idx: number) => idx),
+                                                                            steps: pr.steps.map((s: any) => ({ step_name: s.step_name, start_date: s.start_date, end_date: s.end_date }))
+                                                                        };
+                                                                    }
+                                                                    try {
+                                                                        await axios.post(`${API_URL}/planning/gantt/${plan.plan_id}/config`, config);
+                                                                        message.success('Đã lưu thứ tự công đoạn');
+                                                                    } catch { message.error('Lỗi lưu cấu hình'); }
+                                                                };
+
+                                                                const handleStepClick = (step: any, si: number) => {
+                                                                    setEditingStep({ planId: plan.plan_id, sku: prod.sku, step, stepIndex: si });
+                                                                    setStepDateRange(
+                                                                        step.start_date && step.end_date
+                                                                            ? [dayjs(step.start_date), dayjs(step.end_date)]
+                                                                            : [planStart, planStart.add(Math.ceil(totalDays / stepCount), 'day')]
+                                                                    );
+                                                                };
+
+                                                                return (
+                                                                    <div key={pi} style={{ marginBottom: 12 }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                                                                            <Tag color="blue" style={{ margin: 0 }}>{prod.sku}</Tag>
+                                                                            <span style={{ marginLeft: 8, fontSize: 13, color: '#333' }}>{prod.product_name}</span>
+                                                                        </div>
+                                                                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                                                            <SortableContext items={stepIds} strategy={horizontalListSortingStrategy}>
+                                                                                <div style={{ position: 'relative', height: 28, background: '#f5f5f5', borderRadius: 4, overflow: 'hidden' }}>
+                                                                                    {(prod.steps || []).length === 0 ? (
+                                                                                        <div style={{ lineHeight: '28px', textAlign: 'center', color: '#bbb', fontSize: 12 }}>Chưa có công đoạn</div>
+                                                                                    ) : (
+                                                                                        prod.steps.map((step: any, si: number) => (
+                                                                                            <SortableStepBar
+                                                                                                key={step.step_name + '_' + si}
+                                                                                                step={step}
+                                                                                                si={si}
+                                                                                                stepCount={stepCount}
+                                                                                                totalDays={totalDays}
+                                                                                                planStart={planStart}
+                                                                                                colors={colors}
+                                                                                                onClick={handleStepClick}
+                                                                                            />
+                                                                                        ))
+                                                                                    )}
+                                                                                </div>
+                                                                            </SortableContext>
+                                                                        </DndContext>
+                                                                    </div>
+                                                                );
+                                                            })
+                                                        )}
+                                                    </Card>
+                                                </div>
                                             );
                                         })}
                                     </div>
                                 )}
+
+                                {/* Feature 3: Step Timing Edit Modal */}
+                                <Modal
+                                    title={<span>⏱ Điều chỉnh thời gian: <b>{editingStep?.step?.step_name}</b></span>}
+                                    open={!!editingStep}
+                                    onCancel={() => setEditingStep(null)}
+                                    onOk={async () => {
+                                        if (!editingStep || !stepDateRange) return;
+                                        const { planId, sku, stepIndex } = editingStep;
+                                        // Update local state
+                                        const updatedPlans = ganttPlans.map((p: any) => {
+                                            if (p.plan_id !== planId) return p;
+                                            return {
+                                                ...p,
+                                                products: p.products.map((pr: any) => {
+                                                    if (pr.sku !== sku) return pr;
+                                                    const newSteps = [...pr.steps];
+                                                    newSteps[stepIndex] = {
+                                                        ...newSteps[stepIndex],
+                                                        start_date: stepDateRange[0].format('YYYY-MM-DD'),
+                                                        end_date: stepDateRange[1].format('YYYY-MM-DD')
+                                                    };
+                                                    return { ...pr, steps: newSteps };
+                                                })
+                                            };
+                                        });
+                                        setGanttPlans(updatedPlans);
+
+                                        // Save config
+                                        const plan = updatedPlans.find((p: any) => p.plan_id === planId);
+                                        const config: any = {};
+                                        for (const pr of (plan?.products || [])) {
+                                            config[pr.sku] = {
+                                                step_order: pr.steps.map((_: any, idx: number) => idx),
+                                                steps: pr.steps.map((s: any) => ({ step_name: s.step_name, start_date: s.start_date, end_date: s.end_date }))
+                                            };
+                                        }
+                                        try {
+                                            await axios.post(`${API_URL}/planning/gantt/${planId}/config`, config);
+                                            message.success('Đã lưu thời gian công đoạn');
+                                        } catch { message.error('Lỗi lưu cấu hình'); }
+                                        setEditingStep(null);
+                                    }}
+                                    okText="Lưu"
+                                    cancelText="Hủy"
+                                >
+                                    <div style={{ marginBottom: 12 }}>
+                                        <div style={{ marginBottom: 8, color: '#666' }}>Chọn khoảng thời gian cho công đoạn:</div>
+                                        <RangePicker
+                                            style={{ width: '100%' }}
+                                            format="DD/MM/YYYY"
+                                            value={stepDateRange}
+                                            onChange={(dates) => setStepDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
+                                        />
+                                    </div>
+                                    {editingStep?.step?.supplier_name && (
+                                        <div style={{ color: '#888', fontSize: 12 }}>NCC: {editingStep.step.supplier_name}</div>
+                                    )}
+                                </Modal>
                             </div>
                         )
                     }

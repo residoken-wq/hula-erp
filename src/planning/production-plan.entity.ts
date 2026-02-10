@@ -46,6 +46,9 @@ export class ProductionPlan {
   @Column({ type: 'simple-json', nullable: true })
   outsourcing_result: any;
 
+  @Column({ type: 'simple-json', nullable: true })
+  gantt_config: any; // { [sku]: { steps: [{step_name, start, end}], step_order: [...] } }
+
   @OneToMany(() => SalesOrder, (so) => so.production_plan)
   sales_orders: SalesOrder[];
 
