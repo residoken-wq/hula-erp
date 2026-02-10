@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlanningController } from './planning.controller';
 import { PlanningService } from './planning.service';
+import { MrpCalculationService } from './mrp-calculation.service';
+import { GanttService } from './gantt.service';
 import { ProductionPlan } from './production-plan.entity';
 import { SalesOrder } from '../sales/sales-order.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
@@ -18,7 +20,7 @@ import { InventoryModule } from '../inventory/inventory.module';
     InventoryModule
   ],
   controllers: [PlanningController],
-  providers: [PlanningService],
-  exports: [PlanningService] // --- MỚI: Export để Purchasing dùng ---
+  providers: [PlanningService, MrpCalculationService, GanttService],
+  exports: [PlanningService]
 })
 export class PlanningModule { }

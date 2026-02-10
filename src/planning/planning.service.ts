@@ -8,6 +8,8 @@ import { MaterialsService } from '../materials/materials.service';
 import { PurchaseOrder, POType, POStatus } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { InventoryService } from '../inventory/inventory.service';
+import { MrpCalculationService } from './mrp-calculation.service';
+import { GanttService } from './gantt.service';
 
 @Injectable()
 export class PlanningService {
@@ -18,7 +20,9 @@ export class PlanningService {
         @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
         private productsService: ProductsService,
         private materialsService: MaterialsService,
-        private inventoryService: InventoryService, // <--- INJECT
+        private inventoryService: InventoryService,
+        private mrpCalculationService: MrpCalculationService,
+        private ganttService: GanttService,
     ) { }
 
     async getSuggestion() {
@@ -27,16 +31,13 @@ export class PlanningService {
                 status: In([SalesOrderStatus.SO_PENDING, SalesOrderStatus.SAMPLE_APPROVED, SalesOrderStatus.DEPOSITED]),
                 plan_id: IsNull()
             },
-            relations: ['customer', 'items', 'items.product'], // Load items & product info
+            relations: ['customer', 'items', 'items.product'],
             order: { delivery_date: 'ASC' }
         });
 
-        // Enrich with Stock Data
-        const stocks = await this.inventoryService.getAllStocks(); // Or optimize to specific IDs
-        const stockMap = new Map<string, number>(); // ProductID_Warehouse -> Qty OR just ProductID -> Qty (Total)
+        const stocks = await this.inventoryService.getAllStocks();
+        const stockMap = new Map<string, number>();
 
-        // Calculate Total Stock per Product (across all warehouses, OR defaulting to 'KHO_TP')
-        // Assuming we look at KHO_TP (Thành Phẩm) primarily for Fulfillment
         stocks.forEach(s => {
             if (s.item_type === 'PRODUCT' && s.warehouse_code === 'KHO_TP') {
                 const key = String(s.item_id);
@@ -45,7 +46,6 @@ export class PlanningService {
         });
 
         return orders.map(o => {
-            // Calculate status for 'Can Fulfill'
             let canFulfill = true;
             let totalItems = 0;
 
@@ -53,11 +53,9 @@ export class PlanningService {
                 let stock = 0;
                 if (item.product) {
                     stock = stockMap.get(String(item.product.id)) || 0;
-                    // Also fallback to product.quantity_in_stock if needed, but inventory service is SSOT
                 }
                 totalItems++;
                 if (stock < Number(item.quantity)) canFulfill = false;
-
                 return { ...item, available_stock_tp: stock };
             });
 
@@ -76,7 +74,6 @@ export class PlanningService {
             code: data.code, name: data.name, start_date: data.start_date, end_date: data.end_date, status: PlanStatus.DRAFT
         });
         const saved = await this.planRepo.save(plan);
-        await this.orderRepo.update({ id: In(orders.map(o => o.id)) }, { plan_id: saved.id, status: SalesOrderStatus.PLANNED });
         await this.orderRepo.update({ id: In(orders.map(o => o.id)) }, { plan_id: saved.id, status: SalesOrderStatus.PLANNED });
         return saved;
     }
@@ -98,300 +95,9 @@ export class PlanningService {
         });
     }
 
-    // --- LOGIC PHÂN TÍCH KẾ HOẠCH (MRP & GIA CÔNG) ---
+    // --- Delegate to MrpCalculationService ---
     async calculateMaterialNeeds(planId: number) {
-        const plan = await this.planRepo.findOne({ where: { id: planId }, relations: ['sales_orders', 'sales_orders.items'] });
-        if (!plan) throw new NotFoundException();
-
-        // 1. Kiểm tra xem đã có kết quả đã lưu chưa, nếu có thì trả về kết quả đã lưu (Để user có thể "Save" -> "Mở lại vẫn thấy")
-        // Nếu user muốn chạy lại thì sẽ có nút "Phân tích lại" (Gọi endpoint reset hoặc truyền flag force)
-        // Hiện tại: Nếu đã có dữ liệu saved thì trả về.
-        if (plan.mrp_data && plan.outsourcing_data) {
-            // --- FIX: Update Real-time Stock for Display ---
-            if (Array.isArray(plan.mrp_data)) {
-                const matIds = plan.mrp_data.map((i: any) => i.material_id).filter(id => !!id);
-                if (matIds.length > 0) {
-                    const mats = await this.materialsService.materialRepo.find({
-                        where: { id: In(matIds) },
-                        select: ['id', 'quantity_in_stock']
-                    });
-                    const stockMap = new Map(mats.map(m => [m.id, Number(m.quantity_in_stock)]));
-
-                    plan.mrp_data = plan.mrp_data.map((item: any) => {
-                        if (item.material_id && stockMap.has(item.material_id)) {
-                            // Update stock
-                            const currentStock = stockMap.get(item.material_id);
-                            item.available_stock = currentStock;
-
-                            // Recalculate Net Requirement
-                            const gross = Number(item.gross_requirement) || 0;
-                            item.net_requirement = Math.max(0, gross - currentStock);
-                        }
-                        return item;
-                    });
-                }
-            }
-            // -----------------------------------------------
-
-            const ganttData = plan.sales_orders.map(so => ({
-                id: so.order_code, name: `SX ${so.order_code}`, start: plan.start_date, end: so.delivery_date || plan.end_date, progress: 0
-            }));
-
-            return {
-                plan_info: plan,
-                mrp_result: plan.mrp_data,
-                outsourcing_result: plan.outsourcing_data,
-                logistics_result: plan.logistics_data || [],
-                gantt_data: ganttData,
-                is_saved: true
-            };
-        }
-
-        const productDemand = new Map<string, number>(); // SKU -> Quantity
-        const productInfoMap = new Map<string, number>(); // SKU -> ProductID
-
-        // 1. Tổng hợp nhu cầu sản phẩm
-        for (const so of plan.sales_orders) {
-            for (const item of so.items) {
-                productDemand.set(item.sku, (productDemand.get(item.sku) || 0) + Number(item.quantity));
-
-                // Cache Product ID để query Routing sau này
-                if (!productInfoMap.has(item.sku)) {
-                    const prod = await this.productsService.findOneBySku(item.sku);
-                    if (prod) productInfoMap.set(item.sku, prod.id);
-                }
-            }
-        }
-
-        const materialDemand = new Map<number, number>();
-        const materialDemandRaw = new Map<number, number>(); // Nhu cầu gốc (Chưa hao hụt)
-        const materialWastageMap = new Map<number, number>(); // Lưu % hao hụt lớn nhất tìm thấy
-
-        const outsourcingDemand = []; // --- MỚI: Danh sách nhu cầu gia công
-
-        // 2. Phân tích BOM & ROUTING
-        // --- FIX: Phân giải Combos (BOM đa cấp cho Product Components) ---
-        const totalProductDemand = new Map<string, number>(); // SKU -> Qty (Bao gồm cả Parent và Child)
-        const processingQueue = [];
-
-        // Init queue
-        for (const [sku, qty] of productDemand.entries()) {
-            processingQueue.push({ sku, qty });
-        }
-
-        let safetyCounter = 0;
-        const MAX_ITERATIONS = 20000;
-
-        while (processingQueue.length > 0) {
-            if (safetyCounter++ > MAX_ITERATIONS) {
-                console.warn('MRP Loop Limit Reached - Possible Cycle in Product Components');
-                break;
-            }
-
-            const { sku, qty } = processingQueue.shift();
-
-            // Cộng dồn nhu cầu cho SKU này
-            totalProductDemand.set(sku, (totalProductDemand.get(sku) || 0) + qty);
-
-            // Đảm bảo có ID để query Routing
-            if (!productInfoMap.has(sku)) {
-                const prod = await this.productsService.findOneBySku(sku);
-                if (prod) productInfoMap.set(sku, prod.id);
-            }
-
-            // Kiểm tra xem có phải Combo không (có components con)
-            // Lưu ý: getComboComponents trả về components mà parent là SKU này
-            const components = await this.productsService.getComboComponents(sku);
-
-            if (components && components.length > 0) {
-                for (const comp of components) {
-                    if (comp.child_product) {
-                        const childQty = qty * Number(comp.quantity);
-                        processingQueue.push({ sku: comp.child_product.sku, qty: childQty });
-                    }
-                }
-            }
-        }
-
-        // --- Loop qua danh sách đã mở rộng ---
-        for (const [sku, qty] of totalProductDemand.entries()) {
-            const prodId = productInfoMap.get(sku);
-            if (!prodId) continue;
-
-            // A. Tính NPL (BOM)
-            const boms = await this.productsService.getBomByProductSku(sku);
-            for (const bom of boms) {
-                if (bom.material_id) {
-                    const rawReq = qty * Number(bom.quantity);
-                    const wastage = Number(bom.waste_percent) || 0;
-                    const req = rawReq * (1 + wastage / 100);
-
-                    materialDemand.set(bom.material_id, (materialDemand.get(bom.material_id) || 0) + req);
-                    materialDemandRaw.set(bom.material_id, (materialDemandRaw.get(bom.material_id) || 0) + rawReq);
-
-                    // Lưu % hao hụt (Ưu tiên lấy max nếu có nhiều)
-                    const currentWastage = materialWastageMap.get(bom.material_id) || 0;
-                    if (wastage > currentWastage) materialWastageMap.set(bom.material_id, wastage);
-                }
-            }
-
-            // B. Tính Gia Công (Routing) --- MỚI ---
-            const routings = await this.productsService.getRoutings(prodId);
-            for (const route of routings) {
-                // Chỉ lấy các công đoạn có gán Nhà cung cấp (Gia công ngoài)
-                if (route.supplier_id) {
-                    outsourcingDemand.push({
-                        product_id: prodId, // --- FIX: ADD PRODUCT ID ---
-                        product_sku: sku,
-                        step_name: route.step_name,
-                        supplier_id: route.supplier_id,
-                        supplier_name: route.supplier?.name, // Cần relation trong service getRoutings
-                        quantity: qty,
-                        unit_price: Number(route.cost),
-                        total_cost: qty * Number(route.cost)
-                    });
-                }
-            }
-        }
-
-        // 3. Kết quả MRP (NPL)
-        const mrpResult = [];
-
-        // --- MỚI: Lấy giá mua thực tế từ các PO đã tạo cho Plan này ---
-        const existingPos = await this.poRepo.find({ where: { plan_id: planId }, relations: ['items'] });
-        const purchasePriceMap = new Map<number, number>(); // MaterialID -> Price
-        for (const po of existingPos) {
-            for (const item of po.items) {
-                if (item.material_id) {
-                    purchasePriceMap.set(item.material_id, Number(item.unit_price));
-                }
-            }
-        }
-        // -------------------------------------------------------------
-
-        for (const [matId, gross] of materialDemand.entries()) {
-            const mat = await this.materialsService.materialRepo.findOne({
-                where: { id: matId },
-                relations: ['supplier_prices', 'supplier_prices.supplier']
-            });
-
-            if (mat) {
-                const net = Math.max(0, Math.ceil(gross - Number(mat.quantity_in_stock)));
-
-                // Logic chọn Supplier mặc định (Ưu tiên is_preferred = true)
-                let selectedSupplier = mat.supplier_name;
-                let selectedCost = Number(mat.cost_per_unit);
-
-                // --- MỚI: Lọc các giá hợp lệ (còn hiệu lực) ---
-                const now = new Date();
-                const validPrices = mat.supplier_prices?.filter(sp => {
-                    if (sp.valid_to) {
-                        const validToDate = new Date(sp.valid_to);
-                        // Set thời gian là cuối ngày (23:59:59) để tính bao gồm cả ngày hết hạn
-                        validToDate.setHours(23, 59, 59, 999);
-                        if (validToDate < now) return false;
-                    }
-                    return true;
-                }) || [];
-
-                // --- MỚI: Danh sách NCC khả dĩ để FE lookup giá ---
-                const possibleSuppliers = validPrices.map(sp => ({
-                    supplier_name: sp.supplier?.name,
-                    price: Number(sp.price),
-                    is_preferred: sp.is_preferred
-                }));
-                // ------------------------------------------------
-
-                if (validPrices.length > 0) {
-                    // Sắp xếp: Có giá > 0 lên đầu, sau đó đến Preferred, sau đó đến Giá thấp nhất
-                    const sortedPrices = validPrices.sort((a, b) => {
-                        const priceA = Number(a.price || 0);
-                        const priceB = Number(b.price || 0);
-
-                        // 1. Ưu tiên có giá > 0
-                        if (priceA > 0 && priceB <= 0) return -1;
-                        if (priceA <= 0 && priceB > 0) return 1;
-
-                        // 2. Nếu cùng có giá (hoặc cùng không), ưu tiên Preferred
-                        if (a.is_preferred && !b.is_preferred) return -1;
-                        if (!a.is_preferred && b.is_preferred) return 1;
-
-                        // 3. Giá thấp nhất
-                        return priceA - priceB;
-                    });
-
-                    const bestOption = sortedPrices[0];
-                    if (bestOption && bestOption.supplier) {
-                        selectedSupplier = bestOption.supplier.name;
-                        selectedCost = Number(bestOption.price);
-                    }
-                }
-
-                mrpResult.push({
-                    material_id: mat.id,
-                    material_code: mat.code,
-                    material_name: mat.name,
-                    supplier_name: selectedSupplier,
-                    gross_requirement: Math.ceil(gross),
-                    available_stock: Number(mat.quantity_in_stock),
-                    net_requirement: net,
-                    unit: mat.unit,
-                    reference_price: selectedCost, // Đã đổi tên từ cost -> reference_price
-                    purchase_price: purchasePriceMap.get(mat.id) || 0, // --- MỚI: Giá mua từ PO ---
-                    possible_suppliers: possibleSuppliers, // --- MỚI: Danh sách giá ---
-
-                    note: '',
-                    wastage_percent: materialWastageMap.get(mat.id) || 0,
-                    gross_raw: Math.ceil(materialDemandRaw.get(mat.id) || 0)
-                });
-            }
-        }
-
-        // 4. Kết quả Outsourcing (Gia công) - Gom nhóm theo NCC và Công đoạn (Optional)
-        // Ở đây ta trả về list raw để FE hiển thị, gom nhóm khi tạo PO
-        const outsourcingResult = outsourcingDemand;
-
-        // 5. Kết quả Logistics (Vận chuyển & Chi phí khác) --- MỚI ---
-        // Tổng hợp từ ProductLogistics của tất cả sản phẩm trong đơn hàng
-        const logisticsResult = [];
-        for (const [sku, qty] of totalProductDemand.entries()) {
-            const prodId = productInfoMap.get(sku);
-            if (prodId) {
-                const logs = await this.productsService.getLogistics(prodId);
-                for (const l of logs) {
-                    logisticsResult.push({
-                        product_sku: sku,
-                        name: l.name,
-                        cost: Number(l.cost),
-                        quantity: qty,
-                        total_cost: Number(l.cost) * qty,
-                        note: l.note
-                    });
-                }
-            }
-        }
-
-        const ganttData = plan.sales_orders.map(so => ({
-            id: so.order_code, name: `SX ${so.order_code}`, start: plan.start_date, end: so.delivery_date || plan.end_date, progress: 0
-        }));
-
-        plan.status = PlanStatus.CALCULATED;
-
-        // --- NEW: Lưu kết quả phân tích vào DB lần đầu ---
-        plan.mrp_data = mrpResult;
-        plan.outsourcing_data = outsourcingResult;
-        plan.logistics_data = logisticsResult;
-        // ------------------------------------------------
-
-        await this.planRepo.save(plan);
-
-        return {
-            plan_info: plan,
-            mrp_result: mrpResult,
-            outsourcing_result: outsourcingResult,
-            logistics_result: logisticsResult,
-            gantt_data: ganttData
-        };
+        return this.mrpCalculationService.calculateMaterialNeeds(planId);
     }
 
     async saveAnalysis(id: number, mrpData: any, outsourcingData: any, logisticsData: any) {
@@ -406,13 +112,10 @@ export class PlanningService {
 
     // --- HÀM TẠO PO (Dùng chung cho NPL và Gia Công) ---
     async generatePos(planId: number, data: any[]) {
-        // data: mảng các item (NPL hoặc Dịch vụ) kèm theo field 'note' từ Frontend
         const supplierGroups = {};
 
         for (const item of data) {
-            // Logic lọc: Với NPL là net > 0, với Gia công thì luôn tạo (quantity > 0)
             const qty = item.net_requirement !== undefined ? item.net_requirement : item.quantity;
-
             if (qty > 0) {
                 const suppName = item.supplier_name || 'Unknown';
                 if (!supplierGroups[suppName]) supplierGroups[suppName] = [];
@@ -422,59 +125,47 @@ export class PlanningService {
 
         const createdPos = [];
         for (const [suppName, items] of Object.entries(supplierGroups)) {
-            // Xác định loại PO dựa trên item đầu tiên (có material_id => NPL, không => Gia công)
             if (!items || (items as any[]).length === 0) continue;
             const isMaterial = (items as any)[0].material_id !== undefined;
 
             const po = this.poRepo.create({
                 po_code: `PO-${isMaterial ? 'NPL' : 'GC'}-${planId}-${Math.floor(Math.random() * 1000)}`,
-                type: isMaterial ? POType.MATERIAL : 'OUTSOURCING' as any, // Giả sử có type OUTSOURCING hoặc dùng SERVICE
+                type: isMaterial ? POType.MATERIAL : 'OUTSOURCING' as any,
                 plan_id: planId,
                 status: POStatus.DRAFT,
                 note: `Tự động từ Kế hoạch ${planId}. NCC: ${suppName}`
             });
 
-
-
-            // 1. Save PO Header first
             await this.poRepo.save(po);
 
-            // 2. Create and Save Items
             const poItems = (items as any[]).map(i => {
                 const price = isMaterial ? (i.reference_price || 0) : (i.unit_price || 0);
                 const sub = i.qtyToBuy * price;
-
-                const desc = isMaterial
-                    ? i.material_name
-                    : `${i.step_name} (${i.product_sku})`;
+                const desc = isMaterial ? i.material_name : `${i.step_name} (${i.product_sku})`;
 
                 const poItem = this.poItemRepo.create({
-                    purchase_order: po, // Explicit link
+                    purchase_order: po,
                     description: desc,
                     quantity: i.qtyToBuy,
                     unit_price: price,
                     subtotal: sub,
                     plan_id: planId,
                     material_id: isMaterial ? i.material_id : null,
-                    product_id: !isMaterial ? i.product_id : null, // --- FIX: SAVE PRODUCT ID ---
-                    // --- MỚI: Lưu thông tin gốc từ MRP ---
+                    product_id: !isMaterial ? i.product_id : null,
                     raw_quantity: i.gross_raw || 0,
                     wastage_rate: i.wastage_percent || 0,
                     total_quantity: i.gross_requirement || 0
                 });
 
                 if (isMaterial) poItem.material_id = i.material_id;
-
                 return poItem;
             });
 
             await this.poItemRepo.save(poItems);
 
-            // 3. Update total amount
             const totalAmount = poItems.reduce((acc, item) => acc + item.subtotal, 0);
             po.total_amount = totalAmount;
             await this.poRepo.save(po);
-
             createdPos.push(po.po_code);
         }
         return { message: `Đã tạo ${createdPos.length} Đơn đặt hàng`, pos: createdPos };
@@ -483,215 +174,33 @@ export class PlanningService {
     async findAll() { return this.planRepo.find({ order: { id: 'DESC' }, relations: ['sales_orders'] }); }
 
     async deletePlan(id: number) {
-        // 1. Check if plan exists
         const plan = await this.planRepo.findOne({ where: { id }, relations: ['sales_orders'] });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
 
-        // 2. Check if any PO created
         const existingPos = await this.poRepo.count({ where: { plan_id: id } });
         if (existingPos > 0) {
             throw new BadRequestException('Không thể xóa kế hoạch đã tạo Đơn mua hàng (PO)');
         }
 
-        // 3. Reset Sales Orders status (optional but recommended)
         if (plan.sales_orders && plan.sales_orders.length > 0) {
             await this.orderRepo.update({ production_plan: { id } }, { production_plan: null });
         }
 
-        // 4. Delete
         await this.planRepo.remove(plan);
         return { message: 'Đã xóa kế hoạch sản xuất' };
     }
 
+    // --- Delegate to MrpCalculationService ---
     async syncPoPrices(planId: number) {
-        const plan = await this.planRepo.findOne({ where: { id: planId } });
-        if (!plan) return;
-
-        // Fetch valid POs (Ordered or Completed or Confirmed)
-        // Assuming ORDERED is the status where price is finalized
-        const pos = await this.poRepo.find({
-            where: {
-                plan_id: planId,
-                status: In([POStatus.CONFIRMED, POStatus.COMPLETED, 'ORDERED' as POStatus]) // Handle both enum values if needed
-            },
-            relations: ['items']
-        });
-
-        const priceMap = new Map<number, number>(); // MaterialID -> Price
-        const outsourcePriceMap = new Map<string, number>(); // Description -> Price
-
-        for (const po of pos) {
-            for (const item of po.items) {
-                if (item.material_id) {
-                    priceMap.set(item.material_id, Number(item.unit_price));
-                } else {
-                    outsourcePriceMap.set(item.description, Number(item.unit_price));
-                }
-            }
-        }
-
-        // Update MRP Result
-        let changed = false;
-        if (plan.mrp_result && Array.isArray(plan.mrp_result)) {
-            plan.mrp_result = plan.mrp_result.map((item: any) => {
-                if (item.material_id && priceMap.has(item.material_id)) {
-                    const newPrice = priceMap.get(item.material_id);
-                    if (item.purchase_price !== newPrice) {
-                        changed = true;
-                        return { ...item, purchase_price: newPrice };
-                    }
-                }
-                return item;
-            });
-        }
-
-        // Update Outsourcing Result (Best effort match by description)
-        if (plan.outsourcing_result && Array.isArray(plan.outsourcing_result)) {
-            plan.outsourcing_result = plan.outsourcing_result.map((item: any) => {
-                const desc = `${item.step_name} (${item.product_sku})`; // Logic used in creation
-                if (outsourcePriceMap.has(desc)) {
-                    const newPrice = outsourcePriceMap.get(desc);
-                    if (item.unit_price !== newPrice) {
-                        changed = true;
-                        return { ...item, unit_price: newPrice, total_cost: Number(item.quantity) * Number(newPrice) };
-                    }
-                }
-                return item;
-            });
-        }
-
-        if (changed) {
-            await this.planRepo.save(plan);
-        }
+        return this.mrpCalculationService.syncPoPrices(planId);
     }
 
-    // --- Gantt Chart: Lấy các kế hoạch chưa hoàn thiện kèm công đoạn sản phẩm ---
+    // --- Delegate to GanttService ---
     async getGanttData() {
-        const plans = await this.planRepo.find({
-            where: { status: In([PlanStatus.DRAFT, PlanStatus.CALCULATED]) },
-            relations: [
-                'sales_orders',
-                'sales_orders.items',
-                'sales_orders.items.product',
-                'sales_orders.items.product.routings',
-                'sales_orders.items.product.routings.process'
-            ],
-            order: { id: 'DESC' }
-        });
-
-        // Batch load POs for all plans
-        const planIds = plans.map(p => p.id);
-        let allPos: any[] = [];
-        if (planIds.length > 0) {
-            allPos = await this.poRepo.find({
-                where: { plan_id: In(planIds) },
-                relations: ['items'],
-                select: ['id', 'plan_id', 'status', 'type']
-            });
-        }
-
-        const now = new Date();
-
-        return plans.map(plan => {
-            // --- NPL Status ---
-            const planPos = allPos.filter(po => po.plan_id === plan.id);
-            const materialPos = planPos.filter(po => po.type === 'MATERIAL');
-            const mrpItems = Array.isArray(plan.mrp_data) ? plan.mrp_data : [];
-            const totalMaterials = mrpItems.filter((m: any) => (m.net_requirement || 0) > 0).length;
-
-            // Count materials that have been ordered (PO exists with status >= ORDERED)
-            const orderedMaterialIds = new Set<number>();
-            for (const po of materialPos) {
-                if (['ORDERED', 'CONFIRMED', 'DELIVERED', 'COMPLETED'].includes(po.status)) {
-                    for (const item of (po.items || [])) {
-                        if (item.material_id) orderedMaterialIds.add(item.material_id);
-                    }
-                }
-            }
-            const purchasedCount = mrpItems.filter((m: any) =>
-                (m.net_requirement || 0) > 0 && orderedMaterialIds.has(m.material_id)
-            ).length;
-
-            let nplStatus: 'FULL' | 'PARTIAL' | 'NONE' = 'NONE';
-            if (totalMaterials > 0 && purchasedCount >= totalMaterials) nplStatus = 'FULL';
-            else if (purchasedCount > 0) nplStatus = 'PARTIAL';
-
-            // --- Delivery Warnings ---
-            const deliveryWarnings: any[] = [];
-            for (const so of (plan.sales_orders || [])) {
-                if (so.delivery_date) {
-                    const deliveryDate = new Date(so.delivery_date);
-                    const diffMs = deliveryDate.getTime() - now.getTime();
-                    const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-                    if (daysLeft <= 7) {
-                        deliveryWarnings.push({
-                            order_code: so.order_code,
-                            delivery_date: so.delivery_date,
-                            days_left: daysLeft,
-                            level: daysLeft <= 0 ? 'OVERDUE' : 'URGENT' // ≤0 = quá hạn, 1-7 = sắp đến hạn
-                        });
-                    }
-                }
-            }
-
-            // --- Products & Steps ---
-            const productMap = new Map<string, { sku: string; product_name: string; steps: any[] }>();
-            for (const so of (plan.sales_orders || [])) {
-                for (const item of (so.items || [])) {
-                    if (!item.product) continue;
-                    const sku = item.sku || item.product.sku;
-                    if (productMap.has(sku)) continue;
-
-                    // Check if gantt_config has custom step data
-                    const config = plan.gantt_config?.[sku];
-
-                    const steps = (item.product.routings || [])
-                        .sort((a, b) => (a.step_order || 0) - (b.step_order || 0))
-                        .map((r, idx) => {
-                            const configStep = config?.steps?.find((cs: any) => cs.step_name === (r.step_name || r.process?.name));
-                            return {
-                                step_name: r.step_name || r.process?.name || 'N/A',
-                                step_order: config?.step_order?.[idx] ?? r.step_order ?? idx,
-                                process_code: r.process?.code || '',
-                                supplier_name: r.supplier?.name || null,
-                                start_date: configStep?.start_date || null,
-                                end_date: configStep?.end_date || null
-                            };
-                        });
-
-                    // Re-sort by custom step_order if exists
-                    if (config?.step_order) {
-                        steps.sort((a, b) => a.step_order - b.step_order);
-                    }
-
-                    productMap.set(sku, {
-                        sku,
-                        product_name: item.product.name || sku,
-                        steps
-                    });
-                }
-            }
-
-            return {
-                plan_id: plan.id,
-                plan_code: plan.code,
-                plan_name: plan.name,
-                start_date: plan.start_date,
-                end_date: plan.end_date,
-                status: plan.status,
-                products: Array.from(productMap.values()),
-                npl_status: { total: totalMaterials, purchased: purchasedCount, status: nplStatus },
-                delivery_warnings: deliveryWarnings
-            };
-        });
+        return this.ganttService.getGanttData();
     }
 
-    // --- Lưu cấu hình Gantt (step order + timing) ---
     async saveGanttConfig(planId: number, config: any) {
-        const plan = await this.planRepo.findOneBy({ id: planId });
-        if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
-        plan.gantt_config = config;
-        await this.planRepo.save(plan);
-        return { message: 'Đã lưu cấu hình Gantt' };
+        return this.ganttService.saveGanttConfig(planId, config);
     }
 }
