@@ -16,7 +16,7 @@ const { RangePicker } = DatePicker;
 const PlanningPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('PENDING');
     const [loading, setLoading] = useState(false);
-    const isMobile = useMobile();
+    const isMobile = !!useMobile();
 
     // Data State
     const [pendingOrders, setPendingOrders] = useState<any[]>([]);
