@@ -34,7 +34,15 @@ import {
     TeamOutlined,
     CalendarOutlined,
     ClockCircleOutlined,
-    IdcardOutlined
+    IdcardOutlined,
+    ToolOutlined,
+    TruckOutlined,
+    ApartmentOutlined,
+    OrderedListOutlined,
+    ThunderboltOutlined,
+    InboxOutlined,
+    SwapOutlined,
+    FileSearchOutlined
 } from '@ant-design/icons';
 
 const { Header, Content, Sider } = Layout;
@@ -1435,6 +1443,484 @@ const HelpPage: React.FC = () => {
                         </Row>
                     </div>
                 );
+            case 'mrp-guide':
+                return (
+                    <div>
+                        <Tag color="volcano" style={{ marginBottom: 16 }}>Quy trình vận hành tiêu chuẩn (SOP)</Tag>
+                        <Title level={2}>🏭 Lập Kế Hoạch Sản Xuất & MRP</Title>
+                        <Paragraph>
+                            Tài liệu hướng dẫn quy trình lập kế hoạch sản xuất, tính toán nhu cầu nguyên phụ liệu (MRP),
+                            và tạo đơn đặt hàng (PO) cho Nguyên phụ liệu (NPL) và Gia công (GC).
+                        </Paragraph>
+
+                        <Alert
+                            message="Mục tiêu SOP"
+                            description={
+                                <ul style={{ marginBottom: 0 }}>
+                                    <li>Cung ứng vật tư kịp thời, đúng số lượng và chất lượng.</li>
+                                    <li>Tối ưu hóa tồn kho, tận dụng tối đa nguyên liệu có sẵn.</li>
+                                    <li>Đồng bộ hóa thông tin giữa Kinh doanh, Kế hoạch và Mua hàng.</li>
+                                </ul>
+                            }
+                            type="info"
+                            showIcon
+                            style={{ marginBottom: 24 }}
+                        />
+
+                        {/* Sơ đồ tổng quát */}
+                        <Card style={{ marginBottom: 24, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 0, borderRadius: 12 }}>
+                            <Title level={4} style={{ color: '#fff', marginBottom: 16 }}>🔄 Luồng Quy Trình Tổng Quát</Title>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                                {[
+                                    { icon: <InboxOutlined />, label: '1. Gom Đơn' },
+                                    { icon: <ProjectOutlined />, label: '2. Lập KH' },
+                                    { icon: <CalculatorOutlined />, label: '3. Chạy MRP' },
+                                    { icon: <EditOutlined />, label: '4. Tinh chỉnh' },
+                                    { icon: <FileDoneOutlined />, label: '5. Tạo PO' },
+                                    { icon: <ShopOutlined />, label: '6. Bàn giao' },
+                                ].map((step, i) => (
+                                    <React.Fragment key={i}>
+                                        <div style={{ textAlign: 'center', minWidth: 90 }}>
+                                            <div style={{ fontSize: 28, color: '#fff', marginBottom: 4 }}>{step.icon}</div>
+                                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{step.label}</Text>
+                                        </div>
+                                        {i < 5 && <div style={{ color: '#fff', fontSize: 20, opacity: 0.6 }}>➜</div>}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </Card>
+
+                        {/* BƯỚC 1 */}
+                        <Card
+                            title={<span><Tag color="blue">Bước 1</Tag> Tiếp nhận & Gom Đơn hàng</span>}
+                            style={{ marginBottom: 20, borderLeft: '4px solid #1890ff' }}
+                        >
+                            <Paragraph type="secondary">Tập hợp các đơn hàng lẻ thành đợt sản xuất (Batch) để tối ưu chi phí.</Paragraph>
+                            <Steps direction="vertical" size="small" current={-1} items={[
+                                {
+                                    title: <Text strong>Truy cập module Planning</Text>,
+                                    description: 'Vào Planning > Tab "Gom Đơn Lập Kế Hoạch".',
+                                    icon: <ProjectOutlined style={{ color: '#1890ff' }} />
+                                },
+                                {
+                                    title: <Text strong>Lọc theo Ngày giao hàng</Text>,
+                                    description: 'Nhóm các đơn cùng khung thời gian giao hàng.',
+                                    icon: <SearchOutlined style={{ color: '#1890ff' }} />
+                                },
+                                {
+                                    title: <Text strong>Kiểm tra Tồn kho Thành phẩm</Text>,
+                                    description: (
+                                        <div>
+                                            <ul>
+                                                <li>Nếu có nút <Tag color="green">Xuất Kho</Tag>: Xuất trực tiếp, không cần lập kế hoạch SX.</li>
+                                                <li>Nếu thiếu hàng: Tick chọn đơn và tiếp tục bước kế tiếp.</li>
+                                            </ul>
+                                        </div>
+                                    ),
+                                    icon: <ContainerOutlined style={{ color: '#52c41a' }} />
+                                },
+                                {
+                                    title: <Text strong>Tạo Kế hoạch</Text>,
+                                    description: 'Nhấn "Lập Kế Hoạch", nhập Mã KH (VD: KH-T10-D1), Tên đợt, Thời gian dự kiến.',
+                                    icon: <PlusOutlined style={{ color: '#722ed1' }} />
+                                }
+                            ]} />
+                        </Card>
+
+                        {/* BƯỚC 2 */}
+                        <Card
+                            title={<span><Tag color="orange">Bước 2</Tag> Phân Tích Nhu Cầu (MRP Analysis)</span>}
+                            style={{ marginBottom: 20, borderLeft: '4px solid #fa8c16' }}
+                        >
+                            <Paragraph type="secondary">
+                                Tính toán chính xác lượng NPL cần mua và hàng cần gia công dựa trên BOM (Định mức) & Tồn kho.
+                            </Paragraph>
+                            <Steps direction="vertical" size="small" current={-1} items={[
+                                {
+                                    title: <Text strong>Mở Danh Sách Kế Hoạch</Text>,
+                                    description: 'Tab "Danh Sách Kế Hoạch" > Tìm kế hoạch vừa tạo.',
+                                    icon: <OrderedListOutlined style={{ color: '#fa8c16' }} />
+                                },
+                                {
+                                    title: <Text strong>Nhấn "Phân Tích" (Analyze)</Text>,
+                                    description: 'Hệ thống tự động tính toán và hiển thị 3 phần:',
+                                    icon: <ThunderboltOutlined style={{ color: '#fa8c16' }} />
+                                }
+                            ]} />
+                            <Row gutter={[12, 12]} style={{ marginTop: 16 }}>
+                                <Col span={8}>
+                                    <Card size="small" style={{ background: '#e6f7ff', borderColor: '#91d5ff', textAlign: 'center' }}>
+                                        <DatabaseOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+                                        <div style={{ fontWeight: 600, marginTop: 6 }}>Nhu cầu NPL (MRP)</div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>Vải, phụ liệu, nguyên liệu...</Text>
+                                    </Card>
+                                </Col>
+                                <Col span={8}>
+                                    <Card size="small" style={{ background: '#fff7e6', borderColor: '#ffd591', textAlign: 'center' }}>
+                                        <ToolOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
+                                        <div style={{ fontWeight: 600, marginTop: 6 }}>Nhu cầu Gia Công</div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>In, Thêu, May gia công...</Text>
+                                    </Card>
+                                </Col>
+                                <Col span={8}>
+                                    <Card size="small" style={{ background: '#f6ffed', borderColor: '#b7eb8f', textAlign: 'center' }}>
+                                        <TruckOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+                                        <div style={{ fontWeight: 600, marginTop: 6 }}>Chi phí Logistics</div>
+                                        <Text type="secondary" style={{ fontSize: 12 }}>Vận chuyển, đóng gói...</Text>
+                                    </Card>
+                                </Col>
+                            </Row>
+                        </Card>
+
+                        {/* BƯỚC 3 */}
+                        <Card
+                            title={<span><Tag color="red">Bước 3</Tag> <Text strong>Tinh Chỉnh & Cân Đối Vật Tư (QUAN TRỌNG)</Text></span>}
+                            style={{ marginBottom: 20, borderLeft: '4px solid #f5222d' }}
+                        >
+                            <Alert
+                                message="Bước quan trọng nhất"
+                                description="Planner cần rà soát kỹ lưỡng kết quả MRP trước khi tạo PO. Đây là bước quyết định hiệu quả mua hàng."
+                                type="warning"
+                                showIcon
+                                style={{ marginBottom: 16 }}
+                            />
+                            <Row gutter={[16, 16]}>
+                                <Col span={12}>
+                                    <Card title={<span><DatabaseOutlined /> Tab 1: Nguyên Phụ Liệu (NPL)</span>} size="small" bordered style={{ borderColor: '#91d5ff' }}>
+                                        <ul>
+                                            <li><b>Tồn Kho:</b> Cột hiển thị số lượng thực tế.</li>
+                                            <li><b>Dùng Kho (☑):</b> Mặc định tích. Bỏ tích nếu muốn giữ tồn cho đơn khác.</li>
+                                            <li><b>Cần Mua (SL):</b> = Nhu cầu − Tồn kho. Có thể sửa tay (VD: Làm tròn theo quy cách đóng gói NCC).</li>
+                                            <li><b>Chọn NCC:</b> Hệ thống gợi ý NCC ưu tiên. Có thể đổi NCC khác, giá tham khảo tự cập nhật.</li>
+                                        </ul>
+                                    </Card>
+                                </Col>
+                                <Col span={12}>
+                                    <Card title={<span><ToolOutlined /> Tab 2: Gia Công</span>} size="small" bordered style={{ borderColor: '#ffd591' }}>
+                                        <ul>
+                                            <li>Rà soát các công đoạn thuê ngoài (In, Thêu, May...).</li>
+                                            <li>Chọn <b>Nhà gia công</b> phù hợp.</li>
+                                            <li>Kiểm tra <b>Đơn giá</b> và <b>Số lượng</b>.</li>
+                                        </ul>
+                                    </Card>
+                                </Col>
+                            </Row>
+                            <div style={{ marginTop: 16, textAlign: 'center' }}>
+                                <Button type="primary" icon={<SaveOutlined />} size="large" disabled>Lưu Kết Quả</Button>
+                                <div style={{ marginTop: 8 }}><Text type="secondary">Nhấn "Lưu Kết Quả" sau khi điều chỉnh xong</Text></div>
+                            </div>
+                        </Card>
+
+                        {/* BƯỚC 4 */}
+                        <Card
+                            title={<span><Tag color="green">Bước 4</Tag> Tạo Đơn Đặt Hàng (Generate PO)</span>}
+                            style={{ marginBottom: 20, borderLeft: '4px solid #52c41a' }}
+                        >
+                            <Alert
+                                message="Nguyên tắc: Chỉ tạo PO khi đã chốt phương án vật tư."
+                                type="info"
+                                showIcon
+                                style={{ marginBottom: 16 }}
+                            />
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Button type="primary" block size="large" icon={<DatabaseOutlined />} disabled
+                                        style={{ height: 60, background: '#1890ff', borderColor: '#1890ff' }}>
+                                        Tạo PO Nguyên Liệu (NPL)
+                                    </Button>
+                                    <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginTop: 8 }}>Mua vải, phụ liệu, bao bì...</Text>
+                                </Col>
+                                <Col span={12}>
+                                    <Button type="primary" block size="large" icon={<ToolOutlined />} disabled
+                                        style={{ height: 60, background: '#fa8c16', borderColor: '#fa8c16' }}>
+                                        Tạo Đơn Gia Công (GC)
+                                    </Button>
+                                    <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginTop: 8 }}>In, Thêu, May thuê ngoài...</Text>
+                                </Col>
+                            </Row>
+                            <Divider dashed />
+                            <Paragraph><b>Cơ chế tạo PO:</b></Paragraph>
+                            <ul>
+                                <li>Hệ thống tự động <Tag color="blue">GOM THEO NCC</Tag> — các vật tư cùng nhà cung cấp → 1 PO.</li>
+                                <li>Chỉ tạo PO cho các dòng có <b>Cần mua (SL) {'>'} 0</b>.</li>
+                                <li>PO được tạo ở trạng thái <Tag>Nháp (Draft)</Tag>.</li>
+                            </ul>
+                        </Card>
+
+                        {/* BƯỚC 5 */}
+                        <Card
+                            title={<span><Tag color="purple">Bước 5</Tag> Bàn Giao & Theo Dõi</span>}
+                            style={{ marginBottom: 20, borderLeft: '4px solid #722ed1' }}
+                        >
+                            <Row gutter={[16, 16]}>
+                                <Col span={12}>
+                                    <Card title="Team Mua Hàng" size="small" bordered={false} style={{ background: '#f0f5ff' }}>
+                                        <Steps direction="vertical" size="small" current={-1} items={[
+                                            { title: 'Review PO Nháp', description: 'Kiểm tra giá, điều khoản, ghi chú.' },
+                                            { title: 'Gửi PO', description: 'Sent → Confirmed → Ordered.' },
+                                            { title: 'Gộp PO (Pooling)', description: 'Gom nhiều PO cùng NCC thành 1 đơn lớn.' },
+                                        ]} />
+                                    </Card>
+                                </Col>
+                                <Col span={12}>
+                                    <Card title="Team MRP" size="small" bordered={false} style={{ background: '#f9f0ff' }}>
+                                        <Steps direction="vertical" size="small" current={-1} items={[
+                                            { title: 'Gantt Chart', description: 'Theo dõi tiến độ các kế hoạch.' },
+                                            { title: 'Trạng thái', description: <div><Tag color="green">Xanh</Tag> Hoàn tất | <Tag color="gold">Vàng</Tag> Mới tạo | <Tag color="red">Đỏ</Tag> Trễ tiến độ</div> },
+                                        ]} />
+                                    </Card>
+                                </Col>
+                            </Row>
+                        </Card>
+
+                        {/* Troubleshooting */}
+                        <Divider orientation="left">🔧 Xử lý Sự cố Thường gặp</Divider>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #f0f0f0' }}>
+                                <thead>
+                                    <tr style={{ background: '#fafafa' }}>
+                                        <th style={{ padding: 12, border: '1px solid #f0f0f0', textAlign: 'left' }}>Vấn đề</th>
+                                        <th style={{ padding: 12, border: '1px solid #f0f0f0', textAlign: 'left' }}>Nguyên nhân</th>
+                                        <th style={{ padding: 12, border: '1px solid #f0f0f0', textAlign: 'left' }}>Cách xử lý</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Không thấy đơn hàng trong "Gom Đơn"</td>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Đơn hàng chưa được duyệt</td>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Liên hệ Sales kiểm tra trạng thái (Phải là <Tag>APPROVED</Tag> hoặc <Tag>DEPOSITED</Tag>).</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Tồn kho hiển thị sai</td>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Dữ liệu chưa cập nhật</td>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Kiểm tra module Inventory. Nhấn "Làm mới" trên trang Planning.</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Giá tham khảo = 0</td>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Chưa có bảng giá NCC</td>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Cập nhật giá thủ công hoặc liên hệ Mua hàng cập nhật Bảng giá NCC.</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Lỗi khi tạo PO</td>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Thiếu NCC hoặc lỗi mạng</td>
+                                        <td style={{ padding: 10, border: '1px solid #f0f0f0' }}>Kiểm tra trường "Nhà Cung Cấp" trên từng dòng. Đảm bảo không để trống.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            case 'po-npl':
+                return (
+                    <div>
+                        <Tag color="blue" style={{ marginBottom: 16 }}>Modules: Purchasing (NPL)</Tag>
+                        <Title level={2}>📦 Quản Lý Đơn Mua Nguyên Phụ Liệu (PO NPL)</Title>
+                        <Paragraph>
+                            Hướng dẫn quản lý các Đơn đặt hàng Nguyên Phụ Liệu (PO NPL), từ khi được tạo từ MRP đến khi nhận hàng hoàn tất.
+                        </Paragraph>
+
+                        <Card title="Vòng đời Đơn Mua NPL" style={{ marginBottom: 24, borderColor: '#91d5ff' }}>
+                            <Steps size="small" current={-1} items={[
+                                { title: <span><Tag color="default">DRAFT</Tag></span>, description: 'PO mới tạo từ MRP' },
+                                { title: <span><Tag color="processing">SENT</Tag></span>, description: 'Gửi cho NCC' },
+                                { title: <span><Tag color="warning">CONFIRMED</Tag></span>, description: 'NCC xác nhận' },
+                                { title: <span><Tag color="blue">ORDERED</Tag></span>, description: 'Đã đặt hàng' },
+                                { title: <span><Tag color="cyan">DELIVERED</Tag></span>, description: 'Đã giao đủ' },
+                                { title: <span><Tag color="success">COMPLETED</Tag></span>, description: 'Hoàn tất' },
+                            ]} />
+                        </Card>
+
+                        <Card title="1. Xem & Chỉnh sửa PO" style={{ marginBottom: 20, borderLeft: '4px solid #1890ff' }}>
+                            <Steps direction="vertical" size="small" current={-1} items={[
+                                {
+                                    title: <Text strong>Truy cập module Mua Hàng</Text>,
+                                    description: 'Vào Purchasing > Tab "Tất cả" hoặc "NPL".',
+                                    icon: <ShopOutlined style={{ color: '#1890ff' }} />
+                                },
+                                {
+                                    title: <Text strong>Nhấn vào dòng PO</Text>,
+                                    description: 'Drawer chi tiết hiện ra với thông tin NCC, các dòng hàng, giá và số lượng.',
+                                    icon: <FileSearchOutlined style={{ color: '#1890ff' }} />
+                                },
+                                {
+                                    title: <Text strong>Chỉnh sửa (nếu cần)</Text>,
+                                    description: (
+                                        <ul>
+                                            <li><b>Số lượng:</b> Sửa trực tiếp trên bảng.</li>
+                                            <li><b>Đơn giá:</b> Cập nhật theo thỏa thuận thực tế với NCC.</li>
+                                            <li><b>Ghi chú:</b> Thêm note đặc biệt cho từng dòng hàng.</li>
+                                        </ul>
+                                    ),
+                                    icon: <EditOutlined style={{ color: '#fa8c16' }} />
+                                },
+                                {
+                                    title: <Text strong>Lưu thay đổi</Text>,
+                                    description: 'Nhấn "Lưu" để cập nhật. Hệ thống tự tính lại tổng tiền.',
+                                    icon: <SaveOutlined style={{ color: '#52c41a' }} />
+                                },
+                            ]} />
+                        </Card>
+
+                        <Card title="2. In Đơn Mua Hàng" style={{ marginBottom: 20, borderLeft: '4px solid #722ed1' }}>
+                            <Paragraph>Hệ thống hỗ trợ nhiều mẫu in:</Paragraph>
+                            <Row gutter={16}>
+                                <Col span={8}>
+                                    <Card size="small" style={{ textAlign: 'center', background: '#f0f5ff' }}>
+                                        <div style={{ fontWeight: 600 }}>📄 Mẫu Chuẩn</div>
+                                        <Text type="secondary">Đơn mua hàng NPL tiêu chuẩn</Text>
+                                    </Card>
+                                </Col>
+                                <Col span={8}>
+                                    <Card size="small" style={{ textAlign: 'center', background: '#fff7e6' }}>
+                                        <div style={{ fontWeight: 600 }}>📄 Mẫu Gia Công</div>
+                                        <Text type="secondary">Đơn đặt hàng gia công</Text>
+                                    </Card>
+                                </Col>
+                                <Col span={8}>
+                                    <Card size="small" style={{ textAlign: 'center', background: '#f6ffed' }}>
+                                        <div style={{ fontWeight: 600 }}>📄 Mẫu CARA/HQ</div>
+                                        <Text type="secondary">Mẫu nội bộ công ty</Text>
+                                    </Card>
+                                </Col>
+                            </Row>
+                        </Card>
+
+                        <Card title="3. Gộp PO (Pooling)" style={{ marginBottom: 20, borderLeft: '4px solid #13c2c2' }}>
+                            <Alert
+                                message="Khi nào cần gộp PO?"
+                                description="Khi có nhiều PO nhỏ lẻ cho cùng 1 NCC (từ các kế hoạch khác nhau), hãy gộp thành 1 PO lớn để tiện giao nhận và thanh toán."
+                                type="info"
+                                showIcon
+                                style={{ marginBottom: 16 }}
+                            />
+                            <Steps direction="vertical" size="small" current={-1} items={[
+                                { title: 'Bước 1', description: 'Vào tab "Yêu Cầu" (Requirements) hoặc "PO Gộp".' },
+                                { title: 'Bước 2', description: 'Tick chọn các PO cùng loại (NPL hoặc Gia công) cần gộp.' },
+                                { title: 'Bước 3', description: 'Chọn Nhà cung cấp cho PO gộp.' },
+                                { title: 'Bước 4', description: 'Nhấn "Tạo PO Gộp". Các PO con sẽ được link vào PO gộp.' },
+                            ]} />
+                        </Card>
+                    </div>
+                );
+            case 'po-gc':
+                return (
+                    <div>
+                        <Tag color="orange" style={{ marginBottom: 16 }}>Modules: Purchasing (Gia Công)</Tag>
+                        <Title level={2}>🔧 Quản Lý Đơn Gia Công (PO GC)</Title>
+                        <Paragraph>
+                            Hướng dẫn quản lý các Đơn đặt hàng Gia công (PO GC) — theo dõi từ đặt hàng, giao NPL cho xưởng,
+                            đến nhận lại thành phẩm.
+                        </Paragraph>
+
+                        <Card
+                            title={<span>📋 Chi tiết Đơn Gia Công</span>}
+                            style={{ marginBottom: 24, borderLeft: '4px solid #fa8c16' }}
+                        >
+                            <Paragraph>Mỗi PO Gia công bao gồm 3 phần thông tin chính:</Paragraph>
+                            <Row gutter={[16, 16]}>
+                                <Col span={8}>
+                                    <Card size="small" style={{ background: '#e6f7ff', textAlign: 'center', height: '100%' }}>
+                                        <FileDoneOutlined style={{ fontSize: 28, color: '#1890ff' }} />
+                                        <div style={{ fontWeight: 600, marginTop: 8 }}>Tab 1: Hạng Mục</div>
+                                        <Text type="secondary">Danh sách công đoạn, SL, đơn giá</Text>
+                                    </Card>
+                                </Col>
+                                <Col span={8}>
+                                    <Card size="small" style={{ background: '#fff7e6', textAlign: 'center', height: '100%' }}>
+                                        <TruckOutlined style={{ fontSize: 28, color: '#fa8c16' }} />
+                                        <div style={{ fontWeight: 600, marginTop: 8 }}>Tab 2: Giao NPL</div>
+                                        <Text type="secondary">Quản lý giao nguyên liệu đến xưởng</Text>
+                                    </Card>
+                                </Col>
+                                <Col span={8}>
+                                    <Card size="small" style={{ background: '#f6ffed', textAlign: 'center', height: '100%' }}>
+                                        <AppstoreAddOutlined style={{ fontSize: 28, color: '#52c41a' }} />
+                                        <div style={{ fontWeight: 600, marginTop: 8 }}>Tab 3: Đóng Gói</div>
+                                        <Text type="secondary">Matrix chi tiết theo size/màu</Text>
+                                    </Card>
+                                </Col>
+                            </Row>
+                        </Card>
+
+                        <Card
+                            title={<span><TruckOutlined /> Quy Trình Giao NPL Cho Xưởng Gia Công</span>}
+                            style={{ marginBottom: 20, borderLeft: '4px solid #fa8c16' }}
+                        >
+                            <Alert
+                                message="Tại sao cần theo dõi NPL giao cho xưởng?"
+                                description="Khi thuê gia công ngoài, doanh nghiệp phải giao NPL (vải, chỉ, nút...) cho xưởng. Cần ghi nhận chính xác số lượng giao để đối chiếu khi nhận lại thành phẩm."
+                                type="warning"
+                                showIcon
+                                style={{ marginBottom: 16 }}
+                            />
+                            <Steps direction="vertical" size="small" current={-1} items={[
+                                {
+                                    title: <Text strong>Mở PO Gia công</Text>,
+                                    description: 'Vào module Mua Hàng > Tab "Gia Công" > Nhấn vào PO cần theo dõi.',
+                                    icon: <FileSearchOutlined style={{ color: '#1890ff' }} />
+                                },
+                                {
+                                    title: <Text strong>Nhấn nút "Xe Tải" (Theo dõi NPL)</Text>,
+                                    description: 'Hệ thống hiện bảng danh sách NPL cần giao cho xưởng (tự động tính từ BOM).',
+                                    icon: <TruckOutlined style={{ color: '#fa8c16' }} />
+                                },
+                                {
+                                    title: <Text strong>Cập nhật SL đã giao</Text>,
+                                    description: 'Nhập số lượng thực tế đã giao cho từng loại nguyên liệu.',
+                                    icon: <EditOutlined style={{ color: '#52c41a' }} />
+                                },
+                                {
+                                    title: <Text strong>Lưu & Đối chiếu</Text>,
+                                    description: 'Hệ thống lưu lịch sử giao nhận. Khi nhận lại thành phẩm, đối chiếu số lượng NPL đã giao.',
+                                    icon: <SaveOutlined style={{ color: '#722ed1' }} />
+                                },
+                            ]} />
+                        </Card>
+
+                        <Card
+                            title={<span><AppstoreAddOutlined /> Chi Tiết Đóng Gói (Packing List)</span>}
+                            style={{ marginBottom: 20, borderLeft: '4px solid #52c41a' }}
+                        >
+                            <Paragraph>
+                                Tab Đóng Gói dùng để ghi nhận chi tiết về sản phẩm gia công theo dạng <b>Ma trận (Matrix)</b>.
+                            </Paragraph>
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Card size="small" title="Chức năng" bordered={false} style={{ background: '#f6ffed' }}>
+                                        <ul>
+                                            <li>Khai báo các <b>dòng hàng</b> (VD: Áo Polo Trắng, Áo Polo Đen...)</li>
+                                            <li>Nhập số lượng theo <b>Size</b> (S, M, L, XL...)</li>
+                                            <li>Tự động tính <b>Tổng SL</b> mỗi dòng</li>
+                                        </ul>
+                                    </Card>
+                                </Col>
+                                <Col span={12}>
+                                    <Card size="small" title="Ứng dụng" bordered={false} style={{ background: '#fff7e6' }}>
+                                        <ul>
+                                            <li><b>Kiểm hàng nhận về:</b> Đối chiếu SL nhận vs SL đặt.</li>
+                                            <li><b>In Packing List:</b> Kèm theo khi giao hàng cho khách.</li>
+                                            <li><b>Báo cáo:</b> Thống kê SL gia công theo đơn hàng.</li>
+                                        </ul>
+                                    </Card>
+                                </Col>
+                            </Row>
+                        </Card>
+
+                        <Alert
+                            message="Lưu ý khi nhận hàng gia công"
+                            description={
+                                <ul style={{ marginBottom: 0 }}>
+                                    <li>Luôn đối chiếu số lượng nhận vs Packing List.</li>
+                                    <li>Kiểm tra chất lượng sản phẩm trước khi nhập kho (QC).</li>
+                                    <li>Ghi nhận phần thừa/thiếu NPL để quyết toán với xưởng gia công.</li>
+                                </ul>
+                            }
+                            type="warning"
+                            showIcon
+                            style={{ marginTop: 16 }}
+                        />
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -1495,7 +1981,9 @@ const HelpPage: React.FC = () => {
                             label: 'Phân hệ Sản Xuất',
                             icon: <ExperimentOutlined />,
                             children: [
-                                { key: 'mrp-guide', label: 'Lập Kế Hoạch (MRP)' },
+                                { key: 'mrp-guide', label: 'SOP: Lập Kế Hoạch (MRP)' },
+                                { key: 'po-npl', label: 'PO Nguyên Phụ Liệu' },
+                                { key: 'po-gc', label: 'PO Gia Công' },
                                 { key: 'product-guide', label: 'Cấu trúc Sản phẩm' },
                                 { key: 'combo-guide', label: 'Quản lý Combo' },
                             ]
