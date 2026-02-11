@@ -1,0 +1,253 @@
+import React from 'react';
+import { Table, Button, Row, Col, Statistic, Tag, Tabs, Select, InputNumber, Checkbox, Input, Progress, Modal } from 'antd';
+import { DollarOutlined, ShoppingCartOutlined, ScissorOutlined, TruckOutlined, AppstoreAddOutlined, ExperimentOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+
+const { Option } = Select;
+
+interface PlanDashboardTabProps {
+    plans: any[];
+    mrpData: any;
+    outsourcingList: any[];
+    logisticsList: any[];
+    suppliers: any[];
+    costBasis: 'REFERENCE' | 'PURCHASE';
+    setCostBasis: (v: 'REFERENCE' | 'PURCHASE') => void;
+    isMobile: boolean;
+    loading: boolean;
+    isDashboardOpen: boolean;
+    setIsDashboardOpen: (v: boolean) => void;
+    onRunMrp: (planId: number) => void;
+    onDeletePlan: (id: number) => void;
+    onDataChange: (type: 'MATERIAL' | 'OUTSOURCING', index: number, field: string, value: any) => void;
+    onToggleStock: (index: number, checked: boolean) => void;
+    onGeneratePOs: (type: 'MATERIAL' | 'OUTSOURCING') => void;
+    onSaveAnalysis: () => void;
+}
+
+const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
+    plans, mrpData, outsourcingList, logisticsList, suppliers, costBasis, setCostBasis, isMobile, loading,
+    isDashboardOpen, setIsDashboardOpen,
+    onRunMrp, onDeletePlan, onDataChange, onToggleStock, onGeneratePOs, onSaveAnalysis
+}) => {
+    const planColumns = [
+        { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
+        { title: 'Tên Đợt', dataIndex: 'name' },
+        { title: 'Thời Gian', render: (r: any) => <small>{dayjs(r.start_date).format('DD/MM')} - {dayjs(r.end_date).format('DD/MM')}</small> },
+        { title: 'Trạng Thái', dataIndex: 'status', align: 'center' as const, render: (t: any) => t === 'CALCULATED' ? <Tag color="green">Đã tính MRP</Tag> : <Tag>Mới</Tag> },
+        {
+            title: 'Hành động', key: 'act', align: 'right' as const, render: (_: any, r: any) => (
+                <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+                    <Button type="primary" size="small" icon={<ExperimentOutlined />} onClick={() => onRunMrp(r.id)}>Phân Tích</Button>
+                    <Button danger size="small" icon={<DeleteOutlined />} onClick={() => onDeletePlan(r.id)} />
+                </div>
+            )
+        }
+    ];
+
+    const renderDashboard = () => {
+        if (!mrpData) return null;
+        const totalRevenue = mrpData.plan_info.sales_orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
+        const estMaterialCost = mrpData.mrp_result.reduce((s: number, i: any) => {
+            const price = costBasis === 'REFERENCE' ? Number(i.reference_price || 0) : Number(i.purchase_price || 0);
+            return s + (Number(i.net_requirement || 0) * price);
+        }, 0);
+        const estOutsourceCost = outsourcingList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
+        const estLogisticsCost = logisticsList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
+
+        return (
+            <div>
+                <div style={{ marginBottom: 20, background: '#f5f7fa', padding: 15, borderRadius: 8 }}>
+                    <div style={{ textAlign: 'right', marginBottom: 10 }}>
+                        <span>Cơ sở tính giá: </span>
+                        <Select value={costBasis} onChange={setCostBasis} style={{ width: 180 }}>
+                            <Option value="REFERENCE">Giá Tham Khảo (NCC)</Option>
+                            <Option value="PURCHASE">Giá Đặt Hàng (PO)</Option>
+                        </Select>
+                    </div>
+                    <Row gutter={24} style={{ textAlign: 'center' }}>
+                        <Col span={6}><Statistic title="Doanh Thu" value={totalRevenue} prefix={<DollarOutlined />} suffix="đ" valueStyle={{ fontSize: 16 }} /></Col>
+                        <Col span={6}>
+                            <Statistic title="CP Nguyên Liệu" value={estMaterialCost} prefix={<ShoppingCartOutlined />} suffix="đ" valueStyle={{ color: '#cf1322', fontSize: 16 }} />
+                            <small style={{ color: '#888' }}>({costBasis === 'REFERENCE' ? 'Theo giá NCC' : 'Theo PO'})</small>
+                        </Col>
+                        <Col span={6}><Statistic title="CP Gia Công" value={estOutsourceCost} prefix={<ScissorOutlined />} suffix="đ" valueStyle={{ color: '#d46b08', fontSize: 16 }} /></Col>
+                        <Col span={6}><Statistic title="CP Logistics" value={estLogisticsCost} prefix={<TruckOutlined />} suffix="đ" valueStyle={{ color: '#096dd9', fontSize: 16 }} /></Col>
+                    </Row>
+                    <div style={{ marginTop: 10, textAlign: 'center', fontWeight: 'bold', fontSize: 16, color: (totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost) > 0 ? 'green' : 'red' }}>
+                        Lợi Nhuận Gộp (Dự kiến): {(totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost).toLocaleString()} đ
+                    </div>
+                </div>
+                <Tabs defaultActiveKey="1" items={[
+                    {
+                        key: '1', label: '1. Nhu Cầu Nguyên Liệu (MRP)',
+                        children: (
+                            <div>
+                                <Table dataSource={mrpData.mrp_result} rowKey="material_id" pagination={false} size="middle" scroll={{ x: 1600, y: 450 }}
+                                    columns={[
+                                        {
+                                            title: 'Nguyên Liệu', dataIndex: 'material_name', width: 250, fixed: 'left',
+                                            render: (t: any, r: any) => (
+                                                <div style={{ wordWrap: 'break-word', whiteSpace: 'normal' }}>
+                                                    <div style={{ color: '#096dd9', fontWeight: 'bold' }}>{r.material_code}</div>
+                                                    <div>{t}</div>
+                                                </div>
+                                            )
+                                        },
+                                        { title: 'Tổng Cần (Gốc)', dataIndex: 'gross_raw', align: 'center' as const, width: 100, render: (v: any) => Number(v || 0).toLocaleString() },
+                                        { title: '% Hao hụt', dataIndex: 'wastage_percent', align: 'center' as const, width: 90, render: (v: any) => <Tag color="orange">{v}%</Tag> },
+                                        { title: 'Tổng (+Hao hụt)', dataIndex: 'gross_requirement', align: 'center' as const, width: 110, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
+                                        { title: 'Tồn Kho', dataIndex: 'available_stock', align: 'center' as const, width: 90 },
+                                        {
+                                            title: 'Dùng Kho', align: 'center' as const, width: 80,
+                                            render: (v: any, r: any, i: number) => (
+                                                <Checkbox checked={r.use_stock} disabled={!r.available_stock || r.available_stock <= 0} onChange={(e) => onToggleStock(i, e.target.checked)} />
+                                            )
+                                        },
+                                        {
+                                            title: 'Cần Mua (SL)', dataIndex: 'net_requirement', width: 130,
+                                            render: (v: any, r: any, i: number) => (
+                                                <InputNumber value={v} min={0} onChange={(val) => onDataChange('MATERIAL', i, 'net_requirement', val)} status={v > 0 ? 'warning' : ''} style={{ width: '100%' }} />
+                                            )
+                                        },
+                                        { title: 'ĐVT', align: 'center' as const, dataIndex: 'unit', width: 70 },
+                                        {
+                                            title: 'Nhà Cung Cấp', dataIndex: 'supplier_name', width: 220,
+                                            render: (v: any, r: any, i: number) => (
+                                                <Select value={v} style={{ width: '100%' }} showSearch placeholder="Chọn NCC"
+                                                    filterOption={(input, option) => (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
+                                                    onChange={(val) => onDataChange('MATERIAL', i, 'supplier_name', val)}
+                                                    options={suppliers.filter(s => s.type !== 'MANUFACTURER').map(s => ({ label: s.name, value: s.name }))}
+                                                />
+                                            )
+                                        },
+                                        {
+                                            title: 'Đơn giá tham khảo', dataIndex: 'reference_price', width: 140,
+                                            render: (v: any, r: any, i: number) => (
+                                                <InputNumber value={v} min={0} formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                    onChange={(val) => onDataChange('MATERIAL', i, 'reference_price', val)} style={{ width: '100%' }} />
+                                            )
+                                        },
+                                        {
+                                            title: 'Giá mua (PO)', dataIndex: 'purchase_price', align: 'right' as const, width: 120,
+                                            render: (v: any) => <b style={{ color: costBasis === 'PURCHASE' ? '#cf1322' : '#888' }}>{Number(v || 0).toLocaleString()}</b>
+                                        },
+                                        {
+                                            title: 'Ghi chú PO', width: 150,
+                                            render: (t: any, r: any, i: number) => <Input value={r.note} onChange={(e) => onDataChange('MATERIAL', i, 'note', e.target.value)} placeholder="Note..." />
+                                        }
+                                    ]} />
+                                <div style={{ marginTop: 15, textAlign: 'right' }}><Button type="primary" icon={<AppstoreAddOutlined />} onClick={() => onGeneratePOs('MATERIAL')}>Tạo PO Nguyên Liệu</Button></div>
+                            </div>
+                        )
+                    },
+                    {
+                        key: '2', label: '2. Nhu Cầu Gia Công',
+                        children: (
+                            <div>
+                                <Table dataSource={outsourcingList} rowKey={(r, i) => i || 0} pagination={false} size="small" scroll={{ y: 300 }}
+                                    columns={[
+                                        { title: 'Sản Phẩm', dataIndex: 'product_sku', width: 100, render: (t: any) => <b>{t}</b> },
+                                        { title: 'Công Đoạn', dataIndex: 'step_name', width: 150 },
+                                        {
+                                            title: 'Nhà Gia Công', dataIndex: 'supplier_name', width: 180,
+                                            render: (v: any, r: any, i: number) => (
+                                                <Select value={v} style={{ width: '100%' }} placeholder="Chọn Nhà GC" showSearch
+                                                    filterOption={(input, option) => (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
+                                                    onChange={(val) => onDataChange('OUTSOURCING', i, 'supplier_name', val)}
+                                                    options={suppliers.filter(s => s.type !== 'MATERIAL').map(s => ({ label: s.name, value: s.name }))}
+                                                />
+                                            )
+                                        },
+                                        {
+                                            title: 'Số Lượng', dataIndex: 'quantity', width: 100,
+                                            render: (v: any, r: any, i: number) => (
+                                                <InputNumber value={v} min={0} onChange={(val) => onDataChange('OUTSOURCING', i, 'quantity', val)} style={{ width: '100%' }} />
+                                            )
+                                        },
+                                        {
+                                            title: 'Đơn Giá', dataIndex: 'unit_price', width: 120,
+                                            render: (v: any, r: any, i: number) => (
+                                                <InputNumber value={v} min={0} formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                    onChange={(val) => onDataChange('OUTSOURCING', i, 'unit_price', val)} style={{ width: '100%' }} />
+                                            )
+                                        },
+                                        { title: 'Thành Tiền', dataIndex: 'total_cost', align: 'right' as const, width: 120, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
+                                        {
+                                            title: 'Ghi chú PO',
+                                            render: (t: any, r: any, i: number) => <Input size="small" value={r.note} onChange={(e) => onDataChange('OUTSOURCING', i, 'note', e.target.value)} placeholder="Ghi chú đơn hàng..." />
+                                        }
+                                    ]} />
+                                <div style={{ marginTop: 15, textAlign: 'right' }}><Button type="primary" style={{ backgroundColor: '#d46b08' }} icon={<ScissorOutlined />} onClick={() => onGeneratePOs('OUTSOURCING')}>Tạo Đơn Hàng Gia Công</Button></div>
+                            </div>
+                        )
+                    },
+                    {
+                        key: '3', label: '3. Chi Phí Vận Chuyển',
+                        children: (
+                            <div>
+                                <div style={{ marginBottom: 10 }}>Dữ liệu lấy từ mục <b>Logistics</b> của từng sản phẩm.</div>
+                                <Table dataSource={logisticsList} rowKey={(r, i) => i || 0} pagination={false} size="small"
+                                    columns={[
+                                        { title: 'Sản Phẩm', dataIndex: 'product_sku', render: (t: any) => <b>{t}</b> },
+                                        { title: 'Khoản Mục', dataIndex: 'name' },
+                                        { title: 'Đơn Giá', dataIndex: 'cost', align: 'right' as const, render: (v: any) => Number(v).toLocaleString() },
+                                        { title: 'Số Lượng', dataIndex: 'quantity', align: 'center' as const },
+                                        { title: 'Thành Tiền', dataIndex: 'total_cost', align: 'right' as const, render: (v: any) => <b style={{ color: '#096dd9' }}>{Number(v).toLocaleString()}</b> },
+                                        { title: 'Ghi chú', dataIndex: 'note' }
+                                    ]}
+                                    summary={(pageData) => {
+                                        const total = pageData.reduce((prev, current) => prev + Number(current.total_cost), 0);
+                                        return (
+                                            <Table.Summary.Row>
+                                                <Table.Summary.Cell index={0} colSpan={4} align="right"><b>Tổng:</b></Table.Summary.Cell>
+                                                <Table.Summary.Cell index={1} align="right"><b>{total.toLocaleString()}</b></Table.Summary.Cell>
+                                                <Table.Summary.Cell index={2} />
+                                            </Table.Summary.Row>
+                                        );
+                                    }}
+                                />
+                            </div>
+                        )
+                    },
+                    {
+                        key: '4', label: '4. Tiến Độ (Gantt)',
+                        children: (
+                            <div>
+                                {mrpData?.gantt_data?.map((task: any) => (
+                                    <div key={task.id} style={{ marginBottom: 15 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>{task.name}</strong><small>{dayjs(task.end).format('DD/MM')}</small></div>
+                                        <Progress percent={30} strokeColor="#1890ff" trailColor="#f0f0f0" />
+                                    </div>
+                                ))}
+                            </div>
+                        )
+                    }
+                ]} />
+            </div>
+        );
+    };
+
+    return (
+        <>
+            <Table dataSource={plans} columns={planColumns} rowKey="id" scroll={{ x: isMobile ? 500 : undefined }} />
+            <Modal
+                title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 30 }}>
+                        <span>Phân Tích Kế Hoạch: {mrpData?.plan_info?.name || ''}</span>
+                        <Button type="primary" onClick={onSaveAnalysis} icon={<SaveOutlined />} loading={loading}>Lưu Kết Quả</Button>
+                    </div>
+                }
+                open={isDashboardOpen}
+                onCancel={() => setIsDashboardOpen(false)}
+                footer={null}
+                width={1100}
+                style={{ top: 20 }}
+            >
+                {renderDashboard()}
+            </Modal>
+        </>
+    );
+};
+
+export default PlanDashboardTab;

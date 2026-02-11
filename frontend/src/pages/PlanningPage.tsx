@@ -1,36 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Tag, Progress, Select, InputNumber, Checkbox, Space, Empty, Tooltip } from 'antd';
-import { CalendarOutlined, ExperimentOutlined, AlertOutlined, ProjectOutlined, ReloadOutlined, DollarOutlined, ShoppingCartOutlined, BarChartOutlined, AppstoreAddOutlined, ScissorOutlined, SaveOutlined, TruckOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
+import { Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Button, message } from 'antd';
+import { AlertOutlined, ProjectOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import isBetween from 'dayjs/plugin/isBetween';
 import { API_URL } from '../config';
 import useMobile from '../hooks/useMobile';
 
-dayjs.extend(isBetween);
+// Extracted Tab Components
+import PendingOrdersTab from '../components/planning/PendingOrdersTab';
+import PlanDashboardTab from '../components/planning/PlanDashboardTab';
+import GanttChartTab from '../components/planning/GanttChartTab';
 
 const { RangePicker } = DatePicker;
-const { Option } = Select;
 
 const PlanningPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('PENDING');
     const [loading, setLoading] = useState(false);
-    const isMobile = useMobile();
+    const isMobile = !!useMobile();
 
     // Data State
     const [pendingOrders, setPendingOrders] = useState<any[]>([]);
     const [plans, setPlans] = useState<any[]>([]);
-    const [suppliers, setSuppliers] = useState<any[]>([]); // <--- MỚI: Danh sách NCC
+    const [suppliers, setSuppliers] = useState<any[]>([]);
     const [ganttPlans, setGanttPlans] = useState<any[]>([]);
-
-    // Filter State
-    const [deliveryDateRange, setDeliveryDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
 
     // Analysis Data (Editable)
     const [mrpData, setMrpData] = useState<any>(null);
     const [outsourcingList, setOutsourcingList] = useState<any[]>([]);
-    const [logisticsList, setLogisticsList] = useState<any[]>([]); // <--- MỚI
-    const [costBasis, setCostBasis] = useState<'REFERENCE' | 'PURCHASE'>('REFERENCE'); // <--- MỚI
+    const [logisticsList, setLogisticsList] = useState<any[]>([]);
+    const [costBasis, setCostBasis] = useState<'REFERENCE' | 'PURCHASE'>('REFERENCE');
 
     // UI State
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -57,6 +55,7 @@ const PlanningPage: React.FC = () => {
 
     useEffect(() => { fetchData(); }, []);
 
+    // --- Handlers ---
     const handleCreatePlan = async (values: any) => {
         try {
             const payload = {
@@ -76,13 +75,12 @@ const PlanningPage: React.FC = () => {
         setLoading(true);
         try {
             const res = await axios.post(`${API_URL}/planning/mrp/${planId}`);
-            // Default use_stock = true because backend already deducts stock
             if (res.data && res.data.mrp_result) {
                 res.data.mrp_result = res.data.mrp_result.map((item: any) => ({ ...item, use_stock: true }));
             }
             setMrpData(res.data);
             setOutsourcingList(res.data.outsourcing_result || []);
-            setLogisticsList(res.data.logistics_result || []); // <--- MỚI
+            setLogisticsList(res.data.logistics_result || []);
             setIsDashboardOpen(true);
             fetchData();
         } catch (e) { message.error('Lỗi chạy MRP'); }
@@ -91,45 +89,30 @@ const PlanningPage: React.FC = () => {
 
     const handleGeneratePOs = async (type: 'MATERIAL' | 'OUTSOURCING') => {
         if (!mrpData) return;
-
-        // Gửi dữ liệu ĐÃ ĐƯỢC CHỈNH SỬA (trong state) về Backend
         const itemsToOrder = type === 'MATERIAL' ? mrpData.mrp_result : outsourcingList;
-
         try {
-            const res = await axios.post(`${API_URL}/planning/${mrpData.plan_info.id}/generate-pos`, {
-                items: itemsToOrder
-            });
+            const res = await axios.post(`${API_URL}/planning/${mrpData.plan_info.id}/generate-pos`, { items: itemsToOrder });
             message.success(res.data.message);
         } catch (e) { message.error('Lỗi tạo PO'); }
     };
 
-    // --- MỚI: HÀM XỬ LÝ CHỈNH SỬA DỮ LIỆU TRÊN BẢNG ---
     const handleDataChange = (type: 'MATERIAL' | 'OUTSOURCING', index: number, field: string, value: any) => {
         if (type === 'MATERIAL') {
             const newData = [...mrpData.mrp_result];
             newData[index] = { ...newData[index], [field]: value };
-
-            // Nếu đổi NCC, tự động lấy lại Đơn giá tham khảo từ possible_suppliers
             if (field === 'supplier_name') {
                 const supplierInfo = newData[index].possible_suppliers?.find(
                     (s: any) => s.supplier_name?.trim().toLowerCase() === String(value).trim().toLowerCase()
                 );
-                if (supplierInfo) {
-                    newData[index].reference_price = supplierInfo.price;
-                } else {
-                    newData[index].reference_price = 0;
-                }
+                newData[index].reference_price = supplierInfo ? supplierInfo.price : 0;
             }
             setMrpData({ ...mrpData, mrp_result: newData });
         } else {
             const newData = [...outsourcingList];
             newData[index] = { ...newData[index], [field]: value };
-
-            // Tự động tính lại Thành tiền nếu đổi SL hoặc Đơn giá
             if (field === 'quantity' || field === 'unit_price') {
                 newData[index].total_cost = Number(newData[index].quantity) * Number(newData[index].unit_price);
             }
-
             setOutsourcingList(newData);
         }
     };
@@ -138,14 +121,9 @@ const PlanningPage: React.FC = () => {
         const newData = [...mrpData.mrp_result];
         const item = newData[index];
         item.use_stock = checked;
-
-        // Recalculate Net Requirement
-        if (checked) {
-            item.net_requirement = Math.max(0, Number(item.gross_requirement || 0) - Number(item.available_stock || 0));
-        } else {
-            item.net_requirement = Number(item.gross_requirement || 0);
-        }
-
+        item.net_requirement = checked
+            ? Math.max(0, Number(item.gross_requirement || 0) - Number(item.available_stock || 0))
+            : Number(item.gross_requirement || 0);
         setMrpData({ ...mrpData, mrp_result: newData });
     };
 
@@ -159,385 +137,28 @@ const PlanningPage: React.FC = () => {
                 logistics_result: logisticsList
             });
             message.success('Đã lưu kết quả phân tích');
-        } catch (e) {
-            message.error('Lỗi khi lưu dữ liệu');
-        }
+        } catch (e) { message.error('Lỗi khi lưu dữ liệu'); }
         setLoading(false);
     };
-    // --------------------------------------------------
+
     const handleDeletePlan = (id: number) => {
         Modal.confirm({
             title: 'Xóa kế hoạch',
             content: 'Bạn có chắc muốn xóa kế hoạch này?',
-            okText: 'Xóa',
-            okType: 'danger',
-            cancelText: 'Hủy',
+            okText: 'Xóa', okType: 'danger', cancelText: 'Hủy',
             onOk: async () => {
                 try {
                     await axios.delete(`${API_URL}/planning/${id}`);
                     message.success('Đã xóa kế hoạch');
                     fetchData();
-                } catch (e: any) {
-                    message.error(e.response?.data?.message || 'Lỗi xóa kế hoạch');
-                }
+                } catch (e: any) { message.error(e.response?.data?.message || 'Lỗi xóa kế hoạch'); }
             }
         });
-    };
-
-    // --- NEW: FULFILL FROM STOCK ---
-    const handleFulfillStock = async (order: any) => {
-        Modal.confirm({
-            title: `Xuất kho cho đơn ${order.order_code}?`,
-            content: (
-                <div>
-                    <p>Hệ thống sẽ tạo Phiếu Xuất Kho cho toàn bộ sản phẩm trong đơn hàng.</p>
-                    <p><b>Lưu ý:</b> Đơn hàng sẽ chuyển sang trạng thái "Đang giao" và rời khỏi danh sách chờ Lập Kế Hoạch.</p>
-                </div>
-            ),
-            onOk: async () => {
-                setLoading(true);
-                try {
-                    // Auto-construct delivery payload
-                    const deliveryItems = order.items.map((i: any) => ({
-                        sku: i.sku,
-                        quantity: i.quantity,
-                        note: 'Xuất kho từ Lập Kế Hoạch'
-                    }));
-
-                    const payload = {
-                        code: `PX-${order.order_code}-${dayjs().format('HHmm')}`,
-                        date: new Date().toISOString(),
-                        note: 'Xuất nhanh từ Planning Center (Có sẵn tồn kho)',
-                        delivery_address: order.shipping_address,
-                        contact_name: order.receiver_name,
-                        contact_phone: order.receiver_phone,
-                        items: deliveryItems
-                    };
-
-                    await axios.post(`${API_URL}/sales/${order.id}/delivery`, payload);
-                    message.success('Đã tạo phiếu xuất kho thành công');
-                    fetchData(); // Refresh to remove from list
-                } catch (e) {
-                    message.error('Lỗi khi xuất kho');
-                }
-                setLoading(false);
-            }
-        });
-    };
-
-    const pendingColumns = [
-        { title: 'Mã Đơn', dataIndex: 'order_code', render: (t: any) => <b>{t}</b> },
-        { title: 'Khách Hàng', dataIndex: 'customer_name' },
-        {
-            title: 'Trạng Thái', dataIndex: 'status',
-            render: (t: any, r: any) => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <Tag>{t}</Tag>
-                    {r.can_fulfill_stock && <Tag color="green">Sẵn sàng xuất kho</Tag>}
-                </div>
-            )
-        },
-        { title: 'Ngày Giao', dataIndex: 'delivery_date', render: (t: any) => t ? <Tag color="red">{dayjs(t).format('DD/MM/YYYY')}</Tag> : '-' },
-        { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v: any) => Number(v).toLocaleString() },
-        {
-            title: 'Hành động',
-            align: 'center' as const,
-            render: (_: any, r: any) => (
-                r.can_fulfill_stock && (
-                    <Button type="primary" size="small" icon={<TruckOutlined />} onClick={() => handleFulfillStock(r)} style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}>Xuất Kho</Button>
-                )
-            )
-        }
-    ];
-
-    const expandedRowRender = (record: any) => {
-        return (
-            <Table
-                dataSource={record.items}
-                rowKey="id"
-                pagination={false}
-                size="small"
-                columns={[
-                    { title: 'Sản phẩm', dataIndex: ['product', 'name'], render: (t, r: any) => <span><b>{r.sku}</b> - {t || r.sku}</span> },
-                    { title: 'Số lượng đặt', dataIndex: 'quantity', align: 'center' },
-                    {
-                        title: 'Tồn kho khả dụng',
-                        dataIndex: 'available_stock_tp',
-                        align: 'center',
-                        render: (v, r: any) => (
-                            <span style={{ color: v >= r.quantity ? 'green' : 'red', fontWeight: 'bold' }}>
-                                {v} {v >= r.quantity ? '(Đủ)' : '(Thiếu)'}
-                            </span>
-                        )
-                    }
-                ]}
-            />
-        );
-    };
-
-    const planColumns = [
-        { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
-        { title: 'Tên Đợt', dataIndex: 'name' },
-        { title: 'Thời Gian', render: (r: any) => <small>{dayjs(r.start_date).format('DD/MM')} - {dayjs(r.end_date).format('DD/MM')}</small> },
-        { title: 'Trạng Thái', dataIndex: 'status', align: 'center' as const, render: (t: any) => t === 'CALCULATED' ? <Tag color="green">Đã tính MRP</Tag> : <Tag>Mới</Tag> },
-        {
-            title: 'Hành động', key: 'act', align: 'right' as const, render: (_: any, r: any) => (
-                <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
-                    <Button type="primary" size="small" icon={<ExperimentOutlined />} onClick={() => handleRunMrp(r.id)}>Phân Tích</Button>
-                    <Button danger size="small" icon={<DeleteOutlined />} onClick={() => handleDeletePlan(r.id)} />
-                </div>
-            )
-        }
-    ];
-
-    const renderDashboard = () => {
-        if (!mrpData) return null;
-        const totalRevenue = mrpData.plan_info.sales_orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
-
-        // Tính lại tổng chi phí realtime dựa trên dữ liệu đang edit
-        const estMaterialCost = mrpData.mrp_result.reduce((s: number, i: any) => {
-            // Logic Toggle Cost Basis
-            const price = costBasis === 'REFERENCE' ? Number(i.reference_price || 0) : Number(i.purchase_price || 0);
-            return s + (Number(i.net_requirement || 0) * price);
-        }, 0);
-
-        const estOutsourceCost = outsourcingList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
-        const estLogisticsCost = logisticsList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
-
-        return (
-            <div>
-                <div style={{ marginBottom: 20, background: '#f5f7fa', padding: 15, borderRadius: 8 }}>
-                    <div style={{ textAlign: 'right', marginBottom: 10 }}>
-                        <span>Cơ sở tính giá: </span>
-                        <Select value={costBasis} onChange={setCostBasis} style={{ width: 180 }}>
-                            <Option value="REFERENCE">Giá Tham Khảo (NCC)</Option>
-                            <Option value="PURCHASE">Giá Đặt Hàng (PO)</Option>
-                        </Select>
-                    </div>
-                    <Row gutter={24} style={{ textAlign: 'center' }}>
-                        <Col span={6}><Statistic title="Doanh Thu" value={totalRevenue} prefix={<DollarOutlined />} suffix="đ" valueStyle={{ fontSize: 16 }} /></Col>
-                        <Col span={6}>
-                            <Statistic title="CP Nguyên Liệu" value={estMaterialCost} prefix={<ShoppingCartOutlined />} suffix="đ" valueStyle={{ color: '#cf1322', fontSize: 16 }} />
-                            <small style={{ color: '#888' }}>({costBasis === 'REFERENCE' ? 'Theo giá NCC' : 'Theo PO'})</small>
-                        </Col>
-                        <Col span={6}><Statistic title="CP Gia Công" value={estOutsourceCost} prefix={<ScissorOutlined />} suffix="đ" valueStyle={{ color: '#d46b08', fontSize: 16 }} /></Col>
-                        <Col span={6}><Statistic title="CP Logistics" value={estLogisticsCost} prefix={<TruckOutlined />} suffix="đ" valueStyle={{ color: '#096dd9', fontSize: 16 }} /></Col>
-                    </Row>
-                    <div style={{ marginTop: 10, textAlign: 'center', fontWeight: 'bold', fontSize: 16, color: (totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost) > 0 ? 'green' : 'red' }}>
-                        Lợi Nhuận Gộp (Dự kiến): {(totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost).toLocaleString()} đ
-                    </div>
-                </div>
-                <Tabs defaultActiveKey="1" items={[
-                    {
-                        key: '1', label: '1. Nhu Cầu Nguyên Liệu (MRP)',
-                        children: (
-                            <div>
-                                <Table dataSource={mrpData.mrp_result} rowKey="material_id" pagination={false} size="middle" scroll={{ x: 1600, y: 450 }}
-                                    columns={[
-                                        {
-                                            title: 'Nguyên Liệu',
-                                            dataIndex: 'material_name',
-                                            width: 250,
-                                            fixed: 'left',
-                                            render: (t: any, r: any) => (
-                                                <div style={{ wordWrap: 'break-word', whiteSpace: 'normal' }}>
-                                                    <div style={{ color: '#096dd9', fontWeight: 'bold' }}>{r.material_code}</div>
-                                                    <div>{t}</div>
-                                                </div>
-                                            )
-                                        },
-                                        { title: 'Tổng Cần (Gốc)', dataIndex: 'gross_raw', align: 'center' as const, width: 100, render: (v: any) => Number(v || 0).toLocaleString() },
-                                        { title: '% Hao hụt', dataIndex: 'wastage_percent', align: 'center' as const, width: 90, render: (v: any) => <Tag color="orange">{v}%</Tag> },
-                                        { title: 'Tổng (+Hao hụt)', dataIndex: 'gross_requirement', align: 'center' as const, width: 110, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
-                                        { title: 'Tồn Kho', dataIndex: 'available_stock', align: 'center' as const, width: 90 },
-                                        {
-                                            title: 'Dùng Kho',
-                                            align: 'center' as const,
-                                            width: 80,
-                                            render: (v: any, r: any, i: number) => (
-                                                <Checkbox
-                                                    checked={r.use_stock}
-                                                    disabled={!r.available_stock || r.available_stock <= 0}
-                                                    onChange={(e) => handleToggleStock(i, e.target.checked)}
-                                                />
-                                            )
-                                        },
-                                        {
-                                            title: 'Cần Mua (SL)',
-                                            dataIndex: 'net_requirement',
-                                            width: 130,
-                                            render: (v: any, r: any, i: number) => (
-                                                <InputNumber
-                                                    value={v}
-                                                    min={0}
-                                                    onChange={(val) => handleDataChange('MATERIAL', i, 'net_requirement', val)}
-                                                    status={v > 0 ? 'warning' : ''}
-                                                    style={{ width: '100%' }}
-                                                />
-                                            )
-                                        },
-                                        { title: 'ĐVT', align: 'center' as const, dataIndex: 'unit', width: 70 },
-                                        {
-                                            title: 'Nhà Cung Cấp',
-                                            dataIndex: 'supplier_name',
-                                            width: 220,
-                                            render: (v: any, r: any, i: number) => (
-                                                <Select
-                                                    value={v}
-                                                    style={{ width: '100%' }}
-                                                    showSearch
-                                                    placeholder="Chọn NCC"
-                                                    filterOption={(input, option) =>
-                                                        (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
-                                                    }
-                                                    onChange={(val) => handleDataChange('MATERIAL', i, 'supplier_name', val)}
-                                                    options={suppliers.filter(s => s.type !== 'MANUFACTURER').map(s => ({ label: s.name, value: s.name }))}
-                                                />
-                                            )
-                                        },
-                                        {
-                                            title: 'Đơn giá tham khảo',
-                                            dataIndex: 'reference_price',
-                                            width: 140,
-                                            render: (v: any, r: any, i: number) => (
-                                                <InputNumber
-                                                    value={v}
-                                                    min={0}
-                                                    formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                    onChange={(val) => handleDataChange('MATERIAL', i, 'reference_price', val)}
-                                                    style={{ width: '100%' }}
-                                                />
-                                            )
-                                        },
-                                        {
-                                            title: 'Giá mua (PO)',
-                                            dataIndex: 'purchase_price',
-                                            align: 'right' as const,
-                                            width: 120,
-                                            render: (v: any) => <b style={{ color: costBasis === 'PURCHASE' ? '#cf1322' : '#888' }}>{Number(v || 0).toLocaleString()}</b>
-                                        },
-                                        {
-                                            title: 'Ghi chú PO',
-                                            width: 150,
-                                            render: (t: any, r: any, i: number) => <Input value={r.note} onChange={(e) => handleDataChange('MATERIAL', i, 'note', e.target.value)} placeholder="Note..." />
-                                        }
-                                    ]} />
-                                <div style={{ marginTop: 15, textAlign: 'right' }}><Button type="primary" icon={<AppstoreAddOutlined />} onClick={() => handleGeneratePOs('MATERIAL')}>Tạo PO Nguyên Liệu</Button></div>
-                            </div>
-                        )
-                    },
-                    {
-                        key: '2', label: '2. Nhu Cầu Gia Công',
-                        children: (
-                            <div>
-                                <Table dataSource={outsourcingList} rowKey={(r, i) => i || 0} pagination={false} size="small" scroll={{ y: 300 }}
-                                    columns={[
-                                        { title: 'Sản Phẩm', dataIndex: 'product_sku', width: 100, render: (t: any) => <b>{t}</b> },
-                                        { title: 'Công Đoạn', dataIndex: 'step_name', width: 150 },
-                                        {
-                                            title: 'Nhà Gia Công',
-                                            dataIndex: 'supplier_name',
-                                            width: 180,
-                                            render: (v: any, r: any, i: number) => (
-                                                <Select
-                                                    value={v}
-                                                    style={{ width: '100%' }}
-                                                    placeholder="Chọn Nhà GC"
-                                                    showSearch
-                                                    filterOption={(input, option) =>
-                                                        (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase())
-                                                    }
-                                                    onChange={(val) => handleDataChange('OUTSOURCING', i, 'supplier_name', val)}
-                                                    options={suppliers.filter(s => s.type !== 'MATERIAL').map(s => ({ label: s.name, value: s.name }))}
-                                                />
-                                            )
-                                        },
-                                        {
-                                            title: 'Số Lượng',
-                                            dataIndex: 'quantity',
-                                            width: 100,
-                                            render: (v: any, r: any, i: number) => (
-                                                <InputNumber
-                                                    value={v}
-                                                    min={0}
-                                                    onChange={(val) => handleDataChange('OUTSOURCING', i, 'quantity', val)}
-                                                    style={{ width: '100%' }}
-                                                />
-                                            )
-                                        },
-                                        {
-                                            title: 'Đơn Giá',
-                                            dataIndex: 'unit_price',
-                                            width: 120,
-                                            render: (v: any, r: any, i: number) => (
-                                                <InputNumber
-                                                    value={v}
-                                                    min={0}
-                                                    formatter={val => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                                                    onChange={(val) => handleDataChange('OUTSOURCING', i, 'unit_price', val)}
-                                                    style={{ width: '100%' }}
-                                                />
-                                            )
-                                        },
-                                        { title: 'Thành Tiền', dataIndex: 'total_cost', align: 'right' as const, width: 120, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
-                                        {
-                                            title: 'Ghi chú PO',
-                                            render: (t: any, r: any, i: number) => <Input size="small" value={r.note} onChange={(e) => handleDataChange('OUTSOURCING', i, 'note', e.target.value)} placeholder="Ghi chú đơn hàng..." />
-                                        }
-                                    ]} />
-                                <div style={{ marginTop: 15, textAlign: 'right' }}><Button type="primary" style={{ backgroundColor: '#d46b08' }} icon={<ScissorOutlined />} onClick={() => handleGeneratePOs('OUTSOURCING')}>Tạo Đơn Hàng Gia Công</Button></div>
-                            </div>
-                        )
-                    },
-                    {
-                        key: '3', label: '3. Chi Phí Vận Chuyển',
-                        children: (
-                            <div>
-                                <div style={{ marginBottom: 10 }}>Dữ liệu lấy từ mục <b>Logistics</b> của từng sản phẩm.</div>
-                                <Table dataSource={logisticsList} rowKey={(r, i) => i || 0} pagination={false} size="small"
-                                    columns={[
-                                        { title: 'Sản Phẩm', dataIndex: 'product_sku', render: (t: any) => <b>{t}</b> },
-                                        { title: 'Khoản Mục', dataIndex: 'name' },
-                                        { title: 'Đơn Giá', dataIndex: 'cost', align: 'right' as const, render: (v: any) => Number(v).toLocaleString() },
-                                        { title: 'Số Lượng', dataIndex: 'quantity', align: 'center' as const },
-                                        { title: 'Thành Tiền', dataIndex: 'total_cost', align: 'right' as const, render: (v: any) => <b style={{ color: '#096dd9' }}>{Number(v).toLocaleString()}</b> },
-                                        { title: 'Ghi chú', dataIndex: 'note' }
-                                    ]}
-                                    summary={(pageData) => {
-                                        const total = pageData.reduce((prev, current) => prev + Number(current.total_cost), 0);
-                                        return (
-                                            <Table.Summary.Row>
-                                                <Table.Summary.Cell index={0} colSpan={4} align="right"><b>Tổng:</b></Table.Summary.Cell>
-                                                <Table.Summary.Cell index={1} align="right"><b>{total.toLocaleString()}</b></Table.Summary.Cell>
-                                                <Table.Summary.Cell index={2} />
-                                            </Table.Summary.Row>
-                                        );
-                                    }}
-                                />
-                            </div>
-                        )
-                    },
-                    {
-                        key: '4', label: '4. Tiến Độ (Gantt)',
-                        children: (
-                            <div>
-                                {mrpData?.gantt_data?.map((task: any) => (
-                                    <div key={task.id} style={{ marginBottom: 15 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>{task.name}</strong><small>{dayjs(task.end).format('DD/MM')}</small></div>
-                                        <Progress percent={30} strokeColor="#1890ff" trailColor="#f0f0f0" />
-                                    </div>
-                                ))}
-                            </div>
-                        )
-                    }
-                ]} />
-            </div>
-        );
     };
 
     return (
         <div>
-            {/* STATS CARDS - HORIZONTAL SCROLL ON MOBILE */}
+            {/* STATS CARDS */}
             <div style={{ overflowX: isMobile ? 'auto' : 'visible', marginBottom: 16 }}>
                 <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 320 : 'auto' }}>
                     <Col flex={isMobile ? '150px' : 1}>
@@ -557,176 +178,76 @@ const PlanningPage: React.FC = () => {
                 bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
                 title={<span style={{ fontSize: isMobile ? 14 : 16 }}>MRP / Planning</span>}
                 extra={
-                    isMobile ? (
-                        <Button icon={<ReloadOutlined />} onClick={fetchData} />
-                    ) : (
-                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
-                    )
+                    isMobile
+                        ? <Button icon={<ReloadOutlined />} onClick={fetchData} />
+                        : <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
                 }
             >
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                     {
-                        key: 'PENDING', label: isMobile ? 'Gom Đơn' : '1. Gom Đơn Lập Kế Hoạch', children: (
-                            <div>
-                                <div style={{ marginBottom: 10, background: '#fffbe6', padding: 10, borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                                    <span><AlertOutlined /> Chọn đơn hàng để lập kế hoạch.</span>
-                                    <Space wrap>
-                                        <FilterOutlined style={{ color: '#1890ff' }} />
-                                        <span style={{ fontSize: 13 }}>Lọc ngày giao:</span>
-                                        <RangePicker
-                                            size="small"
-                                            format="DD/MM/YYYY"
-                                            value={deliveryDateRange}
-                                            onChange={(dates) => setDeliveryDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
-                                            allowClear
-                                            placeholder={['Từ ngày', 'Đến ngày']}
-                                            style={{ width: isMobile ? '100%' : 240 }}
-                                        />
-                                    </Space>
-                                </div>
-                                <Table
-                                    rowSelection={{ selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys) }}
-                                    dataSource={pendingOrders.filter(o => {
-                                        if (!deliveryDateRange || !deliveryDateRange[0] || !deliveryDateRange[1]) return true;
-                                        if (!o.delivery_date) return false;
-                                        return dayjs(o.delivery_date).isBetween(deliveryDateRange[0], deliveryDateRange[1], 'day', '[]');
-                                    })}
-                                    columns={pendingColumns}
-                                    rowKey="id"
-                                    expandable={{ expandedRowRender }}
-                                    scroll={{ x: isMobile ? 600 : undefined }}
-                                    footer={() => (<Button type="primary" disabled={selectedRowKeys.length === 0} onClick={() => setIsCreateModalOpen(true)}>Lập Kế Hoạch</Button>)}
-                                />
-                            </div>
+                        key: 'PENDING',
+                        label: isMobile ? 'Gom Đơn' : '1. Gom Đơn Lập Kế Hoạch',
+                        children: (
+                            <PendingOrdersTab
+                                pendingOrders={pendingOrders}
+                                selectedRowKeys={selectedRowKeys}
+                                onSelectedRowKeysChange={setSelectedRowKeys}
+                                onCreatePlan={() => setIsCreateModalOpen(true)}
+                                isMobile={isMobile}
+                                loading={loading}
+                                setLoading={setLoading}
+                                onRefresh={fetchData}
+                            />
                         )
                     },
-                    { key: 'PLANS', label: isMobile ? 'Kế Hoạch' : '2. Danh Sách Kế Hoạch', children: <Table dataSource={plans} columns={planColumns} rowKey="id" scroll={{ x: isMobile ? 500 : undefined }} /> },
                     {
-                        key: 'GANTT', label: isMobile ? 'Gantt' : '📊 Gantt Chart', children: (
-                            <div>
-                                {ganttPlans.length === 0 ? (
-                                    <Empty description="Không có kế hoạch chưa hoàn thiện" />
-                                ) : (
-                                    <div>
-                                        {ganttPlans.map((plan: any) => {
-                                            const planStart = dayjs(plan.start_date);
-                                            const planEnd = dayjs(plan.end_date);
-                                            const totalDays = Math.max(planEnd.diff(planStart, 'day'), 1);
-                                            const statusColor = plan.status === 'CALCULATED' ? '#52c41a' : '#faad14';
-
-                                            return (
-                                                <Card
-                                                    key={plan.plan_id}
-                                                    size="small"
-                                                    style={{ marginBottom: 16, borderLeft: `4px solid ${statusColor}` }}
-                                                    title={
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                                                            <span>
-                                                                <b>{plan.plan_code}</b> - {plan.plan_name}
-                                                            </span>
-                                                            <Space size={8}>
-                                                                <Tag color={plan.status === 'CALCULATED' ? 'green' : 'orange'}>{plan.status === 'CALCULATED' ? 'Đã tính MRP' : 'Mới'}</Tag>
-                                                                <small style={{ color: '#888' }}>{planStart.format('DD/MM/YYYY')} → {planEnd.format('DD/MM/YYYY')}</small>
-                                                            </Space>
-                                                        </div>
-                                                    }
-                                                >
-                                                    {/* Timeline Header */}
-                                                    <div style={{ position: 'relative', marginBottom: 8, height: 24, background: '#fafafa', borderRadius: 4, overflow: 'hidden', fontSize: 11 }}>
-                                                        {Array.from({ length: Math.min(totalDays + 1, 31) }).map((_, i) => {
-                                                            const d = planStart.add(i, 'day');
-                                                            const left = (i / totalDays) * 100;
-                                                            return (
-                                                                <span key={i} style={{ position: 'absolute', left: `${left}%`, top: 4, color: '#999', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
-                                                                    {d.format('DD')}
-                                                                </span>
-                                                            );
-                                                        })}
-                                                    </div>
-
-                                                    {/* Product Rows */}
-                                                    {(plan.products || []).length === 0 ? (
-                                                        <div style={{ textAlign: 'center', color: '#999', padding: 10 }}>Chưa có dữ liệu công đoạn</div>
-                                                    ) : (
-                                                        plan.products.map((prod: any, pi: number) => {
-                                                            const stepCount = Math.max((prod.steps || []).length, 1);
-                                                            const stepDuration = totalDays / stepCount;
-                                                            const colors = ['#1890ff', '#13c2c2', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#eb2f96'];
-
-                                                            return (
-                                                                <div key={pi} style={{ marginBottom: 12 }}>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-                                                                        <Tag color="blue" style={{ margin: 0 }}>{prod.sku}</Tag>
-                                                                        <span style={{ marginLeft: 8, fontSize: 13, color: '#333' }}>{prod.product_name}</span>
-                                                                    </div>
-                                                                    <div style={{ position: 'relative', height: 28, background: '#f5f5f5', borderRadius: 4, overflow: 'hidden' }}>
-                                                                        {(prod.steps || []).length === 0 ? (
-                                                                            <div style={{ lineHeight: '28px', textAlign: 'center', color: '#bbb', fontSize: 12 }}>Chưa có công đoạn</div>
-                                                                        ) : (
-                                                                            prod.steps.map((step: any, si: number) => {
-                                                                                const left = (si / stepCount) * 100;
-                                                                                const width = (1 / stepCount) * 100;
-                                                                                const bgColor = colors[si % colors.length];
-
-                                                                                return (
-                                                                                    <Tooltip key={si} title={`${step.step_name}${step.supplier_name ? ` (NCC: ${step.supplier_name})` : ''}`}>
-                                                                                        <div style={{
-                                                                                            position: 'absolute',
-                                                                                            left: `${left}%`,
-                                                                                            width: `${width}%`,
-                                                                                            height: '100%',
-                                                                                            background: bgColor,
-                                                                                            opacity: 0.85,
-                                                                                            borderRight: '1px solid #fff',
-                                                                                            display: 'flex',
-                                                                                            alignItems: 'center',
-                                                                                            justifyContent: 'center',
-                                                                                            cursor: 'pointer',
-                                                                                            transition: 'opacity 0.2s'
-                                                                                        }}
-                                                                                            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                                                                                            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.85')}
-                                                                                        >
-                                                                                            <span style={{ color: '#fff', fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 4px' }}>
-                                                                                                {step.step_name}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    </Tooltip>
-                                                                                );
-                                                                            })
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })
-                                                    )}
-                                                </Card>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
+                        key: 'PLANS',
+                        label: isMobile ? 'Kế Hoạch' : '2. Danh Sách Kế Hoạch',
+                        children: (
+                            <PlanDashboardTab
+                                plans={plans}
+                                mrpData={mrpData}
+                                outsourcingList={outsourcingList}
+                                logisticsList={logisticsList}
+                                suppliers={suppliers}
+                                costBasis={costBasis}
+                                setCostBasis={setCostBasis}
+                                isMobile={isMobile}
+                                loading={loading}
+                                isDashboardOpen={isDashboardOpen}
+                                setIsDashboardOpen={setIsDashboardOpen}
+                                onRunMrp={handleRunMrp}
+                                onDeletePlan={handleDeletePlan}
+                                onDataChange={handleDataChange}
+                                onToggleStock={handleToggleStock}
+                                onGeneratePOs={handleGeneratePOs}
+                                onSaveAnalysis={handleSaveAnalysis}
+                            />
+                        )
+                    },
+                    {
+                        key: 'GANTT',
+                        label: isMobile ? 'Gantt' : '📊 Gantt Chart',
+                        children: (
+                            <GanttChartTab
+                                ganttPlans={ganttPlans}
+                                setGanttPlans={setGanttPlans}
+                            />
                         )
                     }
                 ]} />
             </Card>
-            <Modal
-                title={
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 30 }}>
-                        <span>Phân Tích Kế Hoạch: {mrpData?.plan_info?.name || ''}</span>
-                        <Button type="primary" onClick={handleSaveAnalysis} icon={<SaveOutlined />} loading={loading}>Lưu Kết Quả</Button>
-                    </div>
-                }
-                open={isDashboardOpen}
-                onCancel={() => setIsDashboardOpen(false)}
-                footer={null}
-                width={1100}
-                style={{ top: 20 }}
-            >
-                {renderDashboard()}
+
+            {/* Create Plan Modal */}
+            <Modal title="Thiết Lập Kế Hoạch" open={isCreateModalOpen} onCancel={() => setIsCreateModalOpen(false)} onOk={() => form.submit()}>
+                <Form form={form} layout="vertical" onFinish={handleCreatePlan}>
+                    <Form.Item name="code" label="Mã KH" rules={[{ required: true }]}><Input /></Form.Item>
+                    <Form.Item name="name" label="Tên Đợt" rules={[{ required: true }]}><Input /></Form.Item>
+                    <Form.Item name="dateRange" label="Thời Gian" rules={[{ required: true }]}><RangePicker style={{ width: '100%' }} /></Form.Item>
+                </Form>
             </Modal>
-            <Modal title="Thiết Lập Kế Hoạch" open={isCreateModalOpen} onCancel={() => setIsCreateModalOpen(false)} onOk={() => form.submit()}><Form form={form} layout="vertical" onFinish={handleCreatePlan}><Form.Item name="code" label="Mã KH" rules={[{ required: true }]}><Input /></Form.Item><Form.Item name="name" label="Tên Đợt" rules={[{ required: true }]}><Input /></Form.Item><Form.Item name="dateRange" label="Thời Gian" rules={[{ required: true }]}><RangePicker style={{ width: '100%' }} /></Form.Item></Form></Modal>
         </div>
     );
 };
+
 export default PlanningPage;
