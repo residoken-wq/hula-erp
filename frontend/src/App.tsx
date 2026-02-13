@@ -4,7 +4,7 @@ import type { MenuProps } from 'antd';
 import {
     DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
     SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined, MenuOutlined, IdcardOutlined,
-    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined
+    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined, FolderOutlined, MessageOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Drawer } from 'antd'; // <--- Import Drawer
@@ -57,6 +57,10 @@ const SocialChannelsPage = React.lazy(() => import('./pages/SocialChannelsPage')
 const SocialOrdersPage = React.lazy(() => import('./pages/SocialOrdersPage')); // <--- Social Orders
 const MarketingPage = React.lazy(() => import('./pages/MarketingPage')); // <--- Marketing
 const AnnouncementsPage = React.lazy(() => import('./pages/AnnouncementsPage')); // <--- Announcements
+const ProjectsPage = React.lazy(() => import('./pages/ProjectsPage')); // <--- Projects
+const ProjectDetailPage = React.lazy(() => import('./pages/ProjectDetailPage')); // <--- Project Detail
+const DiscussionsPage = React.lazy(() => import('./pages/DiscussionsPage')); // <--- Discussions
+
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
     return { key, icon, children, label } as MenuItem;
@@ -179,6 +183,8 @@ const App: React.FC = () => {
         // 8. Công việc & Hướng dẫn
         if (isAuthenticated) {
             items.push(getItem(<Link to="/tasks">Công việc & Nhắc nhở</Link>, '/tasks', <CalendarOutlined />));
+            items.push(getItem(<Link to="/projects">Quản lý Dự án</Link>, '/projects', <FolderOutlined />)); // <--- Projects Menu
+            items.push(getItem(<Link to="/discussions">Thảo luận & Thông báo</Link>, '/discussions', <MessageOutlined />)); // <--- Discussions Menu
             items.push(getItem(<Link to="/help">Hướng dẫn sử dụng</Link>, '/help', <QuestionCircleOutlined />));
             items.push(getItem(<Link to="/docs">Dev Docs (Technical)</Link>, '/docs', <CodeOutlined />));
             items.push(getItem(<Link to="/profile">Hồ sơ cá nhân</Link>, '/profile', <UserOutlined />));
@@ -327,6 +333,9 @@ const App: React.FC = () => {
                                                 )}
 
                                                 <Route path="/tasks" element={<TasksPage />} />
+                                                <Route path="/projects" element={<ProjectsPage />} />
+                                                <Route path="/projects/:id" element={<ProjectDetailPage />} />
+                                                <Route path="/discussions" element={<DiscussionsPage />} />
                                                 <Route path="/help" element={<HelpPage />} />
                                                 <Route path="/docs" element={<DocsPage />} />
                                                 <Route path="/profile" element={<ProfilePage />} />

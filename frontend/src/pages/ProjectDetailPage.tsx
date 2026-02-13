@@ -1,0 +1,168 @@
+import React, { useEffect, useState } from 'react';
+import { Card, Table, Button, Tag, Tabs, Descriptions, Modal, Form, Input, DatePicker, message, Row, Col, Progress, Select } from 'antd';
+import { PlusOutlined, ArrowLeftOutlined, CheckCircleOutlined, ClockCircleOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useParams, useNavigate } from 'react-router-dom';
+import api from '../utils/api';
+import dayjs from 'dayjs';
+import TaskTimer from '../components/TaskTimer';
+
+const { Option } = Select;
+
+const ProjectDetailPage: React.FC = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const [project, setProject] = useState<any>(null);
+    const [milestones, setMilestones] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    // Milestone Modal
+    const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
+    const [editingMilestone, setEditingMilestone] = useState<any>(null);
+    const [milestoneForm] = Form.useForm();
+
+    const fetchProject = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get(`/projects/${id}`);
+            setProject(res.data);
+            setMilestones(res.data.milestones || []);
+        } catch (e) { message.error('Failed to load project'); }
+        setLoading(false);
+    };
+
+    useEffect(() => { fetchProject(); }, [id]);
+
+    const handleSaveMilestone = async (values: any) => {
+        try {
+            const payload = {
+                ...values,
+                due_date: values.due_date ? values.due_date.toISOString() : null
+            };
+
+            if (editingMilestone) {
+                await api.put(`/projects/milestones/${editingMilestone.id}`, payload);
+                message.success('Milestone updated');
+            } else {
+                await api.post(`/projects/${id}/milestones`, payload);
+                message.success('Milestone created');
+            }
+            setIsMilestoneModalOpen(false);
+            fetchProject();
+        } catch (e) { message.error('Failed to save milestone'); }
+    };
+
+    const handleDeleteMilestone = async (mId: number) => {
+        if (!window.confirm('Delete this milestone?')) return;
+        try {
+            await api.delete(`/projects/milestones/${mId}`);
+            message.success('Milestone deleted');
+            fetchProject();
+        } catch (e: any) { message.error('Failed to delete'); }
+    };
+
+    if (!project) return <div>Loading...</div>;
+
+    const items = [
+        {
+            key: 'overview', label: 'Overview',
+            children: (
+                <div>
+                    <Descriptions title="Project Details" bordered>
+                        <Descriptions.Item label="Manager">{project.manager?.full_name}</Descriptions.Item>
+                        <Descriptions.Item label="Status"><Tag color="blue">{project.status}</Tag></Descriptions.Item>
+                        <Descriptions.Item label="Timeline">
+                            {project.start_date ? dayjs(project.start_date).format('DD/MM/YYYY') : '...'} - {project.end_date ? dayjs(project.end_date).format('DD/MM/YYYY') : '...'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Description" span={3}>{project.description}</Descriptions.Item>
+                    </Descriptions>
+                </div>
+            )
+        },
+        {
+            key: 'milestones', label: `Milestones (${milestones.length})`,
+            children: (
+                <div>
+                    <div style={{ marginBottom: 16 }}>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingMilestone(null); milestoneForm.resetFields(); setIsMilestoneModalOpen(true) }}>Add Milestone</Button>
+                    </div>
+                    <Table
+                        dataSource={milestones}
+                        rowKey="id"
+                        columns={[
+                            { title: 'Title', dataIndex: 'title', render: (t, r) => <b>{t}</b> },
+                            { title: 'Due Date', dataIndex: 'due_date', render: (d) => d ? dayjs(d).format('DD/MM/YYYY') : '-' },
+                            { title: 'Status', dataIndex: 'status', render: (s) => <Tag color={s === 'DONE' ? 'green' : 'orange'}>{s}</Tag> },
+                            {
+                                title: '', key: 'act', width: 100, align: 'right' as const,
+                                render: (r) => (
+                                    <>
+                                        <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingMilestone(r); milestoneForm.setFieldsValue({ ...r, due_date: r.due_date ? dayjs(r.due_date) : null }); setIsMilestoneModalOpen(true) }} />
+                                        <Button size="small" danger icon={<DeleteOutlined />} style={{ marginLeft: 5 }} onClick={() => handleDeleteMilestone(r.id)} />
+                                    </>
+                                )
+                            }
+                        ]}
+                    />
+                </div>
+            )
+        },
+        {
+            key: 'tasks', label: `Tasks (${project.tasks?.length || 0})`,
+            children: (
+                <div>
+                    <p>Tasks associated with this project. (Go to "Tasks" menu to manage details for now)</p>
+                    <Table
+                        dataSource={project.tasks || []}
+                        rowKey="id"
+                        columns={[
+                            { title: 'Task', dataIndex: 'title' },
+                            { title: 'Status', dataIndex: 'status', render: (s: string) => <Tag>{s}</Tag> },
+                            { title: 'Assignee', dataIndex: 'assignee', render: (u: any) => u?.full_name },
+                            { title: 'Deadline', dataIndex: 'due_date', render: (d: string) => d ? dayjs(d).format('DD/MM/YY') : '-' },
+                            {
+                                title: 'Timer',
+                                key: 'timer',
+                                render: (r: any) => <TaskTimer taskId={r.id} />
+                            }
+                        ]}
+                    />
+                </div>
+            )
+        }
+    ];
+
+    return (
+        <div style={{ paddingBottom: 20 }}>
+            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/projects')} style={{ marginBottom: 16 }}>Back to Projects</Button>
+            <Card title={project.title}>
+                <Tabs defaultActiveKey="overview" items={items} />
+            </Card>
+
+            <Modal
+                title={editingMilestone ? "Edit Milestone" : "New Milestone"}
+                open={isMilestoneModalOpen}
+                onCancel={() => setIsMilestoneModalOpen(false)}
+                onOk={() => milestoneForm.submit()}
+            >
+                <Form form={milestoneForm} layout="vertical" onFinish={handleSaveMilestone} initialValues={{ status: 'PENDING' }}>
+                    <Form.Item name="title" label="Milestone Title" rules={[{ required: true }]}><Input /></Form.Item>
+                    <Form.Item name="description" label="Description"><Input.TextArea rows={2} /></Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="due_date" label="Due Date">
+                                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="status" label="Status">
+                                <Input />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </Form>
+            </Modal>
+        </div>
+    );
+};
+
+export default ProjectDetailPage;

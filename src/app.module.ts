@@ -20,6 +20,8 @@ import { CategoriesModule } from './categories/categories.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { TasksModule } from './tasks/tasks.module';
+import { ProjectsModule } from './projects/projects.module';
+import { DiscussionsModule } from './discussions/discussions.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SystemModule } from './system/system.module';
 import { BlogsModule } from './blogs/blogs.module';
@@ -68,7 +70,13 @@ import { TransactionCategory } from './finance/transaction-category.entity';
 
 // Task & Notification Entities
 import { Task } from './tasks/task.entity';
+import { TaskTimeLog } from './tasks/task-time-log.entity';
 import { Notification } from './notifications/notification.entity';
+
+import { Project } from './projects/entities/project.entity';
+import { Milestone } from './projects/entities/milestone.entity';
+import { Discussion } from './discussions/entities/discussion.entity';
+import { DiscussionComment } from './discussions/entities/discussion-comment.entity';
 
 import { Supplier } from './suppliers/supplier.entity';
 import { SupplierMaterial } from './suppliers/supplier-material.entity';
@@ -143,7 +151,8 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           StockHistory, InventoryStock, ShippingCarrier,
           ProductionOrder,
           Transaction, TransactionCategory,
-          Task, Notification,
+          Task, TaskTimeLog, Notification,
+          Project, Milestone, Discussion, DiscussionComment,
           Supplier, SupplierMaterial, SupplierContact,
           Customer, CustomerContact, CustomerComment,
           ProductionPlan, Process, Category,
@@ -166,7 +175,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
     UsersModule, AuthModule,
     ProductsModule, MaterialsModule, BomModule, SalesModule,
     InventoryModule, ProductionModule, PurchasingModule, FinanceModule,
-    TasksModule, NotificationsModule, SystemModule,
+    TasksModule, ProjectsModule, DiscussionsModule, NotificationsModule, SystemModule,
     UploadModule, SuppliersModule, CustomersModule, PlanningModule,
     ProcessesModule, CategoriesModule, AiModule,
     BlogsModule, PublicModule, HrModule,

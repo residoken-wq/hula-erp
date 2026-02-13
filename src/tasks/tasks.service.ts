@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository, LessThan, IsNull } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Task } from './task.entity';
+import { TaskTimeLog } from './task-time-log.entity';
 import { Notification } from '../notifications/notification.entity';
 
 @Injectable()
@@ -12,10 +13,14 @@ export class TasksService {
     constructor(
         @InjectRepository(Task) private taskRepo: Repository<Task>,
         @InjectRepository(Notification) private notiRepo: Repository<Notification>,
+        @InjectRepository(TaskTimeLog) private timeLogRepo: Repository<TaskTimeLog>,
     ) { }
 
     async findAll() {
-        return this.taskRepo.find({ order: { created_at: 'DESC' }, relations: ['assignee', 'creator'] });
+        return this.taskRepo.find({
+            order: { created_at: 'DESC' },
+            relations: ['assignee', 'creator', 'project', 'milestone']
+        });
     }
 
     async create(data: any) {
@@ -44,7 +49,7 @@ export class TasksService {
         const oldAssigneeId = oldTask?.assignee_id;
 
         await this.taskRepo.update(id, data);
-        const updatedTask = await this.taskRepo.findOne({ where: { id }, relations: ['assignee', 'creator'] });
+        const updatedTask = await this.taskRepo.findOne({ where: { id }, relations: ['assignee', 'creator', 'project', 'milestone'] });
 
         // Notify if assignee changed
         if (data.assignee_id && data.assignee_id !== oldAssigneeId && data.assignee_id !== updatedTask?.creator_id) {
@@ -100,6 +105,46 @@ export class TasksService {
     }
 
     async remove(id: number) { return this.taskRepo.delete(id); }
+
+    // --- TASK TIMER ---
+    async startTimer(taskId: number, userId: number) {
+        // Check if there's already a running timer for this user on this task
+        const running = await this.timeLogRepo.findOne({
+            where: { task_id: taskId, user_id: userId, end_time: IsNull() } // Need IsNull import
+        });
+
+        if (running) return running; // Already running
+
+        const log = this.timeLogRepo.create({
+            task_id: taskId,
+            user_id: userId,
+            start_time: new Date()
+        });
+        return this.timeLogRepo.save(log);
+    }
+
+    async stopTimer(taskId: number, userId: number, description?: string) {
+        const running = await this.timeLogRepo.findOne({
+            where: { task_id: taskId, user_id: userId, end_time: IsNull() }
+        });
+
+        if (!running) return null; // No running timer
+
+        const now = new Date();
+        running.end_time = now;
+        running.duration_seconds = Math.floor((now.getTime() - running.start_time.getTime()) / 1000);
+        if (description) running.description = description;
+
+        return this.timeLogRepo.save(running);
+    }
+
+    async getTaskLogs(taskId: number) {
+        return this.timeLogRepo.find({
+            where: { task_id: taskId },
+            relations: ['user'],
+            order: { start_time: 'DESC' }
+        });
+    }
 
     // --- CRON JOB: REMINDER TỰ ĐỘNG ---
     // Chạy mỗi phút để kiểm tra deadline

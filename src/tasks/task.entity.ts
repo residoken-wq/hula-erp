@@ -1,5 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { Project } from '../projects/entities/project.entity';
+import { Milestone } from '../projects/entities/milestone.entity';
+import { TaskTimeLog } from './task-time-log.entity';
 
 export enum TaskStatus {
   TODO = 'TODO',
@@ -45,6 +48,28 @@ export class Task {
   @Column({ nullable: true })
   reference_type: string; // VD: CRM, SALES, PURCHASE, PRODUCTION
   // --------------------------------
+
+  // --- PROJECT MANAGEMENT ---
+  @ManyToOne(() => Project, (p) => p.tasks, { nullable: true })
+  @JoinColumn({ name: 'project_id' })
+  project: Project;
+
+  @Column({ nullable: true })
+  project_id: number;
+
+  @ManyToOne(() => Milestone, (m) => m.tasks, { nullable: true })
+  @JoinColumn({ name: 'milestone_id' })
+  milestone: Milestone;
+
+  @Column({ nullable: true })
+  milestone_id: number;
+
+  @Column({ type: 'float', default: 0 })
+  estimated_hours: number;
+
+  @OneToMany(() => TaskTimeLog, (log) => log.task)
+  time_logs: TaskTimeLog[];
+  // --------------------------
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'assignee_id' })
