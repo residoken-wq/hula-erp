@@ -13,7 +13,12 @@ const ProjectDetailPage: React.FC = () => {
     const navigate = useNavigate();
     const [project, setProject] = useState<any>(null);
     const [milestones, setMilestones] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]); // <--- Add users state
     const [loading, setLoading] = useState(false);
+
+    // Task Modal
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+    const [taskForm] = Form.useForm();
 
     // Milestone Modal
     const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
@@ -23,10 +28,14 @@ const ProjectDetailPage: React.FC = () => {
     const fetchProject = async () => {
         setLoading(true);
         try {
-            const res = await api.get(`/projects/${id}`);
-            setProject(res.data);
-            setMilestones(res.data.milestones || []);
-        } catch (e) { message.error('Failed to load project'); }
+            const [resProject, resUsers] = await Promise.all([
+                api.get(`/projects/${id}`),
+                api.get('/users')
+            ]);
+            setProject(resProject.data);
+            setMilestones(resProject.data.milestones || []);
+            setUsers(resUsers.data); // <--- Set users
+        } catch (e) { message.error('Failed to load project data'); }
         setLoading(false);
     };
 
@@ -58,111 +67,182 @@ const ProjectDetailPage: React.FC = () => {
             message.success('Milestone deleted');
             fetchProject();
         } catch (e: any) { message.error('Failed to delete'); }
+        const handleDeleteMilestone = async (mId: number) => {
+            if (!window.confirm('Delete this milestone?')) return;
+            try {
+                await api.delete(`/projects/milestones/${mId}`);
+                message.success('Milestone deleted');
+                fetchProject();
+            } catch (e: any) { message.error('Failed to delete'); }
+        };
+
+        const handleCreateTask = async (values: any) => {
+            try {
+                const payload = {
+                    ...values,
+                    project_id: parseInt(id!),
+                    due_date: values.due_date ? values.due_date.toISOString() : null
+                };
+                await api.post('/tasks', payload);
+                message.success('Task created successfully');
+                setIsTaskModalOpen(false);
+                taskForm.resetFields();
+                fetchProject(); // Reload to see new task
+            } catch (e) { message.error('Failed to create task'); }
+        };
+
+        if (!project) return <div>Loading...</div>;
+
+        const items = [
+            {
+                key: 'overview', label: 'Overview',
+                children: (
+                    <div>
+                        <Descriptions title="Project Details" bordered>
+                            <Descriptions.Item label="Manager">{project.manager?.full_name}</Descriptions.Item>
+                            <Descriptions.Item label="Status"><Tag color="blue">{project.status}</Tag></Descriptions.Item>
+                            <Descriptions.Item label="Timeline">
+                                {project.start_date ? dayjs(project.start_date).format('DD/MM/YYYY') : '...'} - {project.end_date ? dayjs(project.end_date).format('DD/MM/YYYY') : '...'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Description" span={3}>{project.description}</Descriptions.Item>
+                        </Descriptions>
+                    </div>
+                )
+            },
+            {
+                key: 'milestones', label: `Milestones (${milestones.length})`,
+                children: (
+                    <div>
+                        <div style={{ marginBottom: 16 }}>
+                            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingMilestone(null); milestoneForm.resetFields(); setIsMilestoneModalOpen(true) }}>Add Milestone</Button>
+                        </div>
+                        <Table
+                            dataSource={milestones}
+                            rowKey="id"
+                            columns={[
+                                { title: 'Title', dataIndex: 'title', render: (t, r) => <b>{t}</b> },
+                                { title: 'Due Date', dataIndex: 'due_date', render: (d) => d ? dayjs(d).format('DD/MM/YYYY') : '-' },
+                                { title: 'Status', dataIndex: 'status', render: (s) => <Tag color={s === 'DONE' ? 'green' : 'orange'}>{s}</Tag> },
+                                {
+                                    title: '', key: 'act', width: 100, align: 'right' as const,
+                                    render: (r) => (
+                                        <>
+                                            <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingMilestone(r); milestoneForm.setFieldsValue({ ...r, due_date: r.due_date ? dayjs(r.due_date) : null }); setIsMilestoneModalOpen(true) }} />
+                                            <Button size="small" danger icon={<DeleteOutlined />} style={{ marginLeft: 5 }} onClick={() => handleDeleteMilestone(r.id)} />
+                                        </>
+                                    )
+                                }
+                            ]}
+                        />
+                    </div>
+                )
+            },
+            {
+                key: 'tasks', label: `Tasks (${project.tasks?.length || 0})`,
+                children: (
+                    <div>
+                        <div style={{ marginBottom: 16 }}>
+                            <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsTaskModalOpen(true)}>Add Project Task</Button>
+                        </div>
+                        <Table
+                            dataSource={project.tasks || []}
+                            rowKey="id"
+                            columns={[
+                                { title: 'Task', dataIndex: 'title' },
+                                { title: 'Status', dataIndex: 'status', render: (s: string) => <Tag>{s}</Tag> },
+                                { title: 'Assignee', dataIndex: 'assignee', render: (u: any) => u?.full_name },
+                                { title: 'Deadline', dataIndex: 'due_date', render: (d: string) => d ? dayjs(d).format('DD/MM/YY') : '-' },
+                                {
+                                    title: 'Timer',
+                                    key: 'timer',
+                                    render: (r: any) => <TaskTimer taskId={r.id} />
+                                }
+                            ]}
+                        />
+                    </div>
+                )
+            }
+        ];
+
+        return (
+            <div style={{ paddingBottom: 20 }}>
+                <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/projects')} style={{ marginBottom: 16 }}>Back to Projects</Button>
+                <Card title={project.title}>
+                    <Tabs defaultActiveKey="overview" items={items} />
+                </Card>
+
+                <Modal
+                    title={editingMilestone ? "Edit Milestone" : "New Milestone"}
+                    open={isMilestoneModalOpen}
+                    onCancel={() => setIsMilestoneModalOpen(false)}
+                    onOk={() => milestoneForm.submit()}
+                >
+                    <Form form={milestoneForm} layout="vertical" onFinish={handleSaveMilestone} initialValues={{ status: 'PENDING' }}>
+                        <Form.Item name="title" label="Milestone Title" rules={[{ required: true }]}><Input /></Form.Item>
+                        <Form.Item name="description" label="Description"><Input.TextArea rows={2} /></Form.Item>
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Form.Item name="due_date" label="Due Date">
+                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                                <Form.Item name="status" label="Status">
+                                    <Input />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                    </Form>
+                </Modal>
+
+                <Modal
+                    title="Create New Task for Project"
+                    open={isTaskModalOpen}
+                    onCancel={() => setIsTaskModalOpen(false)}
+                    onOk={() => taskForm.submit()}
+                >
+                    <Form form={taskForm} layout="vertical" onFinish={handleCreateTask} initialValues={{ status: 'TODO', priority: 'MEDIUM' }}>
+                        <Form.Item name="title" label="Task Title" rules={[{ required: true }]}><Input /></Form.Item>
+                        <Form.Item name="description" label="Description"><Input.TextArea rows={3} /></Form.Item>
+
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Form.Item name="milestone_id" label="Milestone">
+                                    <Select allowClear>
+                                        {milestones.map(m => <Option key={m.id} value={m.id}>{m.title} ({m.status})</Option>)}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                                <Form.Item name="assignee_id" label="Assignee">
+                                    <Select showSearch optionFilterProp="children">
+                                        {users.map(u => <Option key={u.id} value={u.id}>{u.full_name}</Option>)}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                        </Row>
+
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Form.Item name="status" label="Status">
+                                    <Select>
+                                        <Option value="TODO">To Do</Option>
+                                        <Option value="IN_PROGRESS">In Progress</Option>
+                                        <Option value="REVIEW">Review</Option>
+                                        <Option value="DONE">Done</Option>
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                                <Form.Item name="due_date" label="Due Date">
+                                    <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                    </Form>
+                </Modal>
+            </div>
+        );
     };
 
-    if (!project) return <div>Loading...</div>;
-
-    const items = [
-        {
-            key: 'overview', label: 'Overview',
-            children: (
-                <div>
-                    <Descriptions title="Project Details" bordered>
-                        <Descriptions.Item label="Manager">{project.manager?.full_name}</Descriptions.Item>
-                        <Descriptions.Item label="Status"><Tag color="blue">{project.status}</Tag></Descriptions.Item>
-                        <Descriptions.Item label="Timeline">
-                            {project.start_date ? dayjs(project.start_date).format('DD/MM/YYYY') : '...'} - {project.end_date ? dayjs(project.end_date).format('DD/MM/YYYY') : '...'}
-                        </Descriptions.Item>
-                        <Descriptions.Item label="Description" span={3}>{project.description}</Descriptions.Item>
-                    </Descriptions>
-                </div>
-            )
-        },
-        {
-            key: 'milestones', label: `Milestones (${milestones.length})`,
-            children: (
-                <div>
-                    <div style={{ marginBottom: 16 }}>
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingMilestone(null); milestoneForm.resetFields(); setIsMilestoneModalOpen(true) }}>Add Milestone</Button>
-                    </div>
-                    <Table
-                        dataSource={milestones}
-                        rowKey="id"
-                        columns={[
-                            { title: 'Title', dataIndex: 'title', render: (t, r) => <b>{t}</b> },
-                            { title: 'Due Date', dataIndex: 'due_date', render: (d) => d ? dayjs(d).format('DD/MM/YYYY') : '-' },
-                            { title: 'Status', dataIndex: 'status', render: (s) => <Tag color={s === 'DONE' ? 'green' : 'orange'}>{s}</Tag> },
-                            {
-                                title: '', key: 'act', width: 100, align: 'right' as const,
-                                render: (r) => (
-                                    <>
-                                        <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingMilestone(r); milestoneForm.setFieldsValue({ ...r, due_date: r.due_date ? dayjs(r.due_date) : null }); setIsMilestoneModalOpen(true) }} />
-                                        <Button size="small" danger icon={<DeleteOutlined />} style={{ marginLeft: 5 }} onClick={() => handleDeleteMilestone(r.id)} />
-                                    </>
-                                )
-                            }
-                        ]}
-                    />
-                </div>
-            )
-        },
-        {
-            key: 'tasks', label: `Tasks (${project.tasks?.length || 0})`,
-            children: (
-                <div>
-                    <p>Tasks associated with this project. (Go to "Tasks" menu to manage details for now)</p>
-                    <Table
-                        dataSource={project.tasks || []}
-                        rowKey="id"
-                        columns={[
-                            { title: 'Task', dataIndex: 'title' },
-                            { title: 'Status', dataIndex: 'status', render: (s: string) => <Tag>{s}</Tag> },
-                            { title: 'Assignee', dataIndex: 'assignee', render: (u: any) => u?.full_name },
-                            { title: 'Deadline', dataIndex: 'due_date', render: (d: string) => d ? dayjs(d).format('DD/MM/YY') : '-' },
-                            {
-                                title: 'Timer',
-                                key: 'timer',
-                                render: (r: any) => <TaskTimer taskId={r.id} />
-                            }
-                        ]}
-                    />
-                </div>
-            )
-        }
-    ];
-
-    return (
-        <div style={{ paddingBottom: 20 }}>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/projects')} style={{ marginBottom: 16 }}>Back to Projects</Button>
-            <Card title={project.title}>
-                <Tabs defaultActiveKey="overview" items={items} />
-            </Card>
-
-            <Modal
-                title={editingMilestone ? "Edit Milestone" : "New Milestone"}
-                open={isMilestoneModalOpen}
-                onCancel={() => setIsMilestoneModalOpen(false)}
-                onOk={() => milestoneForm.submit()}
-            >
-                <Form form={milestoneForm} layout="vertical" onFinish={handleSaveMilestone} initialValues={{ status: 'PENDING' }}>
-                    <Form.Item name="title" label="Milestone Title" rules={[{ required: true }]}><Input /></Form.Item>
-                    <Form.Item name="description" label="Description"><Input.TextArea rows={2} /></Form.Item>
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item name="due_date" label="Due Date">
-                                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item name="status" label="Status">
-                                <Input />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                </Form>
-            </Modal>
-        </div>
-    );
-};
-
-export default ProjectDetailPage;
+    export default ProjectDetailPage;
