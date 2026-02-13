@@ -25,6 +25,10 @@ const ProjectDetailPage: React.FC = () => {
     const [editingMilestone, setEditingMilestone] = useState<any>(null);
     const [milestoneForm] = Form.useForm();
 
+    // Members Modal
+    const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+    const [membersForm] = Form.useForm();
+
     const fetchProject = async () => {
         setLoading(true);
         try {
@@ -67,14 +71,7 @@ const ProjectDetailPage: React.FC = () => {
             message.success('Milestone deleted');
             fetchProject();
         } catch (e: any) { message.error('Failed to delete'); }
-        const handleDeleteMilestone = async (mId: number) => {
-            if (!window.confirm('Delete this milestone?')) return;
-            try {
-                await api.delete(`/projects/milestones/${mId}`);
-                message.success('Milestone deleted');
-                fetchProject();
-            } catch (e: any) { message.error('Failed to delete'); }
-        };
+
 
         const handleCreateTask = async (values: any) => {
             try {
@@ -98,11 +95,18 @@ const ProjectDetailPage: React.FC = () => {
                 key: 'overview', label: 'Overview',
                 children: (
                     <div>
-                        <Descriptions title="Project Details" bordered>
+                        <Descriptions title="Project Details" bordered extra={<Button onClick={() => { membersForm.setFieldsValue({ member_ids: project.members?.map((m: any) => m.id) }); setIsMembersModalOpen(true); }}>Manage Members</Button>}>
                             <Descriptions.Item label="Manager">{project.manager?.full_name}</Descriptions.Item>
                             <Descriptions.Item label="Status"><Tag color="blue">{project.status}</Tag></Descriptions.Item>
                             <Descriptions.Item label="Timeline">
                                 {project.start_date ? dayjs(project.start_date).format('DD/MM/YYYY') : '...'} - {project.end_date ? dayjs(project.end_date).format('DD/MM/YYYY') : '...'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Members" span={3}>
+                                {project.members && project.members.length > 0 ? (
+                                    project.members.map((m: any) => <Tag key={m.id} color="cyan">{m.full_name}</Tag>)
+                                ) : (
+                                    <span style={{ color: '#999' }}>No members assigned (Only Manager has access)</span>
+                                )}
                             </Descriptions.Item>
                             <Descriptions.Item label="Description" span={3}>{project.description}</Descriptions.Item>
                         </Descriptions>

@@ -11,43 +11,59 @@ export class ProjectsService {
         @InjectRepository(Milestone) private milestoneRepo: Repository<Milestone>,
     ) { }
 
-    async findAll(status?: string) {
-        const query = this.repo.createQueryBuilder('p')
-            .leftJoinAndSelect('p.manager', 'manager')
-            .leftJoinAndSelect('p.milestones', 'milestones')
-            .orderBy('p.created_at', 'DESC');
-
-        if (status) {
-            query.andWhere('p.status = :status', { status });
-        }
-
-        const projects = await query.getMany();
-        // Calculate progress based on milestones or tasks?
-        // For now, return basic info
-        return projects;
+    async findAll(user: any) {
+        return this.repo.find({
+            relations: ['manager', 'members'],
+            order: { created_at: 'DESC' },
+            where: [
+                { manager_id: user.id },
+                { members: { id: user.id } }
+            ]
+        });
     }
 
-    async findOne(id: number) {
+    async findOne(id: number, user?: any) {
         const project = await this.repo.findOne({
             where: { id },
-            relations: ['manager', 'milestones', 'tasks', 'tasks.assignee']
+            relations: ['manager', 'milestones', 'members', 'tasks', 'tasks.assignee']
         });
         if (!project) throw new NotFoundException('Project not found');
 
-        // Calculate stats
-        // e.g. completion % based on tasks
+        // Check Access if user is provided
+        if (user) {
+            const isMember = project.members?.some(m => m.id === user.id);
+            const isManager = project.manager_id === user.id;
+
+            if (!isMember && !isManager) {
+                throw new NotFoundException('Project not found or access denied');
+            }
+        }
 
         return project;
     }
 
     async create(data: any) {
-        const project = this.repo.create(data);
+        const { member_ids, ...rest } = data;
+        const project = this.repo.create(rest);
+
+        if (member_ids && member_ids.length > 0) {
+            project.members = member_ids.map((id: number) => ({ id }));
+        }
+
         return this.repo.save(project);
     }
 
     async update(id: number, data: any) {
-        await this.repo.update(id, data);
-        return this.findOne(id);
+        const { member_ids, ...rest } = data;
+        const project = await this.repo.findOne({ where: { id } });
+
+        if (member_ids) {
+            project.members = member_ids.map((uid: number) => ({ id: uid }));
+        }
+
+        Object.assign(project, rest);
+        await this.repo.save(project);
+        return this.findOne(id, { id: project.manager_id }); // Return as manager/system
     }
 
     async remove(id: number) {

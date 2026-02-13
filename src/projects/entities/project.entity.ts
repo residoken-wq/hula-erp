@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { User } from '../../users/entities/user.entity';
 import { Milestone } from './milestone.entity';
 import { Task } from '../../tasks/task.entity';
+import { JoinTable, ManyToMany } from 'typeorm';
 
 export enum ProjectStatus {
     PLANNING = 'PLANNING',
@@ -37,6 +38,10 @@ export class Project {
 
     @Column({ nullable: true })
     manager_id: number;
+
+    @ManyToMany(() => User)
+    @JoinTable({ name: 'project_members' })
+    members: User[];
 
     @OneToMany(() => Milestone, (m) => m.project)
     milestones: Milestone[];

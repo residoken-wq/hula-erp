@@ -1,18 +1,20 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ProjectsService } from './projects.service';
 
 @Controller('projects')
+@UseGuards(JwtAuthGuard) // Ensure user is authenticated
 export class ProjectsController {
     constructor(private readonly service: ProjectsService) { }
 
     @Get()
-    findAll(@Query('status') status?: string) {
-        return this.service.findAll(status);
+    findAll(@Req() req: any) {
+        return this.service.findAll(req.user);
     }
 
     @Get(':id')
-    findOne(@Param('id') id: number) {
-        return this.service.findOne(id);
+    findOne(@Param('id') id: number, @Req() req: any) {
+        return this.service.findOne(id, req.user);
     }
 
     @Post()
