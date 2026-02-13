@@ -59,7 +59,7 @@ const MarketingPage = React.lazy(() => import('./pages/MarketingPage')); // <---
 const AnnouncementsPage = React.lazy(() => import('./pages/AnnouncementsPage')); // <--- Announcements
 const ProjectsPage = React.lazy(() => import('./pages/ProjectsPage')); // <--- Projects
 const ProjectDetailPage = React.lazy(() => import('./pages/ProjectDetailPage')); // <--- Project Detail
-const DiscussionsPage = React.lazy(() => import('./pages/DiscussionsPage')); // <--- Discussions
+const WorkSpacePage = React.lazy(() => import('./pages/WorkSpacePage')); // <--- Consolidated WorkSpace
 
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
@@ -182,9 +182,8 @@ const App: React.FC = () => {
 
         // 8. Công việc & Hướng dẫn
         if (isAuthenticated) {
-            items.push(getItem(<Link to="/tasks">Công việc & Nhắc nhở</Link>, '/tasks', <CalendarOutlined />));
-            items.push(getItem(<Link to="/projects">Quản lý Dự án</Link>, '/projects', <FolderOutlined />)); // <--- Projects Menu
-            items.push(getItem(<Link to="/discussions">Thảo luận & Thông báo</Link>, '/discussions', <MessageOutlined />)); // <--- Discussions Menu
+            items.push(getItem(<Link to="/workspace">Công việc chung</Link>, '/workspace', <CalendarOutlined />)); // <--- Unified Menu
+            items.push(getItem(<Link to="/projects">Quản lý Dự án</Link>, '/projects', <FolderOutlined />));
             items.push(getItem(<Link to="/help">Hướng dẫn sử dụng</Link>, '/help', <QuestionCircleOutlined />));
             items.push(getItem(<Link to="/docs">Dev Docs (Technical)</Link>, '/docs', <CodeOutlined />));
             items.push(getItem(<Link to="/profile">Hồ sơ cá nhân</Link>, '/profile', <UserOutlined />));
@@ -332,10 +331,9 @@ const App: React.FC = () => {
                                                     <Route path="/finance" element={<FinancePage />} />
                                                 )}
 
-                                                <Route path="/tasks" element={<TasksPage />} />
+                                                <Route path="/workspace" element={<WorkSpacePage />} />
                                                 <Route path="/projects" element={<ProjectsPage />} />
                                                 <Route path="/projects/:id" element={<ProjectDetailPage />} />
-                                                <Route path="/discussions" element={<DiscussionsPage />} />
                                                 <Route path="/help" element={<HelpPage />} />
                                                 <Route path="/docs" element={<DocsPage />} />
                                                 <Route path="/profile" element={<ProfilePage />} />
