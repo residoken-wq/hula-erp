@@ -36,6 +36,9 @@ export class Task {
   priority: TaskPriority;
 
   @Column({ type: 'timestamp', nullable: true })
+  start_date: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
   due_date: Date;
 
   @Column({ default: false })

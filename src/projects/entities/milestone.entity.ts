@@ -14,6 +14,9 @@ export class Milestone {
     description: string;
 
     @Column({ type: 'timestamp', nullable: true })
+    start_date: Date;
+
+    @Column({ type: 'timestamp', nullable: true })
     due_date: Date;
 
     @Column({ default: 'PENDING' }) // PENDING, DONE

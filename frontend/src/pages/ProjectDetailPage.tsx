@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import TaskTimer from '../components/TaskTimer';
+import ProjectGantt from '../components/ProjectGantt';
 
 const { Option } = Select;
 
@@ -159,94 +160,78 @@ const ProjectDetailPage: React.FC = () => {
                                 {
                                     title: 'Timer',
                                     key: 'timer',
-                                    render: (r: any) => <TaskTimer taskId={r.id} />
-                                }
-                            ]}
-                        />
-                    </div>
-                )
-            }
-        ];
+        <Modal
+            title={editingMilestone ? "Edit Milestone" : "New Milestone"}
+            open={isMilestoneModalOpen}
+            onCancel={() => setIsMilestoneModalOpen(false)}
+            onOk={() => milestoneForm.submit()}
+        >
+            <Form form={milestoneForm} layout="vertical" onFinish={handleSaveMilestone} initialValues={{ status: 'PENDING' }}>
+                <Form.Item name="title" label="Milestone Title" rules={[{ required: true }]}><Input /></Form.Item>
+                <Form.Item name="description" label="Description"><Input.TextArea rows={2} /></Form.Item>
+                <Row gutter={16}>
+                    <Col span={12}>
+                        <Form.Item name="due_date" label="Due Date">
+                            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="status" label="Status">
+                            <Input />
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </Form>
+        </Modal>
 
-        return (
-            <div style={{ paddingBottom: 20 }}>
-                <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/projects')} style={{ marginBottom: 16 }}>Back to Projects</Button>
-                <Card title={project.title}>
-                    <Tabs defaultActiveKey="overview" items={items} />
-                </Card>
+        <Modal
+            title="Create New Task for Project"
+            open={isTaskModalOpen}
+            onCancel={() => setIsTaskModalOpen(false)}
+            onOk={() => taskForm.submit()}
+        >
+            <Form form={taskForm} layout="vertical" onFinish={handleCreateTask} initialValues={{ status: 'TODO', priority: 'MEDIUM' }}>
+                <Form.Item name="title" label="Task Title" rules={[{ required: true }]}><Input /></Form.Item>
+                <Form.Item name="description" label="Description"><Input.TextArea rows={3} /></Form.Item>
 
-                <Modal
-                    title={editingMilestone ? "Edit Milestone" : "New Milestone"}
-                    open={isMilestoneModalOpen}
-                    onCancel={() => setIsMilestoneModalOpen(false)}
-                    onOk={() => milestoneForm.submit()}
-                >
-                    <Form form={milestoneForm} layout="vertical" onFinish={handleSaveMilestone} initialValues={{ status: 'PENDING' }}>
-                        <Form.Item name="title" label="Milestone Title" rules={[{ required: true }]}><Input /></Form.Item>
-                        <Form.Item name="description" label="Description"><Input.TextArea rows={2} /></Form.Item>
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item name="due_date" label="Due Date">
-                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item name="status" label="Status">
-                                    <Input />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-                    </Form>
-                </Modal>
+                <Row gutter={16}>
+                    <Col span={12}>
+                        <Form.Item name="milestone_id" label="Milestone">
+                            <Select allowClear>
+                                {milestones.map(m => <Option key={m.id} value={m.id}>{m.title} ({m.status})</Option>)}
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="assignee_id" label="Assignee">
+                            <Select showSearch optionFilterProp="children">
+                                {users.map(u => <Option key={u.id} value={u.id}>{u.full_name}</Option>)}
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                </Row>
 
-                <Modal
-                    title="Create New Task for Project"
-                    open={isTaskModalOpen}
-                    onCancel={() => setIsTaskModalOpen(false)}
-                    onOk={() => taskForm.submit()}
-                >
-                    <Form form={taskForm} layout="vertical" onFinish={handleCreateTask} initialValues={{ status: 'TODO', priority: 'MEDIUM' }}>
-                        <Form.Item name="title" label="Task Title" rules={[{ required: true }]}><Input /></Form.Item>
-                        <Form.Item name="description" label="Description"><Input.TextArea rows={3} /></Form.Item>
-
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item name="milestone_id" label="Milestone">
-                                    <Select allowClear>
-                                        {milestones.map(m => <Option key={m.id} value={m.id}>{m.title} ({m.status})</Option>)}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item name="assignee_id" label="Assignee">
-                                    <Select showSearch optionFilterProp="children">
-                                        {users.map(u => <Option key={u.id} value={u.id}>{u.full_name}</Option>)}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                        </Row>
-
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item name="status" label="Status">
-                                    <Select>
-                                        <Option value="TODO">To Do</Option>
-                                        <Option value="IN_PROGRESS">In Progress</Option>
-                                        <Option value="REVIEW">Review</Option>
-                                        <Option value="DONE">Done</Option>
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item name="due_date" label="Due Date">
-                                    <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-                    </Form>
-                </Modal>
-            </div>
-        );
+                <Row gutter={16}>
+                    <Col span={12}>
+                        <Form.Item name="status" label="Status">
+                            <Select>
+                                <Option value="TODO">To Do</Option>
+                                <Option value="IN_PROGRESS">In Progress</Option>
+                                <Option value="REVIEW">Review</Option>
+                                <Option value="DONE">Done</Option>
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="due_date" label="Due Date">
+                            <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </Form>
+        </Modal>
+    </div >
+);
     };
 
-    export default ProjectDetailPage;
+export default ProjectDetailPage;
