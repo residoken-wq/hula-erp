@@ -1206,7 +1206,25 @@ const HelpPage: React.FC = () => {
                 return (
                     <div>
                         <Tag color="green" style={{ marginBottom: 16 }}>Cập nhật mới</Tag>
-                        <Title level={2}>🚀 Tính năng mới (từ 31/12/2025)</Title>
+                        <Title level={2}>🚀 Tính năng mới (từ 28/02/2026)</Title>
+
+                        <Card title="28/02/2026 - Nâng cấp Quản lý Dự án & Thông báo" style={{ marginBottom: 16 }}>
+                            <Descriptions column={1} bordered size="small">
+                                <Descriptions.Item label="Quản lý Dự án & Tasks">
+                                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                        <li><b>Tasks:</b> Bổ sung chức năng chọn Project và Milestone khi tạo/sửa Task.</li>
+                                        <li><b>Tạo trực tiếp:</b> Thêm tính năng tạo tasks trực tiếp từ Tab Tasks trong chi tiết Project.</li>
+                                        <li><b>Gantt Chart:</b> Bổ sung chế độ xem Gantt Chart timeline trực quan cho Milestone và Tasks trong Tab Overview của Project.</li>
+                                    </ul>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Thông báo (Notifications) Deep-Link">
+                                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                        <li>Khi click vào một thông báo, hệ thống sẽ <b>tự động điều hướng</b> đến trang liên quan.</li>
+                                        <li><b>Tự động mở Modal:</b> Không chỉ chuyển trang, hệ thống sẽ tự động tìm data, mở sẵn modal chi tiết hoặc edit (VD: mở ngay modal chỉnh sửa Task được gửi trong thông báo) giúp tiết kiệm thời gian thao tác.</li>
+                                    </ul>
+                                </Descriptions.Item>
+                            </Descriptions>
+                        </Card>
 
                         <Card title="04/01/2026 - Cập nhật Module CRM & Dashboard" style={{ marginBottom: 16 }}>
                             <Descriptions column={1} bordered size="small">
