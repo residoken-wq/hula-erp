@@ -38,7 +38,7 @@ const ProjectGantt: React.FC<ProjectGanttProps> = ({ tasks, milestones, onUpdate
             name: m.title,
             id: `m-${m.id}`, // Prefix to avoid collision
             type: 'project',
-            progress: m.status === 'DONE' ? 100 : 0, // Simplified progress
+            progress: m.status === 'COMPLETED' ? 100 : (m.status === 'ACTIVE' ? 50 : 0), // Progress based on Project status
             hideChildren: false,
             isDisabled: false,
             styles: { progressColor: '#1890ff', progressSelectedColor: '#096dd9' }

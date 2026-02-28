@@ -19,7 +19,7 @@ export class Milestone {
     @Column({ type: 'timestamp', nullable: true })
     due_date: Date;
 
-    @Column({ default: 'PENDING' }) // PENDING, DONE
+    @Column({ default: 'PLANNING' })
     status: string;
 
     @ManyToOne(() => Project, (p) => p.milestones, { onDelete: 'CASCADE' })

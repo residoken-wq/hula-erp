@@ -139,7 +139,7 @@ const ProjectDetailPage: React.FC = () => {
                             { title: 'Title', dataIndex: 'title', render: (t, r) => <b>{t}</b> },
                             { title: 'Start Date', dataIndex: 'start_date', render: (d) => d ? dayjs(d).format('DD/MM/YYYY') : '-' },
                             { title: 'Due Date', dataIndex: 'due_date', render: (d) => d ? dayjs(d).format('DD/MM/YYYY') : '-' },
-                            { title: 'Status', dataIndex: 'status', render: (s) => <Tag color={s === 'DONE' ? 'green' : 'orange'}>{s}</Tag> },
+                            { title: 'Status', dataIndex: 'status', render: (s: string) => <Tag color={s === 'ACTIVE' ? 'green' : s === 'COMPLETED' ? 'blue' : 'default'}>{s}</Tag> },
                             {
                                 title: '', key: 'act', width: 100, align: 'right' as const,
                                 render: (r) => (
@@ -205,7 +205,7 @@ const ProjectDetailPage: React.FC = () => {
                 onCancel={() => setIsMilestoneModalOpen(false)}
                 onOk={() => milestoneForm.submit()}
             >
-                <Form form={milestoneForm} layout="vertical" onFinish={handleSaveMilestone} initialValues={{ status: 'PENDING' }}>
+                <Form form={milestoneForm} layout="vertical" onFinish={handleSaveMilestone} initialValues={{ status: 'PLANNING' }}>
                     <Form.Item name="title" label="Milestone Title" rules={[{ required: true }]}><Input /></Form.Item>
                     <Form.Item name="description" label="Description"><Input.TextArea rows={2} /></Form.Item>
                     <Row gutter={16}>
@@ -220,7 +220,15 @@ const ProjectDetailPage: React.FC = () => {
                             </Form.Item>
                         </Col>
                     </Row>
-                    <Form.Item name="status" label="Status"><Input /></Form.Item> {/* Should be select? Keeping simple for now */}
+                    <Form.Item name="status" label="Status">
+                        <Select>
+                            <Option value="PLANNING">Planning</Option>
+                            <Option value="ACTIVE">Active</Option>
+                            <Option value="COMPLETED">Completed</Option>
+                            <Option value="ARCHIVED">Archived</Option>
+                            <Option value="ON_HOLD">On Hold</Option>
+                        </Select>
+                    </Form.Item>
                 </Form>
             </Modal>
 
