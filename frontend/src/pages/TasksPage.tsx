@@ -45,21 +45,30 @@ const TasksPage: React.FC = () => {
     // Handle URL params from notifications (deep linking)
     useEffect(() => {
         const taskId = searchParams.get('task');
-        const highlight = searchParams.get('highlight');
 
-        if (taskId) {
+        if (taskId && tasks.length > 0) {
             const id = parseInt(taskId);
-            setHighlightTaskId(id);
+            const found = tasks.find((t: any) => t.id === id);
 
-            // Scroll to task row after data loads
+            if (found) {
+                // Open the task edit modal directly
+                setEditingTask(found);
+                setSelectedProject(found.project_id || null);
+                form.setFieldsValue({
+                    ...found,
+                    due_date: found.due_date ? dayjs(found.due_date) : null
+                });
+                setIsModalOpen(true);
+            }
+
+            // Also highlight the row for visual feedback
+            setHighlightTaskId(id);
             setTimeout(() => {
                 const element = document.getElementById(`task-row-${id}`);
                 if (element) {
                     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }, 500);
-
-            // Clear highlight after 3 seconds
             setTimeout(() => setHighlightTaskId(null), 3000);
 
             // Clear URL params

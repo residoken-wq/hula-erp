@@ -44,7 +44,7 @@ export class ProjectsService {
 
     async create(data: any) {
         const { member_ids, ...rest } = data;
-        const project = this.repo.create(rest);
+        const project = this.repo.create(rest) as Project;
 
         if (member_ids && member_ids.length > 0) {
             project.members = member_ids.map((id: number) => ({ id }));
