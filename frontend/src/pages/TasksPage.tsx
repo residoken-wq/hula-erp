@@ -19,6 +19,8 @@ const TasksPage: React.FC = () => {
     const [form] = Form.useForm();
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [highlightTaskId, setHighlightTaskId] = useState<number | null>(null);
+    const [projects, setProjects] = useState<any[]>([]);
+    const [selectedProject, setSelectedProject] = useState<number | null>(null);
     const isMobile = useMobile();
 
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -26,12 +28,14 @@ const TasksPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [resTasks, resUsers] = await Promise.all([
+            const [resTasks, resUsers, resProjects] = await Promise.all([
                 api.get('/tasks'),
-                api.get('/users')
+                api.get('/users'),
+                api.get('/projects')
             ]);
             setTasks(resTasks.data);
             setUsers(resUsers.data);
+            setProjects(resProjects.data);
         } catch (e) { }
         setLoading(false);
     };
@@ -134,10 +138,24 @@ const TasksPage: React.FC = () => {
             render: (u: any) => u ? <Tag color="purple">{u.full_name}</Tag> : <Tag>-</Tag>
         },
         {
+            title: 'Dự án / Milestone', dataIndex: 'project',
+            render: (p: any, r: any) => (
+                <div>
+                    {p ? <Tag color="cyan">{p.title}</Tag> : <span style={{ color: '#ccc' }}>-</span>}
+                    {r.milestone && <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{r.milestone.title}</div>}
+                </div>
+            )
+        },
+        {
             title: '', key: 'act', width: 100, align: 'right' as const,
             render: (r: any) => (
                 <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
-                    <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingTask(r); form.setFieldsValue({ ...r, due_date: r.due_date ? dayjs(r.due_date) : null }); setIsModalOpen(true) }} />
+                    <Button size="small" icon={<EditOutlined />} onClick={() => {
+                        setEditingTask(r);
+                        setSelectedProject(r.project_id || null);
+                        form.setFieldsValue({ ...r, due_date: r.due_date ? dayjs(r.due_date) : null });
+                        setIsModalOpen(true);
+                    }} />
                     <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(r.id)} />
                 </div>
             )
@@ -210,6 +228,28 @@ const TasksPage: React.FC = () => {
                                     <Option value="IN_PROGRESS">Đang thực hiện</Option>
                                     <Option value="REVIEW">Chờ duyệt</Option>
                                     <Option value="DONE">Hoàn thành</Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="project_id" label="Dự án">
+                                <Select allowClear placeholder="Chọn dự án..." onChange={(val) => {
+                                    setSelectedProject(val);
+                                    form.setFieldsValue({ milestone_id: undefined });
+                                }}>
+                                    {projects.map(p => <Option key={p.id} value={p.id}>{p.title}</Option>)}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="milestone_id" label="Milestone">
+                                <Select allowClear placeholder="Chọn milestone..." disabled={!selectedProject}>
+                                    {selectedProject && projects.find(p => p.id === selectedProject)?.milestones?.map((m: any) =>
+                                        <Option key={m.id} value={m.id}>{m.title}</Option>
+                                    )}
                                 </Select>
                             </Form.Item>
                         </Col>
