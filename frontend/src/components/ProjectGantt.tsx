@@ -14,8 +14,20 @@ interface ProjectGanttProps {
 const ProjectGantt: React.FC<ProjectGanttProps> = ({ tasks, milestones, onUpdate }) => {
     // Transform data
     let ganttTasks: Task[] = [];
+    // Group tasks by milestone
+    const tasksByMilestone: Record<string, any[]> = {};
+    const unassignedTasks: any[] = [];
 
-    // 1. Milestones as Project/Group type
+    tasks.forEach(t => {
+        if (t.milestone_id) {
+            if (!tasksByMilestone[t.milestone_id]) tasksByMilestone[t.milestone_id] = [];
+            tasksByMilestone[t.milestone_id].push(t);
+        } else {
+            unassignedTasks.push(t);
+        }
+    });
+
+    // 1. Milestones and their tasks
     milestones.forEach(m => {
         const start = m.start_date ? new Date(m.start_date) : (m.due_date ? dayjs(m.due_date).subtract(1, 'day').toDate() : new Date());
         const end = m.due_date ? new Date(m.due_date) : dayjs(start).add(1, 'day').toDate();
@@ -27,16 +39,36 @@ const ProjectGantt: React.FC<ProjectGanttProps> = ({ tasks, milestones, onUpdate
             id: `m-${m.id}`, // Prefix to avoid collision
             type: 'project',
             progress: m.status === 'DONE' ? 100 : 0, // Simplified progress
+            hideChildren: false,
             isDisabled: false,
             styles: { progressColor: '#1890ff', progressSelectedColor: '#096dd9' }
         });
+
+        // 2. Tasks under this milestone
+        const mTasks = tasksByMilestone[m.id] || [];
+        mTasks.forEach(t => {
+            const tStart = t.start_date ? new Date(t.start_date) : (t.created_at ? new Date(t.created_at) : new Date());
+            const tEnd = t.due_date ? new Date(t.due_date) : dayjs(tStart).add(1, 'hour').toDate();
+            const finalEnd = tEnd < tStart ? dayjs(tStart).add(1, 'day').toDate() : tEnd;
+
+            ganttTasks.push({
+                start: tStart,
+                end: finalEnd,
+                name: t.title,
+                id: `t-${t.id}`,
+                type: 'task',
+                project: `m-${m.id}`,
+                progress: t.status === 'DONE' ? 100 : (t.status === 'IN_PROGRESS' ? 50 : 0),
+                isDisabled: false,
+                styles: { progressColor: '#52c41a', progressSelectedColor: '#389e0d' }
+            });
+        });
     });
 
-    // 2. Tasks
-    tasks.forEach(t => {
+    // 3. Unassigned tasks (No milestone)
+    unassignedTasks.forEach(t => {
         const start = t.start_date ? new Date(t.start_date) : (t.created_at ? new Date(t.created_at) : new Date());
         const end = t.due_date ? new Date(t.due_date) : dayjs(start).add(1, 'hour').toDate();
-        // If end is before start, fix it
         const finalEnd = end < start ? dayjs(start).add(1, 'day').toDate() : end;
 
         ganttTasks.push({
@@ -45,7 +77,6 @@ const ProjectGantt: React.FC<ProjectGanttProps> = ({ tasks, milestones, onUpdate
             name: t.title,
             id: `t-${t.id}`,
             type: 'task',
-            project: t.milestone_id ? `m-${t.milestone_id}` : undefined,
             progress: t.status === 'DONE' ? 100 : (t.status === 'IN_PROGRESS' ? 50 : 0),
             isDisabled: false,
             styles: { progressColor: '#52c41a', progressSelectedColor: '#389e0d' }
