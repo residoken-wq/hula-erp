@@ -319,25 +319,11 @@ const SalesStrategyDashboard: React.FC = () => {
                         colorField="type"
                         scale={{ color: { range: ['#10b981', '#3b82f6'] } }}
                         height={isMobile ? 250 : 320}
-                        areaStyle={(datum: any) => ({
-                            fillOpacity: datum.type?.includes('Dự báo') ? 0.1 : 0.4,
-                        })}
-                        line={{
-                            style: (datum: any) => ({
-                                lineDash: datum.type?.includes('Dự báo') ? [5, 5] : [0],
-                                lineWidth: 2,
-                            }),
+                        style={{ fillOpacity: 0.25 }}
+                        axis={{
+                            y: { labelFormatter: (v: number) => `${(v / 1000000).toFixed(0)}M` },
                         }}
-                        yAxis={{
-                            label: { formatter: (v: string) => `${(Number(v) / 1000000).toFixed(0)}M` },
-                        }}
-                        tooltip={{
-                            formatter: (datum: any) => ({
-                                name: datum.type,
-                                value: `${Number(datum.value).toLocaleString()}₫`,
-                            }),
-                        }}
-                        legend={{ position: 'top' }}
+                        legend={{ color: { position: 'top' } }}
                     />
                 ) : <Empty description="Chưa có dữ liệu" />}
             </Card>
