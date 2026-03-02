@@ -30,6 +30,9 @@ export class Customer {
   @Column({ nullable: true })
   lead_status: string; // NEW, CONTACTED, QUALIFIED, NEGOTIATION, WON, LOST
 
+  @Column({ nullable: true })
+  lead_source: string; // OUTBOUND, REFERRAL, FACEBOOK, WEBSITE, OTHER
+
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   potential_value: number;
 

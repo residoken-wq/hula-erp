@@ -159,6 +159,14 @@ export class CustomersService {
             customer.contacts = contacts.map((c: any) => this.contactRepo.create(c) as unknown as CustomerContact);
         }
 
+        // --- VALIDATION: potential_value > 0 khi chuyển sang QUALIFIED ---
+        if (info.lead_status === 'QUALIFIED') {
+            const potentialValue = Number(info.potential_value ?? customer.potential_value);
+            if (!potentialValue || potentialValue <= 0) {
+                throw new BadRequestException('Cần nhập Giá trị dự kiến (potential_value > 0) trước khi chuyển sang Tiềm năng (QUALIFIED).');
+            }
+        }
+
         Object.assign(customer, info);
         return this.customerRepo.save(customer);
     }

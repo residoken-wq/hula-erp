@@ -31,6 +31,33 @@ export class SalesController {
     @Get('samples/all')
     getAllSamples() { return this.s.sampleRepo.find({ order: { created_at: 'DESC' } }); }
 
+    // --- ANALYTICS DASHBOARD ---
+    @Get('analytics')
+    getAnalytics(@Query() query: any) {
+        return this.s.getAnalyticsDashboard({
+            startDate: query.startDate,
+            endDate: query.endDate,
+            assignedToId: query.assignedToId ? Number(query.assignedToId) : undefined,
+            productType: query.productType,
+        });
+    }
+
+    @Post('analytics/push-reminder')
+    pushReminder(@Body() body: any) {
+        return this.s.sendPushReminder(body);
+    }
+
+    // --- SALES TARGETS ---
+    @Get('targets')
+    getTargets(@Query('year') year: number) {
+        return this.s.getTargets(Number(year) || new Date().getFullYear());
+    }
+
+    @Post('targets')
+    upsertTarget(@Body() body: any) {
+        return this.s.upsertTarget(body);
+    }
+
     // ============================================================
     // 2. CÁC API CON (SUB-RESOURCES)
     // ============================================================

@@ -26,7 +26,9 @@ import { CustomersModule } from '../customers/customers.module';
 import { FinanceModule } from '../finance/finance.module';
 import { SystemModule } from '../system/system.module';
 import { SalesOrderVersion } from './sales-order-version.entity';
+import { SalesTarget } from './sales-target.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { Customer } from '../customers/customer.entity';
 
 @Module({
   imports: [
@@ -43,7 +45,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
       Transaction,
       PriceList,
       PriceListRule,
-      User
+      User,
+      SalesTarget,
+      Customer
     ]),
     ProductsModule,
     InventoryModule,

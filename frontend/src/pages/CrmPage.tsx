@@ -208,9 +208,9 @@ const CrmPage: React.FC = () => {
 
     const handleSaveLead = async (values: any) => {
         try {
-            const { code, customer_id, name, phone, lead_status, potential_value, assigned_to_id, created_at } = values;
+            const { code, customer_id, name, phone, lead_status, potential_value, assigned_to_id, lead_source, created_at } = values;
             const payload = {
-                name, phone, lead_status,
+                name, phone, lead_status, lead_source,
                 potential_value: Number(potential_value) || 0,
                 assigned_to_id,
                 created_at: created_at ? created_at.toISOString() : undefined
@@ -651,6 +651,19 @@ const CrmPage: React.FC = () => {
                         <Col span={24}>
                             <Form.Item name="assigned_to_id" label="Nhân viên phụ trách">
                                 <Select allowClear showSearch optionFilterProp="label" options={users.map(u => ({ label: u.full_name || u.username, value: u.id }))} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col span={24}>
+                            <Form.Item name="lead_source" label="Nguồn Lead">
+                                <Select allowClear placeholder="Chọn nguồn Lead">
+                                    <Select.Option value="OUTBOUND">Đi thị trường (Outbound)</Select.Option>
+                                    <Select.Option value="REFERRAL">Khách cũ giới thiệu (Referral)</Select.Option>
+                                    <Select.Option value="FACEBOOK">Facebook / Ads</Select.Option>
+                                    <Select.Option value="WEBSITE">Website</Select.Option>
+                                    <Select.Option value="OTHER">Khác</Select.Option>
+                                </Select>
                             </Form.Item>
                         </Col>
                     </Row>

@@ -19,6 +19,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { SalesOrderVersion } from './sales-order-version.entity';
 import { SystemService } from '../system/system.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { SalesTarget } from './sales-target.entity';
+import { Customer } from '../customers/customer.entity';
 
 // --- CHECKLIST TEMPLATES ---
 const CHECKLIST_TEMPLATES: Record<string, Array<{ code: string; name: string; sort: number }>> = {
@@ -72,6 +74,8 @@ export class SalesService {
         @InjectRepository(PriceListRule) private priceListRuleRepo: Repository<PriceListRule>,
         @InjectRepository(User) private userRepo: Repository<User>,
         @InjectRepository(SalesOrderVersion) private versionRepo: Repository<SalesOrderVersion>,
+        @InjectRepository(SalesTarget) private targetRepo: Repository<SalesTarget>,
+        @InjectRepository(Customer) private customerRepo: Repository<Customer>,
         private productsService: ProductsService,
         private inventoryService: InventoryService,
         private customersService: CustomersService,
@@ -985,5 +989,400 @@ export class SalesService {
             throw new Error('Cannot delete system-generated checklist items');
         }
         await this.checklistItemRepo.delete(itemId);
+    }
+
+    // ===================== ANALYTICS DASHBOARD =====================
+
+    private readonly FORECAST_WEIGHTS: Record<string, number> = {
+        NEW: 0.05,
+        CONTACTED: 0.10,
+        QUALIFIED: 0.20,
+        SAMPLE_APPROVED: 0.50,
+        NEGOTIATION: 0.80,
+        WON: 1.0,
+    };
+
+    async getAnalyticsDashboard(filters: {
+        startDate?: string; endDate?: string;
+        assignedToId?: number; productType?: string;
+    }) {
+        const start = filters.startDate ? new Date(filters.startDate) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        const end = filters.endDate ? new Date(filters.endDate) : new Date();
+        end.setHours(23, 59, 59, 999);
+
+        // Previous period (same duration)
+        const duration = end.getTime() - start.getTime();
+        const prevStart = new Date(start.getTime() - duration);
+        const prevEnd = new Date(start.getTime() - 1);
+
+        // === 1. KPI CARDS ===
+        const kpi = await this.calculateKPIs(start, end, prevStart, prevEnd, filters.assignedToId);
+
+        // === 2. FUNNEL DATA (Lead Source) ===
+        const funnelData = await this.calculateFunnelData(start, end, filters.assignedToId);
+
+        // === 3. VELOCITY DATA ===
+        const velocityData = await this.calculateVelocityData(filters.assignedToId);
+
+        // === 4. SCORECARD DATA ===
+        const scorecardData = await this.calculateScorecardData(start, end);
+
+        // === 5. FORECAST DATA ===
+        const forecastData = await this.calculateForecastData();
+
+        return { kpi, funnelData, velocityData, scorecardData, forecastData };
+    }
+
+    private async calculateKPIs(
+        start: Date, end: Date, prevStart: Date, prevEnd: Date, assignedToId?: number
+    ) {
+        // Current period leads
+        const leadsQuery = this.customerRepo.createQueryBuilder('c')
+            .where('c.type = :type', { type: 'LEAD' })
+            .andWhere('c.created_at BETWEEN :start AND :end', { start, end });
+        if (assignedToId) leadsQuery.andWhere('c.assigned_to_id = :uid', { uid: assignedToId });
+        const totalLeads = await leadsQuery.getCount();
+
+        // WON leads
+        const wonQuery = this.customerRepo.createQueryBuilder('c')
+            .where('c.type = :type', { type: 'LEAD' })
+            .andWhere('c.lead_status = :s', { s: 'WON' })
+            .andWhere('c.created_at BETWEEN :start AND :end', { start, end });
+        if (assignedToId) wonQuery.andWhere('c.assigned_to_id = :uid', { uid: assignedToId });
+        const wonLeads = await wonQuery.getCount();
+
+        const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+
+        // Pipeline Value (open leads)
+        const pipelineResult = await this.customerRepo.createQueryBuilder('c')
+            .select('COALESCE(SUM(c.potential_value), 0)', 'total')
+            .where('c.type = :type', { type: 'LEAD' })
+            .andWhere('c.lead_status NOT IN (:...closed)', { closed: ['WON', 'LOST'] })
+            .getRawOne();
+        const pipelineValue = Number(pipelineResult?.total || 0);
+
+        // Actual Revenue (completed orders in period)
+        const revenueQuery = this.orderRepo.createQueryBuilder('o')
+            .select('COALESCE(SUM(o.total_amount), 0)', 'total')
+            .where('o.status IN (:...statuses)', { statuses: ['COMPLETED', 'DELIVERED'] })
+            .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
+        if (assignedToId) revenueQuery.andWhere('o.assigned_to = :uid', { uid: assignedToId });
+        const revenueResult = await revenueQuery.getRawOne();
+        const actualRevenue = Number(revenueResult?.total || 0);
+
+        // Actual Revenue (paid)
+        const paidQuery = this.orderRepo.createQueryBuilder('o')
+            .select('COALESCE(SUM(o.paid_amount), 0)', 'total')
+            .where('o.status != :cancelled', { cancelled: 'CANCELLED' })
+            .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
+        if (assignedToId) paidQuery.andWhere('o.assigned_to = :uid', { uid: assignedToId });
+        const paidResult = await paidQuery.getRawOne();
+        const paidRevenue = Number(paidResult?.total || 0);
+
+        // Previous period for trends
+        const prevLeadsQuery = this.customerRepo.createQueryBuilder('c')
+            .where('c.type = :type', { type: 'LEAD' })
+            .andWhere('c.created_at BETWEEN :start AND :end', { start: prevStart, end: prevEnd });
+        const prevLeads = await prevLeadsQuery.getCount();
+
+        const prevRevenueResult = await this.orderRepo.createQueryBuilder('o')
+            .select('COALESCE(SUM(o.total_amount), 0)', 'total')
+            .where('o.status IN (:...statuses)', { statuses: ['COMPLETED', 'DELIVERED'] })
+            .andWhere('o.order_date BETWEEN :start AND :end', { start: prevStart, end: prevEnd })
+            .getRawOne();
+        const prevRevenue = Number(prevRevenueResult?.total || 0);
+
+        const prevPaidResult = await this.orderRepo.createQueryBuilder('o')
+            .select('COALESCE(SUM(o.paid_amount), 0)', 'total')
+            .where('o.status != :cancelled', { cancelled: 'CANCELLED' })
+            .andWhere('o.order_date BETWEEN :start AND :end', { start: prevStart, end: prevEnd })
+            .getRawOne();
+        const prevPaid = Number(prevPaidResult?.total || 0);
+
+        const trendPercent = (current: number, prev: number) =>
+            prev > 0 ? Math.round(((current - prev) / prev) * 100) : (current > 0 ? 100 : 0);
+
+        return {
+            totalLeads,
+            conversionRate,
+            pipelineValue,
+            actualRevenue,
+            paidRevenue,
+            trends: {
+                leadsTrend: trendPercent(totalLeads, prevLeads),
+                revenueTrend: trendPercent(actualRevenue, prevRevenue),
+                paidTrend: trendPercent(paidRevenue, prevPaid),
+            }
+        };
+    }
+
+    private async calculateFunnelData(start: Date, end: Date, assignedToId?: number) {
+        const sources = ['OUTBOUND', 'REFERRAL', 'FACEBOOK', 'WEBSITE', 'OTHER'];
+        const result = [];
+
+        for (const source of sources) {
+            const baseQuery = () => {
+                const q = this.customerRepo.createQueryBuilder('c')
+                    .where('c.type = :type', { type: 'LEAD' })
+                    .andWhere('c.lead_source = :source', { source })
+                    .andWhere('c.created_at BETWEEN :start AND :end', { start, end });
+                if (assignedToId) q.andWhere('c.assigned_to_id = :uid', { uid: assignedToId });
+                return q;
+            };
+
+            const leads = await baseQuery().getCount();
+            const qualified = await baseQuery()
+                .andWhere('c.lead_status IN (:...s)', { s: ['QUALIFIED', 'NEGOTIATION', 'WON', 'SAMPLE_APPROVED'] })
+                .getCount();
+            const won = await baseQuery()
+                .andWhere('c.lead_status = :ws', { ws: 'WON' })
+                .getCount();
+
+            // Average order value for this source
+            const avgResult = await this.orderRepo.createQueryBuilder('o')
+                .select('COALESCE(AVG(o.total_amount), 0)', 'avg')
+                .innerJoin('o.customer', 'c')
+                .where('c.lead_source = :source', { source })
+                .andWhere('o.status NOT IN (:...ex)', { ex: ['CANCELLED', 'QUOTATION'] })
+                .getRawOne();
+
+            result.push({
+                source,
+                sourceLabel: this.getSourceLabel(source),
+                leads,
+                qualified,
+                unqualified: leads - qualified,
+                won,
+                winRate: leads > 0 ? Math.round((won / leads) * 100) : 0,
+                avgOrderValue: Math.round(Number(avgResult?.avg || 0)),
+            });
+        }
+
+        return result.filter(r => r.leads > 0);
+    }
+
+    private getSourceLabel(source: string): string {
+        const labels: Record<string, string> = {
+            OUTBOUND: 'Đi thị trường',
+            REFERRAL: 'Khách cũ giới thiệu',
+            FACEBOOK: 'Facebook/Ads',
+            WEBSITE: 'Website',
+            OTHER: 'Khác',
+        };
+        return labels[source] || source;
+    }
+
+    private async calculateVelocityData(assignedToId?: number) {
+        const query = this.customerRepo.createQueryBuilder('c')
+            .leftJoinAndSelect('c.assigned_to', 'u')
+            .where('c.type = :type', { type: 'LEAD' })
+            .andWhere('c.lead_status IN (:...statuses)', { statuses: ['QUALIFIED', 'SAMPLE_APPROVED', 'CONTACTED', 'NEGOTIATION'] });
+        if (assignedToId) query.andWhere('c.assigned_to_id = :uid', { uid: assignedToId });
+
+        const leads = await query.getMany();
+        const now = new Date();
+
+        return leads.map(lead => {
+            // Calculate days since last action from history
+            const history = lead.history || [];
+            const lastAction = history.length > 0 ? history[history.length - 1] : null;
+            const lastActionDate = lastAction?.date ? new Date(lastAction.date) : lead.updated_at;
+            const daysSinceLastAction = Math.floor((now.getTime() - lastActionDate.getTime()) / (1000 * 60 * 60 * 24));
+
+            // Alert level
+            let alertLevel = 'green';
+            if (lead.lead_status === 'QUALIFIED' && daysSinceLastAction > 3) alertLevel = 'red';
+            else if (lead.lead_status === 'SAMPLE_APPROVED' && daysSinceLastAction > 5) alertLevel = 'orange';
+            else if (daysSinceLastAction > 7) alertLevel = 'orange';
+
+            return {
+                customerId: lead.id,
+                customerName: lead.name,
+                phone: lead.phone,
+                status: lead.lead_status,
+                leadSource: lead.lead_source,
+                potentialValue: Number(lead.potential_value),
+                daysSinceLastAction,
+                lastActionDate: lastActionDate.toISOString(),
+                assignedTo: lead.assigned_to?.full_name || lead.assigned_to?.username || 'N/A',
+                assignedToId: lead.assigned_to_id,
+                alertLevel,
+            };
+        }).sort((a, b) => b.daysSinceLastAction - a.daysSinceLastAction);
+    }
+
+    private async calculateScorecardData(start: Date, end: Date) {
+        // Get all sales users (assigned_to in any order or lead)
+        const users = await this.userRepo.find();
+        const salesUsers = [];
+
+        for (const user of users) {
+            // Check if user has any leads or orders assigned
+            const leadCount = await this.customerRepo.count({
+                where: { assigned_to_id: user.id, type: 'LEAD' as any }
+            });
+            const orderCount = await this.orderRepo.count({
+                where: { assigned_to: { id: user.id } }
+            });
+            if (leadCount === 0 && orderCount === 0) continue;
+
+            // Target
+            const year = start.getFullYear();
+            const month = start.getMonth() + 1;
+            const target = await this.targetRepo.findOne({
+                where: { user_id: user.id, year, month }
+            });
+
+            // Actual revenue
+            const revResult = await this.orderRepo.createQueryBuilder('o')
+                .select('COALESCE(SUM(o.total_amount), 0)', 'total')
+                .where('o.assigned_to = :uid', { uid: user.id })
+                .andWhere('o.status IN (:...s)', { s: ['COMPLETED', 'DELIVERED'] })
+                .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
+                .getRawOne();
+
+            // New leads in period
+            const newLeads = await this.customerRepo.createQueryBuilder('c')
+                .where('c.assigned_to_id = :uid', { uid: user.id })
+                .andWhere('c.type = :type', { type: 'LEAD' })
+                .andWhere('c.created_at BETWEEN :start AND :end', { start, end })
+                .getCount();
+
+            // Average days to close
+            const closedOrders = await this.orderRepo.createQueryBuilder('o')
+                .where('o.assigned_to = :uid', { uid: user.id })
+                .andWhere('o.status = :s', { s: 'COMPLETED' })
+                .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
+                .getMany();
+            let avgDaysToClose = 0;
+            if (closedOrders.length > 0) {
+                const totalDays = closedOrders.reduce((sum, o) => {
+                    const created = new Date(o.created_at).getTime();
+                    const updated = new Date(o.updated_at).getTime();
+                    return sum + Math.floor((updated - created) / (1000 * 60 * 60 * 24));
+                }, 0);
+                avgDaysToClose = Math.round(totalDays / closedOrders.length);
+            }
+
+            // Activities (count of history entries from customer interactions)
+            const leadsWithHistory = await this.customerRepo.createQueryBuilder('c')
+                .where('c.assigned_to_id = :uid', { uid: user.id })
+                .andWhere('c.type = :type', { type: 'LEAD' })
+                .getMany();
+            const activities = leadsWithHistory.reduce((sum, lead) => {
+                const h = lead.history || [];
+                return sum + h.filter((entry: any) => {
+                    const entryDate = new Date(entry.date);
+                    return entryDate >= start && entryDate <= end;
+                }).length;
+            }, 0);
+
+            salesUsers.push({
+                userId: user.id,
+                userName: (user as any).full_name || (user as any).username,
+                targetRevenue: Number(target?.target_revenue || 0),
+                targetLeads: target?.target_leads || 0,
+                targetActivities: target?.target_activities || 0,
+                actualRevenue: Number(revResult?.total || 0),
+                newLeads,
+                avgDaysToClose,
+                activities,
+            });
+        }
+
+        return salesUsers;
+    }
+
+    private async calculateForecastData() {
+        const now = new Date();
+        const months = [];
+
+        // Past 3 months actual
+        for (let i = 3; i >= 1; i--) {
+            const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+
+            const result = await this.orderRepo.createQueryBuilder('o')
+                .select('COALESCE(SUM(o.total_amount), 0)', 'total')
+                .where('o.status IN (:...s)', { s: ['COMPLETED', 'DELIVERED'] })
+                .andWhere('o.order_date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+                .getRawOne();
+
+            months.push({
+                month: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`,
+                label: `T${monthStart.getMonth() + 1}`,
+                actualRevenue: Number(result?.total || 0),
+                forecastRevenue: Number(result?.total || 0), // Past = actual
+            });
+        }
+
+        // Current month (partial actual + forecast)
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const currentResult = await this.orderRepo.createQueryBuilder('o')
+            .select('COALESCE(SUM(o.total_amount), 0)', 'total')
+            .where('o.status IN (:...s)', { s: ['COMPLETED', 'DELIVERED'] })
+            .andWhere('o.order_date BETWEEN :start AND :end', { start: currentMonthStart, end: now })
+            .getRawOne();
+
+        // Forecast from open deals
+        const openLeads = await this.customerRepo.find({
+            where: { type: 'LEAD' as any },
+        });
+        const currentForecast = openLeads.reduce((sum, lead) => {
+            if (lead.lead_status === 'WON' || lead.lead_status === 'LOST') return sum;
+            const weight = this.FORECAST_WEIGHTS[lead.lead_status] || 0.05;
+            return sum + Number(lead.potential_value || 0) * weight;
+        }, 0);
+
+        months.push({
+            month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+            label: `T${now.getMonth() + 1} (hiện tại)`,
+            actualRevenue: Number(currentResult?.total || 0),
+            forecastRevenue: Number(currentResult?.total || 0) + currentForecast,
+        });
+
+        // Next 2 months forecast
+        for (let i = 1; i <= 2; i++) {
+            const futureMonth = new Date(now.getFullYear(), now.getMonth() + i, 1);
+            // Distribute forecast across future months (60% next, 40% after)
+            const monthForecast = currentForecast * (i === 1 ? 0.6 : 0.4);
+
+            months.push({
+                month: `${futureMonth.getFullYear()}-${String(futureMonth.getMonth() + 1).padStart(2, '0')}`,
+                label: `T${futureMonth.getMonth() + 1} (dự báo)`,
+                actualRevenue: 0,
+                forecastRevenue: Math.round(monthForecast),
+            });
+        }
+
+        return months;
+    }
+
+    // === PUSH REMINDER ===
+    async sendPushReminder(data: { userId: number; customerName: string; message: string; senderId?: number; senderName?: string }) {
+        await this.notificationsService.create({
+            user_id: data.userId,
+            title: `⚡ Nhắc nhở: ${data.customerName}`,
+            message: data.message || `Hãy follow-up khách hàng ${data.customerName} ngay!`,
+            type: 'WARNING',
+            link: '/sales',
+        });
+        return { success: true };
+    }
+
+    // === SALES TARGETS CRUD ===
+    async getTargets(year: number) {
+        return this.targetRepo.find({ where: { year }, relations: ['user'] });
+    }
+
+    async upsertTarget(data: { user_id: number; year: number; month: number; target_revenue: number; target_leads?: number; target_activities?: number }) {
+        const existing = await this.targetRepo.findOne({
+            where: { user_id: data.user_id, year: data.year, month: data.month }
+        });
+        if (existing) {
+            Object.assign(existing, data);
+            return this.targetRepo.save(existing);
+        }
+        return this.targetRepo.save(this.targetRepo.create(data));
     }
 }

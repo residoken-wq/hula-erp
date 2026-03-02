@@ -60,6 +60,8 @@ const AnnouncementsPage = React.lazy(() => import('./pages/AnnouncementsPage'));
 const ProjectsPage = React.lazy(() => import('./pages/ProjectsPage')); // <--- Projects
 const ProjectDetailPage = React.lazy(() => import('./pages/ProjectDetailPage')); // <--- Project Detail
 const WorkSpacePage = React.lazy(() => import('./pages/WorkSpacePage')); // <--- Consolidated WorkSpace
+const SalesStrategyDashboard = React.lazy(() => import('./pages/SalesStrategyDashboard')); // <--- Sales Strategy
+const BodDashboard = React.lazy(() => import('./pages/BodDashboard')); // <--- BOD Dashboard
 
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
@@ -161,6 +163,8 @@ const App: React.FC = () => {
                 getItem(<Link to="/orders">Đơn Hàng (SO)</Link>, 'crm_order'), // <--- MỚI: Menu Đơn hàng
                 getItem(<Link to="/customers">Danh sách Khách hàng</Link>, 'cust'),
                 getItem(<Link to="/sales/pricelist">Bảng giá (Price List)</Link>, 'pl_page'),
+                getItem(<Link to="/sales/strategy">📊 Chiến lược Sales</Link>, 'sales_strategy'),
+                getItem(<Link to="/sales/bod">🏫 BOD Dashboard</Link>, 'sales_bod'),
             ]));
         }
 
@@ -312,6 +316,8 @@ const App: React.FC = () => {
                                                     <>
                                                         <Route path="/sales" element={<CrmPage />} /> {/* CRM Page */}
                                                         <Route path="/sales/pos" element={<PosPage />} /> {/* <--- MỚI: Route POS */}
+                                                        <Route path="/sales/strategy" element={<SalesStrategyDashboard />} />
+                                                        <Route path="/sales/bod" element={<BodDashboard />} />
                                                         <Route path="/orders" element={<SalesPage />} /> {/* <--- MỚI: Route cho trang Đơn hàng */}
                                                         <Route path="/customers" element={<CustomersPage />} />
                                                         <Route path="/sales/pricelist" element={<PriceListsPage />} />
