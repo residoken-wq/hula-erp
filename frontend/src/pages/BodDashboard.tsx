@@ -298,7 +298,6 @@ const BodDashboard: React.FC = () => {
                         colorField="type"
                         scale={{ color: { range: ['#10b981', '#3b82f6'] } }}
                         height={isMobile ? 250 : 300}
-                        smooth
                         areaStyle={(datum: any) => ({
                             fillOpacity: datum.type === 'Dự báo' ? 0.15 : 0.4,
                         })}

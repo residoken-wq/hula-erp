@@ -319,7 +319,6 @@ const SalesStrategyDashboard: React.FC = () => {
                         colorField="type"
                         scale={{ color: { range: ['#10b981', '#3b82f6'] } }}
                         height={isMobile ? 250 : 320}
-                        smooth
                         areaStyle={(datum: any) => ({
                             fillOpacity: datum.type?.includes('Dự báo') ? 0.1 : 0.4,
                         })}
