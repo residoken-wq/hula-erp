@@ -317,7 +317,7 @@ const SalesStrategyDashboard: React.FC = () => {
                         xField="month"
                         yField="value"
                         colorField="type"
-                        color={['#10b981', '#3b82f6']}
+                        scale={{ color: { range: ['#10b981', '#3b82f6'] } }}
                         height={isMobile ? 250 : 320}
                         smooth
                         areaStyle={(datum: any) => ({
