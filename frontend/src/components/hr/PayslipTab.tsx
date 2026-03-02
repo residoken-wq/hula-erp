@@ -108,10 +108,10 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
     const columns = [
         { title: 'Nhân viên', dataIndex: ['employee', 'full_name'] },
         { title: 'Tháng', render: (_: any, r: any) => `${r.month}/${r.year}` },
-        { title: 'Lương CB', dataIndex: 'base_salary', render: (v: number) => v?.toLocaleString() },
+        { title: 'Lương CB', dataIndex: 'base_salary', render: (v: number) => formatMoney(v) },
         { title: 'Ngày công', dataIndex: 'actual_work_days' },
-        { title: 'Tổng thu', dataIndex: 'gross_income', render: (v: number) => v?.toLocaleString() },
-        { title: 'Thực nhận', dataIndex: 'net_salary', render: (v: number) => <b style={{ color: 'green' }}>{v?.toLocaleString()}</b> },
+        { title: 'Tổng thu', dataIndex: 'gross_income', render: (v: number) => formatMoney(v) },
+        { title: 'Thực nhận', dataIndex: 'net_salary', render: (v: number) => <b style={{ color: 'green' }}>{formatMoney(v)}</b> },
         {
             title: 'Trạng thái', dataIndex: 'is_paid', render: (p: boolean) => p ?
                 <Tag color="green" icon={<CheckCircleOutlined />}>Đã thanh toán</Tag> :
