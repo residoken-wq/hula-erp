@@ -1257,7 +1257,7 @@ export class SalesService {
             let avgDaysToClose = 0;
             if (closedOrders.length > 0) {
                 const totalDays = closedOrders.reduce((sum, o) => {
-                    const created = new Date(o.created_at).getTime();
+                    const created = new Date(o.order_date).getTime();
                     const updated = new Date(o.updated_at).getTime();
                     return sum + Math.floor((updated - created) / (1000 * 60 * 60 * 24));
                 }, 0);
