@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getGoogleDriveImageUrl } from '@/lib/utils';
 
 interface BlogGridProps {
     posts?: Array<{
@@ -33,7 +34,7 @@ export default function BlogGrid({ posts }: BlogGridProps) {
                             <div className="aspect-[16/10] bg-gray-100 overflow-hidden">
                                 {post.thumbnail ? (
                                     <img
-                                        src={post.thumbnail}
+                                        src={getGoogleDriveImageUrl(post.thumbnail)}
                                         alt={post.title}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                     />

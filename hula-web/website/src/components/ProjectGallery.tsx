@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { getGoogleDriveImageUrl } from '@/lib/utils';
 
 interface ProjectGalleryProps {
     projects?: Array<{
@@ -38,7 +39,7 @@ export default function ProjectGallery({ projects }: ProjectGalleryProps) {
                         >
                             {project.image_url ? (
                                 <img
-                                    src={project.image_url}
+                                    src={getGoogleDriveImageUrl(project.image_url)}
                                     alt={project.school_name || project.title}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 />

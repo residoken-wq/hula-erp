@@ -1,5 +1,7 @@
 'use client';
 
+import { getGoogleDriveImageUrl } from '@/lib/utils';
+
 interface PartnerSliderProps {
     partners?: Array<{
         name: string;
@@ -38,7 +40,7 @@ export default function PartnerSlider({ partners }: PartnerSliderProps) {
                         >
                             {partner.logo_url ? (
                                 <img
-                                    src={partner.logo_url}
+                                    src={getGoogleDriveImageUrl(partner.logo_url)}
                                     alt={partner.name}
                                     className="max-h-[50px] max-w-[150px] object-contain opacity-60 hover:opacity-100 transition-opacity"
                                 />

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useSettings } from '@/contexts/SettingsContext';
+import { getGoogleDriveImageUrl } from '@/lib/utils';
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -38,6 +39,8 @@ export default function Header() {
         { href: '/lien-he', label: 'Liên hệ' },
     ];
 
+    const logoUrl = getGoogleDriveImageUrl(settings.logo_url);
+
     return (
         <>
             <header className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled
@@ -48,9 +51,9 @@ export default function Header() {
                     <div className="flex items-center justify-between h-16 lg:h-[72px]">
                         {/* Logo */}
                         <Link href="/" className="flex items-center space-x-2 group flex-shrink-0">
-                            {settings.logo_url ? (
+                            {logoUrl ? (
                                 <img
-                                    src={settings.logo_url}
+                                    src={logoUrl}
                                     alt={settings.site_name || 'HULA'}
                                     className="h-10 w-auto object-contain"
                                 />
