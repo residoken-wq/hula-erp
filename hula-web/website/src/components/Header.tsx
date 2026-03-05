@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
+import { useSettings } from '@/contexts/SettingsContext';
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
     const { itemCount, setIsCartOpen } = useCart();
+    const { settings } = useSettings();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -46,10 +48,20 @@ export default function Header() {
                     <div className="flex items-center justify-between h-16 lg:h-[72px]">
                         {/* Logo */}
                         <Link href="/" className="flex items-center space-x-2 group flex-shrink-0">
-                            <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-[12px] flex items-center justify-center shadow-lg shadow-primary-500/20 group-hover:shadow-primary-500/40 transition-shadow">
-                                <span className="text-white font-bold text-xl">H</span>
-                            </div>
-                            <span className="font-heading font-bold text-xl text-gray-900 hidden sm:block">HULA</span>
+                            {settings.logo_url ? (
+                                <img
+                                    src={settings.logo_url}
+                                    alt={settings.site_name || 'HULA'}
+                                    className="h-10 w-auto object-contain"
+                                />
+                            ) : (
+                                <>
+                                    <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-[12px] flex items-center justify-center shadow-lg shadow-primary-500/20 group-hover:shadow-primary-500/40 transition-shadow">
+                                        <span className="text-white font-bold text-xl">H</span>
+                                    </div>
+                                    <span className="font-heading font-bold text-xl text-gray-900 hidden sm:block">HULA</span>
+                                </>
+                            )}
                         </Link>
 
                         {/* Desktop Navigation */}
