@@ -17,7 +17,7 @@ body {
   background: rgb(var(--background-start-rgb));
 }
 
-/* Typography - Headings use Poppins */
+/* Typography - Headings use Be Vietnam Pro */
 h1,
 h2,
 h3,
@@ -25,7 +25,7 @@ h4,
 h5,
 h6,
 .font-heading {
-  font-family: var(--font-heading), 'Poppins', sans-serif;
+  font-family: var(--font-main), 'Be Vietnam Pro', sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -74,7 +74,7 @@ h6 {
   }
 }
 
-/* Body text uses Inter */
+/* Body text uses Be Vietnam Pro */
 p,
 span,
 a,
@@ -86,7 +86,7 @@ input,
 textarea,
 select,
 button {
-  font-family: var(--font-body), 'Inter', sans-serif;
+  font-family: var(--font-main), 'Be Vietnam Pro', sans-serif;
 }
 
 /* ============================================

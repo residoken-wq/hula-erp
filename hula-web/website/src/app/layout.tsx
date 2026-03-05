@@ -1,21 +1,13 @@
 import type { Metadata } from 'next';
-import { Poppins, Inter } from 'next/font/google';
+import { Be_Vietnam_Pro } from 'next/font/google';
 import './globals.css';
 import LayoutWrapper from '@/components/LayoutWrapper';
 
-// Heading font - Poppins: Modern, clean, professional
-const headingFont = Poppins({
-    subsets: ['latin', 'latin-ext'],
-    weight: ['400', '500', '600', '700', '800'],
-    variable: '--font-heading',
-    display: 'swap',
-});
-
-// Body font - Inter: Highly readable, versatile
-const bodyFont = Inter({
+// Be Vietnam Pro: Modern, clean, native Vietnamese support
+const mainFont = Be_Vietnam_Pro({
     subsets: ['latin', 'latin-ext', 'vietnamese'],
-    weight: ['300', '400', '500', '600', '700'],
-    variable: '--font-body',
+    weight: ['300', '400', '500', '600', '700', '800'],
+    variable: '--font-main',
     display: 'swap',
 });
 
@@ -37,8 +29,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="vi" className={`${headingFont.variable} ${bodyFont.variable}`}>
-            <body className="min-h-screen flex flex-col font-body antialiased">
+        <html lang="vi" className={mainFont.variable}>
+            <body className="min-h-screen flex flex-col font-sans antialiased">
                 <LayoutWrapper>
                     {children}
                 </LayoutWrapper>

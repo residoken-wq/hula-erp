@@ -38,9 +38,9 @@ module.exports = {
                 },
             },
             fontFamily: {
-                heading: ['var(--font-heading)', 'Poppins', 'sans-serif'],
-                body: ['var(--font-body)', 'Inter', 'sans-serif'],
-                sans: ['var(--font-body)', 'Inter', 'sans-serif'],
+                heading: ['var(--font-main)', 'Be Vietnam Pro', 'sans-serif'],
+                body: ['var(--font-main)', 'Be Vietnam Pro', 'sans-serif'],
+                sans: ['var(--font-main)', 'Be Vietnam Pro', 'sans-serif'],
             },
             borderRadius: {
                 DEFAULT: '12px',
