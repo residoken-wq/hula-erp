@@ -1,8 +1,12 @@
 import Link from 'next/link';
-import ProductCard from '@/components/ProductCard';
-import { getProducts, getHomeConfig } from '@/lib/api';
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { getProducts, getBlogs, getHomeConfig } from '@/lib/api';
 import HeroCarousel from '@/components/HeroCarousel';
+import CategoryCards from '@/components/CategoryCards';
+import JourneySlider from '@/components/JourneySlider';
+import ProjectGallery from '@/components/ProjectGallery';
+import PartnerSlider from '@/components/PartnerSlider';
+import Testimonials from '@/components/Testimonials';
+import BlogGrid from '@/components/BlogGrid';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,54 +14,23 @@ async function getFeaturedProducts(limit = 4) {
     try {
         const res = await getProducts({ limit });
         return res.data || [];
-    } catch (error) {
+    } catch {
         return [];
     }
 }
 
-const defaultFeatures = [
-    { icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', description: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
-    { icon: '🏆', title: 'Chất Lượng Cao Cấp', description: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO và chứng nhận an toàn' },
-    { icon: '💯', title: 'Bảo Hành 12 Tháng', description: 'Cam kết đổi mới nếu có lỗi từ nhà sản xuất trong 12 tháng' },
-    { icon: '🚚', title: 'Giao Hàng Toàn Quốc', description: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
-];
-
-// Helper function to render description with bullet points
-// CMS format: lines starting with ". " are bullet points
-const renderDescription = (text: string) => {
-    if (!text) return null;
-
-    // Split by lines that start with ". " (bullet format from CMS)
-    const lines = text.split(/(?=\. [A-ZÀÁẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴĐ])/);
-
-    // If no bullet format detected, return as regular text
-    if (lines.length <= 1 || !text.includes('. ')) {
-        return <span>{text}</span>;
+async function getBlogPosts(limit = 6) {
+    try {
+        const res = await getBlogs(limit);
+        return res.data || res || [];
+    } catch {
+        return [];
     }
-
-    return (
-        <ul className="list-disc list-inside space-y-1 text-left">
-            {lines.map((line, idx) => {
-                // Remove leading ". " from each line
-                const cleanLine = line.replace(/^\. /, '').trim();
-                if (!cleanLine) return null;
-                return (
-                    <li key={idx} className="leading-relaxed">
-                        {cleanLine}
-                    </li>
-                );
-            })}
-        </ul>
-    );
-};
+}
 
 export default async function HomePage() {
     const config = await getHomeConfig() || {};
-    const featuredProducts = await getFeaturedProducts(config.products_limit || 4);
-
-    const features = (config.features && Array.isArray(config.features) && config.features.length > 0)
-        ? config.features
-        : defaultFeatures;
+    const blogPosts = await getBlogPosts(6);
 
     const heroImages = (config.hero_images && config.hero_images.length > 0)
         ? config.hero_images
@@ -65,24 +38,26 @@ export default async function HomePage() {
 
     return (
         <>
-            {/* Hero Section */}
-            <section className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white overflow-hidden">
+            {/* ============================================
+                SECTION 1 — HERO BANNER + USP BAR
+               ============================================ */}
+            <section className="relative bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 text-white overflow-hidden">
                 <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10"></div>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 relative">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-28 relative">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         <div>
-                            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
-                                {config.hero_title_1 || 'Giấc Ngủ Ngon'}
+                            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-heading font-bold leading-tight">
+                                {config.hero_title_1 || 'Giấc Ngủ Học Đường'}
                                 <br />
-                                <span className="text-secondary-400">{config.hero_title_2 || 'Cho Bé Yêu'}</span>
+                                <span className="text-secondary-300">{config.hero_title_2 || 'Hoàn Hảo'}</span>
                             </h1>
-                            <p className="mt-6 text-lg text-primary-100 max-w-xl">
-                                {config.hero_description || 'Nệm mầm non HULA - Được thiết kế đặc biệt cho trẻ em với chất liệu cao cấp, đảm bảo sức khỏe và giấc ngủ an lành cho bé yêu của bạn.'}
+                            <p className="mt-6 text-lg text-primary-100 max-w-xl leading-relaxed">
+                                {config.hero_description || 'Giải pháp nệm trường học toàn diện - Hơn 10 năm đồng hành cùng hàng trăm trường học trên toàn quốc.'}
                             </p>
                             <div className="mt-8 flex flex-wrap gap-4">
                                 <Link
                                     href="/san-pham"
-                                    className="inline-flex items-center px-6 py-3 bg-white text-primary-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
+                                    className="inline-flex items-center px-7 py-3.5 bg-white text-primary-600 font-semibold rounded-pill hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl active:scale-95"
                                 >
                                     {config.hero_button_1 || 'Xem Sản Phẩm'}
                                     <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,9 +66,9 @@ export default async function HomePage() {
                                 </Link>
                                 <Link
                                     href="/lien-he"
-                                    className="inline-flex items-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-primary-700 transition-colors"
+                                    className="inline-flex items-center px-7 py-3.5 border-2 border-white text-white font-semibold rounded-pill hover:bg-white hover:text-primary-600 transition-all"
                                 >
-                                    {config.hero_button_2 || 'Liên Hệ Mua Sỉ'}
+                                    {config.hero_button_2 || 'Tư Vấn Ngay'}
                                 </Link>
                             </div>
                         </div>
@@ -103,135 +78,98 @@ export default async function HomePage() {
                     </div>
                 </div>
 
-                {/* Wave decoration */}
-                <div className="absolute bottom-0 left-0 right-0">
-                    <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="#FAFBFC" />
-                    </svg>
-                </div>
-            </section>
-
-            {/* Features Section */}
-            <section className="py-16 lg:py-24 bg-gray-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
-                            Tại Sao Chọn HULA?
-                        </h2>
-                        <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-                            Chúng tôi cam kết mang đến sản phẩm chất lượng cao nhất cho bé yêu của bạn
-                        </p>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {features.map((feature: any, index: number) => (
-                            <div
-                                key={index}
-                                className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-                            >
-                                <div className="w-14 h-14 bg-primary-50 rounded-lg flex items-center justify-center text-3xl mb-4">
-                                    {feature.icon}
-                                </div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                    {feature.title}
-                                </h3>
-                                <div className="text-gray-600 text-sm">
-                                    {renderDescription(feature.description || feature.desc || '')}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* Video Section */}
-            {config.video_enabled && (
-                <section className="py-16 lg:py-24 bg-white">
+                {/* USP Bar */}
+                <div className="bg-white/10 backdrop-blur-md border-t border-white/20">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="text-center mb-12">
-                            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
-                                {config.video_title || 'Khám Phá HULA'}
-                            </h2>
-                            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-                                {config.video_subtitle || 'Xem video giới thiệu về sản phẩm nệm mầm non HULA'}
-                            </p>
-                        </div>
-
-                        <div className="max-w-4xl mx-auto">
-                            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                                <iframe
-                                    className="absolute top-0 left-0 w-full h-full rounded-2xl shadow-lg"
-                                    src={config.video_youtube_url || "https://www.youtube.com/embed/dQw4w9WgXcQ"}
-                                    title="HULA - Nệm Mầm Non"
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowFullScreen
-                                ></iframe>
+                        <div className="grid grid-cols-3 divide-x divide-white/20">
+                            <div className="py-4 text-center">
+                                <span className="text-white font-medium text-sm lg:text-base">✨ Free tư vấn</span>
+                            </div>
+                            <div className="py-4 text-center">
+                                <span className="text-white font-medium text-sm lg:text-base">🎨 Free thiết kế</span>
+                            </div>
+                            <div className="py-4 text-center">
+                                <span className="text-white font-medium text-sm lg:text-base">🚚 Giao hàng toàn quốc</span>
                             </div>
                         </div>
-                    </div>
-                </section>
-            )}
-
-            {/* Featured Products */}
-            <section className="py-16 lg:py-24">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between mb-12">
-                        <div>
-                            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">
-                                {config.products_title || 'Sản Phẩm Nổi Bật'}
-                            </h2>
-                            <p className="mt-2 text-gray-600">
-                                {config.products_subtitle || 'Những sản phẩm được yêu thích nhất'}
-                            </p>
-                        </div>
-                        <Link
-                            href="/san-pham"
-                            className="hidden sm:inline-flex items-center text-primary-600 hover:text-primary-700 font-medium"
-                        >
-                            Xem tất cả
-                            <svg className="ml-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                            </svg>
-                        </Link>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {featuredProducts.length > 0 ? (
-                            featuredProducts.map((product: any) => (
-                                <ProductCard key={product.id} product={product} />
-                            ))
-                        ) : (
-                            <p className="text-center text-gray-500 w-full col-span-4 py-10">
-                                Đang cập nhật sản phẩm...
-                            </p>
-                        )}
                     </div>
                 </div>
             </section>
 
-            {/* CTA Section */}
-            {config.cta_enabled !== false && (
-                <section className="py-16 bg-gradient-to-r from-secondary-500 to-secondary-600">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                        <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-                            {config.cta_title || 'Bạn là đại lý hoặc trường mầm non?'}
-                        </h2>
-                        <p className="text-secondary-100 mb-8 max-w-2xl mx-auto">
-                            {config.cta_description || 'Liên hệ ngay để nhận báo giá sỉ ưu đãi và chính sách hỗ trợ đặc biệt dành cho đối tác'}
-                        </p>
-                        <Link
-                            href="/lien-he"
-                            className="inline-flex items-center px-8 py-4 bg-white text-secondary-700 font-bold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
-                        >
-                            {config.cta_button || 'Đăng Ký Mua Sỉ Ngay'}
-                            <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                            </svg>
-                        </Link>
+            {/* ============================================
+                SECTION 2 — DANH MỤC SẢN PHẨM
+               ============================================ */}
+            <CategoryCards categories={config.categories} />
+
+            {/* ============================================
+                SECTION 3 — GIỚI THIỆU HULA (Text + Video)
+               ============================================ */}
+            <section className="py-16 lg:py-24 bg-section-blue">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <h2 className="text-3xl lg:text-4xl font-heading font-bold text-gray-900 mb-6">
+                                {config.about_title || 'Hơn 10 Năm Đồng Hành Cùng Giấc Ngủ Học Đường'}
+                            </h2>
+                            <p className="text-gray-600 leading-relaxed mb-6">
+                                {config.about_description || 'HULA tự hào là đơn vị tiên phong trong lĩnh vực cung cấp giải pháp nệm, gối, chăn cho trường học. Với quy trình sản xuất khép kín, kiểm soát chất lượng nghiêm ngặt, chúng tôi cam kết mang đến sản phẩm tốt nhất cho giấc ngủ của trẻ.'}
+                            </p>
+                            <Link
+                                href="/ve-hula"
+                                className="btn-primary inline-flex items-center gap-2"
+                            >
+                                Xem thêm
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                </svg>
+                            </Link>
+                        </div>
+                        <div>
+                            {config.video_youtube_url ? (
+                                <div className="relative w-full rounded-[12px] overflow-hidden shadow-soft-lg" style={{ paddingBottom: '56.25%' }}>
+                                    <iframe
+                                        className="absolute top-0 left-0 w-full h-full"
+                                        src={config.video_youtube_url}
+                                        title="HULA - Giới thiệu"
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        allowFullScreen
+                                    ></iframe>
+                                </div>
+                            ) : (
+                                <div className="w-full aspect-video bg-gradient-to-br from-primary-200 to-primary-400 rounded-[12px] flex items-center justify-center shadow-soft-lg">
+                                    <span className="text-6xl">🎬</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </section>
-            )}
+                </div>
+            </section>
+
+            {/* ============================================
+                SECTION 4 — HÀNH TRÌNH HULA
+               ============================================ */}
+            <JourneySlider milestones={config.milestones} />
+
+            {/* ============================================
+                SECTION 5 — DỰ ÁN NỔI BẬT
+               ============================================ */}
+            <ProjectGallery projects={config.featured_projects} />
+
+            {/* ============================================
+                SECTION 6 — ĐỐI TÁC
+               ============================================ */}
+            <PartnerSlider partners={config.partners} />
+
+            {/* ============================================
+                SECTION 7 — FEEDBACK KHÁCH HÀNG
+               ============================================ */}
+            <Testimonials testimonials={config.testimonials} />
+
+            {/* ============================================
+                SECTION 8 — BLOG TƯ VẤN
+               ============================================ */}
+            <BlogGrid posts={blogPosts} />
         </>
     );
 }

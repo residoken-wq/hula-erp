@@ -24,7 +24,7 @@ export default function SettingsPage() {
                 }
 
                 // Load general settings
-                const configKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address'];
+                const configKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address', 'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url'];
                 const configValues: Record<string, string> = {};
 
                 for (const key of configKeys) {
@@ -56,7 +56,7 @@ export default function SettingsPage() {
             setLoading(true);
 
             // Save each config field to backend
-            const configKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address'];
+            const configKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address', 'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url'];
 
             for (const key of configKeys) {
                 if (values[key] !== undefined) {
@@ -292,6 +292,24 @@ export default function SettingsPage() {
 
                     <Form.Item name="contact_address" label="Địa chỉ">
                         <Input.TextArea rows={2} placeholder="Địa chỉ công ty..." />
+                    </Form.Item>
+
+                    <Divider>Mạng xã hội & Tích hợp</Divider>
+
+                    <Form.Item name="facebook_url" label="Facebook URL">
+                        <Input placeholder="https://facebook.com/... (link trang Facebook)" />
+                    </Form.Item>
+
+                    <Form.Item name="zalo_url" label="Zalo URL">
+                        <Input placeholder="https://zalo.me/... (link Zalo OA)" />
+                    </Form.Item>
+
+                    <Form.Item name="facebook_page_url" label="Facebook Page URL (Embed)" extra="URL trang Facebook để nhúng widget ở Footer">
+                        <Input placeholder="https://www.facebook.com/TenPage" />
+                    </Form.Item>
+
+                    <Form.Item name="google_maps_url" label="Google Maps Embed URL" extra="Copy embed URL từ Google Maps (Share > Embed a map)">
+                        <Input placeholder="https://www.google.com/maps/embed?pb=..." />
                     </Form.Item>
                 </Form>
             ),

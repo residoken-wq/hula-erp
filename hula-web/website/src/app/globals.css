@@ -6,41 +6,151 @@
   --foreground-rgb: 31, 41, 55;
   --background-start-rgb: 250, 251, 252;
   --background-end-rgb: 255, 255, 255;
+  --primary: #23A7D3;
+  --secondary: #FCF6E0;
+  --section-blue: #B9E5FB;
+  --section-gray: #E6E7E8;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgb(var(--background-end-rgb))
-  ) rgb(var(--background-start-rgb));
+  background: rgb(var(--background-start-rgb));
 }
 
-/* Typography - Headings use Montserrat */
-h1, h2, h3, h4, h5, h6,
+/* Typography - Headings use Poppins */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
 .font-heading {
-  font-family: var(--font-heading), 'Montserrat', sans-serif;
+  font-family: var(--font-heading), 'Poppins', sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-h1 { font-size: 2.5rem; line-height: 1.2; }
-h2 { font-size: 2rem; line-height: 1.25; }
-h3 { font-size: 1.5rem; line-height: 1.3; }
-h4 { font-size: 1.25rem; line-height: 1.35; }
-h5 { font-size: 1.125rem; line-height: 1.4; }
-h6 { font-size: 1rem; line-height: 1.4; }
-
-@media (min-width: 768px) {
-  h1 { font-size: 3rem; }
-  h2 { font-size: 2.25rem; }
-  h3 { font-size: 1.75rem; }
+h1 {
+  font-size: 2.5rem;
+  line-height: 1.2;
 }
 
-/* Body text inherits Open Sans from body tag */
-p, span, a, li, td, th, label, input, textarea, select, button {
-  font-family: var(--font-body), 'Open Sans', sans-serif;
+h2 {
+  font-size: 2rem;
+  line-height: 1.25;
+}
+
+h3 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
+h4 {
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+
+h5 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+}
+
+h6 {
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+@media (min-width: 768px) {
+  h1 {
+    font-size: 3rem;
+  }
+
+  h2 {
+    font-size: 2.25rem;
+  }
+
+  h3 {
+    font-size: 1.75rem;
+  }
+}
+
+/* Body text uses Inter */
+p,
+span,
+a,
+li,
+td,
+th,
+label,
+input,
+textarea,
+select,
+button {
+  font-family: var(--font-body), 'Inter', sans-serif;
+}
+
+/* ============================================
+   V2 Design System Utilities
+   ============================================ */
+
+/* Pill buttons (border-radius: 999px) */
+.btn-pill {
+  border-radius: 999px;
+  padding: 0.625rem 1.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  border-radius: 999px;
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: #1e8fb5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(35, 167, 211, 0.3);
+}
+
+.btn-outline {
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  border-radius: 999px;
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.btn-outline:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* Card styles with soft shadow */
+.card-v2 {
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.card-v2:hover {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.10);
+  transform: translateY(-2px);
+}
+
+/* Section backgrounds */
+.bg-section-blue {
+  background-color: var(--section-blue);
+}
+
+.bg-section-gray {
+  background-color: var(--section-gray);
 }
 
 /* Custom scrollbar */
@@ -67,11 +177,22 @@ p, span, a, li, td, th, label, input, textarea, select, button {
   transition-duration: 150ms;
 }
 
-/* Hero gradient animation */
+/* ============================================
+   Animations
+   ============================================ */
+
 @keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .animate-gradient {
@@ -79,20 +200,60 @@ p, span, a, li, td, th, label, input, textarea, select, button {
   animation: gradient 15s ease infinite;
 }
 
-/* Custom animation keyframes */
 @keyframes bounce-subtle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-bounce-subtle {
@@ -100,9 +261,17 @@ p, span, a, li, td, th, label, input, textarea, select, button {
 }
 
 .animate-fade-in {
-  animation: fade-in 0.2s ease-out;
+  animation: fade-in 0.4s ease-out;
 }
 
 .animate-slide-up {
-  animation: slide-up 0.3s ease-out;
+  animation: slide-up 0.5s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out;
+}
+
+.animate-scroll-left {
+  animation: scroll-left 30s linear infinite;
 }

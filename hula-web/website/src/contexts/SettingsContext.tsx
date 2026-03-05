@@ -11,6 +11,8 @@ interface Settings {
     contact_address: string;
     facebook_url: string;
     zalo_url: string;
+    google_maps_url: string;
+    facebook_page_url: string;
 }
 
 interface SettingsContextType {
@@ -27,6 +29,8 @@ const defaultSettings: Settings = {
     contact_address: '',
     facebook_url: '',
     zalo_url: '',
+    google_maps_url: '',
+    facebook_page_url: '',
 };
 
 const SettingsContext = createContext<SettingsContextType>({
@@ -65,6 +69,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         contact_address: data.contact_address || '',
                         facebook_url: data.facebook_url || '',
                         zalo_url: data.zalo_url || '',
+                        google_maps_url: data.google_maps_url || '',
+                        facebook_page_url: data.facebook_page_url || '',
                     });
                 } else {
                     console.error('Failed to fetch settings:', res.status);

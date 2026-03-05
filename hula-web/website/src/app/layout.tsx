@@ -1,31 +1,31 @@
 import type { Metadata } from 'next';
-import { Baloo_2, Be_Vietnam_Pro } from 'next/font/google';
+import { Poppins, Inter } from 'next/font/google';
 import './globals.css';
 import LayoutWrapper from '@/components/LayoutWrapper';
 
-// Heading font - Baloo 2: Friendly and playful (for kids/education)
-const headingFont = Baloo_2({
-    subsets: ['latin', 'vietnamese'],
+// Heading font - Poppins: Modern, clean, professional
+const headingFont = Poppins({
+    subsets: ['latin', 'latin-ext'],
     weight: ['400', '500', '600', '700', '800'],
     variable: '--font-heading',
     display: 'swap',
 });
 
-// Body font - Be Vietnam Pro: Modern and highly readable
-const bodyFont = Be_Vietnam_Pro({
-    subsets: ['latin', 'vietnamese'],
+// Body font - Inter: Highly readable, versatile
+const bodyFont = Inter({
+    subsets: ['latin', 'latin-ext', 'vietnamese'],
     weight: ['300', '400', '500', '600', '700'],
     variable: '--font-body',
     display: 'swap',
 });
 
 export const metadata: Metadata = {
-    title: 'Nệm Mầm Non HULA - Giấc Ngủ Ngon Cho Bé Yêu',
-    description: 'Nệm mầm non HULA chất lượng cao, an toàn cho sức khỏe bé. Nguyên liệu tự nhiên, thiết kế chống khuẩn, bảo hành 12 tháng.',
-    keywords: ['nệm mầm non', 'nệm trẻ em', 'HULA', 'nệm cao cấp', 'nệm an toàn'],
+    title: 'HULA - Giải Pháp Nệm Trường Học Toàn Diện',
+    description: 'HULA - Hơn 10 năm đồng hành cùng giấc ngủ học đường. Giải pháp nệm, gối, chăn trường học toàn diện. Thiết kế nhận diện, sản xuất khép kín, giao hàng toàn quốc.',
+    keywords: ['nệm trường học', 'nệm mầm non', 'HULA', 'nệm học đường', 'giấc ngủ học đường', 'nệm gối chăn trường học'],
     openGraph: {
-        title: 'Nệm Mầm Non HULA',
-        description: 'Giấc ngủ ngon cho bé yêu',
+        title: 'HULA - Giải Pháp Nệm Trường Học Toàn Diện',
+        description: 'Hơn 10 năm đồng hành cùng giấc ngủ học đường',
         type: 'website',
         locale: 'vi_VN',
     },

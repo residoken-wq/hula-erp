@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Product } from '../products/product.entity';
@@ -11,6 +11,7 @@ import { ProductWebsiteConfig } from '../products/entities/product-website-confi
 import { SystemService } from '../system/system.service';
 import { WebsitePolicy } from './entities/website-policy.entity';
 import { WizardConfig, WizardConfigData } from './entities/wizard-config.entity';
+import { WebsiteProject } from './entities/website-project.entity';
 
 @Controller('public')
 export class PublicController {
@@ -31,6 +32,8 @@ export class PublicController {
         private readonly policyRepo: Repository<WebsitePolicy>,
         @InjectRepository(WizardConfig)
         private readonly wizardConfigRepo: Repository<WizardConfig>,
+        @InjectRepository(WebsiteProject)
+        private readonly websiteProjectRepo: Repository<WebsiteProject>,
         private readonly salesService: SalesService,
         private readonly systemService: SystemService
     ) { }
@@ -49,7 +52,7 @@ export class PublicController {
     @Get('settings')
     async getSettings() {
         // Fetch settings from CMS config keys (lowercase format from Website CMS)
-        const cmsKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address', 'facebook_url', 'zalo_url'];
+        const cmsKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address', 'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url'];
         const configs = await this.configRepo.find({
             where: { key: In(cmsKeys) }
         });
@@ -70,8 +73,10 @@ export class PublicController {
             contact_address: result.contact_address || '',
             facebook_url: result.facebook_url || '',
             zalo_url: result.zalo_url || '',
+            google_maps_url: result.google_maps_url || '',
+            facebook_page_url: result.facebook_page_url || '',
             // Legacy fields for backward compatibility
-            title: result.site_name || 'Nệm Mầm Non HULA',
+            title: result.site_name || 'HULA',
             logo: result.logo_url || '/logo.png',
         };
     }
@@ -568,5 +573,47 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
             message: 'Lead created successfully',
             lead_code: code
         };
+    }
+
+    // ========================================
+    // WEBSITE PROJECTS APIs (Portfolio/Showcase)
+    // ========================================
+
+    @Get('projects')
+    async getWebsiteProjects() {
+        const projects = await this.websiteProjectRepo.find({
+            where: { is_active: true },
+            order: { sort_order: 'ASC', created_at: 'DESC' }
+        });
+        return { data: projects };
+    }
+
+    @Get('projects/:slug')
+    async getWebsiteProject(@Param('slug') slug: string) {
+        const project = await this.websiteProjectRepo.findOne({
+            where: { slug, is_active: true }
+        });
+        if (!project) {
+            return { error: 'Project not found' };
+        }
+        return project;
+    }
+
+    @Post('projects')
+    async createWebsiteProject(@Body() body: any) {
+        const project = this.websiteProjectRepo.create(body);
+        return this.websiteProjectRepo.save(project);
+    }
+
+    @Put('projects/:id')
+    async updateWebsiteProject(@Param('id') id: number, @Body() body: any) {
+        await this.websiteProjectRepo.update(id, body);
+        return this.websiteProjectRepo.findOne({ where: { id } });
+    }
+
+    @Delete('projects/:id')
+    async deleteWebsiteProject(@Param('id') id: number) {
+        await this.websiteProjectRepo.delete(id);
+        return { success: true };
     }
 }
