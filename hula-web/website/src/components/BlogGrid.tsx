@@ -10,13 +10,14 @@ interface BlogGridProps {
         thumbnail?: string;
         created_at?: string;
     }>;
+    bgColor?: string;
 }
 
-export default function BlogGrid({ posts }: BlogGridProps) {
+export default function BlogGrid({ posts, bgColor }: BlogGridProps) {
     if (!posts || posts.length === 0) return null;
 
     return (
-        <section className="py-16 lg:py-24 bg-white">
+        <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#FFFFFF' }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-12">
                     <h2 className="text-3xl lg:text-4xl font-heading font-bold text-gray-900">

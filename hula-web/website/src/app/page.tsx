@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getProducts, getBlogs, getHomeConfig } from '@/lib/api';
+import { getProducts, getBlogs, getHomeConfig, getSettings } from '@/lib/api';
 import HeroCarousel from '@/components/HeroCarousel';
 import CategoryCards from '@/components/CategoryCards';
 import JourneySlider from '@/components/JourneySlider';
@@ -30,6 +30,7 @@ async function getBlogPosts(limit = 6) {
 
 export default async function HomePage() {
     const config = await getHomeConfig() || {};
+    const settings = await getSettings() || {};
     const blogPosts = await getBlogPosts(6);
 
     const heroImages = (config.hero_images && config.hero_images.length > 0)
@@ -41,7 +42,10 @@ export default async function HomePage() {
             {/* ============================================
                 SECTION 1 — HERO BANNER + USP BAR
                ============================================ */}
-            <section className="relative bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 text-white overflow-hidden">
+            <section
+                className="relative text-white overflow-hidden"
+                style={{ backgroundColor: settings.section_hero_bg || '#23A7D3' }}
+            >
                 <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10"></div>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-28 relative">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -79,7 +83,10 @@ export default async function HomePage() {
                 </div>
 
                 {/* USP Bar */}
-                <div className="bg-white/10 backdrop-blur-md border-t border-white/20">
+                <div
+                    className="backdrop-blur-md border-t border-white/20"
+                    style={{ backgroundColor: settings.section_hero_usp_bg || 'rgba(255,255,255,0.1)' }}
+                >
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="grid grid-cols-3 divide-x divide-white/20">
                             <div className="py-4 text-center">
@@ -99,12 +106,15 @@ export default async function HomePage() {
             {/* ============================================
                 SECTION 2 — DANH MỤC SẢN PHẨM
                ============================================ */}
-            <CategoryCards categories={config.categories} />
+            <CategoryCards categories={config.categories} bgColor={settings.section_categories_bg} />
 
             {/* ============================================
                 SECTION 3 — GIỚI THIỆU HULA (Text + Video)
                ============================================ */}
-            <section className="py-16 lg:py-24 bg-section-blue">
+            <section
+                className="py-16 lg:py-24"
+                style={{ backgroundColor: settings.section_about_bg || '#B9E5FB' }}
+            >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         <div>
@@ -149,27 +159,27 @@ export default async function HomePage() {
             {/* ============================================
                 SECTION 4 — HÀNH TRÌNH HULA
                ============================================ */}
-            <JourneySlider milestones={config.milestones} />
+            <JourneySlider milestones={config.milestones} bgColor={settings.section_journey_bg} />
 
             {/* ============================================
                 SECTION 5 — DỰ ÁN NỔI BẬT
                ============================================ */}
-            <ProjectGallery projects={config.featured_projects} />
+            <ProjectGallery projects={config.featured_projects} bgColor={settings.section_projects_bg} />
 
             {/* ============================================
                 SECTION 6 — ĐỐI TÁC
                ============================================ */}
-            <PartnerSlider partners={config.partners} />
+            <PartnerSlider partners={config.partners} bgColor={settings.section_partners_bg} />
 
             {/* ============================================
                 SECTION 7 — FEEDBACK KHÁCH HÀNG
                ============================================ */}
-            <Testimonials testimonials={config.testimonials} />
+            <Testimonials testimonials={config.testimonials} bgColor={settings.section_testimonials_bg} />
 
             {/* ============================================
                 SECTION 8 — BLOG TƯ VẤN
                ============================================ */}
-            <BlogGrid posts={blogPosts} />
+            <BlogGrid posts={blogPosts} bgColor={settings.section_blog_bg} />
         </>
     );
 }

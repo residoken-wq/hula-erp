@@ -109,4 +109,13 @@ export const getHomeConfig = async () => {
     }
 };
 
+export const getSettings = async () => {
+    try {
+        const { data } = await api.get('/settings');
+        return data;
+    } catch {
+        return null;
+    }
+};
+
 export default api;

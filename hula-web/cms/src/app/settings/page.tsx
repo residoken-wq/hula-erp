@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Form, Input, Button, Space, message, Divider, Switch, Tabs, Radio, Alert, Spin } from 'antd';
-import { SaveOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Space, message, Divider, Switch, Tabs, Radio, Alert, Spin, ColorPicker, Row, Col } from 'antd';
+import { SaveOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined, BgColorsOutlined } from '@ant-design/icons';
 import { systemApi } from '@/lib/api';
 
 export default function SettingsPage() {
@@ -24,7 +24,12 @@ export default function SettingsPage() {
                 }
 
                 // Load general settings
-                const configKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address', 'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url'];
+                const configKeys = [
+                    'site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address',
+                    'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url',
+                    'section_hero_bg', 'section_hero_usp_bg', 'section_categories_bg', 'section_about_bg',
+                    'section_journey_bg', 'section_projects_bg', 'section_partners_bg', 'section_testimonials_bg', 'section_blog_bg',
+                ];
                 const configValues: Record<string, string> = {};
 
                 for (const key of configKeys) {
@@ -56,7 +61,12 @@ export default function SettingsPage() {
             setLoading(true);
 
             // Save each config field to backend
-            const configKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address', 'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url'];
+            const configKeys = [
+                'site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address',
+                'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url',
+                'section_hero_bg', 'section_hero_usp_bg', 'section_categories_bg', 'section_about_bg',
+                'section_journey_bg', 'section_projects_bg', 'section_partners_bg', 'section_testimonials_bg', 'section_blog_bg',
+            ];
 
             for (const key of configKeys) {
                 if (values[key] !== undefined) {
@@ -367,6 +377,66 @@ export default function SettingsPage() {
                         <Input placeholder="G-XXXXXXXXXX" />
                     </Form.Item>
                 </Form>
+            ),
+        },
+        {
+            key: 'section-colors',
+            label: '🎨 Màu nền Sections',
+            children: (
+                <div>
+                    <Alert
+                        message="Quản lý màu nền các phần trên trang chủ"
+                        description="Chọn màu nền cho từng section trên trang chủ. Để trống để sử dụng màu mặc định. Nhấn 'Lưu cài đặt' sau khi thay đổi."
+                        type="info"
+                        showIcon
+                        icon={<BgColorsOutlined />}
+                        style={{ marginBottom: 24 }}
+                    />
+                    <Row gutter={[24, 16]}>
+                        {[
+                            { key: 'section_hero_bg', label: '§1 Hero Banner (phần chính)', defaultColor: '#23A7D3' },
+                            { key: 'section_hero_usp_bg', label: '§1 USP Bar (Free tư vấn...)', defaultColor: '#1e8fb5' },
+                            { key: 'section_categories_bg', label: '§2 Danh mục Sản phẩm', defaultColor: '#FFFFFF' },
+                            { key: 'section_about_bg', label: '§3 Giới thiệu HULA', defaultColor: '#B9E5FB' },
+                            { key: 'section_journey_bg', label: '§4 Hành trình HULA', defaultColor: '#FFFFFF' },
+                            { key: 'section_projects_bg', label: '§5 Dự án Nổi bật', defaultColor: '#E6E7E8' },
+                            { key: 'section_partners_bg', label: '§6 Đối tác', defaultColor: '#FFFFFF' },
+                            { key: 'section_testimonials_bg', label: '§7 Feedback Khách hàng', defaultColor: '#B9E5FB' },
+                            { key: 'section_blog_bg', label: '§8 Blog Tư vấn', defaultColor: '#FFFFFF' },
+                        ].map((item) => (
+                            <Col xs={24} sm={12} key={item.key}>
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 12,
+                                    padding: '12px 16px',
+                                    border: '1px solid #f0f0f0',
+                                    borderRadius: 8,
+                                    background: '#fafafa'
+                                }}>
+                                    <ColorPicker
+                                        value={form.getFieldValue(item.key) || item.defaultColor}
+                                        onChange={(color) => {
+                                            form.setFieldsValue({ [item.key]: color.toHexString() });
+                                        }}
+                                        showText
+                                    />
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: 500, fontSize: 13 }}>{item.label}</div>
+                                        <div style={{ fontSize: 11, color: '#999' }}>Mặc định: {item.defaultColor}</div>
+                                    </div>
+                                    <Button
+                                        size="small"
+                                        type="link"
+                                        onClick={() => form.setFieldsValue({ [item.key]: '' })}
+                                    >
+                                        Reset
+                                    </Button>
+                                </div>
+                            </Col>
+                        ))}
+                    </Row>
+                </div>
             ),
         },
         {

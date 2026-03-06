@@ -7,6 +7,7 @@ interface PartnerSliderProps {
         name: string;
         logo_url?: string;
     }>;
+    bgColor?: string;
 }
 
 const defaultPartners = [
@@ -18,13 +19,13 @@ const defaultPartners = [
     { name: 'Đối tác 6', logo_url: '' },
 ];
 
-export default function PartnerSlider({ partners }: PartnerSliderProps) {
+export default function PartnerSlider({ partners, bgColor }: PartnerSliderProps) {
     const items = (partners && partners.length > 0) ? partners : defaultPartners;
     // Duplicate for infinite scroll effect
     const scrollItems = [...items, ...items];
 
     return (
-        <section className="py-16 lg:py-20 bg-white overflow-hidden">
+        <section className="py-16 lg:py-20 overflow-hidden" style={{ backgroundColor: bgColor || '#FFFFFF' }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
                 <h2 className="text-3xl lg:text-4xl font-heading font-bold text-gray-900 text-center">
                     Đối Tác Tin Tưởng

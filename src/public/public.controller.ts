@@ -52,7 +52,14 @@ export class PublicController {
     @Get('settings')
     async getSettings() {
         // Fetch settings from CMS config keys (lowercase format from Website CMS)
-        const cmsKeys = ['site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address', 'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url'];
+        const cmsKeys = [
+            'site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address',
+            'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url',
+            // Section background colors
+            'section_hero_bg', 'section_hero_usp_bg',
+            'section_categories_bg', 'section_about_bg', 'section_journey_bg',
+            'section_projects_bg', 'section_partners_bg', 'section_testimonials_bg', 'section_blog_bg',
+        ];
         const configs = await this.configRepo.find({
             where: { key: In(cmsKeys) }
         });
@@ -75,6 +82,16 @@ export class PublicController {
             zalo_url: result.zalo_url || '',
             google_maps_url: result.google_maps_url || '',
             facebook_page_url: result.facebook_page_url || '',
+            // Section background colors
+            section_hero_bg: result.section_hero_bg || '',
+            section_hero_usp_bg: result.section_hero_usp_bg || '',
+            section_categories_bg: result.section_categories_bg || '',
+            section_about_bg: result.section_about_bg || '',
+            section_journey_bg: result.section_journey_bg || '',
+            section_projects_bg: result.section_projects_bg || '',
+            section_partners_bg: result.section_partners_bg || '',
+            section_testimonials_bg: result.section_testimonials_bg || '',
+            section_blog_bg: result.section_blog_bg || '',
             // Legacy fields for backward compatibility
             title: result.site_name || 'HULA',
             logo: result.logo_url || '/logo.png',

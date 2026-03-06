@@ -13,6 +13,16 @@ interface Settings {
     zalo_url: string;
     google_maps_url: string;
     facebook_page_url: string;
+    // Section background colors
+    section_hero_bg: string;
+    section_hero_usp_bg: string;
+    section_categories_bg: string;
+    section_about_bg: string;
+    section_journey_bg: string;
+    section_projects_bg: string;
+    section_partners_bg: string;
+    section_testimonials_bg: string;
+    section_blog_bg: string;
 }
 
 interface SettingsContextType {
@@ -31,6 +41,15 @@ const defaultSettings: Settings = {
     zalo_url: '',
     google_maps_url: '',
     facebook_page_url: '',
+    section_hero_bg: '',
+    section_hero_usp_bg: '',
+    section_categories_bg: '',
+    section_about_bg: '',
+    section_journey_bg: '',
+    section_projects_bg: '',
+    section_partners_bg: '',
+    section_testimonials_bg: '',
+    section_blog_bg: '',
 };
 
 const SettingsContext = createContext<SettingsContextType>({
@@ -71,6 +90,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         zalo_url: data.zalo_url || '',
                         google_maps_url: data.google_maps_url || '',
                         facebook_page_url: data.facebook_page_url || '',
+                        section_hero_bg: data.section_hero_bg || '',
+                        section_hero_usp_bg: data.section_hero_usp_bg || '',
+                        section_categories_bg: data.section_categories_bg || '',
+                        section_about_bg: data.section_about_bg || '',
+                        section_journey_bg: data.section_journey_bg || '',
+                        section_projects_bg: data.section_projects_bg || '',
+                        section_partners_bg: data.section_partners_bg || '',
+                        section_testimonials_bg: data.section_testimonials_bg || '',
+                        section_blog_bg: data.section_blog_bg || '',
                     });
                 } else {
                     console.error('Failed to fetch settings:', res.status);
