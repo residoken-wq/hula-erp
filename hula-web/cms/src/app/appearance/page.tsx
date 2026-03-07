@@ -71,8 +71,30 @@ export default function AppearancePage() {
     const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
     const [featureModal, setFeatureModal] = useState(false);
 
-    // Preview iframe ref
+    // Preview refs & state
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const previewContainerRef = useRef<HTMLDivElement>(null);
+    const [previewScale, setPreviewScale] = useState(1);
+
+    // Dynamic scale for desktop preview
+    useEffect(() => {
+        if (!previewContainerRef.current) return;
+        
+        const observer = new ResizeObserver((entries) => {
+            for (let entry of entries) {
+                const { width } = entry.contentRect;
+                if (previewMode === 'desktop') {
+                    // Caculate scale to fit 1440px desktop width into container
+                    setPreviewScale(width / 1440);
+                } else {
+                    setPreviewScale(1);
+                }
+            }
+        });
+        
+        observer.observe(previewContainerRef.current);
+        return () => observer.disconnect();
+    }, [previewMode]);
 
     // ============================================
     // DATA LOADING
@@ -573,24 +595,29 @@ export default function AppearancePage() {
                                 </div>
                                 
                                 {/* Iframe Container */}
-                                <div style={{ 
-                                    flex: 1, 
-                                    background: '#e2e8f0',
-                                    display: 'flex', 
-                                    justifyContent: 'center', 
-                                    alignItems: 'flex-start',
-                                    padding: previewMode === 'mobile' ? '16px 0' : 0,
-                                    overflow: 'hidden'
-                                }}>
+                                <div 
+                                    ref={previewContainerRef}
+                                    style={{ 
+                                        flex: 1, 
+                                        background: '#e2e8f0',
+                                        display: 'flex', 
+                                        justifyContent: 'center', 
+                                        alignItems: 'flex-start',
+                                        padding: previewMode === 'mobile' ? '16px 0' : 0,
+                                        overflow: 'hidden'
+                                    }}
+                                >
                                     <div style={{
-                                        width: previewMode === 'desktop' ? '100%' : '375px',
-                                        height: previewMode === 'desktop' ? '100%' : 'calc(100% - 16px)',
+                                        width: previewMode === 'desktop' ? '1440px' : '375px',
+                                        height: previewMode === 'desktop' ? '810px' : 'calc(100% - 16px)',
                                         background: 'white',
                                         transition: 'all 0.3s ease',
                                         borderRadius: previewMode === 'desktop' ? 0 : 24,
                                         overflow: 'hidden',
-                                        boxShadow: previewMode === 'mobile' ? '0 10px 25px -5px rgba(0, 0, 0, 0.1)' : 'none',
-                                        border: previewMode === 'mobile' ? '8px solid #333' : 'none'
+                                        boxShadow: previewMode === 'mobile' ? '0 10px 25px -5px rgba(0, 0, 0, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                        border: previewMode === 'mobile' ? '8px solid #333' : 'none',
+                                        transform: previewMode === 'desktop' ? `scale(${previewScale})` : 'none',
+                                        transformOrigin: 'top center',
                                     }}>
                                         <iframe
                                             ref={iframeRef}
