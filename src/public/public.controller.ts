@@ -59,6 +59,10 @@ export class PublicController {
             'section_hero_bg', 'section_hero_usp_bg',
             'section_categories_bg', 'section_about_bg', 'section_journey_bg',
             'section_projects_bg', 'section_partners_bg', 'section_testimonials_bg', 'section_blog_bg',
+            // Section text colors
+            'section_hero_text', 'section_hero_usp_text',
+            'section_categories_text', 'section_about_text', 'section_journey_text',
+            'section_projects_text', 'section_partners_text', 'section_testimonials_text', 'section_blog_text',
         ];
         const configs = await this.configRepo.find({
             where: { key: In(cmsKeys) }
@@ -92,6 +96,16 @@ export class PublicController {
             section_partners_bg: result.section_partners_bg || '',
             section_testimonials_bg: result.section_testimonials_bg || '',
             section_blog_bg: result.section_blog_bg || '',
+            // Section text colors
+            section_hero_text: result.section_hero_text || '',
+            section_hero_usp_text: result.section_hero_usp_text || '',
+            section_categories_text: result.section_categories_text || '',
+            section_about_text: result.section_about_text || '',
+            section_journey_text: result.section_journey_text || '',
+            section_projects_text: result.section_projects_text || '',
+            section_partners_text: result.section_partners_text || '',
+            section_testimonials_text: result.section_testimonials_text || '',
+            section_blog_text: result.section_blog_text || '',
             // Legacy fields for backward compatibility
             title: result.site_name || 'HULA',
             logo: result.logo_url || '/logo.png',
