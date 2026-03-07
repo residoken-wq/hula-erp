@@ -162,7 +162,7 @@ export default function AppearancePage() {
             // Save settings
             const settingsValues = settingsForm.getFieldsValue();
             const settingsKeys = [
-                'site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address',
+                'site_name', 'site_description', 'logo_url', 'favicon_url', 'contact_phone', 'contact_email', 'contact_address',
                 'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url',
                 'section_hero_bg', 'section_hero_usp_bg', 'section_categories_bg', 'section_about_bg',
                 'section_journey_bg', 'section_projects_bg', 'section_partners_bg', 'section_testimonials_bg', 'section_blog_bg',
@@ -463,14 +463,19 @@ export default function AppearancePage() {
             children: (
                 <Form form={settingsForm} layout="vertical">
                     <Row gutter={[16, 0]}>
-                        <Col xs={24} md={12}>
+                        <Col xs={24} md={8}>
                             <Form.Item name="site_name" label="Tên website">
                                 <Input placeholder="Nệm Mầm Non HULA" />
                             </Form.Item>
                         </Col>
-                        <Col xs={24} md={12}>
+                        <Col xs={24} md={8}>
                             <Form.Item name="logo_url" label="Logo">
                                 <ImageUploader simple hint="📐 200x56px" />
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} md={8}>
+                            <Form.Item name="favicon_url" label="Favicon">
+                                <ImageUploader simple hint="📐 32x32px (ICO, PNG)" />
                             </Form.Item>
                         </Col>
                     </Row>
