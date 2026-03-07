@@ -120,7 +120,7 @@ export class SystemService {
     async getHomeConfig() {
         // Fetch all configs related to Home Page
         const keys = [
-            'hero_title_1', 'hero_title_2', 'hero_description', 'hero_button_1', 'hero_button_2', 'hero_image',
+            'hero_title_1', 'hero_title_2', 'hero_description', 'hero_button_1', 'hero_button_2', 'hero_image', 'hero_mask_opacity',
             'video_enabled', 'video_title', 'video_subtitle', 'video_youtube_url',
             'products_title', 'products_subtitle', 'products_limit',
             'cta_enabled', 'cta_title', 'cta_description', 'cta_button',
@@ -172,6 +172,7 @@ export class SystemService {
         result['products_limit'] = Number(result['products_limit']) || 4;
         result['topbar_enabled'] = result['topbar_enabled'] === 'true';
         result['topbar_speed'] = Number(result['topbar_speed']) || 20;
+        result['hero_mask_opacity'] = Number(result['hero_mask_opacity']) || 40;
 
         return result;
     }
@@ -202,6 +203,7 @@ export class SystemService {
         if (data.products_limit !== undefined) await this.setValue('products_limit', String(data.products_limit), 'Home Page Config');
         if (data.topbar_enabled !== undefined) await this.setValue('topbar_enabled', String(data.topbar_enabled), 'Home Page Topbar');
         if (data.topbar_speed !== undefined) await this.setValue('topbar_speed', String(data.topbar_speed), 'Home Page Topbar Speed');
+        if (data.hero_mask_opacity !== undefined) await this.setValue('hero_mask_opacity', String(data.hero_mask_opacity), 'Home Page Hero Mask Opacity');
 
         // Save Features as JSON
         if (data.features) {

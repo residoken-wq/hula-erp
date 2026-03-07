@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import {
     Collapse, Drawer, Form, Input, Button, Switch, message, Spin,
-    ColorPicker, Radio, Space, Divider, Alert, InputNumber, List, Modal, Row, Col
+    ColorPicker, Radio, Space, Divider, Alert, InputNumber, List, Modal, Row, Col, Slider
 } from 'antd';
 import {
     SaveOutlined, EyeOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined,
@@ -297,7 +297,11 @@ export default function AppearancePage() {
                                 <Input placeholder="Xem Sản Phẩm" />
                             </Form.Item>
                             <Form.Item name="hero_button_2" label="Nút CTA phụ">
-                                <Input placeholder="Liên Hệ Mua Sỉ" />
+                            </Form.Item>
+                            <Form.Item name="hero_mask_opacity" label="Độ mờ lớp phủ màu đen (0% - 100%)"
+                                tooltip="Làm tối hình nền để text dễ đọc hơn. 0 là không che, 100 là đen hoàn toàn."
+                            >
+                                <Slider min={0} max={100} marks={{ 0: '0%', 40: '40%', 100: '100%' }} />
                             </Form.Item>
                             <Form.List name="hero_images">
                                 {(fields, { add, remove }) => (

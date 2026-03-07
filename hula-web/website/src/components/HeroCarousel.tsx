@@ -18,6 +18,7 @@ interface HeroCarouselProps {
     heroDescription?: string;
     heroButton1?: string;
     heroButton2?: string;
+    heroMaskOpacity?: number | string;
 }
 
 function resolveImageUrl(img: string | HeroSlide): string {
@@ -48,6 +49,7 @@ export default function HeroCarousel({
     heroDescription,
     heroButton1,
     heroButton2,
+    heroMaskOpacity = 40, // Default to 40%
 }: HeroCarouselProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -87,8 +89,11 @@ export default function HeroCarousel({
                         alt={getAlt(img, index)}
                         className="w-full h-full object-cover"
                     />
-                    {/* Blur overlay */}
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+                    {/* Dynamic Overlay Mask (no blur) */}
+                    <div 
+                        className="absolute inset-0" 
+                        style={{ backgroundColor: `rgba(0, 0, 0, ${(Number(heroMaskOpacity) || 0) / 100})` }}
+                    />
                 </div>
             ))}
 
