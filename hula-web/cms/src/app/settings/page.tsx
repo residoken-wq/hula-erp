@@ -67,6 +67,8 @@ export default function SettingsPage() {
                 'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url',
                 'section_hero_bg', 'section_hero_usp_bg', 'section_categories_bg', 'section_about_bg',
                 'section_journey_bg', 'section_projects_bg', 'section_partners_bg', 'section_testimonials_bg', 'section_blog_bg',
+                'section_hero_text', 'section_hero_usp_text', 'section_categories_text', 'section_about_text',
+                'section_journey_text', 'section_projects_text', 'section_partners_text', 'section_testimonials_text', 'section_blog_text',
             ];
 
             for (const key of configKeys) {
