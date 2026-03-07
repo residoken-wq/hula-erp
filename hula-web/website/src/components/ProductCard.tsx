@@ -60,11 +60,11 @@ export default function ProductCard({ product }: ProductCardProps) {
                     <img
                         src={imageUrl}
                         alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover"
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-                        <span className="text-6xl group-hover:scale-110 transition-transform duration-300">🛏️</span>
+                        <span className="text-6xl">🛏️</span>
                     </div>
                 )}
 
@@ -76,8 +76,8 @@ export default function ProductCard({ product }: ProductCardProps) {
                 )}
 
                 {/* Quick View Button - Desktop hover */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex items-end justify-center pb-4">
-                    <span className="px-4 py-2 bg-white text-gray-900 text-sm font-medium rounded-full shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                <div className="absolute inset-0 bg-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex items-end justify-center pb-4">
+                    <span className="px-4 py-2 bg-transparent text-accent text-sm font-medium rounded-full shadow-none transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                         Xem chi tiết
                     </span>
                 </div>
@@ -86,7 +86,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             {/* Content */}
             <div className="p-4">
                 <Link href={`/san-pham/${product.sku}`}>
-                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2 leading-tight min-h-[2.5rem] group-hover:text-primary-600 transition-colors">
+                    <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2 leading-tight min-h-[2.5rem] group-hover:text-accent transition-colors">
                         {product.name}
                     </h3>
                 </Link>
@@ -104,7 +104,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                         disabled={isAdding}
                         className={`relative px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 ${showSuccess
                             ? 'bg-green-500 text-white'
-                            : 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-md shadow-primary-500/30 hover:shadow-lg hover:shadow-primary-500/40'
+                            : 'bg-transparent text-gray-900 border border-gray-200 hover:text-accent hover:border-accent hover:bg-transparent'
                             }`}
                     >
                         {showSuccess ? (

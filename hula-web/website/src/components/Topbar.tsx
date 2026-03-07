@@ -47,7 +47,7 @@ export default function Topbar() {
                         {rightUrl ? (
                             <Link
                                 href={rightUrl}
-                                className="topbar-marquee text-white/90 hover:text-white font-medium text-xs sm:text-sm whitespace-nowrap inline-block"
+                                className="topbar-marquee text-white/90 hover:text-accent font-medium text-xs sm:text-sm whitespace-nowrap inline-block"
                                 style={{ animationDuration: `${speed}s` }}
                             >
                                 {rightText}

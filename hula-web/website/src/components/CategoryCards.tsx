@@ -43,16 +43,16 @@ export default function CategoryCards({ categories, bgColor, textColor }: Catego
                                     <img
                                         src={cat.image_url}
                                         alt={cat.title}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <span className="text-5xl lg:text-6xl group-hover:scale-110 transition-transform duration-300">
+                                    <span className="text-5xl lg:text-6xl">
                                         {cat.icon || '📦'}
                                     </span>
                                 )}
                             </div>
                             <div className="p-4 text-center">
-                                <h3 className="font-heading font-semibold text-gray-800 group-hover:text-primary-500 transition-colors">
+                                <h3 className="font-heading font-semibold text-gray-800 group-hover:text-accent transition-colors">
                                     {cat.title}
                                 </h3>
                             </div>

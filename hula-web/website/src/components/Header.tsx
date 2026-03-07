@@ -73,7 +73,7 @@ export default function Header() {
                                 <Link
                                     key={link.href}
                                     href={link.href}
-                                    className="px-3 xl:px-4 py-2 text-sm xl:text-base text-gray-600 hover:text-primary-500 font-medium rounded-[12px] hover:bg-primary-50 transition-all"
+                                    className="px-3 xl:px-4 py-2 text-sm xl:text-base text-gray-600 hover:text-accent font-medium rounded-[12px] hover:bg-transparent transition-all"
                                 >
                                     {link.label}
                                 </Link>
@@ -83,7 +83,7 @@ export default function Header() {
                         {/* Right Section */}
                         <div className="flex items-center space-x-2">
                             {/* Search Button */}
-                            <button className="p-2.5 rounded-[12px] bg-gray-50 hover:bg-primary-50 text-gray-500 hover:text-primary-500 transition-all active:scale-95">
+                            <button className="p-2.5 rounded-[12px] bg-transparent text-gray-500 hover:text-accent transition-all active:scale-95">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
@@ -92,7 +92,7 @@ export default function Header() {
                             {/* Cart Button */}
                             <button
                                 onClick={() => setIsCartOpen(true)}
-                                className="relative p-2.5 rounded-[12px] bg-gray-50 hover:bg-primary-50 text-gray-500 hover:text-primary-500 transition-all active:scale-95"
+                                className="relative p-2.5 rounded-[12px] bg-transparent text-gray-500 hover:text-accent transition-all active:scale-95"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -142,7 +142,7 @@ export default function Header() {
                                 <Link
                                     key={link.href}
                                     href={link.href}
-                                    className="flex items-center gap-4 p-4 rounded-[12px] bg-gray-50 hover:bg-primary-50 text-gray-700 hover:text-primary-500 font-medium transition-all active:scale-[0.98]"
+                                    className="flex items-center gap-4 p-4 rounded-[12px] bg-transparent text-gray-700 hover:text-accent font-medium transition-all active:scale-[0.98]"
                                     onClick={() => setIsMenuOpen(false)}
                                 >
                                     <span className="text-lg">{link.label}</span>

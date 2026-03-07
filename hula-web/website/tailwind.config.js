@@ -36,6 +36,7 @@ module.exports = {
                     blue: '#B9E5FB',
                     gray: '#E6E7E8',
                 },
+                accent: '#ffe293',
             },
             fontFamily: {
                 heading: ['var(--font-main)', 'Be Vietnam Pro', 'sans-serif'],

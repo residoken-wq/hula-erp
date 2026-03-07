@@ -32,7 +32,7 @@ export default function Footer() {
                                 {loading ? (
                                     <span className="text-sm animate-pulse">Đang tải...</span>
                                 ) : settings.contact_phone ? (
-                                    <a href={`tel:${settings.contact_phone}`} className="text-sm hover:text-primary-400 transition-colors font-medium">
+                                    <a href={`tel:${settings.contact_phone}`} className="text-sm hover:text-accent transition-colors font-medium">
                                         {settings.contact_phone}
                                     </a>
                                 ) : (
@@ -48,7 +48,7 @@ export default function Footer() {
                                 {loading ? (
                                     <span className="text-sm animate-pulse">Đang tải...</span>
                                 ) : settings.contact_email ? (
-                                    <a href={`mailto:${settings.contact_email}`} className="text-sm hover:text-primary-400 transition-colors">
+                                    <a href={`mailto:${settings.contact_email}`} className="text-sm hover:text-accent transition-colors">
                                         {settings.contact_email}
                                     </a>
                                 ) : (
@@ -77,18 +77,18 @@ export default function Footer() {
                     <div>
                         <h3 className="text-white font-heading font-semibold mb-4 text-sm uppercase tracking-wider">Menu nhanh</h3>
                         <ul className="space-y-2.5 mb-8">
-                            <li><Link href="/" className="text-sm hover:text-primary-400 transition-colors">Trang chủ</Link></li>
-                            <li><Link href="/ve-hula" className="text-sm hover:text-primary-400 transition-colors">Về Hula</Link></li>
-                            <li><Link href="/du-an" className="text-sm hover:text-primary-400 transition-colors">Dự án</Link></li>
-                            <li><Link href="/dat-hang-si" className="text-sm hover:text-primary-400 transition-colors">Đặt hàng B2B</Link></li>
-                            <li><Link href="/lien-he" className="text-sm hover:text-primary-400 transition-colors">Liên hệ</Link></li>
+                            <li><Link href="/" className="text-sm hover:text-accent transition-colors">Trang chủ</Link></li>
+                            <li><Link href="/ve-hula" className="text-sm hover:text-accent transition-colors">Về Hula</Link></li>
+                            <li><Link href="/du-an" className="text-sm hover:text-accent transition-colors">Dự án</Link></li>
+                            <li><Link href="/dat-hang-si" className="text-sm hover:text-accent transition-colors">Đặt hàng B2B</Link></li>
+                            <li><Link href="/lien-he" className="text-sm hover:text-accent transition-colors">Liên hệ</Link></li>
                         </ul>
 
                         <h3 className="text-white font-heading font-semibold mb-4 text-sm uppercase tracking-wider">Sản phẩm</h3>
                         <ul className="space-y-2.5">
-                            <li><Link href="/san-pham" className="text-sm hover:text-primary-400 transition-colors">Hula Shop</Link></li>
-                            <li><Link href="/tin-tuc" className="text-sm hover:text-primary-400 transition-colors">Blog tư vấn</Link></li>
-                            <li><Link href="/chinh-sach" className="text-sm hover:text-primary-400 transition-colors">Chính sách</Link></li>
+                            <li><Link href="/san-pham" className="text-sm hover:text-accent transition-colors">Hula Shop</Link></li>
+                            <li><Link href="/tin-tuc" className="text-sm hover:text-accent transition-colors">Blog tư vấn</Link></li>
+                            <li><Link href="/chinh-sach" className="text-sm hover:text-accent transition-colors">Chính sách</Link></li>
                         </ul>
                     </div>
 
@@ -138,7 +138,7 @@ export default function Footer() {
                         <div className="flex space-x-3">
                             {settings.facebook_url && (
                                 <a href={settings.facebook_url} target="_blank" rel="noopener noreferrer"
-                                    className="w-10 h-10 bg-gray-800 hover:bg-primary-500 rounded-[12px] flex items-center justify-center text-gray-400 hover:text-white transition-all">
+                                    className="w-10 h-10 bg-gray-800 hover:bg-transparent rounded-[12px] flex items-center justify-center text-gray-400 hover:text-accent transition-all">
                                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z" />
                                     </svg>
@@ -146,7 +146,7 @@ export default function Footer() {
                             )}
                             {settings.zalo_url && (
                                 <a href={settings.zalo_url} target="_blank" rel="noopener noreferrer"
-                                    className="w-10 h-10 bg-gray-800 hover:bg-blue-500 rounded-[12px] flex items-center justify-center text-gray-400 hover:text-white transition-all">
+                                    className="w-10 h-10 bg-gray-800 hover:bg-transparent rounded-[12px] flex items-center justify-center text-gray-400 hover:text-accent transition-all">
                                     <svg className="w-5 h-5" viewBox="0 0 48 48" fill="currentColor">
                                         <path d="M24 4C12.954 4 4 12.954 4 24c0 4.584 1.548 8.802 4.143 12.18L4.61 44l8.074-3.465C15.672 42.095 19.682 44 24 44c11.046 0 20-8.954 20-20S35.046 4 24 4z" />
                                     </svg>

@@ -53,7 +53,7 @@ export class PublicController {
     async getSettings() {
         // Fetch settings from CMS config keys (lowercase format from Website CMS)
         const cmsKeys = [
-            'site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address',
+            'site_name', 'site_description', 'logo_url', 'favicon_url', 'contact_phone', 'contact_email', 'contact_address',
             'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url',
             // Section background colors
             'section_hero_bg', 'section_hero_usp_bg',
@@ -79,6 +79,7 @@ export class PublicController {
             site_name: result.site_name || 'Nệm Mầm Non HULA',
             site_description: result.site_description || '',
             logo_url: result.logo_url || '',
+            favicon_url: result.favicon_url || '',
             contact_phone: result.contact_phone || '',
             contact_email: result.contact_email || '',
             contact_address: result.contact_address || '',

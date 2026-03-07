@@ -112,7 +112,7 @@ export default function HeroCarousel({
                         <div className="mt-8 flex flex-wrap gap-4">
                             <Link
                                 href="/san-pham"
-                                className="inline-flex items-center px-7 py-3.5 bg-white text-primary-600 font-semibold rounded-pill hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl active:scale-95"
+                                className="inline-flex items-center px-7 py-3.5 bg-white text-primary-600 font-semibold rounded-pill hover:text-accent hover:bg-transparent transition-all shadow-lg active:scale-95"
                             >
                                 {heroButton1 || 'Xem Sản Phẩm'}
                                 <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,7 +121,7 @@ export default function HeroCarousel({
                             </Link>
                             <Link
                                 href="/lien-he"
-                                className="inline-flex items-center px-7 py-3.5 border-2 border-white text-white font-semibold rounded-pill hover:bg-white hover:text-primary-600 transition-all"
+                                className="inline-flex items-center px-7 py-3.5 border-2 border-white text-white font-semibold rounded-pill hover:text-accent hover:bg-transparent transition-all"
                             >
                                 {heroButton2 || 'Tư Vấn Ngay'}
                             </Link>
@@ -134,7 +134,7 @@ export default function HeroCarousel({
             {getLink(images[currentIndex]) && (
                 <Link
                     href={getLink(images[currentIndex])!}
-                    className="absolute bottom-20 right-8 z-30 px-4 py-2 bg-white/20 backdrop-blur-md text-white text-sm rounded-full hover:bg-white/30 transition-all"
+                    className="absolute bottom-20 right-8 z-30 px-4 py-2 bg-white/20 backdrop-blur-md text-white text-sm rounded-full hover:text-accent transition-all"
                 >
                     Xem thêm →
                 </Link>
