@@ -386,4 +386,23 @@ body {
     .ant-card {
         border-radius: 12px !important;
     }
+
+    /* Appearance page - Mobile */
+    .mobile-save-btn {
+        display: block !important;
+    }
+
+    .ant-drawer .ant-drawer-content-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .ant-collapse .ant-collapse-header {
+        min-height: 52px !important;
+        padding: 14px 16px !important;
+    }
+
+    .ant-collapse .ant-collapse-content-box {
+        padding: 12px !important;
+    }
 }

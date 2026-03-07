@@ -13,7 +13,8 @@ import {
     BellOutlined,
     LogoutOutlined,
     UserOutlined,
-    MoonOutlined
+    MoonOutlined,
+    FormatPainterOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -27,16 +28,9 @@ const menuItems = [
         icon: <DashboardOutlined />,
     },
     {
-        path: '/pages',
-        name: 'Quản lý Trang',
-        icon: <LayoutOutlined />,
-        routes: [
-            {
-                path: '/home-content',
-                name: 'Trang Chủ',
-                icon: <HomeOutlined />,
-            },
-        ],
+        path: '/appearance',
+        name: 'Giao diện',
+        icon: <FormatPainterOutlined />,
     },
     {
         path: '/blogs',
