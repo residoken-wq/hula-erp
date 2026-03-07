@@ -42,61 +42,31 @@ export default async function HomePage() {
             {/* ============================================
                 SECTION 1 — HERO BANNER + USP BAR
                ============================================ */}
-            <section
-                className="relative text-white overflow-hidden"
-                style={{ backgroundColor: settings.section_hero_bg || '#23A7D3' }}
-            >
-                <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10"></div>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-28 relative">
-                    <div className="grid lg:grid-cols-2 gap-12 items-center">
-                        <div>
-                            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-heading font-bold leading-tight">
-                                {config.hero_title_1 || 'Giấc Ngủ Học Đường'}
-                                <br />
-                                <span className="text-secondary-300">{config.hero_title_2 || 'Hoàn Hảo'}</span>
-                            </h1>
-                            <p className="mt-6 text-lg text-primary-100 max-w-xl leading-relaxed">
-                                {config.hero_description || 'Giải pháp nệm trường học toàn diện - Hơn 10 năm đồng hành cùng hàng trăm trường học trên toàn quốc.'}
-                            </p>
-                            <div className="mt-8 flex flex-wrap gap-4">
-                                <Link
-                                    href="/san-pham"
-                                    className="inline-flex items-center px-7 py-3.5 bg-white text-primary-600 font-semibold rounded-pill hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl active:scale-95"
-                                >
-                                    {config.hero_button_1 || 'Xem Sản Phẩm'}
-                                    <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                    </svg>
-                                </Link>
-                                <Link
-                                    href="/lien-he"
-                                    className="inline-flex items-center px-7 py-3.5 border-2 border-white text-white font-semibold rounded-pill hover:bg-white hover:text-primary-600 transition-all"
-                                >
-                                    {config.hero_button_2 || 'Tư Vấn Ngay'}
-                                </Link>
-                            </div>
-                        </div>
-                        <div className="relative">
-                            <HeroCarousel images={heroImages} />
-                        </div>
-                    </div>
-                </div>
+            <section className="relative overflow-hidden">
+                <HeroCarousel
+                    images={heroImages}
+                    heroTitle1={config.hero_title_1}
+                    heroTitle2={config.hero_title_2}
+                    heroDescription={config.hero_description}
+                    heroButton1={config.hero_button_1}
+                    heroButton2={config.hero_button_2}
+                />
 
                 {/* USP Bar */}
                 <div
                     className="backdrop-blur-md border-t border-white/20"
-                    style={{ backgroundColor: settings.section_hero_usp_bg || 'rgba(255,255,255,0.1)' }}
+                    style={{ backgroundColor: settings.section_hero_usp_bg || 'rgba(35,167,211,0.85)', color: settings.section_hero_usp_text || undefined }}
                 >
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="grid grid-cols-3 divide-x divide-white/20">
                             <div className="py-4 text-center">
-                                <span className="text-white font-medium text-sm lg:text-base">✨ Free tư vấn</span>
+                                <span className="font-medium text-sm lg:text-base" style={{ color: settings.section_hero_usp_text || 'white' }}>✨ Free tư vấn</span>
                             </div>
                             <div className="py-4 text-center">
-                                <span className="text-white font-medium text-sm lg:text-base">🎨 Free thiết kế</span>
+                                <span className="font-medium text-sm lg:text-base" style={{ color: settings.section_hero_usp_text || 'white' }}>🎨 Free thiết kế</span>
                             </div>
                             <div className="py-4 text-center">
-                                <span className="text-white font-medium text-sm lg:text-base">🚚 Giao hàng toàn quốc</span>
+                                <span className="font-medium text-sm lg:text-base" style={{ color: settings.section_hero_usp_text || 'white' }}>🚚 Giao hàng toàn quốc</span>
                             </div>
                         </div>
                     </div>
@@ -106,22 +76,22 @@ export default async function HomePage() {
             {/* ============================================
                 SECTION 2 — DANH MỤC SẢN PHẨM
                ============================================ */}
-            <CategoryCards categories={config.categories} bgColor={settings.section_categories_bg} />
+            <CategoryCards categories={config.categories} bgColor={settings.section_categories_bg} textColor={settings.section_categories_text} />
 
             {/* ============================================
                 SECTION 3 — GIỚI THIỆU HULA (Text + Video)
                ============================================ */}
             <section
                 className="py-16 lg:py-24"
-                style={{ backgroundColor: settings.section_about_bg || '#B9E5FB' }}
+                style={{ backgroundColor: settings.section_about_bg || '#B9E5FB', color: settings.section_about_text || undefined }}
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         <div>
-                            <h2 className="text-3xl lg:text-4xl font-heading font-bold text-gray-900 mb-6">
+                            <h2 className="text-3xl lg:text-4xl font-heading font-bold mb-6" style={{ color: settings.section_about_text || undefined }}>
                                 {config.about_title || 'Hơn 10 Năm Đồng Hành Cùng Giấc Ngủ Học Đường'}
                             </h2>
-                            <p className="text-gray-600 leading-relaxed mb-6">
+                            <p className="leading-relaxed mb-6" style={{ color: settings.section_about_text || undefined, opacity: 0.8 }}>
                                 {config.about_description || 'HULA tự hào là đơn vị tiên phong trong lĩnh vực cung cấp giải pháp nệm, gối, chăn cho trường học. Với quy trình sản xuất khép kín, kiểm soát chất lượng nghiêm ngặt, chúng tôi cam kết mang đến sản phẩm tốt nhất cho giấc ngủ của trẻ.'}
                             </p>
                             <Link
@@ -159,27 +129,27 @@ export default async function HomePage() {
             {/* ============================================
                 SECTION 4 — HÀNH TRÌNH HULA
                ============================================ */}
-            <JourneySlider milestones={config.milestones} bgColor={settings.section_journey_bg} />
+            <JourneySlider milestones={config.milestones} bgColor={settings.section_journey_bg} textColor={settings.section_journey_text} />
 
             {/* ============================================
                 SECTION 5 — DỰ ÁN NỔI BẬT
                ============================================ */}
-            <ProjectGallery projects={config.featured_projects} bgColor={settings.section_projects_bg} />
+            <ProjectGallery projects={config.featured_projects} bgColor={settings.section_projects_bg} textColor={settings.section_projects_text} />
 
             {/* ============================================
                 SECTION 6 — ĐỐI TÁC
                ============================================ */}
-            <PartnerSlider partners={config.partners} bgColor={settings.section_partners_bg} />
+            <PartnerSlider partners={config.partners} bgColor={settings.section_partners_bg} textColor={settings.section_partners_text} />
 
             {/* ============================================
                 SECTION 7 — FEEDBACK KHÁCH HÀNG
                ============================================ */}
-            <Testimonials testimonials={config.testimonials} bgColor={settings.section_testimonials_bg} />
+            <Testimonials testimonials={config.testimonials} bgColor={settings.section_testimonials_bg} textColor={settings.section_testimonials_text} />
 
             {/* ============================================
                 SECTION 8 — BLOG TƯ VẤN
                ============================================ */}
-            <BlogGrid posts={blogPosts} bgColor={settings.section_blog_bg} />
+            <BlogGrid posts={blogPosts} bgColor={settings.section_blog_bg} textColor={settings.section_blog_text} />
         </>
     );
 }

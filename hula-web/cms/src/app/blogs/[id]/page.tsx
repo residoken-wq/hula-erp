@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, Form, Input, Select, Button, Space, message, Spin } from 'antd';
 import { SaveOutlined, ArrowLeftOutlined, SendOutlined, RocketOutlined, SettingOutlined, GoogleOutlined, ShareAltOutlined } from '@ant-design/icons';
+import ImageUploader from '@/components/ImageUploader';
 import dynamic from 'next/dynamic';
 import { SeoAnalysis } from '@/components/seo/SeoAnalysis';
 import { SnippetPreview } from '@/components/seo/SnippetPreview';
@@ -269,9 +270,8 @@ export default function BlogEditorPage() {
                             <Form.Item
                                 name="featured_image"
                                 label="Ảnh đại diện"
-                                extra="Kích thước khuyến nghị: 1200x630px (tỷ lệ 1.91:1) - Tối ưu cho SEO và chia sẻ mạng xã hội"
                             >
-                                <Input placeholder="URL hình ảnh" />
+                                <ImageUploader hint="📐 Kích thước: 1200x630px (1.91:1) — Tối ưu SEO + chia sẻ mạng xã hội" />
                             </Form.Item>
 
                             <Form.Item name="slug" label="Slug URL">

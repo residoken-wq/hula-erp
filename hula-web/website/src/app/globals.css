@@ -275,3 +275,27 @@ button {
 .animate-scroll-left {
   animation: scroll-left 30s linear infinite;
 }
+
+/* ============================================
+   Topbar Marquee
+   ============================================ */
+
+@keyframes topbar-marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.topbar-marquee {
+  animation: topbar-marquee 20s linear infinite;
+}
+
+.topbar-marquee-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%);
+  overflow: hidden;
+  white-space: nowrap;
+}

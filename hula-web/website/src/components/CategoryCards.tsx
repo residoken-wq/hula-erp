@@ -9,6 +9,7 @@ interface CategoryCardsProps {
         slug?: string;
     }>;
     bgColor?: string;
+    textColor?: string;
 }
 
 const defaultCategories = [
@@ -18,14 +19,14 @@ const defaultCategories = [
     { title: 'Sản phẩm khác', image_url: '', slug: '/san-pham', icon: '✨' },
 ];
 
-export default function CategoryCards({ categories, bgColor }: CategoryCardsProps) {
+export default function CategoryCards({ categories, bgColor, textColor }: CategoryCardsProps) {
     const items = (categories && categories.length > 0) ? categories : defaultCategories;
 
     return (
-        <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#FFFFFF' }}>
+        <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#FFFFFF', color: textColor || undefined }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-12">
-                    <h2 className="text-3xl lg:text-4xl font-heading font-bold text-gray-900">
+                    <h2 className="text-3xl lg:text-4xl font-heading font-bold" style={{ color: textColor || undefined }}>
                         Danh Mục Sản Phẩm
                     </h2>
                 </div>

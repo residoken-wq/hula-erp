@@ -5,6 +5,7 @@ import AdminLayout from '@/components/AdminLayout';
 import { Card, Form, Input, Button, Space, message, Divider, Switch, Tabs, Radio, Alert, Spin, ColorPicker, Row, Col } from 'antd';
 import { SaveOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined, BgColorsOutlined } from '@ant-design/icons';
 import { systemApi } from '@/lib/api';
+import ImageUploader from '@/components/ImageUploader';
 
 export default function SettingsPage() {
     const [form] = Form.useForm();
@@ -282,8 +283,8 @@ export default function SettingsPage() {
                         <Input placeholder="Tên website" />
                     </Form.Item>
 
-                    <Form.Item name="logo_url" label="Logo URL" extra="Logo sẽ tự động scale để vừa với frame header">
-                        <Input placeholder="https://... hoặc link Google Drive" />
+                    <Form.Item name="logo_url" label="Logo" extra="Logo sẽ tự động scale để vừa với frame header">
+                        <ImageUploader simple hint="📐 Khuyến nghị: 200x56px hoặc tỷ lệ tương đương" />
                     </Form.Item>
 
                     <Form.Item name="site_description" label="Mô tả website">
@@ -381,12 +382,12 @@ export default function SettingsPage() {
         },
         {
             key: 'section-colors',
-            label: '🎨 Màu nền Sections',
+            label: '🎨 Màu Sections',
             children: (
                 <div>
                     <Alert
-                        message="Quản lý màu nền các phần trên trang chủ"
-                        description="Chọn màu nền cho từng section trên trang chủ. Để trống để sử dụng màu mặc định. Nhấn 'Lưu cài đặt' sau khi thay đổi."
+                        message="Quản lý màu nền & màu chữ các section trang chủ"
+                        description="Chọn màu nền và màu chữ cho từng section. Để trống để sử dụng màu mặc định. Nhấn 'Lưu cài đặt' sau khi thay đổi."
                         type="info"
                         showIcon
                         icon={<BgColorsOutlined />}
@@ -395,45 +396,70 @@ export default function SettingsPage() {
                     <Form form={form}>
                     <Row gutter={[24, 16]}>
                         {[
-                            { key: 'section_hero_bg', label: '§1 Hero Banner (phần chính)', defaultColor: '#23A7D3' },
-                            { key: 'section_hero_usp_bg', label: '§1 USP Bar (Free tư vấn...)', defaultColor: '#1e8fb5' },
-                            { key: 'section_categories_bg', label: '§2 Danh mục Sản phẩm', defaultColor: '#FFFFFF' },
-                            { key: 'section_about_bg', label: '§3 Giới thiệu HULA', defaultColor: '#B9E5FB' },
-                            { key: 'section_journey_bg', label: '§4 Hành trình HULA', defaultColor: '#FFFFFF' },
-                            { key: 'section_projects_bg', label: '§5 Dự án Nổi bật', defaultColor: '#E6E7E8' },
-                            { key: 'section_partners_bg', label: '§6 Đối tác', defaultColor: '#FFFFFF' },
-                            { key: 'section_testimonials_bg', label: '§7 Feedback Khách hàng', defaultColor: '#B9E5FB' },
-                            { key: 'section_blog_bg', label: '§8 Blog Tư vấn', defaultColor: '#FFFFFF' },
+                            { key: 'section_hero', label: '§1 Hero Banner', defaultBg: '#23A7D3', defaultText: '#FFFFFF' },
+                            { key: 'section_hero_usp', label: '§1 USP Bar', defaultBg: '#1e8fb5', defaultText: '#FFFFFF' },
+                            { key: 'section_categories', label: '§2 Danh mục Sản phẩm', defaultBg: '#FFFFFF', defaultText: '#1F2937' },
+                            { key: 'section_about', label: '§3 Giới thiệu HULA', defaultBg: '#B9E5FB', defaultText: '#1F2937' },
+                            { key: 'section_journey', label: '§4 Hành trình HULA', defaultBg: '#FFFFFF', defaultText: '#1F2937' },
+                            { key: 'section_projects', label: '§5 Dự án Nổi bật', defaultBg: '#E6E7E8', defaultText: '#1F2937' },
+                            { key: 'section_partners', label: '§6 Đối tác', defaultBg: '#FFFFFF', defaultText: '#1F2937' },
+                            { key: 'section_testimonials', label: '§7 Feedback Khách hàng', defaultBg: '#B9E5FB', defaultText: '#1F2937' },
+                            { key: 'section_blog', label: '§8 Blog Tư vấn', defaultBg: '#FFFFFF', defaultText: '#1F2937' },
                         ].map((item) => (
                             <Col xs={24} sm={12} key={item.key}>
                                 <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
                                     padding: '12px 16px',
                                     border: '1px solid #f0f0f0',
                                     borderRadius: 8,
-                                    background: '#fafafa'
+                                    background: '#fafafa',
                                 }}>
-                                    <Form.Item
-                                        name={item.key}
-                                        noStyle
-                                        getValueFromEvent={(color) => color.toHexString()}
-                                        getValueProps={(value) => ({ value: value || item.defaultColor })}
-                                    >
-                                        <ColorPicker showText />
-                                    </Form.Item>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 500, fontSize: 13 }}>{item.label}</div>
-                                        <div style={{ fontSize: 11, color: '#999' }}>Mặc định: {item.defaultColor}</div>
+                                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>{item.label}</div>
+                                    <div style={{ display: 'flex', gap: 16 }}>
+                                        {/* Background color */}
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>🎨 Nền</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <Form.Item
+                                                    name={`${item.key}_bg`}
+                                                    noStyle
+                                                    getValueFromEvent={(color: any) => color.toHexString()}
+                                                    getValueProps={(value: any) => ({ value: value || item.defaultBg })}
+                                                >
+                                                    <ColorPicker size="small" showText />
+                                                </Form.Item>
+                                                <Button
+                                                    size="small"
+                                                    type="link"
+                                                    style={{ padding: 0, fontSize: 11 }}
+                                                    onClick={() => form.setFieldsValue({ [`${item.key}_bg`]: '' })}
+                                                >
+                                                    Reset
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        {/* Text color */}
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>✏️ Chữ</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <Form.Item
+                                                    name={`${item.key}_text`}
+                                                    noStyle
+                                                    getValueFromEvent={(color: any) => color.toHexString()}
+                                                    getValueProps={(value: any) => ({ value: value || item.defaultText })}
+                                                >
+                                                    <ColorPicker size="small" showText />
+                                                </Form.Item>
+                                                <Button
+                                                    size="small"
+                                                    type="link"
+                                                    style={{ padding: 0, fontSize: 11 }}
+                                                    onClick={() => form.setFieldsValue({ [`${item.key}_text`]: '' })}
+                                                >
+                                                    Reset
+                                                </Button>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <Button
-                                        size="small"
-                                        type="link"
-                                        onClick={() => form.setFieldsValue({ [item.key]: '' })}
-                                    >
-                                        Reset
-                                    </Button>
                                 </div>
                             </Col>
                         ))}

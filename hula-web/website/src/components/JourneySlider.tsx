@@ -7,6 +7,7 @@ interface JourneySliderProps {
         icon?: string;
     }>;
     bgColor?: string;
+    textColor?: string;
 }
 
 const defaultMilestones = [
@@ -16,14 +17,14 @@ const defaultMilestones = [
     { icon: '🚚', title: 'Giao hàng toàn quốc', description: 'Vận chuyển miễn phí, lắp đặt tận nơi trên 63 tỉnh thành' },
 ];
 
-export default function JourneySlider({ milestones, bgColor }: JourneySliderProps) {
+export default function JourneySlider({ milestones, bgColor, textColor }: JourneySliderProps) {
     const items = (milestones && milestones.length > 0) ? milestones : defaultMilestones;
 
     return (
-        <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#FFFFFF' }}>
+        <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#FFFFFF', color: textColor || undefined }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-12">
-                    <h2 className="text-3xl lg:text-4xl font-heading font-bold text-gray-900">
+                    <h2 className="text-3xl lg:text-4xl font-heading font-bold" style={{ color: textColor || undefined }}>
                         Hành Trình HULA Đồng Hành Cùng Trường Học
                     </h2>
                 </div>

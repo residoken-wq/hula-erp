@@ -23,6 +23,16 @@ interface Settings {
     section_partners_bg: string;
     section_testimonials_bg: string;
     section_blog_bg: string;
+    // Section text colors
+    section_hero_text: string;
+    section_hero_usp_text: string;
+    section_categories_text: string;
+    section_about_text: string;
+    section_journey_text: string;
+    section_projects_text: string;
+    section_partners_text: string;
+    section_testimonials_text: string;
+    section_blog_text: string;
 }
 
 interface SettingsContextType {
@@ -50,6 +60,15 @@ const defaultSettings: Settings = {
     section_partners_bg: '',
     section_testimonials_bg: '',
     section_blog_bg: '',
+    section_hero_text: '',
+    section_hero_usp_text: '',
+    section_categories_text: '',
+    section_about_text: '',
+    section_journey_text: '',
+    section_projects_text: '',
+    section_partners_text: '',
+    section_testimonials_text: '',
+    section_blog_text: '',
 };
 
 const SettingsContext = createContext<SettingsContextType>({
@@ -99,6 +118,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         section_partners_bg: data.section_partners_bg || '',
                         section_testimonials_bg: data.section_testimonials_bg || '',
                         section_blog_bg: data.section_blog_bg || '',
+                        section_hero_text: data.section_hero_text || '',
+                        section_hero_usp_text: data.section_hero_usp_text || '',
+                        section_categories_text: data.section_categories_text || '',
+                        section_about_text: data.section_about_text || '',
+                        section_journey_text: data.section_journey_text || '',
+                        section_projects_text: data.section_projects_text || '',
+                        section_partners_text: data.section_partners_text || '',
+                        section_testimonials_text: data.section_testimonials_text || '',
+                        section_blog_text: data.section_blog_text || '',
                     });
                 } else {
                     console.error('Failed to fetch settings:', res.status);

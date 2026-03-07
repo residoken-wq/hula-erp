@@ -7,6 +7,7 @@ import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, 
 
 import { productsApi } from '@/lib/api';
 import { ProductVisualEditor } from './ProductVisualEditor';
+import ImageUploader from '@/components/ImageUploader';
 
 // Helper to convert Google Drive URLs to thumbnail URLs
 const getGoogleDriveImageUrl = (url?: string) => {
@@ -344,11 +345,8 @@ export default function ProductsPage() {
                             label: 'Thông tin chung',
                             children: (
                                 <>
-                                    <Form.Item name="image_url" label="URL Hình ảnh" extra="📐 Kích thước: 800x800px (tỷ lệ 1:1, vuông) | Hỗ trợ link Google Drive (đã chia sẻ Anyone with link)">
-                                        <Input placeholder="https://drive.google.com/file/d/.../view" />
-                                    </Form.Item>
-                                    <Form.Item shouldUpdate={(prev, cur) => prev.image_url !== cur.image_url}>
-                                        {({ getFieldValue }) => <ImagePreview url={getFieldValue('image_url')} />}
+                                    <Form.Item name="image_url" label="Hình ảnh sản phẩm">
+                                        <ImageUploader hint="📐 Kích thước: 800x800px (tỷ lệ 1:1, vuông)" />
                                     </Form.Item>
                                     <Form.Item name="customer_description" label="Mô tả cho khách hàng">
                                         <Input.TextArea rows={5} placeholder="Mô tả chi tiết sản phẩm hiển thị trên website..." />

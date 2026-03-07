@@ -11,6 +11,7 @@ interface TestimonialsProps {
         image_url?: string;
     }>;
     bgColor?: string;
+    textColor?: string;
 }
 
 const defaultTestimonials = [
@@ -37,15 +38,15 @@ const defaultTestimonials = [
     },
 ];
 
-export default function Testimonials({ testimonials, bgColor }: TestimonialsProps) {
+export default function Testimonials({ testimonials, bgColor, textColor }: TestimonialsProps) {
     const items = (testimonials && testimonials.length > 0) ? testimonials : defaultTestimonials;
     const [activeIndex, setActiveIndex] = useState(0);
 
     return (
-        <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#B9E5FB' }}>
+        <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#B9E5FB', color: textColor || undefined }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-12">
-                    <h2 className="text-3xl lg:text-4xl font-heading font-bold text-gray-900">
+                    <h2 className="text-3xl lg:text-4xl font-heading font-bold" style={{ color: textColor || undefined }}>
                         Đánh Giá Khách Hàng
                     </h2>
                 </div>

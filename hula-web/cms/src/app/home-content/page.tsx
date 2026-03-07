@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Form, Input, Button, Space, message, Tabs, Collapse, Switch, InputNumber, Upload, List, Modal } from 'antd';
+import { Card, Form, Input, Button, Space, message, Tabs, Collapse, Switch, InputNumber, List, Modal } from 'antd';
 import { SaveOutlined, PlusOutlined, DeleteOutlined, DragOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
 import { systemApi } from '@/lib/api';
+import ImageUploader from '@/components/ImageUploader';
 
 interface Feature {
     id: string;
@@ -19,58 +20,7 @@ interface FeaturedProduct {
 }
 
 
-const getGoogleDriveImageUrl = (url?: string) => {
-    if (!url) return '';
-    try {
-        // Handle common Google Drive formats
-        if (url.includes('drive.google.com')) {
-            // Case 1: /file/d/VIDEO_ID/view
-            const standardMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-            if (standardMatch) {
-                return `https://drive.google.com/thumbnail?id=${standardMatch[1]}&sz=w1000`;
-            }
 
-            // Case 2: ?id=VIDEO_ID
-            const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-            if (idMatch) {
-                return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
-            }
-        }
-        return url;
-    } catch {
-        return url || '';
-    }
-};
-
-const ImagePreview = ({ url }: { url?: string }) => {
-    const [hasError, setHasError] = useState(false);
-    const imageUrl = getGoogleDriveImageUrl(url);
-
-    useEffect(() => {
-        setHasError(false);
-    }, [imageUrl]);
-
-    if (!imageUrl) return null;
-
-    return (
-        <div style={{ marginTop: 10, border: '1px dashed #d9d9d9', padding: 8, borderRadius: 8, textAlign: 'center' }}>
-            <p style={{ marginBottom: 8, color: '#888', fontSize: 12 }}>Xem trước hình ảnh:</p>
-            {hasError ? (
-                <div style={{ padding: 20, color: '#ff4d4f', background: '#fff1f0', borderRadius: 4 }}>
-                    <p style={{ margin: 0 }}>⚠️ Không thể tải hình ảnh</p>
-                    <p style={{ margin: 0, fontSize: 12, opacity: 0.8 }}>Vui lòng kiểm tra lại đường dẫn</p>
-                </div>
-            ) : (
-                <img
-                    src={imageUrl}
-                    alt="Preview"
-                    style={{ maxWidth: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 4 }}
-                    onError={() => setHasError(true)}
-                />
-            )}
-        </div>
-    );
-};
 
 export default function HomeContentPage() {
     const [form] = Form.useForm();
@@ -185,30 +135,21 @@ export default function HomeContentPage() {
                             <>
                                 {fields.map((field, index) => (
                                     <div key={field.key} style={{ marginBottom: 24, padding: 16, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <Form.Item
-                                                {...field}
-                                                label={`Hình ảnh Slider ${index + 1}`}
-                                                style={{ flex: 1, marginBottom: 0 }}
-                                                rules={[{ required: true, message: 'Vui lòng nhập URL hình ảnh' }]}
-                                                extra="📐 Kích thước: 1920x800px (tỷ lệ 2.4:1) | Hỗ trợ link Google Drive (quyền chia sẻ công khai)"
-                                            >
-                                                <Input placeholder="https://drive.google.com/..." />
-                                            </Form.Item>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                            <strong>Slider {index + 1}</strong>
                                             <Button
                                                 type="text"
                                                 danger
                                                 icon={<DeleteOutlined />}
                                                 onClick={() => remove(field.name)}
-                                                style={{ marginTop: 30 }}
                                             />
                                         </div>
-
-                                        <Form.Item shouldUpdate={(prev, cur) => prev.hero_images?.[index] !== cur.hero_images?.[index]}>
-                                            {({ getFieldValue }) => {
-                                                const images = getFieldValue('hero_images') || [];
-                                                return <ImagePreview url={images[index]} />;
-                                            }}
+                                        <Form.Item
+                                            {...field}
+                                            style={{ marginBottom: 0 }}
+                                            rules={[{ required: true, message: 'Vui lòng chọn hình ảnh' }]}
+                                        >
+                                            <ImageUploader hint="📐 Kích thước: 1920x800px (2.4:1)" />
                                         </Form.Item>
                                     </div>
                                 ))}
@@ -354,6 +295,35 @@ export default function HomeContentPage() {
 
                     <Form.Item name="cta_button" label="Nội dung nút">
                         <Input placeholder="Đăng Ký Mua Sỉ Ngay" />
+                    </Form.Item>
+                </>
+            ),
+        },
+        {
+            key: 'topbar',
+            label: '📌 Topbar',
+            children: (
+                <>
+                    <Form.Item name="topbar_enabled" label="Hiển thị Topbar" valuePropName="checked">
+                        <Switch />
+                    </Form.Item>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <Form.Item name="topbar_left_text" label="Text bên trái (ngang logo)" extra="Hiển thị cố định, width bằng logo">
+                            <Input placeholder="📞 Hotline: 0909 123 456" />
+                        </Form.Item>
+
+                        <Form.Item name="topbar_right_text" label="Text chạy (marquee)" extra="Hiệu ứng chạy từ trái qua phải">
+                            <Input placeholder="🎉 Miễn phí vận chuyển cho đơn từ 2 triệu đồng" />
+                        </Form.Item>
+                    </div>
+
+                    <Form.Item name="topbar_right_url" label="URL liên kết (cho text chạy)" extra="Khi click vào text chạy sẽ mở trang này">
+                        <Input placeholder="/san-pham hoặc https://..." />
+                    </Form.Item>
+
+                    <Form.Item name="topbar_speed" label="Tốc độ chạy chữ (giây/vòng)" extra="Số nhỏ = nhanh hơn. Mặc định: 20">
+                        <InputNumber min={5} max={60} style={{ width: 120 }} placeholder="20" />
                     </Form.Item>
                 </>
             ),

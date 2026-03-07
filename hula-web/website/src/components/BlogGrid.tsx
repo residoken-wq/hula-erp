@@ -11,16 +11,17 @@ interface BlogGridProps {
         created_at?: string;
     }>;
     bgColor?: string;
+    textColor?: string;
 }
 
-export default function BlogGrid({ posts, bgColor }: BlogGridProps) {
+export default function BlogGrid({ posts, bgColor, textColor }: BlogGridProps) {
     if (!posts || posts.length === 0) return null;
 
     return (
-        <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#FFFFFF' }}>
+        <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#FFFFFF', color: textColor || undefined }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-12">
-                    <h2 className="text-3xl lg:text-4xl font-heading font-bold text-gray-900">
+                    <h2 className="text-3xl lg:text-4xl font-heading font-bold" style={{ color: textColor || undefined }}>
                         Blog Tư Vấn
                     </h2>
                 </div>
