@@ -34,19 +34,60 @@ const getApiUrl = () => {
     return process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com/api';
 };
 
+const MOCK_BLOGS = [
+    {
+        id: 1,
+        slug: 'cach-chon-nem-mam-non-phu-hop',
+        title: 'Cách Chọn Nệm Mầm Non Phù Hợp Cho Bé',
+        excerpt: 'Hướng dẫn chi tiết giúp phụ huynh chọn được loại nệm phù hợp nhất cho con em mình...',
+        content: '<p>Giấc ngủ đóng vai trò vô cùng quan trọng đối với sự phát triển toàn diện của trẻ mầm non. Một chiếc nệm chất lượng không chỉ mang đến giấc ngủ ngon mà còn hỗ trợ bảo vệ cột sống non nớt của bé.</p><h2>1. Chất liệu an toàn, thoáng khí</h2><p>Làn da của trẻ nhỏ rất nhạy cảm, dễ bị kích ứng. Do đó, tiêu chí đầu tiên khi chọn nệm mầm non là chất liệu phải an toàn, không chứa hóa chất độc hại. Nệm làm từ cao su thiên nhiên, foam cao cấp hay bông ép có khả năng kháng khuẩn, chống nấm mốc là những lựa chọn hàng đầu.</p><h2>2. Độ đàn hồi và độ phẳng nâng đỡ</h2><p>Giường nệm quá mềm sẽ khiến cột sống bị cong võng, ngược lại quá cứng sẽ gây đau nhức mình mẩy khiến bé trằn trọc. Độ đàn hồi vừa phải giúp nâng đỡ cơ thể bé trọn vẹn ở mọi tư thế.</p><h2>3. Kích thước và độ dày tiêu chuẩn</h2><p>Kích thước nệm mầm non phổ biến thường là 60x120cm hoặc 70x120cm, phù hợp với hầu hết các giường gấp và không gian trường mầm non. Độ dày lý tưởng từ 2-5cm, vừa đủ êm ái vừa an toàn khi bé lăn lộn.</p><h2>4. Vỏ nệm dễ tháo rời, vệ sinh</h2><p>Trẻ nhỏ thường xuyên tè dầm hay nôn trớ, việc vệ sinh nệm diễn ra thường xuyên. Lớp vỏ bọc kháng nước nhẹ, dễ dàng tháo rời bằng khóa kéo sẽ giúp các cô giáo và phụ huynh tiết kiệm tối đa thời gian giặt giũ.</p>',
+        featured_image: '',
+        category: 'Hướng dẫn',
+        published_at: '2026-01-05T10:00:00Z',
+        view_count: 1250,
+    },
+    {
+        id: 2,
+        slug: 'bao-quan-nem-dung-cach',
+        title: 'Bảo Quản Nệm Đúng Cách Để Bền Lâu',
+        excerpt: 'Những mẹo đơn giản giúp nệm mầm non của bạn luôn sạch sẽ và bền đẹp theo thời gian...',
+        content: '<p>Bảo quản nệm mầm non sạch sẽ không chỉ kéo dài tuổi thọ sản phẩm mà còn bảo vệ sức khỏe hệ hô hấp của trẻ. Cùng tham khảo các bước vệ sinh chuẩn nhất.</p><h2>Giặt vỏ bọc thường xuyên</h2><p>Nên giặt vỏ nệm ít nhất 2 tuần 1 lần. Khuyến khích sử dụng xà phòng sinh học dịu nhẹ, hạn chế dùng chất tẩy rửa mạnh làm mục vải và ảnh hưởng đến da em bé.</p><h2>Xử lý các vết bẩn cứng đầu</h2><p>Khi trẻ ị đùn hay nôn mửa, cần xử lý ngay bằng khăn ướt tinh khiết, sau đó dùng cồn y tế hoặc nước giấm pha loãng lau sạch vết bẩn để khử mùi hiệu quả. Tuyệt đối không đem nệm ra phơi dưới nắng gắt trực tiếp làm hỏng ruột nệm.</p>',
+        featured_image: '',
+        category: 'Mẹo vặt',
+        published_at: '2026-01-03T10:00:00Z',
+        view_count: 980,
+    },
+    {
+        id: 3,
+        slug: 'loi-ich-giac-ngu-trua-tre-mam-non',
+        title: 'Lợi Ích Của Giấc Ngủ Trưa Đối Với Trẻ Mầm Non',
+        excerpt: 'Nghiên cứu khoa học về tầm quan trọng của giấc ngủ trưa trong sự phát triển của trẻ...',
+        content: '<p>Trẻ nhỏ có nhu cầu ngủ cao hơn người lớn do thiết lập chu trình trao đổi chất diễn ra mạnh mẽ. Giấc ngủ trưa đóng vai trò như nhịp cầu chuyển tiếp, hồi phục năng lượng.</p><h2>Phát triển trí não và chiều cao</h2><p>Nghiên cứu khoa học chỉ ra rằng, trẻ được ngủ trưa từ 60-90 phút/ngày có khả năng ghi nhớ tốt hơn 20% so với trẻ không ngủ trưa. Hormone tăng trưởng chiều cao cũng được tiết ra nhiều nhất trong lúc trẻ ngủ sâu giấc.</p><h2>Giảm căng thẳng, ổn định cảm xúc</h2><p>Trẻ thiếu ngủ thường hay quấy khóc, bứt rứt, tăng động giảm chú ý. Một giấc ngủ trưa ngon lành giúp trẻ cân bằng lại hệ thần kinh, thức dậy vui vẻ và sẵn sàng tham gia các hoạt động buổi chiều tại lớp học hiệu quả hơn.</p>',
+        featured_image: '',
+        category: 'Kiến thức',
+        published_at: '2026-01-01T10:00:00Z',
+        view_count: 2100,
+    },
+];
+
 async function getBlog(slug: string): Promise<Blog | null> {
     const apiUrl = getApiUrl();
     try {
         const res = await fetch(`${apiUrl}/public/blogs/${slug}`, {
             cache: 'no-store'
         });
-        if (!res.ok) return null;
+        if (!res.ok) {
+            // Fallback to mock data
+            return MOCK_BLOGS.find(b => b.slug === slug) as any || null;
+        }
         const data = await res.json();
-        if (data.error) return null;
+        if (data.error) {
+            return MOCK_BLOGS.find(b => b.slug === slug) as any || null;
+        }
         return data;
     } catch (error) {
         console.error('Failed to fetch blog:', error);
-        return null;
+        return MOCK_BLOGS.find(b => b.slug === slug) as any || null;
     }
 }
 
@@ -56,13 +97,15 @@ async function getRelatedBlogs(category: string, currentSlug: string): Promise<B
         const res = await fetch(`${apiUrl}/public/blogs`, {
             cache: 'no-store'
         });
-        if (!res.ok) return [];
+        if (!res.ok) {
+            return MOCK_BLOGS.filter(b => b.category === category && b.slug !== currentSlug).slice(0, 3) as any[];
+        }
         const blogs = await res.json();
         return Array.isArray(blogs)
             ? blogs.filter((b: Blog) => b.category === category && b.slug !== currentSlug).slice(0, 3)
-            : [];
+            : MOCK_BLOGS.filter(b => b.category === category && b.slug !== currentSlug).slice(0, 3) as any[];
     } catch {
-        return [];
+        return MOCK_BLOGS.filter(b => b.category === category && b.slug !== currentSlug).slice(0, 3) as any[];
     }
 }
 
