@@ -72,6 +72,12 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
+    // beta.nemmamnon.com always shows full website (bypass SITE_MODE)
+    const host = request.headers.get('host') || '';
+    if (host.startsWith('beta.')) {
+        return NextResponse.next();
+    }
+
     // Check for force refresh query param (used after changing mode in CMS)
     const forceRefresh = request.nextUrl.searchParams.has('refresh_mode');
 

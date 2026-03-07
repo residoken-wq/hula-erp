@@ -7,32 +7,27 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 export default function MaintenancePage() {
     const [progress, setProgress] = useState(75);
 
-    // Contact info from CMS
+    // Settings from CMS
+    const [siteName, setSiteName] = useState('Nệm Mầm Non HULA');
     const [contactPhone, setContactPhone] = useState('0123 456 789');
     const [contactEmail, setContactEmail] = useState('info@nemmamnon.com');
 
-    // Fetch contact info from backend
+    // Fetch settings from backend (single request)
     useEffect(() => {
-        const fetchContactInfo = async () => {
+        const fetchSettings = async () => {
             try {
-                const [phoneRes, emailRes] = await Promise.all([
-                    fetch(`${API_URL}/api/system/config/contact_phone`),
-                    fetch(`${API_URL}/api/system/config/contact_email`),
-                ]);
-
-                if (phoneRes.ok) {
-                    const phoneData = await phoneRes.json();
-                    if (phoneData.value) setContactPhone(phoneData.value);
-                }
-                if (emailRes.ok) {
-                    const emailData = await emailRes.json();
-                    if (emailData.value) setContactEmail(emailData.value);
+                const res = await fetch(`${API_URL}/public/settings`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.site_name) setSiteName(data.site_name);
+                    if (data.contact_phone) setContactPhone(data.contact_phone);
+                    if (data.contact_email) setContactEmail(data.contact_email);
                 }
             } catch (error) {
-                console.error('Failed to fetch contact info:', error);
+                console.error('Failed to fetch settings:', error);
             }
         };
-        fetchContactInfo();
+        fetchSettings();
     }, []);
 
     useEffect(() => {
@@ -165,7 +160,7 @@ export default function MaintenancePage() {
 
                 {/* Footer */}
                 <p className="mt-12 text-gray-400 text-sm">
-                    © 2026 Nệm Mầm Non HULA. Cảm ơn sự kiên nhẫn của bạn.
+                    © 2026 {siteName}. Cảm ơn sự kiên nhẫn của bạn.
                 </p>
             </div>
         </div>

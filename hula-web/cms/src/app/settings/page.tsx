@@ -392,6 +392,7 @@ export default function SettingsPage() {
                         icon={<BgColorsOutlined />}
                         style={{ marginBottom: 24 }}
                     />
+                    <Form form={form}>
                     <Row gutter={[24, 16]}>
                         {[
                             { key: 'section_hero_bg', label: '§1 Hero Banner (phần chính)', defaultColor: '#23A7D3' },
@@ -414,13 +415,14 @@ export default function SettingsPage() {
                                     borderRadius: 8,
                                     background: '#fafafa'
                                 }}>
-                                    <ColorPicker
-                                        value={form.getFieldValue(item.key) || item.defaultColor}
-                                        onChange={(color) => {
-                                            form.setFieldsValue({ [item.key]: color.toHexString() });
-                                        }}
-                                        showText
-                                    />
+                                    <Form.Item
+                                        name={item.key}
+                                        noStyle
+                                        getValueFromEvent={(color) => color.toHexString()}
+                                        getValueProps={(value) => ({ value: value || item.defaultColor })}
+                                    >
+                                        <ColorPicker showText />
+                                    </Form.Item>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 500, fontSize: 13 }}>{item.label}</div>
                                         <div style={{ fontSize: 11, color: '#999' }}>Mặc định: {item.defaultColor}</div>
@@ -436,6 +438,7 @@ export default function SettingsPage() {
                             </Col>
                         ))}
                     </Row>
+                    </Form>
                 </div>
             ),
         },

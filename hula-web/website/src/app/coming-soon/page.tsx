@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getGoogleDriveImageUrl } from '@/lib/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -12,32 +13,29 @@ export default function ComingSoonPage() {
     const [minutes, setMinutes] = useState(42);
     const [seconds, setSeconds] = useState(30);
 
-    // Contact info from CMS
+    // Settings from CMS
+    const [siteName, setSiteName] = useState('HULA');
+    const [logoUrl, setLogoUrl] = useState('');
     const [contactPhone, setContactPhone] = useState('0123 456 789');
     const [contactEmail, setContactEmail] = useState('info@nemmamnon.com');
 
-    // Fetch contact info from backend
+    // Fetch settings from backend (single request)
     useEffect(() => {
-        const fetchContactInfo = async () => {
+        const fetchSettings = async () => {
             try {
-                const [phoneRes, emailRes] = await Promise.all([
-                    fetch(`${API_URL}/api/system/config/contact_phone`),
-                    fetch(`${API_URL}/api/system/config/contact_email`),
-                ]);
-
-                if (phoneRes.ok) {
-                    const phoneData = await phoneRes.json();
-                    if (phoneData.value) setContactPhone(phoneData.value);
-                }
-                if (emailRes.ok) {
-                    const emailData = await emailRes.json();
-                    if (emailData.value) setContactEmail(emailData.value);
+                const res = await fetch(`${API_URL}/public/settings`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.site_name) setSiteName(data.site_name);
+                    if (data.logo_url) setLogoUrl(data.logo_url);
+                    if (data.contact_phone) setContactPhone(data.contact_phone);
+                    if (data.contact_email) setContactEmail(data.contact_email);
                 }
             } catch (error) {
-                console.error('Failed to fetch contact info:', error);
+                console.error('Failed to fetch settings:', error);
             }
         };
-        fetchContactInfo();
+        fetchSettings();
     }, []);
 
     useEffect(() => {
@@ -66,6 +64,8 @@ export default function ComingSoonPage() {
         }
     };
 
+    const resolvedLogoUrl = getGoogleDriveImageUrl(logoUrl);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 flex items-center justify-center p-4 relative overflow-hidden">
             {/* Background decoration */}
@@ -82,10 +82,18 @@ export default function ComingSoonPage() {
             <div className="relative z-10 text-center max-w-3xl mx-auto">
                 {/* Logo */}
                 <div className="mb-8">
-                    <div className="w-24 h-24 mx-auto bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4">
-                        <span className="text-5xl font-bold text-white">H</span>
+                    <div className="w-24 h-24 mx-auto bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4 overflow-hidden">
+                        {resolvedLogoUrl ? (
+                            <img
+                                src={resolvedLogoUrl}
+                                alt={siteName}
+                                className="w-full h-full object-contain p-2"
+                            />
+                        ) : (
+                            <span className="text-5xl font-bold text-white">H</span>
+                        )}
                     </div>
-                    <h2 className="text-2xl font-semibold text-white/90">HULA</h2>
+                    <h2 className="text-2xl font-semibold text-white/90">{siteName}</h2>
                 </div>
 
                 {/* Main heading */}

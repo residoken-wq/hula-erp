@@ -15,7 +15,7 @@ services:
     expose:
       - "3000"
     environment:
-      - VIRTUAL_HOST=nemmamnon.com,www.nemmamnon.com
+      - VIRTUAL_HOST=nemmamnon.com,www.nemmamnon.com,beta.nemmamnon.com
       - VIRTUAL_PORT=3000
       - API_URL=http://hula_app:3000
     networks:
