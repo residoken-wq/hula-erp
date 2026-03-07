@@ -9,7 +9,7 @@ import {
 import {
     SaveOutlined, EyeOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined,
     RightOutlined, PlusOutlined, DeleteOutlined, EditOutlined, DesktopOutlined,
-    BgColorsOutlined, SettingOutlined, HomeOutlined
+    BgColorsOutlined, SettingOutlined, HomeOutlined, MobileOutlined
 } from '@ant-design/icons';
 import { systemApi } from '@/lib/api';
 import ImageUploader from '@/components/ImageUploader';
@@ -64,6 +64,7 @@ export default function AppearancePage() {
     // Drawer state
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [activeSection, setActiveSection] = useState<string | null>(null);
+    const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
 
     // Features state (from home-content)
     const [features, setFeatures] = useState<Feature[]>([]);
@@ -548,21 +549,57 @@ export default function AppearancePage() {
                         <Col xs={0} lg={10}>
                             <div style={{
                                 border: '2px solid #e2e8f0', borderRadius: 12, overflow: 'hidden',
-                                background: '#f8fafc', height: 500, position: 'relative',
+                                background: '#f8fafc', height: 600, display: 'flex', flexDirection: 'column'
                             }}>
+                                {/* Preview Header */}
                                 <div style={{
                                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                    color: 'white', padding: '8px 12px', fontSize: 12, fontWeight: 600,
-                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    color: 'white', padding: '8px 12px', fontSize: 13, fontWeight: 600,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                                 }}>
-                                    <EyeOutlined /> Live Preview
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <EyeOutlined /> Live Preview
+                                    </div>
+                                    <Radio.Group 
+                                        size="small" 
+                                        value={previewMode} 
+                                        onChange={(e) => setPreviewMode(e.target.value)}
+                                        optionType="button"
+                                        buttonStyle="solid"
+                                    >
+                                        <Radio.Button value="desktop" style={{ padding: '0 8px' }}><DesktopOutlined /></Radio.Button>
+                                        <Radio.Button value="mobile" style={{ padding: '0 8px' }}><MobileOutlined /></Radio.Button>
+                                    </Radio.Group>
                                 </div>
-                                <iframe
-                                    ref={iframeRef}
-                                    src="https://nemmamnon.com"
-                                    style={{ width: '100%', height: 'calc(100% - 34px)', border: 'none' }}
-                                    title="Website Preview"
-                                />
+                                
+                                {/* Iframe Container */}
+                                <div style={{ 
+                                    flex: 1, 
+                                    background: '#e2e8f0',
+                                    display: 'flex', 
+                                    justifyContent: 'center', 
+                                    alignItems: 'flex-start',
+                                    padding: previewMode === 'mobile' ? '16px 0' : 0,
+                                    overflow: 'hidden'
+                                }}>
+                                    <div style={{
+                                        width: previewMode === 'desktop' ? '100%' : '375px',
+                                        height: previewMode === 'desktop' ? '100%' : 'calc(100% - 16px)',
+                                        background: 'white',
+                                        transition: 'all 0.3s ease',
+                                        borderRadius: previewMode === 'desktop' ? 0 : 24,
+                                        overflow: 'hidden',
+                                        boxShadow: previewMode === 'mobile' ? '0 10px 25px -5px rgba(0, 0, 0, 0.1)' : 'none',
+                                        border: previewMode === 'mobile' ? '8px solid #333' : 'none'
+                                    }}>
+                                        <iframe
+                                            ref={iframeRef}
+                                            src="https://nemmamnon.com"
+                                            style={{ width: '100%', height: '100%', border: 'none' }}
+                                            title="Website Preview"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </Col>
 

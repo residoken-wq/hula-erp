@@ -124,7 +124,11 @@ export class SystemService {
             'video_enabled', 'video_title', 'video_subtitle', 'video_youtube_url',
             'products_title', 'products_subtitle', 'products_limit',
             'cta_enabled', 'cta_title', 'cta_description', 'cta_button',
-            'HOME_FEATURES', 'hero_images' // JSON string
+            'HOME_FEATURES', 'hero_images', // JSON string
+            // Topbar
+            'topbar_enabled', 'topbar_left_text', 'topbar_right_text', 'topbar_right_url', 'topbar_speed',
+            // About
+            'about_title', 'about_description',
         ];
 
         const configs = await this.configRepo.find();
@@ -166,6 +170,8 @@ export class SystemService {
         result['video_enabled'] = result['video_enabled'] === 'true';
         result['cta_enabled'] = result['cta_enabled'] === 'true';
         result['products_limit'] = Number(result['products_limit']) || 4;
+        result['topbar_enabled'] = result['topbar_enabled'] === 'true';
+        result['topbar_speed'] = Number(result['topbar_speed']) || 20;
 
         return result;
     }
@@ -175,7 +181,11 @@ export class SystemService {
             'hero_title_1', 'hero_title_2', 'hero_description', 'hero_button_1', 'hero_button_2', 'hero_image',
             'video_title', 'video_subtitle', 'video_youtube_url',
             'products_title', 'products_subtitle',
-            'cta_title', 'cta_description', 'cta_button'
+            'cta_title', 'cta_description', 'cta_button',
+            // Topbar string fields
+            'topbar_left_text', 'topbar_right_text', 'topbar_right_url',
+            // About
+            'about_title', 'about_description',
         ];
 
         // Save simple string keys
@@ -190,6 +200,8 @@ export class SystemService {
         if (data.video_enabled !== undefined) await this.setValue('video_enabled', String(data.video_enabled), 'Home Page Config');
         if (data.cta_enabled !== undefined) await this.setValue('cta_enabled', String(data.cta_enabled), 'Home Page Config');
         if (data.products_limit !== undefined) await this.setValue('products_limit', String(data.products_limit), 'Home Page Config');
+        if (data.topbar_enabled !== undefined) await this.setValue('topbar_enabled', String(data.topbar_enabled), 'Home Page Topbar');
+        if (data.topbar_speed !== undefined) await this.setValue('topbar_speed', String(data.topbar_speed), 'Home Page Topbar Speed');
 
         // Save Features as JSON
         if (data.features) {
