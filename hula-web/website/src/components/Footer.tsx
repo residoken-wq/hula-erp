@@ -11,6 +11,8 @@ interface FooterLink {
 }
 
 interface FooterConfig {
+    footer_bg?: string;
+    footer_text_color?: string;
     footer_slogan?: string;
     footer_copyright?: string;
     footer_quick_links?: FooterLink[];
@@ -46,6 +48,8 @@ export default function Footer() {
                 if (res.ok) {
                     const data = await res.json();
                     setFooterConfig({
+                        footer_bg: typeof data.footer_bg === 'string' ? data.footer_bg : data.footer_bg?.toHexString ? data.footer_bg.toHexString() : data.footer_bg?.metaColor?.originalInput?.hex,
+                        footer_text_color: typeof data.footer_text_color === 'string' ? data.footer_text_color : data.footer_text_color?.toHexString ? data.footer_text_color.toHexString() : data.footer_text_color?.metaColor?.originalInput?.hex,
                         footer_slogan: data.footer_slogan,
                         footer_copyright: data.footer_copyright,
                         footer_quick_links: data.footer_quick_links,
@@ -64,8 +68,18 @@ export default function Footer() {
     const quickLinks = (footerConfig.footer_quick_links && footerConfig.footer_quick_links.length > 0) ? footerConfig.footer_quick_links : defaultQuickLinks;
     const productLinks = (footerConfig.footer_product_links && footerConfig.footer_product_links.length > 0) ? footerConfig.footer_product_links : defaultProductLinks;
 
+    const bgStyle = footerConfig.footer_bg && typeof footerConfig.footer_bg === 'string' ? { backgroundColor: footerConfig.footer_bg } : {};
+    const textStyle = footerConfig.footer_text_color && typeof footerConfig.footer_text_color === 'string' ? { color: footerConfig.footer_text_color } : {};
+
+    const getIframeSrc = (input: string) => {
+        if (!input) return '';
+        const match = input.match(/src="([^"]+)"/);
+        return match ? match[1] : input;
+    };
+    const mapsUrl = getIframeSrc(settings.google_maps_url || '');
+
     return (
-        <footer className="bg-gray-900 text-gray-300">
+        <footer className={`bg-gray-900 text-gray-300`} style={{ ...bgStyle, ...textStyle }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
 
@@ -160,9 +174,9 @@ export default function Footer() {
                     <div>
                         <h3 className="text-white font-heading font-semibold mb-4 text-sm uppercase tracking-wider">Bản đồ</h3>
                         <div className="rounded-[12px] overflow-hidden">
-                            {settings.google_maps_url ? (
+                            {mapsUrl ? (
                                 <iframe
-                                    src={settings.google_maps_url}
+                                    src={mapsUrl}
                                     width="100%"
                                     height="200"
                                     style={{ border: 0 }}
