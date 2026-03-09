@@ -466,28 +466,19 @@ export default function HomeContentPage() {
                         <span style={{ color: '#666' }}>Quản lý các cột mốc trong &quot;Hành trình HULA đồng hành cùng trường học&quot;</span>
                     </div>
                     {milestones.map((item: Milestone, index: number) => (
-                        <div key={item.id} style={{ marginBottom: 16, padding: 16, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                                <strong>Cột mốc {index + 1}</strong>
-                                <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setMilestones(milestones.filter((_: Milestone, i: number) => i !== index))} />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 12 }}>
-                                <div>
-                                    <label style={{ fontSize: 12, color: '#666' }}>Icon</label>
-                                    <Input value={item.icon} onChange={(e) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, icon: e.target.value } : m))} style={{ textAlign: 'center', fontSize: 24 }} maxLength={4} />
+                        <div key={item.id} style={{ marginBottom: 16, padding: 24, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', position: 'relative', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setMilestones(milestones.filter((_: Milestone, i: number) => i !== index))} style={{ position: 'absolute', top: 12, right: 12 }} />
+                            <div style={{ display: 'flex', gap: 24, marginTop: 8 }}>
+                                <div style={{ width: 180, flexShrink: 0 }}>
+                                    <ImageUploader value={item.image_url} onChange={(val: any) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, image_url: typeof val === 'string' ? val : val?.url || '' } : m))} hint="📐 Ngang 4:3" />
                                 </div>
-                                <div>
-                                    <label style={{ fontSize: 12, color: '#666' }}>Tiêu đề</label>
-                                    <Input value={item.title} onChange={(e) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, title: e.target.value } : m))} placeholder="Showroom trải nghiệm" />
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 24 }}>
+                                    <Input value={item.title} onChange={(e) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, title: e.target.value } : m))} placeholder="Tiêu đề (VD: Showroom trải nghiệm)" size="large" style={{ fontWeight: 600 }} />
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        <Input value={item.icon} onChange={(e) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, icon: e.target.value } : m))} style={{ width: 80, textAlign: 'center', fontSize: 24 }} maxLength={4} title="Icon tĩnh" prefix={<span style={{ fontSize: 12, color: '#aaa' }}>Icon</span>} />
+                                        <Input.TextArea value={item.description} onChange={(e) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, description: e.target.value } : m))} placeholder="Mô tả chi tiết" style={{ flex: 1 }} rows={3} />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label style={{ fontSize: 12, color: '#666' }}>Mô tả</label>
-                                    <Input value={item.description} onChange={(e) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, description: e.target.value } : m))} placeholder="Mô tả ngắn" />
-                                </div>
-                            </div>
-                            <div style={{ marginTop: 12 }}>
-                                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>Hình ảnh</label>
-                                <ImageUploader simple value={item.image_url} onChange={(val: any) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, image_url: typeof val === 'string' ? val : val?.url || '' } : m))} hint="📐 Ngang 4:3" />
                             </div>
                         </div>
                     ))}
@@ -538,19 +529,14 @@ export default function HomeContentPage() {
                         <span style={{ color: '#666' }}>Quản lý logo đối tác hiển thị trên trang chủ (auto-scroll)</span>
                     </div>
                     {partners.map((p: Partner, index: number) => (
-                        <div key={p.id} style={{ marginBottom: 16, padding: 16, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                                <strong>Đối tác {index + 1}</strong>
-                                <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setPartners(partners.filter((_: Partner, i: number) => i !== index))} />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                <div>
-                                    <label style={{ fontSize: 12, color: '#666' }}>Tên đối tác</label>
-                                    <Input value={p.name} onChange={(e) => setPartners(partners.map((pp: Partner, i: number) => i === index ? { ...pp, name: e.target.value } : pp))} placeholder="Trường MN ABC" />
+                        <div key={p.id} style={{ marginBottom: 16, padding: 24, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', position: 'relative', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setPartners(partners.filter((_: Partner, i: number) => i !== index))} style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)' }} />
+                            <div style={{ display: 'flex', gap: 24, alignItems: 'center', paddingRight: 40 }}>
+                                <div style={{ flex: 1 }}>
+                                    <Input value={p.name} onChange={(e: any) => setPartners(partners.map((pp: Partner, i: number) => i === index ? { ...pp, name: e.target.value } : pp))} placeholder="Tên đối tác (VD: Trường MN ABC)" size="large" />
                                 </div>
-                                <div>
-                                    <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>Logo</label>
-                                    <ImageUploader simple value={p.logo_url} onChange={(val: any) => setPartners(partners.map((pp: Partner, i: number) => i === index ? { ...pp, logo_url: typeof val === 'string' ? val : val?.url || '' } : pp))} hint="📐 Logo 200x80px" />
+                                <div style={{ width: 160, flexShrink: 0 }}>
+                                    <ImageUploader value={p.logo_url} onChange={(val: any) => setPartners(partners.map((pp: Partner, i: number) => i === index ? { ...pp, logo_url: typeof val === 'string' ? val : val?.url || '' } : pp))} hint="📐 Logo" />
                                 </div>
                             </div>
                         </div>
@@ -604,28 +590,19 @@ export default function HomeContentPage() {
                         <span style={{ color: '#666' }}>Quản lý các dự án nổi bật hiển thị trên trang chủ (liên kết: <a href="/du-an" target="_blank">/du-an</a>)</span>
                     </div>
                     {featuredProjects.map((project: FeaturedProject, index: number) => (
-                        <div key={project.id} style={{ marginBottom: 16, padding: 16, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                                <strong>Dự án {index + 1}</strong>
-                                <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setFeaturedProjects(featuredProjects.filter((_: FeaturedProject, i: number) => i !== index))} />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                <div>
-                                    <label style={{ fontSize: 12, color: '#666' }}>Tên dự án</label>
-                                    <Input value={project.title} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, title: e.target.value } : p))} placeholder="Dự án Trường MN ABC" />
+                        <div key={project.id} style={{ marginBottom: 16, padding: 24, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', position: 'relative', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setFeaturedProjects(featuredProjects.filter((_: FeaturedProject, i: number) => i !== index))} style={{ position: 'absolute', top: 12, right: 12 }} />
+                            <div style={{ display: 'flex', gap: 24, marginTop: 8 }}>
+                                <div style={{ width: 180, flexShrink: 0 }}>
+                                    <ImageUploader value={project.image_url} onChange={(val: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, image_url: typeof val === 'string' ? val : val?.url || '' } : p))} hint="📐 Ngang 16:10" />
                                 </div>
-                                <div>
-                                    <label style={{ fontSize: 12, color: '#666' }}>Tên trường / đơn vị</label>
-                                    <Input value={project.school_name} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, school_name: e.target.value } : p))} placeholder="Trường Mầm Non ABC" />
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 24 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                        <Input value={project.title} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, title: e.target.value } : p))} placeholder="Tên dự án (VD: Dự án Trường MN ABC)" size="large" style={{ fontWeight: 600 }} />
+                                        <Input value={project.school_name} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, school_name: e.target.value } : p))} placeholder="Tên trường / đơn vị" size="large" />
+                                    </div>
+                                    <Input value={project.slug} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, slug: e.target.value } : p))} placeholder="truong-mn-abc" addonBefore="/du-an/" />
                                 </div>
-                            </div>
-                            <div style={{ marginTop: 12 }}>
-                                <label style={{ fontSize: 12, color: '#666' }}>Slug (URL chi tiết)</label>
-                                <Input value={project.slug} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, slug: e.target.value } : p))} placeholder="truong-mn-abc" addonBefore="/du-an/" />
-                            </div>
-                            <div style={{ marginTop: 12 }}>
-                                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>Hình ảnh</label>
-                                <ImageUploader simple value={project.image_url} onChange={(val: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, image_url: typeof val === 'string' ? val : val?.url || '' } : p))} hint="📐 Ngang 16:10" />
                             </div>
                         </div>
                     ))}
