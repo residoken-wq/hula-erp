@@ -129,7 +129,19 @@ export class SystemService {
             'topbar_enabled', 'topbar_left_text', 'topbar_right_text', 'topbar_right_url', 'topbar_speed',
             // About
             'about_title', 'about_description',
+            // Footer strings
+            'footer_slogan', 'footer_copyright',
         ];
+
+        // JSON array keys
+        const jsonArrayKeys = [
+            'HOME_USP_ITEMS', 'HOME_WHY_CHOOSE_REASONS', 'HOME_WHY_CHOOSE_GUARANTEES',
+            'HOME_CATEGORIES', 'HOME_MILESTONES', 'HOME_PARTNERS',
+            'HOME_TESTIMONIALS', 'HOME_FEATURED_PROJECTS',
+            'HOME_FOOTER_QUICK_LINKS', 'HOME_FOOTER_PRODUCT_LINKS',
+        ];
+
+        const allKeys = [...keys, ...jsonArrayKeys];
 
         const configs = await this.configRepo.find();
         const result: any = {};
@@ -141,7 +153,7 @@ export class SystemService {
         result['products_limit'] = '4';
 
         configs.forEach(c => {
-            if (keys.includes(c.key)) {
+            if (allKeys.includes(c.key)) {
                 result[c.key] = c.value;
             }
         });
@@ -166,6 +178,28 @@ export class SystemService {
             result['hero_images'] = [];
         }
 
+        // Parse all JSON array keys
+        const jsonMapping: Record<string, string> = {
+            'HOME_USP_ITEMS': 'usp_items',
+            'HOME_WHY_CHOOSE_REASONS': 'why_choose_reasons',
+            'HOME_WHY_CHOOSE_GUARANTEES': 'why_choose_guarantees',
+            'HOME_CATEGORIES': 'categories',
+            'HOME_MILESTONES': 'milestones',
+            'HOME_PARTNERS': 'partners',
+            'HOME_TESTIMONIALS': 'testimonials',
+            'HOME_FEATURED_PROJECTS': 'featured_projects',
+            'HOME_FOOTER_QUICK_LINKS': 'footer_quick_links',
+            'HOME_FOOTER_PRODUCT_LINKS': 'footer_product_links',
+        };
+        for (const [dbKey, frontendKey] of Object.entries(jsonMapping)) {
+            try {
+                result[frontendKey] = result[dbKey] ? JSON.parse(result[dbKey]) : [];
+            } catch {
+                result[frontendKey] = [];
+            }
+            delete result[dbKey]; // cleanup DB keys from response
+        }
+
         // Convert booleans/numbers
         result['video_enabled'] = result['video_enabled'] === 'true';
         result['cta_enabled'] = result['cta_enabled'] === 'true';
@@ -187,6 +221,8 @@ export class SystemService {
             'topbar_left_text', 'topbar_right_text', 'topbar_right_url',
             // About
             'about_title', 'about_description',
+            // Footer strings
+            'footer_slogan', 'footer_copyright',
         ];
 
         // Save simple string keys
@@ -197,7 +233,7 @@ export class SystemService {
         }
 
         // Save Booleans/Numbers
-        console.log('[System] Saving Home Config:', data);
+        console.log('[System] Saving Home Config:', JSON.stringify(data).substring(0, 500));
         if (data.video_enabled !== undefined) await this.setValue('video_enabled', String(data.video_enabled), 'Home Page Config');
         if (data.cta_enabled !== undefined) await this.setValue('cta_enabled', String(data.cta_enabled), 'Home Page Config');
         if (data.products_limit !== undefined) await this.setValue('products_limit', String(data.products_limit), 'Home Page Config');
@@ -213,6 +249,25 @@ export class SystemService {
         // Save Hero Images as JSON
         if (data.hero_images) {
             await this.setValue('hero_images', JSON.stringify(data.hero_images), 'Home Page Hero Slideshow');
+        }
+
+        // Save all content JSON arrays
+        const jsonMapping: Record<string, string> = {
+            'usp_items': 'HOME_USP_ITEMS',
+            'why_choose_reasons': 'HOME_WHY_CHOOSE_REASONS',
+            'why_choose_guarantees': 'HOME_WHY_CHOOSE_GUARANTEES',
+            'categories': 'HOME_CATEGORIES',
+            'milestones': 'HOME_MILESTONES',
+            'partners': 'HOME_PARTNERS',
+            'testimonials': 'HOME_TESTIMONIALS',
+            'featured_projects': 'HOME_FEATURED_PROJECTS',
+            'footer_quick_links': 'HOME_FOOTER_QUICK_LINKS',
+            'footer_product_links': 'HOME_FOOTER_PRODUCT_LINKS',
+        };
+        for (const [frontendKey, dbKey] of Object.entries(jsonMapping)) {
+            if (data[frontendKey] !== undefined) {
+                await this.setValue(dbKey, JSON.stringify(data[frontendKey]), `Home Page ${frontendKey}`);
+            }
         }
 
         return { success: true };
