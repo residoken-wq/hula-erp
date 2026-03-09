@@ -487,638 +487,662 @@ export default function AppearancePage() {
                         {renderColorPicker(section)}
                         <Divider orientation="left">Danh mục</Divider>
                         {categories.map((cat: CategoryItem, idx: number) => (
-                            <div key={cat.id} style={{ marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                    <strong>Danh mục {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setCategories(categories.filter((_: CategoryItem, i: number) => i !== idx))} />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr', gap: 8 }}>
-                                    <Input value={cat.icon} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, icon: e.target.value } : c))} style={{ textAlign: 'center', fontSize: 18 }} />
-                                    <Input value={cat.title} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, title: e.target.value } : c))} placeholder="Tên danh mục" />
-                                    <Input value={cat.slug} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, slug: e.target.value } : c))} placeholder="slug" addonBefore="/" />
-                                </div>
-                                <div style={{ marginTop: 8 }}>
-                                    <ImageUploader simple value={cat.image_url} onChange={(val: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, image_url: typeof val === 'string' ? val : val?.url || '' } : c))} hint="Hình ảnh" />
-                                </div>
-                            </div>
-                        ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setCategories([...categories, { id: Date.now().toString(), icon: '📦', title: '', slug: '', image_url: '' }])}>Thêm danh mục</Button>
+                            {
+                                categories.map((cat: CategoryItem, idx: number) => (
+                                    <div key={cat.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                            <strong style={{ fontSize: 14 }}>Danh mục {idx + 1}</strong>
+                                            <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setCategories(categories.filter((_: CategoryItem, i: number) => i !== idx))} />
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
+                                            <div style={{ width: 100, flexShrink: 0 }}>
+                                                <ImageUploader simple value={cat.image_url} onChange={(val: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, image_url: typeof val === 'string' ? val : val?.url || '' } : c))} hint="Hình nền" />
+                                            </div>
+                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                                                    <Input value={cat.title} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, title: e.target.value } : c))} placeholder="Tên danh mục" />
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
+                                                    <Input value={cat.icon} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, icon: e.target.value } : c))} style={{ textAlign: 'center', fontSize: 18 }} placeholder="Emoji" />
+                                                    <Input value={cat.slug} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, slug: e.target.value } : c))} placeholder="duong-dan" addonBefore="/" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            }
+                            < Button type = "dashed" block size = "small" icon = {< PlusOutlined />} onClick={() => setCategories([...categories, { id: Date.now().toString(), icon: '📦', title: '', slug: '', image_url: '' }])}>Thêm danh mục</Button >
                     </>
                 );
 
             case 'about':
-                return (
-                    <>
-                        {renderColorPicker(section)}
-                        <Form form={homeForm} layout="vertical">
-                            <Form.Item name="about_title" label="Tiêu đề">
-                                <Input placeholder="Hơn 10 Năm Đồng Hành..." />
-                            </Form.Item>
-                            <Form.Item name="about_description" label="Mô tả">
-                                <Input.TextArea rows={4} placeholder="HULA tự hào..." />
-                            </Form.Item>
-                            <Divider>Video giới thiệu</Divider>
-                            <Form.Item name="video_youtube_url" label="YouTube URL">
-                                <Input placeholder="https://www.youtube.com/watch?v=..." prefix={<span style={{ color: '#ff0000' }}>▶</span>} />
-                            </Form.Item>
-                        </Form>
-                    </>
-                );
+    return (
+        <>
+            {renderColorPicker(section)}
+            <Form form={homeForm} layout="vertical">
+                <Form.Item name="about_title" label="Tiêu đề">
+                    <Input placeholder="Hơn 10 Năm Đồng Hành..." />
+                </Form.Item>
+                <Form.Item name="about_description" label="Mô tả">
+                    <Input.TextArea rows={4} placeholder="HULA tự hào..." />
+                </Form.Item>
+                <Divider>Video giới thiệu</Divider>
+                <Form.Item name="video_youtube_url" label="YouTube URL">
+                    <Input placeholder="https://www.youtube.com/watch?v=..." prefix={<span style={{ color: '#ff0000' }}>▶</span>} />
+                </Form.Item>
+            </Form>
+        </>
+    );
 
             case 'journey':
-                return (
-                    <>
-                        {renderColorPicker(section)}
-                        <Divider orientation="left">Điểm nổi bật (Tại sao chọn HULA)</Divider>
-                        {features.map((f: Feature, idx: number) => (
-                            <div key={f.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                                    <strong style={{ fontSize: 14 }}>Điểm nổi bật {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeatures(features.filter((_: Feature, i: number) => i !== idx))} />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12, marginBottom: 12 }}>
-                                    <Input value={f.icon} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
-                                    <Input value={f.title} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" />
-                                </div>
-                                <div style={{ marginBottom: 12 }}>
-                                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Mô tả chi tiết</label>
-                                    <RichTextEditor
-                                        value={f.description || ''}
-                                        onChange={(val) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, description: val } : x))}
-                                        minHeight={200}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Icon / Hình ảnh đại diện</label>
-                                    <ImageUploader simple value={f.icon_url} onChange={(val: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (48x48)" />
-                                </div>
-                            </div>
-                        ))}
-                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setFeatures([...features, { id: Date.now().toString(), icon: '✨', title: '', description: '' }])} style={{ marginBottom: 24, height: 40 }}>Thêm điểm nổi bật</Button>
+    return (
+        <>
+            {renderColorPicker(section)}
+            <Divider orientation="left">Điểm nổi bật (Tại sao chọn HULA)</Divider>
+            {features.map((f: Feature, idx: number) => (
+                <div key={f.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <strong style={{ fontSize: 14 }}>Điểm nổi bật {idx + 1}</strong>
+                        <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeatures(features.filter((_: Feature, i: number) => i !== idx))} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12, marginBottom: 12 }}>
+                        <Input value={f.icon} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
+                        <Input value={f.title} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" />
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                        <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Mô tả chi tiết</label>
+                        <RichTextEditor
+                            value={f.description || ''}
+                            onChange={(val) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, description: val } : x))}
+                            minHeight={200}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Icon / Hình ảnh đại diện</label>
+                        <ImageUploader simple value={f.icon_url} onChange={(val: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (48x48)" />
+                    </div>
+                </div>
+            ))}
+            <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setFeatures([...features, { id: Date.now().toString(), icon: '✨', title: '', description: '' }])} style={{ marginBottom: 24, height: 40 }}>Thêm điểm nổi bật</Button>
 
-                        <Divider orientation="left">Cam kết mua hàng (Icon 3 cột bên phải)</Divider>
-                        {guarantees.map((g: Guarantee, idx: number) => (
-                            <div key={g.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                                    <strong style={{ fontSize: 14 }}>Cam kết {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setGuarantees(guarantees.filter((_: Guarantee, i: number) => i !== idx))} />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 12 }}>
-                                    <Input value={g.title} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề cam kết" />
-                                </div>
-                                <div style={{ marginBottom: 12 }}>
-                                    <Input.TextArea value={g.description} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả dưới tiêu đề (không bắt buộc)" rows={2} />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
-                                    <Input value={g.icon} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
-                                    <ImageUploader simple value={g.icon_url} onChange={(val: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (64x64)" />
-                                </div>
-                            </div>
-                        ))}
-                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setGuarantees([...guarantees, { id: Date.now().toString(), icon: '🛡️', title: '', description: '' }])} style={{ height: 40 }}>Thêm cam kết</Button>
+            <Divider orientation="left">Cam kết mua hàng (Icon 3 cột bên phải)</Divider>
+            {guarantees.map((g: Guarantee, idx: number) => (
+                <div key={g.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <strong style={{ fontSize: 14 }}>Cam kết {idx + 1}</strong>
+                        <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setGuarantees(guarantees.filter((_: Guarantee, i: number) => i !== idx))} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 12 }}>
+                        <Input value={g.title} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề cam kết" />
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                        <Input.TextArea value={g.description} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả dưới tiêu đề (không bắt buộc)" rows={2} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
+                        <Input value={g.icon} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
+                        <ImageUploader simple value={g.icon_url} onChange={(val: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (64x64)" />
+                    </div>
+                </div>
+            ))}
+            <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setGuarantees([...guarantees, { id: Date.now().toString(), icon: '🛡️', title: '', description: '' }])} style={{ height: 40 }}>Thêm cam kết</Button>
 
-                        <Divider orientation="left">Cột mốc hành trình</Divider>
-                        {milestones.map((m: Milestone, idx: number) => (
-                            <div key={m.id} style={{ marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                    <strong>Mốc {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setMilestones(milestones.filter((_: Milestone, i: number) => i !== idx))} />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 8 }}>
-                                    <Input value={m.icon} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} />
-                                    <Input value={m.title} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" />
-                                </div>
-                                <Input.TextArea value={m.description} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả" rows={2} style={{ marginTop: 8 }} />
-                                <div style={{ marginTop: 8 }}>
-                                    <ImageUploader simple value={m.image_url} onChange={(val: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình ảnh" />
-                                </div>
+            <Divider orientation="left">Cột mốc hành trình</Divider>
+            {milestones.map((m: Milestone, idx: number) => (
+                <div key={m.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <strong style={{ fontSize: 14 }}>Mốc {idx + 1}</strong>
+                        <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setMilestones(milestones.filter((_: Milestone, i: number) => i !== idx))} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
+                        <div style={{ width: 100, flexShrink: 0 }}>
+                            <ImageUploader simple value={m.image_url} onChange={(val: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình ảnh" />
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
+                                <Input value={m.icon} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} placeholder="Emoji" />
+                                <Input value={m.title} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề mốc" />
                             </div>
-                        ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setMilestones([...milestones, { id: Date.now().toString(), icon: '🎯', title: '', description: '', image_url: '' }])}>Thêm cột mốc</Button>
-                    </>
-                );
+                            <Input.TextArea value={m.description} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả chi tiết..." rows={2} />
+                        </div>
+                    </div>
+                </div>
+            ))}
+            <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setMilestones([...milestones, { id: Date.now().toString(), icon: '🎯', title: '', description: '', image_url: '' }])}>Thêm cột mốc</Button>
+        </>
+    );
 
             case 'projects':
-                return (
-                    <>
-                        {renderColorPicker(section)}
-                        <Divider orientation="left">Dự án nổi bật (liên kết: /du-an)</Divider>
-                        {featuredProjects.map((p: FeaturedProject, idx: number) => (
-                            <div key={p.id} style={{ marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                    <strong>Dự án {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeaturedProjects(featuredProjects.filter((_: FeaturedProject, i: number) => i !== idx))} />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                    <Input value={p.title} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tên dự án" />
-                                    <Input value={p.school_name} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, school_name: e.target.value } : x))} placeholder="Tên trường" />
-                                </div>
-                                <Input value={p.slug} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, slug: e.target.value } : x))} placeholder="slug" addonBefore="/du-an/" style={{ marginTop: 8 }} />
-                                <div style={{ marginTop: 8 }}>
-                                    <ImageUploader simple value={p.image_url} onChange={(val: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình 16:10" />
-                                </div>
+    return (
+        <>
+            {renderColorPicker(section)}
+            <Divider orientation="left">Dự án nổi bật (liên kết: /du-an)</Divider>
+            {featuredProjects.map((p: FeaturedProject, idx: number) => (
+                <div key={p.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <strong style={{ fontSize: 14 }}>Dự án {idx + 1}</strong>
+                        <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeaturedProjects(featuredProjects.filter((_: FeaturedProject, i: number) => i !== idx))} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
+                        <div style={{ width: 140, flexShrink: 0 }}>
+                            <ImageUploader simple value={p.image_url} onChange={(val: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình dự án" />
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                <Input value={p.title} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tên dự án" />
+                                <Input value={p.school_name} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, school_name: e.target.value } : x))} placeholder="Tên trường" />
                             </div>
-                        ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setFeaturedProjects([...featuredProjects, { id: Date.now().toString(), title: '', school_name: '', image_url: '', slug: '' }])}>Thêm dự án ({featuredProjects.length}/12)</Button>
-                    </>
-                );
+                            <Input value={p.slug} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, slug: e.target.value } : x))} placeholder="slug-bai-viet-du-an" addonBefore="/du-an/" />
+                        </div>
+                    </div>
+                </div>
+            ))}
+            <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setFeaturedProjects([...featuredProjects, { id: Date.now().toString(), title: '', school_name: '', image_url: '', slug: '' }])}>Thêm dự án ({featuredProjects.length}/12)</Button>
+        </>
+    );
 
             case 'partners':
-                return (
-                    <>
-                        {renderColorPicker(section)}
-                        <Divider orientation="left">Đối tác</Divider>
-                        {partners.map((p: Partner, idx: number) => (
-                            <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                                <Input value={p.name} onChange={(e: any) => setPartners(partners.map((x: Partner, i: number) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Tên đối tác" style={{ flex: 1 }} />
-                                <div style={{ width: 120 }}>
-                                    <ImageUploader simple value={p.logo_url} onChange={(val: any) => setPartners(partners.map((x: Partner, i: number) => i === idx ? { ...x, logo_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Logo" />
-                                </div>
+    return (
+        <>
+            {renderColorPicker(section)}
+            <Divider orientation="left">Đối tác</Divider>
+            {partners.map((p: Partner, idx: number) => (
+                <div key={p.id} style={{ marginBottom: 12, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                        <div style={{ width: 100, flexShrink: 0 }}>
+                            <ImageUploader simple value={p.logo_url} onChange={(val: any) => setPartners(partners.map((x: Partner, i: number) => i === idx ? { ...x, logo_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Logo" />
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <strong style={{ fontSize: 13, color: '#6b7280' }}>Đối tác {idx + 1}</strong>
                                 <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setPartners(partners.filter((_: Partner, i: number) => i !== idx))} />
                             </div>
-                        ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setPartners([...partners, { id: Date.now().toString(), name: '', logo_url: '' }])}>Thêm đối tác</Button>
-                    </>
-                );
+                            <Input value={p.name} onChange={(e: any) => setPartners(partners.map((x: Partner, i: number) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Tên đối tác (Alt text)" style={{ flex: 1 }} />
+                        </div>
+                    </div>
+                </div>
+            ))}
+            <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setPartners([...partners, { id: Date.now().toString(), name: '', logo_url: '' }])}>Thêm đối tác</Button>
+        </>
+    );
 
             case 'testimonials':
-                return (
-                    <>
-                        {renderColorPicker(section)}
-                        <Divider orientation="left">Đánh giá khách hàng</Divider>
-                        {testimonials.map((t: Testimonial, idx: number) => (
-                            <div key={t.id} style={{ marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                    <strong>{t.name || `KH ${idx + 1}`}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setTestimonials(testimonials.filter((_: Testimonial, i: number) => i !== idx))} />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                    <Input value={t.name} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Tên" />
-                                    <Input value={t.school} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, school: e.target.value } : x))} placeholder="Trường" />
-                                </div>
-                                <Input.TextArea value={t.content} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, content: e.target.value } : x))} placeholder="Nội dung đánh giá" rows={2} style={{ marginTop: 8 }} />
-                                <div style={{ marginTop: 8 }}><Rate value={t.rating || 5} onChange={(v: number) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, rating: v } : x))} /></div>
-                            </div>
-                        ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setTestimonials([...testimonials, { id: Date.now().toString(), name: '', school: '', content: '', rating: 5, image_url: '', product_image_url: '', product_name: '' }])}>Thêm đánh giá</Button>
-                    </>
-                );
+    return (
+        <>
+            {renderColorPicker(section)}
+            <Divider orientation="left">Đánh giá khách hàng</Divider>
+            {testimonials.map((t: Testimonial, idx: number) => (
+                <div key={t.id} style={{ marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <strong>{t.name || `KH ${idx + 1}`}</strong>
+                        <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setTestimonials(testimonials.filter((_: Testimonial, i: number) => i !== idx))} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <Input value={t.name} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Tên" />
+                        <Input value={t.school} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, school: e.target.value } : x))} placeholder="Trường" />
+                    </div>
+                    <Input.TextArea value={t.content} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, content: e.target.value } : x))} placeholder="Nội dung đánh giá" rows={2} style={{ marginTop: 8 }} />
+                    <div style={{ marginTop: 8 }}><Rate value={t.rating || 5} onChange={(v: number) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, rating: v } : x))} /></div>
+                </div>
+            ))}
+            <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setTestimonials([...testimonials, { id: Date.now().toString(), name: '', school: '', content: '', rating: 5, image_url: '', product_image_url: '', product_name: '' }])}>Thêm đánh giá</Button>
+        </>
+    );
 
             case 'blog':
-                return (
-                    <>
-                        {renderColorPicker(section)}
-                        <Form form={homeForm} layout="vertical" style={{ marginTop: 16 }}>
-                            <Divider orientation="left">Nguồn hiển thị Blog</Divider>
-                            <Form.Item name="blog_selection_type" label="Dữ liệu hiển thị" initialValue="auto">
-                                <Radio.Group>
-                                    <Radio value="auto">Tự động (Bài viết mới nhất)</Radio>
-                                    <Radio value="manual">Chọn lọc</Radio>
-                                </Radio.Group>
-                            </Form.Item>
+    return (
+        <>
+            {renderColorPicker(section)}
+            <Form form={homeForm} layout="vertical" style={{ marginTop: 16 }}>
+                <Divider orientation="left">Nguồn hiển thị Blog</Divider>
+                <Form.Item name="blog_selection_type" label="Dữ liệu hiển thị" initialValue="auto">
+                    <Radio.Group>
+                        <Radio value="auto">Tự động (Bài viết mới nhất)</Radio>
+                        <Radio value="manual">Chọn lọc</Radio>
+                    </Radio.Group>
+                </Form.Item>
 
-                            <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.blog_selection_type !== currentValues.blog_selection_type}>
-                                {() => {
-                                    if (homeForm.getFieldValue('blog_selection_type') === 'manual') {
-                                        return (
-                                            <Form.Item name="selected_blog_ids" label="Chọn blog hiển thị (tối đa 6)" rules={[{ required: true, message: 'Vui lòng chọn bài viết' }]}>
-                                                <Select
-                                                    mode="multiple"
-                                                    placeholder="Chọn blog"
-                                                    options={blogOptions}
-                                                    maxCount={6}
-                                                    optionFilterProp="label"
-                                                />
-                                            </Form.Item>
-                                        );
-                                    }
-                                    return <Alert message="Hệ thống tự động hiển thị 6 bài viết mới nhất" type="info" showIcon />;
-                                }}
-                            </Form.Item>
-                        </Form>
-                    </>
-                );
+                <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.blog_selection_type !== currentValues.blog_selection_type}>
+                    {() => {
+                        if (homeForm.getFieldValue('blog_selection_type') === 'manual') {
+                            return (
+                                <Form.Item name="selected_blog_ids" label="Chọn blog hiển thị (tối đa 6)" rules={[{ required: true, message: 'Vui lòng chọn bài viết' }]}>
+                                    <Select
+                                        mode="multiple"
+                                        placeholder="Chọn blog"
+                                        options={blogOptions}
+                                        maxCount={6}
+                                        optionFilterProp="label"
+                                    />
+                                </Form.Item>
+                            );
+                        }
+                        return <Alert message="Hệ thống tự động hiển thị 6 bài viết mới nhất" type="info" showIcon />;
+                    }}
+                </Form.Item>
+            </Form>
+        </>
+    );
 
             default:
-                return renderColorPicker(section);
-        }
+    return renderColorPicker(section);
+}
     };
 
-    // Helper: render color picker for a section
-    const renderColorPicker = (section: SectionDef) => {
-        if (!section.settingBgKey) return null;
-        return (
-            <Form form={settingsForm} layout="vertical">
-                <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>🎨 Màu nền</div>
-                        <Form.Item name={section.settingBgKey} noStyle getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || section.defaultBg })}><ColorPicker size="small" showText /></Form.Item>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>✏️ Màu chữ</div>
-                        <Form.Item name={section.settingTextKey} noStyle getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || section.defaultText })}><ColorPicker size="small" showText /></Form.Item>
-                    </div>
+// Helper: render color picker for a section
+const renderColorPicker = (section: SectionDef) => {
+    if (!section.settingBgKey) return null;
+    return (
+        <Form form={settingsForm} layout="vertical">
+            <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>🎨 Màu nền</div>
+                    <Form.Item name={section.settingBgKey} noStyle getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || section.defaultBg })}><ColorPicker size="small" showText /></Form.Item>
                 </div>
-            </Form>
-        );
-    };
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>✏️ Màu chữ</div>
+                    <Form.Item name={section.settingTextKey} noStyle getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || section.defaultText })}><ColorPicker size="small" showText /></Form.Item>
+                </div>
+            </div>
+        </Form>
+    );
+};
 
-    // ============================================
-    // COLLAPSE PANELS
-    // ============================================
-    if (loading) {
-        return (
-            <AdminLayout>
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-                    <Spin size="large" tip="Đang tải cấu hình..." />
-                </div>
-            </AdminLayout>
-        );
-    }
-
-    const collapseItems = [
-        {
-            key: 'general',
-            label: (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 15 }}>
-                    <SettingOutlined style={{ color: '#667eea' }} />
-                    1. Thiết lập Tổng quát
-                </div>
-            ),
-            children: (
-                <Form form={settingsForm} layout="vertical">
-                    <Row gutter={[16, 0]}>
-                        <Col xs={24} md={8}>
-                            <Form.Item name="site_name" label="Tên website">
-                                <Input placeholder="Nệm Mầm Non HULA" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={8}>
-                            <Form.Item name="logo_url" label="Logo">
-                                <ImageUploader simple hint="📐 200x56px" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={8}>
-                            <Form.Item name="favicon_url" label="Favicon">
-                                <ImageUploader simple hint="📐 32x32px (ICO, PNG)" />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                    <Form.Item name="site_description" label="Mô tả website">
-                        <Input.TextArea rows={2} placeholder="Mô tả ngắn về website..." />
-                    </Form.Item>
-                    <Divider>Thông tin liên hệ</Divider>
-                    <Row gutter={[16, 0]}>
-                        <Col xs={24} md={8}>
-                            <Form.Item name="contact_phone" label="Số điện thoại">
-                                <Input placeholder="0123 456 789" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={8}>
-                            <Form.Item name="contact_email" label="Email">
-                                <Input placeholder="info@example.com" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={8}>
-                            <Form.Item name="contact_address" label="Địa chỉ">
-                                <Input placeholder="Địa chỉ công ty..." />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                    <Divider>Mạng xã hội & Tích hợp</Divider>
-                    <Row gutter={[16, 0]}>
-                        <Col xs={24} md={12}>
-                            <Form.Item name="facebook_url" label="Facebook URL">
-                                <Input placeholder="https://facebook.com/..." />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item name="zalo_url" label="Zalo URL">
-                                <Input placeholder="https://zalo.me/..." />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item name="facebook_page_url" label="Facebook Page URL (Embed)">
-                                <Input placeholder="https://www.facebook.com/TenPage" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12}>
-                            <Form.Item name="google_maps_url" label="Google Maps Embed URL">
-                                <Input placeholder="https://www.google.com/maps/embed?pb=..." />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    <Divider>Chế độ Website</Divider>
-                    <Radio.Group value={siteMode} onChange={(e) => handleModeChange(e.target.value)} disabled={modeSaving}>
-                        <Space direction="vertical" style={{ width: '100%' }}>
-                            {[
-                                { value: 'live', label: 'Website Hoạt Động', desc: 'Hiển thị đầy đủ nội dung', color: '#16a34a', icon: <GlobalOutlined /> },
-                                { value: 'coming-soon', label: 'Coming Soon', desc: 'Hiển thị trang countdown', color: '#2563eb', icon: <ClockCircleOutlined /> },
-                                { value: 'maintenance', label: 'Bảo Trì', desc: 'Hiển thị trang bảo trì', color: '#d97706', icon: <ToolOutlined /> },
-                            ].map(mode => (
-                                <label key={mode.value} style={{
-                                    display: 'flex', alignItems: 'center', width: '100%',
-                                    padding: '12px 16px', borderRadius: 8, cursor: 'pointer',
-                                    border: siteMode === mode.value ? `2px solid ${mode.color}` : '1px solid #d9d9d9',
-                                    background: siteMode === mode.value ? `${mode.color}08` : '#fff',
-                                }}>
-                                    <Radio value={mode.value} style={{ marginRight: 8 }} />
-                                    <span style={{ color: mode.color, marginRight: 8, fontSize: 18 }}>{mode.icon}</span>
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: 13 }}>{mode.label}</div>
-                                        <div style={{ fontSize: 11, color: '#666' }}>{mode.desc}</div>
-                                    </div>
-                                </label>
-                            ))}
-                        </Space>
-                    </Radio.Group>
-                </Form>
-            ),
-        },
-        {
-            key: 'header',
-            label: (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 15 }}>
-                    <DesktopOutlined style={{ color: '#667eea' }} />
-                    2. Header & Navigation
-                </div>
-            ),
-            children: (
-                <div style={{ padding: '8px 0' }}>
-                    <Alert message="Header sử dụng cấu hình từ Thiết lập Tổng quát (Logo, Site Name). Navigation menu hiện tại được cấu hình cố định trong code." type="info" showIcon />
-                </div>
-            ),
-        },
-        {
-            key: 'homepage',
-            label: (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 15 }}>
-                    <HomeOutlined style={{ color: '#667eea' }} />
-                    3. Trang chủ
-                </div>
-            ),
-            children: (
-                <div>
-                    <Row gutter={[16, 16]}>
-                        {/* Preview */}
-                        <Col xs={0} lg={10}>
-                            <div style={{
-                                border: '2px solid #e2e8f0', borderRadius: 12, overflow: 'hidden',
-                                background: '#f8fafc', height: 600, display: 'flex', flexDirection: 'column'
-                            }}>
-                                {/* Preview Header */}
-                                <div style={{
-                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                    color: 'white', padding: '8px 12px', fontSize: 13, fontWeight: 600,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <EyeOutlined /> Live Preview
-                                    </div>
-                                    <Radio.Group
-                                        size="small"
-                                        value={previewMode}
-                                        onChange={(e) => setPreviewMode(e.target.value)}
-                                        optionType="button"
-                                        buttonStyle="solid"
-                                    >
-                                        <Radio.Button value="desktop" style={{ padding: '0 8px' }}><DesktopOutlined /></Radio.Button>
-                                        <Radio.Button value="mobile" style={{ padding: '0 8px' }}><MobileOutlined /></Radio.Button>
-                                    </Radio.Group>
-                                </div>
-
-                                {/* Iframe Container */}
-                                <div
-                                    ref={previewContainerRef}
-                                    style={{
-                                        flex: 1,
-                                        background: '#e2e8f0',
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'flex-start',
-                                        padding: previewMode === 'mobile' ? '16px 0' : 0,
-                                        overflow: 'hidden'
-                                    }}
-                                >
-                                    <div style={{
-                                        width: previewMode === 'desktop' ? '1440px' : '375px',
-                                        height: previewMode === 'desktop' ? '810px' : 'calc(100% - 16px)',
-                                        background: 'white',
-                                        transition: 'all 0.3s ease',
-                                        borderRadius: previewMode === 'desktop' ? 0 : 24,
-                                        overflow: 'hidden',
-                                        boxShadow: previewMode === 'mobile' ? '0 10px 25px -5px rgba(0, 0, 0, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                        border: previewMode === 'mobile' ? '8px solid #333' : 'none',
-                                        transform: previewMode === 'desktop' ? `scale(${previewScale})` : 'none',
-                                        transformOrigin: 'top center',
-                                    }}>
-                                        <iframe
-                                            ref={iframeRef}
-                                            src={process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://beta.nemmamnon.com'}
-                                            style={{ width: '100%', height: '100%', border: 'none' }}
-                                            title="Website Preview"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </Col>
-
-                        {/* Section List */}
-                        <Col xs={24} lg={14}>
-                            <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
-                                Click vào section để chỉnh sửa nội dung và màu sắc
-                            </div>
-                            {SECTIONS.map((section, index) => (
-                                <div
-                                    key={section.key}
-                                    onClick={() => openSectionDrawer(section.key)}
-                                    style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                        padding: '14px 16px', marginBottom: 2,
-                                        background: activeSection === section.key ? '#e0e7ff' : index % 2 === 0 ? '#f0f7ff' : '#e8f4fd',
-                                        borderRadius: 8, cursor: 'pointer',
-                                        border: activeSection === section.key ? '2px solid #667eea' : '1px solid transparent',
-                                        transition: 'all 0.2s ease',
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        (e.currentTarget as HTMLElement).style.background = '#dbeafe';
-                                        (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        (e.currentTarget as HTMLElement).style.background = activeSection === section.key ? '#e0e7ff' : index % 2 === 0 ? '#f0f7ff' : '#e8f4fd';
-                                        (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        <span style={{
-                                            width: 28, height: 28, borderRadius: '50%',
-                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                            color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            fontSize: 12, fontWeight: 700, flexShrink: 0,
-                                        }}>
-                                            {index + 1}
-                                        </span>
-                                        <span style={{ fontSize: 16, flexShrink: 0 }}>{section.icon}</span>
-                                        <span style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>{section.label}</span>
-                                    </div>
-                                    <RightOutlined style={{ color: '#94a3b8', fontSize: 12 }} />
-                                </div>
-                            ))}
-                        </Col>
-                    </Row>
-                </div>
-            ),
-        },
-        {
-            key: 'footer',
-            label: (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 15 }}>
-                    <BgColorsOutlined style={{ color: '#667eea' }} />
-                    4. Footer
-                </div>
-            ),
-            children: (
-                <div>
-                    <Form form={homeForm} layout="vertical">
-                        <Form.Item name="footer_slogan" label="Slogan / Mô tả công ty" extra="Hiển thị dưới logo">
-                            <Input.TextArea rows={2} placeholder="Hơn 10 năm đồng hành cùng giấc ngủ học đường..." />
-                        </Form.Item>
-                        <Form.Item name="footer_copyright" label="Dòng Copyright">
-                            <Input placeholder="© 2026 HULA - Giải pháp nệm trường học toàn diện." />
-                        </Form.Item>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                            <Form.Item name="footer_bg" label="Màu nền Footer" getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || '#1e293b' })}>
-                                <ColorPicker showText />
-                            </Form.Item>
-                            <Form.Item name="footer_text_color" label="Màu chữ Footer" getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || '#ffffff' })}>
-                                <ColorPicker showText />
-                            </Form.Item>
-                        </div>
-                    </Form>
-                    <Divider orientation="left">Menu nhanh</Divider>
-                    {
-                        footerQuickLinks.map((link: FooterLink, idx: number) => (
-                            <div key={link.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                                <Input value={link.label} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, label: e.target.value } : l))} placeholder="Label" style={{ flex: 1 }} />
-                                <Input value={link.url} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, url: e.target.value } : l))} placeholder="/url" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
-                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFooterQuickLinks(footerQuickLinks.filter((_: FooterLink, i: number) => i !== idx))} />
-                            </div>
-                        ))
-                    }
-                    < Button type="dashed" size="small" icon={< PlusOutlined />} onClick={() => setFooterQuickLinks([...footerQuickLinks, { id: Date.now().toString(), label: '', url: '' }])} style={{ marginBottom: 16 }}> Thêm</Button >
-                    <Divider orientation="left">Liên kết phụ</Divider>
-                    {
-                        footerProductLinks.map((link: FooterLink, idx: number) => (
-                            <div key={link.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                                <Input value={link.label} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, label: e.target.value } : l))} placeholder="Label" style={{ flex: 1 }} />
-                                <Input value={link.url} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, url: e.target.value } : l))} placeholder="/url" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
-                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFooterProductLinks(footerProductLinks.filter((_: FooterLink, i: number) => i !== idx))} />
-                            </div>
-                        ))
-                    }
-                    <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setFooterProductLinks([...footerProductLinks, { id: Date.now().toString(), label: '', url: '' }])}>Thêm</Button>
-                    <Alert message="Thông tin liên hệ, Mạng xã hội, Google Maps quản lý ở panel Thiết lập Tổng quát." type="info" showIcon style={{ marginTop: 16 }} />
-                </div >
-            ),
-        },
-    ];
-
+// ============================================
+// COLLAPSE PANELS
+// ============================================
+if (loading) {
     return (
         <AdminLayout>
-            {/* Header bar */}
-            <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                marginBottom: 20, flexWrap: 'wrap', gap: 12,
-            }}>
-                <div>
-                    <h2 style={{ margin: 0, fontWeight: 700, fontSize: 22 }}>🎨 Giao diện Website</h2>
-                    <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Quản lý giao diện trang chủ theo kiểu trực quan</p>
-                </div>
-                <Space>
-                    <Button icon={<EyeOutlined />} onClick={() => window.open(process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://beta.nemmamnon.com', '_blank')}>
-                        Xem website
-                    </Button>
-                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving} size="large">
-                        Lưu tất cả thay đổi
-                    </Button>
-                </Space>
-            </div>
-
-            {/* Main Collapse */}
-            <Collapse
-                items={collapseItems}
-                defaultActiveKey={['homepage']}
-                expandIconPosition="end"
-                style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0' }}
-                size="large"
-            />
-
-            {/* Section Editor Drawer */}
-            <Drawer
-                title={
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 20 }}>{SECTIONS.find(s => s.key === activeSection)?.icon}</span>
-                        <span>{SECTIONS.find(s => s.key === activeSection)?.label}</span>
-                    </div>
-                }
-                placement="right"
-                onClose={() => { setDrawerOpen(false); setActiveSection(null); }}
-                open={drawerOpen}
-                width={Math.min(480, typeof window !== 'undefined' ? window.innerWidth : 480)}
-                footer={
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                        <Button onClick={() => { setDrawerOpen(false); setActiveSection(null); }}>
-                            Đóng
-                        </Button>
-                        <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving}>
-                            Lưu thay đổi
-                        </Button>
-                    </div>
-                }
-            >
-                {renderSectionEditor()}
-            </Drawer>
-
-            {/* Feature Edit Modal */}
-            <Modal
-                title={editingFeature ? 'Sửa điểm nổi bật' : 'Thêm điểm nổi bật'}
-                open={featureModal}
-                onCancel={() => setFeatureModal(false)}
-                footer={null}
-            >
-                <Form
-                    layout="vertical"
-                    initialValues={editingFeature || { icon: '⭐', title: '', description: '' }}
-                    onFinish={handleSaveFeature}
-                    style={{ marginTop: 16 }}
-                >
-                    <Form.Item name="icon" label="Icon (emoji)" rules={[{ required: true }]}>
-                        <Input placeholder="🌿" maxLength={4} style={{ width: 100, fontSize: 24, textAlign: 'center' }} />
-                    </Form.Item>
-                    <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
-                        <Input placeholder="Nguyên Liệu Tự Nhiên" />
-                    </Form.Item>
-                    <Form.Item name="description" label="Mô tả" rules={[{ required: true }]}>
-                        <Input.TextArea rows={2} placeholder="Chất liệu 100% cotton organic..." />
-                    </Form.Item>
-                    <Button type="primary" htmlType="submit" block>
-                        {editingFeature ? 'Cập nhật' : 'Thêm'}
-                    </Button>
-                </Form>
-            </Modal>
-
-            {/* Mobile sticky save button */}
-            <div className="mobile-save-btn" style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px',
-                background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
-                borderTop: '1px solid #e2e8f0', zIndex: 100,
-                display: 'none', // controlled by CSS media query
-            }}>
-                <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving} block size="large">
-                    Lưu tất cả thay đổi
-                </Button>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+                <Spin size="large" tip="Đang tải cấu hình..." />
             </div>
         </AdminLayout>
     );
+}
+
+const collapseItems = [
+    {
+        key: 'general',
+        label: (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 15 }}>
+                <SettingOutlined style={{ color: '#667eea' }} />
+                1. Thiết lập Tổng quát
+            </div>
+        ),
+        children: (
+            <Form form={settingsForm} layout="vertical">
+                <Row gutter={[16, 0]}>
+                    <Col xs={24} md={8}>
+                        <Form.Item name="site_name" label="Tên website">
+                            <Input placeholder="Nệm Mầm Non HULA" />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={8}>
+                        <Form.Item name="logo_url" label="Logo">
+                            <ImageUploader simple hint="📐 200x56px" />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={8}>
+                        <Form.Item name="favicon_url" label="Favicon">
+                            <ImageUploader simple hint="📐 32x32px (ICO, PNG)" />
+                        </Form.Item>
+                    </Col>
+                </Row>
+                <Form.Item name="site_description" label="Mô tả website">
+                    <Input.TextArea rows={2} placeholder="Mô tả ngắn về website..." />
+                </Form.Item>
+                <Divider>Thông tin liên hệ</Divider>
+                <Row gutter={[16, 0]}>
+                    <Col xs={24} md={8}>
+                        <Form.Item name="contact_phone" label="Số điện thoại">
+                            <Input placeholder="0123 456 789" />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={8}>
+                        <Form.Item name="contact_email" label="Email">
+                            <Input placeholder="info@example.com" />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={8}>
+                        <Form.Item name="contact_address" label="Địa chỉ">
+                            <Input placeholder="Địa chỉ công ty..." />
+                        </Form.Item>
+                    </Col>
+                </Row>
+                <Divider>Mạng xã hội & Tích hợp</Divider>
+                <Row gutter={[16, 0]}>
+                    <Col xs={24} md={12}>
+                        <Form.Item name="facebook_url" label="Facebook URL">
+                            <Input placeholder="https://facebook.com/..." />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Form.Item name="zalo_url" label="Zalo URL">
+                            <Input placeholder="https://zalo.me/..." />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Form.Item name="facebook_page_url" label="Facebook Page URL (Embed)">
+                            <Input placeholder="https://www.facebook.com/TenPage" />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Form.Item name="google_maps_url" label="Google Maps Embed URL">
+                            <Input placeholder="https://www.google.com/maps/embed?pb=..." />
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Divider>Chế độ Website</Divider>
+                <Radio.Group value={siteMode} onChange={(e) => handleModeChange(e.target.value)} disabled={modeSaving}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                        {[
+                            { value: 'live', label: 'Website Hoạt Động', desc: 'Hiển thị đầy đủ nội dung', color: '#16a34a', icon: <GlobalOutlined /> },
+                            { value: 'coming-soon', label: 'Coming Soon', desc: 'Hiển thị trang countdown', color: '#2563eb', icon: <ClockCircleOutlined /> },
+                            { value: 'maintenance', label: 'Bảo Trì', desc: 'Hiển thị trang bảo trì', color: '#d97706', icon: <ToolOutlined /> },
+                        ].map(mode => (
+                            <label key={mode.value} style={{
+                                display: 'flex', alignItems: 'center', width: '100%',
+                                padding: '12px 16px', borderRadius: 8, cursor: 'pointer',
+                                border: siteMode === mode.value ? `2px solid ${mode.color}` : '1px solid #d9d9d9',
+                                background: siteMode === mode.value ? `${mode.color}08` : '#fff',
+                            }}>
+                                <Radio value={mode.value} style={{ marginRight: 8 }} />
+                                <span style={{ color: mode.color, marginRight: 8, fontSize: 18 }}>{mode.icon}</span>
+                                <div>
+                                    <div style={{ fontWeight: 600, fontSize: 13 }}>{mode.label}</div>
+                                    <div style={{ fontSize: 11, color: '#666' }}>{mode.desc}</div>
+                                </div>
+                            </label>
+                        ))}
+                    </Space>
+                </Radio.Group>
+            </Form>
+        ),
+    },
+    {
+        key: 'header',
+        label: (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 15 }}>
+                <DesktopOutlined style={{ color: '#667eea' }} />
+                2. Header & Navigation
+            </div>
+        ),
+        children: (
+            <div style={{ padding: '8px 0' }}>
+                <Alert message="Header sử dụng cấu hình từ Thiết lập Tổng quát (Logo, Site Name). Navigation menu hiện tại được cấu hình cố định trong code." type="info" showIcon />
+            </div>
+        ),
+    },
+    {
+        key: 'homepage',
+        label: (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 15 }}>
+                <HomeOutlined style={{ color: '#667eea' }} />
+                3. Trang chủ
+            </div>
+        ),
+        children: (
+            <div>
+                <Row gutter={[16, 16]}>
+                    {/* Preview */}
+                    <Col xs={0} lg={10}>
+                        <div style={{
+                            border: '2px solid #e2e8f0', borderRadius: 12, overflow: 'hidden',
+                            background: '#f8fafc', height: 600, display: 'flex', flexDirection: 'column'
+                        }}>
+                            {/* Preview Header */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                color: 'white', padding: '8px 12px', fontSize: 13, fontWeight: 600,
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <EyeOutlined /> Live Preview
+                                </div>
+                                <Radio.Group
+                                    size="small"
+                                    value={previewMode}
+                                    onChange={(e) => setPreviewMode(e.target.value)}
+                                    optionType="button"
+                                    buttonStyle="solid"
+                                >
+                                    <Radio.Button value="desktop" style={{ padding: '0 8px' }}><DesktopOutlined /></Radio.Button>
+                                    <Radio.Button value="mobile" style={{ padding: '0 8px' }}><MobileOutlined /></Radio.Button>
+                                </Radio.Group>
+                            </div>
+
+                            {/* Iframe Container */}
+                            <div
+                                ref={previewContainerRef}
+                                style={{
+                                    flex: 1,
+                                    background: '#e2e8f0',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'flex-start',
+                                    padding: previewMode === 'mobile' ? '16px 0' : 0,
+                                    overflow: 'hidden'
+                                }}
+                            >
+                                <div style={{
+                                    width: previewMode === 'desktop' ? '1440px' : '375px',
+                                    height: previewMode === 'desktop' ? '810px' : 'calc(100% - 16px)',
+                                    background: 'white',
+                                    transition: 'all 0.3s ease',
+                                    borderRadius: previewMode === 'desktop' ? 0 : 24,
+                                    overflow: 'hidden',
+                                    boxShadow: previewMode === 'mobile' ? '0 10px 25px -5px rgba(0, 0, 0, 0.1)' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                    border: previewMode === 'mobile' ? '8px solid #333' : 'none',
+                                    transform: previewMode === 'desktop' ? `scale(${previewScale})` : 'none',
+                                    transformOrigin: 'top center',
+                                }}>
+                                    <iframe
+                                        ref={iframeRef}
+                                        src={process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://beta.nemmamnon.com'}
+                                        style={{ width: '100%', height: '100%', border: 'none' }}
+                                        title="Website Preview"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </Col>
+
+                    {/* Section List */}
+                    <Col xs={24} lg={14}>
+                        <div style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
+                            Click vào section để chỉnh sửa nội dung và màu sắc
+                        </div>
+                        {SECTIONS.map((section, index) => (
+                            <div
+                                key={section.key}
+                                onClick={() => openSectionDrawer(section.key)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '14px 16px', marginBottom: 2,
+                                    background: activeSection === section.key ? '#e0e7ff' : index % 2 === 0 ? '#f0f7ff' : '#e8f4fd',
+                                    borderRadius: 8, cursor: 'pointer',
+                                    border: activeSection === section.key ? '2px solid #667eea' : '1px solid transparent',
+                                    transition: 'all 0.2s ease',
+                                }}
+                                onMouseEnter={(e) => {
+                                    (e.currentTarget as HTMLElement).style.background = '#dbeafe';
+                                    (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    (e.currentTarget as HTMLElement).style.background = activeSection === section.key ? '#e0e7ff' : index % 2 === 0 ? '#f0f7ff' : '#e8f4fd';
+                                    (e.currentTarget as HTMLElement).style.transform = 'translateX(0)';
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <span style={{
+                                        width: 28, height: 28, borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 12, fontWeight: 700, flexShrink: 0,
+                                    }}>
+                                        {index + 1}
+                                    </span>
+                                    <span style={{ fontSize: 16, flexShrink: 0 }}>{section.icon}</span>
+                                    <span style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>{section.label}</span>
+                                </div>
+                                <RightOutlined style={{ color: '#94a3b8', fontSize: 12 }} />
+                            </div>
+                        ))}
+                    </Col>
+                </Row>
+            </div>
+        ),
+    },
+    {
+        key: 'footer',
+        label: (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, fontSize: 15 }}>
+                <BgColorsOutlined style={{ color: '#667eea' }} />
+                4. Footer
+            </div>
+        ),
+        children: (
+            <div>
+                <Form form={homeForm} layout="vertical">
+                    <Form.Item name="footer_slogan" label="Slogan / Mô tả công ty" extra="Hiển thị dưới logo">
+                        <Input.TextArea rows={2} placeholder="Hơn 10 năm đồng hành cùng giấc ngủ học đường..." />
+                    </Form.Item>
+                    <Form.Item name="footer_copyright" label="Dòng Copyright">
+                        <Input placeholder="© 2026 HULA - Giải pháp nệm trường học toàn diện." />
+                    </Form.Item>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <Form.Item name="footer_bg" label="Màu nền Footer" getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || '#1e293b' })}>
+                            <ColorPicker showText />
+                        </Form.Item>
+                        <Form.Item name="footer_text_color" label="Màu chữ Footer" getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || '#ffffff' })}>
+                            <ColorPicker showText />
+                        </Form.Item>
+                    </div>
+                </Form>
+                <Divider orientation="left">Menu nhanh</Divider>
+                {
+                    footerQuickLinks.map((link: FooterLink, idx: number) => (
+                        <div key={link.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                            <Input value={link.label} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, label: e.target.value } : l))} placeholder="Label" style={{ flex: 1 }} />
+                            <Input value={link.url} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, url: e.target.value } : l))} placeholder="/url" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
+                            <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFooterQuickLinks(footerQuickLinks.filter((_: FooterLink, i: number) => i !== idx))} />
+                        </div>
+                    ))
+                }
+                < Button type="dashed" size="small" icon={< PlusOutlined />} onClick={() => setFooterQuickLinks([...footerQuickLinks, { id: Date.now().toString(), label: '', url: '' }])} style={{ marginBottom: 16 }}> Thêm</Button >
+                <Divider orientation="left">Liên kết phụ</Divider>
+                {
+                    footerProductLinks.map((link: FooterLink, idx: number) => (
+                        <div key={link.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                            <Input value={link.label} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, label: e.target.value } : l))} placeholder="Label" style={{ flex: 1 }} />
+                            <Input value={link.url} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, url: e.target.value } : l))} placeholder="/url" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
+                            <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFooterProductLinks(footerProductLinks.filter((_: FooterLink, i: number) => i !== idx))} />
+                        </div>
+                    ))
+                }
+                <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setFooterProductLinks([...footerProductLinks, { id: Date.now().toString(), label: '', url: '' }])}>Thêm</Button>
+                <Alert message="Thông tin liên hệ, Mạng xã hội, Google Maps quản lý ở panel Thiết lập Tổng quát." type="info" showIcon style={{ marginTop: 16 }} />
+            </div >
+        ),
+    },
+];
+
+return (
+    <AdminLayout>
+        {/* Header bar */}
+        <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginBottom: 20, flexWrap: 'wrap', gap: 12,
+        }}>
+            <div>
+                <h2 style={{ margin: 0, fontWeight: 700, fontSize: 22 }}>🎨 Giao diện Website</h2>
+                <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Quản lý giao diện trang chủ theo kiểu trực quan</p>
+            </div>
+            <Space>
+                <Button icon={<EyeOutlined />} onClick={() => window.open(process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://beta.nemmamnon.com', '_blank')}>
+                    Xem website
+                </Button>
+                <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving} size="large">
+                    Lưu tất cả thay đổi
+                </Button>
+            </Space>
+        </div>
+
+        {/* Main Collapse */}
+        <Collapse
+            items={collapseItems}
+            defaultActiveKey={['homepage']}
+            expandIconPosition="end"
+            style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0' }}
+            size="large"
+        />
+
+        {/* Section Editor Drawer */}
+        <Drawer
+            title={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 20 }}>{SECTIONS.find(s => s.key === activeSection)?.icon}</span>
+                    <span>{SECTIONS.find(s => s.key === activeSection)?.label}</span>
+                </div>
+            }
+            placement="right"
+            onClose={() => { setDrawerOpen(false); setActiveSection(null); }}
+            open={drawerOpen}
+            width={Math.min(480, typeof window !== 'undefined' ? window.innerWidth : 480)}
+            footer={
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <Button onClick={() => { setDrawerOpen(false); setActiveSection(null); }}>
+                        Đóng
+                    </Button>
+                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving}>
+                        Lưu thay đổi
+                    </Button>
+                </div>
+            }
+        >
+            {renderSectionEditor()}
+        </Drawer>
+
+        {/* Feature Edit Modal */}
+        <Modal
+            title={editingFeature ? 'Sửa điểm nổi bật' : 'Thêm điểm nổi bật'}
+            open={featureModal}
+            onCancel={() => setFeatureModal(false)}
+            footer={null}
+        >
+            <Form
+                layout="vertical"
+                initialValues={editingFeature || { icon: '⭐', title: '', description: '' }}
+                onFinish={handleSaveFeature}
+                style={{ marginTop: 16 }}
+            >
+                <Form.Item name="icon" label="Icon (emoji)" rules={[{ required: true }]}>
+                    <Input placeholder="🌿" maxLength={4} style={{ width: 100, fontSize: 24, textAlign: 'center' }} />
+                </Form.Item>
+                <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
+                    <Input placeholder="Nguyên Liệu Tự Nhiên" />
+                </Form.Item>
+                <Form.Item name="description" label="Mô tả" rules={[{ required: true }]}>
+                    <Input.TextArea rows={2} placeholder="Chất liệu 100% cotton organic..." />
+                </Form.Item>
+                <Button type="primary" htmlType="submit" block>
+                    {editingFeature ? 'Cập nhật' : 'Thêm'}
+                </Button>
+            </Form>
+        </Modal>
+
+        {/* Mobile sticky save button */}
+        <div className="mobile-save-btn" style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px',
+            background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
+            borderTop: '1px solid #e2e8f0', zIndex: 100,
+            display: 'none', // controlled by CSS media query
+        }}>
+            <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving} block size="large">
+                Lưu tất cả thay đổi
+            </Button>
+        </div>
+    </AdminLayout>
+);
 }
