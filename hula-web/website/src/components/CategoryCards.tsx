@@ -1,22 +1,24 @@
 'use client';
 
 import Link from 'next/link';
+import { getGoogleDriveImageUrl } from '@/lib/utils';
 
 interface CategoryCardsProps {
     categories?: Array<{
         title: string;
         image_url?: string;
         slug?: string;
+        icon?: string;
     }>;
     bgColor?: string;
     textColor?: string;
 }
 
 const defaultCategories = [
-    { title: 'Bộ nệm gối mền', image_url: '', slug: '/san-pham?category=nem-goi-men', icon: '🛏️' },
-    { title: 'Túi ngủ', image_url: '', slug: '/san-pham?category=tui-ngu', icon: '👶' },
-    { title: 'Túi bảo quản', image_url: '', slug: '/san-pham?category=tui-bao-quan', icon: '👜' },
-    { title: 'Sản phẩm khác', image_url: '', slug: '/san-pham', icon: '✨' },
+    { title: 'Nệm', image_url: '', slug: '/san-pham?category=nem', icon: '🛏️' },
+    { title: 'Gối', image_url: '', slug: '/san-pham?category=goi', icon: '🌙' },
+    { title: 'Bộ Ga Giường', image_url: '', slug: '/san-pham?category=ga-giuong', icon: '🛌' },
+    { title: 'Combo Tiết Kiệm', image_url: '', slug: '/san-pham?category=combo', icon: '✨' },
 ];
 
 export default function CategoryCards({ categories, bgColor, textColor }: CategoryCardsProps) {
@@ -31,31 +33,31 @@ export default function CategoryCards({ categories, bgColor, textColor }: Catego
                     </h2>
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
                     {items.map((cat: any, index: number) => (
                         <Link
                             key={index}
                             href={cat.slug || '/san-pham'}
-                            className="card-v2 group overflow-hidden cursor-pointer"
+                            className="group text-center"
                         >
-                            <div className="aspect-[4/3] bg-gradient-to-br from-section-blue to-primary-100 flex items-center justify-center relative overflow-hidden">
+                            {/* Image — no card, no border, no shadow */}
+                            <div className="aspect-square bg-white rounded-[12px] overflow-hidden mb-4 flex items-center justify-center">
                                 {cat.image_url ? (
                                     <img
-                                        src={cat.image_url}
+                                        src={getGoogleDriveImageUrl(cat.image_url)}
                                         alt={cat.title}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-contain p-4"
                                     />
                                 ) : (
-                                    <span className="text-5xl lg:text-6xl">
+                                    <span className="text-6xl lg:text-7xl">
                                         {cat.icon || '📦'}
                                     </span>
                                 )}
                             </div>
-                            <div className="p-4 text-center">
-                                <h3 className="font-heading font-semibold text-gray-800 group-hover:text-accent transition-colors">
-                                    {cat.title}
-                                </h3>
-                            </div>
+                            {/* Text below, separated */}
+                            <h3 className="font-heading font-semibold text-sm lg:text-base group-hover:text-accent transition-colors" style={{ color: textColor || '#1F2937' }}>
+                                {cat.title}
+                            </h3>
                         </Link>
                     ))}
                 </div>

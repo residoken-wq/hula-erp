@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getProducts, getBlogs, getHomeConfig, getSettings } from '@/lib/api';
 import HeroCarousel from '@/components/HeroCarousel';
 import CategoryCards from '@/components/CategoryCards';
+import WhyChooseHula from '@/components/WhyChooseHula';
 import JourneySlider from '@/components/JourneySlider';
 import ProjectGallery from '@/components/ProjectGallery';
 import PartnerSlider from '@/components/PartnerSlider';
@@ -58,16 +59,18 @@ export default async function HomePage() {
                     style={{ backgroundColor: settings.section_hero_usp_bg || 'rgba(35,167,211,0.85)', color: settings.section_hero_usp_text || undefined }}
                 >
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="grid grid-cols-3 divide-x divide-white/20">
-                            <div className="py-4 text-center">
-                                <span className="font-medium text-sm lg:text-base" style={{ color: settings.section_hero_usp_text || 'white' }}>✨ Free tư vấn</span>
-                            </div>
-                            <div className="py-4 text-center">
-                                <span className="font-medium text-sm lg:text-base" style={{ color: settings.section_hero_usp_text || 'white' }}>🎨 Free thiết kế</span>
-                            </div>
-                            <div className="py-4 text-center">
-                                <span className="font-medium text-sm lg:text-base" style={{ color: settings.section_hero_usp_text || 'white' }}>🚚 Giao hàng toàn quốc</span>
-                            </div>
+                        <div className="grid divide-x divide-white/20" style={{ gridTemplateColumns: `repeat(${config.usp_items?.length || 3}, 1fr)` }}>
+                            {(config.usp_items && config.usp_items.length > 0 ? config.usp_items : [
+                                { icon: '✨', text: 'Free tư vấn' },
+                                { icon: '🎨', text: 'Free thiết kế' },
+                                { icon: '🚚', text: 'Giao hàng toàn quốc' },
+                            ]).map((item: any, index: number) => (
+                                <div key={index} className="py-4 text-center">
+                                    <span className="font-medium text-sm lg:text-base" style={{ color: settings.section_hero_usp_text || 'white' }}>
+                                        {item.icon} {item.text}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -106,7 +109,7 @@ export default async function HomePage() {
                         </div>
                         <div>
                             {config.video_youtube_url ? (
-                                <div className="relative w-full rounded-[12px] overflow-hidden shadow-soft-lg" style={{ paddingBottom: '56.25%' }}>
+                                <div className="relative w-full rounded-[12px] overflow-hidden" style={{ paddingBottom: '56.25%' }}>
                                     <iframe
                                         className="absolute top-0 left-0 w-full h-full"
                                         src={config.video_youtube_url}
@@ -117,7 +120,7 @@ export default async function HomePage() {
                                     ></iframe>
                                 </div>
                             ) : (
-                                <div className="w-full aspect-video bg-gradient-to-br from-primary-200 to-primary-400 rounded-[12px] flex items-center justify-center shadow-soft-lg">
+                                <div className="w-full aspect-video bg-gradient-to-br from-primary-200 to-primary-400 rounded-[12px] flex items-center justify-center">
                                     <span className="text-6xl">🎬</span>
                                 </div>
                             )}
@@ -127,7 +130,17 @@ export default async function HomePage() {
             </section>
 
             {/* ============================================
-                SECTION 4 — HÀNH TRÌNH HULA
+                SECTION 4a — TẠI SAO CHỌN HULA
+               ============================================ */}
+            <WhyChooseHula
+                reasons={config.why_choose_reasons}
+                guarantees={config.why_choose_guarantees}
+                bgColor={settings.section_journey_bg}
+                textColor={settings.section_journey_text}
+            />
+
+            {/* ============================================
+                SECTION 4b — HÀNH TRÌNH HULA
                ============================================ */}
             <JourneySlider milestones={config.milestones} bgColor={settings.section_journey_bg} textColor={settings.section_journey_text} />
 
@@ -142,12 +155,12 @@ export default async function HomePage() {
             <PartnerSlider partners={config.partners} bgColor={settings.section_partners_bg} textColor={settings.section_partners_text} />
 
             {/* ============================================
-                SECTION 7 — FEEDBACK KHÁCH HÀNG
+                SECTION 7 — ĐÁNH GIÁ KHÁCH HÀNG
                ============================================ */}
             <Testimonials testimonials={config.testimonials} bgColor={settings.section_testimonials_bg} textColor={settings.section_testimonials_text} />
 
             {/* ============================================
-                SECTION 8 — BLOG TƯ VẤN
+                SECTION 8 — THÔNG TIN HỮU ÍCH
                ============================================ */}
             <BlogGrid posts={blogPosts} bgColor={settings.section_blog_bg} textColor={settings.section_blog_text} />
         </>

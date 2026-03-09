@@ -14,6 +14,19 @@ interface Feature {
     description: string;
 }
 
+interface UspItem {
+    id: string;
+    icon: string;
+    text: string;
+}
+
+interface Guarantee {
+    id: string;
+    icon: string;
+    title: string;
+    description: string;
+}
+
 interface FeaturedProduct {
     sku: string;
     name: string;
@@ -26,13 +39,25 @@ export default function HomeContentPage() {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [features, setFeatures] = useState<Feature[]>([
-        { id: '1', icon: '🌿', title: 'Nguyên Liệu Tự Nhiên', description: 'Chất liệu 100% cotton organic, an toàn cho làn da nhạy cảm của bé' },
-        { id: '2', icon: '🏆', title: 'Chất Lượng Cao Cấp', description: 'Sản phẩm đạt tiêu chuẩn chất lượng ISO và chứng nhận an toàn' },
-        { id: '3', icon: '💯', title: 'Bảo Hành 12 Tháng', description: 'Cam kết đổi mới nếu có lỗi từ nhà sản xuất trong 12 tháng' },
-        { id: '4', icon: '🚚', title: 'Giao Hàng Toàn Quốc', description: 'Miễn phí vận chuyển cho đơn hàng từ 2 triệu đồng' },
+        { id: '1', icon: '🌿', title: 'Kinh nghiệm 10 năm', description: 'Hơn một thập kỷ đồng hành cùng các hệ thống giáo dục' },
+        { id: '2', icon: '🏆', title: 'Không ngừng cải tiến', description: 'Đội ngũ chuyên gia tận tâm liên tục nghiên cứu và phát triển' },
+        { id: '3', icon: '🎨', title: 'Đậm dấu ấn thương hiệu', description: 'Tư vấn và thiết kế sản phẩm "may đo" theo đúng màu sắc nhận diện' },
+        { id: '4', icon: '💯', title: 'Chất lượng vượt trội', description: 'Làm chủ 100% quy trình sản xuất' },
     ]);
     const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
     const [featureModal, setFeatureModal] = useState(false);
+
+    const [uspItems, setUspItems] = useState<UspItem[]>([
+        { id: '1', icon: '✨', text: 'Free tư vấn' },
+        { id: '2', icon: '🎨', text: 'Free thiết kế' },
+        { id: '3', icon: '🚚', text: 'Giao hàng toàn quốc' },
+    ]);
+
+    const [guarantees, setGuarantees] = useState<Guarantee[]>([
+        { id: '1', icon: '🏭', title: 'Từ nhà máy đến người tiêu dùng', description: '' },
+        { id: '2', icon: '🔄', title: 'Bảo hành 1 đổi 1', description: 'nếu lỗi sản xuất' },
+        { id: '3', icon: '🚚', title: 'Giao hàng toàn quốc', description: 'Freeship từ 1.000.000đ' },
+    ]);
 
     useEffect(() => {
         loadConfig();
@@ -56,6 +81,16 @@ export default function HomeContentPage() {
                 if (res.data.features && Array.isArray(res.data.features)) {
                     setFeatures(res.data.features);
                 }
+                // New: why_choose_reasons maps to features
+                if (res.data.why_choose_reasons && Array.isArray(res.data.why_choose_reasons)) {
+                    setFeatures(res.data.why_choose_reasons);
+                }
+                if (res.data.usp_items && Array.isArray(res.data.usp_items)) {
+                    setUspItems(res.data.usp_items);
+                }
+                if (res.data.why_choose_guarantees && Array.isArray(res.data.why_choose_guarantees)) {
+                    setGuarantees(res.data.why_choose_guarantees);
+                }
             }
         } catch (error) {
             message.error('Không thể tải cấu hình');
@@ -68,7 +103,13 @@ export default function HomeContentPage() {
         try {
             const values = await form.validateFields();
             setLoading(true);
-            await systemApi.saveHomeConfig({ ...values, features });
+            await systemApi.saveHomeConfig({
+                ...values,
+                features,
+                why_choose_reasons: features,
+                usp_items: uspItems,
+                why_choose_guarantees: guarantees,
+            });
             message.success('Đã lưu nội dung trang chủ');
         } catch {
             message.error('Có lỗi xảy ra');
@@ -203,6 +244,90 @@ export default function HomeContentPage() {
                             </List.Item>
                         )}
                     />
+                </div>
+            ),
+        },
+        {
+            key: 'usp',
+            label: '🔖 USP Bar Icons',
+            children: (
+                <div>
+                    <div style={{ marginBottom: 16 }}>
+                        <span style={{ color: '#666' }}>Quản lý các icon trên thanh USP (dưới Hero banner)</span>
+                    </div>
+                    {uspItems.map((item, index) => (
+                        <div key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
+                            <Input
+                                value={item.icon}
+                                onChange={(e) => setUspItems(uspItems.map((u, i) => i === index ? { ...u, icon: e.target.value } : u))}
+                                style={{ width: 60, textAlign: 'center', fontSize: 20 }}
+                                maxLength={4}
+                                placeholder="⭐"
+                            />
+                            <Input
+                                value={item.text}
+                                onChange={(e) => setUspItems(uspItems.map((u, i) => i === index ? { ...u, text: e.target.value } : u))}
+                                placeholder="Free tư vấn"
+                                style={{ flex: 1 }}
+                            />
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setUspItems(uspItems.filter((_, i) => i !== index))} />
+                        </div>
+                    ))}
+                    {uspItems.length < 5 && (
+                        <Button
+                            type="dashed"
+                            block
+                            icon={<PlusOutlined />}
+                            onClick={() => setUspItems([...uspItems, { id: Date.now().toString(), icon: '⭐', text: '' }])}
+                        >
+                            Thêm USP ({uspItems.length}/5)
+                        </Button>
+                    )}
+                </div>
+            ),
+        },
+        {
+            key: 'guarantees',
+            label: '🛡️ Cam Kết Đảm Bảo',
+            children: (
+                <div>
+                    <div style={{ marginBottom: 16 }}>
+                        <span style={{ color: '#666' }}>Quản lý các cam kết hiển thị trong mục &quot;Mua hàng đảm bảo cùng HULA&quot;</span>
+                    </div>
+                    {guarantees.map((item, index) => (
+                        <div key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
+                            <Input
+                                value={item.icon}
+                                onChange={(e) => setGuarantees(guarantees.map((g, i) => i === index ? { ...g, icon: e.target.value } : g))}
+                                style={{ width: 60, textAlign: 'center', fontSize: 20 }}
+                                maxLength={4}
+                                placeholder="🏭"
+                            />
+                            <Input
+                                value={item.title}
+                                onChange={(e) => setGuarantees(guarantees.map((g, i) => i === index ? { ...g, title: e.target.value } : g))}
+                                placeholder="Tiêu đề"
+                                style={{ flex: 1 }}
+                            />
+                            <Input
+                                value={item.description}
+                                onChange={(e) => setGuarantees(guarantees.map((g, i) => i === index ? { ...g, description: e.target.value } : g))}
+                                placeholder="Mô tả thêm (tùy chọn)"
+                                style={{ flex: 1 }}
+                            />
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setGuarantees(guarantees.filter((_, i) => i !== index))} />
+                        </div>
+                    ))}
+                    {guarantees.length < 6 && (
+                        <Button
+                            type="dashed"
+                            block
+                            icon={<PlusOutlined />}
+                            onClick={() => setGuarantees([...guarantees, { id: Date.now().toString(), icon: '⭐', title: '', description: '' }])}
+                        >
+                            Thêm cam kết ({guarantees.length}/6)
+                        </Button>
+                    )}
                 </div>
             ),
         },
