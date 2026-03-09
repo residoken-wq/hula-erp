@@ -41,7 +41,7 @@ export default function HeroSection({ title1, title2, description, btn1, btn2, i
                         <div className="mt-8 flex flex-wrap gap-4">
                             <Link
                                 href="/san-pham"
-                                className="inline-flex items-center px-6 py-3 bg-white text-primary-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
+                                className="inline-flex items-center px-6 py-3 bg-white text-[#23a7d3] font-semibold rounded-lg hover:text-[#ffe293] transition-colors shadow-lg"
                             >
                                 {btn1}
                                 <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,7 +50,7 @@ export default function HeroSection({ title1, title2, description, btn1, btn2, i
                             </Link>
                             <Link
                                 href="/lien-he"
-                                className="inline-flex items-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-primary-700 transition-colors"
+                                className="inline-flex items-center px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-[#23a7d3] transition-colors"
                             >
                                 {btn2}
                             </Link>

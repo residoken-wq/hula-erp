@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -9,6 +10,7 @@ import { getGoogleDriveImageUrl } from '@/lib/utils';
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    const pathname = usePathname();
     const { itemCount, setIsCartOpen } = useCart();
     const { settings } = useSettings();
 
@@ -69,15 +71,18 @@ export default function Header() {
 
                         {/* Desktop Navigation */}
                         <nav className="hidden lg:flex items-center space-x-1">
-                            {navLinks.map((link) => (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    className="px-3 xl:px-4 py-2 text-sm xl:text-base text-primary-500 hover:text-accent font-medium rounded-[12px] hover:bg-transparent transition-all"
-                                >
-                                    {link.label}
-                                </Link>
-                            ))}
+                            {navLinks.map((link) => {
+                                const isActive = pathname === link.href || (link.href !== '/' && pathname?.startsWith(link.href));
+                                return (
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        className={`px-3 xl:px-4 py-2 text-sm xl:text-base font-medium rounded-[12px] hover:bg-transparent transition-all ${isActive ? 'text-[#ffe293]' : 'text-[#23a7d3] hover:text-[#ffe293]'}`}
+                                    >
+                                        {link.label}
+                                    </Link>
+                                );
+                            })}
                         </nav>
 
                         {/* Right Section */}
@@ -138,19 +143,22 @@ export default function Header() {
                     />
                     <div className="fixed inset-x-0 top-16 bottom-0 bg-white z-40 lg:hidden overflow-y-auto animate-slide-up">
                         <div className="p-4 space-y-2">
-                            {navLinks.map((link, index) => (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    className="flex items-center gap-4 p-4 rounded-[12px] bg-transparent text-primary-500 hover:text-accent font-medium transition-all active:scale-[0.98]"
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    <span className="text-lg">{link.label}</span>
-                                    <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </Link>
-                            ))}
+                            {navLinks.map((link, index) => {
+                                const isActive = pathname === link.href || (link.href !== '/' && pathname?.startsWith(link.href));
+                                return (
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        className={`flex items-center gap-4 p-4 rounded-[12px] bg-transparent font-medium transition-all active:scale-[0.98] ${isActive ? 'text-[#ffe293]' : 'text-[#23a7d3] hover:text-[#ffe293]'}`}
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <span className="text-lg">{link.label}</span>
+                                        <svg className="w-5 h-5 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </Link>
+                                );
+                            })}
                         </div>
 
                         <div className="p-4 mt-4 space-y-3">
