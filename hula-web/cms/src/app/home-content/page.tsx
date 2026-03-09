@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Form, Input, Button, Space, message, Tabs, Switch, InputNumber, List, Modal, Rate, Tooltip } from 'antd';
-import { SaveOutlined, PlusOutlined, DeleteOutlined, EyeOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Space, message, Tabs, Switch, InputNumber, List, Modal, Rate, Tooltip, Divider } from 'antd';
+import { SaveOutlined, PlusOutlined, DeleteOutlined, EyeOutlined, EditOutlined, ReloadOutlined, LinkOutlined } from '@ant-design/icons';
 import { systemApi } from '@/lib/api';
 import ImageUploader from '@/components/ImageUploader';
 
@@ -63,6 +63,20 @@ interface Testimonial {
     product_name: string;
 }
 
+interface FeaturedProject {
+    id: string;
+    title: string;
+    school_name: string;
+    image_url: string;
+    slug: string;
+}
+
+interface FooterLink {
+    id: string;
+    label: string;
+    url: string;
+}
+
 // ============================================
 // COMPONENT
 // ============================================
@@ -119,6 +133,27 @@ export default function HomeContentPage() {
     const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
     const [testimonialModal, setTestimonialModal] = useState(false);
 
+    // --- NEW: Featured Projects ---
+    const [featuredProjects, setFeaturedProjects] = useState<FeaturedProject[]>([
+        { id: '1', title: 'Dự án 1', school_name: 'Trường Mầm Non ABC', image_url: '', slug: '' },
+        { id: '2', title: 'Dự án 2', school_name: 'Trường Tiểu Học XYZ', image_url: '', slug: '' },
+        { id: '3', title: 'Dự án 3', school_name: 'Trường Quốc Tế DEF', image_url: '', slug: '' },
+    ]);
+
+    // --- NEW: Footer ---
+    const [footerQuickLinks, setFooterQuickLinks] = useState<FooterLink[]>([
+        { id: '1', label: 'Trang chủ', url: '/' },
+        { id: '2', label: 'Về Hula', url: '/ve-hula' },
+        { id: '3', label: 'Dự án', url: '/du-an' },
+        { id: '4', label: 'Đặt hàng B2B', url: '/dat-hang-si' },
+        { id: '5', label: 'Liên hệ', url: '/lien-he' },
+    ]);
+    const [footerProductLinks, setFooterProductLinks] = useState<FooterLink[]>([
+        { id: '1', label: 'Hula Shop', url: '/san-pham' },
+        { id: '2', label: 'Blog tư vấn', url: '/tin-tuc' },
+        { id: '3', label: 'Chính sách', url: '/chinh-sach' },
+    ]);
+
     // LivePreview state
     const [showPreview, setShowPreview] = useState(false);
 
@@ -149,6 +184,9 @@ export default function HomeContentPage() {
                 if (res.data.milestones?.length) setMilestones(res.data.milestones);
                 if (res.data.partners?.length) setPartners(res.data.partners);
                 if (res.data.testimonials?.length) setTestimonials(res.data.testimonials);
+                if (res.data.featured_projects?.length) setFeaturedProjects(res.data.featured_projects);
+                if (res.data.footer_quick_links?.length) setFooterQuickLinks(res.data.footer_quick_links);
+                if (res.data.footer_product_links?.length) setFooterProductLinks(res.data.footer_product_links);
             }
         } catch {
             message.error('Không thể tải cấu hình');
@@ -171,6 +209,9 @@ export default function HomeContentPage() {
                 milestones,
                 partners,
                 testimonials,
+                featured_projects: featuredProjects,
+                footer_quick_links: footerQuickLinks,
+                footer_product_links: footerProductLinks,
             });
             message.success('Đã lưu nội dung trang chủ');
             // Refresh LivePreview
@@ -553,6 +594,49 @@ export default function HomeContentPage() {
                 </div>
             ),
         },
+        // ==================== DỰ ÁN NỔI BẬT ====================
+        {
+            key: 'projects',
+            label: '🏗️ Dự Án',
+            children: (
+                <div>
+                    <div style={{ marginBottom: 16 }}>
+                        <span style={{ color: '#666' }}>Quản lý các dự án nổi bật hiển thị trên trang chủ (liên kết: <a href="/du-an" target="_blank">/du-an</a>)</span>
+                    </div>
+                    {featuredProjects.map((project: FeaturedProject, index: number) => (
+                        <div key={project.id} style={{ marginBottom: 16, padding: 16, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <strong>Dự án {index + 1}</strong>
+                                <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setFeaturedProjects(featuredProjects.filter((_: FeaturedProject, i: number) => i !== index))} />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                <div>
+                                    <label style={{ fontSize: 12, color: '#666' }}>Tên dự án</label>
+                                    <Input value={project.title} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, title: e.target.value } : p))} placeholder="Dự án Trường MN ABC" />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 12, color: '#666' }}>Tên trường / đơn vị</label>
+                                    <Input value={project.school_name} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, school_name: e.target.value } : p))} placeholder="Trường Mầm Non ABC" />
+                                </div>
+                            </div>
+                            <div style={{ marginTop: 12 }}>
+                                <label style={{ fontSize: 12, color: '#666' }}>Slug (URL chi tiết)</label>
+                                <Input value={project.slug} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, slug: e.target.value } : p))} placeholder="truong-mn-abc" addonBefore="/du-an/" />
+                            </div>
+                            <div style={{ marginTop: 12 }}>
+                                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>Hình ảnh</label>
+                                <ImageUploader simple value={project.image_url} onChange={(val: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, image_url: typeof val === 'string' ? val : val?.url || '' } : p))} hint="📐 Ngang 16:10" />
+                            </div>
+                        </div>
+                    ))}
+                    {featuredProjects.length < 12 && (
+                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setFeaturedProjects([...featuredProjects, { id: Date.now().toString(), title: '', school_name: '', image_url: '', slug: '' }])}>
+                            Thêm dự án ({featuredProjects.length}/12)
+                        </Button>
+                    )}
+                </div>
+            ),
+        },
         // ==================== PRODUCTS ====================
         {
             key: 'products',
@@ -623,6 +707,56 @@ export default function HomeContentPage() {
                 </>
             ),
         },
+        // ==================== FOOTER ====================
+        {
+            key: 'footer',
+            label: '🦶 Footer',
+            children: (
+                <div>
+                    <div style={{ marginBottom: 16 }}>
+                        <span style={{ color: '#666' }}>Quản lý nội dung Footer (Thông tin liên hệ quản lý ở <a href="/settings" target="_blank">Cài đặt</a>)</span>
+                    </div>
+
+                    <Form.Item name="footer_slogan" label="Slogan / Mô tả công ty" extra="Hiển thị dưới logo trong footer">
+                        <Input.TextArea rows={2} placeholder="Hơn 10 năm đồng hành cùng giấc ngủ học đường. Giải pháp nệm, gối, chăn trường học toàn diện." />
+                    </Form.Item>
+
+                    <Form.Item name="footer_copyright" label="Dòng Copyright" extra="Mặc định: © 2026 HULA">
+                        <Input placeholder="© 2026 HULA - Giải pháp nệm trường học toàn diện. Tất cả quyền được bảo lưu." />
+                    </Form.Item>
+
+                    <Divider orientation="left">Menu nhanh</Divider>
+                    {footerQuickLinks.map((link: FooterLink, index: number) => (
+                        <div key={link.id} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 }}>
+                            <Input value={link.label} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === index ? { ...l, label: e.target.value } : l))} placeholder="Trang chủ" style={{ flex: 1 }} />
+                            <Input value={link.url} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === index ? { ...l, url: e.target.value } : l))} placeholder="/" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setFooterQuickLinks(footerQuickLinks.filter((_: FooterLink, i: number) => i !== index))} />
+                        </div>
+                    ))}
+                    <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setFooterQuickLinks([...footerQuickLinks, { id: Date.now().toString(), label: '', url: '' }])} style={{ marginBottom: 16 }}>
+                        Thêm link
+                    </Button>
+
+                    <Divider orientation="left">Sản phẩm / Liên kết phụ</Divider>
+                    {footerProductLinks.map((link: FooterLink, index: number) => (
+                        <div key={link.id} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 }}>
+                            <Input value={link.label} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === index ? { ...l, label: e.target.value } : l))} placeholder="Hula Shop" style={{ flex: 1 }} />
+                            <Input value={link.url} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === index ? { ...l, url: e.target.value } : l))} placeholder="/san-pham" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setFooterProductLinks(footerProductLinks.filter((_: FooterLink, i: number) => i !== index))} />
+                        </div>
+                    ))}
+                    <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setFooterProductLinks([...footerProductLinks, { id: Date.now().toString(), label: '', url: '' }])}>
+                        Thêm link
+                    </Button>
+
+                    <div style={{ background: '#f0f5ff', padding: 16, borderRadius: 8, marginTop: 16 }}>
+                        <p style={{ margin: 0, color: '#1890ff', fontSize: 13 }}>
+                            💡 Thông tin liên hệ (ĐT, Email, Địa chỉ), Mạng xã hội (Facebook, Zalo), và Google Maps được quản lý trong trang <a href="/settings" target="_blank"><strong>Cài đặt</strong></a>
+                        </p>
+                    </div>
+                </div>
+            ),
+        },
     ];
 
     // ============================================
@@ -661,11 +795,11 @@ export default function HomeContentPage() {
                     </Card>
                 </div>
 
-                {/* LivePreview Panel */}
+                {/* LivePreview Panel — Full Desktop Mode */}
                 {showPreview && (
                     <div style={{ flex: '0 0 45%', position: 'sticky', top: 16, height: 'calc(100vh - 140px)' }}>
                         <Card
-                            title="LivePreview — beta.nemmamnon.com"
+                            title="LivePreview — beta.nemmamnon.com (Desktop 1440px)"
                             size="small"
                             extra={
                                 <Tooltip title="Refresh Preview">
@@ -676,15 +810,29 @@ export default function HomeContentPage() {
                                     />
                                 </Tooltip>
                             }
-                            bodyStyle={{ padding: 0, height: 'calc(100% - 40px)' }}
+                            bodyStyle={{ padding: 0, height: 'calc(100% - 40px)', overflow: 'hidden' }}
                             style={{ height: '100%' }}
                         >
-                            <iframe
-                                ref={previewRef}
-                                src="https://beta.nemmamnon.com"
-                                style={{ width: '100%', height: '100%', border: 'none', borderRadius: '0 0 8px 8px' }}
-                                title="LivePreview"
-                            />
+                            <div style={{
+                                width: '100%',
+                                height: '100%',
+                                overflow: 'hidden',
+                                position: 'relative',
+                            }}>
+                                <iframe
+                                    ref={previewRef}
+                                    src="https://beta.nemmamnon.com"
+                                    style={{
+                                        width: '1440px',
+                                        height: 'calc(100% / 0.45)',
+                                        border: 'none',
+                                        borderRadius: '0 0 8px 8px',
+                                        transform: 'scale(0.45)',
+                                        transformOrigin: 'top left',
+                                    }}
+                                    title="LivePreview"
+                                />
+                            </div>
                         </Card>
                     </div>
                 )}

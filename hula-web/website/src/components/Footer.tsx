@@ -2,9 +2,67 @@
 
 import Link from 'next/link';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useState, useEffect } from 'react';
+
+interface FooterLink {
+    id: string;
+    label: string;
+    url: string;
+}
+
+interface FooterConfig {
+    footer_slogan?: string;
+    footer_copyright?: string;
+    footer_quick_links?: FooterLink[];
+    footer_product_links?: FooterLink[];
+}
+
+const defaultQuickLinks: FooterLink[] = [
+    { id: '1', label: 'Trang chủ', url: '/' },
+    { id: '2', label: 'Về Hula', url: '/ve-hula' },
+    { id: '3', label: 'Dự án', url: '/du-an' },
+    { id: '4', label: 'Đặt hàng B2B', url: '/dat-hang-si' },
+    { id: '5', label: 'Liên hệ', url: '/lien-he' },
+];
+
+const defaultProductLinks: FooterLink[] = [
+    { id: '1', label: 'Hula Shop', url: '/san-pham' },
+    { id: '2', label: 'Blog tư vấn', url: '/tin-tuc' },
+    { id: '3', label: 'Chính sách', url: '/chinh-sach' },
+];
 
 export default function Footer() {
     const { settings, loading } = useSettings();
+    const [footerConfig, setFooterConfig] = useState<FooterConfig>({});
+
+    useEffect(() => {
+        const fetchFooterConfig = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+                const res = await fetch(`${apiUrl}/public/home-config`, {
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setFooterConfig({
+                        footer_slogan: data.footer_slogan,
+                        footer_copyright: data.footer_copyright,
+                        footer_quick_links: data.footer_quick_links,
+                        footer_product_links: data.footer_product_links,
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching footer config:', error);
+            }
+        };
+        fetchFooterConfig();
+    }, []);
+
+    const slogan = footerConfig.footer_slogan || 'Hơn 10 năm đồng hành cùng giấc ngủ học đường. Giải pháp nệm, gối, chăn trường học toàn diện.';
+    const copyright = footerConfig.footer_copyright || `© ${new Date().getFullYear()} HULA - Giải pháp nệm trường học toàn diện. Tất cả quyền được bảo lưu.`;
+    const quickLinks = (footerConfig.footer_quick_links && footerConfig.footer_quick_links.length > 0) ? footerConfig.footer_quick_links : defaultQuickLinks;
+    const productLinks = (footerConfig.footer_product_links && footerConfig.footer_product_links.length > 0) ? footerConfig.footer_product_links : defaultProductLinks;
 
     return (
         <footer className="bg-gray-900 text-gray-300">
@@ -20,7 +78,7 @@ export default function Footer() {
                             <span className="font-heading font-bold text-xl text-white">HULA</span>
                         </div>
                         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                            Hơn 10 năm đồng hành cùng giấc ngủ học đường. Giải pháp nệm, gối, chăn trường học toàn diện.
+                            {slogan}
                         </p>
                         <ul className="space-y-3">
                             <li className="flex items-center gap-3">
@@ -77,18 +135,24 @@ export default function Footer() {
                     <div>
                         <h3 className="text-white font-heading font-semibold mb-4 text-sm uppercase tracking-wider">Menu nhanh</h3>
                         <ul className="space-y-2.5 mb-8">
-                            <li><Link href="/" className="text-sm hover:text-accent transition-colors">Trang chủ</Link></li>
-                            <li><Link href="/ve-hula" className="text-sm hover:text-accent transition-colors">Về Hula</Link></li>
-                            <li><Link href="/du-an" className="text-sm hover:text-accent transition-colors">Dự án</Link></li>
-                            <li><Link href="/dat-hang-si" className="text-sm hover:text-accent transition-colors">Đặt hàng B2B</Link></li>
-                            <li><Link href="/lien-he" className="text-sm hover:text-accent transition-colors">Liên hệ</Link></li>
+                            {quickLinks.map((link) => (
+                                <li key={link.id}>
+                                    <Link href={link.url} className="text-sm hover:text-accent transition-colors">
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
 
                         <h3 className="text-white font-heading font-semibold mb-4 text-sm uppercase tracking-wider">Sản phẩm</h3>
                         <ul className="space-y-2.5">
-                            <li><Link href="/san-pham" className="text-sm hover:text-accent transition-colors">Hula Shop</Link></li>
-                            <li><Link href="/tin-tuc" className="text-sm hover:text-accent transition-colors">Blog tư vấn</Link></li>
-                            <li><Link href="/chinh-sach" className="text-sm hover:text-accent transition-colors">Chính sách</Link></li>
+                            {productLinks.map((link) => (
+                                <li key={link.id}>
+                                    <Link href={link.url} className="text-sm hover:text-accent transition-colors">
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
                     </div>
 
@@ -159,7 +223,7 @@ export default function Footer() {
                 {/* Bottom bar */}
                 <div className="mt-12 pt-8 border-t border-gray-800 text-center">
                     <p className="text-gray-500 text-sm">
-                        © {new Date().getFullYear()} HULA - Giải pháp nệm trường học toàn diện. Tất cả quyền được bảo lưu.
+                        {copyright}
                     </p>
                 </div>
             </div>
