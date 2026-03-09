@@ -14,7 +14,8 @@ import {
     LogoutOutlined,
     UserOutlined,
     MoonOutlined,
-    FormatPainterOutlined
+    FormatPainterOutlined,
+    PictureOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -31,6 +32,11 @@ const menuItems = [
         path: '/appearance',
         name: 'Giao diện',
         icon: <FormatPainterOutlined />,
+    },
+    {
+        path: '/media',
+        name: 'Hình ảnh',
+        icon: <PictureOutlined />,
     },
     {
         path: '/blogs',

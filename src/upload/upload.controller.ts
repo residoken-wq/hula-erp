@@ -3,12 +3,33 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 import { Response } from 'express';
 import { Public } from '../auth/public.decorator';
+import * as fs from 'fs';
+import * as path from 'path';
 
 
 
 @Controller('upload')
 export class UploadController {
   constructor(private readonly uploadService: UploadService) { }
+
+  @Get('list')
+  async listFiles() {
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) return [];
+    const files = fs.readdirSync(uploadDir)
+      .filter(f => /\.(jpg|jpeg|png|gif|webp|svg|ico)$/i.test(f))
+      .map(f => {
+        const stat = fs.statSync(path.join(uploadDir, f));
+        return {
+          name: f,
+          url: `/uploads/${f}`,
+          size: stat.size,
+          modified: stat.mtime,
+        };
+      })
+      .sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
+    return files;
+  }
 
   @Post('materials')
   @UseInterceptors(FileInterceptor('file'))

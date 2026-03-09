@@ -85,6 +85,7 @@ export const uploadApi = {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
     },
+    listFiles: () => api.get('/upload/list'),
     deleteFile: (filename: string) => api.delete(`/upload/files/${filename}`),
 };
 
