@@ -837,7 +837,7 @@ export default function AppearancePage() {
                                     }}>
                                         <iframe
                                             ref={iframeRef}
-                                            src="https://nemmamnon.com"
+                                            src={process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://beta.nemmamnon.com'}
                                             style={{ width: '100%', height: '100%', border: 'none' }}
                                             title="Website Preview"
                                         />
@@ -946,7 +946,7 @@ export default function AppearancePage() {
                     <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Quản lý giao diện trang chủ theo kiểu trực quan</p>
                 </div>
                 <Space>
-                    <Button icon={<EyeOutlined />} onClick={() => window.open('https://nemmamnon.com', '_blank')}>
+                    <Button icon={<EyeOutlined />} onClick={() => window.open(process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://beta.nemmamnon.com', '_blank')}>
                         Xem website
                     </Button>
                     <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving} size="large">
