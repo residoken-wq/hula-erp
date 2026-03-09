@@ -131,6 +131,8 @@ export class SystemService {
             'about_title', 'about_description',
             // Footer strings
             'footer_slogan', 'footer_copyright', 'footer_bg', 'footer_text_color',
+            // Blog selection
+            'blog_selection_type',
         ];
 
         // JSON array keys
@@ -139,6 +141,7 @@ export class SystemService {
             'HOME_CATEGORIES', 'HOME_MILESTONES', 'HOME_PARTNERS',
             'HOME_TESTIMONIALS', 'HOME_FEATURED_PROJECTS',
             'HOME_FOOTER_QUICK_LINKS', 'HOME_FOOTER_PRODUCT_LINKS',
+            'HOME_SELECTED_BLOG_IDS',
         ];
 
         const allKeys = [...keys, ...jsonArrayKeys];
@@ -151,6 +154,7 @@ export class SystemService {
         result['video_enabled'] = 'false'; // Default to hidden for safety
         result['cta_enabled'] = 'true';
         result['products_limit'] = '4';
+        result['blog_selection_type'] = 'auto'; // Default to auto
 
         configs.forEach(c => {
             if (allKeys.includes(c.key)) {
@@ -190,6 +194,7 @@ export class SystemService {
             'HOME_FEATURED_PROJECTS': 'featured_projects',
             'HOME_FOOTER_QUICK_LINKS': 'footer_quick_links',
             'HOME_FOOTER_PRODUCT_LINKS': 'footer_product_links',
+            'HOME_SELECTED_BLOG_IDS': 'selected_blog_ids',
         };
         for (const [dbKey, frontendKey] of Object.entries(jsonMapping)) {
             try {
@@ -223,6 +228,8 @@ export class SystemService {
             'about_title', 'about_description',
             // Footer strings
             'footer_slogan', 'footer_copyright', 'footer_bg', 'footer_text_color',
+            // Blog selection
+            'blog_selection_type',
         ];
 
         // Save simple string keys
@@ -263,6 +270,7 @@ export class SystemService {
             'featured_projects': 'HOME_FEATURED_PROJECTS',
             'footer_quick_links': 'HOME_FOOTER_QUICK_LINKS',
             'footer_product_links': 'HOME_FOOTER_PRODUCT_LINKS',
+            'selected_blog_ids': 'HOME_SELECTED_BLOG_IDS',
         };
         for (const [frontendKey, dbKey] of Object.entries(jsonMapping)) {
             if (data[frontendKey] !== undefined) {
