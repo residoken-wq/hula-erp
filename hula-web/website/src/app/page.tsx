@@ -20,10 +20,18 @@ async function getFeaturedProducts(limit = 4) {
     }
 }
 
-async function getBlogPosts(limit = 6) {
+async function getBlogPosts(limit = 6, config?: any) {
     try {
-        const res = await getBlogs(limit);
-        return res.data || res || [];
+        const res = await getBlogs(100);
+        const allBlogs = res.data || res || [];
+
+        if (config?.blog_selection_type === 'manual' && Array.isArray(config?.selected_blog_ids) && config.selected_blog_ids.length > 0) {
+            return config.selected_blog_ids
+                .map((id: string) => allBlogs.find((b: any) => String(b.id) === String(id) || String(b._id) === String(id) || b.slug === id))
+                .filter(Boolean);
+        }
+
+        return allBlogs.slice(0, limit);
     } catch {
         return [];
     }
@@ -32,7 +40,7 @@ async function getBlogPosts(limit = 6) {
 export default async function HomePage() {
     const config = await getHomeConfig() || {};
     const settings = await getSettings() || {};
-    const blogPosts = await getBlogPosts(6);
+    const blogPosts = await getBlogPosts(6, config);
 
     const heroImages = (config.hero_images && config.hero_images.length > 0)
         ? config.hero_images
@@ -162,7 +170,20 @@ export default async function HomePage() {
             {/* ============================================
                 SECTION 8 — THÔNG TIN HỮU ÍCH
                ============================================ */}
-            <BlogGrid posts={blogPosts} bgColor={settings.section_blog_bg} textColor={settings.section_blog_text} />
+            <BlogGrid
+                posts={blogPosts.map((post: any) => ({
+                    id: post.id || post._id,
+                    title: post.title,
+                    slug: post.slug,
+                    excerpt: post.excerpt,
+                    thumbnail: post.featured_image,
+                    thumbnail_alt: post.featured_image_alt,
+                    thumbnail_title: post.featured_image_title,
+                    created_at: post.created_at,
+                }))}
+                bgColor={settings.section_blog_bg}
+                textColor={settings.section_blog_text}
+            />
         </>
     );
 }

@@ -11,8 +11,14 @@ import {
     RightOutlined, PlusOutlined, DeleteOutlined, EditOutlined, DesktopOutlined,
     BgColorsOutlined, SettingOutlined, HomeOutlined, MobileOutlined, LinkOutlined
 } from '@ant-design/icons';
-import { systemApi } from '@/lib/api';
+import { systemApi, blogsApi } from '@/lib/api';
 import ImageUploader from '@/components/ImageUploader';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
+    ssr: false,
+    loading: () => <Spin tip="Đang tải trình soạn thảo..." style={{ padding: 20 }} />
+});
 
 // ============================================
 // SECTION DEFINITIONS
@@ -46,6 +52,7 @@ const SECTIONS: SectionDef[] = [
 interface Feature {
     id: string;
     icon: string;
+    icon_url?: string;
     title: string;
     description: string;
 }
@@ -59,6 +66,7 @@ interface UspItem {
 interface Guarantee {
     id: string;
     icon: string;
+    icon_url?: string;
     title: string;
     description: string;
 }
@@ -139,6 +147,10 @@ export default function AppearancePage() {
     const [partners, setPartners] = useState<Partner[]>([]);
     const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
     const [featuredProjects, setFeaturedProjects] = useState<FeaturedProject[]>([]);
+    const [partnerModal, setPartnerModal] = useState(false);
+    const [testimonialModal, setTestimonialModal] = useState(false);
+    const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
+    const [blogOptions, setBlogOptions] = useState<{ label: string, value: string }[]>([]);
     const [footerQuickLinks, setFooterQuickLinks] = useState<FooterLink[]>([
         { id: '1', label: 'Trang chủ', url: '/' },
         { id: '2', label: 'Về Hula', url: '/ve-hula' },
@@ -191,6 +203,17 @@ export default function AppearancePage() {
             try {
                 const modeRes = await systemApi.getConfig('SITE_MODE');
                 if (modeRes.data?.value) setSiteMode(modeRes.data.value);
+            } catch { }
+
+            // 1b. Load blogs for selection
+            try {
+                const blogsRes = await blogsApi.getAll();
+                if (blogsRes.data) {
+                    setBlogOptions(blogsRes.data.map((b: any) => ({
+                        label: b.title,
+                        value: b._id || b.id || b.slug
+                    })));
+                }
             } catch { }
 
             // 2. Load settings (general + colors)
@@ -508,23 +531,51 @@ export default function AppearancePage() {
                         {renderColorPicker(section)}
                         <Divider orientation="left">Điểm nổi bật (Tại sao chọn HULA)</Divider>
                         {features.map((f: Feature, idx: number) => (
-                            <div key={f.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                                <Input value={f.icon} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ width: 50, textAlign: 'center', fontSize: 16 }} />
-                                <Input value={f.title} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" style={{ flex: 1 }} />
-                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeatures(features.filter((_: Feature, i: number) => i !== idx))} />
+                            <div key={f.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <strong style={{ fontSize: 14 }}>Điểm nổi bật {idx + 1}</strong>
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeatures(features.filter((_: Feature, i: number) => i !== idx))} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12, marginBottom: 12 }}>
+                                    <Input value={f.icon} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
+                                    <Input value={f.title} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" />
+                                </div>
+                                <div style={{ marginBottom: 12 }}>
+                                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Mô tả chi tiết</label>
+                                    <RichTextEditor
+                                        value={f.description || ''}
+                                        onChange={(val) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, description: val } : x))}
+                                        minHeight={200}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Icon / Hình ảnh đại diện</label>
+                                    <ImageUploader simple value={f.icon_url} onChange={(val: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (48x48)" />
+                                </div>
                             </div>
                         ))}
-                        <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setFeatures([...features, { id: Date.now().toString(), icon: '✨', title: '', description: '' }])} style={{ marginBottom: 16 }}>Thêm</Button>
+                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setFeatures([...features, { id: Date.now().toString(), icon: '✨', title: '', description: '' }])} style={{ marginBottom: 24, height: 40 }}>Thêm điểm nổi bật</Button>
 
-                        <Divider orientation="left">Cam kết mua hàng</Divider>
+                        <Divider orientation="left">Cam kết mua hàng (Icon 3 cột bên phải)</Divider>
                         {guarantees.map((g: Guarantee, idx: number) => (
-                            <div key={g.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                                <Input value={g.icon} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ width: 50, textAlign: 'center', fontSize: 16 }} />
-                                <Input value={g.title} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" style={{ flex: 1 }} />
-                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setGuarantees(guarantees.filter((_: Guarantee, i: number) => i !== idx))} />
+                            <div key={g.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <strong style={{ fontSize: 14 }}>Cam kết {idx + 1}</strong>
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setGuarantees(guarantees.filter((_: Guarantee, i: number) => i !== idx))} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 12 }}>
+                                    <Input value={g.title} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề cam kết" />
+                                </div>
+                                <div style={{ marginBottom: 12 }}>
+                                    <Input.TextArea value={g.description} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả dưới tiêu đề (không bắt buộc)" rows={2} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
+                                    <Input value={g.icon} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
+                                    <ImageUploader simple value={g.icon_url} onChange={(val: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (64x64)" />
+                                </div>
                             </div>
                         ))}
-                        <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setGuarantees([...guarantees, { id: Date.now().toString(), icon: '🛡️', title: '', description: '' }])}>Thêm</Button>
+                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setGuarantees([...guarantees, { id: Date.now().toString(), icon: '🛡️', title: '', description: '' }])} style={{ height: 40 }}>Thêm cam kết</Button>
 
                         <Divider orientation="left">Cột mốc hành trình</Divider>
                         {milestones.map((m: Milestone, idx: number) => (
@@ -617,7 +668,34 @@ export default function AppearancePage() {
                 return (
                     <>
                         {renderColorPicker(section)}
-                        <Alert message="Blog lấy dữ liệu tự động từ hệ thống. Bạn có thể điều chỉnh màu sắc ở trên." type="info" showIcon style={{ marginTop: 8 }} />
+                        <Form form={homeForm} layout="vertical" style={{ marginTop: 16 }}>
+                            <Divider orientation="left">Nguồn hiển thị Blog</Divider>
+                            <Form.Item name="blog_selection_type" label="Dữ liệu hiển thị" initialValue="auto">
+                                <Radio.Group>
+                                    <Radio value="auto">Tự động (Bài viết mới nhất)</Radio>
+                                    <Radio value="manual">Chọn lọc</Radio>
+                                </Radio.Group>
+                            </Form.Item>
+
+                            <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.blog_selection_type !== currentValues.blog_selection_type}>
+                                {() => {
+                                    if (homeForm.getFieldValue('blog_selection_type') === 'manual') {
+                                        return (
+                                            <Form.Item name="selected_blog_ids" label="Chọn blog hiển thị (tối đa 6)" rules={[{ required: true, message: 'Vui lòng chọn bài viết' }]}>
+                                                <Select
+                                                    mode="multiple"
+                                                    placeholder="Chọn blog"
+                                                    options={blogOptions}
+                                                    maxCount={6}
+                                                    optionFilterProp="label"
+                                                />
+                                            </Form.Item>
+                                        );
+                                    }
+                                    return <Alert message="Hệ thống tự động hiển thị 6 bài viết mới nhất" type="info" showIcon />;
+                                }}
+                            </Form.Item>
+                        </Form>
                     </>
                 );
 
@@ -910,10 +988,10 @@ export default function AppearancePage() {
                             <Input placeholder="© 2026 HULA - Giải pháp nệm trường học toàn diện." />
                         </Form.Item>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                            <Form.Item name="footer_bg" label="Màu nền Footer">
+                            <Form.Item name="footer_bg" label="Màu nền Footer" getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || '#1e293b' })}>
                                 <ColorPicker showText />
                             </Form.Item>
-                            <Form.Item name="footer_text_color" label="Màu chữ Footer">
+                            <Form.Item name="footer_text_color" label="Màu chữ Footer" getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || '#ffffff' })}>
                                 <ColorPicker showText />
                             </Form.Item>
                         </div>

@@ -10,6 +10,8 @@ interface Blog {
     excerpt: string;
     content: string;
     featured_image: string;
+    featured_image_alt?: string;
+    featured_image_title?: string;
     category: string;
     published_at: string;
     view_count: number;
@@ -226,12 +228,12 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                         )}
                     </div>
 
-                    {/* Featured Image */}
                     {blog.featured_image && (
                         <div className="aspect-video bg-gray-100">
                             <img
                                 src={blog.featured_image}
-                                alt={blog.title}
+                                alt={blog.featured_image_alt || blog.title}
+                                title={blog.featured_image_title || blog.title}
                                 className="w-full h-full object-cover"
                             />
                         </div>
@@ -295,7 +297,8 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                                     {related.featured_image ? (
                                         <img
                                             src={related.featured_image}
-                                            alt={related.title}
+                                            alt={related.featured_image_alt || related.title}
+                                            title={related.featured_image_title || related.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                         />
                                     ) : (

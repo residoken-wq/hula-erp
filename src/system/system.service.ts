@@ -130,7 +130,7 @@ export class SystemService {
             // About
             'about_title', 'about_description',
             // Footer strings
-            'footer_slogan', 'footer_copyright',
+            'footer_slogan', 'footer_copyright', 'footer_bg', 'footer_text_color',
         ];
 
         // JSON array keys
@@ -222,7 +222,7 @@ export class SystemService {
             // About
             'about_title', 'about_description',
             // Footer strings
-            'footer_slogan', 'footer_copyright',
+            'footer_slogan', 'footer_copyright', 'footer_bg', 'footer_text_color',
         ];
 
         // Save simple string keys

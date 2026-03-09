@@ -77,7 +77,8 @@ export default async function BlogsPage() {
                                     {blog.featured_image ? (
                                         <img
                                             src={blog.featured_image}
-                                            alt={blog.title}
+                                            alt={blog.featured_image_alt || blog.title}
+                                            title={blog.featured_image_title || blog.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                         />
                                     ) : (

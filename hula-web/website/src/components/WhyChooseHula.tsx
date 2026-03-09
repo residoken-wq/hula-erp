@@ -4,6 +4,8 @@ import { getGoogleDriveImageUrl } from '@/lib/utils';
 
 interface WhyChooseHulaProps {
     reasons?: Array<{
+        icon?: string;
+        icon_url?: string;
         title: string;
         description: string;
     }>;
@@ -57,13 +59,25 @@ export default function WhyChooseHula({ reasons, guarantees, bgColor, textColor 
                         </h2>
                         <div className="space-y-6">
                             {reasonItems.map((item: any, index: number) => (
-                                <div key={index}>
-                                    <h3 className="font-heading font-bold text-base mb-1" style={{ color: textColor || '#1a365d' }}>
-                                        {item.title}:
-                                    </h3>
-                                    <p className="text-sm leading-relaxed" style={{ color: textColor || '#4a5568', opacity: 0.85 }}>
-                                        {item.description}
-                                    </p>
+                                <div key={index} className="flex gap-4 items-start">
+                                    {(item.icon_url || item.icon) && (
+                                        <div className="flex-shrink-0 mt-1 hidden lg:block">
+                                            {item.icon_url ? (
+                                                <img src={getGoogleDriveImageUrl(item.icon_url)} alt={item.title} className="w-8 h-8 object-contain" />
+                                            ) : (
+                                                <span className="text-2xl">{item.icon}</span>
+                                            )}
+                                        </div>
+                                    )}
+                                    <div className="text-sm lg:text-base leading-relaxed" style={{ color: textColor || '#4a5568' }}>
+                                        <strong className="font-heading font-bold text-base lg:text-lg mr-2" style={{ color: textColor || '#1a365d' }}>
+                                            {item.title}:
+                                        </strong>
+                                        <span
+                                            className="opacity-85 [&>p]:inline space-y-2"
+                                            dangerouslySetInnerHTML={{ __html: item.description }}
+                                        />
+                                    </div>
                                 </div>
                             ))}
                         </div>

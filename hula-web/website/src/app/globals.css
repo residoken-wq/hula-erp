@@ -111,10 +111,10 @@ button {
 }
 
 .btn-primary:hover {
-  background-color: white;
+  background-color: #1e8fb5;
   color: #ffe293;
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(35, 167, 211, 0.3);
+  box-shadow: 0 4px 16px rgba(35, 167, 211, 0.4);
 }
 
 .btn-outline {
@@ -128,8 +128,8 @@ button {
 }
 
 .btn-outline:hover {
-  background-color: white;
-  color: #23a7d3;
+  background-color: #23A7D3;
+  color: white;
 }
 
 /* Card styles with soft shadow */

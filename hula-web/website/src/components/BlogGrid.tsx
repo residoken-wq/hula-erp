@@ -8,6 +8,8 @@ interface BlogGridProps {
         slug: string;
         excerpt?: string;
         thumbnail?: string;
+        thumbnail_alt?: string;
+        thumbnail_title?: string;
         created_at?: string;
     }>;
     bgColor?: string;
@@ -41,7 +43,8 @@ export default function BlogGrid({ posts, bgColor, textColor }: BlogGridProps) {
                                 {featuredPost.thumbnail ? (
                                     <img
                                         src={getGoogleDriveImageUrl(featuredPost.thumbnail)}
-                                        alt={featuredPost.title}
+                                        alt={featuredPost.thumbnail_alt || featuredPost.title}
+                                        title={featuredPost.thumbnail_title || featuredPost.title}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                     />
                                 ) : (
@@ -74,7 +77,8 @@ export default function BlogGrid({ posts, bgColor, textColor }: BlogGridProps) {
                                     {post.thumbnail ? (
                                         <img
                                             src={getGoogleDriveImageUrl(post.thumbnail)}
-                                            alt={post.title}
+                                            alt={post.thumbnail_alt || post.title}
+                                            title={post.thumbnail_title || post.title}
                                             className="w-full h-full object-cover"
                                         />
                                     ) : (
