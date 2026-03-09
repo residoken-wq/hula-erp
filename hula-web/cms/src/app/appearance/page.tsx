@@ -906,6 +906,7 @@ export default function AppearancePage() {
                         <Form.Item name="footer_slogan" label="Slogan / Mô tả công ty" extra="Hiển thị dưới logo">
                             <Input.TextArea rows={2} placeholder="Hơn 10 năm đồng hành cùng giấc ngủ học đường..." />
                         </Form.Item>
+                        <Form.Item name="footer_copyright" label="Dòng Copyright">
                             <Input placeholder="© 2026 HULA - Giải pháp nệm trường học toàn diện." />
                         </Form.Item>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -919,25 +920,25 @@ export default function AppearancePage() {
                     </Form>
                     <Divider orientation="left">Menu nhanh</Divider>
                     {
-            footerQuickLinks.map((link: FooterLink, idx: number) => (
-                <div key={link.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                    <Input value={link.label} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, label: e.target.value } : l))} placeholder="Label" style={{ flex: 1 }} />
-                    <Input value={link.url} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, url: e.target.value } : l))} placeholder="/url" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
-                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFooterQuickLinks(footerQuickLinks.filter((_: FooterLink, i: number) => i !== idx))} />
-                </div>
-            ))
-        }
-        < Button type = "dashed" size = "small" icon = {< PlusOutlined />} onClick = {() => setFooterQuickLinks([...footerQuickLinks, { id: Date.now().toString(), label: '', url: '' }])} style = {{ marginBottom: 16 }}> Thêm</Button >
-            <Divider orientation="left">Liên kết phụ</Divider>
-{
-    footerProductLinks.map((link: FooterLink, idx: number) => (
-        <div key={link.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-            <Input value={link.label} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, label: e.target.value } : l))} placeholder="Label" style={{ flex: 1 }} />
-            <Input value={link.url} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, url: e.target.value } : l))} placeholder="/url" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
-            <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFooterProductLinks(footerProductLinks.filter((_: FooterLink, i: number) => i !== idx))} />
-        </div>
-    ))
-}
+                        footerQuickLinks.map((link: FooterLink, idx: number) => (
+                            <div key={link.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                                <Input value={link.label} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, label: e.target.value } : l))} placeholder="Label" style={{ flex: 1 }} />
+                                <Input value={link.url} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, url: e.target.value } : l))} placeholder="/url" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
+                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFooterQuickLinks(footerQuickLinks.filter((_: FooterLink, i: number) => i !== idx))} />
+                            </div>
+                        ))
+                    }
+                    < Button type="dashed" size="small" icon={< PlusOutlined />} onClick={() => setFooterQuickLinks([...footerQuickLinks, { id: Date.now().toString(), label: '', url: '' }])} style={{ marginBottom: 16 }}> Thêm</Button >
+                    <Divider orientation="left">Liên kết phụ</Divider>
+                    {
+                        footerProductLinks.map((link: FooterLink, idx: number) => (
+                            <div key={link.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                                <Input value={link.label} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, label: e.target.value } : l))} placeholder="Label" style={{ flex: 1 }} />
+                                <Input value={link.url} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, url: e.target.value } : l))} placeholder="/url" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
+                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFooterProductLinks(footerProductLinks.filter((_: FooterLink, i: number) => i !== idx))} />
+                            </div>
+                        ))
+                    }
                     <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setFooterProductLinks([...footerProductLinks, { id: Date.now().toString(), label: '', url: '' }])}>Thêm</Button>
                     <Alert message="Thông tin liên hệ, Mạng xã hội, Google Maps quản lý ở panel Thiết lập Tổng quát." type="info" showIcon style={{ marginTop: 16 }} />
                 </div >
@@ -945,101 +946,101 @@ export default function AppearancePage() {
         },
     ];
 
-return (
-    <AdminLayout>
-        {/* Header bar */}
-        <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            marginBottom: 20, flexWrap: 'wrap', gap: 12,
-        }}>
-            <div>
-                <h2 style={{ margin: 0, fontWeight: 700, fontSize: 22 }}>🎨 Giao diện Website</h2>
-                <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Quản lý giao diện trang chủ theo kiểu trực quan</p>
+    return (
+        <AdminLayout>
+            {/* Header bar */}
+            <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                marginBottom: 20, flexWrap: 'wrap', gap: 12,
+            }}>
+                <div>
+                    <h2 style={{ margin: 0, fontWeight: 700, fontSize: 22 }}>🎨 Giao diện Website</h2>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Quản lý giao diện trang chủ theo kiểu trực quan</p>
+                </div>
+                <Space>
+                    <Button icon={<EyeOutlined />} onClick={() => window.open(process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://beta.nemmamnon.com', '_blank')}>
+                        Xem website
+                    </Button>
+                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving} size="large">
+                        Lưu tất cả thay đổi
+                    </Button>
+                </Space>
             </div>
-            <Space>
-                <Button icon={<EyeOutlined />} onClick={() => window.open(process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://beta.nemmamnon.com', '_blank')}>
-                    Xem website
-                </Button>
-                <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving} size="large">
+
+            {/* Main Collapse */}
+            <Collapse
+                items={collapseItems}
+                defaultActiveKey={['homepage']}
+                expandIconPosition="end"
+                style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0' }}
+                size="large"
+            />
+
+            {/* Section Editor Drawer */}
+            <Drawer
+                title={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 20 }}>{SECTIONS.find(s => s.key === activeSection)?.icon}</span>
+                        <span>{SECTIONS.find(s => s.key === activeSection)?.label}</span>
+                    </div>
+                }
+                placement="right"
+                onClose={() => { setDrawerOpen(false); setActiveSection(null); }}
+                open={drawerOpen}
+                width={Math.min(480, typeof window !== 'undefined' ? window.innerWidth : 480)}
+                footer={
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <Button onClick={() => { setDrawerOpen(false); setActiveSection(null); }}>
+                            Đóng
+                        </Button>
+                        <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving}>
+                            Lưu thay đổi
+                        </Button>
+                    </div>
+                }
+            >
+                {renderSectionEditor()}
+            </Drawer>
+
+            {/* Feature Edit Modal */}
+            <Modal
+                title={editingFeature ? 'Sửa điểm nổi bật' : 'Thêm điểm nổi bật'}
+                open={featureModal}
+                onCancel={() => setFeatureModal(false)}
+                footer={null}
+            >
+                <Form
+                    layout="vertical"
+                    initialValues={editingFeature || { icon: '⭐', title: '', description: '' }}
+                    onFinish={handleSaveFeature}
+                    style={{ marginTop: 16 }}
+                >
+                    <Form.Item name="icon" label="Icon (emoji)" rules={[{ required: true }]}>
+                        <Input placeholder="🌿" maxLength={4} style={{ width: 100, fontSize: 24, textAlign: 'center' }} />
+                    </Form.Item>
+                    <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
+                        <Input placeholder="Nguyên Liệu Tự Nhiên" />
+                    </Form.Item>
+                    <Form.Item name="description" label="Mô tả" rules={[{ required: true }]}>
+                        <Input.TextArea rows={2} placeholder="Chất liệu 100% cotton organic..." />
+                    </Form.Item>
+                    <Button type="primary" htmlType="submit" block>
+                        {editingFeature ? 'Cập nhật' : 'Thêm'}
+                    </Button>
+                </Form>
+            </Modal>
+
+            {/* Mobile sticky save button */}
+            <div className="mobile-save-btn" style={{
+                position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px',
+                background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
+                borderTop: '1px solid #e2e8f0', zIndex: 100,
+                display: 'none', // controlled by CSS media query
+            }}>
+                <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving} block size="large">
                     Lưu tất cả thay đổi
                 </Button>
-            </Space>
-        </div>
-
-        {/* Main Collapse */}
-        <Collapse
-            items={collapseItems}
-            defaultActiveKey={['homepage']}
-            expandIconPosition="end"
-            style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0' }}
-            size="large"
-        />
-
-        {/* Section Editor Drawer */}
-        <Drawer
-            title={
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 20 }}>{SECTIONS.find(s => s.key === activeSection)?.icon}</span>
-                    <span>{SECTIONS.find(s => s.key === activeSection)?.label}</span>
-                </div>
-            }
-            placement="right"
-            onClose={() => { setDrawerOpen(false); setActiveSection(null); }}
-            open={drawerOpen}
-            width={Math.min(480, typeof window !== 'undefined' ? window.innerWidth : 480)}
-            footer={
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                    <Button onClick={() => { setDrawerOpen(false); setActiveSection(null); }}>
-                        Đóng
-                    </Button>
-                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving}>
-                        Lưu thay đổi
-                    </Button>
-                </div>
-            }
-        >
-            {renderSectionEditor()}
-        </Drawer>
-
-        {/* Feature Edit Modal */}
-        <Modal
-            title={editingFeature ? 'Sửa điểm nổi bật' : 'Thêm điểm nổi bật'}
-            open={featureModal}
-            onCancel={() => setFeatureModal(false)}
-            footer={null}
-        >
-            <Form
-                layout="vertical"
-                initialValues={editingFeature || { icon: '⭐', title: '', description: '' }}
-                onFinish={handleSaveFeature}
-                style={{ marginTop: 16 }}
-            >
-                <Form.Item name="icon" label="Icon (emoji)" rules={[{ required: true }]}>
-                    <Input placeholder="🌿" maxLength={4} style={{ width: 100, fontSize: 24, textAlign: 'center' }} />
-                </Form.Item>
-                <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
-                    <Input placeholder="Nguyên Liệu Tự Nhiên" />
-                </Form.Item>
-                <Form.Item name="description" label="Mô tả" rules={[{ required: true }]}>
-                    <Input.TextArea rows={2} placeholder="Chất liệu 100% cotton organic..." />
-                </Form.Item>
-                <Button type="primary" htmlType="submit" block>
-                    {editingFeature ? 'Cập nhật' : 'Thêm'}
-                </Button>
-            </Form>
-        </Modal>
-
-        {/* Mobile sticky save button */}
-        <div className="mobile-save-btn" style={{
-            position: 'fixed', bottom: 0, left: 0, right: 0, padding: '12px 16px',
-            background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
-            borderTop: '1px solid #e2e8f0', zIndex: 100,
-            display: 'none', // controlled by CSS media query
-        }}>
-            <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving} block size="large">
-                Lưu tất cả thay đổi
-            </Button>
-        </div>
-    </AdminLayout>
-);
+            </div>
+        </AdminLayout>
+    );
 }
