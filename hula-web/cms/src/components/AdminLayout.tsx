@@ -31,7 +31,7 @@ const menuItems = [
     },
     {
         path: '/appearance',
-        name: 'Giao diện',
+        name: 'Trang chủ',
         icon: <FormatPainterOutlined />,
     },
     {
