@@ -51,6 +51,7 @@ const SystemSettingsPage = React.lazy(() => import('./pages/SystemSettingsPage')
 const ActivityLogPage = React.lazy(() => import('./pages/ActivityLogPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage')); // <--- Import Dashboard
 const WebsiteProductsPage = React.lazy(() => import('./pages/WebsiteProductsPage')); // <--- Website Products
+const WebsiteProjectsPage = React.lazy(() => import('./pages/WebsiteProjectsPage')); // <--- Website Projects
 const HRPage = React.lazy(() => import('./pages/HRPage')); // <--- HR Module
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage')); // <--- Profile Page
 const SocialChannelsPage = React.lazy(() => import('./pages/SocialChannelsPage')); // <--- Social Channels
@@ -138,6 +139,7 @@ const App: React.FC = () => {
                 getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
                 getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page'),
                 getItem(<Link to="/website-products">Website (Bán online)</Link>, 'web_prod'),
+                getItem(<Link to="/website-projects">Dự án Website</Link>, 'web_projects'),
             ]));
         }
 
@@ -300,6 +302,7 @@ const App: React.FC = () => {
                                                         <Route path="/combos" element={<CombosPage />} />
                                                         <Route path="/categories" element={<CategoriesPage />} />
                                                         <Route path="/website-products" element={<WebsiteProductsPage />} />
+                                                        <Route path="/website-projects" element={<WebsiteProjectsPage />} />
                                                     </>
                                                 )}
 
