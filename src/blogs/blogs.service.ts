@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BlogPost, BlogStatus } from './blog-post.entity';
+import { generateSlug } from '../utils/slug.util';
 
 @Injectable()
 export class BlogsService {
@@ -51,7 +52,7 @@ export class BlogsService {
     async create(data: Partial<BlogPost>) {
         // Auto-generate slug from title
         if (!data.slug && data.title) {
-            data.slug = this.generateSlug(data.title);
+            data.slug = generateSlug(data.title);
         }
 
         // Ensure slug is unique
@@ -91,17 +92,5 @@ export class BlogsService {
     async remove(id: number) {
         const post = await this.findOne(id);
         return this.blogRepo.remove(post);
-    }
-
-    private generateSlug(title: string): string {
-        return title
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-            .replace(/đ/g, 'd')
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .trim();
     }
 }
