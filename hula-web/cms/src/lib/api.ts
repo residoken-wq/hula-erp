@@ -19,6 +19,17 @@ export const blogsApi = {
 };
 
 // ============================================
+// WEBSITE PROJECTS APIs
+// ============================================
+export const websiteProjectsApi = {
+    getAll: (params?: any) => api.get('/website-projects', { params }),
+    getOne: (id: number) => api.get(`/website-projects/${id}`),
+    create: (data: any) => api.post('/website-projects', data),
+    update: (id: number, data: any) => api.put(`/website-projects/${id}`, data),
+    delete: (id: number) => api.delete(`/website-projects/${id}`),
+};
+
+// ============================================
 // PRODUCTS APIs (from ERP)
 // ============================================
 export const productsApi = {

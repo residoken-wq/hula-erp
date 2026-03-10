@@ -15,7 +15,8 @@ import {
     UserOutlined,
     MoonOutlined,
     FormatPainterOutlined,
-    PictureOutlined
+    PictureOutlined,
+    ProjectOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -47,6 +48,11 @@ const menuItems = [
         path: '/products',
         name: 'Sản phẩm',
         icon: <ShopOutlined />,
+    },
+    {
+        path: '/projects',
+        name: 'Dự án Website',
+        icon: <ProjectOutlined />,
     },
     {
         path: '/leads',

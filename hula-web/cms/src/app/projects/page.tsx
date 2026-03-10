@@ -1,9 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Table, Button, Tag, Modal, Form, Input, Select, message, Space, Upload, Typography, Tabs, Alert } from 'antd';
+'use client';
+
+import { useState, useEffect } from 'react';
+import AdminLayout from '@/components/AdminLayout';
+import { Card, Table, Button, Space, Tag, Modal, Form, Input, Select, message, Upload, Tabs, Typography, Alert } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SyncOutlined, UploadOutlined, GlobalOutlined } from '@ant-design/icons';
-import ReactQuill from 'react-quill';
+import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
-import api from '../utils/api';
+import { websiteProjectsApi, uploadApi } from '@/lib/api';
+
+const ReactQuill = dynamic(() => import('react-quill'), {
+    ssr: false,
+    loading: () => <p>Loading editor...</p>,
+});
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -20,7 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
     ARCHIVED: 'Đã lưu trữ'
 };
 
-const WebsiteProjectsPage: React.FC = () => {
+export default function WebsiteProjectsPage() {
     const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -38,7 +46,7 @@ const WebsiteProjectsPage: React.FC = () => {
     const fetchData = async (page = 1, search = '') => {
         setLoading(true);
         try {
-            const res = await api.get('/website-projects', { params: { page, limit: pagination.pageSize, search } });
+            const res = await websiteProjectsApi.getAll({ page, limit: pagination.pageSize, search });
             setProjects(res.data.data);
             setPagination({ ...pagination, current: page, total: res.data.total });
         } catch (e) {
@@ -93,14 +101,8 @@ const WebsiteProjectsPage: React.FC = () => {
 
             // Handle image upload if there's a new file
             if (imageFile) {
-                const formData = new FormData();
-                formData.append('file', imageFile);
-                formData.append('folder', 'website_projects');
-
                 try {
-                    const uploadRes = await api.post('/upload', formData, {
-                        headers: { 'Content-Type': 'multipart/form-data' }
-                    });
+                    const uploadRes = await uploadApi.image(imageFile);
                     uploadedImageUrl = uploadRes.data.url;
                 } catch (err) {
                     message.error('Lỗi khi tải ảnh lên');
@@ -114,10 +116,10 @@ const WebsiteProjectsPage: React.FC = () => {
             };
 
             if (editingId) {
-                await api.put(`/website-projects/${editingId}`, payload);
+                await websiteProjectsApi.update(editingId, payload);
                 message.success('Cập nhật dự án thành công');
             } else {
-                await api.post('/website-projects', payload);
+                await websiteProjectsApi.create(payload);
                 message.success('Tạo dự án mới thành công');
             }
 
@@ -129,14 +131,22 @@ const WebsiteProjectsPage: React.FC = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (!window.confirm('Bạn có chắc chắn muốn xóa dự án này? Hành động này không thể hoàn tác.')) return;
-        try {
-            await api.delete(`/website-projects/${id}`);
-            message.success('Đã xóa dự án');
-            fetchData(1, searchText);
-        } catch (e) {
-            message.error('Lỗi khi xóa dự án');
-        }
+        Modal.confirm({
+            title: 'Xác nhận xóa',
+            content: 'Bạn có chắc chắn muốn xóa dự án này? Hành động này không thể hoàn tác.',
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                try {
+                    await websiteProjectsApi.delete(id);
+                    message.success('Đã xóa dự án');
+                    fetchData(1, searchText);
+                } catch (e) {
+                    message.error('Lỗi khi xóa dự án');
+                }
+            }
+        });
     };
 
     const columns = [
@@ -185,7 +195,7 @@ const WebsiteProjectsPage: React.FC = () => {
     ];
 
     return (
-        <div style={{ padding: 24 }}>
+        <AdminLayout>
             <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                 <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
@@ -323,8 +333,6 @@ const WebsiteProjectsPage: React.FC = () => {
                     </Tabs>
                 </Form>
             </Modal>
-        </div>
+        </AdminLayout>
     );
-};
-
-export default WebsiteProjectsPage;
+}
