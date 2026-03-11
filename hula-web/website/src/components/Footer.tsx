@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useState, useEffect } from 'react';
+import { getGoogleDriveImageUrl } from '@/lib/utils';
 
 interface FooterLink {
     id: string;
@@ -85,12 +86,23 @@ export default function Footer() {
 
                     {/* Column 1: Logo + Contact */}
                     <div>
-                        <div className="flex items-center space-x-2 mb-6">
-                            <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-[12px] flex items-center justify-center">
-                                <span className="text-white font-bold text-xl">H</span>
-                            </div>
-                            <span className="font-heading font-bold text-xl text-white">HULA</span>
-                        </div>
+                        <Link href="/" className="flex items-center space-x-2 mb-6 inline-block">
+                            {settings.logo_url ? (
+                                <img
+                                    src={getGoogleDriveImageUrl(settings.logo_url)}
+                                    alt={settings.site_name || 'HULA'}
+                                    className="h-10 w-auto object-contain"
+                                    style={{ filter: 'brightness(0) invert(1)' }}
+                                />
+                            ) : (
+                                <>
+                                    <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-[12px] flex items-center justify-center">
+                                        <span className="text-white font-bold text-xl">H</span>
+                                    </div>
+                                    <span className="font-heading font-bold text-xl text-white">HULA</span>
+                                </>
+                            )}
+                        </Link>
                         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
                             {slogan}
                         </p>

@@ -250,6 +250,30 @@ export default function AdminLayout({
                     </Space>
                 </Dropdown>,
             ]}
+            footerRender={() => (
+                <div style={{
+                    textAlign: 'center',
+                    padding: '24px 0',
+                    background: '#1e293b',
+                    color: 'rgba(255,255,255,0.65)'
+                }}>
+                    <div style={{ marginBottom: 12 }}>
+                        <img 
+                            src="/logo.png" 
+                            alt="Hula CMS Logo" 
+                            style={{ 
+                                height: 32, 
+                                filter: 'brightness(0) invert(1)',
+                                objectFit: 'contain'
+                            }} 
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                            }}
+                        />
+                    </div>
+                    <div>HULA CMS ©{new Date().getFullYear()}</div>
+                </div>
+            )}
         >
             <PageContainer
                 header={{
