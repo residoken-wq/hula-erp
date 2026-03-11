@@ -58,7 +58,13 @@ export default function LeadsPage() {
         try {
             const res = await leadsApi.getAll();
             const data = res.data;
-            const leadsOnly = (Array.isArray(data) ? data : []).filter((c: any) => c.type === 'LEAD');
+            const leadsOnly = (Array.isArray(data) ? data : []).filter((c: any) => {
+                if (c.type !== 'LEAD') return false;
+                // Only show leads created from website form or wizard
+                return Array.isArray(c.history) && c.history.some((h: any) => 
+                    h.action === 'CREATED_FROM_WEBSITE' || h.action === 'CREATED_FROM_WIZARD'
+                );
+            });
             setLeads(leadsOnly);
         } catch (error) {
             setLeads([]);
