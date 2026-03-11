@@ -91,7 +91,7 @@ export default function Footer() {
                                 <img
                                     src={getGoogleDriveImageUrl(settings.logo_url)}
                                     alt={settings.site_name || 'HULA'}
-                                    className="h-10 w-auto object-contain"
+                                    className="h-[8rem] w-auto object-contain"
                                     style={{ filter: 'brightness(0) invert(1)' }}
                                 />
                             ) : (
