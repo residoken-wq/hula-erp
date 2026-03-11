@@ -612,6 +612,31 @@ export default function AppearancePage() {
                 return (
                     <>
                         {renderColorPicker(section)}
+                        <Form form={homeForm} layout="vertical" style={{ marginTop: 16 }}>
+                            <Divider orientation="left">Banner Nổi bật</Divider>
+                            <Form.List name="projects_banners">
+                                {(fields, { add, remove }) => (
+                                    <>
+                                        {fields.map((field, index) => (
+                                            <div key={field.key} style={{ marginBottom: 16, padding: 12, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                                    <strong style={{ fontSize: 13 }}>Banner {index + 1}</strong>
+                                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => remove(field.name)} />
+                                                </div>
+                                                <Form.Item {...field} style={{ marginBottom: 0 }}>
+                                                    <ImageUploader hint="📐 Hình ảnh banner" />
+                                                </Form.Item>
+                                            </div>
+                                        ))}
+                                        {fields.length < 5 && (
+                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />} size="small">
+                                                Thêm banner ({fields.length}/5)
+                                            </Button>
+                                        )}
+                                    </>
+                                )}
+                            </Form.List>
+                        </Form>
                         <Divider orientation="left">Dự án nổi bật (liên kết: /du-an)</Divider>
                         {featuredProjects.map((p: FeaturedProject, idx: number) => (
                             <div key={p.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>

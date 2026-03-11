@@ -124,7 +124,7 @@ export class SystemService {
             'video_enabled', 'video_title', 'video_subtitle', 'video_youtube_url',
             'products_title', 'products_subtitle', 'products_limit',
             'cta_enabled', 'cta_title', 'cta_description', 'cta_button',
-            'HOME_FEATURES', 'hero_images', // JSON string
+            'HOME_FEATURES', 'hero_images', 'projects_banners', // JSON string
             // Topbar
             'topbar_enabled', 'topbar_left_text', 'topbar_right_text', 'topbar_right_url', 'topbar_speed',
             // About
@@ -180,6 +180,17 @@ export class SystemService {
             }
         } catch (e) {
             result['hero_images'] = [];
+        }
+        
+        // Parse projects_banners if exists
+        try {
+            if (result['projects_banners']) {
+                result['projects_banners'] = JSON.parse(result['projects_banners']);
+            } else {
+                result['projects_banners'] = [];
+            }
+        } catch (e) {
+            result['projects_banners'] = [];
         }
 
         // Parse all JSON array keys
@@ -256,6 +267,11 @@ export class SystemService {
         // Save Hero Images as JSON
         if (data.hero_images) {
             await this.setValue('hero_images', JSON.stringify(data.hero_images), 'Home Page Hero Slideshow');
+        }
+
+        // Save Projects Banners as JSON
+        if (data.projects_banners) {
+            await this.setValue('projects_banners', JSON.stringify(data.projects_banners), 'Home Page Projects Banners');
         }
 
         // Save all content JSON arrays
