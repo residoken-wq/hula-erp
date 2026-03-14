@@ -63,7 +63,7 @@ export default function WhyChooseHula({ reasons, guarantees, bgColor, textColor 
                                 {(item.icon_url || item.icon) && (
                                     <div className="mb-4 flex justify-center">
                                         {item.icon_url ? (
-                                            <img src={resolveImageUrl(item.icon_url)} alt={item.title} className="w-10 h-10 object-contain" />
+                                            <img src={resolveImageUrl(item.icon_url)} alt={item.title} className="max-w-[150px] max-h-[150px] object-contain" />
                                         ) : (
                                             <span className="text-3xl">{item.icon}</span>
                                         )}

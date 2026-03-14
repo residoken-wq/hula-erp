@@ -73,8 +73,8 @@ export default async function HomePage() {
                                 { icon: '🎨', text: 'Free thiết kế' },
                                 { icon: '🚚', text: 'Giao hàng toàn quốc' },
                             ]).map((item: any, index: number) => (
-                                <div key={index} className="py-4 text-center">
-                                    <span className="font-medium text-sm lg:text-base" style={{ color: settings.section_hero_usp_text || 'white' }}>
+                                <div key={index} className="py-2 lg:py-4 text-center">
+                                    <span className="font-medium text-xs sm:text-sm lg:text-base leading-tight" style={{ color: settings.section_hero_usp_text || 'white' }}>
                                         {item.icon} {item.text}
                                     </span>
                                 </div>

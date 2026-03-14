@@ -44,7 +44,7 @@ export default function JourneySlider({ milestones, subtitle, socialLink, bgColo
         <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#FFFFFF', color: textColor || undefined }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Title */}
-                <h2 className="text-2xl lg:text-3xl font-heading font-bold uppercase mb-2" style={{ color: textColor || '#1a365d' }}>
+                <h2 className="text-2xl lg:text-3xl font-heading font-bold uppercase mb-2 text-center" style={{ color: textColor || '#1a365d' }}>
                     Hành Trình HULA Đồng Hành Cùng Trường Học
                 </h2>
 

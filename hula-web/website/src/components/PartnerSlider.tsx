@@ -38,13 +38,13 @@ export default function PartnerSlider({ partners, bgColor, textColor }: PartnerS
                     {scrollItems.map((partner: any, index: number) => (
                         <div
                             key={index}
-                            className="flex-shrink-0 w-[200px] h-[150px] mx-3 bg-gray-50 rounded-[12px] flex items-center justify-center hover:bg-gray-100 transition-colors"
+                            className="flex-shrink-0 w-[200px] h-[150px] mx-3 flex items-center justify-center"
                         >
                             {partner.logo_url ? (
                                 <img
                                     src={resolveImageUrl(partner.logo_url)}
                                     alt={partner.name}
-                                    className="max-h-[150px] max-w-[180px] object-contain opacity-60 hover:opacity-100 transition-opacity"
+                                    className="max-h-[150px] max-w-[180px] object-contain rounded-[12px] opacity-60 hover:opacity-100 transition-opacity"
                                 />
                             ) : (
                                 <span className="text-gray-400 font-medium text-sm">{partner.name}</span>

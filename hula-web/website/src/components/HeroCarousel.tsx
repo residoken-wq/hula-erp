@@ -102,7 +102,7 @@ export default function HeroCarousel({
                         <div className="mt-8 flex flex-wrap gap-4">
                             <Link
                                 href="/san-pham"
-                                className="inline-flex items-center px-7 py-3.5 bg-white text-primary-600 font-semibold rounded-pill hover:bg-primary-600 hover:text-accent transition-all shadow-lg active:scale-95"
+                                className="inline-flex items-center px-7 py-3.5 bg-white text-primary-600 font-semibold rounded-pill hover:bg-primary-600 hover:text-white transition-all shadow-lg active:scale-95"
                             >
                                 {heroButton1 || 'Xem Sản Phẩm'}
                                 <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
