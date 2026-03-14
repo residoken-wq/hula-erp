@@ -40,8 +40,9 @@ const defaultReasons = [
 
 const defaultGuarantees = [
     { icon: '🏭', title: 'Từ nhà máy đến người tiêu dùng', description: '' },
-    { icon: '🔄', title: 'Bảo hành 1 đổi 1', description: 'nếu lỗi sản xuất' },
-    { icon: '🚚', title: 'Giao hàng toàn quốc', description: 'Freeship từ 1.000.000đ' },
+    { icon: '🛡️', title: 'Bảo hành 1 đổi 1', description: 'nếu lỗi sản xuất' },
+    { icon: '🚚', title: 'Giao hàng toàn quốc', description: 'Freeship từ : 1.000.000đ' },
+    { icon: '📦', title: 'Giao hàng toàn quốc', description: 'Freeship từ : 1.000.000đ' },
 ];
 
 export default function WhyChooseHula({ reasons, guarantees, bgColor, textColor }: WhyChooseHulaProps) {
@@ -49,73 +50,75 @@ export default function WhyChooseHula({ reasons, guarantees, bgColor, textColor 
     const guaranteeItems = (guarantees && guarantees.length > 0) ? guarantees : defaultGuarantees;
 
     return (
-        <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#FFFFFF', color: textColor || undefined }}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
-                    {/* Left — Tại sao chọn HULA */}
-                    <div>
-                        <h2 className="text-2xl lg:text-3xl font-heading font-bold uppercase mb-8" style={{ color: textColor || '#1a365d' }}>
-                            Tại Sao Chọn HULA?
-                        </h2>
-                        <div className="space-y-6">
-                            {reasonItems.map((item: any, index: number) => (
-                                <div key={index} className="flex gap-4 items-start">
-                                    {(item.icon_url || item.icon) && (
-                                        <div className="flex-shrink-0 mt-1 hidden lg:block">
-                                            {item.icon_url ? (
-                                                <img src={resolveImageUrl(item.icon_url)} alt={item.title} className="w-8 h-8 object-contain" />
-                                            ) : (
-                                                <span className="text-2xl">{item.icon}</span>
-                                            )}
-                                        </div>
-                                    )}
-                                    <div className="text-sm lg:text-base leading-relaxed" style={{ color: textColor || '#4a5568' }}>
-                                        <strong className="font-heading font-bold text-base lg:text-lg mr-2" style={{ color: textColor || '#1a365d' }}>
-                                            {item.title}:
-                                        </strong>
-                                        <span
-                                            className="opacity-85 [&>p]:inline space-y-2"
-                                            dangerouslySetInnerHTML={{ __html: item.description }}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Right — Mua hàng đảm bảo */}
-                    <div>
-                        <h2 className="text-2xl lg:text-3xl font-heading font-bold uppercase mb-8 text-center lg:text-left" style={{ color: textColor || '#1a365d' }}>
-                            Mua Hàng Đảm Bảo Cùng HULA
-                        </h2>
-                        <div className="grid grid-cols-3 gap-4">
-                            {guaranteeItems.map((item: any, index: number) => (
-                                <div key={index} className="text-center">
-                                    <div className="w-16 h-16 lg:w-20 lg:h-20 mx-auto mb-3 bg-accent/20 rounded-full flex items-center justify-center">
+        <>
+            {/* ===== Phần 1: Tại sao chọn HULA ===== */}
+            <section className="py-16 lg:py-24" style={{ backgroundColor: bgColor || '#FFFFFF', color: textColor || undefined }}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h2 className="text-2xl lg:text-3xl font-heading font-bold uppercase mb-10 text-center" style={{ color: textColor || '#1a365d' }}>
+                        Tại Sao Chọn HULA?
+                    </h2>
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {reasonItems.map((item: any, index: number) => (
+                            <div key={index} className="text-center">
+                                {(item.icon_url || item.icon) && (
+                                    <div className="mb-4 flex justify-center">
                                         {item.icon_url ? (
-                                            <img
-                                                src={resolveImageUrl(item.icon_url)}
-                                                alt={item.title}
-                                                className="w-10 h-10 lg:w-12 lg:h-12 object-contain"
-                                            />
+                                            <img src={resolveImageUrl(item.icon_url)} alt={item.title} className="w-10 h-10 object-contain" />
                                         ) : (
-                                            <span className="text-2xl lg:text-3xl">{item.icon || '📦'}</span>
+                                            <span className="text-3xl">{item.icon}</span>
                                         )}
                                     </div>
-                                    <p className="text-xs lg:text-sm font-medium leading-tight" style={{ color: textColor || '#4a5568' }}>
-                                        {item.title}
-                                    </p>
-                                    {item.description && (
-                                        <p className="text-xs mt-1 opacity-70" style={{ color: textColor || '#718096' }}>
-                                            {item.description}
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                                )}
+                                <h3 className="font-heading font-bold text-base lg:text-lg mb-2" style={{ color: textColor || '#1a365d' }}>
+                                    {item.title}
+                                </h3>
+                                <div
+                                    className="text-sm leading-relaxed opacity-85"
+                                    style={{ color: textColor || '#4a5568' }}
+                                    dangerouslySetInnerHTML={{ __html: item.description }}
+                                />
+                            </div>
+                        ))}
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            {/* ===== Phần 2: Mua hàng đảm bảo (theo reference image) ===== */}
+            <section className="py-12 lg:py-16" style={{ backgroundColor: '#f0f0f0' }}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h2 className="text-xl lg:text-2xl font-heading font-bold uppercase mb-10 text-center tracking-wide" style={{ color: '#1a365d' }}>
+                        Mua Hàng Đảm Bảo Cùng HULA
+                    </h2>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                        {guaranteeItems.map((item: any, index: number) => (
+                            <div key={index} className="text-center flex flex-col items-center">
+                                {/* Icon/Illustration — lớn, không có circle background */}
+                                <div className="w-24 h-24 lg:w-28 lg:h-28 mb-4 flex items-center justify-center">
+                                    {item.icon_url ? (
+                                        <img
+                                            src={resolveImageUrl(item.icon_url)}
+                                            alt={item.title}
+                                            className="w-full h-full object-contain"
+                                        />
+                                    ) : (
+                                        <span className="text-5xl lg:text-6xl opacity-70">{item.icon || '📦'}</span>
+                                    )}
+                                </div>
+                                {/* Title */}
+                                <p className="text-sm lg:text-base font-semibold leading-snug mb-1" style={{ color: '#1a365d' }}>
+                                    {item.title}
+                                </p>
+                                {/* Description */}
+                                {item.description && (
+                                    <p className="text-xs lg:text-sm leading-tight opacity-70" style={{ color: '#4a5568' }}>
+                                        {item.description}
+                                    </p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        </>
     );
 }
