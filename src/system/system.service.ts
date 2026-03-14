@@ -141,7 +141,7 @@ export class SystemService {
             'HOME_CATEGORIES', 'HOME_MILESTONES', 'HOME_PARTNERS',
             'HOME_TESTIMONIALS', 'HOME_FEATURED_PROJECTS',
             'HOME_FOOTER_QUICK_LINKS', 'HOME_FOOTER_PRODUCT_LINKS',
-            'HOME_SELECTED_BLOG_IDS',
+            'HOME_SELECTED_BLOG_IDS', 'HOME_SELECTED_PROJECT_IDS',
         ];
 
         const allKeys = [...keys, ...jsonArrayKeys];
@@ -206,6 +206,7 @@ export class SystemService {
             'HOME_FOOTER_QUICK_LINKS': 'footer_quick_links',
             'HOME_FOOTER_PRODUCT_LINKS': 'footer_product_links',
             'HOME_SELECTED_BLOG_IDS': 'selected_blog_ids',
+            'HOME_SELECTED_PROJECT_IDS': 'selected_project_ids',
         };
         for (const [dbKey, frontendKey] of Object.entries(jsonMapping)) {
             try {
@@ -287,6 +288,7 @@ export class SystemService {
             'footer_quick_links': 'HOME_FOOTER_QUICK_LINKS',
             'footer_product_links': 'HOME_FOOTER_PRODUCT_LINKS',
             'selected_blog_ids': 'HOME_SELECTED_BLOG_IDS',
+            'selected_project_ids': 'HOME_SELECTED_PROJECT_IDS',
         };
         for (const [frontendKey, dbKey] of Object.entries(jsonMapping)) {
             if (data[frontendKey] !== undefined) {
