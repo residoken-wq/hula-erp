@@ -2,25 +2,109 @@
 
 import Link from 'next/link';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useState, useEffect } from 'react';
+import { getGoogleDriveImageUrl } from '@/lib/utils';
+
+interface FooterLink {
+    id: string;
+    label: string;
+    url: string;
+}
+
+interface FooterConfig {
+    footer_bg?: string;
+    footer_text_color?: string;
+    footer_slogan?: string;
+    footer_copyright?: string;
+    footer_quick_links?: FooterLink[];
+    footer_product_links?: FooterLink[];
+}
+
+const defaultQuickLinks: FooterLink[] = [
+    { id: '1', label: 'Trang chủ', url: '/' },
+    { id: '2', label: 'Về Hula', url: '/ve-hula' },
+    { id: '3', label: 'Dự án', url: '/du-an' },
+    { id: '4', label: 'Đặt hàng B2B', url: '/dat-hang-si' },
+    { id: '5', label: 'Liên hệ', url: '/lien-he' },
+];
+
+const defaultProductLinks: FooterLink[] = [
+    { id: '1', label: 'Hula Shop', url: '/san-pham' },
+    { id: '2', label: 'Blog tư vấn', url: '/tin-tuc' },
+    { id: '3', label: 'Chính sách', url: '/chinh-sach' },
+];
 
 export default function Footer() {
     const { settings, loading } = useSettings();
+    const [footerConfig, setFooterConfig] = useState<FooterConfig>({});
+
+    useEffect(() => {
+        const fetchFooterConfig = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+                const res = await fetch(`${apiUrl}/public/home-config`, {
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setFooterConfig({
+                        footer_bg: typeof data.footer_bg === 'string' ? data.footer_bg : data.footer_bg?.toHexString ? data.footer_bg.toHexString() : data.footer_bg?.metaColor?.originalInput?.hex,
+                        footer_text_color: typeof data.footer_text_color === 'string' ? data.footer_text_color : data.footer_text_color?.toHexString ? data.footer_text_color.toHexString() : data.footer_text_color?.metaColor?.originalInput?.hex,
+                        footer_slogan: data.footer_slogan,
+                        footer_copyright: data.footer_copyright,
+                        footer_quick_links: data.footer_quick_links,
+                        footer_product_links: data.footer_product_links,
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching footer config:', error);
+            }
+        };
+        fetchFooterConfig();
+    }, []);
+
+    const slogan = footerConfig.footer_slogan || 'Hơn 10 năm đồng hành cùng giấc ngủ học đường. Giải pháp nệm, gối, chăn trường học toàn diện.';
+    const copyright = footerConfig.footer_copyright || `© ${new Date().getFullYear()} HULA - Giải pháp nệm trường học toàn diện. Tất cả quyền được bảo lưu.`;
+    const quickLinks = (footerConfig.footer_quick_links && footerConfig.footer_quick_links.length > 0) ? footerConfig.footer_quick_links : defaultQuickLinks;
+    const productLinks = (footerConfig.footer_product_links && footerConfig.footer_product_links.length > 0) ? footerConfig.footer_product_links : defaultProductLinks;
+
+    const bgStyle = footerConfig.footer_bg && typeof footerConfig.footer_bg === 'string' ? { backgroundColor: footerConfig.footer_bg } : {};
+    const textStyle = footerConfig.footer_text_color && typeof footerConfig.footer_text_color === 'string' ? { color: footerConfig.footer_text_color } : {};
+
+    const getIframeSrc = (input: string) => {
+        if (!input) return '';
+        const match = input.match(/src="([^"]+)"/);
+        return match ? match[1] : input;
+    };
+    const mapsUrl = getIframeSrc(settings.google_maps_url || '');
 
     return (
-        <footer className="bg-gray-900 text-gray-300">
+        <footer className={`bg-gray-900 text-gray-300`} style={{ ...bgStyle, ...textStyle }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
 
                     {/* Column 1: Logo + Contact */}
                     <div>
-                        <div className="flex items-center space-x-2 mb-6">
-                            <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-[12px] flex items-center justify-center">
-                                <span className="text-white font-bold text-xl">H</span>
-                            </div>
-                            <span className="font-heading font-bold text-xl text-white">HULA</span>
-                        </div>
+                        <Link href="/" className="flex items-center space-x-2 mb-6 inline-block">
+                            {settings.logo_url ? (
+                                <img
+                                    src={getGoogleDriveImageUrl(settings.logo_url)}
+                                    alt={settings.site_name || 'HULA'}
+                                    className="h-[8rem] w-auto object-contain"
+                                    style={{ filter: 'brightness(0) invert(1)' }}
+                                />
+                            ) : (
+                                <>
+                                    <div className="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-[12px] flex items-center justify-center">
+                                        <span className="text-white font-bold text-xl">H</span>
+                                    </div>
+                                    <span className="font-heading font-bold text-xl text-white">HULA</span>
+                                </>
+                            )}
+                        </Link>
                         <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                            Hơn 10 năm đồng hành cùng giấc ngủ học đường. Giải pháp nệm, gối, chăn trường học toàn diện.
+                            {slogan}
                         </p>
                         <ul className="space-y-3">
                             <li className="flex items-center gap-3">
@@ -77,18 +161,24 @@ export default function Footer() {
                     <div>
                         <h3 className="text-white font-heading font-semibold mb-4 text-sm uppercase tracking-wider">Menu nhanh</h3>
                         <ul className="space-y-2.5 mb-8">
-                            <li><Link href="/" className="text-sm hover:text-accent transition-colors">Trang chủ</Link></li>
-                            <li><Link href="/ve-hula" className="text-sm hover:text-accent transition-colors">Về Hula</Link></li>
-                            <li><Link href="/du-an" className="text-sm hover:text-accent transition-colors">Dự án</Link></li>
-                            <li><Link href="/dat-hang-si" className="text-sm hover:text-accent transition-colors">Đặt hàng B2B</Link></li>
-                            <li><Link href="/lien-he" className="text-sm hover:text-accent transition-colors">Liên hệ</Link></li>
+                            {quickLinks.map((link) => (
+                                <li key={link.id}>
+                                    <Link href={link.url} className="text-sm hover:text-accent transition-colors">
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
 
                         <h3 className="text-white font-heading font-semibold mb-4 text-sm uppercase tracking-wider">Sản phẩm</h3>
                         <ul className="space-y-2.5">
-                            <li><Link href="/san-pham" className="text-sm hover:text-accent transition-colors">Hula Shop</Link></li>
-                            <li><Link href="/tin-tuc" className="text-sm hover:text-accent transition-colors">Blog tư vấn</Link></li>
-                            <li><Link href="/chinh-sach" className="text-sm hover:text-accent transition-colors">Chính sách</Link></li>
+                            {productLinks.map((link) => (
+                                <li key={link.id}>
+                                    <Link href={link.url} className="text-sm hover:text-accent transition-colors">
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
                         </ul>
                     </div>
 
@@ -96,9 +186,9 @@ export default function Footer() {
                     <div>
                         <h3 className="text-white font-heading font-semibold mb-4 text-sm uppercase tracking-wider">Bản đồ</h3>
                         <div className="rounded-[12px] overflow-hidden">
-                            {settings.google_maps_url ? (
+                            {mapsUrl ? (
                                 <iframe
-                                    src={settings.google_maps_url}
+                                    src={mapsUrl}
                                     width="100%"
                                     height="200"
                                     style={{ border: 0 }}
@@ -159,7 +249,7 @@ export default function Footer() {
                 {/* Bottom bar */}
                 <div className="mt-12 pt-8 border-t border-gray-800 text-center">
                     <p className="text-gray-500 text-sm">
-                        © {new Date().getFullYear()} HULA - Giải pháp nệm trường học toàn diện. Tất cả quyền được bảo lưu.
+                        {copyright}
                     </p>
                 </div>
             </div>

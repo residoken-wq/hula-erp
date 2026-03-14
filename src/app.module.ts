@@ -31,6 +31,7 @@ import { FirebaseModule } from './firebase/firebase.module';
 import { SocialModule } from './social/social.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
+import { WebsiteProjectsModule } from './website-projects/website-projects.module';
 
 // Entities
 import { Product } from './products/product.entity';
@@ -125,6 +126,7 @@ import { AutomationWorkflow } from './marketing/entities/automation-workflow.ent
 // Announcement Entities
 import { Announcement } from './announcements/announcement.entity';
 import { AnnouncementRead } from './announcements/announcement-read.entity';
+import { WebProject } from './website-projects/entities/web-project.entity';
 
 import { MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
 import { UserContextInterceptor } from './common/interceptors/user-context.interceptor';
@@ -166,7 +168,9 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           SocialChannel, SocialOrder, SocialProductMapping,
           MarketingCampaign, CustomerSegment, AutomationWorkflow,
           // Announcements
-          Announcement, AnnouncementRead
+          Announcement, AnnouncementRead,
+          // Website
+          WebProject
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         subscribers: [],
@@ -183,6 +187,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
     SocialModule, // Social integration (Facebook, Shopee, TikTok)
     MarketingModule, // Marketing campaigns, segments, automation
     AnnouncementsModule, // Announcements for employees
+    WebsiteProjectsModule,
     TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
   ],
   providers: [

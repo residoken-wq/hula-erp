@@ -28,6 +28,12 @@ export class BlogPost {
     featured_image: string;
 
     @Column({ nullable: true })
+    featured_image_alt: string;
+
+    @Column({ nullable: true })
+    featured_image_title: string;
+
+    @Column({ nullable: true })
     category: string;
 
     @ManyToOne(() => User, { nullable: true })

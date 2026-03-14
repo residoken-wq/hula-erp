@@ -274,6 +274,14 @@ export default function BlogEditorPage() {
                                 <ImageUploader hint="📐 Kích thước: 1200x630px (1.91:1) — Tối ưu SEO + chia sẻ mạng xã hội" />
                             </Form.Item>
 
+                            <Form.Item name="featured_image_alt" label="Alt Text (SEO Ảnh)" tooltip="Mô tả nội dung ảnh cho Google (từ khóa chính)">
+                                <Input placeholder="Văn bản thay thế cho ảnh..." />
+                            </Form.Item>
+
+                            <Form.Item name="featured_image_title" label="Title Text (SEO Ảnh)" tooltip="Tiêu đề hiển thị khi người dùng di chuột vào ảnh">
+                                <Input placeholder="Tiêu đề ảnh..." />
+                            </Form.Item>
+
                             <Form.Item name="slug" label="Slug URL">
                                 <Input placeholder="url-bai-viet" />
                             </Form.Item>

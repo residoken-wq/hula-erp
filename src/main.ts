@@ -45,7 +45,8 @@ async function bootstrap() {
         'https://erp.nemmamnon.com',
         'https://cms.nemmamnon.com',
         'https://nemmamnon.com',
-        'https://www.nemmamnon.com'
+        'https://www.nemmamnon.com',
+        'https://beta.nemmamnon.com'
       ],
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       credentials: true,

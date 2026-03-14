@@ -4,7 +4,7 @@ import type { MenuProps } from 'antd';
 import {
     DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
     SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined, MenuOutlined, IdcardOutlined,
-    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined, FolderOutlined, MessageOutlined
+    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined, FolderOutlined, MessageOutlined, GlobalOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Drawer } from 'antd'; // <--- Import Drawer
@@ -137,7 +137,13 @@ const App: React.FC = () => {
                 getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'),
                 getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
                 getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page'),
-                getItem(<Link to="/website-products">Website (Bán online)</Link>, 'web_prod'),
+            ]));
+        }
+
+        // CMS Website
+        if (hasPerm('PRODUCT') || hasPerm('SALES')) {
+            items.push(getItem('CMS Website', 'sub_cms', <GlobalOutlined />, [
+                getItem(<Link to="/website-products">Sản phẩm (Bán online)</Link>, 'web_prod'),
             ]));
         }
 

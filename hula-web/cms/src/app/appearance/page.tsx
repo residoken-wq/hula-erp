@@ -3,16 +3,22 @@
 import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import {
-    Collapse, Drawer, Form, Input, Button, Switch, message, Spin,
-    ColorPicker, Radio, Space, Divider, Alert, InputNumber, List, Modal, Row, Col, Slider
+    Collapse, Drawer, Form, Input, Button, Switch, message, Spin, Select,
+    ColorPicker, Radio, Space, Divider, Alert, InputNumber, List, Modal, Row, Col, Slider, Rate
 } from 'antd';
 import {
     SaveOutlined, EyeOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined,
     RightOutlined, PlusOutlined, DeleteOutlined, EditOutlined, DesktopOutlined,
-    BgColorsOutlined, SettingOutlined, HomeOutlined, MobileOutlined
+    BgColorsOutlined, SettingOutlined, HomeOutlined, MobileOutlined, LinkOutlined
 } from '@ant-design/icons';
-import { systemApi } from '@/lib/api';
+import { systemApi, blogsApi } from '@/lib/api';
 import ImageUploader from '@/components/ImageUploader';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
+    ssr: false,
+    loading: () => <Spin tip="Đang tải trình soạn thảo..." style={{ padding: 20 }} />
+});
 
 // ============================================
 // SECTION DEFINITIONS
@@ -41,13 +47,75 @@ const SECTIONS: SectionDef[] = [
 ];
 
 // ============================================
-// FEATURE INTERFACE
+// INTERFACES
 // ============================================
 interface Feature {
     id: string;
     icon: string;
+    icon_url?: string;
     title: string;
     description: string;
+}
+
+interface UspItem {
+    id: string;
+    icon: string;
+    text: string;
+}
+
+interface Guarantee {
+    id: string;
+    icon: string;
+    icon_url?: string;
+    title: string;
+    description: string;
+}
+
+interface CategoryItem {
+    id: string;
+    icon: string;
+    title: string;
+    image_url: string;
+    slug: string;
+}
+
+interface Milestone {
+    id: string;
+    icon: string;
+    title: string;
+    description: string;
+    image_url: string;
+}
+
+interface Partner {
+    id: string;
+    name: string;
+    logo_url: string;
+}
+
+interface Testimonial {
+    id: string;
+    name: string;
+    school: string;
+    content: string;
+    rating: number;
+    image_url: string;
+    product_image_url: string;
+    product_name: string;
+}
+
+interface FeaturedProject {
+    id: string;
+    title: string;
+    school_name: string;
+    image_url: string;
+    slug: string;
+}
+
+interface FooterLink {
+    id: string;
+    label: string;
+    url: string;
 }
 
 // ============================================
@@ -66,10 +134,35 @@ export default function AppearancePage() {
     const [activeSection, setActiveSection] = useState<string | null>(null);
     const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
 
-    // Features state (from home-content)
+    // Features / WhyChoose state
     const [features, setFeatures] = useState<Feature[]>([]);
     const [editingFeature, setEditingFeature] = useState<Feature | null>(null);
     const [featureModal, setFeatureModal] = useState(false);
+
+    // Content arrays
+    const [uspItems, setUspItems] = useState<UspItem[]>([]);
+    const [guarantees, setGuarantees] = useState<Guarantee[]>([]);
+    const [categories, setCategories] = useState<CategoryItem[]>([]);
+    const [milestones, setMilestones] = useState<Milestone[]>([]);
+    const [partners, setPartners] = useState<Partner[]>([]);
+    const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+    const [featuredProjects, setFeaturedProjects] = useState<FeaturedProject[]>([]);
+    const [partnerModal, setPartnerModal] = useState(false);
+    const [testimonialModal, setTestimonialModal] = useState(false);
+    const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
+    const [blogOptions, setBlogOptions] = useState<{ label: string, value: string }[]>([]);
+    const [footerQuickLinks, setFooterQuickLinks] = useState<FooterLink[]>([
+        { id: '1', label: 'Trang chủ', url: '/' },
+        { id: '2', label: 'Về Hula', url: '/ve-hula' },
+        { id: '3', label: 'Dự án', url: '/du-an' },
+        { id: '4', label: 'Đặt hàng B2B', url: '/dat-hang-si' },
+        { id: '5', label: 'Liên hệ', url: '/lien-he' },
+    ]);
+    const [footerProductLinks, setFooterProductLinks] = useState<FooterLink[]>([
+        { id: '1', label: 'Hula Shop', url: '/san-pham' },
+        { id: '2', label: 'Blog tư vấn', url: '/tin-tuc' },
+        { id: '3', label: 'Chính sách', url: '/chinh-sach' },
+    ]);
 
     // Preview refs & state
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -79,7 +172,7 @@ export default function AppearancePage() {
     // Dynamic scale for desktop preview
     useEffect(() => {
         if (!previewContainerRef.current) return;
-        
+
         const observer = new ResizeObserver((entries) => {
             for (let entry of entries) {
                 const { width } = entry.contentRect;
@@ -91,7 +184,7 @@ export default function AppearancePage() {
                 }
             }
         });
-        
+
         observer.observe(previewContainerRef.current);
         return () => observer.disconnect();
     }, [previewMode]);
@@ -110,6 +203,17 @@ export default function AppearancePage() {
             try {
                 const modeRes = await systemApi.getConfig('SITE_MODE');
                 if (modeRes.data?.value) setSiteMode(modeRes.data.value);
+            } catch { }
+
+            // 1b. Load blogs for selection
+            try {
+                const blogsRes = await blogsApi.getAll();
+                if (blogsRes.data) {
+                    setBlogOptions(blogsRes.data.map((b: any) => ({
+                        label: b.title,
+                        value: b._id || b.id || b.slug
+                    })));
+                }
             } catch { }
 
             // 2. Load settings (general + colors)
@@ -140,9 +244,17 @@ export default function AppearancePage() {
                     data.hero_images = [data.hero_image];
                 }
                 homeForm.setFieldsValue(data);
-                if (homeRes.data.features && Array.isArray(homeRes.data.features)) {
-                    setFeatures(homeRes.data.features);
-                }
+                if (homeRes.data.features?.length) setFeatures(homeRes.data.features);
+                if (homeRes.data.why_choose_reasons?.length) setFeatures(homeRes.data.why_choose_reasons);
+                if (homeRes.data.usp_items?.length) setUspItems(homeRes.data.usp_items);
+                if (homeRes.data.why_choose_guarantees?.length) setGuarantees(homeRes.data.why_choose_guarantees);
+                if (homeRes.data.categories?.length) setCategories(homeRes.data.categories);
+                if (homeRes.data.milestones?.length) setMilestones(homeRes.data.milestones);
+                if (homeRes.data.partners?.length) setPartners(homeRes.data.partners);
+                if (homeRes.data.testimonials?.length) setTestimonials(homeRes.data.testimonials);
+                if (homeRes.data.featured_projects?.length) setFeaturedProjects(homeRes.data.featured_projects);
+                if (homeRes.data.footer_quick_links?.length) setFooterQuickLinks(homeRes.data.footer_quick_links);
+                if (homeRes.data.footer_product_links?.length) setFooterProductLinks(homeRes.data.footer_product_links);
             }
         } catch (error) {
             console.error('Failed to load:', error);
@@ -177,7 +289,20 @@ export default function AppearancePage() {
 
             // Save home config
             const homeValues = homeForm.getFieldsValue();
-            await systemApi.saveHomeConfig({ ...homeValues, features });
+            await systemApi.saveHomeConfig({
+                ...homeValues,
+                features,
+                why_choose_reasons: features,
+                usp_items: uspItems,
+                why_choose_guarantees: guarantees,
+                categories,
+                milestones,
+                partners,
+                testimonials,
+                featured_projects: featuredProjects,
+                footer_quick_links: footerQuickLinks,
+                footer_product_links: footerProductLinks,
+            });
 
             message.success('✅ Đã lưu tất cả thay đổi!');
 
@@ -331,56 +456,66 @@ export default function AppearancePage() {
 
             case 'usp':
                 return (
-                    <Form form={settingsForm} layout="vertical">
-                        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>🎨 Màu nền</div>
-                                <Form.Item name="section_hero_usp_bg" noStyle
-                                    getValueFromEvent={(c: any) => c?.toHexString?.() || c}
-                                    getValueProps={(v: any) => ({ value: v || '#1e8fb5' })}
-                                >
-                                    <ColorPicker size="small" showText />
-                                </Form.Item>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>✏️ Màu chữ</div>
-                                <Form.Item name="section_hero_usp_text" noStyle
-                                    getValueFromEvent={(c: any) => c?.toHexString?.() || c}
-                                    getValueProps={(v: any) => ({ value: v || '#FFFFFF' })}
-                                >
-                                    <ColorPicker size="small" showText />
-                                </Form.Item>
-                            </div>
-                        </div>
-                        <Alert message="Nội dung USP Bar hiện tại được hardcode trong code. Tính năng chỉnh sửa nội dung USP sẽ được cập nhật sau." type="info" showIcon style={{ marginTop: 8 }} />
-                    </Form>
-                );
-
-            case 'about':
-                return (
                     <>
                         <Form form={settingsForm} layout="vertical">
                             <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>🎨 Màu nền</div>
-                                    <Form.Item name="section_about_bg" noStyle
-                                        getValueFromEvent={(c: any) => c?.toHexString?.() || c}
-                                        getValueProps={(v: any) => ({ value: v || '#B9E5FB' })}
-                                    >
-                                        <ColorPicker size="small" showText />
-                                    </Form.Item>
+                                    <Form.Item name="section_hero_usp_bg" noStyle getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || '#1e8fb5' })}><ColorPicker size="small" showText /></Form.Item>
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>✏️ Màu chữ</div>
-                                    <Form.Item name="section_about_text" noStyle
-                                        getValueFromEvent={(c: any) => c?.toHexString?.() || c}
-                                        getValueProps={(v: any) => ({ value: v || '#1F2937' })}
-                                    >
-                                        <ColorPicker size="small" showText />
-                                    </Form.Item>
+                                    <Form.Item name="section_hero_usp_text" noStyle getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || '#FFFFFF' })}><ColorPicker size="small" showText /></Form.Item>
                                 </div>
                             </div>
                         </Form>
+                        <Divider orientation="left">Nội dung USP</Divider>
+                        {uspItems.map((item: UspItem, idx: number) => (
+                            <div key={item.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                                <Input value={item.icon} onChange={(e: any) => setUspItems(uspItems.map((u: UspItem, i: number) => i === idx ? { ...u, icon: e.target.value } : u))} style={{ width: 60, textAlign: 'center', fontSize: 18 }} />
+                                <Input value={item.text} onChange={(e: any) => setUspItems(uspItems.map((u: UspItem, i: number) => i === idx ? { ...u, text: e.target.value } : u))} placeholder="Free tư vấn" style={{ flex: 1 }} />
+                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setUspItems(uspItems.filter((_: UspItem, i: number) => i !== idx))} />
+                            </div>
+                        ))}
+                        <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setUspItems([...uspItems, { id: Date.now().toString(), icon: '⭐', text: '' }])}>Thêm mục</Button>
+                    </>
+                );
+
+            case 'categories':
+                return (
+                    <>
+                        {renderColorPicker(section)}
+                        <Divider orientation="left">Danh mục</Divider>
+                        {categories.map((cat: CategoryItem, idx: number) => (
+                            <div key={cat.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <strong style={{ fontSize: 14 }}>Danh mục {idx + 1}</strong>
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setCategories(categories.filter((_: CategoryItem, i: number) => i !== idx))} />
+                                </div>
+                                <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
+                                    <div style={{ width: 100, flexShrink: 0 }}>
+                                        <ImageUploader simple value={cat.image_url} onChange={(val: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, image_url: typeof val === 'string' ? val : val?.url || '' } : c))} hint="Hình nền" />
+                                    </div>
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                                            <Input value={cat.title} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, title: e.target.value } : c))} placeholder="Tên danh mục" />
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
+                                            <Input value={cat.icon} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, icon: e.target.value } : c))} style={{ textAlign: 'center', fontSize: 18 }} placeholder="Emoji" />
+                                            <Input value={cat.slug} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, slug: e.target.value } : c))} placeholder="duong-dan" addonBefore="/" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setCategories([...categories, { id: Date.now().toString(), icon: '📦', title: '', slug: '', image_url: '' }])}>Thêm danh mục</Button>
+                    </>
+                );
+
+            case 'about':
+                return (
+                    <>
+                        {renderColorPicker(section)}
                         <Form form={homeForm} layout="vertical">
                             <Form.Item name="about_title" label="Tiêu đề">
                                 <Input placeholder="Hơn 10 Năm Đồng Hành..." />
@@ -396,46 +531,242 @@ export default function AppearancePage() {
                     </>
                 );
 
-            default: {
-                // Generic color-only editor for sections without custom fields
-                const colorFormName = (activeSection === 'categories' || activeSection === 'journey' ||
-                    activeSection === 'projects' || activeSection === 'partners' ||
-                    activeSection === 'testimonials' || activeSection === 'blog') ? 'settings' : 'home';
-
-                const form = colorFormName === 'settings' ? settingsForm : homeForm;
-
+            case 'journey':
                 return (
-                    <Form form={form} layout="vertical">
-                        {section.settingBgKey && (
-                            <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>🎨 Màu nền</div>
-                                    <Form.Item name={section.settingBgKey} noStyle
-                                        getValueFromEvent={(c: any) => c?.toHexString?.() || c}
-                                        getValueProps={(v: any) => ({ value: v || section.defaultBg })}
-                                    >
-                                        <ColorPicker size="small" showText />
-                                    </Form.Item>
+                    <>
+                        {renderColorPicker(section)}
+                        <Divider orientation="left">Điểm nổi bật (Tại sao chọn HULA)</Divider>
+                        {features.map((f: Feature, idx: number) => (
+                            <div key={f.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <strong style={{ fontSize: 14 }}>Điểm nổi bật {idx + 1}</strong>
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeatures(features.filter((_: Feature, i: number) => i !== idx))} />
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>✏️ Màu chữ</div>
-                                    <Form.Item name={section.settingTextKey} noStyle
-                                        getValueFromEvent={(c: any) => c?.toHexString?.() || c}
-                                        getValueProps={(v: any) => ({ value: v || section.defaultText })}
-                                    >
-                                        <ColorPicker size="small" showText />
-                                    </Form.Item>
+                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12, marginBottom: 12 }}>
+                                    <Input value={f.icon} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
+                                    <Input value={f.title} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" />
+                                </div>
+                                <div style={{ marginBottom: 12 }}>
+                                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Mô tả chi tiết</label>
+                                    <RichTextEditor
+                                        value={f.description || ''}
+                                        onChange={(val) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, description: val } : x))}
+                                        minHeight={200}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Icon / Hình ảnh đại diện</label>
+                                    <ImageUploader simple value={f.icon_url} onChange={(val: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (48x48)" />
                                 </div>
                             </div>
-                        )}
-                        <Alert
-                            message={`Section "${section.label}" sử dụng dữ liệu tự động từ hệ thống. Bạn có thể điều chỉnh màu sắc ở trên.`}
-                            type="info" showIcon
-                        />
-                    </Form>
+                        ))}
+                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setFeatures([...features, { id: Date.now().toString(), icon: '✨', title: '', description: '' }])} style={{ marginBottom: 24, height: 40 }}>Thêm điểm nổi bật</Button>
+
+                        <Divider orientation="left">Cam kết mua hàng (Icon 3 cột bên phải)</Divider>
+                        {guarantees.map((g: Guarantee, idx: number) => (
+                            <div key={g.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <strong style={{ fontSize: 14 }}>Cam kết {idx + 1}</strong>
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setGuarantees(guarantees.filter((_: Guarantee, i: number) => i !== idx))} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 12 }}>
+                                    <Input value={g.title} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề cam kết" />
+                                </div>
+                                <div style={{ marginBottom: 12 }}>
+                                    <Input.TextArea value={g.description} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả dưới tiêu đề (không bắt buộc)" rows={2} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
+                                    <Input value={g.icon} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
+                                    <ImageUploader simple value={g.icon_url} onChange={(val: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (64x64)" />
+                                </div>
+                            </div>
+                        ))}
+                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setGuarantees([...guarantees, { id: Date.now().toString(), icon: '🛡️', title: '', description: '' }])} style={{ height: 40 }}>Thêm cam kết</Button>
+
+                        <Divider orientation="left">Cột mốc hành trình</Divider>
+                        {milestones.map((m: Milestone, idx: number) => (
+                            <div key={m.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <strong style={{ fontSize: 14 }}>Mốc {idx + 1}</strong>
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setMilestones(milestones.filter((_: Milestone, i: number) => i !== idx))} />
+                                </div>
+                                <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
+                                    <div style={{ width: 100, flexShrink: 0 }}>
+                                        <ImageUploader simple value={m.image_url} onChange={(val: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình ảnh" />
+                                    </div>
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
+                                            <Input value={m.icon} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} placeholder="Emoji" />
+                                            <Input value={m.title} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề mốc" />
+                                        </div>
+                                        <Input.TextArea value={m.description} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả chi tiết..." rows={2} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setMilestones([...milestones, { id: Date.now().toString(), icon: '🎯', title: '', description: '', image_url: '' }])}>Thêm cột mốc</Button>
+                    </>
                 );
-            }
+
+            case 'projects':
+                return (
+                    <>
+                        {renderColorPicker(section)}
+                        <Form form={homeForm} layout="vertical" style={{ marginTop: 16 }}>
+                            <Divider orientation="left">Banner Nổi bật</Divider>
+                            <Form.List name="projects_banners">
+                                {(fields, { add, remove }) => (
+                                    <>
+                                        {fields.map((field, index) => (
+                                            <div key={field.key} style={{ marginBottom: 16, padding: 12, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                                    <strong style={{ fontSize: 13 }}>Banner {index + 1}</strong>
+                                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => remove(field.name)} />
+                                                </div>
+                                                <Form.Item {...field} style={{ marginBottom: 0 }}>
+                                                    <ImageUploader hint="📐 Hình ảnh banner" />
+                                                </Form.Item>
+                                            </div>
+                                        ))}
+                                        {fields.length < 5 && (
+                                            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />} size="small">
+                                                Thêm banner ({fields.length}/5)
+                                            </Button>
+                                        )}
+                                    </>
+                                )}
+                            </Form.List>
+                        </Form>
+                        <Divider orientation="left">Dự án nổi bật (liên kết: /du-an)</Divider>
+                        {featuredProjects.map((p: FeaturedProject, idx: number) => (
+                            <div key={p.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                    <strong style={{ fontSize: 14 }}>Dự án {idx + 1}</strong>
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeaturedProjects(featuredProjects.filter((_: FeaturedProject, i: number) => i !== idx))} />
+                                </div>
+                                <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
+                                    <div style={{ width: 140, flexShrink: 0 }}>
+                                        <ImageUploader simple value={p.image_url} onChange={(val: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình dự án" />
+                                    </div>
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                            <Input value={p.title} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tên dự án" />
+                                            <Input value={p.school_name} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, school_name: e.target.value } : x))} placeholder="Tên trường" />
+                                        </div>
+                                        <Input value={p.slug} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, slug: e.target.value } : x))} placeholder="slug-bai-viet-du-an" addonBefore="/du-an/" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setFeaturedProjects([...featuredProjects, { id: Date.now().toString(), title: '', school_name: '', image_url: '', slug: '' }])}>Thêm dự án ({featuredProjects.length}/12)</Button>
+                    </>
+                );
+
+            case 'partners':
+                return (
+                    <>
+                        {renderColorPicker(section)}
+                        <Divider orientation="left">Đối tác</Divider>
+                        {partners.map((p: Partner, idx: number) => (
+                            <div key={p.id} style={{ marginBottom: 12, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                                    <div style={{ width: 100, flexShrink: 0 }}>
+                                        <ImageUploader simple value={p.logo_url} onChange={(val: any) => setPartners(partners.map((x: Partner, i: number) => i === idx ? { ...x, logo_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Logo" />
+                                    </div>
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <strong style={{ fontSize: 13, color: '#6b7280' }}>Đối tác {idx + 1}</strong>
+                                            <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setPartners(partners.filter((_: Partner, i: number) => i !== idx))} />
+                                        </div>
+                                        <Input value={p.name} onChange={(e: any) => setPartners(partners.map((x: Partner, i: number) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Tên đối tác (Alt text)" style={{ flex: 1 }} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setPartners([...partners, { id: Date.now().toString(), name: '', logo_url: '' }])}>Thêm đối tác</Button>
+                    </>
+                );
+
+            case 'testimonials':
+                return (
+                    <>
+                        {renderColorPicker(section)}
+                        <Divider orientation="left">Đánh giá khách hàng</Divider>
+                        {testimonials.map((t: Testimonial, idx: number) => (
+                            <div key={t.id} style={{ marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                    <strong>{t.name || `KH ${idx + 1}`}</strong>
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setTestimonials(testimonials.filter((_: Testimonial, i: number) => i !== idx))} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                    <Input value={t.name} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Tên" />
+                                    <Input value={t.school} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, school: e.target.value } : x))} placeholder="Trường" />
+                                </div>
+                                <Input.TextArea value={t.content} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, content: e.target.value } : x))} placeholder="Nội dung đánh giá" rows={2} style={{ marginTop: 8 }} />
+                                <div style={{ marginTop: 8 }}><Rate value={t.rating || 5} onChange={(v: number) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, rating: v } : x))} /></div>
+                            </div>
+                        ))}
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setTestimonials([...testimonials, { id: Date.now().toString(), name: '', school: '', content: '', rating: 5, image_url: '', product_image_url: '', product_name: '' }])}>Thêm đánh giá</Button>
+                    </>
+                );
+
+            case 'blog':
+                return (
+                    <>
+                        {renderColorPicker(section)}
+                        <Form form={homeForm} layout="vertical" style={{ marginTop: 16 }}>
+                            <Divider orientation="left">Nguồn hiển thị Blog</Divider>
+                            <Form.Item name="blog_selection_type" label="Dữ liệu hiển thị" initialValue="auto">
+                                <Radio.Group>
+                                    <Radio value="auto">Tự động (Bài viết mới nhất)</Radio>
+                                    <Radio value="manual">Chọn lọc</Radio>
+                                </Radio.Group>
+                            </Form.Item>
+
+                            <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.blog_selection_type !== currentValues.blog_selection_type}>
+                                {() => {
+                                    if (homeForm.getFieldValue('blog_selection_type') === 'manual') {
+                                        return (
+                                            <Form.Item name="selected_blog_ids" label="Chọn blog hiển thị (tối đa 6)" rules={[{ required: true, message: 'Vui lòng chọn bài viết' }]}>
+                                                <Select
+                                                    mode="multiple"
+                                                    placeholder="Chọn blog"
+                                                    options={blogOptions}
+                                                    maxCount={6}
+                                                    optionFilterProp="label"
+                                                />
+                                            </Form.Item>
+                                        );
+                                    }
+                                    return <Alert message="Hệ thống tự động hiển thị 6 bài viết mới nhất" type="info" showIcon />;
+                                }}
+                            </Form.Item>
+                        </Form>
+                    </>
+                );
+
+            default:
+                return renderColorPicker(section);
         }
+    };
+
+    // Helper: render color picker for a section
+    const renderColorPicker = (section: SectionDef) => {
+        if (!section.settingBgKey) return null;
+        return (
+            <Form form={settingsForm} layout="vertical">
+                <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>🎨 Màu nền</div>
+                        <Form.Item name={section.settingBgKey} noStyle getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || section.defaultBg })}><ColorPicker size="small" showText /></Form.Item>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>✏️ Màu chữ</div>
+                        <Form.Item name={section.settingTextKey} noStyle getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || section.defaultText })}><ColorPicker size="small" showText /></Form.Item>
+                    </div>
+                </div>
+            </Form>
+        );
     };
 
     // ============================================
@@ -591,9 +922,9 @@ export default function AppearancePage() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <EyeOutlined /> Live Preview
                                     </div>
-                                    <Radio.Group 
-                                        size="small" 
-                                        value={previewMode} 
+                                    <Radio.Group
+                                        size="small"
+                                        value={previewMode}
                                         onChange={(e) => setPreviewMode(e.target.value)}
                                         optionType="button"
                                         buttonStyle="solid"
@@ -602,15 +933,15 @@ export default function AppearancePage() {
                                         <Radio.Button value="mobile" style={{ padding: '0 8px' }}><MobileOutlined /></Radio.Button>
                                     </Radio.Group>
                                 </div>
-                                
+
                                 {/* Iframe Container */}
-                                <div 
+                                <div
                                     ref={previewContainerRef}
-                                    style={{ 
-                                        flex: 1, 
+                                    style={{
+                                        flex: 1,
                                         background: '#e2e8f0',
-                                        display: 'flex', 
-                                        justifyContent: 'center', 
+                                        display: 'flex',
+                                        justifyContent: 'center',
                                         alignItems: 'flex-start',
                                         padding: previewMode === 'mobile' ? '16px 0' : 0,
                                         overflow: 'hidden'
@@ -630,7 +961,7 @@ export default function AppearancePage() {
                                     }}>
                                         <iframe
                                             ref={iframeRef}
-                                            src="https://nemmamnon.com"
+                                            src={process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://beta.nemmamnon.com'}
                                             style={{ width: '100%', height: '100%', border: 'none' }}
                                             title="Website Preview"
                                         />
@@ -694,9 +1025,47 @@ export default function AppearancePage() {
                 </div>
             ),
             children: (
-                <div style={{ padding: '8px 0' }}>
-                    <Alert message="Footer sử dụng thông tin từ Thiết lập Tổng quát (logo, contact, social links, Google Maps). Cập nhật thông tin ở panel trên để thay đổi Footer." type="info" showIcon />
-                </div>
+                <div>
+                    <Form form={homeForm} layout="vertical">
+                        <Form.Item name="footer_slogan" label="Slogan / Mô tả công ty" extra="Hiển thị dưới logo">
+                            <Input.TextArea rows={2} placeholder="Hơn 10 năm đồng hành cùng giấc ngủ học đường..." />
+                        </Form.Item>
+                        <Form.Item name="footer_copyright" label="Dòng Copyright">
+                            <Input placeholder="© 2026 HULA - Giải pháp nệm trường học toàn diện." />
+                        </Form.Item>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <Form.Item name="footer_bg" label="Màu nền Footer" getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || '#1e293b' })}>
+                                <ColorPicker showText />
+                            </Form.Item>
+                            <Form.Item name="footer_text_color" label="Màu chữ Footer" getValueFromEvent={(c: any) => c?.toHexString?.() || c} getValueProps={(v: any) => ({ value: v || '#ffffff' })}>
+                                <ColorPicker showText />
+                            </Form.Item>
+                        </div>
+                    </Form>
+                    <Divider orientation="left">Menu nhanh</Divider>
+                    {
+                        footerQuickLinks.map((link: FooterLink, idx: number) => (
+                            <div key={link.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                                <Input value={link.label} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, label: e.target.value } : l))} placeholder="Label" style={{ flex: 1 }} />
+                                <Input value={link.url} onChange={(e: any) => setFooterQuickLinks(footerQuickLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, url: e.target.value } : l))} placeholder="/url" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
+                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFooterQuickLinks(footerQuickLinks.filter((_: FooterLink, i: number) => i !== idx))} />
+                            </div>
+                        ))
+                    }
+                    < Button type="dashed" size="small" icon={< PlusOutlined />} onClick={() => setFooterQuickLinks([...footerQuickLinks, { id: Date.now().toString(), label: '', url: '' }])} style={{ marginBottom: 16 }}> Thêm</Button >
+                    <Divider orientation="left">Liên kết phụ</Divider>
+                    {
+                        footerProductLinks.map((link: FooterLink, idx: number) => (
+                            <div key={link.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                                <Input value={link.label} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, label: e.target.value } : l))} placeholder="Label" style={{ flex: 1 }} />
+                                <Input value={link.url} onChange={(e: any) => setFooterProductLinks(footerProductLinks.map((l: FooterLink, i: number) => i === idx ? { ...l, url: e.target.value } : l))} placeholder="/url" style={{ flex: 1 }} addonBefore={<LinkOutlined />} />
+                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFooterProductLinks(footerProductLinks.filter((_: FooterLink, i: number) => i !== idx))} />
+                            </div>
+                        ))
+                    }
+                    <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setFooterProductLinks([...footerProductLinks, { id: Date.now().toString(), label: '', url: '' }])}>Thêm</Button>
+                    <Alert message="Thông tin liên hệ, Mạng xã hội, Google Maps quản lý ở panel Thiết lập Tổng quát." type="info" showIcon style={{ marginTop: 16 }} />
+                </div >
             ),
         },
     ];
@@ -713,7 +1082,7 @@ export default function AppearancePage() {
                     <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>Quản lý giao diện trang chủ theo kiểu trực quan</p>
                 </div>
                 <Space>
-                    <Button icon={<EyeOutlined />} onClick={() => window.open('https://nemmamnon.com', '_blank')}>
+                    <Button icon={<EyeOutlined />} onClick={() => window.open(process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://beta.nemmamnon.com', '_blank')}>
                         Xem website
                     </Button>
                     <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveAll} loading={saving} size="large">

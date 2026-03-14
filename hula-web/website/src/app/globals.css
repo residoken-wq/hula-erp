@@ -112,8 +112,9 @@ button {
 
 .btn-primary:hover {
   background-color: #1e8fb5;
+  color: #ffe293;
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(35, 167, 211, 0.3);
+  box-shadow: 0 4px 16px rgba(35, 167, 211, 0.4);
 }
 
 .btn-outline {
@@ -127,7 +128,7 @@ button {
 }
 
 .btn-outline:hover {
-  background-color: var(--primary);
+  background-color: #23A7D3;
   color: white;
 }
 
@@ -284,6 +285,7 @@ button {
   0% {
     transform: translateX(100%);
   }
+
   100% {
     transform: translateX(-100%);
   }

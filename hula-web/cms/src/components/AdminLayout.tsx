@@ -14,7 +14,9 @@ import {
     LogoutOutlined,
     UserOutlined,
     MoonOutlined,
-    FormatPainterOutlined
+    FormatPainterOutlined,
+    PictureOutlined,
+    ProjectOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -29,8 +31,13 @@ const menuItems = [
     },
     {
         path: '/appearance',
-        name: 'Giao diện',
+        name: 'Trang chủ',
         icon: <FormatPainterOutlined />,
+    },
+    {
+        path: '/media',
+        name: 'Hình ảnh',
+        icon: <PictureOutlined />,
     },
     {
         path: '/blogs',
@@ -41,6 +48,11 @@ const menuItems = [
         path: '/products',
         name: 'Sản phẩm',
         icon: <ShopOutlined />,
+    },
+    {
+        path: '/projects',
+        name: 'Dự án Website',
+        icon: <ProjectOutlined />,
     },
     {
         path: '/leads',
@@ -238,6 +250,30 @@ export default function AdminLayout({
                     </Space>
                 </Dropdown>,
             ]}
+            footerRender={() => (
+                <div style={{
+                    textAlign: 'center',
+                    padding: '24px 0',
+                    background: '#1e293b',
+                    color: 'rgba(255,255,255,0.65)'
+                }}>
+                    <div style={{ marginBottom: 12 }}>
+                        <img 
+                            src="/logo.png" 
+                            alt="Hula CMS Logo" 
+                            style={{ 
+                                height: 32, 
+                                filter: 'brightness(0) invert(1)',
+                                objectFit: 'contain'
+                            }} 
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                            }}
+                        />
+                    </div>
+                    <div>HULA CMS ©{new Date().getFullYear()}</div>
+                </div>
+            )}
         >
             <PageContainer
                 header={{
