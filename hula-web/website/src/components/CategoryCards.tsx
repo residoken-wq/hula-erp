@@ -37,24 +37,24 @@ export default function CategoryCards({ categories, bgColor, textColor }: Catego
                         <Link
                             key={index}
                             href={cat.slug || '/san-pham'}
-                            className="card-v2 group overflow-hidden cursor-pointer"
+                            className="group cursor-pointer block"
                         >
                             {/* Image — no card, no border, no shadow */}
-                            <div className="aspect-[4/3] bg-gradient-to-br from-section-blue to-primary-100 flex items-center justify-center relative overflow-hidden">
+                            <div className="aspect-[4/3] rounded-[12px] bg-gradient-to-br from-section-blue to-primary-100 flex items-center justify-center relative overflow-hidden">
                                 {cat.image_url ? (
                                     <img
                                         src={resolveImageUrl(cat.image_url)}
                                         alt={cat.title}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                     />
                                 ) : (
-                                    <span className="text-6xl lg:text-7xl">
+                                    <span className="text-6xl lg:text-7xl group-hover:scale-110 transition-transform duration-500">
                                         {cat.icon || '📦'}
                                     </span>
                                 )}
                             </div>
                             {/* Text below, separated */}
-                            <h3 className="font-heading font-semibold text-sm lg:text-base group-hover:text-accent transition-colors" style={{ color: textColor || '#1F2937' }}>
+                            <h3 className="mt-4 text-center font-heading font-semibold text-sm lg:text-base group-hover:text-accent transition-colors" style={{ color: textColor || '#1F2937' }}>
                                 {cat.title}
                             </h3>
                         </Link>
