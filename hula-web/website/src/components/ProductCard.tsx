@@ -18,7 +18,7 @@ interface ProductCardProps {
     product: Product;
 }
 
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 export default function ProductCard({ product }: ProductCardProps) {
     const { addToCart } = useCart();
@@ -50,7 +50,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         }, 1500);
     };
 
-    const imageUrl = getGoogleDriveImageUrl(product.image_url);
+    const imageUrl = resolveImageUrl(product.image_url);
 
     return (
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">

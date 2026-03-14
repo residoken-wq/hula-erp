@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -64,7 +64,7 @@ export default function ComingSoonPage() {
         }
     };
 
-    const resolvedLogoUrl = getGoogleDriveImageUrl(logoUrl);
+    const resolvedLogoUrl = resolveImageUrl(logoUrl);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 flex items-center justify-center p-4 relative overflow-hidden">

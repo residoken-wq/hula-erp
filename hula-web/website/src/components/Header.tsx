@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useSettings } from '@/contexts/SettingsContext';
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -41,7 +41,7 @@ export default function Header() {
         { href: '/lien-he', label: 'Liên hệ' },
     ];
 
-    const logoUrl = getGoogleDriveImageUrl(settings.logo_url);
+    const logoUrl = resolveImageUrl(settings.logo_url);
 
     return (
         <>

@@ -1,24 +1,23 @@
 'use client';
 
 import Link from 'next/link';
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 interface CategoryCardsProps {
     categories?: Array<{
         title: string;
         image_url?: string;
         slug?: string;
-        icon?: string;
     }>;
     bgColor?: string;
     textColor?: string;
 }
 
 const defaultCategories = [
-    { title: 'Nệm', image_url: '', slug: '/san-pham?category=nem', icon: '🛏️' },
-    { title: 'Gối', image_url: '', slug: '/san-pham?category=goi', icon: '🌙' },
-    { title: 'Bộ Ga Giường', image_url: '', slug: '/san-pham?category=ga-giuong', icon: '🛌' },
-    { title: 'Combo Tiết Kiệm', image_url: '', slug: '/san-pham?category=combo', icon: '✨' },
+    { title: 'Bộ nệm gối mền', image_url: '', slug: '/san-pham?category=nem-goi-men', icon: '🛏️' },
+    { title: 'Túi ngủ', image_url: '', slug: '/san-pham?category=tui-ngu', icon: '👶' },
+    { title: 'Túi bảo quản', image_url: '', slug: '/san-pham?category=tui-bao-quan', icon: '👜' },
+    { title: 'Sản phẩm khác', image_url: '', slug: '/san-pham', icon: '✨' },
 ];
 
 export default function CategoryCards({ categories, bgColor, textColor }: CategoryCardsProps) {
@@ -33,20 +32,20 @@ export default function CategoryCards({ categories, bgColor, textColor }: Catego
                     </h2>
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                     {items.map((cat: any, index: number) => (
                         <Link
                             key={index}
                             href={cat.slug || '/san-pham'}
-                            className="group text-center"
+                            className="card-v2 group overflow-hidden cursor-pointer"
                         >
                             {/* Image — no card, no border, no shadow */}
-                            <div className="aspect-square bg-white rounded-[12px] overflow-hidden mb-4 flex items-center justify-center">
+                            <div className="aspect-[4/3] bg-gradient-to-br from-section-blue to-primary-100 flex items-center justify-center relative overflow-hidden">
                                 {cat.image_url ? (
                                     <img
-                                        src={getGoogleDriveImageUrl(cat.image_url)}
+                                        src={resolveImageUrl(cat.image_url)}
                                         alt={cat.title}
-                                        className="w-full h-full object-contain p-4"
+                                        className="w-full h-full object-cover"
                                     />
                                 ) : (
                                     <span className="text-6xl lg:text-7xl">

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 interface BlogGridProps {
     posts?: Array<{
@@ -42,7 +42,7 @@ export default function BlogGrid({ posts, bgColor, textColor }: BlogGridProps) {
                             <div className="aspect-[16/9] bg-gray-100 rounded-[12px] overflow-hidden mb-4">
                                 {featuredPost.thumbnail ? (
                                     <img
-                                        src={getGoogleDriveImageUrl(featuredPost.thumbnail)}
+                                        src={resolveImageUrl(featuredPost.thumbnail)}
                                         alt={featuredPost.thumbnail_alt || featuredPost.title}
                                         title={featuredPost.thumbnail_title || featuredPost.title}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -76,7 +76,7 @@ export default function BlogGrid({ posts, bgColor, textColor }: BlogGridProps) {
                                 <div className="w-20 h-20 lg:w-24 lg:h-20 rounded-[8px] overflow-hidden bg-gray-100 flex-shrink-0">
                                     {post.thumbnail ? (
                                         <img
-                                            src={getGoogleDriveImageUrl(post.thumbnail)}
+                                            src={resolveImageUrl(post.thumbnail)}
                                             alt={post.thumbnail_alt || post.title}
                                             title={post.thumbnail_title || post.title}
                                             className="w-full h-full object-cover"

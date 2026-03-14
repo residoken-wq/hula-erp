@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 interface JourneySliderProps {
     milestones?: Array<{
@@ -71,7 +71,7 @@ export default function JourneySlider({ milestones, subtitle, socialLink, bgColo
                             <div className="aspect-[4/3] rounded-[12px] overflow-hidden bg-gray-100 mb-3">
                                 {item.image_url ? (
                                     <img
-                                        src={getGoogleDriveImageUrl(item.image_url)}
+                                        src={resolveImageUrl(item.image_url)}
                                         alt={item.title}
                                         className="w-full h-full object-cover"
                                     />

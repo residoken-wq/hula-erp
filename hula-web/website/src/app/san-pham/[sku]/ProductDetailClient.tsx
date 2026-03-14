@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useCart } from '@/contexts/CartContext';
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 // Dynamically import ModelViewer (client-only, no SSR)
 const ModelViewer3D = dynamic(() => import('@/components/ModelViewer'), {
@@ -117,14 +117,14 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                             <div className="w-full">
                                 <ModelViewer3D
                                     src={product.customization_config.model_3d_url}
-                                    poster={getGoogleDriveImageUrl(product.image_url)}
+                                    poster={resolveImageUrl(product.image_url)}
                                     alt={product.name}
                                 />
                                 <p className="text-center text-xs text-gray-500 mt-2">🔄 Xoay để xem 360° | 📱 Nhấn AR để xem trong không gian thực</p>
                             </div>
                         ) : product.image_url ? (
                             <img
-                                src={getGoogleDriveImageUrl(product.image_url)}
+                                src={resolveImageUrl(product.image_url)}
                                 alt={product.name}
                                 className="max-w-full h-auto rounded-lg shadow-md"
                             />
@@ -221,7 +221,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                                             <div className="relative w-full aspect-[3/4] bg-white rounded border overflow-hidden">
                                                 {/* Base Image (Product/Mattress) */}
                                                 <img
-                                                    src={getGoogleDriveImageUrl(product.customization_config?.base_image || product.image_url)}
+                                                    src={resolveImageUrl(product.customization_config?.base_image || product.image_url)}
                                                     alt="Base"
                                                     className="w-full h-full object-cover"
                                                 />
@@ -229,7 +229,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                                                 {/* Pillow Layer (Optional) */}
                                                 {product.customization_config?.pillow_image && (
                                                     <img
-                                                        src={getGoogleDriveImageUrl(product.customization_config.pillow_image)}
+                                                        src={resolveImageUrl(product.customization_config.pillow_image)}
                                                         alt="Pillow"
                                                         className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
                                                     />

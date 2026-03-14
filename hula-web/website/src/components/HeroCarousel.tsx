@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 import Link from 'next/link';
 
 interface HeroSlide {
@@ -21,16 +21,7 @@ interface HeroCarouselProps {
     heroMaskOpacity?: number | string;
 }
 
-function resolveImageUrl(img: string | HeroSlide): string {
-    const url = typeof img === 'string' ? img : img.url;
-    if (!url) return '';
-    if (url.startsWith('/uploads/')) {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
-        const base = API_URL.endsWith('/api') ? API_URL.replace(/\/api$/, '') : API_URL;
-        return `${base}/api/upload/files/${url.replace('/uploads/', '')}`;
-    }
-    return getGoogleDriveImageUrl(url);
-}
+
 
 function getAlt(img: string | HeroSlide, index: number): string {
     if (typeof img === 'string') return `Hero Slide ${index + 1}`;
@@ -84,7 +75,7 @@ export default function HeroCarousel({
                         }`}
                 >
                     <img
-                        src={resolveImageUrl(img)}
+                        src={resolveImageUrl(typeof img === 'string' ? img : img.url)}
                         alt={getAlt(img, index)}
                         className="w-full h-full object-cover"
                     />

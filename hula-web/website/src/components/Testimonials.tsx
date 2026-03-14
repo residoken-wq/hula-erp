@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 interface TestimonialsProps {
     testimonials?: Array<{
@@ -91,7 +91,7 @@ export default function Testimonials({ testimonials, bgColor, textColor }: Testi
                             <div className="w-12 h-12 bg-gradient-to-br from-primary-200 to-primary-400 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                                 {current.image_url ? (
                                     <img
-                                        src={getGoogleDriveImageUrl(current.image_url)}
+                                        src={resolveImageUrl(current.image_url)}
                                         alt={current.name}
                                         className="w-full h-full object-cover"
                                     />
@@ -110,7 +110,7 @@ export default function Testimonials({ testimonials, bgColor, textColor }: Testi
                     <div className="rounded-[16px] overflow-hidden aspect-[4/3] bg-gray-100">
                         {current.product_image_url ? (
                             <img
-                                src={getGoogleDriveImageUrl(current.product_image_url)}
+                                src={resolveImageUrl(current.product_image_url)}
                                 alt={current.product_name || 'Sản phẩm'}
                                 className="w-full h-full object-cover"
                             />

@@ -1,6 +1,6 @@
 'use client';
 
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 interface WhyChooseHulaProps {
     reasons?: Array<{
@@ -63,7 +63,7 @@ export default function WhyChooseHula({ reasons, guarantees, bgColor, textColor 
                                     {(item.icon_url || item.icon) && (
                                         <div className="flex-shrink-0 mt-1 hidden lg:block">
                                             {item.icon_url ? (
-                                                <img src={getGoogleDriveImageUrl(item.icon_url)} alt={item.title} className="w-8 h-8 object-contain" />
+                                                <img src={resolveImageUrl(item.icon_url)} alt={item.title} className="w-8 h-8 object-contain" />
                                             ) : (
                                                 <span className="text-2xl">{item.icon}</span>
                                             )}
@@ -94,7 +94,7 @@ export default function WhyChooseHula({ reasons, guarantees, bgColor, textColor 
                                     <div className="w-16 h-16 lg:w-20 lg:h-20 mx-auto mb-3 bg-accent/20 rounded-full flex items-center justify-center">
                                         {item.icon_url ? (
                                             <img
-                                                src={getGoogleDriveImageUrl(item.icon_url)}
+                                                src={resolveImageUrl(item.icon_url)}
                                                 alt={item.title}
                                                 className="w-10 h-10 lg:w-12 lg:h-12 object-contain"
                                             />

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useState, useEffect } from 'react';
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 interface FooterLink {
     id: string;
@@ -89,7 +89,7 @@ export default function Footer() {
                         <Link href="/" className="flex items-center space-x-2 mb-6 inline-block">
                             {settings.logo_url ? (
                                 <img
-                                    src={getGoogleDriveImageUrl(settings.logo_url)}
+                                    src={resolveImageUrl(settings.logo_url)}
                                     alt={settings.site_name || 'HULA'}
                                     className="h-[8rem] w-auto object-contain"
                                     style={{ filter: 'brightness(0) invert(1)' }}
