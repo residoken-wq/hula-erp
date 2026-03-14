@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getProducts, getBlogs, getHomeConfig, getSettings } from '@/lib/api';
+import { getProducts, getBlogs, getHomeConfig, getSettings, getProjects } from '@/lib/api';
 import HeroCarousel from '@/components/HeroCarousel';
 import CategoryCards from '@/components/CategoryCards';
 import WhyChooseHula from '@/components/WhyChooseHula';
@@ -41,6 +41,15 @@ export default async function HomePage() {
     const config = await getHomeConfig() || {};
     const settings = await getSettings() || {};
     const blogPosts = await getBlogPosts(6, config);
+    const projects = await getProjects() || [];
+
+    const featuredProjects = (config.featured_projects || []).map((fp: any) => {
+        const realProject = projects.find((p: any) => p.slug === fp.slug);
+        return {
+            ...fp,
+            image_url: fp.image_url || realProject?.image_url || ''
+        };
+    });
 
     const heroImages = (config.hero_images && config.hero_images.length > 0)
         ? config.hero_images
@@ -155,7 +164,7 @@ export default async function HomePage() {
             {/* ============================================
                 SECTION 5 — DỰ ÁN NỔI BẬT
                ============================================ */}
-            <ProjectGallery projects={config.featured_projects} bgColor={settings.section_projects_bg} textColor={settings.section_projects_text} />
+            <ProjectGallery projects={featuredProjects} bgColor={settings.section_projects_bg} textColor={settings.section_projects_text} />
 
             {/* ============================================
                 SECTION 6 — ĐỐI TÁC

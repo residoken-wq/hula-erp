@@ -175,19 +175,19 @@ export default function HomeContentPage() {
                 form.setFieldsValue(data);
 
                 // Features / WhyChoose
-                if (res.data.why_choose_reasons?.length) setFeatures(res.data.why_choose_reasons);
-                else if (res.data.features?.length) setFeatures(res.data.features);
-                if (res.data.usp_items?.length) setUspItems(res.data.usp_items);
-                if (res.data.why_choose_guarantees?.length) setGuarantees(res.data.why_choose_guarantees);
+                if (res.data.why_choose_reasons !== undefined) setFeatures(res.data.why_choose_reasons);
+                else if (res.data.features !== undefined) setFeatures(res.data.features);
+                if (res.data.usp_items !== undefined) setUspItems(res.data.usp_items);
+                if (res.data.why_choose_guarantees !== undefined) setGuarantees(res.data.why_choose_guarantees);
 
                 // NEW
-                if (res.data.categories?.length) setCategories(res.data.categories);
-                if (res.data.milestones?.length) setMilestones(res.data.milestones);
-                if (res.data.partners?.length) setPartners(res.data.partners);
-                if (res.data.testimonials?.length) setTestimonials(res.data.testimonials);
-                if (res.data.featured_projects?.length) setFeaturedProjects(res.data.featured_projects);
-                if (res.data.footer_quick_links?.length) setFooterQuickLinks(res.data.footer_quick_links);
-                if (res.data.footer_product_links?.length) setFooterProductLinks(res.data.footer_product_links);
+                if (res.data.categories !== undefined) setCategories(res.data.categories);
+                if (res.data.milestones !== undefined) setMilestones(res.data.milestones);
+                if (res.data.partners !== undefined) setPartners(res.data.partners);
+                if (res.data.testimonials !== undefined) setTestimonials(res.data.testimonials);
+                if (res.data.featured_projects !== undefined) setFeaturedProjects(res.data.featured_projects);
+                if (res.data.footer_quick_links !== undefined) setFooterQuickLinks(res.data.footer_quick_links);
+                if (res.data.footer_product_links !== undefined) setFooterProductLinks(res.data.footer_product_links);
             }
         } catch {
             message.error('Không thể tải cấu hình');

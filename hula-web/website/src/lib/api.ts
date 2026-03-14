@@ -61,6 +61,16 @@ export const getCategories = async () => {
     return data;
 };
 
+// Projects
+export const getProjects = async () => {
+    try {
+        const { data } = await api.get('/projects');
+        return data.data || [];
+    } catch {
+        return [];
+    }
+};
+
 // Blogs
 export const getBlogs = async (limit?: number) => {
     const { data } = await api.get('/blogs', { params: { limit } });

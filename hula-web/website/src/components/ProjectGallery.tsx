@@ -30,33 +30,19 @@ function ProjectCard({ project, className }: { project: any; className?: string 
     return (
         <Link
             href={project.slug ? `/du-an/${project.slug}` : '#'}
-            className={`group relative overflow-hidden rounded-[12px] bg-gray-200 block ${className || ''}`}
+            className={`relative overflow-hidden rounded-[12px] bg-gray-200 block ${className || ''}`}
         >
             {project.image_url ? (
                 <img
                     src={resolveImageUrl(project.image_url)}
                     alt={project.school_name || project.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover"
                 />
             ) : (
                 <div className="w-full h-full bg-gradient-to-br from-primary-200 to-primary-400 flex items-center justify-center">
                     <span className="text-5xl">🏫</span>
                 </div>
             )}
-
-            {/* Hover overlay — black mask with white description text */}
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-6">
-                <div className="text-center">
-                    <h3 className="font-heading font-bold text-white text-lg mb-2">
-                        {project.school_name || project.title}
-                    </h3>
-                    {project.description && (
-                        <p className="text-white/90 text-sm leading-relaxed">
-                            {project.description}
-                        </p>
-                    )}
-                </div>
-            </div>
         </Link>
     );
 }
