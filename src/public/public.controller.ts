@@ -11,7 +11,7 @@ import { ProductWebsiteConfig } from '../products/entities/product-website-confi
 import { SystemService } from '../system/system.service';
 import { WebsitePolicy } from './entities/website-policy.entity';
 import { WizardConfig, WizardConfigData } from './entities/wizard-config.entity';
-import { WebsiteProject } from './entities/website-project.entity';
+import { WebProject } from '../website-projects/entities/web-project.entity';
 
 @Controller('public')
 export class PublicController {
@@ -32,8 +32,8 @@ export class PublicController {
         private readonly policyRepo: Repository<WebsitePolicy>,
         @InjectRepository(WizardConfig)
         private readonly wizardConfigRepo: Repository<WizardConfig>,
-        @InjectRepository(WebsiteProject)
-        private readonly websiteProjectRepo: Repository<WebsiteProject>,
+        @InjectRepository(WebProject)
+        private readonly websiteProjectRepo: Repository<WebProject>,
         private readonly salesService: SalesService,
         private readonly systemService: SystemService
     ) { }
