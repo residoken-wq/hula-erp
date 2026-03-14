@@ -1,4 +1,5 @@
 'use client';
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/AdminLayout';
@@ -11,7 +12,7 @@ import {
     RightOutlined, PlusOutlined, DeleteOutlined, EditOutlined, DesktopOutlined,
     BgColorsOutlined, SettingOutlined, HomeOutlined, MobileOutlined, LinkOutlined
 } from '@ant-design/icons';
-import { systemApi, blogsApi } from '@/lib/api';
+import { systemApi, blogsApi, websiteProjectsApi } from '@/lib/api';
 import ImageUploader from '@/components/ImageUploader';
 import dynamic from 'next/dynamic';
 
@@ -151,6 +152,11 @@ export default function AppearancePage() {
     const [partnerModal, setPartnerModal] = useState(false);
     const [testimonialModal, setTestimonialModal] = useState(false);
     const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
+
+    // --- NEW: Featured Projects ---
+    const [projectOptions, setProjectOptions] = useState<{label: string, value: number}[]>([]);
+
+    // --- Nguồn Blog ---
     const [blogOptions, setBlogOptions] = useState<{ label: string, value: string }[]>([]);
     const [footerQuickLinks, setFooterQuickLinks] = useState<FooterLink[]>([
         { id: '1', label: 'Trang chủ', url: '/' },
@@ -206,17 +212,6 @@ export default function AppearancePage() {
                 if (modeRes.data?.value) setSiteMode(modeRes.data.value);
             } catch { }
 
-            // 1b. Load blogs for selection
-            try {
-                const blogsRes = await blogsApi.getAll();
-                if (blogsRes.data) {
-                    setBlogOptions(blogsRes.data.map((b: any) => ({
-                        label: b.title,
-                        value: b._id || b.id || b.slug
-                    })));
-                }
-            } catch { }
-
             // 2. Load settings (general + colors)
             const settingsKeys = [
                 'site_name', 'site_description', 'logo_url', 'contact_phone', 'contact_email', 'contact_address',
@@ -245,6 +240,31 @@ export default function AppearancePage() {
                     data.hero_images = [data.hero_image];
                 }
                 homeForm.setFieldsValue(data);
+
+                // Fetch data for Selects
+                try {
+                    const [blogsRes, projectsRes] = await Promise.all([
+                        blogsApi.getAll(),
+                        websiteProjectsApi.getAll({ limit: 100 })
+                    ]);
+                    
+                    if (blogsRes.data) {
+                        const bData = Array.isArray(blogsRes.data) ? blogsRes.data : blogsRes.data.data;
+                        if (Array.isArray(bData)) {
+                            setBlogOptions(bData.map((b: any) => ({ label: b.title, value: b.id })));
+                        }
+                    }
+
+                    if (projectsRes.data && projectsRes.data.data) {
+                        setProjectOptions(projectsRes.data.data.map((p: any) => ({
+                            label: p.title,
+                            value: p.id
+                        })));
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch options', e);
+                }
+
                 if (homeRes.data.features?.length) setFeatures(homeRes.data.features);
                 if (homeRes.data.why_choose_reasons?.length) setFeatures(homeRes.data.why_choose_reasons);
                 if (homeRes.data.usp_items?.length) setUspItems(homeRes.data.usp_items);
@@ -300,7 +320,6 @@ export default function AppearancePage() {
                 milestones,
                 partners,
                 testimonials,
-                featured_projects: featuredProjects,
                 footer_quick_links: footerQuickLinks,
                 footer_product_links: footerProductLinks,
             });
@@ -639,28 +658,18 @@ export default function AppearancePage() {
                             </Form.List>
                         </Form>
                         <Divider orientation="left">Dự án nổi bật (liên kết: /du-an)</Divider>
-                        {featuredProjects.map((p: FeaturedProject, idx: number) => (
-                            <div key={p.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                                    <strong style={{ fontSize: 14 }}>Dự án {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeaturedProjects(featuredProjects.filter((_: FeaturedProject, i: number) => i !== idx))} />
-                                </div>
-                                <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
-                                    <div style={{ width: 140, flexShrink: 0 }}>
-                                        <ImageUploader simple value={p.image_url} onChange={(val: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình dự án" />
-                                    </div>
-                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                            <Input value={p.title} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tên dự án" />
-                                            <Input value={p.school_name} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, school_name: e.target.value } : x))} placeholder="Tên trường" />
-                                        </div>
-                                        <Input value={p.slug} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, slug: e.target.value } : x))} placeholder="slug-bai-viet-du-an" addonBefore="/du-an/" />
-                                        <Input.TextArea value={p.description || ''} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả ngắn (hiển thị khi hover)" rows={2} />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setFeaturedProjects([...featuredProjects, { id: Date.now().toString(), title: '', school_name: '', description: '', image_url: '', slug: '' }])}>Thêm dự án ({featuredProjects.length}/12)</Button>
+                        <Alert message="Dự án có Độ ưu tiên cao nhất sẽ có hình ảnh hiển thị lớn nhất." type="info" showIcon style={{ marginBottom: 16 }} />
+                        <Form.Item name="selected_project_ids" rules={[{ required: true, message: 'Vui lòng chọn ít nhất 1 dự án' }]}>
+                            <Select
+                                mode="multiple"
+                                placeholder="Khám phá và chọn dự án..."
+                                options={projectOptions}
+                                maxCount={12}
+                                optionFilterProp="label"
+                                style={{ width: '100%' }}
+                                size="large"
+                            />
+                        </Form.Item>
                     </>
                 );
 

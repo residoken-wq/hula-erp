@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Form, Input, Button, Space, message, Tabs, Switch, InputNumber, List, Modal, Rate, Tooltip, Divider } from 'antd';
-import { SaveOutlined, PlusOutlined, DeleteOutlined, EyeOutlined, EditOutlined, ReloadOutlined, LinkOutlined } from '@ant-design/icons';
-import { systemApi } from '@/lib/api';
+import { Form, Input, InputNumber, Switch, Button, message, Spin, Collapse, Row, Col, Divider, Space, Radio, Select } from 'antd';
+import { SaveOutlined, PlusOutlined, DeleteOutlined, SettingOutlined, DesktopOutlined, HomeOutlined, BgColorsOutlined, EyeOutlined, MobileOutlined, LinkOutlined, GlobalOutlined, ClockCircleOutlined, ToolOutlined, RightOutlined } from '@ant-design/icons';
 import ImageUploader from '@/components/ImageUploader';
+import { systemApi, websiteProjectsApi } from '@/lib/api';
+import { List } from 'antd';
 
 // ============================================
 // INTERFACES
@@ -26,6 +27,7 @@ interface UspItem {
 interface Guarantee {
     id: string;
     icon: string;
+    icon_url?: string;
     title: string;
     description: string;
 }
@@ -135,11 +137,7 @@ export default function HomeContentPage() {
     const [testimonialModal, setTestimonialModal] = useState(false);
 
     // --- NEW: Featured Projects ---
-    const [featuredProjects, setFeaturedProjects] = useState<FeaturedProject[]>([
-        { id: '1', title: 'Dự án 1', school_name: 'Trường Mầm Non ABC', image_url: '', slug: '' },
-        { id: '2', title: 'Dự án 2', school_name: 'Trường Tiểu Học XYZ', image_url: '', slug: '' },
-        { id: '3', title: 'Dự án 3', school_name: 'Trường Quốc Tế DEF', image_url: '', slug: '' },
-    ]);
+    const [projectOptions, setProjectOptions] = useState<{label: string, value: number}[]>([]);
 
     // --- NEW: Footer ---
     const [footerQuickLinks, setFooterQuickLinks] = useState<FooterLink[]>([
@@ -174,6 +172,19 @@ export default function HomeContentPage() {
                 }
                 form.setFieldsValue(data);
 
+                // Fetch Project Options
+                try {
+                    const projectsRes = await websiteProjectsApi.getAll({ limit: 100 });
+                    if (projectsRes.data && projectsRes.data.data) {
+                        setProjectOptions(projectsRes.data.data.map((p: any) => ({
+                            label: p.title,
+                            value: p.id
+                        })));
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch project options', e);
+                }
+
                 // Features / WhyChoose
                 if (res.data.why_choose_reasons !== undefined) setFeatures(res.data.why_choose_reasons);
                 else if (res.data.features !== undefined) setFeatures(res.data.features);
@@ -185,7 +196,6 @@ export default function HomeContentPage() {
                 if (res.data.milestones !== undefined) setMilestones(res.data.milestones);
                 if (res.data.partners !== undefined) setPartners(res.data.partners);
                 if (res.data.testimonials !== undefined) setTestimonials(res.data.testimonials);
-                if (res.data.featured_projects !== undefined) setFeaturedProjects(res.data.featured_projects);
                 if (res.data.footer_quick_links !== undefined) setFooterQuickLinks(res.data.footer_quick_links);
                 if (res.data.footer_product_links !== undefined) setFooterProductLinks(res.data.footer_product_links);
             }
@@ -210,7 +220,6 @@ export default function HomeContentPage() {
                 milestones,
                 partners,
                 testimonials,
-                featured_projects: featuredProjects,
                 footer_quick_links: footerQuickLinks,
                 footer_product_links: footerProductLinks,
             });
@@ -435,23 +444,38 @@ export default function HomeContentPage() {
         // ==================== GUARANTEES ====================
         {
             key: 'guarantees',
-            label: '🛡️ Cam Kết',
+            label: '🛡️ Mua Hàng Đảm Bảo',
             children: (
                 <div>
                     <div style={{ marginBottom: 16 }}>
                         <span style={{ color: '#666' }}>Quản lý các cam kết hiển thị trong mục &quot;Mua hàng đảm bảo cùng HULA&quot;</span>
                     </div>
                     {guarantees.map((item: Guarantee, index: number) => (
-                        <div key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
-                            <Input value={item.icon} onChange={(e) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, icon: e.target.value } : g))} style={{ width: 60, textAlign: 'center', fontSize: 20 }} maxLength={4} placeholder="🏭" />
-                            <Input value={item.title} onChange={(e) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, title: e.target.value } : g))} placeholder="Tiêu đề" style={{ flex: 1 }} />
-                            <Input value={item.description} onChange={(e) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, description: e.target.value } : g))} placeholder="Mô tả (tùy chọn)" style={{ flex: 1 }} />
-                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setGuarantees(guarantees.filter((_: Guarantee, i: number) => i !== index))} />
+                        <div key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'start', marginBottom: 12, padding: 16, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
+                            <div style={{ width: 80, flexShrink: 0 }}>
+                                <label style={{ fontSize: 12, color: '#666' }}>Icon ảnh</label>
+                                <ImageUploader simple value={item.icon_url} onChange={(val: any) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, icon_url: typeof val === 'string' ? val : val?.url || '' } : g))} hint="📐 Vuông" />
+                            </div>
+                            <div style={{ width: 80, flexShrink: 0 }}>
+                                <label style={{ fontSize: 12, color: '#666' }}>Icon chữ</label>
+                                <Input value={item.icon} onChange={(e) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, icon: e.target.value } : g))} style={{ textAlign: 'center', fontSize: 24 }} maxLength={4} placeholder="🏭" />
+                            </div>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                <div>
+                                    <label style={{ fontSize: 12, color: '#666' }}>Tiêu đề</label>
+                                    <Input value={item.title} onChange={(e) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, title: e.target.value } : g))} placeholder="Tiêu đề" />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 12, color: '#666' }}>Mô tả (tùy chọn)</label>
+                                    <Input value={item.description} onChange={(e) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, description: e.target.value } : g))} placeholder="Mô tả" />
+                                </div>
+                            </div>
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setGuarantees(guarantees.filter((_: Guarantee, i: number) => i !== index))} style={{ marginTop: 24 }} />
                         </div>
                     ))}
-                    {guarantees.length < 6 && (
-                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setGuarantees([...guarantees, { id: Date.now().toString(), icon: '⭐', title: '', description: '' }])}>
-                            Thêm cam kết ({guarantees.length}/6)
+                    {guarantees.length < 8 && (
+                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setGuarantees([...guarantees, { id: Date.now().toString(), icon: '⭐', icon_url: '', title: '', description: '' }])}>
+                            Thêm cam kết ({guarantees.length}/8)
                         </Button>
                     )}
                 </div>
@@ -588,31 +612,19 @@ export default function HomeContentPage() {
             children: (
                 <div>
                     <div style={{ marginBottom: 16 }}>
-                        <span style={{ color: '#666' }}>Quản lý các dự án nổi bật hiển thị trên trang chủ (liên kết: <a href="/du-an" target="_blank">/du-an</a>)</span>
+                        <span style={{ color: '#666' }}>Chọn các dự án hiển thị trên trang chủ (lấy từ Quản lý Dự án). Lưu ý: Dự án có "Độ ưu tiên" cao sẽ hiển thị hình lớn.</span>
                     </div>
-                    {featuredProjects.map((project: FeaturedProject, index: number) => (
-                        <div key={project.id} style={{ marginBottom: 16, padding: 24, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', position: 'relative', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setFeaturedProjects(featuredProjects.filter((_: FeaturedProject, i: number) => i !== index))} style={{ position: 'absolute', top: 12, right: 12 }} />
-                            <div style={{ display: 'flex', gap: 24, marginTop: 8 }}>
-                                <div style={{ width: 180, flexShrink: 0 }}>
-                                    <ImageUploader value={project.image_url} onChange={(val: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, image_url: typeof val === 'string' ? val : val?.url || '' } : p))} hint="📐 Ngang 16:10" />
-                                </div>
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 24 }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                        <Input value={project.title} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, title: e.target.value } : p))} placeholder="Tên dự án (VD: Dự án Trường MN ABC)" size="large" style={{ fontWeight: 600 }} />
-                                        <Input value={project.school_name} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, school_name: e.target.value } : p))} placeholder="Tên trường / đơn vị" size="large" />
-                                    </div>
-                                    <Input value={project.slug} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, slug: e.target.value } : p))} placeholder="truong-mn-abc" addonBefore="/du-an/" />
-                                    <Input.TextArea value={project.description || ''} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, description: e.target.value } : p))} placeholder="Mô tả ngắn (hiển thị khi hover trên hình)" rows={2} />
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                    {featuredProjects.length < 12 && (
-                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setFeaturedProjects([...featuredProjects, { id: Date.now().toString(), title: '', school_name: '', description: '', image_url: '', slug: '' }])}>
-                            Thêm dự án ({featuredProjects.length}/12)
-                        </Button>
-                    )}
+                    <Form.Item name="selected_project_ids" rules={[{ required: true, message: 'Vui lòng chọn ít nhất 1 dự án' }]}>
+                        <Select
+                            mode="multiple"
+                            placeholder="Khám phá và chọn dự án..."
+                            options={projectOptions}
+                            maxCount={12}
+                            optionFilterProp="label"
+                            style={{ width: '100%' }}
+                            size="large"
+                        />
+                    </Form.Item>
                 </div>
             ),
         },

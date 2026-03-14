@@ -25,7 +25,7 @@ export class WebsiteProjectsService {
 
         const [data, total] = await this.repo.findAndCount({
             where,
-            order: { created_at: 'DESC' },
+            order: { sort_order: 'DESC', created_at: 'DESC' },
             skip,
             take: Number(limit)
         });

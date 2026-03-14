@@ -36,6 +36,9 @@ export class WebProject {
     })
     status: WebProjectStatus;
 
+    @Column('int', { default: 0 })
+    sort_order: number;
+
     // SEO Fields
     @Column({ nullable: true })
     meta_title: string;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Table, Button, Space, Tag, Modal, Form, Input, Select, message, Upload, Tabs, Typography, Alert } from 'antd';
+import { Card, Table, Button, Space, Tag, Modal, Form, Input, Select, message, Upload, Tabs, Typography, Alert, InputNumber } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SyncOutlined, UploadOutlined, GlobalOutlined } from '@ant-design/icons';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
@@ -82,13 +82,15 @@ export default function WebsiteProjectsPage() {
                 meta_title: record.meta_title,
                 meta_description: record.meta_description,
                 focus_keyword: record.focus_keyword,
-                slug: record.slug
+                slug: record.slug,
+                sort_order: record.sort_order || 0
             });
             setImageUrl(record.image_url || '');
         } else {
             setEditingId(null);
             form.resetFields();
             form.setFieldValue('status', 'DRAFT');
+            form.setFieldValue('sort_order', 0);
             setImageUrl('');
         }
         setImageFile(null);
@@ -176,6 +178,11 @@ export default function WebsiteProjectsPage() {
             title: 'Trạng thái',
             dataIndex: 'status',
             render: (s: string) => <Tag color={STATUS_COLORS[s] || 'default'}>{STATUS_LABELS[s] || s}</Tag>
+        },
+        {
+            title: 'Độ ưu tiên',
+            dataIndex: 'sort_order',
+            align: 'right' as const,
         },
         {
             title: 'Ngày tạo',
@@ -271,6 +278,9 @@ export default function WebsiteProjectsPage() {
                                         <Option value="PUBLISHED">Đã xuất bản</Option>
                                         <Option value="ARCHIVED">Đã lưu trữ</Option>
                                     </Select>
+                                </Form.Item>
+                                <Form.Item name="sort_order" label="Độ ưu tiên" style={{ width: 120 }}>
+                                    <InputNumber min={0} max={9999} style={{ width: '100%' }} />
                                 </Form.Item>
                             </div>
 

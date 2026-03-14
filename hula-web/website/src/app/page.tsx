@@ -43,13 +43,28 @@ export default async function HomePage() {
     const blogPosts = await getBlogPosts(6, config);
     const projects = await getProjects() || [];
 
-    const featuredProjects = (config.featured_projects || []).map((fp: any) => {
-        const realProject = projects.find((p: any) => p.slug === fp.slug);
-        return {
-            ...fp,
-            image_url: fp.image_url || realProject?.image_url || ''
-        };
-    });
+    let featuredProjects = [];
+    if (config.selected_project_ids && Array.isArray(config.selected_project_ids)) {
+        featuredProjects = config.selected_project_ids
+            .map((id: string | number) => projects.find((p: any) => String(p.id) === String(id) || String(p._id) === String(id)))
+            .filter(Boolean);
+            
+        // Xếp theo sort_order (giảm dần) -> ưu tiên dự án set số lớn (sẽ làm hình lớn nhất)
+        featuredProjects.sort((a: any, b: any) => {
+            const orderA = Number(a.sort_order) || 0;
+            const orderB = Number(b.sort_order) || 0;
+            if (orderB !== orderA) return orderB - orderA;
+            return (b.id || 0) - (a.id || 0);
+        });
+    } else {
+        featuredProjects = (config.featured_projects || []).map((fp: any) => {
+            const realProject = projects.find((p: any) => p.slug === fp.slug);
+            return {
+                ...fp,
+                image_url: fp.image_url || realProject?.image_url || ''
+            };
+        });
+    }
 
     const heroImages = (config.hero_images && config.hero_images.length > 0)
         ? config.hero_images
