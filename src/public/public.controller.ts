@@ -614,7 +614,7 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
     @Get('projects')
     async getWebsiteProjects() {
         const projects = await this.websiteProjectRepo.find({
-            where: { is_active: true },
+            where: { status: 'PUBLISHED' as any },
             order: { sort_order: 'ASC', created_at: 'DESC' }
         });
         return { data: projects };
@@ -623,7 +623,7 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
     @Get('projects/:slug')
     async getWebsiteProject(@Param('slug') slug: string) {
         const project = await this.websiteProjectRepo.findOne({
-            where: { slug, is_active: true }
+            where: { slug, status: 'PUBLISHED' as any }
         });
         if (!project) {
             return { error: 'Project not found' };

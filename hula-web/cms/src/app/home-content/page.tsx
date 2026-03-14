@@ -208,7 +208,9 @@ export default function HomeContentPage() {
 
     const handleSave = async () => {
         try {
-            const values = await form.validateFields();
+            await form.validateFields(); // trigger validation for visible fields
+            const values = form.getFieldsValue(true); // get ALL fields including hidden tabs
+
             setLoading(true);
             await systemApi.saveHomeConfig({
                 ...values,

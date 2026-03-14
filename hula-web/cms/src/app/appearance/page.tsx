@@ -293,7 +293,8 @@ export default function AppearancePage() {
             setSaving(true);
 
             // Save settings
-            const settingsValues = settingsForm.getFieldsValue();
+            await settingsForm.validateFields();
+            const settingsValues = settingsForm.getFieldsValue(true);
             const settingsKeys = [
                 'site_name', 'site_description', 'logo_url', 'favicon_url', 'contact_phone', 'contact_email', 'contact_address',
                 'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url',
@@ -309,7 +310,8 @@ export default function AppearancePage() {
             }
 
             // Save home config
-            const homeValues = homeForm.getFieldsValue();
+            await homeForm.validateFields();
+            const homeValues = homeForm.getFieldsValue(true);
             await systemApi.saveHomeConfig({
                 ...homeValues,
                 features,
