@@ -1,6 +1,6 @@
 'use client';
 
-import { getGoogleDriveImageUrl } from '@/lib/utils';
+import { resolveImageUrl } from '@/lib/utils';
 
 interface PartnerSliderProps {
     partners?: Array<{
@@ -42,7 +42,7 @@ export default function PartnerSlider({ partners, bgColor, textColor }: PartnerS
                         >
                             {partner.logo_url ? (
                                 <img
-                                    src={getGoogleDriveImageUrl(partner.logo_url)}
+                                    src={resolveImageUrl(partner.logo_url)}
                                     alt={partner.name}
                                     className="max-h-[50px] max-w-[150px] object-contain opacity-60 hover:opacity-100 transition-opacity"
                                 />

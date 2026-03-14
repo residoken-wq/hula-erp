@@ -1,3 +1,16 @@
+const getApiBaseUrl = () => {
+    const base = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
+    return base.endsWith('/api') ? base.replace(/\/api$/, '') : base;
+};
+
+export const resolveImageUrl = (url?: string): string => {
+    if (!url) return '';
+    if (url.startsWith('/uploads/')) {
+        return `${getApiBaseUrl()}/api/upload/files/${url.replace('/uploads/', '')}`;
+    }
+    return getGoogleDriveImageUrl(url);
+};
+
 export const getGoogleDriveImageUrl = (url?: string) => {
     if (!url) return '';
     try {
