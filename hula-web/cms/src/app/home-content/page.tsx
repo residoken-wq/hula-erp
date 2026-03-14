@@ -67,6 +67,7 @@ interface FeaturedProject {
     id: string;
     title: string;
     school_name: string;
+    description?: string;
     image_url: string;
     slug: string;
 }
@@ -602,12 +603,13 @@ export default function HomeContentPage() {
                                         <Input value={project.school_name} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, school_name: e.target.value } : p))} placeholder="Tên trường / đơn vị" size="large" />
                                     </div>
                                     <Input value={project.slug} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, slug: e.target.value } : p))} placeholder="truong-mn-abc" addonBefore="/du-an/" />
+                                    <Input.TextArea value={project.description || ''} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((p: FeaturedProject, i: number) => i === index ? { ...p, description: e.target.value } : p))} placeholder="Mô tả ngắn (hiển thị khi hover trên hình)" rows={2} />
                                 </div>
                             </div>
                         </div>
                     ))}
                     {featuredProjects.length < 12 && (
-                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setFeaturedProjects([...featuredProjects, { id: Date.now().toString(), title: '', school_name: '', image_url: '', slug: '' }])}>
+                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setFeaturedProjects([...featuredProjects, { id: Date.now().toString(), title: '', school_name: '', description: '', image_url: '', slug: '' }])}>
                             Thêm dự án ({featuredProjects.length}/12)
                         </Button>
                     )}

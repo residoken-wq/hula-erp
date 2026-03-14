@@ -7,6 +7,7 @@ interface ProjectGalleryProps {
     projects?: Array<{
         title: string;
         school_name: string;
+        description?: string;
         image_url?: string;
         slug?: string;
     }>;
@@ -15,10 +16,50 @@ interface ProjectGalleryProps {
 }
 
 const defaultProjects = [
-    { title: 'Dự án 1', school_name: 'Trường Mầm Non ABC', image_url: '', slug: '#' },
-    { title: 'Dự án 2', school_name: 'Trường Tiểu Học XYZ', image_url: '', slug: '#' },
-    { title: 'Dự án 3', school_name: 'Trường Quốc Tế DEF', image_url: '', slug: '#' },
+    { title: 'Dự án 1', school_name: 'Trường Mầm Non ABC', description: 'Thiết kế nội thất phòng học, bếp ăn và khu vui chơi hiện đại.', image_url: '', slug: '#' },
+    { title: 'Dự án 2', school_name: 'Trường Tiểu Học XYZ', description: 'Cung cấp giải pháp nệm gối cho toàn bộ hệ thống bán trú.', image_url: '', slug: '#' },
+    { title: 'Dự án 3', school_name: 'Trường Quốc Tế DEF', description: 'Thiết kế và sản xuất bộ nệm theo tiêu chuẩn quốc tế.', image_url: '', slug: '#' },
+    { title: 'Dự án 4', school_name: 'Trường MN GHI', description: 'Cải tạo không gian ngủ nghỉ cho học sinh mầm non.', image_url: '', slug: '#' },
+    { title: 'Dự án 5', school_name: 'Trường TH JKL', description: 'Trang bị toàn bộ nệm gối bán trú cho 20 lớp học.', image_url: '', slug: '#' },
 ];
+
+/* ──────────────────────────────────────────
+   Masonry-style project card
+   ────────────────────────────────────────── */
+function ProjectCard({ project, className }: { project: any; className?: string }) {
+    return (
+        <Link
+            href={project.slug ? `/du-an/${project.slug}` : '#'}
+            className={`group relative overflow-hidden rounded-[12px] bg-gray-200 block ${className || ''}`}
+        >
+            {project.image_url ? (
+                <img
+                    src={resolveImageUrl(project.image_url)}
+                    alt={project.school_name || project.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+            ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary-200 to-primary-400 flex items-center justify-center">
+                    <span className="text-5xl">🏫</span>
+                </div>
+            )}
+
+            {/* Hover overlay — black mask with white description text */}
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-6">
+                <div className="text-center">
+                    <h3 className="font-heading font-bold text-white text-lg mb-2">
+                        {project.school_name || project.title}
+                    </h3>
+                    {project.description && (
+                        <p className="text-white/90 text-sm leading-relaxed">
+                            {project.description}
+                        </p>
+                    )}
+                </div>
+            </div>
+        </Link>
+    );
+}
 
 export default function ProjectGallery({ projects, bgColor, textColor }: ProjectGalleryProps) {
     const items = (projects && projects.length > 0) ? projects : defaultProjects;
@@ -32,33 +73,53 @@ export default function ProjectGallery({ projects, bgColor, textColor }: Project
                     </h2>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {items.map((project: any, index: number) => (
-                        <Link
-                            key={index}
-                            href={project.slug ? `/du-an/${project.slug}` : '#'}
-                            className="group relative overflow-hidden rounded-[12px] aspect-[4/3] bg-gray-200"
-                        >
-                            {project.image_url ? (
-                                <img
-                                    src={resolveImageUrl(project.image_url)}
-                                    alt={project.school_name || project.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                />
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-primary-200 to-primary-400 flex items-center justify-center">
-                                    <span className="text-5xl">🏫</span>
-                                </div>
-                            )}
-                            {/* Hover overlay - hiện tên trường */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
-                                <div className="p-4 w-full">
-                                    <h3 className="font-heading font-semibold text-white text-lg">
-                                        {project.school_name || project.title}
-                                    </h3>
-                                </div>
-                            </div>
-                        </Link>
+                {/* Masonry-style grid layout:
+                    Row 1:  1 large (left, spans 2 rows)  +  2 small (right, stacked)
+                    Row 2:  3 equal columns
+                */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Item 0 — large, spans 2 cols + 2 rows */}
+                    {items[0] && (
+                        <ProjectCard
+                            project={items[0]}
+                            className="col-span-2 row-span-2 aspect-square lg:aspect-auto lg:min-h-[420px]"
+                        />
+                    )}
+                    {/* Item 1 — top right */}
+                    {items[1] && (
+                        <ProjectCard
+                            project={items[1]}
+                            className="col-span-1 aspect-[4/3]"
+                        />
+                    )}
+                    {/* Item 2 — top right */}
+                    {items[2] && (
+                        <ProjectCard
+                            project={items[2]}
+                            className="col-span-1 aspect-[4/3]"
+                        />
+                    )}
+                    {/* Item 3 — bottom right */}
+                    {items[3] && (
+                        <ProjectCard
+                            project={items[3]}
+                            className="col-span-1 aspect-[4/3]"
+                        />
+                    )}
+                    {/* Item 4 — bottom right */}
+                    {items[4] && (
+                        <ProjectCard
+                            project={items[4]}
+                            className="col-span-1 aspect-[4/3]"
+                        />
+                    )}
+                    {/* Additional items in regular grid */}
+                    {items.slice(5).map((project: any, index: number) => (
+                        <ProjectCard
+                            key={index + 5}
+                            project={project}
+                            className="col-span-1 aspect-[4/3]"
+                        />
                     ))}
                 </div>
 

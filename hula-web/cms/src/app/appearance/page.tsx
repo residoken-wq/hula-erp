@@ -108,6 +108,7 @@ interface FeaturedProject {
     id: string;
     title: string;
     school_name: string;
+    description?: string;
     image_url: string;
     slug: string;
 }
@@ -654,11 +655,12 @@ export default function AppearancePage() {
                                             <Input value={p.school_name} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, school_name: e.target.value } : x))} placeholder="Tên trường" />
                                         </div>
                                         <Input value={p.slug} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, slug: e.target.value } : x))} placeholder="slug-bai-viet-du-an" addonBefore="/du-an/" />
+                                        <Input.TextArea value={p.description || ''} onChange={(e: any) => setFeaturedProjects(featuredProjects.map((x: FeaturedProject, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả ngắn (hiển thị khi hover)" rows={2} />
                                     </div>
                                 </div>
                             </div>
                         ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setFeaturedProjects([...featuredProjects, { id: Date.now().toString(), title: '', school_name: '', image_url: '', slug: '' }])}>Thêm dự án ({featuredProjects.length}/12)</Button>
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setFeaturedProjects([...featuredProjects, { id: Date.now().toString(), title: '', school_name: '', description: '', image_url: '', slug: '' }])}>Thêm dự án ({featuredProjects.length}/12)</Button>
                     </>
                 );
 
