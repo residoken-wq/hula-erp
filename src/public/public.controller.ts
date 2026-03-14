@@ -133,7 +133,7 @@ export class PublicController {
         return {
             id: product.id,
             sku: product.sku,
-            name: product.name,
+            name: product.website_display_name || product.name,
             category: product.category,
             base_price: product.website_price || product.base_price,
             image_url: product.image_url,

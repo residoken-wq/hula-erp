@@ -70,6 +70,9 @@ export class Product {
   @Column({ default: 0 })
   website_order: number;  // Thứ tự hiển thị trên website
 
+  @Column('text', { nullable: true })
+  website_display_name: string;  // Tên sản phẩm hiển thị trên website (nếu khác name)
+
   // RankMath-like SEO Fields
   @Column('jsonb', { nullable: true })
   seo_meta: {

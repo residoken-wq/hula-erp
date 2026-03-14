@@ -31,7 +31,7 @@ export class ProductsService {
 
     async findAll() {
         const products = await this.productRepo.find({
-            select: ['id', 'sku', 'name', 'category_id', 'product_type', 'cost_price', 'base_price', 'quantity_in_stock', 'profit_margin', 'is_active', 'unit', 'customer_description', 'processing_description', 'image_url', 'show_on_website', 'website_price', 'website_order'],
+            select: ['id', 'sku', 'name', 'category_id', 'product_type', 'cost_price', 'base_price', 'quantity_in_stock', 'profit_margin', 'is_active', 'unit', 'customer_description', 'processing_description', 'image_url', 'show_on_website', 'website_price', 'website_order', 'website_display_name'],
             order: { id: 'DESC' },
             relations: ['category_link']
         });
@@ -106,6 +106,10 @@ export class ProductsService {
 
         clean.customer_description = customer_description;
         clean.processing_description = processing_description;
+
+        if (data.website_display_name !== undefined) {
+            clean.website_display_name = data.website_display_name;
+        }
 
         if (!clean.attributes && (color || size || fabric)) {
             clean.attributes = { color, size, fabric };

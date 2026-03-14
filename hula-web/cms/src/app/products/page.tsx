@@ -72,7 +72,8 @@ interface Product {
     quantity_in_stock: number;
     is_active: boolean;
     show_on_website: boolean;
-    website_price?: number; // Add this field
+    website_price?: number;
+    website_display_name?: string;
     image_url: string;
     customer_description: string;
     customization_config?: {
@@ -127,6 +128,7 @@ export default function ProductsPage() {
             const config = res.data?.customization_config || { colors: [], accessories: [], allow_logo: false };
 
             form.setFieldsValue({
+                website_display_name: product.website_display_name || '',
                 image_url: product.image_url,
                 customer_description: product.customer_description,
                 customization_config: config
@@ -135,6 +137,7 @@ export default function ProductsPage() {
         } catch (error) {
             console.error('Failed to load website config', error);
             form.setFieldsValue({
+                website_display_name: product.website_display_name || '',
                 image_url: product.image_url,
                 customer_description: product.customer_description,
                 customization_config: { colors: [], accessories: [], allow_logo: false }
@@ -150,6 +153,7 @@ export default function ProductsPage() {
 
             // 1. Save Core Product Info (Image/Desc)
             await productsApi.update(editingProduct.id, {
+                website_display_name: values.website_display_name || null,
                 image_url: values.image_url,
                 customer_description: values.customer_description
             });
@@ -345,6 +349,9 @@ export default function ProductsPage() {
                             label: 'Thông tin chung',
                             children: (
                                 <>
+                                    <Form.Item name="website_display_name" label="Tên sản phẩm hiển thị trên website" extra="Để trống nếu muốn sử dụng tên sản phẩm gốc từ ERP">
+                                        <Input placeholder={editingProduct?.name || 'Nhập tên hiển thị riêng cho website...'} allowClear />
+                                    </Form.Item>
                                     <Form.Item name="image_url" label="Hình ảnh sản phẩm">
                                         <ImageUploader hint="📐 Kích thước: 800x800px (tỷ lệ 1:1, vuông)" />
                                     </Form.Item>
