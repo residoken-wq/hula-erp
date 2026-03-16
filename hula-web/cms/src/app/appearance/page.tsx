@@ -358,9 +358,10 @@ export default function AppearancePage() {
     // ============================================
     const handleSaveFeature = (values: any) => {
         if (editingFeature) {
-            setFeatures(features.map(f => f.id === editingFeature.id ? { ...f, ...values } : f));
+            const editingId = editingFeature.id;
+            setFeatures(prev => prev.map(f => f.id === editingId ? { ...f, ...values } : f));
         } else {
-            setFeatures([...features, { id: Date.now().toString(), ...values }]);
+            setFeatures(prev => [...prev, { id: Date.now().toString(), ...values }]);
         }
         setFeatureModal(false);
         message.success(editingFeature ? 'Đã cập nhật' : 'Đã thêm');
@@ -494,12 +495,12 @@ export default function AppearancePage() {
                         <Divider orientation="left">Nội dung USP</Divider>
                         {uspItems.map((item: UspItem, idx: number) => (
                             <div key={item.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                                <Input value={item.icon} onChange={(e: any) => setUspItems(uspItems.map((u: UspItem, i: number) => i === idx ? { ...u, icon: e.target.value } : u))} style={{ width: 60, textAlign: 'center', fontSize: 18 }} />
-                                <Input value={item.text} onChange={(e: any) => setUspItems(uspItems.map((u: UspItem, i: number) => i === idx ? { ...u, text: e.target.value } : u))} placeholder="Free tư vấn" style={{ flex: 1 }} />
-                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setUspItems(uspItems.filter((_: UspItem, i: number) => i !== idx))} />
+                                <Input value={item.icon} onChange={(e: any) => setUspItems(prev => prev.map((u: UspItem, i: number) => i === idx ? { ...u, icon: e.target.value } : u))} style={{ width: 60, textAlign: 'center', fontSize: 18 }} />
+                                <Input value={item.text} onChange={(e: any) => setUspItems(prev => prev.map((u: UspItem, i: number) => i === idx ? { ...u, text: e.target.value } : u))} placeholder="Free tư vấn" style={{ flex: 1 }} />
+                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setUspItems(prev => prev.filter((_: UspItem, i: number) => i !== idx))} />
                             </div>
                         ))}
-                        <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setUspItems([...uspItems, { id: Date.now().toString(), icon: '⭐', text: '' }])}>Thêm mục</Button>
+                        <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => setUspItems(prev => [...prev, { id: Date.now().toString(), icon: '⭐', text: '' }])}>Thêm mục</Button>
                     </>
                 );
 
@@ -512,25 +513,25 @@ export default function AppearancePage() {
                             <div key={cat.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                                     <strong style={{ fontSize: 14 }}>Danh mục {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setCategories(categories.filter((_: CategoryItem, i: number) => i !== idx))} />
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setCategories(prev => prev.filter((_: CategoryItem, i: number) => i !== idx))} />
                                 </div>
                                 <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
                                     <div style={{ width: 100, flexShrink: 0 }}>
-                                        <ImageUploader simple value={cat.image_url} onChange={(val: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, image_url: typeof val === 'string' ? val : val?.url || '' } : c))} hint="Hình nền" />
+                                        <ImageUploader simple value={cat.image_url} onChange={(val: any) => setCategories(prev => prev.map((c: CategoryItem, i: number) => i === idx ? { ...c, image_url: typeof val === 'string' ? val : val?.url || '' } : c))} hint="Hình nền" />
                                     </div>
                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-                                            <Input value={cat.title} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, title: e.target.value } : c))} placeholder="Tên danh mục" />
+                                            <Input value={cat.title} onChange={(e: any) => setCategories(prev => prev.map((c: CategoryItem, i: number) => i === idx ? { ...c, title: e.target.value } : c))} placeholder="Tên danh mục" />
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
-                                            <Input value={cat.icon} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, icon: e.target.value } : c))} style={{ textAlign: 'center', fontSize: 18 }} placeholder="Emoji" />
-                                            <Input value={cat.slug} onChange={(e: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === idx ? { ...c, slug: e.target.value } : c))} placeholder="duong-dan" addonBefore="/" />
+                                            <Input value={cat.icon} onChange={(e: any) => setCategories(prev => prev.map((c: CategoryItem, i: number) => i === idx ? { ...c, icon: e.target.value } : c))} style={{ textAlign: 'center', fontSize: 18 }} placeholder="Emoji" />
+                                            <Input value={cat.slug} onChange={(e: any) => setCategories(prev => prev.map((c: CategoryItem, i: number) => i === idx ? { ...c, slug: e.target.value } : c))} placeholder="duong-dan" addonBefore="/" />
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setCategories([...categories, { id: Date.now().toString(), icon: '📦', title: '', slug: '', image_url: '' }])}>Thêm danh mục</Button>
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setCategories(prev => [...prev, { id: Date.now().toString(), icon: '📦', title: '', slug: '', image_url: '' }])}>Thêm danh mục</Button>
                     </>
                 );
 
@@ -562,71 +563,71 @@ export default function AppearancePage() {
                             <div key={f.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                                     <strong style={{ fontSize: 14 }}>Điểm nổi bật {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeatures(features.filter((_: Feature, i: number) => i !== idx))} />
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeatures(prev => prev.filter((_: Feature, i: number) => i !== idx))} />
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12, marginBottom: 12 }}>
-                                    <Input value={f.icon} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
-                                    <Input value={f.title} onChange={(e: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" />
+                                    <Input value={f.icon} onChange={(e: any) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
+                                    <Input value={f.title} onChange={(e: any) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" />
                                 </div>
                                 <div style={{ marginBottom: 12 }}>
                                     <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Mô tả chi tiết</label>
                                     <RichTextEditor
                                         value={f.description || ''}
-                                        onChange={(val) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, description: val } : x))}
+                                        onChange={(val) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, description: val } : x))}
                                         minHeight={200}
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Icon / Hình ảnh đại diện</label>
-                                    <ImageUploader simple value={f.icon_url} onChange={(val: any) => setFeatures(features.map((x: Feature, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (48x48)" />
+                                    <ImageUploader simple value={f.icon_url} onChange={(val: any) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (48x48)" />
                                 </div>
                             </div>
                         ))}
-                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setFeatures([...features, { id: Date.now().toString(), icon: '✨', title: '', description: '' }])} style={{ marginBottom: 24, height: 40 }}>Thêm điểm nổi bật</Button>
+                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setFeatures(prev => [...prev, { id: Date.now().toString(), icon: '✨', title: '', description: '' }])} style={{ marginBottom: 24, height: 40 }}>Thêm điểm nổi bật</Button>
 
                         <Divider orientation="left">Cam kết mua hàng (Icon 3 cột bên phải)</Divider>
                         {guarantees.map((g: Guarantee, idx: number) => (
                             <div key={g.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                                     <strong style={{ fontSize: 14 }}>Cam kết {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setGuarantees(guarantees.filter((_: Guarantee, i: number) => i !== idx))} />
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setGuarantees(prev => prev.filter((_: Guarantee, i: number) => i !== idx))} />
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 12 }}>
-                                    <Input value={g.title} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề cam kết" />
+                                    <Input value={g.title} onChange={(e: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề cam kết" />
                                 </div>
                                 <div style={{ marginBottom: 12 }}>
-                                    <Input.TextArea value={g.description} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả dưới tiêu đề (không bắt buộc)" rows={2} />
+                                    <Input.TextArea value={g.description} onChange={(e: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả dưới tiêu đề (không bắt buộc)" rows={2} />
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
-                                    <Input value={g.icon} onChange={(e: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
-                                    <ImageUploader simple value={g.icon_url} onChange={(val: any) => setGuarantees(guarantees.map((x: Guarantee, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (64x64)" />
+                                    <Input value={g.icon} onChange={(e: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
+                                    <ImageUploader simple value={g.icon_url} onChange={(val: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (64x64)" />
                                 </div>
                             </div>
                         ))}
-                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setGuarantees([...guarantees, { id: Date.now().toString(), icon: '🛡️', title: '', description: '' }])} style={{ height: 40 }}>Thêm cam kết</Button>
+                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setGuarantees(prev => [...prev, { id: Date.now().toString(), icon: '🛡️', title: '', description: '' }])} style={{ height: 40 }}>Thêm cam kết</Button>
 
                         <Divider orientation="left">Cột mốc hành trình</Divider>
                         {milestones.map((m: Milestone, idx: number) => (
                             <div key={m.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                                     <strong style={{ fontSize: 14 }}>Mốc {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setMilestones(milestones.filter((_: Milestone, i: number) => i !== idx))} />
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setMilestones(prev => prev.filter((_: Milestone, i: number) => i !== idx))} />
                                 </div>
                                 <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
                                     <div style={{ width: 100, flexShrink: 0 }}>
-                                        <ImageUploader simple value={m.image_url} onChange={(val: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình ảnh" />
+                                        <ImageUploader simple value={m.image_url} onChange={(val: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình ảnh" />
                                     </div>
                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
-                                            <Input value={m.icon} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} placeholder="Emoji" />
-                                            <Input value={m.title} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề mốc" />
+                                            <Input value={m.icon} onChange={(e: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} placeholder="Emoji" />
+                                            <Input value={m.title} onChange={(e: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề mốc" />
                                         </div>
-                                        <Input.TextArea value={m.description} onChange={(e: any) => setMilestones(milestones.map((x: Milestone, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả chi tiết..." rows={2} />
+                                        <Input.TextArea value={m.description} onChange={(e: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả chi tiết..." rows={2} />
                                     </div>
                                 </div>
                             </div>
                         ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setMilestones([...milestones, { id: Date.now().toString(), icon: '🎯', title: '', description: '', image_url: '' }])}>Thêm cột mốc</Button>
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setMilestones(prev => [...prev, { id: Date.now().toString(), icon: '🎯', title: '', description: '', image_url: '' }])}>Thêm cột mốc</Button>
                     </>
                 );
 
@@ -684,19 +685,19 @@ export default function AppearancePage() {
                             <div key={p.id} style={{ marginBottom: 12, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                 <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                                     <div style={{ width: 100, flexShrink: 0 }}>
-                                        <ImageUploader simple value={p.logo_url} onChange={(val: any) => setPartners(partners.map((x: Partner, i: number) => i === idx ? { ...x, logo_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Logo" />
+                                        <ImageUploader simple value={p.logo_url} onChange={(val: any) => setPartners(prev => prev.map((x: Partner, i: number) => i === idx ? { ...x, logo_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Logo" />
                                     </div>
                                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <strong style={{ fontSize: 13, color: '#6b7280' }}>Đối tác {idx + 1}</strong>
-                                            <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setPartners(partners.filter((_: Partner, i: number) => i !== idx))} />
+                                            <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setPartners(prev => prev.filter((_: Partner, i: number) => i !== idx))} />
                                         </div>
-                                        <Input value={p.name} onChange={(e: any) => setPartners(partners.map((x: Partner, i: number) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Tên đối tác (Alt text)" style={{ flex: 1 }} />
+                                        <Input value={p.name} onChange={(e: any) => setPartners(prev => prev.map((x: Partner, i: number) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Tên đối tác (Alt text)" style={{ flex: 1 }} />
                                     </div>
                                 </div>
                             </div>
                         ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setPartners([...partners, { id: Date.now().toString(), name: '', logo_url: '' }])}>Thêm đối tác</Button>
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setPartners(prev => [...prev, { id: Date.now().toString(), name: '', logo_url: '' }])}>Thêm đối tác</Button>
                     </>
                 );
 
@@ -709,17 +710,17 @@ export default function AppearancePage() {
                             <div key={t.id} style={{ marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                     <strong>{t.name || `KH ${idx + 1}`}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setTestimonials(testimonials.filter((_: Testimonial, i: number) => i !== idx))} />
+                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setTestimonials(prev => prev.filter((_: Testimonial, i: number) => i !== idx))} />
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                    <Input value={t.name} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Tên" />
-                                    <Input value={t.school} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, school: e.target.value } : x))} placeholder="Trường" />
+                                    <Input value={t.name} onChange={(e: any) => setTestimonials(prev => prev.map((x: Testimonial, i: number) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Tên" />
+                                    <Input value={t.school} onChange={(e: any) => setTestimonials(prev => prev.map((x: Testimonial, i: number) => i === idx ? { ...x, school: e.target.value } : x))} placeholder="Trường" />
                                 </div>
-                                <Input.TextArea value={t.content} onChange={(e: any) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, content: e.target.value } : x))} placeholder="Nội dung đánh giá" rows={2} style={{ marginTop: 8 }} />
-                                <div style={{ marginTop: 8 }}><Rate value={t.rating || 5} onChange={(v: number) => setTestimonials(testimonials.map((x: Testimonial, i: number) => i === idx ? { ...x, rating: v } : x))} /></div>
+                                <Input.TextArea value={t.content} onChange={(e: any) => setTestimonials(prev => prev.map((x: Testimonial, i: number) => i === idx ? { ...x, content: e.target.value } : x))} placeholder="Nội dung đánh giá" rows={2} style={{ marginTop: 8 }} />
+                                <div style={{ marginTop: 8 }}><Rate value={t.rating || 5} onChange={(v: number) => setTestimonials(prev => prev.map((x: Testimonial, i: number) => i === idx ? { ...x, rating: v } : x))} /></div>
                             </div>
                         ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setTestimonials([...testimonials, { id: Date.now().toString(), name: '', school: '', content: '', rating: 5, image_url: '', product_image_url: '', product_name: '' }])}>Thêm đánh giá</Button>
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setTestimonials(prev => [...prev, { id: Date.now().toString(), name: '', school: '', content: '', rating: 5, image_url: '', product_image_url: '', product_name: '' }])}>Thêm đánh giá</Button>
                     </>
                 );
 

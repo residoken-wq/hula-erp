@@ -242,12 +242,16 @@ export default function HomeContentPage() {
     // ============================================
     const handleAddFeature = () => { setEditingFeature(null); setFeatureModal(true); };
     const handleEditFeature = (f: Feature) => { setEditingFeature(f); setFeatureModal(true); };
-    const handleDeleteFeature = (id: string) => { setFeatures(features.filter(f => f.id !== id)); message.success('Đã xóa'); };
+    const handleDeleteFeature = (id: string) => {
+        setFeatures(prev => prev.filter(f => f.id !== id));
+        message.success('Đã xóa');
+    };
     const handleSaveFeature = (values: any) => {
         if (editingFeature) {
-            setFeatures(features.map(f => f.id === editingFeature.id ? { ...f, ...values } : f));
+            const editingId = editingFeature.id;
+            setFeatures(prev => prev.map(f => f.id === editingId ? { ...f, ...values } : f));
         } else {
-            setFeatures([...features, { id: Date.now().toString(), ...values }]);
+            setFeatures(prev => [...prev, { id: Date.now().toString(), ...values }]);
         }
         setFeatureModal(false);
         message.success(editingFeature ? 'Đã cập nhật' : 'Đã thêm');
@@ -258,12 +262,16 @@ export default function HomeContentPage() {
     // ============================================
     const handleAddTestimonial = () => { setEditingTestimonial(null); setTestimonialModal(true); };
     const handleEditTestimonial = (t: Testimonial) => { setEditingTestimonial(t); setTestimonialModal(true); };
-    const handleDeleteTestimonial = (id: string) => { setTestimonials(testimonials.filter(t => t.id !== id)); message.success('Đã xóa'); };
+    const handleDeleteTestimonial = (id: string) => {
+        setTestimonials(prev => prev.filter(t => t.id !== id));
+        message.success('Đã xóa');
+    };
     const handleSaveTestimonial = (values: any) => {
         if (editingTestimonial) {
-            setTestimonials(testimonials.map(t => t.id === editingTestimonial.id ? { ...t, ...values } : t));
+            const editingId = editingTestimonial.id;
+            setTestimonials(prev => prev.map(t => t.id === editingId ? { ...t, ...values } : t));
         } else {
-            setTestimonials([...testimonials, { id: Date.now().toString(), ...values }]);
+            setTestimonials(prev => [...prev, { id: Date.now().toString(), ...values }]);
         }
         setTestimonialModal(false);
         message.success(editingTestimonial ? 'Đã cập nhật' : 'Đã thêm');
@@ -336,13 +344,13 @@ export default function HomeContentPage() {
                     </div>
                     {uspItems.map((item: UspItem, index: number) => (
                         <div key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
-                            <Input value={item.icon} onChange={(e) => setUspItems(uspItems.map((u: UspItem, i: number) => i === index ? { ...u, icon: e.target.value } : u))} style={{ width: 60, textAlign: 'center', fontSize: 20 }} maxLength={4} placeholder="⭐" />
-                            <Input value={item.text} onChange={(e) => setUspItems(uspItems.map((u: UspItem, i: number) => i === index ? { ...u, text: e.target.value } : u))} placeholder="Free tư vấn" style={{ flex: 1 }} />
-                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setUspItems(uspItems.filter((_: UspItem, i: number) => i !== index))} />
+                            <Input value={item.icon} onChange={(e) => setUspItems(prev => prev.map((u: UspItem, i: number) => i === index ? { ...u, icon: e.target.value } : u))} style={{ width: 60, textAlign: 'center', fontSize: 20 }} maxLength={4} placeholder="⭐" />
+                            <Input value={item.text} onChange={(e) => setUspItems(prev => prev.map((u: UspItem, i: number) => i === index ? { ...u, text: e.target.value } : u))} placeholder="Free tư vấn" style={{ flex: 1 }} />
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setUspItems(prev => prev.filter((_: UspItem, i: number) => i !== index))} />
                         </div>
                     ))}
                     {uspItems.length < 5 && (
-                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setUspItems([...uspItems, { id: Date.now().toString(), icon: '⭐', text: '' }])}>
+                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setUspItems(prev => [...prev, { id: Date.now().toString(), icon: '⭐', text: '' }])}>
                             Thêm USP ({uspItems.length}/5)
                         </Button>
                     )}
@@ -362,30 +370,30 @@ export default function HomeContentPage() {
                         <div key={cat.id} style={{ marginBottom: 16, padding: 16, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                                 <strong>Danh mục {index + 1}</strong>
-                                <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setCategories(categories.filter((_: CategoryItem, i: number) => i !== index))} />
+                                <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setCategories(prev => prev.filter((_: CategoryItem, i: number) => i !== index))} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 12, alignItems: 'start' }}>
                                 <div>
                                     <label style={{ fontSize: 12, color: '#666' }}>Icon</label>
-                                    <Input value={cat.icon} onChange={(e) => setCategories(categories.map((c: CategoryItem, i: number) => i === index ? { ...c, icon: e.target.value } : c))} style={{ textAlign: 'center', fontSize: 24 }} maxLength={4} />
+                                    <Input value={cat.icon} onChange={(e) => setCategories(prev => prev.map((c: CategoryItem, i: number) => i === index ? { ...c, icon: e.target.value } : c))} style={{ textAlign: 'center', fontSize: 24 }} maxLength={4} />
                                 </div>
                                 <div>
                                     <label style={{ fontSize: 12, color: '#666' }}>Tên danh mục</label>
-                                    <Input value={cat.title} onChange={(e) => setCategories(categories.map((c: CategoryItem, i: number) => i === index ? { ...c, title: e.target.value } : c))} placeholder="Nệm" />
+                                    <Input value={cat.title} onChange={(e) => setCategories(prev => prev.map((c: CategoryItem, i: number) => i === index ? { ...c, title: e.target.value } : c))} placeholder="Nệm" />
                                 </div>
                                 <div>
                                     <label style={{ fontSize: 12, color: '#666' }}>Link (slug)</label>
-                                    <Input value={cat.slug} onChange={(e) => setCategories(categories.map((c: CategoryItem, i: number) => i === index ? { ...c, slug: e.target.value } : c))} placeholder="/san-pham?category=nem" />
+                                    <Input value={cat.slug} onChange={(e) => setCategories(prev => prev.map((c: CategoryItem, i: number) => i === index ? { ...c, slug: e.target.value } : c))} placeholder="/san-pham?category=nem" />
                                 </div>
                             </div>
                             <div style={{ marginTop: 12 }}>
                                 <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>Hình ảnh (tùy chọn, thay thế icon)</label>
-                                <ImageUploader simple value={cat.image_url} onChange={(val: any) => setCategories(categories.map((c: CategoryItem, i: number) => i === index ? { ...c, image_url: typeof val === 'string' ? val : val?.url || '' } : c))} hint="📐 Vuông 400x400px" />
+                                <ImageUploader simple value={cat.image_url} onChange={(val: any) => setCategories(prev => prev.map((c: CategoryItem, i: number) => i === index ? { ...c, image_url: typeof val === 'string' ? val : val?.url || '' } : c))} hint="📐 Vuông 400x400px" />
                             </div>
                         </div>
                     ))}
                     {categories.length < 8 && (
-                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setCategories([...categories, { id: Date.now().toString(), icon: '📦', title: '', image_url: '', slug: '' }])}>
+                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setCategories(prev => [...prev, { id: Date.now().toString(), icon: '📦', title: '', image_url: '', slug: '' }])}>
                             Thêm danh mục ({categories.length}/8)
                         </Button>
                     )}
@@ -456,27 +464,27 @@ export default function HomeContentPage() {
                         <div key={item.id} style={{ display: 'flex', gap: 12, alignItems: 'start', marginBottom: 12, padding: 16, background: '#f9f9f9', borderRadius: 8, border: '1px solid #eee' }}>
                             <div style={{ width: 80, flexShrink: 0 }}>
                                 <label style={{ fontSize: 12, color: '#666' }}>Icon ảnh</label>
-                                <ImageUploader simple value={item.icon_url} onChange={(val: any) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, icon_url: typeof val === 'string' ? val : val?.url || '' } : g))} hint="📐 Vuông" />
+                                <ImageUploader simple value={item.icon_url} onChange={(val: any) => setGuarantees(prev => prev.map((g: Guarantee, i: number) => i === index ? { ...g, icon_url: typeof val === 'string' ? val : val?.url || '' } : g))} hint="📐 Vuông" />
                             </div>
                             <div style={{ width: 80, flexShrink: 0 }}>
                                 <label style={{ fontSize: 12, color: '#666' }}>Icon chữ</label>
-                                <Input value={item.icon} onChange={(e) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, icon: e.target.value } : g))} style={{ textAlign: 'center', fontSize: 24 }} maxLength={4} placeholder="🏭" />
+                                <Input value={item.icon} onChange={(e) => setGuarantees(prev => prev.map((g: Guarantee, i: number) => i === index ? { ...g, icon: e.target.value } : g))} style={{ textAlign: 'center', fontSize: 24 }} maxLength={4} placeholder="🏭" />
                             </div>
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 <div>
                                     <label style={{ fontSize: 12, color: '#666' }}>Tiêu đề</label>
-                                    <Input value={item.title} onChange={(e) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, title: e.target.value } : g))} placeholder="Tiêu đề" />
+                                    <Input value={item.title} onChange={(e) => setGuarantees(prev => prev.map((g: Guarantee, i: number) => i === index ? { ...g, title: e.target.value } : g))} placeholder="Tiêu đề" />
                                 </div>
                                 <div>
                                     <label style={{ fontSize: 12, color: '#666' }}>Mô tả (tùy chọn)</label>
-                                    <Input value={item.description} onChange={(e) => setGuarantees(guarantees.map((g: Guarantee, i: number) => i === index ? { ...g, description: e.target.value } : g))} placeholder="Mô tả" />
+                                    <Input value={item.description} onChange={(e) => setGuarantees(prev => prev.map((g: Guarantee, i: number) => i === index ? { ...g, description: e.target.value } : g))} placeholder="Mô tả" />
                                 </div>
                             </div>
-                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setGuarantees(guarantees.filter((_: Guarantee, i: number) => i !== index))} style={{ marginTop: 24 }} />
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setGuarantees(prev => prev.filter((_: Guarantee, i: number) => i !== index))} style={{ marginTop: 24 }} />
                         </div>
                     ))}
                     {guarantees.length < 8 && (
-                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setGuarantees([...guarantees, { id: Date.now().toString(), icon: '⭐', icon_url: '', title: '', description: '' }])}>
+                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setGuarantees(prev => [...prev, { id: Date.now().toString(), icon: '⭐', icon_url: '', title: '', description: '' }])}>
                             Thêm cam kết ({guarantees.length}/8)
                         </Button>
                     )}
@@ -494,23 +502,23 @@ export default function HomeContentPage() {
                     </div>
                     {milestones.map((item: Milestone, index: number) => (
                         <div key={item.id} style={{ marginBottom: 16, padding: 24, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', position: 'relative', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setMilestones(milestones.filter((_: Milestone, i: number) => i !== index))} style={{ position: 'absolute', top: 12, right: 12 }} />
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setMilestones(prev => prev.filter((_: Milestone, i: number) => i !== index))} style={{ position: 'absolute', top: 12, right: 12 }} />
                             <div style={{ display: 'flex', gap: 24, marginTop: 8 }}>
                                 <div style={{ width: 180, flexShrink: 0 }}>
-                                    <ImageUploader value={item.image_url} onChange={(val: any) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, image_url: typeof val === 'string' ? val : val?.url || '' } : m))} hint="📐 Ngang 4:3" />
+                                    <ImageUploader value={item.image_url} onChange={(val: any) => setMilestones(prev => prev.map((m: Milestone, i: number) => i === index ? { ...m, image_url: typeof val === 'string' ? val : val?.url || '' } : m))} hint="📐 Ngang 4:3" />
                                 </div>
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 24 }}>
-                                    <Input value={item.title} onChange={(e) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, title: e.target.value } : m))} placeholder="Tiêu đề (VD: Showroom trải nghiệm)" size="large" style={{ fontWeight: 600 }} />
+                                    <Input value={item.title} onChange={(e) => setMilestones(prev => prev.map((m: Milestone, i: number) => i === index ? { ...m, title: e.target.value } : m))} placeholder="Tiêu đề (VD: Showroom trải nghiệm)" size="large" style={{ fontWeight: 600 }} />
                                     <div style={{ display: 'flex', gap: 12 }}>
-                                        <Input value={item.icon} onChange={(e) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, icon: e.target.value } : m))} style={{ width: 80, textAlign: 'center', fontSize: 24 }} maxLength={4} title="Icon tĩnh" prefix={<span style={{ fontSize: 12, color: '#aaa' }}>Icon</span>} />
-                                        <Input.TextArea value={item.description} onChange={(e) => setMilestones(milestones.map((m: Milestone, i: number) => i === index ? { ...m, description: e.target.value } : m))} placeholder="Mô tả chi tiết" style={{ flex: 1 }} rows={3} />
+                                        <Input value={item.icon} onChange={(e) => setMilestones(prev => prev.map((m: Milestone, i: number) => i === index ? { ...m, icon: e.target.value } : m))} style={{ width: 80, textAlign: 'center', fontSize: 24 }} maxLength={4} title="Icon tĩnh" prefix={<span style={{ fontSize: 12, color: '#aaa' }}>Icon</span>} />
+                                        <Input.TextArea value={item.description} onChange={(e) => setMilestones(prev => prev.map((m: Milestone, i: number) => i === index ? { ...m, description: e.target.value } : m))} placeholder="Mô tả chi tiết" style={{ flex: 1 }} rows={3} />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     ))}
                     {milestones.length < 12 && (
-                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setMilestones([...milestones, { id: Date.now().toString(), icon: '📸', title: '', description: '', image_url: '' }])}>
+                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setMilestones(prev => [...prev, { id: Date.now().toString(), icon: '📸', title: '', description: '', image_url: '' }])}>
                             Thêm cột mốc ({milestones.length}/12)
                         </Button>
                     )}
@@ -557,19 +565,19 @@ export default function HomeContentPage() {
                     </div>
                     {partners.map((p: Partner, index: number) => (
                         <div key={p.id} style={{ marginBottom: 16, padding: 24, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', position: 'relative', boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
-                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setPartners(partners.filter((_: Partner, i: number) => i !== index))} style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)' }} />
+                            <Button type="text" danger icon={<DeleteOutlined />} onClick={() => setPartners(prev => prev.filter((_: Partner, i: number) => i !== index))} style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)' }} />
                             <div style={{ display: 'flex', gap: 24, alignItems: 'center', paddingRight: 40 }}>
                                 <div style={{ flex: 1 }}>
-                                    <Input value={p.name} onChange={(e: any) => setPartners(partners.map((pp: Partner, i: number) => i === index ? { ...pp, name: e.target.value } : pp))} placeholder="Tên đối tác (VD: Trường MN ABC)" size="large" />
+                                    <Input value={p.name} onChange={(e: any) => setPartners(prev => prev.map((pp: Partner, i: number) => i === index ? { ...pp, name: e.target.value } : pp))} placeholder="Tên đối tác (VD: Trường MN ABC)" size="large" />
                                 </div>
                                 <div style={{ width: 160, flexShrink: 0 }}>
-                                    <ImageUploader value={p.logo_url} onChange={(val: any) => setPartners(partners.map((pp: Partner, i: number) => i === index ? { ...pp, logo_url: typeof val === 'string' ? val : val?.url || '' } : pp))} hint="📐 Logo" />
+                                    <ImageUploader value={p.logo_url} onChange={(val: any) => setPartners(prev => prev.map((pp: Partner, i: number) => i === index ? { ...pp, logo_url: typeof val === 'string' ? val : val?.url || '' } : pp))} hint="📐 Logo" />
                                 </div>
                             </div>
                         </div>
                     ))}
                     {partners.length < 20 && (
-                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setPartners([...partners, { id: Date.now().toString(), name: '', logo_url: '' }])}>
+                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setPartners(prev => [...prev, { id: Date.now().toString(), name: '', logo_url: '' }])}>
                             Thêm đối tác ({partners.length}/20)
                         </Button>
                     )}

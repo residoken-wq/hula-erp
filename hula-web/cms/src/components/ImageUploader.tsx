@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Upload, Input, Button, Collapse, Space, message, Tooltip } from 'antd';
+import { Upload, Input, Button, Collapse, Space, message, Tooltip, Modal, Spin, Empty } from 'antd';
 import {
     UploadOutlined,
     DeleteOutlined,
@@ -67,6 +67,10 @@ export default function ImageUploader({ value, onChange, simple = false, hint }:
     const [uploading, setUploading] = useState(false);
     const [showUrlInput, setShowUrlInput] = useState(false);
     const [hasError, setHasError] = useState(false);
+    const [libraryOpen, setLibraryOpen] = useState(false);
+    const [libraryLoading, setLibraryLoading] = useState(false);
+    const [libraryFiles, setLibraryFiles] = useState<Array<{ name: string; url: string; size: number; modified: string }>>([]);
+    const [librarySearch, setLibrarySearch] = useState('');
 
     // Sync when external value changes
     useEffect(() => {
@@ -135,6 +139,33 @@ export default function ImageUploader({ value, onChange, simple = false, hint }:
 
     const previewUrl = resolveImageUrl(data.url);
 
+    const openLibrary = async () => {
+        setLibraryOpen(true);
+        setLibrarySearch('');
+        try {
+            setLibraryLoading(true);
+            const res = await uploadApi.listFiles();
+            setLibraryFiles(Array.isArray(res.data) ? res.data : []);
+        } catch {
+            message.error('Không thể tải thư viện hình ảnh');
+            setLibraryFiles([]);
+        } finally {
+            setLibraryLoading(false);
+        }
+    };
+
+    const handlePickFromLibrary = (url: string) => {
+        // We store relative /uploads/<file> for portability across envs
+        emit({ ...data, url });
+        setHasError(false);
+        setLibraryOpen(false);
+        message.success('Đã chọn ảnh');
+    };
+
+    const filteredLibraryFiles = libraryFiles.filter(f =>
+        (f?.name || '').toLowerCase().includes(librarySearch.trim().toLowerCase())
+    );
+
     return (
         <div>
             {/* Upload area OR Preview */}
@@ -169,29 +200,39 @@ export default function ImageUploader({ value, onChange, simple = false, hint }:
                                 Đổi ảnh
                             </Button>
                         </Upload>
+                        <Button size="small" onClick={openLibrary}>
+                            Chọn từ thư viện
+                        </Button>
                         <Button size="small" icon={<DeleteOutlined />} danger onClick={handleRemove}>
                             Xóa
                         </Button>
                     </div>
                 </div>
             ) : (
-                <Upload.Dragger
-                    customRequest={handleUpload}
-                    showUploadList={false}
-                    accept="image/*"
-                    disabled={uploading}
-                    style={{ padding: '20px 0' }}
-                >
-                    <p className="ant-upload-drag-icon">
-                        <PictureOutlined style={{ fontSize: 36, color: '#1890ff' }} />
-                    </p>
-                    <p className="ant-upload-text" style={{ fontSize: 14 }}>
-                        {uploading ? 'Đang upload...' : 'Kéo thả hình ảnh hoặc click để chọn'}
-                    </p>
-                    <p className="ant-upload-hint" style={{ fontSize: 12 }}>
-                        Hỗ trợ JPG, PNG, WebP. Tối đa 5MB
-                    </p>
-                </Upload.Dragger>
+                <div>
+                    <Upload.Dragger
+                        customRequest={handleUpload}
+                        showUploadList={false}
+                        accept="image/*"
+                        disabled={uploading}
+                        style={{ padding: '20px 0' }}
+                    >
+                        <p className="ant-upload-drag-icon">
+                            <PictureOutlined style={{ fontSize: 36, color: '#1890ff' }} />
+                        </p>
+                        <p className="ant-upload-text" style={{ fontSize: 14 }}>
+                            {uploading ? 'Đang upload...' : 'Kéo thả hình ảnh hoặc click để chọn'}
+                        </p>
+                        <p className="ant-upload-hint" style={{ fontSize: 12 }}>
+                            Hỗ trợ JPG, PNG, WebP. Tối đa 5MB
+                        </p>
+                    </Upload.Dragger>
+                    <div style={{ marginTop: 8 }}>
+                        <Button block onClick={openLibrary}>
+                            Chọn từ thư viện
+                        </Button>
+                    </div>
+                </div>
             )}
 
             {/* Manual URL toggle */}
@@ -303,6 +344,84 @@ export default function ImageUploader({ value, onChange, simple = false, hint }:
                     }]}
                 />
             )}
+
+            <Modal
+                open={libraryOpen}
+                onCancel={() => setLibraryOpen(false)}
+                footer={null}
+                width={900}
+                title="Chọn ảnh từ thư viện"
+                destroyOnClose
+            >
+                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                    <Input
+                        placeholder="Tìm theo tên file..."
+                        value={librarySearch}
+                        onChange={(e) => setLibrarySearch(e.target.value)}
+                        allowClear
+                    />
+                    <Button onClick={openLibrary} loading={libraryLoading}>
+                        Tải lại
+                    </Button>
+                </div>
+
+                {libraryLoading ? (
+                    <div style={{ padding: 40, textAlign: 'center' }}>
+                        <Spin />
+                    </div>
+                ) : filteredLibraryFiles.length === 0 ? (
+                    <Empty description={libraryFiles.length === 0 ? 'Chưa có hình ảnh trong thư viện' : 'Không tìm thấy'} />
+                ) : (
+                    <div
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                            gap: 12,
+                            maxHeight: '60vh',
+                            overflow: 'auto',
+                            paddingRight: 4,
+                        }}
+                    >
+                        {filteredLibraryFiles.map((f) => (
+                            <div
+                                key={f.name}
+                                onClick={() => handlePickFromLibrary(f.url)}
+                                style={{
+                                    border: '1px solid #f0f0f0',
+                                    borderRadius: 10,
+                                    overflow: 'hidden',
+                                    cursor: 'pointer',
+                                    background: '#fafafa',
+                                    transition: 'transform 0.15s, box-shadow 0.15s',
+                                }}
+                                onMouseEnter={(e) => {
+                                    (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(0,0,0,0.10)';
+                                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                                    (e.currentTarget as HTMLElement).style.transform = 'none';
+                                }}
+                                title={f.name}
+                            >
+                                <div style={{ width: '100%', aspectRatio: '1', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <img
+                                        src={resolveImageUrl(f.url)}
+                                        alt={f.name}
+                                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23ccc" font-size="40">🖼️</text></svg>';
+                                        }}
+                                    />
+                                </div>
+                                <div style={{ padding: '6px 10px', fontSize: 12, color: '#555' }}>
+                                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }
