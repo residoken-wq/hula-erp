@@ -101,6 +101,7 @@ interface Testimonial {
     content: string;
     rating: number;
     image_url: string;
+    feedback_image_url: string;
     product_image_url: string;
     product_name: string;
 }
@@ -802,7 +803,7 @@ export default function AppearancePage() {
                         {renderColorPicker(section)}
                         <Divider orientation="left">Đánh giá khách hàng</Divider>
                         {testimonials.map((t: Testimonial, idx: number) => (
-                            <div key={t.id} style={{ marginBottom: 12, padding: 12, background: '#f9f9f9', borderRadius: 8 }}>
+                            <div key={t.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                     <strong>{t.name || `KH ${idx + 1}`}</strong>
                                     <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setTestimonials(prev => prev.filter((_: Testimonial, i: number) => i !== idx))} />
@@ -813,9 +814,26 @@ export default function AppearancePage() {
                                 </div>
                                 <Input.TextArea value={t.content} onChange={(e: any) => setTestimonials(prev => prev.map((x: Testimonial, i: number) => i === idx ? { ...x, content: e.target.value } : x))} placeholder="Nội dung đánh giá" rows={2} style={{ marginTop: 8 }} />
                                 <div style={{ marginTop: 8 }}><Rate value={t.rating || 5} onChange={(v: number) => setTestimonials(prev => prev.map((x: Testimonial, i: number) => i === idx ? { ...x, rating: v } : x))} /></div>
+                                <div style={{ marginTop: 12 }}>
+                                    <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#6b7280' }}>Hình ảnh feedback</label>
+                                    <ImageUploader value={t.feedback_image_url} onChange={(val: any) => setTestimonials(prev => prev.map((x: Testimonial, i: number) => i === idx ? { ...x, feedback_image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="📐 800x600px (4:3)" />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#6b7280' }}>Avatar KH</label>
+                                        <ImageUploader simple value={t.image_url} onChange={(val: any) => setTestimonials(prev => prev.map((x: Testimonial, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Vuông 200x200" />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#6b7280' }}>Hình sản phẩm</label>
+                                        <ImageUploader simple value={t.product_image_url} onChange={(val: any) => setTestimonials(prev => prev.map((x: Testimonial, i: number) => i === idx ? { ...x, product_image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Ngang 4:3" />
+                                    </div>
+                                </div>
+                                <div style={{ marginTop: 8 }}>
+                                    <Input value={t.product_name} onChange={(e: any) => setTestimonials(prev => prev.map((x: Testimonial, i: number) => i === idx ? { ...x, product_name: e.target.value } : x))} placeholder="Tên sản phẩm liên quan (tùy chọn)" size="small" />
+                                </div>
                             </div>
                         ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setTestimonials(prev => [...prev, { id: Date.now().toString(), name: '', school: '', content: '', rating: 5, image_url: '', product_image_url: '', product_name: '' }])}>Thêm đánh giá</Button>
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setTestimonials(prev => [...prev, { id: Date.now().toString(), name: '', school: '', content: '', rating: 5, image_url: '', feedback_image_url: '', product_image_url: '', product_name: '' }])}>Thêm đánh giá</Button>
                     </>
                 );
 

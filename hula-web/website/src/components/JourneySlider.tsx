@@ -50,7 +50,7 @@ export default function JourneySlider({ milestones, subtitle, socialLink, bgColo
 
                 {/* Subtitle + social */}
                 <div className="text-center mb-10">
-                    <h3 className="text-lg lg:text-xl font-heading font-bold uppercase mb-1" style={{ color: textColor || '#1a365d' }}>
+                    <h3 className="text-sm mt-2 opacity-70" style={{ color: textColor || '#718096' }}>
                         {subtitle || 'An Giấc Mỗi Ngày Cùng HULA'}
                     </h3>
                     {socialLink && (
