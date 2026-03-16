@@ -142,6 +142,8 @@ export class SystemService {
             'HOME_TESTIMONIALS', 'HOME_FEATURED_PROJECTS',
             'HOME_FOOTER_QUICK_LINKS', 'HOME_FOOTER_PRODUCT_LINKS',
             'HOME_SELECTED_BLOG_IDS', 'HOME_SELECTED_PROJECT_IDS',
+            // Journey block ordering (reasons / guarantees / journey)
+            'HOME_JOURNEY_BLOCK_ORDER',
         ];
 
         const allKeys = [...keys, ...jsonArrayKeys];
@@ -207,6 +209,7 @@ export class SystemService {
             'HOME_FOOTER_PRODUCT_LINKS': 'footer_product_links',
             'HOME_SELECTED_BLOG_IDS': 'selected_blog_ids',
             'HOME_SELECTED_PROJECT_IDS': 'selected_project_ids',
+            'HOME_JOURNEY_BLOCK_ORDER': 'journey_blocks_order',
         };
         for (const [dbKey, frontendKey] of Object.entries(jsonMapping)) {
             try {
@@ -289,6 +292,7 @@ export class SystemService {
             'footer_product_links': 'HOME_FOOTER_PRODUCT_LINKS',
             'selected_blog_ids': 'HOME_SELECTED_BLOG_IDS',
             'selected_project_ids': 'HOME_SELECTED_PROJECT_IDS',
+            'journey_blocks_order': 'HOME_JOURNEY_BLOCK_ORDER',
         };
         for (const [frontendKey, dbKey] of Object.entries(jsonMapping)) {
             if (data[frontendKey] !== undefined) {

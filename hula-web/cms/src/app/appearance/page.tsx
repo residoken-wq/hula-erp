@@ -171,6 +171,11 @@ export default function AppearancePage() {
         { id: '3', label: 'Chính sách', url: '/chinh-sach' },
     ]);
 
+    // Journey block ordering (reasons / guarantees / journey)
+    const defaultJourneyBlocks: Array<'reasons' | 'guarantees' | 'journey'> = ['reasons', 'guarantees', 'journey'];
+    const [journeyBlocksOrder, setJourneyBlocksOrder] = useState<Array<'reasons' | 'guarantees' | 'journey'>>(defaultJourneyBlocks);
+    const [draggingJourneyKey, setDraggingJourneyKey] = useState<string | null>(null);
+
     // Preview refs & state
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -274,6 +279,18 @@ export default function AppearancePage() {
                 if (homeRes.data.partners?.length) setPartners(homeRes.data.partners);
                 if (homeRes.data.testimonials?.length) setTestimonials(homeRes.data.testimonials);
                 if (homeRes.data.featured_projects?.length) setFeaturedProjects(homeRes.data.featured_projects);
+                if (Array.isArray(homeRes.data.journey_blocks_order) && homeRes.data.journey_blocks_order.length) {
+                    // Filter to known keys only, keep original order where possible
+                    const cleaned = (homeRes.data.journey_blocks_order as string[])
+                        .filter((k) => ['reasons', 'guarantees', 'journey'].includes(k));
+                    setJourneyBlocksOrder(
+                        cleaned.length
+                            ? (cleaned as Array<'reasons' | 'guarantees' | 'journey'>)
+                            : defaultJourneyBlocks
+                    );
+                } else {
+                    setJourneyBlocksOrder(defaultJourneyBlocks);
+                }
                 if (homeRes.data.footer_quick_links?.length) setFooterQuickLinks(homeRes.data.footer_quick_links);
                 if (homeRes.data.footer_product_links?.length) setFooterProductLinks(homeRes.data.footer_product_links);
             }
@@ -324,6 +341,7 @@ export default function AppearancePage() {
                 testimonials,
                 footer_quick_links: footerQuickLinks,
                 footer_product_links: footerProductLinks,
+                journey_blocks_order: journeyBlocksOrder,
             });
 
             message.success('✅ Đã lưu tất cả thay đổi!');
@@ -558,76 +576,153 @@ export default function AppearancePage() {
                 return (
                     <>
                         {renderColorPicker(section)}
-                        <Divider orientation="left">Điểm nổi bật (Tại sao chọn HULA)</Divider>
-                        {features.map((f: Feature, idx: number) => (
-                            <div key={f.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                                    <strong style={{ fontSize: 14 }}>Điểm nổi bật {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeatures(prev => prev.filter((_: Feature, i: number) => i !== idx))} />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12, marginBottom: 12 }}>
-                                    <Input value={f.icon} onChange={(e: any) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
-                                    <Input value={f.title} onChange={(e: any) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" />
-                                </div>
-                                <div style={{ marginBottom: 12 }}>
-                                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Mô tả chi tiết</label>
-                                    <RichTextEditor
-                                        value={f.description || ''}
-                                        onChange={(val) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, description: val } : x))}
-                                        minHeight={200}
-                                    />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Icon / Hình ảnh đại diện</label>
-                                    <ImageUploader simple value={f.icon_url} onChange={(val: any) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (48x48)" />
-                                </div>
-                            </div>
-                        ))}
-                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setFeatures(prev => [...prev, { id: Date.now().toString(), icon: '✨', title: '', description: '' }])} style={{ marginBottom: 24, height: 40 }}>Thêm điểm nổi bật</Button>
-
-                        <Divider orientation="left">Cam kết mua hàng (Icon 3 cột bên phải)</Divider>
-                        {guarantees.map((g: Guarantee, idx: number) => (
-                            <div key={g.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                                    <strong style={{ fontSize: 14 }}>Cam kết {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setGuarantees(prev => prev.filter((_: Guarantee, i: number) => i !== idx))} />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 12 }}>
-                                    <Input value={g.title} onChange={(e: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề cam kết" />
-                                </div>
-                                <div style={{ marginBottom: 12 }}>
-                                    <Input.TextArea value={g.description} onChange={(e: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả dưới tiêu đề (không bắt buộc)" rows={2} />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
-                                    <Input value={g.icon} onChange={(e: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
-                                    <ImageUploader simple value={g.icon_url} onChange={(val: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (64x64)" />
-                                </div>
-                            </div>
-                        ))}
-                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setGuarantees(prev => [...prev, { id: Date.now().toString(), icon: '🛡️', title: '', description: '' }])} style={{ height: 40 }}>Thêm cam kết</Button>
-
-                        <Divider orientation="left">Cột mốc hành trình</Divider>
-                        {milestones.map((m: Milestone, idx: number) => (
-                            <div key={m.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                                    <strong style={{ fontSize: 14 }}>Mốc {idx + 1}</strong>
-                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setMilestones(prev => prev.filter((_: Milestone, i: number) => i !== idx))} />
-                                </div>
-                                <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
-                                    <div style={{ width: 100, flexShrink: 0 }}>
-                                        <ImageUploader simple value={m.image_url} onChange={(val: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình ảnh" />
+                        <Divider orientation="left">Thứ tự block hiển thị</Divider>
+                        <div
+                            style={{
+                                display: 'flex',
+                                gap: 8,
+                                marginBottom: 16,
+                                flexWrap: 'wrap',
+                            }}
+                        >
+                            {journeyBlocksOrder.map((key) => {
+                                const label =
+                                    key === 'reasons'
+                                        ? 'Điểm nổi bật (Tại sao chọn HULA)'
+                                        : key === 'guarantees'
+                                            ? 'Cam kết mua hàng'
+                                            : 'Cột mốc hành trình';
+                                return (
+                                    <div
+                                        key={key}
+                                        draggable
+                                        onDragStart={() => setDraggingJourneyKey(key)}
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={() => {
+                                            if (!draggingJourneyKey || draggingJourneyKey === key) return;
+                                            setJourneyBlocksOrder((prev) => {
+                                                const arr = [...prev];
+                                                const from = arr.indexOf(draggingJourneyKey as any);
+                                                const to = arr.indexOf(key as any);
+                                                if (from === -1 || to === -1) return prev;
+                                                arr.splice(from, 1);
+                                                arr.splice(to, 0, draggingJourneyKey as any);
+                                                return arr;
+                                            });
+                                            setDraggingJourneyKey(null);
+                                        }}
+                                        style={{
+                                            padding: '6px 10px',
+                                            borderRadius: 999,
+                                            border: '1px dashed #d9d9d9',
+                                            cursor: 'grab',
+                                            background: '#fafafa',
+                                            fontSize: 12,
+                                            userSelect: 'none',
+                                        }}
+                                    >
+                                        {label}
                                     </div>
-                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
-                                            <Input value={m.icon} onChange={(e: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} placeholder="Emoji" />
-                                            <Input value={m.title} onChange={(e: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề mốc" />
+                                );
+                            })}
+                            <Button
+                                size="small"
+                                onClick={() => setJourneyBlocksOrder(defaultJourneyBlocks)}
+                                style={{ marginLeft: 'auto' }}
+                            >
+                                Đặt lại mặc định
+                            </Button>
+                        </div>
+
+                        {journeyBlocksOrder.map((key) => {
+                            if (key === 'reasons') {
+                                return (
+                                    <div key="journey-reasons">
+                                        <Divider orientation="left">Điểm nổi bật (Tại sao chọn HULA)</Divider>
+                                        {features.map((f: Feature, idx: number) => (
+                                            <div key={f.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                                    <strong style={{ fontSize: 14 }}>Điểm nổi bật {idx + 1}</strong>
+                                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setFeatures(prev => prev.filter((_: Feature, i: number) => i !== idx))} />
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12, marginBottom: 12 }}>
+                                                    <Input value={f.icon} onChange={(e: any) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
+                                                    <Input value={f.title} onChange={(e: any) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề" />
+                                                </div>
+                                                <div style={{ marginBottom: 12 }}>
+                                                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Mô tả chi tiết</label>
+                                                    <RichTextEditor
+                                                        value={f.description || ''}
+                                                        onChange={(val) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, description: val } : x))}
+                                                        minHeight={200}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#4b5563' }}>Icon / Hình ảnh đại diện</label>
+                                                    <ImageUploader simple value={f.icon_url} onChange={(val: any) => setFeatures(prev => prev.map((x: Feature, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (48x48)" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setFeatures(prev => [...prev, { id: Date.now().toString(), icon: '✨', title: '', description: '' }])} style={{ marginBottom: 24, height: 40 }}>Thêm điểm nổi bật</Button>
+                                    </div>
+                                );
+                            }
+
+                            if (key === 'guarantees') {
+                                return (
+                                    <div key="journey-guarantees">
+                                        <Divider orientation="left">Cam kết mua hàng (Icon 3 cột bên phải)</Divider>
+                                        {guarantees.map((g: Guarantee, idx: number) => (
+                                            <div key={g.id} style={{ marginBottom: 16, padding: 16, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                                    <strong style={{ fontSize: 14 }}>Cam kết {idx + 1}</strong>
+                                                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setGuarantees(prev => prev.filter((_: Guarantee, i: number) => i !== idx))} />
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginBottom: 12 }}>
+                                                    <Input value={g.title} onChange={(e: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề cam kết" />
+                                                </div>
+                                                <div style={{ marginBottom: 12 }}>
+                                                    <Input.TextArea value={g.description} onChange={(e: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả dưới tiêu đề (không bắt buộc)" rows={2} />
+                                                </div>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
+                                                    <Input value={g.icon} onChange={(e: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} title="Emoji tĩnh nếu không có hình" />
+                                                    <ImageUploader simple value={g.icon_url} onChange={(val: any) => setGuarantees(prev => prev.map((x: Guarantee, i: number) => i === idx ? { ...x, icon_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình vuông hoặc trong suốt (64x64)" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <Button type="dashed" size="small" block icon={<PlusOutlined />} onClick={() => setGuarantees(prev => [...prev, { id: Date.now().toString(), icon: '🛡️', title: '', description: '' }])} style={{ height: 40 }}>Thêm cam kết</Button>
+                                    </div>
+                                );
+                            }
+
+                            // journey (milestones)
+                            return (
+                                <div key="journey-milestones">
+                                    <Divider orientation="left">Cột mốc hành trình</Divider>
+                                    {milestones.map((m: Milestone, idx: number) => (
+                                        <div key={m.id} style={{ marginBottom: 16, padding: 16, background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                                                <strong style={{ fontSize: 14 }}>Mốc {idx + 1}</strong>
+                                                <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => setMilestones(prev => prev.filter((_: Milestone, i: number) => i !== idx))} />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 16, flexDirection: 'row' }}>
+                                                <div style={{ width: 100, flexShrink: 0 }}>
+                                                    <ImageUploader simple value={m.image_url} onChange={(val: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, image_url: typeof val === 'string' ? val : val?.url || '' } : x))} hint="Hình ảnh" />
+                                                </div>
+                                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr', gap: 12 }}>
+                                                        <Input value={m.icon} onChange={(e: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, icon: e.target.value } : x))} style={{ textAlign: 'center', fontSize: 18 }} placeholder="Emoji" />
+                                                        <Input value={m.title} onChange={(e: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, title: e.target.value } : x))} placeholder="Tiêu đề mốc" />
+                                                    </div>
+                                                    <Input.TextArea value={m.description} onChange={(e: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả chi tiết..." rows={2} />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <Input.TextArea value={m.description} onChange={(e: any) => setMilestones(prev => prev.map((x: Milestone, i: number) => i === idx ? { ...x, description: e.target.value } : x))} placeholder="Mô tả chi tiết..." rows={2} />
-                                    </div>
+                                    ))}
+                                    <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setMilestones(prev => [...prev, { id: Date.now().toString(), icon: '🎯', title: '', description: '', image_url: '' }])}>Thêm cột mốc</Button>
                                 </div>
-                            </div>
-                        ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setMilestones(prev => [...prev, { id: Date.now().toString(), icon: '🎯', title: '', description: '', image_url: '' }])}>Thêm cột mốc</Button>
+                            );
+                        })}
                     </>
                 );
 

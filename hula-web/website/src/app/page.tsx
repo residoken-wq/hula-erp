@@ -70,6 +70,13 @@ export default async function HomePage() {
         ? config.hero_images
         : (config.hero_image ? [config.hero_image] : []);
 
+    const journeyBlocksOrder: Array<'reasons' | 'guarantees' | 'journey'> =
+        Array.isArray(config.journey_blocks_order) && config.journey_blocks_order.length
+            ? config.journey_blocks_order.filter((k: string) =>
+                k === 'reasons' || k === 'guarantees' || k === 'journey'
+            )
+            : ['reasons', 'guarantees', 'journey'];
+
     return (
         <>
             {/* ============================================
@@ -162,19 +169,42 @@ export default async function HomePage() {
             </section>
 
             {/* ============================================
-                SECTION 4a — TẠI SAO CHỌN HULA
+                SECTION 4 — HÀNH TRÌNH HULA (Block Builder)
                ============================================ */}
-            <WhyChooseHula
-                reasons={config.why_choose_reasons}
-                guarantees={config.why_choose_guarantees}
-                bgColor={settings.section_journey_bg}
-                textColor={settings.section_journey_text}
-            />
-
-            {/* ============================================
-                SECTION 4b — HÀNH TRÌNH HULA
-               ============================================ */}
-            <JourneySlider milestones={config.milestones} bgColor={settings.section_journey_bg} textColor={settings.section_journey_text} />
+            {journeyBlocksOrder.map((blockKey) => {
+                if (blockKey === 'reasons') {
+                    return (
+                        <WhyChooseHula
+                            key="why-reasons"
+                            mode="reasons"
+                            reasons={config.why_choose_reasons}
+                            guarantees={config.why_choose_guarantees}
+                            bgColor={settings.section_journey_bg}
+                            textColor={settings.section_journey_text}
+                        />
+                    );
+                }
+                if (blockKey === 'guarantees') {
+                    return (
+                        <WhyChooseHula
+                            key="why-guarantees"
+                            mode="guarantees"
+                            reasons={config.why_choose_reasons}
+                            guarantees={config.why_choose_guarantees}
+                            bgColor={settings.section_journey_bg}
+                            textColor={settings.section_journey_text}
+                        />
+                    );
+                }
+                return (
+                    <JourneySlider
+                        key="journey"
+                        milestones={config.milestones}
+                        bgColor={settings.section_journey_bg}
+                        textColor={settings.section_journey_text}
+                    />
+                );
+            })}
 
             {/* ============================================
                 SECTION 5 — DỰ ÁN NỔI BẬT
