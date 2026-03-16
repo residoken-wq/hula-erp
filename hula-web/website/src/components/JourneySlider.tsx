@@ -65,32 +65,41 @@ export default function JourneySlider({ milestones, subtitle, socialLink, bgColo
                 </div>
 
                 {/* Image slider */}
-                <div ref={scrollRef} className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                    {visibleItems.map((item: any, index: number) => (
-                        <div key={index} className="group">
-                            <div className="aspect-[4/3] rounded-[12px] overflow-hidden bg-gray-100 mb-3">
-                                {item.image_url ? (
-                                    <img
-                                        src={resolveImageUrl(item.image_url)}
-                                        alt={item.title}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
-                                        <span className="text-4xl">{item.icon || '📸'}</span>
+                <div ref={scrollRef} className="overflow-hidden">
+                    <div 
+                        className="flex transition-transform duration-500 ease-in-out"
+                        style={{ transform: `translateX(-${currentPage * 100}%)` }}
+                    >
+                        {Array.from({ length: totalPages }).map((_, pageIndex) => (
+                            <div key={pageIndex} className="w-full flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                                {items.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage).map((item: any, index: number) => (
+                                    <div key={index} className="group">
+                                        <div className="aspect-[3/4] rounded-[12px] overflow-hidden bg-gray-100 mb-3 relative">
+                                            {item.image_url ? (
+                                                <img
+                                                    src={resolveImageUrl(item.image_url)}
+                                                    alt={item.title}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
+                                                    <span className="text-4xl">{item.icon || '📸'}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="text-sm font-medium text-center leading-snug" style={{ color: textColor || '#4a5568' }}>
+                                            {item.title}
+                                        </p>
+                                        {item.description && (
+                                            <p className="text-xs text-center mt-1 opacity-60" style={{ color: textColor || '#718096' }}>
+                                                {item.description}
+                                            </p>
+                                        )}
                                     </div>
-                                )}
+                                ))}
                             </div>
-                            <p className="text-sm font-medium text-center leading-snug" style={{ color: textColor || '#4a5568' }}>
-                                {item.title}
-                            </p>
-                            {item.description && (
-                                <p className="text-xs text-center mt-1 opacity-60" style={{ color: textColor || '#718096' }}>
-                                    {item.description}
-                                </p>
-                            )}
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
 
                 {/* Navigation dots */}
