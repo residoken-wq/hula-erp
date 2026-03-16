@@ -61,6 +61,7 @@ interface Testimonial {
     content: string;
     rating: number;
     image_url: string;
+    feedback_image_url: string;
     product_image_url: string;
     product_name: string;
 }
@@ -131,7 +132,7 @@ export default function HomeContentPage() {
     ]);
 
     const [testimonials, setTestimonials] = useState<Testimonial[]>([
-        { id: '1', name: 'Cô Nguyễn Thị A', school: 'Trường MN Hoa Sen', content: 'Trường rất hài lòng về sản phẩm của HULA.', rating: 5, image_url: '', product_image_url: '', product_name: 'Bộ Chăn Ga Gối HULA Classic' },
+        { id: '1', name: 'Cô Nguyễn Thị A', school: 'Trường MN Hoa Sen', content: 'Trường rất hài lòng về sản phẩm của HULA.', rating: 5, image_url: '', feedback_image_url: '', product_image_url: '', product_name: 'Bộ Chăn Ga Gối HULA Classic' },
     ]);
     const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
     const [testimonialModal, setTestimonialModal] = useState(false);
@@ -878,7 +879,7 @@ export default function HomeContentPage() {
             >
                 <Form
                     layout="vertical"
-                    initialValues={editingTestimonial || { name: '', school: '', content: '', rating: 5, image_url: '', product_image_url: '', product_name: '' }}
+                    initialValues={editingTestimonial || { name: '', school: '', content: '', rating: 5, image_url: '', feedback_image_url: '', product_image_url: '', product_name: '' }}
                     onFinish={handleSaveTestimonial}
                     style={{ marginTop: 16 }}
                     key={editingTestimonial?.id || 'new-testimonial'}
@@ -899,6 +900,9 @@ export default function HomeContentPage() {
                     </Form.Item>
                     <Form.Item name="product_name" label="Tên sản phẩm liên quan">
                         <Input placeholder="Bộ Chăn Ga Gối HULA Classic" />
+                    </Form.Item>
+                    <Form.Item name="feedback_image_url" label="Hình ảnh feedback" extra="Hình ảnh minh họa cho đánh giá (VD: hình sản phẩm tại trường, hình phản hồi...)">
+                        <ImageUploader hint="📐 Kích thước: 800x600px (4:3)" />
                     </Form.Item>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                         <Form.Item name="image_url" label="Avatar khách hàng (tùy chọn)">

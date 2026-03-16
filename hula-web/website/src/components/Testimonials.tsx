@@ -10,6 +10,7 @@ interface TestimonialsProps {
         content: string;
         rating?: number;
         image_url?: string;
+        feedback_image_url?: string;
         product_image_url?: string;
         product_name?: string;
     }>;
@@ -24,6 +25,7 @@ const defaultTestimonials = [
         content: 'Trường rất hài lòng về sản phẩm của HULA. Nệm êm ái, chất liệu mềm mại, các bé rất thích. Sau 2 năm sử dụng vẫn giữ form tốt.',
         rating: 5,
         image_url: '',
+        feedback_image_url: '',
         product_image_url: '',
         product_name: 'Bộ Chăn Ga Gối HULA Classic',
     },
@@ -33,6 +35,7 @@ const defaultTestimonials = [
         content: 'Đội ngũ HULA tư vấn rất nhiệt tình, thiết kế logo riêng cho trường. Giao hàng đúng hẹn, chất lượng vượt mong đợi.',
         rating: 5,
         image_url: '',
+        feedback_image_url: '',
         product_image_url: '',
         product_name: 'Nệm Mầm Non HULA Premium',
     },
@@ -42,6 +45,7 @@ const defaultTestimonials = [
         content: 'Sản phẩm của HULA rất đẹp và chất lượng. Phụ huynh đều khen ngợi. Đã đặt thêm lần 3 cho năm học mới.',
         rating: 5,
         image_url: '',
+        feedback_image_url: '',
         product_image_url: '',
         product_name: 'Combo Tiết Kiệm HULA',
     },
@@ -106,12 +110,12 @@ export default function Testimonials({ testimonials, bgColor, textColor }: Testi
                         </div>
                     </div>
 
-                    {/* Right — Product image */}
+                    {/* Right — Feedback / Product image */}
                     <div className="rounded-[16px] overflow-hidden aspect-[4/3] bg-gray-100">
-                        {current.product_image_url ? (
+                        {(current.feedback_image_url || current.product_image_url) ? (
                             <img
-                                src={resolveImageUrl(current.product_image_url)}
-                                alt={current.product_name || 'Sản phẩm'}
+                                src={resolveImageUrl(current.feedback_image_url || current.product_image_url)}
+                                alt={current.feedback_image_url ? `Feedback - ${current.name}` : (current.product_name || 'Sản phẩm')}
                                 className="w-full h-full object-cover"
                             />
                         ) : (
