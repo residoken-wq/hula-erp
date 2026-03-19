@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/JsonLd';
+import { resolveImageUrl } from '@/lib/utils';
 
 interface Blog {
     id: number;
@@ -119,6 +120,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const title = seo?.title || blog?.meta_title || (blog ? `${blog.title} | Tin Tức HULA` : 'Tin Tức | HULA');
     const description = seo?.description || blog?.meta_description || blog?.excerpt || 'Tin tức và kiến thức về nệm mầm non HULA';
     const robots = seo?.robots?.length ? seo.robots.join(', ') : 'index, follow';
+    
+    const imageUrl = seo?.ogImage ? resolveImageUrl(seo.ogImage) : (blog?.featured_image ? resolveImageUrl(blog.featured_image) : undefined);
 
     return {
         title,
@@ -130,7 +133,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
             title,
             description,
             type: 'article',
-            images: seo?.ogImage ? [seo.ogImage] : (blog?.featured_image ? [blog.featured_image] : undefined),
+            images: imageUrl ? [imageUrl] : undefined,
         },
         robots: {
             index: robots.includes('index'),
@@ -169,7 +172,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                 '@context': 'https://schema.org',
                 '@type': blog.seo_meta?.schemaType || 'Article',
                 headline: blog.seo_meta?.title || blog.title,
-                image: blog.featured_image ? [blog.featured_image] : undefined,
+                image: blog.featured_image ? [resolveImageUrl(blog.featured_image)] : undefined,
                 datePublished: blog.published_at,
                 dateModified: blog.published_at, // or updated_at if available
                 author: [{
@@ -231,7 +234,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                     {blog.featured_image && (
                         <div className="aspect-video bg-gray-100">
                             <img
-                                src={blog.featured_image}
+                                src={resolveImageUrl(blog.featured_image)}
                                 alt={blog.featured_image_alt || blog.title}
                                 title={blog.featured_image_title || blog.title}
                                 className="w-full h-full object-cover"
@@ -296,7 +299,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                                 <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
                                     {related.featured_image ? (
                                         <img
-                                            src={related.featured_image}
+                                            src={resolveImageUrl(related.featured_image)}
                                             alt={related.featured_image_alt || related.title}
                                             title={related.featured_image_title || related.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

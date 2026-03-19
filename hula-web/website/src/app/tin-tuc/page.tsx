@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getBlogs } from '@/lib/api';
+import { resolveImageUrl } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,7 @@ export default async function BlogsPage() {
                                 <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
                                     {blog.featured_image ? (
                                         <img
-                                            src={blog.featured_image}
+                                            src={resolveImageUrl(blog.featured_image)}
                                             alt={blog.featured_image_alt || blog.title}
                                             title={blog.featured_image_title || blog.title}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

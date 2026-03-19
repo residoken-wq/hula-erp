@@ -5,10 +5,20 @@ const getApiBaseUrl = () => {
 
 export const resolveImageUrl = (url?: string): string => {
     if (!url) return '';
-    if (url.startsWith('/uploads/')) {
-        return `${getApiBaseUrl()}/api/upload/files/${url.replace('/uploads/', '')}`;
+    
+    // Handle cases where the URL was incorrectly saved as a JSON string '{"url":"..."}'
+    let actualUrl = url;
+    if (typeof url === 'string' && url.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(url);
+            if (parsed.url) actualUrl = parsed.url;
+        } catch { /* skip */ }
     }
-    return getGoogleDriveImageUrl(url);
+
+    if (actualUrl.startsWith('/uploads/')) {
+        return `${getApiBaseUrl()}/api/upload/files/${actualUrl.replace('/uploads/', '')}`;
+    }
+    return getGoogleDriveImageUrl(actualUrl);
 };
 
 export const getGoogleDriveImageUrl = (url?: string) => {

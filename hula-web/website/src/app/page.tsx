@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { getProducts, getBlogs, getHomeConfig, getSettings, getProjects } from '@/lib/api';
+import { resolveImageUrl } from '@/lib/utils';
 import HeroCarousel from '@/components/HeroCarousel';
+
+// ... (skipping some lines for brevity in instruction, using exactly what was targeted)
 import CategoryCards from '@/components/CategoryCards';
 import WhyChooseHula from '@/components/WhyChooseHula';
 import JourneySlider from '@/components/JourneySlider';
