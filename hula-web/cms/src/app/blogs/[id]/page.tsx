@@ -76,6 +76,18 @@ export default function BlogEditorPage() {
         try {
             const res = await blogsApi.getOne(blogId!);
             const data = res.data;
+            // Normalize featured_image: it should be a plain URL string.
+            // Fix for cases where it was previously saved as JSON string '{"url":"..."}' or as an object {url:"..."}
+            if (data.featured_image) {
+                if (typeof data.featured_image === 'object' && data.featured_image.url) {
+                    data.featured_image = data.featured_image.url;
+                } else if (typeof data.featured_image === 'string' && data.featured_image.startsWith('{')) {
+                    try {
+                        const parsed = JSON.parse(data.featured_image);
+                        if (parsed.url) data.featured_image = parsed.url;
+                    } catch { /* keep as-is */ }
+                }
+            }
             form.setFieldsValue(data);
             setContent(data.content || '');
         } catch (error) {
@@ -271,7 +283,7 @@ export default function BlogEditorPage() {
                                 name="featured_image"
                                 label="Ảnh đại diện"
                             >
-                                <ImageUploader hint="📐 Kích thước: 1200x630px (1.91:1) — Tối ưu SEO + chia sẻ mạng xã hội" />
+                                <ImageUploader simple hint="📐 Kích thước: 1200x630px (1.91:1) — Tối ưu SEO + chia sẻ mạng xã hội" />
                             </Form.Item>
 
                             <Form.Item name="featured_image_alt" label="Alt Text (SEO Ảnh)" tooltip="Mô tả nội dung ảnh cho Google (từ khóa chính)">
