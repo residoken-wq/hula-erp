@@ -49,6 +49,11 @@ export class PublicController {
         return this.systemService.getHomeConfig();
     }
 
+    @Get('about-config')
+    async getAboutConfig() {
+        return this.systemService.getAboutConfig();
+    }
+
     @Get('settings')
     async getSettings() {
         // Fetch settings from CMS config keys (lowercase format from Website CMS)

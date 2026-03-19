@@ -1,51 +1,22 @@
 import Link from 'next/link';
+import { getBlogs } from '@/lib/api';
 
-async function getBlogs() {
+export const dynamic = 'force-dynamic';
+
+async function fetchBlogs() {
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/blogs`, {
-            cache: 'no-store',
-        });
-        if (!res.ok) return [];
-        return res.json();
-    } catch {
-        // Mock data for development
-        return [
-            {
-                id: 1,
-                slug: 'cach-chon-nem-mam-non-phu-hop',
-                title: 'Cách Chọn Nệm Mầm Non Phù Hợp Cho Bé',
-                excerpt: 'Hướng dẫn chi tiết giúp phụ huynh chọn được loại nệm phù hợp nhất cho con em mình...',
-                featured_image: null,
-                category: 'Hướng dẫn',
-                published_at: '2026-01-05T10:00:00Z',
-                view_count: 1250,
-            },
-            {
-                id: 2,
-                slug: 'bao-quan-nem-dung-cach',
-                title: 'Bảo Quản Nệm Đúng Cách Để Bền Lâu',
-                excerpt: 'Những mẹo đơn giản giúp nệm mầm non của bạn luôn sạch sẽ và bền đẹp theo thời gian...',
-                featured_image: null,
-                category: 'Mẹo vặt',
-                published_at: '2026-01-03T10:00:00Z',
-                view_count: 980,
-            },
-            {
-                id: 3,
-                slug: 'loi-ich-giac-ngu-trua-tre-mam-non',
-                title: 'Lợi Ích Của Giấc Ngủ Trưa Đối Với Trẻ Mầm Non',
-                excerpt: 'Nghiên cứu khoa học về tầm quan trọng của giấc ngủ trưa trong sự phát triển của trẻ...',
-                featured_image: null,
-                category: 'Kiến thức',
-                published_at: '2026-01-01T10:00:00Z',
-                view_count: 2100,
-            },
-        ];
+        const res = await getBlogs();
+        // getBlogs() -> axios.get('/blogs') -> returns { data } which is the raw array
+        const blogs = res.data || res || [];
+        return Array.isArray(blogs) ? blogs : [];
+    } catch (error) {
+        console.error('[tin-tuc] Failed to fetch blogs:', error);
+        return [];
     }
 }
 
 export default async function BlogsPage() {
-    const blogs = await getBlogs();
+    const blogs = await fetchBlogs();
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('vi-VN', {

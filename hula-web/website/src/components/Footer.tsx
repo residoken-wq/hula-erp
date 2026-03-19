@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useState, useEffect } from 'react';
 import { resolveImageUrl } from '@/lib/utils';
@@ -36,6 +37,7 @@ const defaultProductLinks: FooterLink[] = [
 
 export default function Footer() {
     const { settings, loading } = useSettings();
+    const pathname = usePathname();
     const [footerConfig, setFooterConfig] = useState<FooterConfig>({});
 
     useEffect(() => {
@@ -209,7 +211,7 @@ export default function Footer() {
                     <div>
                         <h3 className="text-white font-heading font-semibold mb-4 text-sm uppercase tracking-wider">Kết nối</h3>
                         {settings.facebook_page_url ? (
-                            <div className="rounded-[12px] overflow-hidden mb-6">
+                            <div key={pathname} className="rounded-[12px] overflow-hidden mb-6">
                                 <iframe
                                     src={`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(settings.facebook_page_url)}&tabs=timeline&width=300&height=200&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true`}
                                     width="100%"

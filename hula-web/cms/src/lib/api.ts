@@ -66,6 +66,8 @@ export const systemApi = {
         api.post('/system/config', { key, value, description }),
     getHomeConfig: () => api.get('/system/home-config'),
     saveHomeConfig: (data: any) => api.post('/system/home-config', data),
+    getAboutConfig: () => api.get('/system/about-config'),
+    saveAboutConfig: (data: any) => api.post('/system/about-config', data),
 };
 
 // ============================================

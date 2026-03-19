@@ -35,6 +35,11 @@ const menuItems = [
         icon: <FormatPainterOutlined />,
     },
     {
+        path: '/about-hula',
+        name: 'Về Hula',
+        icon: <HomeOutlined />,
+    },
+    {
         path: '/media',
         name: 'Hình ảnh',
         icon: <PictureOutlined />,

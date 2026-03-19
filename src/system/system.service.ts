@@ -302,4 +302,82 @@ export class SystemService {
 
         return { success: true };
     }
+
+    // --- ABOUT HULA PAGE CONFIG ---
+    async getAboutConfig() {
+        const keys = [
+            'ABOUT_hero_title', 'ABOUT_hero_description', 'ABOUT_hero_image',
+            'ABOUT_story_title', 'ABOUT_story_content',
+            'ABOUT_vision_title', 'ABOUT_vision_description',
+            'ABOUT_mission_title', 'ABOUT_mission_description',
+            'ABOUT_cta_title', 'ABOUT_cta_description', 'ABOUT_cta_button_text', 'ABOUT_cta_button_url',
+        ];
+        const jsonArrayKeys = [
+            'ABOUT_STATS', 'ABOUT_TEAM_MEMBERS', 'ABOUT_VALUES',
+        ];
+        const allKeys = [...keys, ...jsonArrayKeys];
+
+        const configs = await this.configRepo.find();
+        const result: any = {};
+
+        keys.forEach(k => result[k] = '');
+        configs.forEach(c => {
+            if (allKeys.includes(c.key)) {
+                result[c.key] = c.value;
+            }
+        });
+
+        // Map to frontend-friendly keys
+        const mappedResult: any = {};
+        keys.forEach(k => {
+            const shortKey = k.replace('ABOUT_', '');
+            mappedResult[shortKey] = result[k] || '';
+        });
+
+        // Parse JSON arrays
+        const jsonMapping: Record<string, string> = {
+            'ABOUT_STATS': 'stats',
+            'ABOUT_TEAM_MEMBERS': 'team_members',
+            'ABOUT_VALUES': 'values',
+        };
+        for (const [dbKey, frontendKey] of Object.entries(jsonMapping)) {
+            try {
+                mappedResult[frontendKey] = result[dbKey] ? JSON.parse(result[dbKey]) : [];
+            } catch {
+                mappedResult[frontendKey] = [];
+            }
+        }
+
+        return mappedResult;
+    }
+
+    async saveAboutConfig(data: any) {
+        const keys = [
+            'hero_title', 'hero_description', 'hero_image',
+            'story_title', 'story_content',
+            'vision_title', 'vision_description',
+            'mission_title', 'mission_description',
+            'cta_title', 'cta_description', 'cta_button_text', 'cta_button_url',
+        ];
+
+        for (const key of keys) {
+            if (data[key] !== undefined) {
+                await this.setValue(`ABOUT_${key}`, String(data[key]), 'About Hula Page Config');
+            }
+        }
+
+        // Save JSON arrays
+        const jsonMapping: Record<string, string> = {
+            'stats': 'ABOUT_STATS',
+            'team_members': 'ABOUT_TEAM_MEMBERS',
+            'values': 'ABOUT_VALUES',
+        };
+        for (const [frontendKey, dbKey] of Object.entries(jsonMapping)) {
+            if (data[frontendKey] !== undefined) {
+                await this.setValue(dbKey, JSON.stringify(data[frontendKey]), `About Hula ${frontendKey}`);
+            }
+        }
+
+        return { success: true };
+    }
 }

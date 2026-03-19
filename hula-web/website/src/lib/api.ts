@@ -128,4 +128,14 @@ export const getSettings = async () => {
     }
 };
 
+// About Hula Config
+export const getAboutConfig = async () => {
+    try {
+        const { data } = await api.get('/about-config');
+        return data;
+    } catch {
+        return null;
+    }
+};
+
 export default api;

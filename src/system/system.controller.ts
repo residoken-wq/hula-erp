@@ -57,4 +57,11 @@ export class SystemController {
 
     @Post('home-config')
     saveHomeConfig(@Body() body: any) { return this.s.saveHomeConfig(body); }
+
+    // --- ABOUT HULA PAGE CONFIG ---
+    @Get('about-config')
+    getAboutConfig() { return this.s.getAboutConfig(); }
+
+    @Post('about-config')
+    saveAboutConfig(@Body() body: any) { return this.s.saveAboutConfig(body); }
 }
