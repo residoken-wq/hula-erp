@@ -152,6 +152,9 @@ export default function AboutHulaPage() {
                                     <Form.Item name="story_title" label="Tiêu đề phần câu chuyện">
                                         <Input placeholder="VD: Câu Chuyện HULA" />
                                     </Form.Item>
+                                    <Form.Item name="story_video_url" label="Video YouTube (Câu chuyện)">
+                                        <Input placeholder="VD: https://www.youtube.com/watch?v=..." />
+                                    </Form.Item>
                                     <Form.Item label="Nội dung câu chuyện (Rich Text)">
                                         <RichTextEditor
                                             value={storyContent}
