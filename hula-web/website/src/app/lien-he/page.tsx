@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
+import PageHeroBanner from '@/components/PageHeroBanner';
 
 interface Settings {
     contact_phone?: string;
@@ -72,8 +73,12 @@ export default function ContactPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gray-50">
+            <PageHeroBanner
+                title="Liên Hệ Với Chúng Tôi"
+                description="Bạn là đại lý, trường mầm non hoặc muốn mua sỉ? Liên hệ ngay để được tư vấn"
+            />
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="grid lg:grid-cols-2 gap-12">
                     {/* Left: Contact Info */}
                     <div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import PageHeroBanner from '@/components/PageHeroBanner';
 
 interface WizardProduct {
     product_id: number;
@@ -272,18 +273,11 @@ export default function WizardPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
-            {/* Header */}
-            <header className="bg-white shadow-sm sticky top-0 z-50">
-                <div className="max-w-6xl mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between">
-                        <Link href="/" className="flex items-center gap-2">
-                            <span className="text-2xl">🧸</span>
-                            <span className="font-bold text-xl text-gray-800">HULA</span>
-                        </Link>
-                        <h1 className="text-lg font-semibold text-gray-700">Customize Sản Phẩm</h1>
-                    </div>
-                </div>
-            </header>
+            <PageHeroBanner
+                title="Đặt Hàng Sỉ"
+                description="Customize sản phẩm nệm, gối, chăn theo yêu cầu của trường bạn"
+                compact
+            />
 
             {/* Stepper */}
             <div className="bg-white border-b">

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import api from '@/lib/api';
+import PageHeroBanner from '@/components/PageHeroBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,18 +18,10 @@ export default async function ProjectsPage() {
 
     return (
         <>
-            {/* Hero */}
-            <section className="relative bg-gradient-to-br from-primary-500 to-primary-700 text-white py-20 lg:py-28 overflow-hidden">
-                <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10"></div>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
-                    <h1 className="text-4xl lg:text-5xl font-heading font-bold mb-6">
-                        Dự Án Của HULA
-                    </h1>
-                    <p className="text-lg text-primary-100 max-w-2xl mx-auto leading-relaxed">
-                        Khám phá các dự án HULA đã triển khai tại trường học trên toàn quốc
-                    </p>
-                </div>
-            </section>
+            <PageHeroBanner
+                title="Dự Án Của HULA"
+                description="Khám phá các dự án HULA đã triển khai tại trường học trên toàn quốc"
+            />
 
             {/* Projects Grid */}
             <section className="py-16 lg:py-24 bg-white">

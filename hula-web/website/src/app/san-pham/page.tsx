@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import { getProducts, getCategories } from '@/lib/api';
+import PageHeroBanner from '@/components/PageHeroBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,15 +36,10 @@ export default async function ProductsPage({
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Hero */}
-            <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-12">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h1 className="text-3xl lg:text-4xl font-bold">Sản Phẩm Nệm Mầm Non</h1>
-                    <p className="mt-4 text-primary-100 max-w-2xl mx-auto">
-                        Khám phá bộ sưu tập nệm mầm non chất lượng cao, an toàn cho bé yêu
-                    </p>
-                </div>
-            </section>
+            <PageHeroBanner
+                title="Sản Phẩm Nệm Mầm Non"
+                description="Khám phá bộ sưu tập nệm mầm non chất lượng cao, an toàn cho bé yêu"
+            />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="flex flex-col lg:flex-row gap-8">

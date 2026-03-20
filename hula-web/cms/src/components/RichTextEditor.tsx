@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Modal, Input, Button, Spin, Empty, message } from 'antd';
+import { PictureOutlined } from '@ant-design/icons';
+import { uploadApi } from '@/lib/api';
 
 interface RichTextEditorProps {
     value: string;
@@ -8,6 +11,18 @@ interface RichTextEditorProps {
     placeholder?: string;
     minHeight?: number;
 }
+
+// --- Helpers ---
+const getApiBaseUrl = () => {
+    const base = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
+    return base.endsWith('/api') ? base.replace(/\/api$/, '') : base;
+};
+
+const resolveImageUrl = (url?: string): string => {
+    if (!url) return '';
+    if (url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/${url.replace('/uploads/', '')}`;
+    return url;
+};
 
 // Custom Upload Adapter — uploads images via /api/upload/image
 class HulaUploadAdapter {
@@ -83,6 +98,12 @@ export default function RichTextEditor({
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<any>(null);
     const [isLayoutReady, setIsLayoutReady] = useState(false);
+
+    // Library state
+    const [libraryOpen, setLibraryOpen] = useState(false);
+    const [libraryLoading, setLibraryLoading] = useState(false);
+    const [libraryFiles, setLibraryFiles] = useState<Array<{ name: string; url: string; size: number; modified: string }>>([]);
+    const [librarySearch, setLibrarySearch] = useState('');
 
     useEffect(() => {
         setIsLayoutReady(true);
@@ -192,12 +213,138 @@ export default function RichTextEditor({
         }
     }, [value]);
 
+    // --- Library functions ---
+    const openLibrary = async () => {
+        setLibraryOpen(true);
+        setLibrarySearch('');
+        try {
+            setLibraryLoading(true);
+            const res = await uploadApi.listFiles();
+            setLibraryFiles(Array.isArray(res.data) ? res.data : []);
+        } catch {
+            message.error('Không thể tải thư viện hình ảnh');
+            setLibraryFiles([]);
+        } finally {
+            setLibraryLoading(false);
+        }
+    };
+
+    const handlePickFromLibrary = (url: string) => {
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        const resolvedUrl = resolveImageUrl(url);
+        editor.model.change((writer: any) => {
+            const imageElement = writer.createElement('imageBlock', { src: resolvedUrl });
+            editor.model.insertContent(imageElement);
+        });
+
+        setLibraryOpen(false);
+        message.success('Đã chèn ảnh vào bài viết');
+    };
+
+    const filteredLibraryFiles = libraryFiles.filter(f =>
+        (f?.name || '').toLowerCase().includes(librarySearch.trim().toLowerCase())
+    );
+
     return (
         <div className="ckeditor-wrapper">
             <div
                 ref={editorContainerRef}
                 style={{ minHeight: `${minHeight}px` }}
             />
+
+            {/* Library button below editor */}
+            <div style={{ marginTop: 8 }}>
+                <Button
+                    icon={<PictureOutlined />}
+                    onClick={openLibrary}
+                    block
+                    style={{ borderStyle: 'dashed' }}
+                >
+                    Chọn ảnh từ thư viện
+                </Button>
+            </div>
+
+            {/* Library Modal */}
+            <Modal
+                open={libraryOpen}
+                onCancel={() => setLibraryOpen(false)}
+                footer={null}
+                width={900}
+                title="Chọn ảnh từ thư viện"
+                destroyOnClose
+            >
+                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                    <Input
+                        placeholder="Tìm theo tên file..."
+                        value={librarySearch}
+                        onChange={(e) => setLibrarySearch(e.target.value)}
+                        allowClear
+                    />
+                    <Button onClick={openLibrary} loading={libraryLoading}>
+                        Tải lại
+                    </Button>
+                </div>
+
+                {libraryLoading ? (
+                    <div style={{ padding: 40, textAlign: 'center' }}>
+                        <Spin />
+                    </div>
+                ) : filteredLibraryFiles.length === 0 ? (
+                    <Empty description={libraryFiles.length === 0 ? 'Chưa có hình ảnh trong thư viện' : 'Không tìm thấy'} />
+                ) : (
+                    <div
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                            gap: 12,
+                            maxHeight: '60vh',
+                            overflow: 'auto',
+                            paddingRight: 4,
+                        }}
+                    >
+                        {filteredLibraryFiles.map((f) => (
+                            <div
+                                key={f.name}
+                                onClick={() => handlePickFromLibrary(f.url)}
+                                style={{
+                                    border: '1px solid #f0f0f0',
+                                    borderRadius: 10,
+                                    overflow: 'hidden',
+                                    cursor: 'pointer',
+                                    background: '#fafafa',
+                                    transition: 'transform 0.15s, box-shadow 0.15s',
+                                }}
+                                onMouseEnter={(e) => {
+                                    (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(0,0,0,0.10)';
+                                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                                    (e.currentTarget as HTMLElement).style.transform = 'none';
+                                }}
+                                title={f.name}
+                            >
+                                <div style={{ width: '100%', aspectRatio: '1', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <img
+                                        src={resolveImageUrl(f.url)}
+                                        alt={f.name}
+                                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23ccc" font-size="40">🖼️</text></svg>';
+                                        }}
+                                    />
+                                </div>
+                                <div style={{ padding: '6px 10px', fontSize: 12, color: '#555' }}>
+                                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Modal>
+
             <style jsx global>{`
                 .ck-editor__editable {
                     min-height: ${minHeight}px !important;

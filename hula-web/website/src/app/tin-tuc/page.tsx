@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getBlogs } from '@/lib/api';
 import { resolveImageUrl } from '@/lib/utils';
+import PageHeroBanner from '@/components/PageHeroBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,15 +30,10 @@ export default async function BlogsPage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Hero */}
-            <section className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-12">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h1 className="text-3xl lg:text-4xl font-bold">Tin Tức & Kiến Thức</h1>
-                    <p className="mt-4 text-primary-100 max-w-2xl mx-auto">
-                        Cập nhật những thông tin hữu ích về chăm sóc giấc ngủ cho bé
-                    </p>
-                </div>
-            </section>
+            <PageHeroBanner
+                title="Tin Tức & Kiến Thức"
+                description="Cập nhật những thông tin hữu ích về chăm sóc giấc ngủ cho bé"
+            />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 {/* Blog Grid */}

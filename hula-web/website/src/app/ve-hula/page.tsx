@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getAboutConfig } from '@/lib/api';
+import PageHeroBanner from '@/components/PageHeroBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,21 +58,11 @@ export default async function AboutPage() {
 
     return (
         <>
-            {/* Hero */}
-            <section
-                className="relative py-20 lg:py-32 text-white"
-                style={heroImage ? { backgroundImage: `url(${heroImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-            >
-                <div className="absolute inset-0 bg-primary-800/60"></div>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
-                    <h1 className="text-4xl lg:text-5xl font-heading font-bold mb-6">
-                        {heroTitle}
-                    </h1>
-                    <p className="text-lg text-primary-100 max-w-2xl mx-auto leading-relaxed">
-                        {heroDescription}
-                    </p>
-                </div>
-            </section>
+            <PageHeroBanner
+                title={heroTitle}
+                description={heroDescription}
+                backgroundImage={heroImage}
+            />
 
             {/* Story */}
             <section className="py-16 lg:py-24 bg-white">
