@@ -1,17 +1,9 @@
 import Link from 'next/link';
-import api from '@/lib/api';
+import { getProjects } from '@/lib/api';
+import { resolveImageUrl } from '@/lib/utils';
 import PageHeroBanner from '@/components/PageHeroBanner';
 
 export const dynamic = 'force-dynamic';
-
-async function getProjects() {
-    try {
-        const { data } = await api.get('/projects');
-        return data.data || data || [];
-    } catch {
-        return [];
-    }
-}
 
 export default async function ProjectsPage() {
     const projects = await getProjects();
@@ -28,16 +20,18 @@ export default async function ProjectsPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {projects.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {projects.map((project: any) => (
+                            {projects.map((project: any) => {
+                                const imgSrc = resolveImageUrl(project.image_url);
+                                return (
                                 <Link
                                     key={project.id}
                                     href={`/du-an/${project.slug}`}
                                     className="card-v2 group overflow-hidden"
                                 >
                                     <div className="aspect-[4/3] bg-gray-100 overflow-hidden relative">
-                                        {project.images && project.images[0] ? (
+                                        {imgSrc ? (
                                             <img
-                                                src={project.images[0]}
+                                                src={imgSrc}
                                                 alt={project.title}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                             />
@@ -56,17 +50,15 @@ export default async function ProjectsPage() {
                                         {project.school_name && (
                                             <p className="text-sm text-gray-500 mb-2">{project.school_name}</p>
                                         )}
-                                        {project.location && (
-                                            <p className="text-xs text-gray-400 flex items-center gap-1">
-                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                                </svg>
-                                                {project.location}
+                                        {project.description && (
+                                            <p className="text-xs text-gray-400 line-clamp-2">
+                                                {project.description}
                                             </p>
                                         )}
                                     </div>
                                 </Link>
-                            ))}
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="text-center py-20">
