@@ -3,13 +3,36 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BlogPost, BlogStatus } from './blog-post.entity';
 import { generateSlug } from '../utils/slug.util';
+import { SystemService } from '../system/system.service';
+
+const BLOG_CATEGORIES_KEY = 'BLOG_CATEGORIES';
 
 @Injectable()
 export class BlogsService {
     constructor(
         @InjectRepository(BlogPost)
-        private readonly blogRepo: Repository<BlogPost>
+        private readonly blogRepo: Repository<BlogPost>,
+        private readonly systemService: SystemService,
     ) { }
+
+    // --- CATEGORIES ---
+    async getCategories(): Promise<string[]> {
+        const value = await this.systemService.getValue(BLOG_CATEGORIES_KEY);
+        if (value) {
+            try {
+                return JSON.parse(value);
+            } catch {
+                return [];
+            }
+        }
+        // Default categories
+        return ['Hướng dẫn', 'Mẹo vặt', 'Kiến thức', 'Tin tức'];
+    }
+
+    async saveCategories(categories: string[]): Promise<{ success: true }> {
+        await this.systemService.setValue(BLOG_CATEGORIES_KEY, JSON.stringify(categories), 'Blog Categories');
+        return { success: true };
+    }
 
     // --- PUBLIC APIs ---
     async findPublished() {

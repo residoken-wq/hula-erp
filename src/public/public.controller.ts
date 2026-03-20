@@ -226,6 +226,7 @@ export class PublicController {
             meta_description: blog.meta_description,
             tags: blog.tags,
             author: blog.author ? { id: blog.author.id, username: blog.author.username } : null,
+            view_count: blog.view_count,
             // SEO RankMath
             focus_keyword: blog.focus_keyword,
             seo_score: blog.seo_score,

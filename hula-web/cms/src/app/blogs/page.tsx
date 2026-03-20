@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, Table, Button, Space, Tag, Modal, message, Input } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutlined, FolderOutlined } from '@ant-design/icons';
 import { blogsApi } from '@/lib/api';
 
 interface BlogPost {
@@ -24,27 +24,37 @@ export default function BlogsPage() {
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
 
+    // Category management
+    const [categories, setCategories] = useState<string[]>([]);
+    const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+    const [newCategory, setNewCategory] = useState('');
+    const [savingCategories, setSavingCategories] = useState(false);
+
     useEffect(() => {
         loadBlogs();
+        loadCategories();
     }, []);
 
     const loadBlogs = async () => {
         setLoading(true);
         try {
             const res = await blogsApi.getAll();
-            // Assuming res.data is the array of blogs
             const data = res.data;
             setBlogs(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error(error);
-            // Fallback mock data if API fails or is unreachable
-            setBlogs([
-                { id: 1, slug: 'cach-chon-nem', title: 'Cách Chọn Nệm Mầm Non Phù Hợp', status: 'PUBLISHED', category: 'Hướng dẫn', view_count: 1250, published_at: '2026-01-05', created_at: '2026-01-04' },
-                { id: 2, slug: 'bao-quan-nem', title: 'Bảo Quản Nệm Đúng Cách', status: 'PUBLISHED', category: 'Mẹo vặt', view_count: 980, published_at: '2026-01-03', created_at: '2026-01-02' },
-                { id: 3, slug: 'loi-ich-giac-ngu', title: 'Lợi Ích Của Giấc Ngủ Trưa', status: 'DRAFT', category: 'Kiến thức', view_count: 0, published_at: null, created_at: '2026-01-01' },
-            ]);
+            setBlogs([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadCategories = async () => {
+        try {
+            const res = await blogsApi.getCategories();
+            setCategories(Array.isArray(res.data) ? res.data : []);
+        } catch {
+            setCategories(['Hướng dẫn', 'Mẹo vặt', 'Kiến thức', 'Tin tức']);
         }
     };
 
@@ -78,6 +88,34 @@ export default function BlogsPage() {
             message.success(publish ? 'Đã đăng bài viết' : 'Đã gỡ bài viết');
         } catch {
             message.error('Có lỗi xảy ra');
+        }
+    };
+
+    const handleAddCategory = () => {
+        const trimmed = newCategory.trim();
+        if (!trimmed) return;
+        if (categories.includes(trimmed)) {
+            message.warning('Danh mục đã tồn tại');
+            return;
+        }
+        setCategories([...categories, trimmed]);
+        setNewCategory('');
+    };
+
+    const handleRemoveCategory = (cat: string) => {
+        setCategories(categories.filter(c => c !== cat));
+    };
+
+    const handleSaveCategories = async () => {
+        setSavingCategories(true);
+        try {
+            await blogsApi.saveCategories(categories);
+            message.success('Đã lưu danh mục');
+            setCategoryModalOpen(false);
+        } catch {
+            message.error('Không thể lưu danh mục');
+        } finally {
+            setSavingCategories(false);
         }
     };
 
@@ -173,6 +211,9 @@ export default function BlogsPage() {
                             style={{ width: 200 }}
                             allowClear
                         />
+                        <Button icon={<FolderOutlined />} onClick={() => setCategoryModalOpen(true)}>
+                            Danh mục
+                        </Button>
                         <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push('/blogs/new')}>
                             Tạo bài viết
                         </Button>
@@ -187,6 +228,46 @@ export default function BlogsPage() {
                     pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `Tổng ${total} bài viết` }}
                 />
             </Card>
+
+            {/* Category Management Modal */}
+            <Modal
+                title="Quản lý danh mục bài viết"
+                open={categoryModalOpen}
+                onCancel={() => setCategoryModalOpen(false)}
+                onOk={handleSaveCategories}
+                okText="Lưu"
+                cancelText="Hủy"
+                confirmLoading={savingCategories}
+            >
+                <div style={{ marginBottom: 16 }}>
+                    <Space.Compact style={{ width: '100%' }}>
+                        <Input
+                            placeholder="Nhập tên danh mục mới..."
+                            value={newCategory}
+                            onChange={(e) => setNewCategory(e.target.value)}
+                            onPressEnter={handleAddCategory}
+                        />
+                        <Button type="primary" icon={<PlusOutlined />} onClick={handleAddCategory}>
+                            Thêm
+                        </Button>
+                    </Space.Compact>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {categories.map((cat) => (
+                        <Tag
+                            key={cat}
+                            closable
+                            onClose={() => handleRemoveCategory(cat)}
+                            style={{ padding: '4px 12px', fontSize: 14 }}
+                        >
+                            {cat}
+                        </Tag>
+                    ))}
+                    {categories.length === 0 && (
+                        <span style={{ color: '#999' }}>Chưa có danh mục nào</span>
+                    )}
+                </div>
+            </Modal>
         </AdminLayout>
     );
 }

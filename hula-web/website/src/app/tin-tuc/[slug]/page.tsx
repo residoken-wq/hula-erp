@@ -212,12 +212,6 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                             <span className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
                                 {blog.category}
                             </span>
-                            <span className="text-gray-500 text-sm">
-                                {formatDate(blog.published_at)}
-                            </span>
-                            <span className="text-gray-400 text-sm">
-                                • {blog.view_count} lượt xem
-                            </span>
                         </div>
 
                         <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 leading-tight">

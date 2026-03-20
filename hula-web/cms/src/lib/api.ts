@@ -16,6 +16,8 @@ export const blogsApi = {
     publish: (id: number) => api.post(`/blogs/${id}/publish`),
     unpublish: (id: number) => api.post(`/blogs/${id}/unpublish`),
     delete: (id: number) => api.delete(`/blogs/${id}`),
+    getCategories: () => api.get('/blogs/categories'),
+    saveCategories: (categories: string[]) => api.post('/blogs/categories', { categories }),
 };
 
 // ============================================

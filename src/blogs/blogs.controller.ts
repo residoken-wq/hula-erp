@@ -5,6 +5,17 @@ import { BlogsService } from './blogs.service';
 export class BlogsController {
     constructor(private readonly service: BlogsService) { }
 
+    // --- Categories (must be BEFORE :id route) ---
+    @Get('categories')
+    getCategories() {
+        return this.service.getCategories();
+    }
+
+    @Post('categories')
+    saveCategories(@Body() body: { categories: string[] }) {
+        return this.service.saveCategories(body.categories);
+    }
+
     // --- CMS APIs (require auth in production) ---
     @Get()
     findAll() {

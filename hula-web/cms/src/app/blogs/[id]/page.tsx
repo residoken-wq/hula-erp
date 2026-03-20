@@ -61,6 +61,7 @@ export default function BlogEditorPage() {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [content, setContent] = useState('');
+    const [categories, setCategories] = useState<string[]>([]);
 
     const isEditing = params?.id && params.id !== 'new';
     const blogId = isEditing ? Number(params.id) : null;
@@ -69,7 +70,17 @@ export default function BlogEditorPage() {
         if (blogId) {
             loadBlog();
         }
+        loadCategories();
     }, [blogId]);
+
+    const loadCategories = async () => {
+        try {
+            const res = await blogsApi.getCategories();
+            setCategories(Array.isArray(res.data) ? res.data : []);
+        } catch {
+            setCategories(['Hướng dẫn', 'Mẹo vặt', 'Kiến thức', 'Tin tức']);
+        }
+    };
 
     const loadBlog = async () => {
         setLoading(true);
@@ -272,10 +283,9 @@ export default function BlogEditorPage() {
                         <Form form={form} layout="vertical">
                             <Form.Item name="category" label="Danh mục">
                                 <Select placeholder="Chọn danh mục">
-                                    <Select.Option value="Hướng dẫn">Hướng dẫn</Select.Option>
-                                    <Select.Option value="Mẹo vặt">Mẹo vặt</Select.Option>
-                                    <Select.Option value="Kiến thức">Kiến thức</Select.Option>
-                                    <Select.Option value="Tin tức">Tin tức</Select.Option>
+                                    {categories.map((cat) => (
+                                        <Select.Option key={cat} value={cat}>{cat}</Select.Option>
+                                    ))}
                                 </Select>
                             </Form.Item>
 
