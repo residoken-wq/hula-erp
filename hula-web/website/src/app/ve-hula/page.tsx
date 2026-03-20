@@ -37,6 +37,7 @@ export default async function AboutPage() {
     const ctaButtonUrl = config.cta_button_url || '/lien-he';
     const heroImage = config.hero_image || '';
     const storyVideoUrl = config.story_video_url || '';
+    const storyImage = config.story_image || '';
 
     // Helper function to extract YouTube embed URL
     const getYoutubeEmbedUrl = (url: string) => {
@@ -92,7 +93,7 @@ export default async function AboutPage() {
                                 </div>
                             )}
                         </div>
-                        <div className="relative">
+                        <div className="relative h-full min-h-[300px]">
                             {embedUrl ? (
                                 <div className="w-full aspect-[4/3] rounded-[12px] flex items-center justify-center shadow-soft-lg overflow-hidden bg-black">
                                     <iframe
@@ -105,6 +106,10 @@ export default async function AboutPage() {
                                         allowFullScreen
                                         className="w-full h-full"
                                     ></iframe>
+                                </div>
+                            ) : storyImage ? (
+                                <div className="w-full aspect-[4/3] rounded-[12px] shadow-soft-lg overflow-hidden">
+                                    <img src={storyImage} alt={storyTitle} className="w-full h-full object-cover" />
                                 </div>
                             ) : (
                                 <div className="w-full aspect-[4/3] bg-gradient-to-br from-section-blue to-primary-200 rounded-[12px] flex items-center justify-center shadow-soft-lg">

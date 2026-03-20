@@ -152,8 +152,11 @@ export default function AboutHulaPage() {
                                     <Form.Item name="story_title" label="Tiêu đề phần câu chuyện">
                                         <Input placeholder="VD: Câu Chuyện HULA" />
                                     </Form.Item>
-                                    <Form.Item name="story_video_url" label="Video YouTube (Câu chuyện)">
+                                    <Form.Item name="story_video_url" label="Video YouTube (Ưu tiên hiển thị)">
                                         <Input placeholder="VD: https://www.youtube.com/watch?v=..." />
+                                    </Form.Item>
+                                    <Form.Item name="story_image" label="Hình ảnh thay thế (Hiển thị nếu không có video)">
+                                        <ImageUploader hint="📐 Kích thước khuyên dùng: 800x600px" />
                                     </Form.Item>
                                     <Form.Item label="Nội dung câu chuyện (Rich Text)">
                                         <RichTextEditor
