@@ -6,7 +6,8 @@ import { Card, Table, Button, Space, Tag, Modal, Form, Input, Select, message, U
 import { PlusOutlined, EditOutlined, DeleteOutlined, SyncOutlined, UploadOutlined, GlobalOutlined } from '@ant-design/icons';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
-import { websiteProjectsApi, uploadApi } from '@/lib/api';
+import { websiteProjectsApi } from '@/lib/api';
+import ImageUploader, { resolveImageUrl } from '@/components/ImageUploader';
 
 const ReactQuill = dynamic(() => import('react-quill'), {
     ssr: false,
@@ -36,9 +37,6 @@ export default function WebsiteProjectsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [form] = Form.useForm();
-
-    const [imageUrl, setImageUrl] = useState('');
-    const [imageFile, setImageFile] = useState<File | null>(null);
 
     const [pagination, setPagination] = useState({ current: 1, pageSize: 15, total: 0 });
     const [searchText, setSearchText] = useState('');
@@ -83,38 +81,22 @@ export default function WebsiteProjectsPage() {
                 meta_description: record.meta_description,
                 focus_keyword: record.focus_keyword,
                 slug: record.slug,
-                sort_order: record.sort_order || 0
+                sort_order: record.sort_order || 0,
+                image_url: record.image_url
             });
-            setImageUrl(record.image_url || '');
         } else {
             setEditingId(null);
             form.resetFields();
             form.setFieldValue('status', 'DRAFT');
             form.setFieldValue('sort_order', 0);
-            setImageUrl('');
         }
-        setImageFile(null);
         setIsModalOpen(true);
     };
 
     const handleSave = async (values: any) => {
         try {
-            let uploadedImageUrl = imageUrl;
-
-            // Handle image upload if there's a new file
-            if (imageFile) {
-                try {
-                    const uploadRes = await uploadApi.image(imageFile);
-                    uploadedImageUrl = uploadRes.data.url;
-                } catch (err) {
-                    message.error('Lỗi khi tải ảnh lên');
-                    return;
-                }
-            }
-
             const payload = {
-                ...values,
-                image_url: uploadedImageUrl
+                ...values
             };
 
             if (editingId) {
@@ -155,7 +137,7 @@ export default function WebsiteProjectsPage() {
         {
             title: 'Hình ảnh',
             dataIndex: 'image_url',
-            render: (url: string) => url ? <img src={url} alt="Project" style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4 }} /> : <div style={{ width: 60, height: 40, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>No Image</div>
+            render: (url: string) => url ? <img src={resolveImageUrl(url)} alt="Project" style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 4 }} /> : <div style={{ width: 60, height: 40, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>No Image</div>
         },
         {
             title: 'Tên dự án',
@@ -288,23 +270,8 @@ export default function WebsiteProjectsPage() {
                                 <Input.TextArea rows={2} placeholder="Sẽ hiển thị ở danh sách dự án..." />
                             </Form.Item>
 
-                            <Form.Item label="Ảnh đại diện">
-                                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
-                                    {imageUrl && (
-                                        <img src={imageUrl} alt="Preview" style={{ width: 120, height: 80, objectFit: 'cover', borderRadius: 4, border: '1px solid #d9d9d9' }} />
-                                    )}
-                                    <Upload
-                                        beforeUpload={(file) => {
-                                            setImageFile(file);
-                                            setImageUrl(URL.createObjectURL(file));
-                                            return false; // Prevent auto upload
-                                        }}
-                                        showUploadList={false}
-                                        accept="image/*"
-                                    >
-                                        <Button icon={<UploadOutlined />}>Đổi ảnh</Button>
-                                    </Upload>
-                                </div>
+                            <Form.Item name="image_url" label="Ảnh đại diện">
+                                <ImageUploader simple hint="Khuyên dùng ảnh tỷ lệ 4:3" />
                             </Form.Item>
 
                             <Form.Item name="content" label="Nội dung chi tiết" rules={[{ required: true, message: 'Vui lòng nhập nội dung' }]}>

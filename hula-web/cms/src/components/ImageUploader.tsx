@@ -29,7 +29,7 @@ const getApiBaseUrl = () => {
     return base.endsWith('/api') ? base.replace(/\/api$/, '') : base;
 };
 
-const resolveImageUrl = (url?: string): string => {
+export const resolveImageUrl = (url?: string): string => {
     if (!url) return '';
     if (url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/${url.replace('/uploads/', '')}`;
     return getGoogleDriveImageUrl(url);
