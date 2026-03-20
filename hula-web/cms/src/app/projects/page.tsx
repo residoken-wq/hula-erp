@@ -5,14 +5,28 @@ import AdminLayout from '@/components/AdminLayout';
 import { Card, Table, Button, Space, Tag, Modal, Form, Input, Select, message, Upload, Tabs, Typography, Alert, InputNumber } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SyncOutlined, UploadOutlined, GlobalOutlined } from '@ant-design/icons';
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css';
 import { websiteProjectsApi } from '@/lib/api';
 import ImageUploader, { resolveImageUrl } from '@/components/ImageUploader';
 
-const ReactQuill = dynamic(() => import('react-quill'), {
-    ssr: false,
-    loading: () => <p>Loading editor...</p>,
-});
+const RichTextEditor = dynamic(
+    () => import('@/components/RichTextEditor'),
+    {
+        ssr: false,
+        loading: () => (
+            <div style={{
+                height: 300,
+                background: '#f5f5f5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 8,
+                border: '1px solid #d9d9d9',
+            }}>
+                Loading editor...
+            </div>
+        ),
+    }
+);
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -275,18 +289,9 @@ export default function WebsiteProjectsPage() {
                             </Form.Item>
 
                             <Form.Item name="content" label="Nội dung chi tiết" rules={[{ required: true, message: 'Vui lòng nhập nội dung' }]}>
-                                <ReactQuill
-                                    theme="snow"
-                                    style={{ height: 250, marginBottom: 50 }}
-                                    modules={{
-                                        toolbar: [
-                                            [{ 'header': [1, 2, 3, false] }],
-                                            ['bold', 'italic', 'underline', 'strike'],
-                                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                                            ['link', 'image'],
-                                            ['clean']
-                                        ],
-                                    }}
+                                <RichTextEditor
+                                    minHeight={300}
+                                    placeholder="Nhập nội dung chi tiết..."
                                 />
                             </Form.Item>
                         </Tabs.TabPane>
