@@ -30,13 +30,8 @@ const menuItems = [
         icon: <DashboardOutlined />,
     },
     {
-        path: '/home-content',
-        name: 'Nội dung Trang chủ',
-        icon: <HomeOutlined />,
-    },
-    {
         path: '/appearance',
-        name: 'Giao diện',
+        name: 'Trang chủ',
         icon: <FormatPainterOutlined />,
     },
     {
