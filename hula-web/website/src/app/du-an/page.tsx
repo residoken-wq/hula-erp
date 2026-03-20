@@ -23,40 +23,40 @@ export default async function ProjectsPage() {
                             {projects.map((project: any) => {
                                 const imgSrc = resolveImageUrl(project.image_url);
                                 return (
-                                <Link
-                                    key={project.id}
-                                    href={`/du-an/${project.slug}`}
-                                    className="card-v2 group overflow-hidden"
-                                >
-                                    <div className="aspect-[4/3] bg-gray-100 overflow-hidden relative">
-                                        {imgSrc ? (
-                                            <img
-                                                src={imgSrc}
-                                                alt={project.title}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full bg-gradient-to-br from-primary-200 to-primary-400 flex items-center justify-center">
-                                                <span className="text-5xl">🏫</span>
-                                            </div>
-                                        )}
-                                        {/* Hover overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                    </div>
-                                    <div className="p-5">
-                                        <h3 className="font-heading font-semibold text-gray-800 group-hover:text-primary-500 transition-colors mb-1">
-                                            {project.title}
-                                        </h3>
-                                        {project.school_name && (
-                                            <p className="text-sm text-gray-500 mb-2">{project.school_name}</p>
-                                        )}
-                                        {project.description && (
-                                            <p className="text-xs text-gray-400 line-clamp-2">
-                                                {project.description}
-                                            </p>
-                                        )}
-                                    </div>
-                                </Link>
+                                    <Link
+                                        key={project.id}
+                                        href={`/du-an/${project.slug}`}
+                                        className="card-v2 group overflow-hidden"
+                                    >
+                                        <div className="aspect-[4/3] bg-gray-100 overflow-hidden relative">
+                                            {imgSrc ? (
+                                                <img
+                                                    src={imgSrc}
+                                                    alt={project.title}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-br from-primary-200 to-primary-400 flex items-center justify-center">
+                                                    <span className="text-5xl">🏫</span>
+                                                </div>
+                                            )}
+                                            {/* Hover overlay */}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                        </div>
+                                        <div className="p-5">
+                                            <h5 className="font-heading font-semibold text-gray-800 group-hover:text-primary-500 transition-colors mb-1" style={{ fontSize: 'larger' }}>
+                                                {project.title}
+                                            </h5>
+                                            {project.school_name && (
+                                                <p className="text-sm text-gray-500 mb-2">{project.school_name}</p>
+                                            )}
+                                            {project.description && (
+                                                <p className="text-xs text-gray-400 line-clamp-2">
+                                                    {project.description}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </Link>
                                 );
                             })}
                         </div>
