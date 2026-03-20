@@ -6,8 +6,8 @@ import { PictureOutlined } from '@ant-design/icons';
 import { uploadApi } from '@/lib/api';
 
 interface RichTextEditorProps {
-    value: string;
-    onChange: (value: string) => void;
+    value?: string;
+    onChange?: (value: string) => void;
     placeholder?: string;
     minHeight?: number;
 }
@@ -186,7 +186,7 @@ export default function RichTextEditor({
                 // Listen for changes
                 editorInstance.model.document.on('change:data', () => {
                     const data = editorInstance.getData();
-                    onChange(data);
+                    if (onChange) onChange(data);
                 });
 
             } catch (error) {
