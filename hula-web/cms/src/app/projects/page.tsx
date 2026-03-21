@@ -9,27 +9,7 @@ import dynamic from 'next/dynamic';
 import { websiteProjectsApi } from '@/lib/api';
 import ImageUploader, { resolveImageUrl } from '@/components/ImageUploader';
 
-const RichTextEditor = dynamic(
-    () => import('@/components/RichTextEditor'),
-    {
-        ssr: false,
-        loading: () => (
-            <div style={{
-                height: 300,
-                background: '#f5f5f5',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 8,
-                border: '1px solid #d9d9d9',
-            }}>
-                Loading editor...
-            </div>
-        ),
-    }
-);
 
-const { Option } = Select;
 const { Title, Text } = Typography;
 
 const STATUS_COLORS: Record<string, string> = {
