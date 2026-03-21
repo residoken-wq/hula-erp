@@ -38,7 +38,7 @@ export default function ProjectEditorPage() {
     const loadProject = async () => {
         setLoading(true);
         try {
-            const res = await websiteProjectsApi.getOne(projectId!);
+            const res = await websiteProjectsApi.getOne(Number(projectId));
             const data = res.data;
             form.setFieldsValue(data);
             setContent(data.content || '');
