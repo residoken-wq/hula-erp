@@ -313,7 +313,7 @@ export class SystemService {
             'ABOUT_cta_title', 'ABOUT_cta_description', 'ABOUT_cta_button_text', 'ABOUT_cta_button_url',
         ];
         const jsonArrayKeys = [
-            'ABOUT_STATS', 'ABOUT_TEAM_MEMBERS', 'ABOUT_VALUES',
+            'ABOUT_STATS', 'ABOUT_TEAM_MEMBERS', 'ABOUT_VALUES', 'ABOUT_PAGE_BLOCKS',
         ];
         const allKeys = [...keys, ...jsonArrayKeys];
 
@@ -339,6 +339,7 @@ export class SystemService {
             'ABOUT_STATS': 'stats',
             'ABOUT_TEAM_MEMBERS': 'team_members',
             'ABOUT_VALUES': 'values',
+            'ABOUT_PAGE_BLOCKS': 'about_page_blocks',
         };
         for (const [dbKey, frontendKey] of Object.entries(jsonMapping)) {
             try {
@@ -371,6 +372,7 @@ export class SystemService {
             'stats': 'ABOUT_STATS',
             'team_members': 'ABOUT_TEAM_MEMBERS',
             'values': 'ABOUT_VALUES',
+            'about_page_blocks': 'ABOUT_PAGE_BLOCKS',
         };
         for (const [frontendKey, dbKey] of Object.entries(jsonMapping)) {
             if (data[frontendKey] !== undefined) {
