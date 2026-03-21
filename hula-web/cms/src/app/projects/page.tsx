@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Table, Button, Space, Tag, Modal, Form, Input, Select, message, Upload, Tabs, Typography, Alert, InputNumber } from 'antd';
+import { Card, Table, Button, Space, Tag, Modal, Input, message, Typography, Alert } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SyncOutlined, UploadOutlined, GlobalOutlined } from '@ant-design/icons';
 import dynamic from 'next/dynamic';
 import { websiteProjectsApi } from '@/lib/api';
@@ -46,11 +47,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default function WebsiteProjectsPage() {
     const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-
-    // Modal state
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [form] = Form.useForm();
+    const router = useRouter();
 
     const [pagination, setPagination] = useState({ current: 1, pageSize: 15, total: 0 });
     const [searchText, setSearchText] = useState('');
@@ -80,52 +77,6 @@ export default function WebsiteProjectsPage() {
 
     const handleTableChange = (newPagination: any) => {
         fetchData(newPagination.current, searchText);
-    };
-
-    const handleOpenModal = (record?: any) => {
-        if (record) {
-            setEditingId(record.id);
-            form.setFieldsValue({
-                title: record.title,
-                school_name: record.school_name,
-                status: record.status,
-                description: record.description,
-                content: record.content,
-                meta_title: record.meta_title,
-                meta_description: record.meta_description,
-                focus_keyword: record.focus_keyword,
-                slug: record.slug,
-                sort_order: record.sort_order || 0,
-                image_url: record.image_url
-            });
-        } else {
-            setEditingId(null);
-            form.resetFields();
-            form.setFieldValue('status', 'DRAFT');
-            form.setFieldValue('sort_order', 0);
-        }
-        setIsModalOpen(true);
-    };
-
-    const handleSave = async (values: any) => {
-        try {
-            const payload = {
-                ...values
-            };
-
-            if (editingId) {
-                await websiteProjectsApi.update(editingId, payload);
-                message.success('Cập nhật dự án thành công');
-            } else {
-                await websiteProjectsApi.create(payload);
-                message.success('Tạo dự án mới thành công');
-            }
-
-            setIsModalOpen(false);
-            fetchData(pagination.current, searchText);
-        } catch (e: any) {
-            message.error(e.response?.data?.message || 'Lỗi khi lưu dự án');
-        }
     };
 
     const handleDelete = async (id: number) => {
@@ -158,7 +109,7 @@ export default function WebsiteProjectsPage() {
             dataIndex: 'title',
             render: (text: string, record: any) => (
                 <div>
-                    <div style={{ fontWeight: 500, color: '#1890ff', cursor: 'pointer' }} onClick={() => handleOpenModal(record)}>
+                    <div style={{ fontWeight: 500, color: '#1890ff', cursor: 'pointer' }} onClick={() => router.push(`/projects/${record.id}`)}>
                         {text}
                     </div>
                     {record.school_name && <div style={{ fontSize: 12, color: '#888' }}>{record.school_name}</div>}
@@ -190,7 +141,7 @@ export default function WebsiteProjectsPage() {
             align: 'right' as const,
             render: (_: any, record: any) => (
                 <Space>
-                    <Button type="text" icon={<EditOutlined style={{ color: '#1890ff' }} />} onClick={() => handleOpenModal(record)} />
+                    <Button type="text" icon={<EditOutlined style={{ color: '#1890ff' }} />} onClick={() => router.push(`/projects/${record.id}`)} />
                     <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} />
                 </Space>
             )
@@ -220,7 +171,7 @@ export default function WebsiteProjectsPage() {
                         <Button icon={<SyncOutlined />} onClick={() => fetchData(pagination.current, searchText)} loading={loading}>
                             Làm mới
                         </Button>
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push('/projects/new')}>
                             Thêm dự án
                         </Button>
                     </Space>
@@ -246,75 +197,6 @@ export default function WebsiteProjectsPage() {
                     onChange={handleTableChange}
                 />
             </Card>
-
-            <Modal
-                title={editingId ? "Cập nhật dự án" : "Thêm dự án mới"}
-                open={isModalOpen}
-                onCancel={() => setIsModalOpen(false)}
-                onOk={() => form.submit()}
-                width={800}
-                centered
-                destroyOnClose
-                maskClosable={false}
-            >
-                <Form form={form} layout="vertical" onFinish={handleSave}>
-                    <Tabs defaultActiveKey="1">
-                        <Tabs.TabPane tab="Thông tin cơ bản" key="1">
-                            <Form.Item name="title" label="Tên dự án" rules={[{ required: true, message: 'Vui lòng nhập tên dự án' }]}>
-                                <Input size="large" placeholder="VD: Dự án thi công rèm mầm non Hoa Hồng..." />
-                            </Form.Item>
-
-                            <div style={{ display: 'flex', gap: 16 }}>
-                                <Form.Item name="school_name" label="Tên trường/Đơn vị" style={{ flex: 1 }}>
-                                    <Input placeholder="VD: Trường mầm non Hoa Hồng" />
-                                </Form.Item>
-                                <Form.Item name="status" label="Trạng thái" style={{ width: 150 }}>
-                                    <Select>
-                                        <Option value="DRAFT">Bản nháp</Option>
-                                        <Option value="PUBLISHED">Đã xuất bản</Option>
-                                        <Option value="ARCHIVED">Đã lưu trữ</Option>
-                                    </Select>
-                                </Form.Item>
-                                <Form.Item name="sort_order" label="Độ ưu tiên" style={{ width: 120 }}>
-                                    <InputNumber min={0} max={9999} style={{ width: '100%' }} />
-                                </Form.Item>
-                            </div>
-
-                            <Form.Item name="description" label="Mô tả ngắn">
-                                <Input.TextArea rows={2} placeholder="Sẽ hiển thị ở danh sách dự án..." />
-                            </Form.Item>
-
-                            <Form.Item name="image_url" label="Ảnh đại diện">
-                                <ImageUploader simple hint="Khuyên dùng ảnh tỷ lệ 4:3" />
-                            </Form.Item>
-
-                            <Form.Item name="content" label="Nội dung chi tiết" rules={[{ required: true, message: 'Vui lòng nhập nội dung' }]}>
-                                <RichTextEditor
-                                    minHeight={300}
-                                    placeholder="Nhập nội dung chi tiết..."
-                                />
-                            </Form.Item>
-                        </Tabs.TabPane>
-
-                        <Tabs.TabPane tab="Tối ưu SEO" key="2">
-                            {editingId && (
-                                <Form.Item name="slug" label="Đường dẫn (Slug)">
-                                    <Input placeholder="Tuỳ chỉnh URL thân thiện..." />
-                                </Form.Item>
-                            )}
-                            <Form.Item name="meta_title" label="Tiêu đề (Meta Title)">
-                                <Input placeholder="Tiêu đề hiển thị trên kết quả tìm kiếm Google..." maxLength={60} showCount />
-                            </Form.Item>
-                            <Form.Item name="meta_description" label="Mô tả (Meta Description)">
-                                <Input.TextArea rows={3} placeholder="Mô tả ngắn gọn kết quả tìm kiếm Google..." maxLength={160} showCount />
-                            </Form.Item>
-                            <Form.Item name="focus_keyword" label="Từ khóa chính (Focus Keyword)">
-                                <Input placeholder="VD: rèm mầm non, thi công rèm..." />
-                            </Form.Item>
-                        </Tabs.TabPane>
-                    </Tabs>
-                </Form>
-            </Modal>
         </AdminLayout>
     );
 }

@@ -11,6 +11,7 @@ import { SeoAnalysis } from '@/components/seo/SeoAnalysis';
 import { SnippetPreview } from '@/components/seo/SnippetPreview';
 import { SchemaGenerator } from '@/components/seo/SchemaGenerator';
 import { Tabs } from 'antd';
+import { PageBuilder, LivePreviewModal, BlockData } from '@/components/PageBuilder';
 
 // Dynamic import CKEditor to avoid SSR issues
 const RichTextEditor = dynamic(
@@ -61,6 +62,8 @@ export default function BlogEditorPage() {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [content, setContent] = useState('');
+    const [contentBlocks, setContentBlocks] = useState<BlockData[]>([]);
+    const [previewOpen, setPreviewOpen] = useState(false);
     const [categories, setCategories] = useState<string[]>([]);
 
     const isEditing = params?.id && params.id !== 'new';
@@ -101,6 +104,7 @@ export default function BlogEditorPage() {
             }
             form.setFieldsValue(data);
             setContent(data.content || '');
+            setContentBlocks(Array.isArray(data.content_blocks) ? data.content_blocks : []);
         } catch (error) {
             message.error('Không thể tải bài viết');
         } finally {
@@ -116,6 +120,7 @@ export default function BlogEditorPage() {
             const payload = {
                 ...values,
                 content,
+                content_blocks: contentBlocks,
                 status: publish ? 'PUBLISHED' : (values.status || 'DRAFT'),
             };
 
@@ -266,12 +271,11 @@ export default function BlogEditorPage() {
                             <Input.TextArea rows={3} placeholder="Mô tả ngắn hiển thị ở trang danh sách..." />
                         </Form.Item>
 
-                        <Form.Item label="Nội dung">
-                            <RichTextEditor
-                                value={content}
-                                onChange={setContent}
-                                minHeight={400}
-                                placeholder="Nhập nội dung bài viết..."
+                        <Form.Item label="Nội dung Bài Viết (Block Builder)">
+                            <PageBuilder 
+                                value={contentBlocks} 
+                                onChange={setContentBlocks} 
+                                onPreview={() => setPreviewOpen(true)}
                             />
                         </Form.Item>
                     </Form>
@@ -313,6 +317,13 @@ export default function BlogEditorPage() {
                     <SeoPanel />
                 </div>
             </div>
+
+            <LivePreviewModal 
+                open={previewOpen} 
+                onClose={() => setPreviewOpen(false)} 
+                blocks={contentBlocks} 
+                title={`Live Preview: ${form.getFieldValue('title') || 'Bài viết mới'}`}
+            />
         </AdminLayout>
     );
 }

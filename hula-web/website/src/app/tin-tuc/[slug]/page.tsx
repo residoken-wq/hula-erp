@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/JsonLd';
 import { resolveImageUrl } from '@/lib/utils';
+import { BlockRenderer } from '@/components/BlockRenderer';
 
 interface Blog {
     id: number;
@@ -10,6 +11,7 @@ interface Blog {
     title: string;
     excerpt: string;
     content: string;
+    content_blocks?: any[];
     featured_image: string;
     featured_image_alt?: string;
     featured_image_title?: string;
@@ -238,17 +240,9 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
 
                     {/* Content */}
                     <div className="p-6 lg:p-10">
-                        <div
-                            className="prose prose-lg max-w-none
-                                prose-headings:text-gray-900 prose-headings:font-bold
-                                prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4
-                                prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
-                                prose-p:text-gray-600 prose-p:leading-relaxed
-                                prose-li:text-gray-600
-                                prose-strong:text-gray-900
-                                prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline
-                                prose-img:rounded-xl prose-img:shadow-md"
-                            dangerouslySetInnerHTML={{ __html: blog.content || '<p>Nội dung đang được cập nhật...</p>' }}
+                        <BlockRenderer 
+                            blocks={blog.content_blocks} 
+                            fallbackContent={blog.content || '<p>Nội dung đang được cập nhật...</p>'}
                         />
                     </div>
 

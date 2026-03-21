@@ -26,6 +26,9 @@ export class WebProject {
     @Column('text', { nullable: true })
     content: string;
 
+    @Column('jsonb', { nullable: true, default: [] })
+    content_blocks: any;
+
     @Column({ nullable: true })
     image_url: string;
 

@@ -3,6 +3,7 @@ import api from '@/lib/api';
 import { resolveImageUrl } from '@/lib/utils';
 import { notFound } from 'next/navigation';
 import PageHeroBanner from '@/components/PageHeroBanner';
+import { BlockRenderer } from '@/components/BlockRenderer';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,15 +70,13 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
                         </div>
                     )}
 
-                    {/* Content (HTML from CKEditor) */}
-                    {project.content && (
-                        <div className="max-w-3xl mx-auto">
-                            <div
-                                className="prose prose-gray max-w-none"
-                                dangerouslySetInnerHTML={{ __html: project.content }}
-                            />
-                        </div>
-                    )}
+                    {/* Content (Block Builder) */}
+                    <div className="max-w-5xl mx-auto w-full">
+                         <BlockRenderer 
+                             blocks={project.content_blocks} 
+                             fallbackContent={project.content}
+                         />
+                    </div>
                 </div>
             </section>
 

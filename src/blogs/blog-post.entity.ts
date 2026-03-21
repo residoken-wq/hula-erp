@@ -24,6 +24,9 @@ export class BlogPost {
     @Column('text')
     content: string;
 
+    @Column('jsonb', { nullable: true, default: [] })
+    content_blocks: any;
+
     @Column({ nullable: true })
     featured_image: string;
 
