@@ -17,8 +17,20 @@ async function fetchBlogs() {
     }
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
+
+async function getSettings() {
+    try {
+        const res = await fetch(`${API_URL}/public/settings`, { next: { revalidate: 60 } });
+        if (!res.ok) return {};
+        return res.json();
+    } catch {
+        return {};
+    }
+}
+
 export default async function BlogsPage() {
-    const blogs = await fetchBlogs();
+    const [blogs, settings] = await Promise.all([fetchBlogs(), getSettings()]);
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('vi-VN', {
@@ -31,8 +43,9 @@ export default async function BlogsPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             <PageHeroBanner
-                title="Tin Tức & Kiến Thức"
-                description="Cập nhật những thông tin hữu ích về chăm sóc giấc ngủ cho bé"
+                title={settings.banner_news_title || "Tin Tức & Kiến Thức"}
+                description={settings.banner_news_desc || "Cập nhật những thông tin hữu ích về chăm sóc giấc ngủ cho bé"}
+                backgroundImage={settings.banner_news_image}
             />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -60,7 +73,6 @@ export default async function BlogsPage() {
                                     <span className="px-2 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-medium">
                                         {blog.category}
                                     </span>
-                                    <span>{formatDate(blog.published_at)}</span>
                                 </div>
 
                                 <Link href={`/tin-tuc/${blog.slug}`}>

@@ -5,14 +5,27 @@ import PageHeroBanner from '@/components/PageHeroBanner';
 
 export const dynamic = 'force-dynamic';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
+
+async function getSettings() {
+    try {
+        const res = await fetch(`${API_URL}/public/settings`, { next: { revalidate: 60 } });
+        if (!res.ok) return {};
+        return res.json();
+    } catch {
+        return {};
+    }
+}
+
 export default async function ProjectsPage() {
-    const projects = await getProjects();
+    const [projects, settings] = await Promise.all([getProjects(), getSettings()]);
 
     return (
         <>
             <PageHeroBanner
-                title="Dự Án Của HULA"
-                description="Khám phá các dự án HULA đã triển khai tại trường học trên toàn quốc"
+                title={settings.banner_projects_title || "Dự Án Của HULA"}
+                description={settings.banner_projects_desc || "Khám phá các dự án HULA đã triển khai tại trường học trên toàn quốc"}
+                backgroundImage={settings.banner_projects_image}
             />
 
             {/* Projects Grid */}

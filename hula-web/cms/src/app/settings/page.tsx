@@ -32,6 +32,10 @@ export default function SettingsPage() {
                     'section_journey_bg', 'section_projects_bg', 'section_partners_bg', 'section_testimonials_bg', 'section_blog_bg',
                     'section_hero_text', 'section_hero_usp_text', 'section_categories_text', 'section_about_text',
                     'section_journey_text', 'section_projects_text', 'section_partners_text', 'section_testimonials_text', 'section_blog_text',
+                    'banner_projects_title', 'banner_projects_desc', 'banner_projects_image',
+                    'banner_b2b_title', 'banner_b2b_desc', 'banner_b2b_image',
+                    'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
+                    'banner_news_title', 'banner_news_desc', 'banner_news_image'
                 ];
                 const configValues: Record<string, string> = {};
 
@@ -71,6 +75,10 @@ export default function SettingsPage() {
                 'section_journey_bg', 'section_projects_bg', 'section_partners_bg', 'section_testimonials_bg', 'section_blog_bg',
                 'section_hero_text', 'section_hero_usp_text', 'section_categories_text', 'section_about_text',
                 'section_journey_text', 'section_projects_text', 'section_partners_text', 'section_testimonials_text', 'section_blog_text',
+                'banner_projects_title', 'banner_projects_desc', 'banner_projects_image',
+                'banner_b2b_title', 'banner_b2b_desc', 'banner_b2b_image',
+                'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
+                'banner_news_title', 'banner_news_desc', 'banner_news_image'
             ];
 
             for (const key of configKeys) {
@@ -470,6 +478,65 @@ export default function SettingsPage() {
                     </Row>
                     </Form>
                 </div>
+            ),
+        },
+        {
+            key: 'page-banners',
+            label: '🖼️ Banners Trang',
+            children: (
+                <Form form={form} layout="vertical">
+                    <Alert
+                        message="Quản lý Banner các trang con"
+                        description="Cấu hình Hình nền, Tiêu đề và Mô tả cho Hero banner của các trang: Dự án, Đặt hàng B2B, Liên hệ, Tin tức. (Trang Về Hula được cấu hình ở menu riêng bên trái)."
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 24 }}
+                    />
+
+                    <Divider orientation="left">Trang Dự án (/du-an)</Divider>
+                    <Form.Item name="banner_projects_title" label="Tiêu đề banner">
+                        <Input placeholder="Dự Án Của HULA" />
+                    </Form.Item>
+                    <Form.Item name="banner_projects_desc" label="Mô tả">
+                        <Input.TextArea placeholder="Khám phá các dự án HULA..." rows={2} />
+                    </Form.Item>
+                    <Form.Item name="banner_projects_image" label="Hình nền">
+                        <ImageUploader hint="1920x400 (hoặc 600) pixels" />
+                    </Form.Item>
+
+                    <Divider orientation="left">Trang Đặt hàng B2B (/dat-hang-si)</Divider>
+                    <Form.Item name="banner_b2b_title" label="Tiêu đề banner">
+                        <Input placeholder="Đặt Hàng Sỉ" />
+                    </Form.Item>
+                    <Form.Item name="banner_b2b_desc" label="Mô tả">
+                        <Input.TextArea placeholder="Customize sản phẩm nệm theo yêu cầu..." rows={2} />
+                    </Form.Item>
+                    <Form.Item name="banner_b2b_image" label="Hình nền">
+                        <ImageUploader hint="1920x400 (hoặc 600) pixels" />
+                    </Form.Item>
+
+                    <Divider orientation="left">Trang Liên hệ (/lien-he)</Divider>
+                    <Form.Item name="banner_contact_title" label="Tiêu đề banner">
+                        <Input placeholder="Liên Hệ Với Chúng Tôi" />
+                    </Form.Item>
+                    <Form.Item name="banner_contact_desc" label="Mô tả">
+                        <Input.TextArea placeholder="Bạn là trường mầm non muốn tư vấn sỉ?..." rows={2} />
+                    </Form.Item>
+                    <Form.Item name="banner_contact_image" label="Hình nền">
+                        <ImageUploader hint="1920x400 (hoặc 600) pixels" />
+                    </Form.Item>
+
+                    <Divider orientation="left">Trang Tin tức (/tin-tuc)</Divider>
+                    <Form.Item name="banner_news_title" label="Tiêu đề banner">
+                        <Input placeholder="Tin Tức & Kiến Thức" />
+                    </Form.Item>
+                    <Form.Item name="banner_news_desc" label="Mô tả">
+                        <Input.TextArea placeholder="Cập nhật thông tin hữu ích..." rows={2} />
+                    </Form.Item>
+                    <Form.Item name="banner_news_image" label="Hình nền">
+                        <ImageUploader hint="1920x400 (hoặc 600) pixels" />
+                    </Form.Item>
+                </Form>
             ),
         },
         {

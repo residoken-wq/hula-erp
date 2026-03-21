@@ -7,6 +7,9 @@ interface Settings {
     contact_phone?: string;
     contact_email?: string;
     contact_address?: string;
+    banner_contact_title?: string;
+    banner_contact_desc?: string;
+    banner_contact_image?: string;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -75,8 +78,9 @@ export default function ContactPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             <PageHeroBanner
-                title="Liên Hệ Với Chúng Tôi"
-                description="Bạn là đại lý, trường mầm non hoặc muốn mua sỉ? Liên hệ ngay để được tư vấn"
+                title={settings.banner_contact_title || "Liên Hệ Với Chúng Tôi"}
+                description={settings.banner_contact_desc || "Bạn là đại lý, trường mầm non hoặc muốn mua sỉ? Liên hệ ngay để được tư vấn"}
+                backgroundImage={settings.banner_contact_image}
             />
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div className="grid lg:grid-cols-2 gap-12">

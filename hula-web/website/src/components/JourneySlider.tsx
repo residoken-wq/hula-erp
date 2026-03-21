@@ -26,6 +26,7 @@ const defaultMilestones = [
 export default function JourneySlider({ milestones, subtitle, socialLink, bgColor, textColor }: JourneySliderProps) {
     const items = (milestones && milestones.length > 0) ? milestones : defaultMilestones;
     const [currentPage, setCurrentPage] = useState(0);
+    const [isTransitioning, setIsTransitioning] = useState(true);
     const itemsPerPage = 4;
     const totalPages = Math.ceil(items.length / itemsPerPage);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -33,10 +34,31 @@ export default function JourneySlider({ milestones, subtitle, socialLink, bgColo
     useEffect(() => {
         if (totalPages <= 1) return;
         const interval = setInterval(() => {
-            setCurrentPage((prev) => (prev + 1) % totalPages);
+            setCurrentPage((prev) => prev + 1);
         }, 6000);
         return () => clearInterval(interval);
     }, [totalPages]);
+
+    // Handle seamless infinite loop
+    useEffect(() => {
+        if (currentPage === totalPages) {
+            const timeout = setTimeout(() => {
+                setIsTransitioning(false);
+                setCurrentPage(0);
+            }, 500); // wait for CSS transition to finish 
+            return () => clearTimeout(timeout);
+        }
+    }, [currentPage, totalPages]);
+
+    // Re-enable transition after snapping back
+    useEffect(() => {
+        if (currentPage === 0 && !isTransitioning) {
+            const timeout = setTimeout(() => {
+                setIsTransitioning(true);
+            }, 50);
+            return () => clearTimeout(timeout);
+        }
+    }, [currentPage, isTransitioning]);
 
     const visibleItems = items.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
@@ -67,38 +89,43 @@ export default function JourneySlider({ milestones, subtitle, socialLink, bgColo
                 {/* Image slider */}
                 <div ref={scrollRef} className="overflow-hidden">
                     <div
-                        className="flex transition-transform duration-500 ease-in-out"
+                        className={`flex ${isTransitioning ? 'transition-transform duration-500 ease-in-out' : ''}`}
                         style={{ transform: `translateX(-${currentPage * 100}%)` }}
                     >
-                        {Array.from({ length: totalPages }).map((_, pageIndex) => (
-                            <div key={pageIndex} className="w-full flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                                {items.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage).map((item: any, index: number) => (
-                                    <div key={index} className="group">
-                                        <div className="aspect-[3/4] rounded-[12px] overflow-hidden bg-gray-100 mb-3 relative">
-                                            {item.image_url ? (
-                                                <img
-                                                    src={resolveImageUrl(item.image_url)}
-                                                    alt={item.title}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
-                                                    <span className="text-4xl">{item.icon || '📸'}</span>
-                                                </div>
+                        {Array.from({ length: totalPages > 1 ? totalPages + 1 : totalPages }).map((_, pageIndex) => {
+                            const actualPageIndex = pageIndex === totalPages ? 0 : pageIndex;
+                            const pageItems = items.slice(actualPageIndex * itemsPerPage, (actualPageIndex + 1) * itemsPerPage);
+
+                            return (
+                                <div key={pageIndex} className="w-full flex-shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                                    {pageItems.map((item: any, index: number) => (
+                                        <div key={index} className="group">
+                                            <div className="aspect-[3/4] rounded-[12px] overflow-hidden bg-gray-100 mb-3 relative">
+                                                {item.image_url ? (
+                                                    <img
+                                                        src={resolveImageUrl(item.image_url)}
+                                                        alt={item.title}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center group-hover:scale-105 transition-transform duration-500">
+                                                        <span className="text-4xl">{item.icon || '📸'}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className="text-sm font-medium text-center leading-snug" style={{ color: textColor || '#4a5568' }}>
+                                                {item.title}
+                                            </p>
+                                            {item.description && (
+                                                <p className="text-xs text-center mt-1 opacity-60" style={{ color: textColor || '#718096' }}>
+                                                    {item.description}
+                                                </p>
                                             )}
                                         </div>
-                                        <p className="text-sm font-medium text-center leading-snug" style={{ color: textColor || '#4a5568' }}>
-                                            {item.title}
-                                        </p>
-                                        {item.description && (
-                                            <p className="text-xs text-center mt-1 opacity-60" style={{ color: textColor || '#718096' }}>
-                                                {item.description}
-                                            </p>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
+                                    ))}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -108,8 +135,11 @@ export default function JourneySlider({ milestones, subtitle, socialLink, bgColo
                         {Array.from({ length: totalPages }).map((_, i) => (
                             <button
                                 key={i}
-                                onClick={() => setCurrentPage(i)}
-                                className={`h-2 rounded-full transition-all duration-300 ${i === currentPage ? 'bg-primary-500 w-8' : 'bg-gray-300 w-2 hover:bg-gray-400'
+                                onClick={() => {
+                                    if (!isTransitioning) setIsTransitioning(true);
+                                    setCurrentPage(i);
+                                }}
+                                className={`h-2 rounded-full transition-all duration-300 ${(currentPage === totalPages ? 0 : currentPage) === i ? 'bg-primary-500 w-8' : 'bg-gray-300 w-2 hover:bg-gray-400'
                                     }`}
                                 aria-label={`Page ${i + 1}`}
                             />

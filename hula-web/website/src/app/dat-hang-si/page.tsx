@@ -59,9 +59,24 @@ export default function WizardPage() {
     });
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
+    const [settings, setSettings] = useState<any>({});
+
     useEffect(() => {
         loadConfig();
+        loadSettings();
     }, []);
+
+    const loadSettings = async () => {
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/settings`);
+            if (res.ok) {
+                const data = await res.json();
+                setSettings(data);
+            }
+        } catch (error) {
+            console.error('Failed to load settings:', error);
+        }
+    };
 
     const loadConfig = async () => {
         try {
@@ -274,8 +289,9 @@ export default function WizardPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50">
             <PageHeroBanner
-                title="Đặt Hàng Sỉ"
-                description="Customize sản phẩm nệm, gối, chăn theo yêu cầu của trường bạn"
+                title={settings.banner_b2b_title || "Đặt Hàng Sỉ"}
+                description={settings.banner_b2b_desc || "Customize sản phẩm nệm, gối, chăn theo yêu cầu của trường bạn"}
+                backgroundImage={settings.banner_b2b_image}
                 compact
             />
 

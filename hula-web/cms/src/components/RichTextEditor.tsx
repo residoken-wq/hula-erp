@@ -60,7 +60,8 @@ class HulaUploadAdapter {
                 if (this.xhr.status >= 200 && this.xhr.status < 300) {
                     try {
                         const response = JSON.parse(this.xhr.responseText);
-                        resolve({ default: response.url || response.path || response.data?.url || '' });
+                        const rawUrl = response.url || response.path || response.data?.url || '';
+                        resolve({ default: resolveImageUrl(rawUrl) });
                     } catch {
                         reject('Invalid server response.');
                     }
@@ -248,23 +249,23 @@ export default function RichTextEditor({
     );
 
     return (
-        <div className="ckeditor-wrapper">
+        <div className="ckeditor-wrapper" style={{ position: 'relative' }}>
+            {/* Floated Library button over the right side of the sticky toolbar */}
+            <div style={{ position: 'sticky', top: 56, zIndex: 101, display: 'flex', justifyContent: 'flex-end', width: '100%', height: 0, overflow: 'visible', pointerEvents: 'none' }}>
+                <Button
+                    icon={<PictureOutlined />}
+                    onClick={openLibrary}
+                    type="primary"
+                    style={{ marginRight: 12, marginTop: 6, pointerEvents: 'auto', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}
+                >
+                    Chọn từ thư viện
+                </Button>
+            </div>
+
             <div
                 ref={editorContainerRef}
                 style={{ minHeight: `${minHeight}px` }}
             />
-
-            {/* Library button below editor */}
-            <div style={{ marginTop: 8 }}>
-                <Button
-                    icon={<PictureOutlined />}
-                    onClick={openLibrary}
-                    block
-                    style={{ borderStyle: 'dashed' }}
-                >
-                    Chọn ảnh từ thư viện
-                </Button>
-            </div>
 
             {/* Library Modal */}
             <Modal
@@ -354,6 +355,9 @@ export default function RichTextEditor({
                     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
                 }
                 .ck.ck-toolbar {
+                    position: sticky !important;
+                    top: 56px !important;
+                    z-index: 100 !important;
                     border-radius: 8px 8px 0 0 !important;
                     background: #f8fafc !important;
                 }
