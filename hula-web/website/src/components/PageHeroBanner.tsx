@@ -31,11 +31,11 @@ export default function PageHeroBanner({
         >
             {/* Overlay */}
             <div
-                className="absolute inset-0"
+                className={`absolute inset-0 ${!hasImage ? 'bg-gradient-to-br from-primary-600 to-primary-800' : ''}`}
                 style={
                     hasImage
                         ? { backgroundColor: `rgba(0, 0, 0, ${(maskOpacity || 0) / 100})` }
-                        : { background: 'linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-800) 100%)' }
+                        : undefined
                 }
             />
 
