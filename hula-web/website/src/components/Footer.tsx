@@ -219,6 +219,7 @@ export default function Footer() {
                                     style={{ border: 'none', overflow: 'hidden' }}
                                     allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                                     title="Facebook Page"
+                                    loading="lazy"
                                 ></iframe>
                             </div>
                         ) : (

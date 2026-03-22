@@ -60,6 +60,11 @@ export class PublicController {
         const cmsKeys = [
             'site_name', 'site_description', 'logo_url', 'favicon_url', 'contact_phone', 'contact_email', 'contact_address',
             'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url',
+            // Page Banners
+            'banner_projects_title', 'banner_projects_desc', 'banner_projects_image',
+            'banner_b2b_title', 'banner_b2b_desc', 'banner_b2b_image',
+            'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
+            'banner_news_title', 'banner_news_desc', 'banner_news_image',
             // Section background colors
             'section_hero_bg', 'section_hero_usp_bg',
             'section_categories_bg', 'section_about_bg', 'section_journey_bg',
@@ -76,7 +81,17 @@ export class PublicController {
         const result: any = {};
         cmsKeys.forEach(key => {
             const found = configs.find(c => c.key === key);
-            result[key] = found ? found.value : '';
+            let val = found ? found.value : '';
+            // HOTFIX: recovery for accidentally saved JSON objects for banner images
+            if (val && val.startsWith('{') && val.includes('"url":')) {
+                try {
+                    const parsed = JSON.parse(val);
+                    if (parsed.url) val = parsed.url;
+                } catch (e) {}
+            } else if (val === '[object Object]') {
+                val = '';
+            }
+            result[key] = val;
         });
 
         // Return public system settings formatted for website
@@ -92,6 +107,19 @@ export class PublicController {
             zalo_url: result.zalo_url || '',
             google_maps_url: result.google_maps_url || '',
             facebook_page_url: result.facebook_page_url || '',
+            // Page Banners
+            banner_projects_title: result.banner_projects_title || '',
+            banner_projects_desc: result.banner_projects_desc || '',
+            banner_projects_image: result.banner_projects_image || '',
+            banner_b2b_title: result.banner_b2b_title || '',
+            banner_b2b_desc: result.banner_b2b_desc || '',
+            banner_b2b_image: result.banner_b2b_image || '',
+            banner_contact_title: result.banner_contact_title || '',
+            banner_contact_desc: result.banner_contact_desc || '',
+            banner_contact_image: result.banner_contact_image || '',
+            banner_news_title: result.banner_news_title || '',
+            banner_news_desc: result.banner_news_desc || '',
+            banner_news_image: result.banner_news_image || '',
             // Section background colors
             section_hero_bg: result.section_hero_bg || '',
             section_hero_usp_bg: result.section_hero_usp_bg || '',
