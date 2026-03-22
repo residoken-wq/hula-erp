@@ -25,7 +25,7 @@ const getApiUrl = () => {
 
 async function getSettings() {
     try {
-        const res = await fetch(`${getApiUrl()}/public/settings`, { next: { revalidate: 60 } });
+        const res = await fetch(`${getApiUrl()}/public/settings`, { cache: 'no-store' });
         if (!res.ok) return {};
         return res.json();
     } catch {
