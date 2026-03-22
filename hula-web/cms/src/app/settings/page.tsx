@@ -50,8 +50,22 @@ export default function SettingsPage() {
                     }
                 }
 
+                const defaultValues = {
+                    site_name: 'Nệm Mầm Non HULA',
+                    site_description: 'Nệm mầm non chất lượng cao, an toàn cho bé',
+                    contact_phone: '0123 456 789',
+                    contact_email: 'info@nemmamnon.com',
+                    contact_address: '123 Đường ABC, Quận XYZ, TP.HCM',
+                    facebook: 'https://facebook.com/nemmamnon',
+                    meta_title: 'Nệm Mầm Non HULA - Giấc Ngủ Ngon Cho Bé Yêu',
+                    meta_description: 'Nệm mầm non HULA chất lượng cao, an toàn cho sức khỏe bé. Nguyên liệu tự nhiên, thiết kế chống khuẩn, bảo hành 12 tháng.',
+                    meta_keywords: 'nệm mầm non, nệm trẻ em, HULA, nệm cao cấp',
+                };
+
                 if (Object.keys(configValues).length > 0) {
-                    form.setFieldsValue(configValues);
+                    form.setFieldsValue({ ...defaultValues, ...configValues });
+                } else {
+                    form.setFieldsValue(defaultValues);
                 }
             } catch (error) {
                 console.error('Failed to load settings:', error);
@@ -283,14 +297,7 @@ export default function SettingsPage() {
             key: 'general',
             label: 'Thông tin chung',
             children: (
-                <Form form={form} layout="vertical" initialValues={{
-                    site_name: 'Nệm Mầm Non HULA',
-                    site_description: 'Nệm mầm non chất lượng cao, an toàn cho bé',
-                    logo_url: '',
-                    contact_phone: '0123 456 789',
-                    contact_email: 'info@nemmamnon.com',
-                    contact_address: '123 Đường ABC, Quận XYZ, TP.HCM',
-                }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <Form.Item name="site_name" label="Tên website">
                         <Input placeholder="Tên website" />
                     </Form.Item>
@@ -334,19 +341,14 @@ export default function SettingsPage() {
                     <Form.Item name="google_maps_url" label="Google Maps Embed URL" extra="Copy embed URL từ Google Maps (Share > Embed a map)">
                         <Input placeholder="https://www.google.com/maps/embed?pb=..." />
                     </Form.Item>
-                </Form>
+                </div>
             ),
         },
         {
             key: 'social',
             label: 'Mạng xã hội',
             children: (
-                <Form layout="vertical" initialValues={{
-                    facebook: 'https://facebook.com/nemmamnon',
-                    instagram: '',
-                    tiktok: '',
-                    youtube: '',
-                }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <Form.Item name="facebook" label="Facebook">
                         <Input placeholder="https://facebook.com/..." />
                     </Form.Item>
@@ -362,18 +364,14 @@ export default function SettingsPage() {
                     <Form.Item name="youtube" label="YouTube">
                         <Input placeholder="https://youtube.com/..." />
                     </Form.Item>
-                </Form>
+                </div>
             ),
         },
         {
             key: 'seo',
             label: 'SEO',
             children: (
-                <Form layout="vertical" initialValues={{
-                    meta_title: 'Nệm Mầm Non HULA - Giấc Ngủ Ngon Cho Bé Yêu',
-                    meta_description: 'Nệm mầm non HULA chất lượng cao, an toàn cho sức khỏe bé. Nguyên liệu tự nhiên, thiết kế chống khuẩn, bảo hành 12 tháng.',
-                    meta_keywords: 'nệm mầm non, nệm trẻ em, HULA, nệm cao cấp',
-                }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <Form.Item name="meta_title" label="Meta Title">
                         <Input placeholder="Tiêu đề SEO mặc định" />
                     </Form.Item>
@@ -389,7 +387,7 @@ export default function SettingsPage() {
                     <Form.Item name="google_analytics" label="Google Analytics ID">
                         <Input placeholder="G-XXXXXXXXXX" />
                     </Form.Item>
-                </Form>
+                </div>
             ),
         },
         {
@@ -405,7 +403,6 @@ export default function SettingsPage() {
                         icon={<BgColorsOutlined />}
                         style={{ marginBottom: 24 }}
                     />
-                    <Form form={form}>
                     <Row gutter={[24, 16]}>
                         {[
                             { key: 'section_hero', label: '§1 Hero Banner', defaultBg: '#23A7D3', defaultText: '#FFFFFF' },
@@ -476,7 +473,6 @@ export default function SettingsPage() {
                             </Col>
                         ))}
                     </Row>
-                    </Form>
                 </div>
             ),
         },
@@ -484,7 +480,7 @@ export default function SettingsPage() {
             key: 'page-banners',
             label: '🖼️ Banners Trang',
             children: (
-                <Form form={form} layout="vertical">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <Alert
                         message="Quản lý Banner các trang con"
                         description="Cấu hình Hình nền, Tiêu đề và Mô tả cho Hero banner của các trang: Dự án, Đặt hàng B2B, Liên hệ, Tin tức. (Trang Về Hula được cấu hình ở menu riêng bên trái)."
@@ -536,14 +532,14 @@ export default function SettingsPage() {
                     <Form.Item name="banner_news_image" label="Hình nền">
                         <ImageUploader hint="1920x400 (hoặc 600) pixels" />
                     </Form.Item>
-                </Form>
+                </div>
             ),
         },
         {
             key: 'notification',
             label: 'Thông báo',
             children: (
-                <Form layout="vertical">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <Form.Item name="email_new_lead" label="Email khi có Lead mới" valuePropName="checked">
                         <Switch defaultChecked />
                     </Form.Item>
@@ -555,23 +551,25 @@ export default function SettingsPage() {
                     <Form.Item name="notification_email" label="Email nhận thông báo">
                         <Input placeholder="admin@example.com" />
                     </Form.Item>
-                </Form>
+                </div>
             ),
         },
     ];
 
     return (
         <AdminLayout>
-            <Card
-                title="Cài đặt"
-                extra={
-                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={loading}>
-                        Lưu cài đặt
-                    </Button>
-                }
-            >
-                <Tabs items={items} />
-            </Card>
+            <Form form={form} layout="vertical" preserve={true}>
+                <Card
+                    title="Cài đặt"
+                    extra={
+                        <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={loading}>
+                            Lưu cài đặt
+                        </Button>
+                    }
+                >
+                    <Tabs items={items} />
+                </Card>
+            </Form>
         </AdminLayout>
     );
 }
