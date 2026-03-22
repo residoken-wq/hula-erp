@@ -1,6 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { resolveImageUrl } from '@/lib/utils';
 
 // === Block Components === //
 
@@ -21,7 +22,7 @@ export const HeroBannerBlock = ({ data }: { data: any }) => {
             {data.image_url && (
                 <div className="absolute inset-0 z-0">
                     <img 
-                        src={data.image_url} 
+                        src={resolveImageUrl(data.image_url)} 
                         alt={data.title || "Hero banner"} 
                         className="w-full h-full object-cover opacity-60"
                         loading="lazy"
@@ -47,7 +48,7 @@ export const ImageGalleryBlock = ({ data }: { data: any }) => {
                 {images.map((url: string, idx: number) => (
                     <div key={idx} className="relative aspect-[4/3] rounded-2xl overflow-hidden group shadow-lg">
                         <img 
-                            src={url} 
+                            src={resolveImageUrl(url)} 
                             alt={`Gallery image ${idx + 1}`} 
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             loading="lazy"
@@ -78,7 +79,7 @@ export const TwoColumnBlock = ({ data }: { data: any }) => {
                 {data.image_url && (
                     <div className="flex-1 w-full relative">
                         <img 
-                            src={data.image_url} 
+                            src={resolveImageUrl(data.image_url)} 
                             alt={data.title || "Image"} 
                             className="w-full rounded-3xl shadow-2xl object-cover aspect-[4/3] hover:shadow-3xl transition-shadow duration-300"
                             loading="lazy"
@@ -198,7 +199,7 @@ export const TeamMembersBlock = ({ data }: { data: any }) => {
                         <div key={idx} className="group text-center">
                             <div className="relative w-48 h-48 mx-auto mb-6 rounded-full overflow-hidden border-4 border-white shadow-xl group-hover:shadow-2xl transition-shadow duration-300 bg-gray-100">
                                 <img 
-                                    src={member.image_url} 
+                                    src={resolveImageUrl(member.image_url)} 
                                     alt={member.name} 
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                     loading="lazy"
