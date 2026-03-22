@@ -43,7 +43,17 @@ export default function SettingsPage() {
                     try {
                         const res = await systemApi.getConfig(key);
                         if (res.data && res.data.value) {
-                            configValues[key] = res.data.value;
+                            let val = res.data.value;
+                            // HOTFIX: recovery for accidentally saved JSON objects for banner images
+                            if (val && val.startsWith('{') && val.includes('"url":')) {
+                                try {
+                                    const parsed = JSON.parse(val);
+                                    if (parsed.url) val = parsed.url;
+                                } catch (e) {}
+                            } else if (val === '[object Object]') {
+                                val = '';
+                            }
+                            configValues[key] = val;
                         }
                     } catch (e) {
                         // Key doesn't exist yet, use default
@@ -497,7 +507,7 @@ export default function SettingsPage() {
                         <Input.TextArea placeholder="Khám phá các dự án HULA..." rows={2} />
                     </Form.Item>
                     <Form.Item name="banner_projects_image" label="Hình nền">
-                        <ImageUploader hint="1920x400 (hoặc 600) pixels" />
+                        <ImageUploader simple hint="1920x400 (hoặc 600) pixels" />
                     </Form.Item>
 
                     <Divider orientation="left">Trang Đặt hàng B2B (/dat-hang-si)</Divider>
@@ -508,7 +518,7 @@ export default function SettingsPage() {
                         <Input.TextArea placeholder="Customize sản phẩm nệm theo yêu cầu..." rows={2} />
                     </Form.Item>
                     <Form.Item name="banner_b2b_image" label="Hình nền">
-                        <ImageUploader hint="1920x400 (hoặc 600) pixels" />
+                        <ImageUploader simple hint="1920x400 (hoặc 600) pixels" />
                     </Form.Item>
 
                     <Divider orientation="left">Trang Liên hệ (/lien-he)</Divider>
@@ -519,7 +529,7 @@ export default function SettingsPage() {
                         <Input.TextArea placeholder="Bạn là trường mầm non muốn tư vấn sỉ?..." rows={2} />
                     </Form.Item>
                     <Form.Item name="banner_contact_image" label="Hình nền">
-                        <ImageUploader hint="1920x400 (hoặc 600) pixels" />
+                        <ImageUploader simple hint="1920x400 (hoặc 600) pixels" />
                     </Form.Item>
 
                     <Divider orientation="left">Trang Tin tức (/tin-tuc)</Divider>
@@ -530,7 +540,7 @@ export default function SettingsPage() {
                         <Input.TextArea placeholder="Cập nhật thông tin hữu ích..." rows={2} />
                     </Form.Item>
                     <Form.Item name="banner_news_image" label="Hình nền">
-                        <ImageUploader hint="1920x400 (hoặc 600) pixels" />
+                        <ImageUploader simple hint="1920x400 (hoặc 600) pixels" />
                     </Form.Item>
                 </div>
             ),
