@@ -17,11 +17,15 @@ async function fetchBlogs() {
     }
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
+const getApiUrl = () => {
+    if (process.env.API_URL) return `${process.env.API_URL}/api`;
+    if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+    return 'https://erp.nemmamnon.com/api';
+};
 
 async function getSettings() {
     try {
-        const res = await fetch(`${API_URL}/public/settings`, { next: { revalidate: 60 } });
+        const res = await fetch(`${getApiUrl()}/public/settings`, { next: { revalidate: 60 } });
         if (!res.ok) return {};
         return res.json();
     } catch {
