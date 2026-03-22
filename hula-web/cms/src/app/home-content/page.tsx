@@ -286,6 +286,7 @@ export default function HomeContentPage() {
         {
             key: 'hero',
             label: '🎯 Hero',
+            forceRender: true,
             children: (
                 <>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -338,6 +339,7 @@ export default function HomeContentPage() {
         {
             key: 'usp',
             label: '🔖 USP Bar',
+            forceRender: true,
             children: (
                 <div>
                     <div style={{ marginBottom: 16 }}>
@@ -362,6 +364,7 @@ export default function HomeContentPage() {
         {
             key: 'categories',
             label: '🏷️ Danh Mục SP',
+            forceRender: true,
             children: (
                 <div>
                     <div style={{ marginBottom: 16 }}>
@@ -405,6 +408,7 @@ export default function HomeContentPage() {
         {
             key: 'about',
             label: '📝 Giới Thiệu',
+            forceRender: true,
             children: (
                 <>
                     <Form.Item name="about_title" label="Tiêu đề section">
@@ -425,6 +429,7 @@ export default function HomeContentPage() {
         {
             key: 'features',
             label: '✨ Tại Sao Chọn HULA',
+            forceRender: true,
             children: (
                 <div>
                     <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -456,6 +461,7 @@ export default function HomeContentPage() {
         {
             key: 'guarantees',
             label: '🛡️ Mua Hàng Đảm Bảo',
+            forceRender: true,
             children: (
                 <div>
                     <div style={{ marginBottom: 16 }}>
@@ -496,6 +502,7 @@ export default function HomeContentPage() {
         {
             key: 'journey',
             label: '🏫 Hành Trình',
+            forceRender: true,
             children: (
                 <div>
                     <div style={{ marginBottom: 16 }}>
@@ -530,6 +537,7 @@ export default function HomeContentPage() {
         {
             key: 'video',
             label: '🎬 Video',
+            forceRender: true,
             children: (
                 <>
                     <Form.Item name="video_enabled" label="Hiển thị video section" valuePropName="checked">
@@ -559,6 +567,7 @@ export default function HomeContentPage() {
         {
             key: 'partners',
             label: '🤝 Đối Tác',
+            forceRender: true,
             children: (
                 <div>
                     <div style={{ marginBottom: 16 }}>
@@ -589,6 +598,7 @@ export default function HomeContentPage() {
         {
             key: 'testimonials',
             label: '⭐ Đánh Giá KH',
+            forceRender: true,
             children: (
                 <div>
                     <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -620,6 +630,7 @@ export default function HomeContentPage() {
         {
             key: 'projects',
             label: '🏗️ Dự Án',
+            forceRender: true,
             children: (
                 <div>
                     <div style={{ marginBottom: 16 }}>
@@ -643,6 +654,7 @@ export default function HomeContentPage() {
         {
             key: 'products',
             label: '🛍️ Sản Phẩm',
+            forceRender: true,
             children: (
                 <>
                     <Form.Item name="products_title" label="Tiêu đề section">
@@ -666,6 +678,7 @@ export default function HomeContentPage() {
         {
             key: 'cta',
             label: '📢 Banner CTA',
+            forceRender: true,
             children: (
                 <>
                     <Form.Item name="cta_enabled" label="Hiển thị banner" valuePropName="checked">
@@ -687,6 +700,7 @@ export default function HomeContentPage() {
         {
             key: 'topbar',
             label: '📌 Topbar',
+            forceRender: true,
             children: (
                 <>
                     <Form.Item name="topbar_enabled" label="Hiển thị Topbar" valuePropName="checked">
@@ -713,6 +727,7 @@ export default function HomeContentPage() {
         {
             key: 'footer',
             label: '🦶 Footer',
+            forceRender: true,
             children: (
                 <div>
                     <div style={{ marginBottom: 16 }}>
