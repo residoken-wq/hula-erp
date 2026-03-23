@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
-import { getProducts, getCategories } from '@/lib/api';
+import { getProducts, getCategories, getSettings } from '@/lib/api';
 import PageHeroBanner from '@/components/PageHeroBanner';
 
 export const dynamic = 'force-dynamic';
@@ -19,17 +19,20 @@ export default async function ProductsPage({
     let products: any[] = [];
     let categories: any[] = [];
     let meta: any = {};
+    let settings: any = {};
 
     try {
-        const [productsRes, categoriesRes] = await Promise.all([
+        const [productsRes, categoriesRes, settingsRes] = await Promise.all([
             getProducts({ limit: 12, page, sort, category: categoryId?.toString() }).catch(() => ({ data: [], meta: {} })),
-            getCategories().catch(() => [])
+            getCategories().catch(() => []),
+            getSettings().catch(() => ({}))
         ]);
 
         // Handle products response (expecting { data: [], meta: {} })
         products = productsRes?.data || [];
         meta = productsRes?.meta || {};
         categories = Array.isArray(categoriesRes) ? categoriesRes : [];
+        settings = settingsRes || {};
     } catch (error) {
         console.error('Error fetching products:', error);
     }
@@ -37,8 +40,9 @@ export default async function ProductsPage({
     return (
         <div className="min-h-screen bg-gray-50">
             <PageHeroBanner
-                title="Sản Phẩm Nệm Mầm Non"
-                description="Khám phá bộ sưu tập nệm mầm non chất lượng cao, an toàn cho bé yêu"
+                title={settings.banner_shop_title || "Sản Phẩm Nệm Mầm Non"}
+                description={settings.banner_shop_desc || "Khám phá bộ sưu tập nệm mầm non chất lượng cao, an toàn cho bé yêu"}
+                backgroundImage={settings.banner_shop_image}
             />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

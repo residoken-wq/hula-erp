@@ -35,7 +35,8 @@ export default function SettingsPage() {
                     'banner_projects_title', 'banner_projects_desc', 'banner_projects_image',
                     'banner_b2b_title', 'banner_b2b_desc', 'banner_b2b_image',
                     'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
-                    'banner_news_title', 'banner_news_desc', 'banner_news_image'
+                    'banner_news_title', 'banner_news_desc', 'banner_news_image',
+                    'banner_shop_title', 'banner_shop_desc', 'banner_shop_image'
                 ];
                 const configValues: Record<string, string> = {};
 
@@ -102,7 +103,8 @@ export default function SettingsPage() {
                 'banner_projects_title', 'banner_projects_desc', 'banner_projects_image',
                 'banner_b2b_title', 'banner_b2b_desc', 'banner_b2b_image',
                 'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
-                'banner_news_title', 'banner_news_desc', 'banner_news_image'
+                'banner_news_title', 'banner_news_desc', 'banner_news_image',
+                'banner_shop_title', 'banner_shop_desc', 'banner_shop_image'
             ];
 
             for (const key of configKeys) {
@@ -498,6 +500,17 @@ export default function SettingsPage() {
                         showIcon
                         style={{ marginBottom: 24 }}
                     />
+
+                    <Divider orientation="left">Trang Hula Shop (/san-pham)</Divider>
+                    <Form.Item name="banner_shop_title" label="Tiêu đề banner">
+                        <Input placeholder="Sản Phẩm Nệm Mầm Non" />
+                    </Form.Item>
+                    <Form.Item name="banner_shop_desc" label="Mô tả">
+                        <Input.TextArea placeholder="Khám phá bộ sưu tập nệm mầm non chất lượng cao, an toàn cho bé yêu" rows={2} />
+                    </Form.Item>
+                    <Form.Item name="banner_shop_image" label="Hình nền">
+                        <ImageUploader simple hint="1920x400 (hoặc 600) pixels" />
+                    </Form.Item>
 
                     <Divider orientation="left">Trang Dự án (/du-an)</Divider>
                     <Form.Item name="banner_projects_title" label="Tiêu đề banner">
