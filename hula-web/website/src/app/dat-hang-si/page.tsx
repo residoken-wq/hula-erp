@@ -292,7 +292,6 @@ export default function WizardPage() {
                 title={settings.banner_b2b_title || "Đặt Hàng Sỉ"}
                 description={settings.banner_b2b_desc || "Customize sản phẩm nệm, gối, chăn theo yêu cầu của trường bạn"}
                 backgroundImage={settings.banner_b2b_image}
-                compact
             />
 
             {/* Stepper */}

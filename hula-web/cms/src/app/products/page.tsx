@@ -211,7 +211,11 @@ export default function ProductsPage() {
             key: 'image_url',
             width: 80,
             render: (url: string) => {
-                const imageUrl = getGoogleDriveImageUrl(url);
+                let parsedUrl = url;
+                if (typeof url === 'string' && url.startsWith('{')) {
+                    try { parsedUrl = JSON.parse(url).url || url; } catch { }
+                }
+                const imageUrl = getGoogleDriveImageUrl(parsedUrl);
                 return imageUrl ? (
                     <Image src={imageUrl} width={50} height={50} style={{ objectFit: 'cover', borderRadius: 4 }} fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" />
                 ) : (
@@ -367,7 +371,7 @@ export default function ProductsPage() {
                                     </Form.Item>
                                     
                                     <div style={{ marginBottom: 16, padding: 16, background: '#fafafa', border: '1px solid #eee', borderRadius: 8 }}>
-                                        <p style={{ fontWeight: 500, margin: '0 0 12px 0' }}>📂 Hình ảnh phụ (Tối đa 4 hình ảnh bổ sung)</p>
+                                        <p style={{ fontWeight: 500, margin: '0 0 12px 0' }}>📂 Hình ảnh phụ (Tối đa 10 hình ảnh bổ sung)</p>
                                         <Form.List name={['customization_config', 'gallery_images']}>
                                             {(fields, { add, remove }) => (
                                                 <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
@@ -385,7 +389,7 @@ export default function ProductsPage() {
                                                             />
                                                         </div>
                                                     ))}
-                                                    {fields.length < 4 && (
+                                                    {fields.length < 10 && (
                                                         <div style={{ width: 140, height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                             <Button type="dashed" onClick={() => add()} style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                                                                 <PlusOutlined style={{ fontSize: 20, marginBottom: 8 }} />

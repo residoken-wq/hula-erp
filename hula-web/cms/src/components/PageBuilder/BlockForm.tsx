@@ -35,7 +35,7 @@ export default function BlockForm({ type, data, onChange }: BlockFormProps) {
                     <div>
                         <ImageUploader 
                             simple 
-                            hint="Ảnh nền Hero (1920x600px)" 
+                            hint="Ảnh nền Hero (1920x400px)" 
                             value={data.image_url} 
                             onChange={(url) => handleChange('image_url', url)} 
                         />
