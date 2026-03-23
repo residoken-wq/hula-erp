@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useCart } from '@/contexts/CartContext';
 import { resolveImageUrl } from '@/lib/utils';
