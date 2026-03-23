@@ -374,7 +374,7 @@ export default function ProductsPage() {
                                                     {fields.map(({ key, name, ...restField }) => (
                                                         <div key={key} style={{ width: 140, position: 'relative' }}>
                                                             <Form.Item {...restField} name={[name]} style={{ marginBottom: 0 }}>
-                                                                <ImageUploader simple hint="800x800px" style={{ height: 140 }} />
+                                                                <ImageUploader simple hint="800x800px" />
                                                             </Form.Item>
                                                             <Button 
                                                                 danger 
