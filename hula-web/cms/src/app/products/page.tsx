@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, InputNumber, Tabs, Switch, Typography, Segmented } from 'antd';
-import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, MinusCircleOutlined, EyeInvisibleOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, MinusCircleOutlined, EyeInvisibleOutlined, AppstoreOutlined, DeleteOutlined } from '@ant-design/icons';
 
 import { productsApi } from '@/lib/api';
 import { ProductVisualEditor } from './ProductVisualEditor';
