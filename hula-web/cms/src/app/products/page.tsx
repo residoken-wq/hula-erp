@@ -125,22 +125,32 @@ export default function ProductsPage() {
         // Fetch separate website config
         try {
             const res = await productsApi.getWebsiteConfig(product.id);
-            const config = res.data?.customization_config || { colors: [], accessories: [], allow_logo: false };
+            const config = res.data?.customization_config || { colors: [], accessories: [], allow_logo: false, gallery_images: [] };
+
+            let parsedImg = product.image_url;
+            if (typeof parsedImg === 'string' && parsedImg.startsWith('{')) {
+                try { parsedImg = JSON.parse(parsedImg).url || parsedImg; } catch { }
+            }
 
             form.setFieldsValue({
                 website_display_name: product.website_display_name || '',
-                image_url: product.image_url,
+                image_url: parsedImg,
                 customer_description: product.customer_description,
                 customization_config: config
             });
             setEditModal(true);
         } catch (error) {
             console.error('Failed to load website config', error);
+            let parsedImg = product.image_url;
+            if (typeof parsedImg === 'string' && parsedImg.startsWith('{')) {
+                try { parsedImg = JSON.parse(parsedImg).url || parsedImg; } catch { }
+            }
+
             form.setFieldsValue({
                 website_display_name: product.website_display_name || '',
-                image_url: product.image_url,
+                image_url: parsedImg,
                 customer_description: product.customer_description,
-                customization_config: { colors: [], accessories: [], allow_logo: false }
+                customization_config: { colors: [], accessories: [], allow_logo: false, gallery_images: [] }
             });
             setEditModal(true);
         }
@@ -340,7 +350,7 @@ export default function ProductsPage() {
                 onCancel={() => setEditModal(false)}
                 okText="Lưu"
                 cancelText="Hủy"
-                width={800} // Increased width
+                width="max-content"
             >
                 <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
                     <Tabs defaultActiveKey="1" items={[
@@ -352,9 +362,42 @@ export default function ProductsPage() {
                                     <Form.Item name="website_display_name" label="Tên sản phẩm hiển thị trên website" extra="Để trống nếu muốn sử dụng tên sản phẩm gốc từ ERP">
                                         <Input placeholder={editingProduct?.name || 'Nhập tên hiển thị riêng cho website...'} allowClear />
                                     </Form.Item>
-                                    <Form.Item name="image_url" label="Hình ảnh sản phẩm">
-                                        <ImageUploader hint="📐 Kích thước: 800x800px (tỷ lệ 1:1, vuông)" />
+                                    <Form.Item name="image_url" label="Hình ảnh chính của sản phẩm (Bắt buộc)">
+                                        <ImageUploader simple hint="📐 Kích thước: 800x800px (tỷ lệ 1:1, vuông)" />
                                     </Form.Item>
+                                    
+                                    <div style={{ marginBottom: 16, padding: 16, background: '#fafafa', border: '1px solid #eee', borderRadius: 8 }}>
+                                        <p style={{ fontWeight: 500, margin: '0 0 12px 0' }}>📂 Hình ảnh phụ (Tối đa 4 hình ảnh bổ sung)</p>
+                                        <Form.List name={['customization_config', 'gallery_images']}>
+                                            {(fields, { add, remove }) => (
+                                                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                                                    {fields.map(({ key, name, ...restField }) => (
+                                                        <div key={key} style={{ width: 140, position: 'relative' }}>
+                                                            <Form.Item {...restField} name={[name]} style={{ marginBottom: 0 }}>
+                                                                <ImageUploader simple hint="800x800px" style={{ height: 140 }} />
+                                                            </Form.Item>
+                                                            <Button 
+                                                                danger 
+                                                                size="small" 
+                                                                icon={<DeleteOutlined />} 
+                                                                onClick={() => remove(name)}
+                                                                style={{ position: 'absolute', top: -8, right: -8, zIndex: 10, borderRadius: '50%' }}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                    {fields.length < 4 && (
+                                                        <div style={{ width: 140, height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <Button type="dashed" onClick={() => add()} style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                                                <PlusOutlined style={{ fontSize: 20, marginBottom: 8 }} />
+                                                                Thêm ảnh phụ
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </Form.List>
+                                    </div>
+                                    
                                     <Form.Item name="customer_description" label="Mô tả cho khách hàng">
                                         <Input.TextArea rows={5} placeholder="Mô tả chi tiết sản phẩm hiển thị trên website..." />
                                     </Form.Item>

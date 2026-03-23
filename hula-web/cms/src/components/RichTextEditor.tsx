@@ -99,6 +99,11 @@ export default function RichTextEditor({
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<any>(null);
     const [isLayoutReady, setIsLayoutReady] = useState(false);
+    
+    const onChangeRef = useRef(onChange);
+    useEffect(() => {
+        onChangeRef.current = onChange;
+    }, [onChange]);
 
     // Library state
     const [libraryOpen, setLibraryOpen] = useState(false);
@@ -187,7 +192,7 @@ export default function RichTextEditor({
                 // Listen for changes
                 editorInstance.model.document.on('change:data', () => {
                     const data = editorInstance.getData();
-                    if (onChange) onChange(data);
+                    if (onChangeRef.current) onChangeRef.current(data);
                 });
 
             } catch (error) {
@@ -209,8 +214,15 @@ export default function RichTextEditor({
 
     // Update content when value prop changes
     useEffect(() => {
-        if (editorRef.current && value !== editorRef.current.getData()) {
-            editorRef.current.setData(value || '');
+        if (editorRef.current) {
+            const currentData = editorRef.current.getData();
+            if (value !== currentData && value !== undefined) {
+                // Check if focused to avoid layout shift while typing
+                const isFocused = editorRef.current.editing.view.document.isFocused;
+                if (!isFocused) {
+                    editorRef.current.setData(value || '');
+                }
+            }
         }
     }, [value]);
 

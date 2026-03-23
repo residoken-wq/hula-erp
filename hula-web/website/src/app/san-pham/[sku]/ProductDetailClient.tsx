@@ -29,6 +29,7 @@ interface Product {
         model_3d_url?: string;
         colors?: Array<{ name: string; code: string; image_url?: string; pillow_image_url?: string }>;
         accessories?: Array<{ name: string; price: number; image_url?: string }>;
+        gallery_images?: string[];
     };
 }
 
@@ -41,6 +42,30 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     const [isLogoSelected, setIsLogoSelected] = useState(false);
     const [uploadedLogo, setUploadedLogo] = useState<string | null>(null);
     const [quantity, setQuantity] = useState(1);
+
+    const galleryImages = product.customization_config?.gallery_images || [];
+    const allImages = useMemo(() => {
+        const images: string[] = [];
+        if (product.image_url) {
+            let parsedImg = product.image_url;
+            if (typeof parsedImg === 'string' && parsedImg.startsWith('{')) {
+                try { parsedImg = JSON.parse(parsedImg).url || parsedImg; } catch { }
+            }
+            images.push(parsedImg);
+        }
+        galleryImages.forEach((img: any) => {
+            if (img && typeof img === 'string' && !images.includes(img)) images.push(img);
+        });
+        return images;
+    }, [product.image_url, galleryImages]);
+
+    const [mainImage, setMainImage] = useState<string | null>(allImages[0] || null);
+
+    useEffect(() => {
+        if (allImages.length > 0 && !allImages.includes(mainImage as string)) {
+            setMainImage(allImages[0]);
+        }
+    }, [allImages, mainImage]);
 
     // Initial check for default color
     const colors = product.customization_config?.colors || [];
@@ -122,12 +147,29 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                                 />
                                 <p className="text-center text-xs text-gray-500 mt-2">🔄 Xoay để xem 360° | 📱 Nhấn AR để xem trong không gian thực</p>
                             </div>
-                        ) : product.image_url ? (
-                            <img
-                                src={resolveImageUrl(product.image_url)}
-                                alt={product.name}
-                                className="max-w-full h-auto rounded-lg shadow-md"
-                            />
+                        ) : mainImage ? (
+                            <div className="w-full flex flex-col gap-4">
+                                <img
+                                    src={resolveImageUrl(mainImage)}
+                                    alt={product.name}
+                                    className="max-w-full h-auto rounded-lg shadow-md"
+                                />
+                                {allImages.length > 1 && (
+                                    <div className="flex gap-3 overflow-x-auto py-2 px-1 scrollbar-hide">
+                                        {allImages.map((img, idx) => (
+                                            <button 
+                                                key={idx} 
+                                                onClick={() => setMainImage(img)}
+                                                className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                                                    mainImage === img ? 'border-primary-600 shadow-sm' : 'border-transparent hover:border-gray-300 opacity-60 hover:opacity-100'
+                                                }`}
+                                            >
+                                                <img src={resolveImageUrl(img)} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         ) : (
                             <div className="text-9xl">📦</div>
                         )}

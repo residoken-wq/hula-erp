@@ -22,7 +22,7 @@ export default function PageHeroBanner({
 
     return (
         <section
-            className={`relative overflow-hidden text-white ${compact ? 'py-12 lg:py-16' : 'py-16 lg:py-24'}`}
+            className={`relative overflow-hidden text-white flex items-center justify-center ${compact ? 'min-h-[300px]' : 'h-[400px]'}`}
             style={
                 hasImage
                     ? { backgroundImage: `url(${bgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -45,7 +45,7 @@ export default function PageHeroBanner({
             )}
 
             {/* Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
                 <h1 className={`font-heading font-bold ${compact ? 'text-3xl lg:text-4xl mb-3' : 'text-4xl lg:text-5xl mb-6'}`}>
                     {title}
                 </h1>
