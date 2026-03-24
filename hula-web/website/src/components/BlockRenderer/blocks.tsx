@@ -8,7 +8,7 @@ import { resolveImageUrl } from '@/lib/utils';
 export const RichTextBlock = ({ data }: { data: any }) => {
     return (
         <div className="container mx-auto px-4 py-8">
-            <div 
+            <div
                 className="prose max-w-none text-gray-700 leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: data.content || '' }}
             />
@@ -18,12 +18,12 @@ export const RichTextBlock = ({ data }: { data: any }) => {
 
 export const HeroBannerBlock = ({ data }: { data: any }) => {
     return (
-        <section className="relative w-full h-[600px] flex items-center justify-center bg-gray-900 text-white overflow-hidden">
+        <section className="relative w-full h-[400px] flex items-center justify-center bg-gray-900 text-white overflow-hidden">
             {data.image_url && (
                 <div className="absolute inset-0 z-0">
-                    <img 
-                        src={resolveImageUrl(data.image_url)} 
-                        alt={data.title || "Hero banner"} 
+                    <img
+                        src={resolveImageUrl(data.image_url)}
+                        alt={data.title || "Hero banner"}
                         className="w-full h-full object-cover opacity-60"
                         loading="lazy"
                     />
@@ -47,9 +47,9 @@ export const ImageGalleryBlock = ({ data }: { data: any }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {images.map((url: string, idx: number) => (
                     <div key={idx} className="relative aspect-[4/3] rounded-2xl overflow-hidden group shadow-lg">
-                        <img 
-                            src={resolveImageUrl(url)} 
-                            alt={`Gallery image ${idx + 1}`} 
+                        <img
+                            src={resolveImageUrl(url)}
+                            alt={`Gallery image ${idx + 1}`}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             loading="lazy"
                         />
@@ -63,14 +63,14 @@ export const ImageGalleryBlock = ({ data }: { data: any }) => {
 
 export const TwoColumnBlock = ({ data }: { data: any }) => {
     const isImageLeft = data.imagePosition === 'left';
-    
+
     return (
         <section className="container mx-auto px-4 py-16">
             <div className={`flex flex-col md:flex-row items-center gap-12 ${isImageLeft ? 'md:flex-row-reverse' : ''}`}>
                 <div className="flex-1 w-full space-y-6">
                     {data.title && <h2 className="text-3xl md:text-4xl font-bold text-[#2C3E50] leading-tight">{data.title}</h2>}
                     {data.content && (
-                        <div 
+                        <div
                             className="prose prose-lg text-gray-600"
                             dangerouslySetInnerHTML={{ __html: data.content }}
                         />
@@ -78,9 +78,9 @@ export const TwoColumnBlock = ({ data }: { data: any }) => {
                 </div>
                 {data.image_url && (
                     <div className="flex-1 w-full relative">
-                        <img 
-                            src={resolveImageUrl(data.image_url)} 
-                            alt={data.title || "Image"} 
+                        <img
+                            src={resolveImageUrl(data.image_url)}
+                            alt={data.title || "Image"}
                             className="w-full rounded-3xl shadow-2xl object-cover aspect-[4/3] hover:shadow-3xl transition-shadow duration-300"
                             loading="lazy"
                         />
@@ -100,7 +100,7 @@ export const StatsGridBlock = ({ data }: { data: any }) => {
         <section className="bg-gradient-to-br from-[#f8fcfd] to-[#e6f4f8] py-20 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-100 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2"></div>
-            
+
             <div className="container mx-auto px-4 relative z-10">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                     {items.map((item: any, idx: number) => (
@@ -118,7 +118,7 @@ export const StatsGridBlock = ({ data }: { data: any }) => {
 
 export const VideoEmbedBlock = ({ data }: { data: any }) => {
     if (!data.video_url) return null;
-    
+
     // Extract video ID safely
     const extractYoutubeId = (url: string) => {
         try {
@@ -129,7 +129,7 @@ export const VideoEmbedBlock = ({ data }: { data: any }) => {
             return null;
         }
     };
-    
+
     const videoId = extractYoutubeId(data.video_url);
 
     return (
@@ -168,7 +168,7 @@ export const CallToActionBlock = ({ data }: { data: any }) => {
                 <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
                     {data.title && <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white leading-tight">{data.title}</h2>}
                     {data.description && <p className="text-xl opacity-90 mb-10 text-blue-50">{data.description}</p>}
-                    
+
                     {data.buttonText && data.buttonUrl && (
                         <Link href={data.buttonUrl}>
                             <button className="bg-white text-[#1D9ED9] hover:bg-gray-50 font-bold py-4 px-10 rounded-full text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
@@ -193,14 +193,14 @@ export const TeamMembersBlock = ({ data }: { data: any }) => {
                     {data.title}
                     <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-24 h-1.5 bg-[#1D9ED9] rounded-full"></div>
                 </h2>}
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     {members.map((member: any, idx: number) => (
                         <div key={idx} className="group text-center">
                             <div className="relative w-48 h-48 mx-auto mb-6 rounded-full overflow-hidden border-4 border-white shadow-xl group-hover:shadow-2xl transition-shadow duration-300 bg-gray-100">
-                                <img 
-                                    src={resolveImageUrl(member.image_url)} 
-                                    alt={member.name} 
+                                <img
+                                    src={resolveImageUrl(member.image_url)}
+                                    alt={member.name}
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                     loading="lazy"
                                 />
