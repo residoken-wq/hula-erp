@@ -44,21 +44,34 @@ export default function BlockForm({ type, data, onChange }: BlockFormProps) {
             );
         case 'IMAGE_GALLERY':
             const urls = data.images || [];
-            const handleMultipleUpload = async (options: any) => {
-                const { file, onSuccess, onError } = options;
+            
+            const handleBatchUpload = async (_file: any, fileList: any[]) => {
+                // Only trigger for the first file in the batch to avoid multiple calls
+                if (_file !== fileList[0]) return false;
+
                 try {
-                    const res = await (await import('@/lib/api')).uploadApi.image(file as File);
-                    const newUrl = res.data?.url || '';
-                    if (newUrl) {
-                        // We need to get the latest urls here because multiple uploads can happen concurrently
-                        // But since we are updating state, we'll use a functional update pattern in a real scenario
-                        // Here we'll append to the current list
-                        onChange({ ...data, images: [...(data.images || []), newUrl] });
-                        onSuccess(res.data);
+                    const api = (await import('@/lib/api')).uploadApi;
+                    const uploadedUrls: string[] = [];
+                    const hide = (await import('antd')).message.loading('Đang tải lên các hình ảnh...', 0);
+                    
+                    for (const f of fileList) {
+                        try {
+                            const res = await api.image(f as File);
+                            if (res.data?.url) uploadedUrls.push(res.data.url);
+                        } catch (e) {
+                            (await import('antd')).message.error(`Lỗi khi tải lên ${f.name}`);
+                        }
+                    }
+                    
+                    hide();
+                    if (uploadedUrls.length > 0) {
+                        onChange({ ...data, images: [...(data.images || []), ...uploadedUrls] });
+                        (await import('antd')).message.success(`Đã tải lên thành công ${uploadedUrls.length} ảnh`);
                     }
                 } catch (err) {
-                    onError(err);
+                    (await import('antd')).message.error('Lỗi hệ thống khi tải ảnh');
                 }
+                return false; // Prevent AntD automatic upload
             };
 
             return (
@@ -86,7 +99,7 @@ export default function BlockForm({ type, data, onChange }: BlockFormProps) {
                         <Button onClick={() => handleChange('images', [...urls, ''])} icon={<PlusOutlined/>}>Thêm ô trống</Button>
                         <Upload 
                             multiple 
-                            customRequest={handleMultipleUpload} 
+                            beforeUpload={handleBatchUpload}
                             showUploadList={false}
                             accept="image/*"
                         >
