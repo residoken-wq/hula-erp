@@ -95,31 +95,31 @@ export default function GalleryViewer({ images, title }: GalleryViewerProps) {
                     >
                         {/* Navigation Arrows */}
                         <button 
-                            className="absolute left-6 md:left-10 text-white/50 hover:text-white transition-all transform hover:scale-110 p-4 bg-white/5 hover:bg-white/10 rounded-full backdrop-blur-sm hidden md:block"
-                            onClick={prevImage}
+                            className="absolute left-2 md:left-10 text-white/50 hover:text-white transition-all transform hover:scale-110 p-2 md:p-4 bg-white/5 hover:bg-white/10 rounded-full backdrop-blur-sm z-20"
+                            onClick={(e) => { e.stopPropagation(); prevImage(); }}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" className="md:w-8 md:h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                         </button>
                         
-                        <div className="relative group overflow-hidden rounded-xl shadow-2xl">
+                        <div className="relative group overflow-hidden rounded-xl shadow-2xl mx-12 md:mx-0">
                             <img
                                 src={resolveImageUrl(images[currentIndex])}
                                 alt={`Fullscreen view ${currentIndex + 1}`}
                                 className="max-w-full max-h-[85vh] object-contain select-none animate-slide-up"
                             />
                             
-                            {/* Mobile Navigation Areas */}
+                            {/* Mobile Navigation Areas (Touch) */}
                             <div className="md:hidden absolute inset-0 flex">
-                                <div className="w-1/2 h-full" onClick={prevImage} />
-                                <div className="w-1/2 h-full" onClick={nextImage} />
+                                <div className="w-1/2 h-full" onClick={(e) => { e.stopPropagation(); prevImage(); }} />
+                                <div className="w-1/2 h-full" onClick={(e) => { e.stopPropagation(); nextImage(); }} />
                             </div>
                         </div>
 
                         <button 
-                            className="absolute right-6 md:right-10 text-white/50 hover:text-white transition-all transform hover:scale-110 p-4 bg-white/5 hover:bg-white/10 rounded-full backdrop-blur-sm hidden md:block"
-                            onClick={nextImage}
+                            className="absolute right-2 md:right-10 text-white/50 hover:text-white transition-all transform hover:scale-110 p-2 md:p-4 bg-white/5 hover:bg-white/10 rounded-full backdrop-blur-sm z-20"
+                            onClick={(e) => { e.stopPropagation(); nextImage(); }}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" className="md:w-8 md:h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                         </button>
 
                         {/* Counter */}
