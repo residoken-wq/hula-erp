@@ -379,6 +379,27 @@ export default function RichTextEditor({
                 .ck.ck-editor {
                     border-radius: 8px !important;
                 }
+                /* Override global resets for Editor Content */
+                .ck-content ul, .ck-content ul li {
+                    list-style-type: disc !important;
+                }
+                .ck-content ol, .ck-content ol li {
+                    list-style-type: decimal !important;
+                }
+                .ck-content ul, .ck-content ol {
+                    padding-left: 2em !important;
+                    margin-bottom: 1em !important;
+                }
+                .ck-content li {
+                    margin-bottom: 0.25em !important;
+                }
+                .ck-content h2, .ck-content h3, .ck-content h4 {
+                    margin-top: 1em !important;
+                    margin-bottom: 0.5em !important;
+                }
+                .ck-content p {
+                    margin-bottom: 1em !important;
+                }
             `}</style>
         </div>
     );

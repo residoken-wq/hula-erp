@@ -1,5 +1,5 @@
 import React from 'react';
-import { Input, Button, Select } from 'antd';
+import { Input, Button, Select, Upload } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import dynamic from 'next/dynamic';
 import ImageUploader from '@/components/ImageUploader';
@@ -44,22 +44,55 @@ export default function BlockForm({ type, data, onChange }: BlockFormProps) {
             );
         case 'IMAGE_GALLERY':
             const urls = data.images || [];
+            const handleMultipleUpload = async (options: any) => {
+                const { file, onSuccess, onError } = options;
+                try {
+                    const res = await (await import('@/lib/api')).uploadApi.image(file as File);
+                    const newUrl = res.data?.url || '';
+                    if (newUrl) {
+                        // We need to get the latest urls here because multiple uploads can happen concurrently
+                        // But since we are updating state, we'll use a functional update pattern in a real scenario
+                        // Here we'll append to the current list
+                        onChange({ ...data, images: [...(data.images || []), newUrl] });
+                        onSuccess(res.data);
+                    }
+                } catch (err) {
+                    onError(err);
+                }
+            };
+
             return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <Input placeholder="Tiêu đề Gallery (Tùy chọn)" value={data.title} onChange={e => handleChange('title', e.target.value)} />
-                    {urls.map((url: string, idx: number) => (
-                        <div key={idx} style={{ display: 'flex', gap: 8 }}>
-                            <div style={{ flex: 1 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+                        {urls.map((url: string, idx: number) => (
+                            <div key={idx} style={{ position: 'relative', border: '1px solid #eee', borderRadius: 8, padding: 8 }}>
                                 <ImageUploader simple value={url} onChange={(newUrl) => {
                                     const newUrls = [...urls];
-                                    newUrls[idx] = newUrl;
+                                    newUrls[idx] = newUrl as string;
                                     handleChange('images', newUrls);
                                 }} />
+                                <Button 
+                                    danger 
+                                    size="small"
+                                    icon={<DeleteOutlined/>} 
+                                    style={{ position: 'absolute', top: 4, right: 4, zIndex: 10 }}
+                                    onClick={() => handleChange('images', urls.filter((_: any, i: number) => i !== idx))} 
+                                />
                             </div>
-                            <Button danger onClick={() => handleChange('images', urls.filter((_: any, i: number) => i !== idx))}><DeleteOutlined/></Button>
-                        </div>
-                    ))}
-                    <Button onClick={() => handleChange('images', [...urls, ''])} icon={<PlusOutlined/>}>Thêm ảnh</Button>
+                        ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <Button onClick={() => handleChange('images', [...urls, ''])} icon={<PlusOutlined/>}>Thêm ô trống</Button>
+                        <Upload 
+                            multiple 
+                            customRequest={handleMultipleUpload} 
+                            showUploadList={false}
+                            accept="image/*"
+                        >
+                            <Button icon={<PlusOutlined/>} type="primary">Tải lên nhiều ảnh</Button>
+                        </Upload>
+                    </div>
                 </div>
             );
         case 'TWO_COLUMN_TEXT_IMAGE':

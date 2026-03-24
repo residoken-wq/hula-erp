@@ -37,28 +37,10 @@ export const HeroBannerBlock = ({ data }: { data: any }) => {
     );
 };
 
-export const ImageGalleryBlock = ({ data }: { data: any }) => {
-    const images = data.images || [];
-    if (!images.length) return null;
+import GalleryViewer from './GalleryViewer';
 
-    return (
-        <section className="container mx-auto px-4 py-16">
-            {data.title && <h2 className="text-3xl font-bold text-center mb-12 text-[#2C3E50]">{data.title}</h2>}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {images.map((url: string, idx: number) => (
-                    <div key={idx} className="relative aspect-[4/3] rounded-2xl overflow-hidden group shadow-lg">
-                        <img
-                            src={resolveImageUrl(url)}
-                            alt={`Gallery image ${idx + 1}`}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </div>
-                ))}
-            </div>
-        </section>
-    );
+export const ImageGalleryBlock = ({ data }: { data: any }) => {
+    return <GalleryViewer images={data.images} title={data.title} />;
 };
 
 export const TwoColumnBlock = ({ data }: { data: any }) => {
