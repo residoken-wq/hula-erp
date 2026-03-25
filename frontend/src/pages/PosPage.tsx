@@ -104,6 +104,7 @@ const PosPage: React.FC = () => {
                 customer_id: selectedCustomer ? selectedCustomer.id : null,
                 customer_name: selectedCustomer ? selectedCustomer.name : 'Khách lẻ',
                 items: cart.map(item => ({
+                    sku: item.sku,
                     product_id: item.id,
                     product_sku: item.sku,
                     product_name: item.name,
