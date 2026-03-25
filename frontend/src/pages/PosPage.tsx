@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Layout, Row, Col, Card, Input, Button, List, Avatar, Badge, message, Select, Typography, Statistic, Divider, Empty, Tag, Drawer } from 'antd';
+import { Layout, Row, Col, Card, Input, Button, List, Avatar, Badge, message, Select, Typography, Statistic, Divider, Empty, Tag, Drawer, Modal } from 'antd';
 import { SearchOutlined, ShoppingCartOutlined, UserOutlined, DeleteOutlined, PlusOutlined, MinusOutlined, CheckCircleOutlined, WalletOutlined, HomeOutlined, BarcodeOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
@@ -37,6 +37,10 @@ const PosPage: React.FC = () => {
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const isMobile = useMobile(); // <--- Detect Mobile
     const [mobileCartVisible, setMobileCartVisible] = useState(false); // <--- Drawer State
+
+    const [vatRate, setVatRate] = useState<number>(0);
+    const [printModalVisible, setPrintModalVisible] = useState<boolean>(false);
+    const [printedOrder, setPrintedOrder] = useState<any>(null);
 
     // Initial Data Fetch
     useEffect(() => {
@@ -107,16 +111,23 @@ const PosPage: React.FC = () => {
                     unit_price: item.base_price,
                     total_price: item.qty * item.base_price
                 })),
-                total_amount: cart.reduce((acc, item) => acc + (item.qty * item.base_price), 0),
+                total_amount: totalAmount,
+                vat_rate: vatRate,
                 status: 'COMPLETED', // Auto complete for retail
                 billing_address: 'Tại quầy',
                 notes: 'Đơn bán lẻ POS' // Identify source
             };
 
-            await api.post('/sales', payload);
+            const res = await api.post('/sales', payload);
             message.success('Thanh toán thành công!');
             setCart([]);
             setSelectedCustomer(null);
+            setVatRate(0);
+
+            if (res.data) {
+                setPrintedOrder(res.data);
+                setPrintModalVisible(true);
+            }
         } catch (error) {
             message.error('Lỗi thanh toán');
         }
@@ -144,7 +155,9 @@ const PosPage: React.FC = () => {
     }, [products, searchText, selectedCategory]);
 
     const categories = useMemo(() => [...new Set(products.map(p => p.category || 'Khác'))], [products]);
-    const totalAmount = cart.reduce((acc, item) => acc + (item.qty * item.base_price), 0);
+    const subtotalAmount = cart.reduce((acc, item) => acc + (item.qty * item.base_price), 0);
+    const vatAmount = subtotalAmount * vatRate / 100;
+    const totalAmount = subtotalAmount + vatAmount;
     const totalQty = cart.reduce((acc, item) => acc + item.qty, 0);
 
     // --- RENDER HELPERS ---
@@ -287,12 +300,22 @@ const PosPage: React.FC = () => {
             <div style={{ padding: 24, background: '#fafafa', borderTop: '1px solid #e8e8e8' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <Text>Tạm tính:</Text>
-                    <Text strong>{Number(totalAmount).toLocaleString('vi-VN')}đ</Text>
+                    <Text strong>{Number(subtotalAmount).toLocaleString('vi-VN')}đ</Text>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <Text>VAT (0%):</Text>
-                    <Text strong>0đ</Text>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
+                    <Text>VAT (%):</Text>
+                    <Select value={vatRate} onChange={(val) => setVatRate(val)} style={{ width: 80, marginLeft: 10 }} size="small">
+                        <Option value={0}>0%</Option>
+                        <Option value={8}>8%</Option>
+                        <Option value={10}>10%</Option>
+                    </Select>
                 </div>
+                {vatRate > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                        <Text>Tiền VAT:</Text>
+                        <Text strong>{Number(vatAmount).toLocaleString('vi-VN')}đ</Text>
+                    </div>
+                )}
                 <Divider style={{ margin: '12px 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
                     <Title level={4} style={{ margin: 0 }}>Tổng:</Title>
@@ -396,9 +419,107 @@ const PosPage: React.FC = () => {
     }
 
 
+    // THIẾT KẾ MODAL IN HÓA ĐƠN
+    const renderPrintModal = () => {
+        if (!printedOrder) return null;
+
+        const orderItems = printedOrder.items || [];
+        const qrcodeUrl = `https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${printedOrder.total_amount}&addInfo=${printedOrder.order_code}&accountName=CTY TNHH TM DV TUONG LINH`;
+
+        const subtotal = (printedOrder.total_amount || 0) / (1 + (printedOrder.vat_rate || 0) / 100);
+        const vatVal = (printedOrder.total_amount || 0) - subtotal;
+
+        return (
+            <Modal
+                title="In Hóa Đơn Bán Lẻ"
+                open={printModalVisible}
+                onCancel={() => setPrintModalVisible(false)}
+                footer={[
+                    <Button key="close" onClick={() => setPrintModalVisible(false)}>Đóng</Button>,
+                    <Button key="print" type="primary" onClick={() => window.print()}>
+                        🖨️ In Hóa Đơn
+                    </Button>
+                ]}
+                width={400}
+                centered
+            >
+                <style>{`
+                    @media print {
+                        body * { visibility: hidden; }
+                        #pos-receipt, #pos-receipt * { visibility: visible; }
+                        #pos-receipt { position: absolute; left: 0; top: 0; width: 300px; margin: 0; padding: 0; }
+                        .ant-modal-wrap { background: transparent !important; }
+                        .ant-modal-content { box-shadow: none !important; margin: 0; padding: 0; }
+                        .ant-modal-close, .ant-modal-header, .ant-modal-footer { display: none !important; }
+                        .ant-modal-mask { display: none !important; }
+                        html, body { background: #fff; height: auto; }
+                    }
+                `}</style>
+                <div id="pos-receipt" style={{ width: 300, margin: '0 auto', fontFamily: 'monospace', color: '#000', fontSize: 13, padding: 10, background: '#fff' }}>
+                    <div style={{ textAlign: 'center', marginBottom: 10 }}>
+                        <h2 style={{ margin: 0, fontSize: 18 }}>HULA ERP</h2>
+                        <div>Hóa Đơn Bán Lẻ POS</div>
+                        <div>================================</div>
+                    </div>
+                    <div style={{ marginBottom: 10 }}>
+                        <div><strong>Mã đơn:</strong> {printedOrder.order_code}</div>
+                        <div><strong>Ngày:</strong> {dayjs(printedOrder.created_at || new Date()).format('DD/MM/YYYY HH:mm')}</div>
+                    </div>
+                    <div>================================</div>
+                    <table style={{ width: '100%', marginBottom: 10, borderCollapse: 'collapse' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '1px dashed #000' }}>
+                                <th style={{ textAlign: 'left', paddingBottom: 5 }}>SP</th>
+                                <th style={{ textAlign: 'center', paddingBottom: 5 }}>SL</th>
+                                <th style={{ textAlign: 'right', paddingBottom: 5 }}>Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {orderItems.map((item: any, idx: number) => {
+                                const productName = products.find(p => p.sku === item.sku)?.name || item.sku;
+                                return (
+                                    <tr key={idx}>
+                                        <td style={{ padding: '5px 0', verticalAlign: 'top' }}>
+                                            <div style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{productName}</div>
+                                            <span style={{ fontSize: 11 }}>{Number(item.unit_price).toLocaleString('vi-VN')}</span>
+                                        </td>
+                                        <td style={{ textAlign: 'center', verticalAlign: 'top', paddingTop: 5 }}>{item.quantity}</td>
+                                        <td style={{ textAlign: 'right', verticalAlign: 'top', paddingTop: 5 }}>{Number(item.subtotal || (item.quantity * item.unit_price)).toLocaleString('vi-VN')}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    <div>================================</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span>Cộng tiền hàng:</span>
+                        <span>{Number(subtotal).toLocaleString('vi-VN')}đ</span>
+                    </div>
+                    {printedOrder.vat_rate > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                            <span>VAT ({printedOrder.vat_rate}%):</span>
+                            <span>{Number(vatVal).toLocaleString('vi-VN')}đ</span>
+                        </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: 15, marginTop: 5 }}>
+                        <span>TỔNG CỘNG:</span>
+                        <span>{Number(printedOrder.total_amount).toLocaleString('vi-VN')}đ</span>
+                    </div>
+                    <div style={{ textAlign: 'center', marginTop: 20 }}>
+                        <div style={{ marginBottom: 5, fontSize: 12 }}>Quét mã để thanh toán / Chuyển khoản</div>
+                        <img src={qrcodeUrl} alt="VietQR" style={{ width: 180, height: 180 }} />
+                    </div>
+                    <div style={{ textAlign: 'center', marginTop: 15, fontSize: 12, borderTop: '1px dashed #000', paddingTop: 10 }}>
+                        Trân trọng cảm ơn quý khách!
+                    </div>
+                </div>
+            </Modal>
+        );
+    };
+
     // DESKTOP LAYOUT (Preserved Logic)
     return (
-        <Layout style={{ height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+        <Layout style={{ height: 'calc(100vh - 64px)', overflow: 'hidden', flexDirection: 'row' }}>
             {/* LEFT SIDE: PRODUCTS GRID */}
             {renderProductGrid()}
 
@@ -406,6 +527,9 @@ const PosPage: React.FC = () => {
             <div style={{ width: 420, minWidth: 420, background: '#fff', borderLeft: '1px solid #e8e8e8', height: '100%' }}>
                 {renderCartContent()}
             </div>
+
+            {/* PRINT OVERLAY MODAL */}
+            {renderPrintModal()}
         </Layout>
     );
 };
