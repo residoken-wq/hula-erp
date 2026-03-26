@@ -19,7 +19,7 @@ const BodDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
-        dayjs().startOf('month'), dayjs()
+        dayjs().startOf('year'), dayjs()
     ]);
     const [salesRepFilter, setSalesRepFilter] = useState<number | undefined>(undefined);
     const [users, setUsers] = useState<any[]>([]);

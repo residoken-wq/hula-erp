@@ -1178,7 +1178,7 @@ export class SalesService {
     }
 
     private async calculateFunnelData(start: Date, end: Date, assignedToId?: number) {
-        const sources = ['OUTBOUND', 'REFERRAL', 'FACEBOOK', 'WEBSITE', 'OTHER'];
+        const sources = ['OUTBOUND', 'REFERRAL', 'FACEBOOK', 'WEBSITE', 'RETURNING_CUSTOMER', 'OTHER'];
         const result = [];
 
         for (const source of sources) {
@@ -1228,6 +1228,7 @@ export class SalesService {
             REFERRAL: 'Khách cũ giới thiệu',
             FACEBOOK: 'Facebook/Ads',
             WEBSITE: 'Website',
+            RETURNING_CUSTOMER: 'Khách hàng cũ',
             OTHER: 'Khác',
         };
         return labels[source] || source;
