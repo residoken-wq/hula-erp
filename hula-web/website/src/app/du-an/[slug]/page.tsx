@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import api from '@/lib/api';
+import api, { getSettings } from '@/lib/api';
 import { resolveImageUrl } from '@/lib/utils';
 import { notFound } from 'next/navigation';
 import PageHeroBanner from '@/components/PageHeroBanner';
@@ -18,7 +18,10 @@ async function getProject(slug: string) {
 
 export default async function ProjectDetailPage({ params }: { params: { slug: string } }) {
     const resolvedParams = await params;
-    const project = await getProject(resolvedParams.slug);
+    const [project, settings] = await Promise.all([
+        getProject(resolvedParams.slug),
+        getSettings()
+    ]);
 
     if (!project || project.error) {
         notFound();
@@ -30,9 +33,9 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
         <>
             {/* Hero */}
             <PageHeroBanner
-                title={project.title}
-                description={project.school_name || ''}
-                backgroundImage={project.image_url}
+                title={settings?.banner_projects_title || "Dự Án Của HULA"}
+                description={settings?.banner_projects_desc || "Khám phá các dự án HULA đã triển khai tại trường học trên toàn quốc"}
+                backgroundImage={settings?.banner_projects_image}
             />
 
             {/* Content */}
@@ -46,6 +49,14 @@ export default async function ProjectDetailPage({ params }: { params: { slug: st
                             </svg>
                             Tất cả dự án
                         </Link>
+                    </div>
+
+                    {/* Project Header */}
+                    <div className="mb-8">
+                        <h1 className="text-3xl lg:text-4xl font-heading font-bold text-gray-900 mb-4">{project.title}</h1>
+                        {project.school_name && (
+                            <p className="text-lg text-primary-600 font-medium">🏫 {project.school_name}</p>
+                        )}
                     </div>
 
                     {/* Featured Image */}
