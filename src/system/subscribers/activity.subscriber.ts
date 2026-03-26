@@ -11,12 +11,7 @@ export class ActivitySubscriber implements EntitySubscriberInterface {
         dataSource.subscribers.push(this);
     }
 
-    /**
-     * Skip logging for ActivityLog itself to prevent loops
-     */
-    listenTo() {
-        return 'everything';
-    }
+    // Dropped listenTo() so TypeORM listens to all entities.
 
     async afterInsert(event: InsertEvent<any>) {
         if (!this.shouldLog(event.metadata.targetName)) return;
@@ -46,7 +41,8 @@ export class ActivitySubscriber implements EntitySubscriberInterface {
 
     private shouldLog(targetName: any): boolean {
         // Exclude ActivityLog and maybe others
-        if (targetName === 'ActivityLog' || targetName === 'SystemConfig') return false;
+        const name = typeof targetName === 'function' ? targetName.name : targetName;
+        if (name === 'ActivityLog' || name === 'SystemConfig') return false;
         return true;
     }
 
@@ -96,7 +92,7 @@ export class ActivitySubscriber implements EntitySubscriberInterface {
                 full_name: user?.full_name || user?.username || 'System',
                 description: desc,
                 details: action === 'UPDATE' ? details : (fullNewEntity ? { new: fullNewEntity } : null)
-            });
+            }, { listeners: false });
         } catch (e) {
             console.error('Logging Failed', e);
         }
