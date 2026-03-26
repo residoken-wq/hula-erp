@@ -69,10 +69,17 @@ const BodDashboard: React.FC = () => {
                 icon: <DollarOutlined />,
             },
             {
-                title: '🔵 Giá trị Phễu',
-                value: kpi.pipelineValue || 0,
-                trend: kpi.trends?.leadsTrend || 0,
+                title: '📈 Doanh số thực tế',
+                value: kpi.actualRevenue || 0,
+                trend: kpi.trends?.actualTrend || 0,
                 gradient: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)', // Royal Blue
+                icon: <RiseOutlined />,
+            },
+            {
+                title: '🔵 Doanh số dự kiến',
+                value: kpi.expectedRevenue || 0,
+                trend: kpi.trends?.expectedTrend || 0,
+                gradient: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)', // Purple
                 icon: <FunnelPlotOutlined />,
             },
             {
@@ -91,12 +98,19 @@ const BodDashboard: React.FC = () => {
                 icon: <TeamOutlined />,
                 isCount: true,
             },
+            {
+                title: '🎯 Giá trị Phễu',
+                value: kpi.pipelineValue || 0,
+                trend: kpi.trends?.leadsTrend || 0,
+                gradient: 'linear-gradient(135deg, #be185d 0%, #db2777 100%)', // Pink
+                icon: <FireOutlined />,
+            },
         ];
 
         return (
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 {cards.map((c, i) => (
-                    <Col xs={12} sm={12} md={6} key={i}>
+                    <Col xs={12} sm={12} md={8} lg={4} key={i}>
                         <Card bordered={false} style={{ background: c.gradient, borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <Statistic
@@ -104,7 +118,7 @@ const BodDashboard: React.FC = () => {
                                     value={c.isCount ? c.value : (c.isSuffix ? c.value : c.value)}
                                     precision={0}
                                     formatter={(v) => c.isSuffix ? `${v}%` : (c.isCount ? String(v) : `${fmt(Number(v))}₫`)}
-                                    valueStyle={{ color: '#fff', fontWeight: 'bold', fontSize: isMobile ? 18 : 26 }}
+                                    valueStyle={{ color: '#fff', fontWeight: 'bold', fontSize: isMobile ? 18 : 22 }}
                                 />
                             </div>
                             <div style={{ marginTop: 8 }}>
@@ -163,16 +177,16 @@ const BodDashboard: React.FC = () => {
 
     // === CONVERSION FUNNEL ===
     const ConversionFunnel = () => {
-        const velocity = data?.velocityData || [];
         const kpi = data?.kpi || {};
+        const funnel = kpi.funnelStages || {};
 
-        // Build funnel from all velocity + KPI data
+        // Build funnel from backend funnelStages payload
         const stages = [
-            { stage: 'Lead Mới', count: kpi.totalLeads || 0 },
-            { stage: 'Đã Liên Hệ', count: velocity.filter((v: any) => ['CONTACTED', 'QUALIFIED', 'SAMPLE_APPROVED', 'NEGOTIATION'].includes(v.status)).length },
-            { stage: 'Duyệt Mẫu SX', count: velocity.filter((v: any) => ['SAMPLE_APPROVED', 'NEGOTIATION'].includes(v.status)).length },
-            { stage: 'Đàm Phán / BG', count: velocity.filter((v: any) => v.status === 'NEGOTIATION').length },
-            { stage: 'Thành Công (WON)', count: kpi.conversionRate ? Math.round((kpi.totalLeads * kpi.conversionRate) / 100) : 0 },
+            { stage: 'Lead Mới', count: funnel.new || 0 },
+            { stage: 'Đã Liên Hệ', count: funnel.contacted || 0 },
+            { stage: 'Duyệt Mẫu SX', count: funnel.sample_approved || 0 },
+            { stage: 'Đàm Phán / BG', count: funnel.negotiation || 0 },
+            { stage: 'Thành Công (WON)', count: funnel.won || 0 },
         ];
 
         return (

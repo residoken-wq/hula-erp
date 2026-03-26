@@ -1820,6 +1820,58 @@ const HelpPage: React.FC = () => {
                         </Card>
                     </div>
                 );
+            case 'bod-dashboard':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Phân tích & Báo cáo</Tag>
+                        <Title level={2}>📈 BOD Dashboard - Bảng điều khiển Quản trị</Title>
+                        <Paragraph>
+                            BOD Dashboard (Board of Directors Dashboard) là bảng điều khiển dành cho Ban Giám Đốc và Quản lý cấp cao để theo dõi tổng quan hiệu suất kinh doanh, từ dòng tiền thực tế đến các cơ hội trong tương lai.
+                        </Paragraph>
+
+                        <Divider orientation="left">I. Các Chỉ Số Quan Trọng (KPIs)</Divider>
+                        <Row gutter={[16, 16]}>
+                            <Col xs={24} sm={12}>
+                                <Card size="small" bordered style={{ borderColor: '#10b981' }}>
+                                    <Title level={5} style={{ color: '#059669', margin: 0 }}>💰 Doanh thu thực thu</Title>
+                                    <Paragraph style={{ marginTop: 8 }}>Tổng số tiền <b>thực tế đã thu</b> từ khách hàng (từ tất cả các phiếu Thu liên quan đến Đơn hàng) trong kỳ.</Paragraph>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={12}>
+                                <Card size="small" bordered style={{ borderColor: '#3b82f6' }}>
+                                    <Title level={5} style={{ color: '#1d4ed8', margin: 0 }}>📈 Doanh số thực tế</Title>
+                                    <Paragraph style={{ marginTop: 8 }}>Tổng giá trị các <b>Đơn hàng (SO)</b> đã được chốt và <b>có phát sinh thanh toán/đặt cọc</b> trong kỳ.</Paragraph>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={12}>
+                                <Card size="small" bordered style={{ borderColor: '#a855f7' }}>
+                                    <Title level={5} style={{ color: '#8b5cf6', margin: 0 }}>🔵 Doanh số dự kiến</Title>
+                                    <Paragraph style={{ marginTop: 8 }}>Tổng giá trị của tất cả các <b>Báo giá (Quotation)</b> được tạo ra trong kỳ chưa được chốt thành SO.</Paragraph>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={12}>
+                                <Card size="small" bordered style={{ borderColor: '#f59e0b' }}>
+                                    <Title level={5} style={{ color: '#d97706', margin: 0 }}>🏆 Tỷ lệ chốt & Phễu Lead</Title>
+                                    <Paragraph style={{ marginTop: 8 }}>Theo dõi <b>Tỷ lệ chuyển đổi (Win Rate)</b> và số lượng Lead mới, hiển thị trực quan sức khỏe của phễu bán hàng.</Paragraph>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Divider orientation="left">II. Biểu đồ Phễu chuyển đổi (Conversion Funnel)</Divider>
+                        <Alert 
+                            message="Theo dõi luồng khách hàng" 
+                            description="Biểu đồ phễu đếm tổng số lượng khách hàng từng đi qua các giai đoạn: Lead Mới ➔ Đã Liên Hệ ➔ Duyệt Mẫu SX ➔ Đàm Phán / BG ➔ Thành Công (WON). Phễu luôn có hình dạng nhỏ dần, giúp phát hiện nút thắt (bottleneck) trong quy trình chốt sale." 
+                            type="info" showIcon style={{ marginBottom: 16 }} 
+                        />
+
+                        <Divider orientation="left">III. Bảng điểm Sales & Dự báo (Scorecard & Forecast)</Divider>
+                        <Paragraph>
+                            - <b>Bảng điểm Sales:</b> Theo dõi sát sao tiến độ hoàn thành mục tiêu (Quota) của từng nhân sự kinh doanh dựa trên Doanh thu thực tế, số Lead mới mang về và thời gian chốt sale trung bình.
+                            <br />
+                            - <b>Dự báo Quý:</b> Kết hợp biểu đồ doanh thu thực tế các tháng trước và dự báo doanh số các tháng tới dựa trên trọng số cơ hội (Weighted Pipeline) của các Lead đang mở.
+                        </Paragraph>
+                    </div>
+                );
             case 'po-gc':
                 return (
                     <div>
@@ -1966,6 +2018,7 @@ const HelpPage: React.FC = () => {
                             icon: <ShopOutlined />,
                             children: [
 
+                                { key: 'bod-dashboard', label: 'BOD Dashboard' },
                                 { key: 'sales-process', label: 'Quy trình Bán hàng' },
                                 { key: 'internal-sales', label: 'Bán hàng Nội bộ' }, // <--- NEW
                                 { key: 'sales-create', label: 'Tạo đơn mới' },
