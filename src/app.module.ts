@@ -53,6 +53,7 @@ import { SalesChecklistItem } from './sales/sales-checklist-item.entity';
 import { PriceList } from './sales/pricelist/price-list.entity';
 import { PriceListRule } from './sales/pricelist/price-list-rule.entity';
 import { SalesOrderVersion } from './sales/sales-order-version.entity';
+import { SalesTarget } from './sales/sales-target.entity';
 
 import { StockHistory } from './inventory/stock-history.entity';
 import { InventoryStock } from './inventory/inventory-stock.entity';
@@ -148,7 +149,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           Product, Material, BOM, ProductComponent, ProductRouting, ProductLogistics, ProductPattern,
           SalesOrder, SalesOrderItem, ProductSample, SalesDelivery, SalesDeliveryItem, SalesComment,
           SalesChecklist, SalesChecklistItem,
-          PriceList, PriceListRule, SalesOrderVersion,
+          PriceList, PriceListRule, SalesOrderVersion, SalesTarget,
           PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
           StockHistory, InventoryStock, ShippingCarrier,
           ProductionOrder,
