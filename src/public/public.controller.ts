@@ -247,6 +247,7 @@ export class PublicController {
             title: blog.title,
             excerpt: blog.excerpt,
             content: blog.content,
+            content_blocks: blog.content_blocks,
             featured_image: blog.featured_image,
             category: blog.category,
             published_at: blog.published_at,
