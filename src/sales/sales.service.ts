@@ -1066,25 +1066,15 @@ export class SalesService {
             .select('COALESCE(SUM(o.total_amount), 0)', 'total')
             .where('o.status = :status', { status: 'QUOTATION' })
             .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
-        if (assignedToId) expectedResult.andWhere('o.assigned_to = :uid', { uid: assignedToId });
+        if (assignedToId) expectedResult.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
         const expectedRevenue = Number((await expectedResult.getRawOne())?.total || 0);
 
-        // Actual Revenue (SOs with deposit/payment)
+        // Actual Revenue (All confirmed SOs - not requiring transactions to exist)
         const actualQuery = this.orderRepo.createQueryBuilder('o')
             .select('COALESCE(SUM(o.total_amount), 0)', 'total')
             .where('o.status NOT IN (:...statuses)', { statuses: ['QUOTATION', 'CANCELLED'] })
-            .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
-            .andWhere(qb => {
-                const subQuery = qb.subQuery()
-                    .select('1')
-                    .from(Transaction, 't')
-                    .where('t.reference_code = o.order_code')
-                    .andWhere('t.reference_type = :type', { type: 'SALES' })
-                    .andWhere('t.amount > 0')
-                    .getQuery();
-                return 'EXISTS ' + subQuery;
-            });
-        if (assignedToId) actualQuery.andWhere('o.assigned_to = :uid', { uid: assignedToId });
+            .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
+        if (assignedToId) actualQuery.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
         const actualRevenue = Number((await actualQuery.getRawOne())?.total || 0);
 
         // Paid Revenue (Sum of all payments)
@@ -1094,7 +1084,7 @@ export class SalesService {
             .andWhere('t.date BETWEEN :start AND :end', { start, end });
         if (assignedToId) {
             paidQuery.innerJoin(SalesOrder, 'o', 't.reference_code = o.order_code')
-                .andWhere('o.assigned_to = :uid', { uid: assignedToId });
+                .andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
         }
         const paidRevenue = Number((await paidQuery.getRawOne())?.total || 0);
 
@@ -1108,25 +1098,15 @@ export class SalesService {
         const prevActualQuery = this.orderRepo.createQueryBuilder('o')
             .select('COALESCE(SUM(o.total_amount), 0)', 'total')
             .where('o.status NOT IN (:...statuses)', { statuses: ['QUOTATION', 'CANCELLED'] })
-            .andWhere('o.order_date BETWEEN :start AND :end', { start: prevStart, end: prevEnd })
-            .andWhere(qb => {
-                const subQuery = qb.subQuery()
-                    .select('1')
-                    .from(Transaction, 't')
-                    .where('t.reference_code = o.order_code')
-                    .andWhere('t.reference_type = :type', { type: 'SALES' })
-                    .andWhere('t.amount > 0')
-                    .getQuery();
-                return 'EXISTS ' + subQuery;
-            });
-        if (assignedToId) prevActualQuery.andWhere('o.assigned_to = :uid', { uid: assignedToId });
+            .andWhere('o.order_date BETWEEN :start AND :end', { start: prevStart, end: prevEnd });
+        if (assignedToId) prevActualQuery.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
         const prevActual = Number((await prevActualQuery.getRawOne())?.total || 0);
 
         const prevExpectedQuery = this.orderRepo.createQueryBuilder('o')
             .select('COALESCE(SUM(o.total_amount), 0)', 'total')
             .where('o.status = :status', { status: 'QUOTATION' })
             .andWhere('o.order_date BETWEEN :start AND :end', { start: prevStart, end: prevEnd });
-        if (assignedToId) prevExpectedQuery.andWhere('o.assigned_to = :uid', { uid: assignedToId });
+        if (assignedToId) prevExpectedQuery.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
         const prevExpected = Number((await prevExpectedQuery.getRawOne())?.total || 0);
 
         const prevPaidQuery = this.transRepo.createQueryBuilder('t')
@@ -1135,7 +1115,7 @@ export class SalesService {
             .andWhere('t.date BETWEEN :start AND :end', { start: prevStart, end: prevEnd });
         if (assignedToId) {
             prevPaidQuery.innerJoin(SalesOrder, 'o', 't.reference_code = o.order_code')
-                .andWhere('o.assigned_to = :uid', { uid: assignedToId });
+                .andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
         }
         const prevPaid = Number((await prevPaidQuery.getRawOne())?.total || 0);
 
@@ -1178,7 +1158,7 @@ export class SalesService {
     }
 
     private async calculateFunnelData(start: Date, end: Date, assignedToId?: number) {
-        const sources = ['OUTBOUND', 'REFERRAL', 'FACEBOOK', 'WEBSITE', 'OTHER'];
+        const sources = ['OUTBOUND', 'REFERRAL', 'FACEBOOK', 'WEBSITE', 'RETURNING_CUSTOMER', 'OTHER'];
         const result = [];
 
         for (const source of sources) {
@@ -1228,6 +1208,7 @@ export class SalesService {
             REFERRAL: 'Khách cũ giới thiệu',
             FACEBOOK: 'Facebook/Ads',
             WEBSITE: 'Website',
+            RETURNING_CUSTOMER: 'Khách hàng cũ',
             OTHER: 'Khác',
         };
         return labels[source] || source;
@@ -1297,8 +1278,8 @@ export class SalesService {
             // Actual revenue
             const revResult = await this.orderRepo.createQueryBuilder('o')
                 .select('COALESCE(SUM(o.total_amount), 0)', 'total')
-                .where('o.assigned_to = :uid', { uid: user.id })
-                .andWhere('o.status IN (:...s)', { s: ['COMPLETED', 'DELIVERED'] })
+                .where('o.assigned_to_id = :uid', { uid: user.id })
+                .andWhere('o.status NOT IN (:...s)', { s: ['QUOTATION', 'CANCELLED'] })
                 .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
                 .getRawOne();
 
@@ -1311,7 +1292,7 @@ export class SalesService {
 
             // Average days to close
             const closedOrders = await this.orderRepo.createQueryBuilder('o')
-                .where('o.assigned_to = :uid', { uid: user.id })
+                .where('o.assigned_to_id = :uid', { uid: user.id })
                 .andWhere('o.status = :s', { s: 'COMPLETED' })
                 .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
                 .getMany();
@@ -1365,7 +1346,7 @@ export class SalesService {
 
             const result = await this.orderRepo.createQueryBuilder('o')
                 .select('COALESCE(SUM(o.total_amount), 0)', 'total')
-                .where('o.status IN (:...s)', { s: ['COMPLETED', 'DELIVERED'] })
+                .where('o.status NOT IN (:...s)', { s: ['QUOTATION', 'CANCELLED'] })
                 .andWhere('o.order_date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
                 .getRawOne();
 
@@ -1381,7 +1362,7 @@ export class SalesService {
         const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const currentResult = await this.orderRepo.createQueryBuilder('o')
             .select('COALESCE(SUM(o.total_amount), 0)', 'total')
-            .where('o.status IN (:...s)', { s: ['COMPLETED', 'DELIVERED'] })
+            .where('o.status NOT IN (:...s)', { s: ['QUOTATION', 'CANCELLED'] })
             .andWhere('o.order_date BETWEEN :start AND :end', { start: currentMonthStart, end: now })
             .getRawOne();
 

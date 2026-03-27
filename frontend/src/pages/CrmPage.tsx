@@ -87,6 +87,7 @@ const CrmPage: React.FC = () => {
     const [editingLeadId, setEditingLeadId] = useState<number | null>(null);
     const [formLead] = Form.useForm();
     const [followNote, setFollowNote] = useState('');
+    const [isReturningCustomer, setIsReturningCustomer] = useState(false);
 
     const customerOptionsForLead = useMemo(() => allCustomers.map((c: any) => ({
         label: `${c.code} - ${c.name} (${c.phone || 'N/A'})`,
@@ -172,7 +173,37 @@ const CrmPage: React.FC = () => {
         formLead.setFieldsValue({ code: autoCode });
         formLead.resetFields(['name', 'phone', 'customer_id']);
         setIsNewCustomerMode(false);
+        setIsReturningCustomer(false);
         setIsLeadModalOpen(true);
+    };
+
+    // Detect returning customer when selecting from existing list
+    const handleCustomerSelect = (customerId: number) => {
+        const selected = allCustomers.find((c: any) => c.id === customerId);
+        if (selected) {
+            const hasOrders = selected.orders && selected.orders.length > 0;
+            const isExistingCustomer = selected.type === 'CUSTOMER';
+            const isExistingLead = selected.type === 'LEAD';
+
+            if (hasOrders || isExistingCustomer) {
+                setIsReturningCustomer(true);
+                formLead.setFieldsValue({ lead_source: 'RETURNING_CUSTOMER' });
+                if (isExistingLead) {
+                    // Existing lead - will update instead of creating new
+                    setEditingLeadId(selected.id);
+                    formLead.setFieldsValue({
+                        name: selected.name,
+                        phone: selected.phone,
+                        lead_status: selected.lead_status || 'NEW',
+                        potential_value: selected.potential_value,
+                        assigned_to_id: selected.assigned_to_id,
+                    });
+                    message.info('Khách hàng này đã có Lead. Hệ thống sẽ cập nhật Lead cũ.');
+                }
+            } else {
+                setIsReturningCustomer(false);
+            }
+        }
     };
 
     const handleEditLead = (lead: any) => {
@@ -218,6 +249,9 @@ const CrmPage: React.FC = () => {
 
             if (editingLeadId) {
                 await api.put(`/customers/${editingLeadId}`, payload);
+                if (isReturningCustomer) {
+                    await api.post(`/customers/${editingLeadId}/follow`, { note: '🔄 Khách hàng cũ quay lại đặt hàng' });
+                }
                 message.success('Cập nhật thành công!');
             } else {
                 if (isNewCustomerMode) {
@@ -225,12 +259,15 @@ const CrmPage: React.FC = () => {
                     await api.post('/customers', { code, type: 'LEAD', ...payload });
                 } else {
                     if (!customer_id) { message.error('Chọn khách hàng'); return; }
-                    await api.put(`/customers/${customer_id}`, { type: 'LEAD', ...payload }); // Update existing cust to LEAD
-                    await api.post(`/customers/${customer_id}/follow`, { note: `Lead created` });
+                    await api.put(`/customers/${customer_id}`, { type: 'LEAD', ...payload });
+                    const followNote = isReturningCustomer
+                        ? '🔄 Khách hàng cũ quay lại đặt hàng - Tạo Lead mới'
+                        : 'Lead created';
+                    await api.post(`/customers/${customer_id}/follow`, { note: followNote });
                 }
                 message.success('Tạo Lead thành công!');
             }
-            setIsLeadModalOpen(false); fetchData();
+            setIsLeadModalOpen(false); setIsReturningCustomer(false); fetchData();
         } catch (e: any) { message.error('Lỗi lưu Lead'); }
     };
 
@@ -628,9 +665,17 @@ const CrmPage: React.FC = () => {
                         </Col>
                     </Row>
                     {!isNewCustomerMode ? (
+                        <>
                         <Form.Item label="Khách hàng có sẵn" name="customer_id" rules={[{ required: !isNewCustomerMode }]}>
-                            <Select showSearch placeholder="Tìm theo tên/sđt" optionFilterProp="label" options={customerOptionsForLead} allowClear />
+                            <Select showSearch placeholder="Tìm theo tên/sđt" optionFilterProp="label" options={customerOptionsForLead} allowClear onChange={(v) => v && handleCustomerSelect(v)} />
                         </Form.Item>
+                        {isReturningCustomer && (
+                            <div style={{ background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 6, padding: '8px 12px', marginBottom: 12 }}>
+                                <span style={{ color: '#d48806', fontWeight: 500 }}>🔄 Khách hàng cũ quay lại</span>
+                                <span style={{ color: '#8c8c8c', fontSize: 12, marginLeft: 8 }}>Nguồn Lead sẽ tự động chọn "Khách hàng cũ"</span>
+                            </div>
+                        )}
+                        </>
                     ) : (
                         <>
                             <Divider orientation="left">KH Mới</Divider>
@@ -660,6 +705,7 @@ const CrmPage: React.FC = () => {
                                 <Select allowClear placeholder="Chọn nguồn Lead">
                                     <Select.Option value="OUTBOUND">Đi thị trường (Outbound)</Select.Option>
                                     <Select.Option value="REFERRAL">Khách cũ giới thiệu (Referral)</Select.Option>
+                                    <Select.Option value="RETURNING_CUSTOMER">Khách hàng cũ</Select.Option>
                                     <Select.Option value="FACEBOOK">Facebook / Ads</Select.Option>
                                     <Select.Option value="WEBSITE">Website</Select.Option>
                                     <Select.Option value="OTHER">Khác</Select.Option>
