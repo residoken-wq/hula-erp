@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Modal, Input, Button, Spin, Empty, message } from 'antd';
 import { PictureOutlined } from '@ant-design/icons';
 import { uploadApi } from '@/lib/api';
@@ -99,6 +100,7 @@ export default function RichTextEditor({
     const editorContainerRef = useRef<HTMLDivElement>(null);
     const editorRef = useRef<any>(null);
     const [isLayoutReady, setIsLayoutReady] = useState(false);
+    const [toolbarContainer, setToolbarContainer] = useState<HTMLElement | null>(null);
     
     const onChangeRef = useRef(onChange);
     useEffect(() => {
@@ -195,6 +197,24 @@ export default function RichTextEditor({
                     if (onChangeRef.current) onChangeRef.current(data);
                 });
 
+                // Attach custom React portal slot to toolbar
+                setTimeout(() => {
+                    const wrapperCtx = editorContainerRef.current?.closest('.ckeditor-wrapper');
+                    if (wrapperCtx) {
+                        const tb = wrapperCtx.querySelector('.ck-toolbar__items');
+                        if (tb && !wrapperCtx.querySelector('.custom-library-btn-slot')) {
+                            const btnSlot = document.createElement('div');
+                            btnSlot.className = 'ck ck-toolbar__item custom-library-btn-slot';
+                            btnSlot.style.display = 'flex';
+                            btnSlot.style.alignItems = 'center';
+                            btnSlot.style.padding = '0 6px';
+                            btnSlot.style.marginLeft = 'auto'; // push to the far right if flex wraps
+                            tb.appendChild(btnSlot);
+                            setToolbarContainer(btnSlot);
+                        }
+                    }
+                }, 200);
+
             } catch (error) {
                 console.error('Failed to initialize CKEditor:', error);
             }
@@ -262,22 +282,24 @@ export default function RichTextEditor({
 
     return (
         <div className="ckeditor-wrapper" style={{ position: 'relative' }}>
-            {/* Floated Library button over the right side of the sticky toolbar */}
-            <div style={{ position: 'sticky', top: 56, zIndex: 101, display: 'flex', justifyContent: 'flex-end', width: '100%', height: 0, overflow: 'visible', pointerEvents: 'none' }}>
-                <Button
-                    icon={<PictureOutlined />}
-                    onClick={openLibrary}
-                    type="primary"
-                    style={{ marginRight: 12, marginTop: 6, pointerEvents: 'auto', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}
-                >
-                    Chọn từ thư viện
-                </Button>
-            </div>
-
             <div
                 ref={editorContainerRef}
                 style={{ minHeight: `${minHeight}px` }}
             />
+
+            {/* Render Library Button natively inside CKEditor toolbar */}
+            {toolbarContainer && createPortal(
+                <Button
+                    icon={<PictureOutlined />}
+                    onClick={openLibrary}
+                    type="primary"
+                    size="small"
+                    style={{ background: '#667eea', border: 'none', boxShadow: '0 2px 4px rgba(102, 126, 234, 0.4)' }}
+                >
+                    Thư viện
+                </Button>,
+                toolbarContainer
+            )}
 
             {/* Library Modal */}
             <Modal
