@@ -366,10 +366,12 @@ export default function RichTextEditor({
                     border-color: #667eea !important;
                     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
                 }
-                .ck.ck-toolbar {
+                .ck.ck-editor__top {
                     position: sticky !important;
                     top: 56px !important;
                     z-index: 100 !important;
+                }
+                .ck.ck-toolbar {
                     border-radius: 8px 8px 0 0 !important;
                     background: #f8fafc !important;
                 }

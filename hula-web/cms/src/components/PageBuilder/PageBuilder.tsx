@@ -88,7 +88,8 @@ export default function PageBuilder({ value = [], onChange, onPreview }: PageBui
                                 </Popconfirm>
                             </Space>
                         }
-                        style={{ borderLeft: '4px solid #1890ff' }}
+                        style={{ borderLeft: '4px solid #1890ff', overflow: 'visible' }}
+                        styles={{ body: { overflow: 'visible' } }}
                     >
                         <BlockForm 
                             type={block.type} 

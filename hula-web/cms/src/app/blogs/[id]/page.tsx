@@ -254,7 +254,7 @@ export default function BlogEditorPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: 16 }}>
                 {/* Main Content */}
-                <Card title="Nội dung bài viết">
+                <Card title="Nội dung bài viết" style={{ overflow: 'visible' }} styles={{ body: { overflow: 'visible' } }}>
                     <Form form={form} layout="vertical">
                         <Form.Item
                             name="title"
