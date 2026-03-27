@@ -179,6 +179,11 @@ export default function RichTextEditor({
                             { name: /.*/, attributes: true, classes: true, styles: true }
                         ]
                     },
+                    ui: {
+                        viewportOffset: {
+                            top: 56
+                        }
+                    },
                     placeholder: placeholder
                 });
 
@@ -366,6 +371,7 @@ export default function RichTextEditor({
                     border-color: #667eea !important;
                     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
                 }
+                /* Force sticky positioning to work by overriding parent overflows */
                 .ck.ck-editor__top {
                     position: sticky !important;
                     top: 56px !important;
@@ -380,6 +386,24 @@ export default function RichTextEditor({
                 }
                 .ck.ck-editor {
                     border-radius: 8px !important;
+                }
+                /* Ant Design Pro Layout fixes for sticky */
+                .page-builder-container, 
+                .ant-pro-page-container,
+                .ant-layout-content,
+                .ant-pro-grid-content,
+                .ant-pro-layout-content,
+                .ant-pro-basicLayout-content,
+                .ckeditor-wrapper,
+                .ckeditor-wrapper .ant-form-item-control-input,
+                .ckeditor-wrapper .ant-form-item-control-input-content {
+                    /* Unset overflows so CSS position: sticky can propagate up to the main scroller */
+                    overflow: visible !important;
+                    overflow-x: visible !important;
+                    overflow-y: visible !important;
+                }
+                .ant-card, .ant-card-body {
+                    overflow: visible !important;
                 }
                 /* Override global resets for Editor Content */
                 .ck-content ul, .ck-content ul li {
