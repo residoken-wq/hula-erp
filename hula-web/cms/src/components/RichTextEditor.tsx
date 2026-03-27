@@ -179,11 +179,6 @@ export default function RichTextEditor({
                             { name: /.*/, attributes: true, classes: true, styles: true }
                         ]
                     },
-                    ui: {
-                        viewportOffset: {
-                            top: 56
-                        }
-                    },
                     placeholder: placeholder
                 });
 
@@ -372,10 +367,16 @@ export default function RichTextEditor({
                     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
                 }
                 /* Force sticky positioning to work by overriding parent overflows */
+                .ck.ck-sticky-panel__content {
+                    position: static !important;
+                    box-shadow: none !important;
+                    width: auto !important;
+                }
                 .ck.ck-editor__top {
                     position: sticky !important;
                     top: 56px !important;
                     z-index: 100 !important;
+                    background: #f8fafc !important;
                 }
                 .ck.ck-toolbar {
                     border-radius: 8px 8px 0 0 !important;
@@ -396,7 +397,11 @@ export default function RichTextEditor({
                 .ant-pro-basicLayout-content,
                 .ckeditor-wrapper,
                 .ckeditor-wrapper .ant-form-item-control-input,
-                .ckeditor-wrapper .ant-form-item-control-input-content {
+                .ckeditor-wrapper .ant-form-item-control-input-content,
+                .ck.ck-editor,
+                .ck.ck-editor__main,
+                .ck.ck-reset_all,
+                .ck.ck-sticky-panel {
                     /* Unset overflows so CSS position: sticky can propagate up to the main scroller */
                     overflow: visible !important;
                     overflow-x: visible !important;
