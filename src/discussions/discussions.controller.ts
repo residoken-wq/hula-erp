@@ -40,4 +40,9 @@ export class DiscussionsController {
     removeComment(@Param('commentId') commentId: number) {
         return this.service.removeComment(commentId);
     }
+
+    @Put(':id/review')
+    review(@Param('id') id: number) {
+        return this.service.review(id);
+    }
 }

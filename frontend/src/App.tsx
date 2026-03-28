@@ -62,6 +62,7 @@ const ProjectDetailPage = React.lazy(() => import('./pages/ProjectDetailPage'));
 const WorkSpacePage = React.lazy(() => import('./pages/WorkSpacePage')); // <--- Consolidated WorkSpace
 const SalesStrategyDashboard = React.lazy(() => import('./pages/SalesStrategyDashboard')); // <--- Sales Strategy
 const BodDashboard = React.lazy(() => import('./pages/BodDashboard')); // <--- BOD Dashboard
+const DiscussionDetailPage = React.lazy(() => import('./pages/DiscussionDetailPage'));
 
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
@@ -344,6 +345,7 @@ const App: React.FC = () => {
                                                 )}
 
                                                 <Route path="/workspace" element={<WorkSpacePage />} />
+                                                <Route path="/workspace/discussions/:id" element={<DiscussionDetailPage />} />
                                                 <Route path="/projects" element={<ProjectsPage />} />
                                                 <Route path="/projects/:id" element={<ProjectDetailPage />} />
                                                 <Route path="/help" element={<HelpPage />} />

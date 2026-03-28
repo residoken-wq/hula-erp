@@ -18,7 +18,8 @@ export class DiscussionsService {
             .leftJoinAndSelect('d.creator', 'creator')
             .leftJoinAndSelect('d.group', 'group')
             .leftJoinAndSelect('d.comments', 'comments') // To count comments
-            .orderBy('d.created_at', 'DESC');
+            .orderBy('d.is_pinned', 'DESC')
+            .addOrderBy('d.created_at', 'DESC');
 
         if (groupId) {
             query.andWhere('d.group_id = :groupId', { groupId });
@@ -88,5 +89,10 @@ export class DiscussionsService {
 
     async removeComment(commentId: number) {
         return this.commentRepo.delete(commentId);
+    }
+
+    async review(id: number) {
+        await this.repo.update(id, { is_reviewed: true });
+        return this.findOne(id);
     }
 }

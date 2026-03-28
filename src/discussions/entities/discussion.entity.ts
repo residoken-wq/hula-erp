@@ -31,6 +31,15 @@ export class Discussion {
     @Column({ default: 0 })
     views_count: number;
 
+    @Column({ default: false })
+    is_reviewed: boolean;
+
+    @Column({ default: false })
+    is_pinned: boolean;
+
+    @Column({ default: 'GENERAL' })
+    type: string; // 'GENERAL' or 'ANNOUNCEMENT'
+
     @OneToMany(() => DiscussionComment, (comment) => comment.discussion)
     comments: DiscussionComment[];
 
