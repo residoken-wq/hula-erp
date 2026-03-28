@@ -1030,7 +1030,25 @@ export class SalesService {
         // === 5. FORECAST DATA ===
         const forecastData = await this.calculateForecastData();
 
-        return { kpi, funnelData, velocityData, scorecardData, forecastData };
+        // === 6. TOP PRODUCTS ===
+        const topProducts = await this.calculateTopProductsData(start, end, filters.assignedToId);
+
+        // === 7. LOST DEAL ANALYSIS (grouped by lead_source) ===
+        const lostReasons = await this.calculateLostReasonData(start, end);
+
+        // === 8. ACCOUNTS RECEIVABLE AGING ===
+        const accountsReceivable = await this.calculateAccountsReceivableData();
+
+        // === 9. MONTHLY TREND (12 months) ===
+        const monthlyTrend = await this.calculateMonthlyTrendData();
+
+        // === 10. TOP CUSTOMERS ===
+        const topCustomers = await this.calculateTopCustomersData(start, end);
+
+        // === 11. HIGH-VALUE LEADS TO WIN ===
+        const highValueLeads = await this.calculateHighValueLeadsData(filters.assignedToId);
+
+        return { kpi, funnelData, velocityData, scorecardData, forecastData, topProducts, lostReasons, accountsReceivable, monthlyTrend, topCustomers, highValueLeads };
     }
 
     private async calculateKPIs(
@@ -1398,6 +1416,287 @@ export class SalesService {
         }
 
         return months;
+    }
+
+    // ===================== NEW ANALYTICS: TOP PRODUCTS =====================
+    private async calculateTopProductsData(start: Date, end: Date, assignedToId?: number) {
+        try {
+            const query = this.itemRepo.createQueryBuilder('i')
+                .select('i.sku', 'sku')
+                .addSelect('SUM(i.quantity)', 'totalQuantity')
+                .addSelect('SUM(i.subtotal)', 'totalRevenue')
+                .addSelect('COUNT(DISTINCT i.order_id)', 'orderCount')
+                .innerJoin('i.order', 'o')
+                .where('o.status NOT IN (:...statuses)', { statuses: ['QUOTATION', 'CANCELLED'] })
+                .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
+            if (assignedToId) query.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
+            query.groupBy('i.sku')
+                .orderBy('"totalRevenue"', 'DESC')
+                .limit(10);
+            const results = await query.getRawMany();
+            return results.map(r => ({
+                sku: r.sku,
+                totalQuantity: Number(r.totalQuantity || 0),
+                totalRevenue: Number(r.totalRevenue || 0),
+                orderCount: Number(r.orderCount || 0),
+            }));
+        } catch (e) {
+            console.error('Error calculating top products:', e);
+            return [];
+        }
+    }
+
+    // ===================== NEW ANALYTICS: LOST DEAL ANALYSIS =====================
+    private async calculateLostReasonData(start: Date, end: Date) {
+        try {
+            const sources = ['OUTBOUND', 'REFERRAL', 'FACEBOOK', 'WEBSITE', 'RETURNING_CUSTOMER', 'OTHER'];
+            const result = [];
+
+            for (const source of sources) {
+                const lostQuery = this.customerRepo.createQueryBuilder('c')
+                    .where('c.type = :type', { type: 'LEAD' })
+                    .andWhere('c.lead_status = :status', { status: 'LOST' })
+                    .andWhere('c.lead_source = :source', { source })
+                    .andWhere('c.updated_at BETWEEN :start AND :end', { start, end });
+                const lostCount = await lostQuery.getCount();
+
+                const valueQuery = this.customerRepo.createQueryBuilder('c')
+                    .select('COALESCE(SUM(c.potential_value), 0)', 'total')
+                    .where('c.type = :type', { type: 'LEAD' })
+                    .andWhere('c.lead_status = :status', { status: 'LOST' })
+                    .andWhere('c.lead_source = :source', { source })
+                    .andWhere('c.updated_at BETWEEN :start AND :end', { start, end });
+                const valueResult = await valueQuery.getRawOne();
+
+                // Total leads from this source for win-rate comparison
+                const totalQuery = this.customerRepo.createQueryBuilder('c')
+                    .where('c.type = :type', { type: 'LEAD' })
+                    .andWhere('c.lead_source = :source', { source })
+                    .andWhere('c.created_at BETWEEN :start AND :end', { start, end });
+                const totalCount = await totalQuery.getCount();
+
+                if (lostCount > 0) {
+                    result.push({
+                        source,
+                        sourceLabel: this.getSourceLabel(source),
+                        lostCount,
+                        lostValue: Number(valueResult?.total || 0),
+                        totalLeads: totalCount,
+                        lostRate: totalCount > 0 ? Math.round((lostCount / totalCount) * 100) : 0,
+                    });
+                }
+            }
+            return result.sort((a, b) => b.lostValue - a.lostValue);
+        } catch (e) {
+            console.error('Error calculating lost reasons:', e);
+            return [];
+        }
+    }
+
+    // ===================== NEW ANALYTICS: ACCOUNTS RECEIVABLE AGING =====================
+    private async calculateAccountsReceivableData() {
+        try {
+            const orders = await this.orderRepo.createQueryBuilder('o')
+                .leftJoinAndSelect('o.customer', 'c')
+                .where('o.status NOT IN (:...statuses)', { statuses: ['QUOTATION', 'CANCELLED'] })
+                .andWhere('o.payment_status != :paid', { paid: 'PAID' })
+                .orderBy('o.order_date', 'ASC')
+                .getMany();
+
+            const now = new Date();
+            const arData = [];
+
+            for (const order of orders) {
+                const paid = await this.calculatePaidAmount(order.order_code);
+                const remaining = Number(order.total_amount) - paid;
+                if (remaining <= 0) continue;
+
+                const orderDate = new Date(order.order_date);
+                const daysPast = Math.floor((now.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
+
+                let agingBucket = '0-30';
+                if (daysPast > 90) agingBucket = '>90';
+                else if (daysPast > 60) agingBucket = '61-90';
+                else if (daysPast > 30) agingBucket = '31-60';
+
+                arData.push({
+                    orderCode: order.order_code,
+                    customerName: order.customer?.name || order.customer_name || 'N/A',
+                    totalAmount: Number(order.total_amount),
+                    paidAmount: paid,
+                    remainingAmount: remaining,
+                    daysPast,
+                    agingBucket,
+                    orderDate: orderDate.toISOString(),
+                    paymentStatus: order.payment_status,
+                });
+            }
+
+            // Summary by bucket
+            const summary = {
+                '0-30': { count: 0, total: 0 },
+                '31-60': { count: 0, total: 0 },
+                '61-90': { count: 0, total: 0 },
+                '>90': { count: 0, total: 0 },
+            };
+            arData.forEach(ar => {
+                const bucket = summary[ar.agingBucket as keyof typeof summary];
+                if (bucket) { bucket.count++; bucket.total += ar.remainingAmount; }
+            });
+
+            return { details: arData.slice(0, 20), summary };
+        } catch (e) {
+            console.error('Error calculating AR:', e);
+            return { details: [], summary: { '0-30': { count: 0, total: 0 }, '31-60': { count: 0, total: 0 }, '61-90': { count: 0, total: 0 }, '>90': { count: 0, total: 0 } } };
+        }
+    }
+
+    // ===================== NEW ANALYTICS: MONTHLY TREND 12 MONTHS =====================
+    private async calculateMonthlyTrendData() {
+        try {
+            const now = new Date();
+            const months = [];
+
+            for (let i = 11; i >= 0; i--) {
+                const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+
+                // Actual revenue (confirmed orders)
+                const actualResult = await this.orderRepo.createQueryBuilder('o')
+                    .select('COALESCE(SUM(o.total_amount), 0)', 'total')
+                    .where('o.status NOT IN (:...s)', { s: ['QUOTATION', 'CANCELLED'] })
+                    .andWhere('o.order_date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+                    .getRawOne();
+
+                // Quotation value (expected)
+                const expectedResult = await this.orderRepo.createQueryBuilder('o')
+                    .select('COALESCE(SUM(o.total_amount), 0)', 'total')
+                    .where('o.status = :status', { status: 'QUOTATION' })
+                    .andWhere('o.order_date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+                    .getRawOne();
+
+                // Paid amount
+                const paidResult = await this.transRepo.createQueryBuilder('t')
+                    .select('COALESCE(SUM(t.amount), 0)', 'total')
+                    .where('t.reference_type = :type', { type: 'SALES' })
+                    .andWhere('t.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+                    .getRawOne();
+
+                // Order count
+                const orderCount = await this.orderRepo.createQueryBuilder('o')
+                    .where('o.status NOT IN (:...s)', { s: ['QUOTATION', 'CANCELLED'] })
+                    .andWhere('o.order_date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
+                    .getCount();
+
+                months.push({
+                    month: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`,
+                    label: `T${monthStart.getMonth() + 1}/${String(monthStart.getFullYear()).slice(2)}`,
+                    actualRevenue: Number(actualResult?.total || 0),
+                    expectedRevenue: Number(expectedResult?.total || 0),
+                    paidRevenue: Number(paidResult?.total || 0),
+                    orderCount,
+                });
+            }
+            return months;
+        } catch (e) {
+            console.error('Error calculating monthly trend:', e);
+            return [];
+        }
+    }
+
+    // ===================== NEW ANALYTICS: TOP CUSTOMERS =====================
+    private async calculateTopCustomersData(start: Date, end: Date) {
+        try {
+            const results = await this.orderRepo.createQueryBuilder('o')
+                .select('o.customer_id', 'customerId')
+                .addSelect('c.name', 'customerName')
+                .addSelect('c.phone', 'phone')
+                .addSelect('SUM(o.total_amount)', 'totalRevenue')
+                .addSelect('COUNT(o.id)', 'orderCount')
+                .innerJoin('o.customer', 'c')
+                .where('o.status NOT IN (:...statuses)', { statuses: ['QUOTATION', 'CANCELLED'] })
+                .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
+                .groupBy('o.customer_id')
+                .addGroupBy('c.name')
+                .addGroupBy('c.phone')
+                .orderBy('"totalRevenue"', 'DESC')
+                .limit(10)
+                .getRawMany();
+
+            // Get payment info for each customer
+            const enriched = [];
+            for (const r of results) {
+                const paidResult = await this.transRepo.createQueryBuilder('t')
+                    .select('COALESCE(SUM(t.amount), 0)', 'total')
+                    .innerJoin(SalesOrder, 'o', 't.reference_code = o.order_code')
+                    .where('t.reference_type = :type', { type: 'SALES' })
+                    .andWhere('o.customer_id = :cid', { cid: r.customerId })
+                    .andWhere('t.date BETWEEN :start AND :end', { start, end })
+                    .getRawOne();
+
+                enriched.push({
+                    customerId: r.customerId,
+                    customerName: r.customerName,
+                    phone: r.phone || '',
+                    totalRevenue: Number(r.totalRevenue || 0),
+                    orderCount: Number(r.orderCount || 0),
+                    paidAmount: Number(paidResult?.total || 0),
+                });
+            }
+            return enriched;
+        } catch (e) {
+            console.error('Error calculating top customers:', e);
+            return [];
+        }
+    }
+
+    // ===================== NEW ANALYTICS: HIGH VALUE LEADS TO WIN =====================
+    private async calculateHighValueLeadsData(assignedToId?: number) {
+        try {
+            const query = this.customerRepo.createQueryBuilder('c')
+                .leftJoinAndSelect('c.assigned_to', 'u')
+                .where('c.type = :type', { type: 'LEAD' })
+                .andWhere('c.lead_status NOT IN (:...closed)', { closed: ['WON', 'LOST'] })
+                .andWhere('c.potential_value > :minValue', { minValue: 0 });
+            if (assignedToId) query.andWhere('c.assigned_to_id = :uid', { uid: assignedToId });
+            query.orderBy('c.potential_value', 'DESC').limit(15);
+
+            const leads = await query.getMany();
+            const now = new Date();
+
+            return leads.map(lead => {
+                const history = lead.history || [];
+                const lastAction = history.length > 0 ? history[history.length - 1] : null;
+                const lastActionDate = lastAction?.date ? new Date(lastAction.date) : lead.updated_at;
+                const daysSinceLastAction = Math.floor((now.getTime() - new Date(lastActionDate).getTime()) / (1000 * 60 * 60 * 24));
+                const weight = this.FORECAST_WEIGHTS[lead.lead_status] || 0.05;
+                const weightedValue = Number(lead.potential_value || 0) * weight;
+
+                // Priority score: higher = more urgent
+                let priority: 'HOT' | 'WARM' | 'NORMAL' = 'NORMAL';
+                if (Number(lead.potential_value) >= 100000000 || (daysSinceLastAction <= 3 && lead.lead_status === 'NEGOTIATION')) priority = 'HOT';
+                else if (Number(lead.potential_value) >= 30000000 || lead.lead_status === 'QUALIFIED' || lead.lead_status === 'SAMPLE_APPROVED') priority = 'WARM';
+
+                return {
+                    id: lead.id,
+                    name: lead.name,
+                    phone: lead.phone,
+                    status: lead.lead_status,
+                    source: lead.lead_source,
+                    sourceLabel: this.getSourceLabel(lead.lead_source),
+                    potentialValue: Number(lead.potential_value),
+                    weightedValue: Math.round(weightedValue),
+                    assignedTo: lead.assigned_to?.full_name || lead.assigned_to?.username || 'Chưa gán',
+                    assignedToId: lead.assigned_to_id,
+                    daysSinceLastAction,
+                    lastActionDate: lastActionDate ? new Date(lastActionDate).toISOString() : null,
+                    priority,
+                };
+            });
+        } catch (e) {
+            console.error('Error calculating high value leads:', e);
+            return [];
+        }
     }
 
     // === PUSH REMINDER ===

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Select, DatePicker, Row, Col, Tag, Space, message, Popconfirm, Input, Card, Statistic, InputNumber, Divider } from 'antd';
+import { Table, Button, Modal, Form, Select, DatePicker, Row, Col, Tag, Space, message, Popconfirm, Input, Card, Statistic, InputNumber, Divider, Checkbox, Alert } from 'antd';
 import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, DeleteOutlined, CalendarOutlined, SettingOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
@@ -20,6 +20,8 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
     const [balance, setBalance] = useState<any>(null);
     const [entitlementModal, setEntitlementModal] = useState(false);
     const [entForm] = Form.useForm();
+    const [isHalfDay, setIsHalfDay] = useState(false);
+    const [computedDays, setComputedDays] = useState<number>(1);
 
     // Load balance when employee selected
     useEffect(() => {
@@ -45,14 +47,30 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
         } catch (e) { message.error('Lỗi lưu'); }
     };
 
+    // Auto-compute days when dates or half-day changes
+    const recomputeDays = (startDate?: dayjs.Dayjs, endDate?: dayjs.Dayjs, halfDay?: boolean) => {
+        const start = startDate || form.getFieldValue('start_date');
+        const end = endDate || form.getFieldValue('end_date');
+        const half = halfDay !== undefined ? halfDay : isHalfDay;
+        if (start && end) {
+            const fullDays = end.diff(start, 'day') + 1;
+            const days = half ? Math.max(0.5, fullDays - 0.5) : fullDays;
+            setComputedDays(days);
+            form.setFieldValue('days', days);
+        }
+    };
+
     const handleSave = async (values: any) => {
         try {
             values.start_date = values.start_date.format('YYYY-MM-DD');
             values.end_date = values.end_date.format('YYYY-MM-DD');
+            values.days = Number(values.days || computedDays);
             await api.post('/hr/leaves', values);
             message.success('Đã tạo đơn nghỉ phép');
             setModal(false);
             form.resetFields();
+            setIsHalfDay(false);
+            setComputedDays(1);
             onRefresh();
         } catch (e) { message.error('Lỗi tạo đơn'); }
     };
@@ -83,7 +101,11 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
         },
         { title: 'Từ ngày', dataIndex: 'start_date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
         { title: 'Đến ngày', dataIndex: 'end_date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
-        { title: 'Số ngày', dataIndex: 'days' },
+        { title: 'Số ngày', dataIndex: 'days', align: 'center' as const, render: (v: number) => {
+            const num = Number(v);
+            const isHalf = num % 1 !== 0;
+            return <Tag color={isHalf ? 'volcano' : 'blue'} style={{ fontWeight: 600 }}>{num % 1 === 0 ? num : num.toFixed(1)} ngày</Tag>;
+        }},
         { title: 'Lý do', dataIndex: 'reason', ellipsis: true },
         {
             title: 'Trạng thái', dataIndex: 'status', render: (s: string) => {
@@ -155,10 +177,10 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
             {balance && (
                 <div style={{ marginBottom: 16 }}>
                     <Row gutter={16}>
-                        <Col span={6}><Statistic title="Phép năm" value={balance.annual_days} prefix={<CalendarOutlined />} /></Col>
-                        <Col span={6}><Statistic title="Tồn năm trước" value={balance.carried_days} /></Col>
-                        <Col span={6}><Statistic title="Đã sử dụng" value={balance.used_days} valueStyle={{ color: '#cf1322' }} /></Col>
-                        <Col span={6}><Statistic title="Còn lại" value={balance.remaining_days} valueStyle={{ color: '#3f8600' }} /></Col>
+                        <Col span={6}><Statistic title="Phép năm" value={Number(balance.annual_days)} precision={balance.annual_days % 1 !== 0 ? 1 : 0} prefix={<CalendarOutlined />} /></Col>
+                        <Col span={6}><Statistic title="Tồn năm trước" value={Number(balance.carried_days)} precision={balance.carried_days % 1 !== 0 ? 1 : 0} /></Col>
+                        <Col span={6}><Statistic title="Đã sử dụng" value={Number(balance.used_days)} precision={balance.used_days % 1 !== 0 ? 1 : 0} valueStyle={{ color: '#cf1322' }} /></Col>
+                        <Col span={6}><Statistic title="Còn lại" value={Number(balance.remaining_days)} precision={balance.remaining_days % 1 !== 0 ? 1 : 0} valueStyle={{ color: '#3f8600' }} suffix="ngày" /></Col>
                     </Row>
                     <Divider style={{ margin: '12px 0' }} />
                 </div>
@@ -173,7 +195,7 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
                 pagination={{ pageSize: 10, showSizeChanger: false }}
             />
 
-            <Modal title="Đăng ký nghỉ phép" open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()}>
+            <Modal title="Đăng ký nghỉ phép" open={modal} onCancel={() => { setModal(false); setIsHalfDay(false); setComputedDays(1); }} onOk={() => form.submit()} width={520}>
                 <Form form={form} layout="vertical" onFinish={handleSave}>
                     <Form.Item name="employee_id" label="Nhân viên" rules={[{ required: true }]}>
                         <Select showSearch optionFilterProp="children">{employees.map(e => <Option key={e.id} value={e.id}>{e.full_name}</Option>)}</Select>
@@ -188,9 +210,44 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
                         </Select>
                     </Form.Item>
                     <Row gutter={16}>
-                        <Col span={12}><Form.Item name="start_date" label="Từ ngày" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
-                        <Col span={12}><Form.Item name="end_date" label="Đến ngày" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="start_date" label="Từ ngày" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" onChange={(d) => recomputeDays(d ?? undefined, undefined)} /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="end_date" label="Đến ngày" rules={[{ required: true }]}><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" onChange={(d) => recomputeDays(undefined, d ?? undefined)} /></Form.Item></Col>
                     </Row>
+                    {/* HALF-DAY OPTION */}
+                    <Row gutter={16} align="middle">
+                        <Col span={12}>
+                            <Form.Item style={{ marginBottom: 8 }}>
+                                <Checkbox
+                                    checked={isHalfDay}
+                                    onChange={(e) => {
+                                        setIsHalfDay(e.target.checked);
+                                        recomputeDays(undefined, undefined, e.target.checked);
+                                    }}
+                                >
+                                    Nghỉ nửa ngày (0.5)
+                                </Checkbox>
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="days" label="Số ngày nghỉ" style={{ marginBottom: 8 }}>
+                                <InputNumber
+                                    min={0.5}
+                                    step={0.5}
+                                    precision={1}
+                                    style={{ width: '100%' }}
+                                    addonAfter="ngày"
+                                />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    {isHalfDay && (
+                        <Alert
+                            message="💡 Nghỉ nửa ngày: Chỉ nghỉ buổi sáng hoặc chiều. Hệ thống sẽ tính 0.5 ngày phép."
+                            type="info"
+                            showIcon
+                            style={{ marginBottom: 16, fontSize: 12 }}
+                        />
+                    )}
                     <Form.Item name="reason" label="Lý do"><TextArea rows={3} /></Form.Item>
                 </Form>
             </Modal>
@@ -202,8 +259,8 @@ const LeaveTab: React.FC<Props> = ({ employees, leaves, onRefresh }) => {
                         <Select disabled showSearch optionFilterProp="children">{employees.map(e => <Option key={e.id} value={e.id}>{e.full_name}</Option>)}</Select>
                     </Form.Item>
                     <Form.Item name="year" label="Năm" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} /></Form.Item>
-                    <Form.Item name="annual_days" label="Phép năm được cấp"><InputNumber style={{ width: '100%' }} /></Form.Item>
-                    <Form.Item name="carried_days" label="Phép tồn năm trước"><InputNumber style={{ width: '100%' }} /></Form.Item>
+                    <Form.Item name="annual_days" label="Phép năm được cấp"><InputNumber style={{ width: '100%' }} min={0} step={0.5} precision={1} addonAfter="ngày" /></Form.Item>
+                    <Form.Item name="carried_days" label="Phép tồn năm trước"><InputNumber style={{ width: '100%' }} min={0} step={0.5} precision={1} addonAfter="ngày" /></Form.Item>
                 </Form>
             </Modal>
         </>

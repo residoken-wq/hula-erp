@@ -174,11 +174,16 @@ export class HrService {
     }
 
     async createLeave(data: Partial<LeaveRequest>) {
-        // Calculate days
-        if (data.start_date && data.end_date) {
+        // Calculate days if not explicitly provided by frontend
+        if (data.start_date && data.end_date && !data.days) {
             const start = new Date(data.start_date);
             const end = new Date(data.end_date);
             data.days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        }
+        // Ensure days is a valid number (support 0.5 for half-day)
+        if (data.days !== undefined) {
+            data.days = Number(data.days);
+            if (data.days < 0.5) data.days = 0.5; // Minimum 0.5 day
         }
         const leave = this.leaveRepo.create(data);
         return this.leaveRepo.save(leave);

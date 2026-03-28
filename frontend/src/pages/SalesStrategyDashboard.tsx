@@ -3,9 +3,10 @@ import { Row, Col, Card, Statistic, Table, Button, Select, DatePicker, Tag, Prog
 import {
     DollarOutlined, FunnelPlotOutlined, TrophyOutlined, TeamOutlined,
     ReloadOutlined, BellOutlined, WarningOutlined, RiseOutlined,
-    ThunderboltOutlined, ClockCircleOutlined, SearchOutlined
+    ThunderboltOutlined, ClockCircleOutlined, SearchOutlined,
+    FallOutlined, CrownOutlined, StarOutlined, FireOutlined
 } from '@ant-design/icons';
-import { Funnel, Area } from '@ant-design/plots';
+import { Funnel, Area, Pie } from '@ant-design/plots';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import useMobile from '../hooks/useMobile';
@@ -50,7 +51,24 @@ const SalesStrategyDashboard: React.FC = () => {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    const fmt = (v: number) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v);
+    const fmtVND = (v: number) => {
+        if (v >= 1000000000) return `${(v / 1000000000).toFixed(1)} tỷ`;
+        if (v >= 1000000) return `${(v / 1000000).toFixed(1)}tr`;
+        if (v >= 1000) return `${(v / 1000).toFixed(0)}K`;
+        return v.toLocaleString('vi-VN');
+    };
+
+    const fmtFullVND = (v: number) => `${v.toLocaleString('vi-VN')}₫`;
+
+    const statusLabel: Record<string, string> = {
+        NEW: 'Mới',
+        CONTACTED: 'Đã liên hệ',
+        QUALIFIED: 'Tiềm năng',
+        SAMPLE_APPROVED: 'Đã duyệt mẫu',
+        NEGOTIATION: 'Đàm phán',
+        WON: 'Thành công',
+        LOST: 'Thất bại',
+    };
 
     // === KPI CARDS ===
     const KpiCards = () => {
@@ -69,12 +87,12 @@ const SalesStrategyDashboard: React.FC = () => {
                 </Col>
                 <Col xs={12} sm={6}>
                     <Card bordered={false} style={{ borderRadius: 12, borderLeft: '4px solid #3b82f6' }}>
-                        <Statistic title="Pipeline Value" value={kpi.pipelineValue || 0} prefix={<FunnelPlotOutlined />} formatter={(v) => `${fmt(Number(v))}₫`} valueStyle={{ color: '#3b82f6', fontWeight: 700, fontSize: isMobile ? 20 : 28 }} />
+                        <Statistic title="Giá trị Phễu" value={kpi.pipelineValue || 0} prefix={<FunnelPlotOutlined />} formatter={(v) => fmtVND(Number(v))} valueStyle={{ color: '#3b82f6', fontWeight: 700, fontSize: isMobile ? 20 : 28 }} />
                     </Card>
                 </Col>
                 <Col xs={12} sm={6}>
                     <Card bordered={false} style={{ borderRadius: 12, borderLeft: '4px solid #059669' }}>
-                        <Statistic title="Doanh thu thực" value={kpi.actualRevenue || 0} prefix={<DollarOutlined />} formatter={(v) => `${fmt(Number(v))}₫`} valueStyle={{ color: '#059669', fontWeight: 700, fontSize: isMobile ? 20 : 28 }} />
+                        <Statistic title="Doanh thu thực" value={kpi.actualRevenue || 0} prefix={<DollarOutlined />} formatter={(v) => fmtVND(Number(v))} valueStyle={{ color: '#059669', fontWeight: 700, fontSize: isMobile ? 20 : 28 }} />
                     </Card>
                 </Col>
             </Row>
@@ -96,12 +114,12 @@ const SalesStrategyDashboard: React.FC = () => {
             { title: 'Qualified', dataIndex: 'qualified', key: 'qualified', align: 'center' as const, render: (v: number) => <Tag color="green">{v}</Tag> },
             { title: 'Won', dataIndex: 'won', key: 'won', align: 'center' as const, render: (v: number) => <Tag color="gold">{v}</Tag> },
             { title: 'Win%', dataIndex: 'winRate', key: 'winRate', align: 'center' as const, render: (v: number) => <span style={{ fontWeight: 600, color: v >= 30 ? '#10b981' : v >= 10 ? '#f59e0b' : '#ef4444' }}>{v}%</span> },
-            { title: isMobile ? 'GT TB' : 'GT Đơn TB', dataIndex: 'avgOrderValue', key: 'avgOrderValue', align: 'right' as const, render: (v: number) => v > 0 ? `${fmt(v)}₫` : '-' },
+            { title: isMobile ? 'GT TB' : 'GT Đơn TB', dataIndex: 'avgOrderValue', key: 'avgOrderValue', align: 'right' as const, render: (v: number) => v > 0 ? fmtVND(v) : '-' },
         ];
 
         return (
             <Card
-                title={<span><FunnelPlotOutlined style={{ color: '#3b82f6' }} /> Báo cáo 1: Lead Source & Conversion</span>}
+                title={<span><FunnelPlotOutlined style={{ color: '#3b82f6' }} /> Báo cáo 1: Nguồn Lead & Chuyển đổi</span>}
                 bordered={false}
                 style={{ borderRadius: 16, marginBottom: 24 }}
             >
@@ -145,7 +163,7 @@ const SalesStrategyDashboard: React.FC = () => {
                 await api.post('/sales/analytics/push-reminder', {
                     userId: record.assignedToId,
                     customerName: record.customerName,
-                    message: `⚡ Khách hàng ${record.customerName} (${record.status}) đã ${record.daysSinceLastAction} ngày chưa có follow-up. Vui lòng xử lý ngay!`,
+                    message: `⚡ Khách hàng ${record.customerName} (${statusLabel[record.status] || record.status}) đã ${record.daysSinceLastAction} ngày chưa có follow-up. Vui lòng xử lý ngay!`,
                 });
                 message.success(`Đã gửi nhắc nhở cho ${record.assignedTo}`);
             } catch (e) {
@@ -158,13 +176,6 @@ const SalesStrategyDashboard: React.FC = () => {
             if (r.alertLevel === 'red') return '#fef2f2';
             if (r.alertLevel === 'orange') return '#fffbeb';
             return 'transparent';
-        };
-
-        const statusLabel: Record<string, string> = {
-            QUALIFIED: 'Tiềm năng',
-            SAMPLE_APPROVED: 'Đã duyệt mẫu',
-            CONTACTED: 'Đã liên hệ',
-            NEGOTIATION: 'Đàm phán',
         };
 
         const columns = [
@@ -194,7 +205,7 @@ const SalesStrategyDashboard: React.FC = () => {
             {
                 title: isMobile ? 'GT' : 'Giá trị', dataIndex: 'potentialValue', key: 'value',
                 align: 'right' as const,
-                render: (v: number) => v > 0 ? `${fmt(v)}₫` : '-',
+                render: (v: number) => v > 0 ? fmtVND(v) : '-',
             },
             {
                 title: 'Phụ trách', dataIndex: 'assignedTo', key: 'assigned',
@@ -219,7 +230,7 @@ const SalesStrategyDashboard: React.FC = () => {
 
         return (
             <Card
-                title={<span><ThunderboltOutlined style={{ color: '#f59e0b' }} /> Báo cáo 2: Sample & Quote Velocity</span>}
+                title={<span><ThunderboltOutlined style={{ color: '#f59e0b' }} /> Báo cáo 2: Tốc độ xử lý Mẫu & Báo giá</span>}
                 bordered={false}
                 style={{ borderRadius: 16, marginBottom: 24 }}
                 extra={
@@ -271,7 +282,7 @@ const SalesStrategyDashboard: React.FC = () => {
                                     <div style={{ marginBottom: 12 }}>
                                         <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>💰 Doanh số</div>
                                         <Progress percent={revPct} strokeColor={revPct >= 80 ? '#10b981' : '#f59e0b'} size="small" />
-                                        <div style={{ fontSize: 11, color: '#888' }}>{fmt(rep.actualRevenue)}₫ / {rep.targetRevenue > 0 ? `${fmt(rep.targetRevenue)}₫` : 'Chưa set'}</div>
+                                        <div style={{ fontSize: 11, color: '#888' }}>{fmtVND(rep.actualRevenue)} / {rep.targetRevenue > 0 ? fmtVND(rep.targetRevenue) : 'Chưa set'}</div>
                                     </div>
                                     <div style={{ marginBottom: 12 }}>
                                         <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>🎯 Lead mới</div>
@@ -308,7 +319,7 @@ const SalesStrategyDashboard: React.FC = () => {
             <Card
                 title={<span><RiseOutlined style={{ color: '#10b981' }} /> Báo cáo 4: Dự báo Doanh thu Quý</span>}
                 bordered={false}
-                style={{ borderRadius: 16 }}
+                style={{ borderRadius: 16, marginBottom: 24 }}
                 extra={<span style={{ fontSize: 11, color: '#888' }}>Trọng số: NEW 5% | QUALIFIED 20% | SAMPLE 50% | NEGOTIATION 80%</span>}
             >
                 {chartData.length > 0 ? (
@@ -321,11 +332,193 @@ const SalesStrategyDashboard: React.FC = () => {
                         height={isMobile ? 250 : 320}
                         style={{ fillOpacity: 0.25 }}
                         axis={{
-                            y: { labelFormatter: (v: number) => `${(v / 1000000).toFixed(0)}M` },
+                            y: { labelFormatter: (v: number) => fmtVND(v) },
                         }}
                         legend={{ color: { position: 'top' } }}
                     />
                 ) : <Empty description="Chưa có dữ liệu" />}
+            </Card>
+        );
+    };
+
+    // === REPORT 5: LOST DEAL ANALYSIS ===
+    const LostDealAnalysis = () => {
+        const lostReasons = data?.lostReasons || [];
+
+        const pieData = lostReasons.map((d: any) => ({
+            type: d.sourceLabel,
+            value: d.lostCount,
+        }));
+
+        const columns = [
+            { title: 'Nguồn Lead', dataIndex: 'sourceLabel', key: 'source', render: (v: string) => <b>{v}</b> },
+            { title: 'Số deal mất', dataIndex: 'lostCount', key: 'lostCount', align: 'center' as const, render: (v: number) => <Tag color="red">{v}</Tag> },
+            { title: 'Tổng giá trị mất', dataIndex: 'lostValue', key: 'lostValue', align: 'right' as const, render: (v: number) => <span style={{ color: '#ef4444', fontWeight: 600 }}>{fmtVND(v)}</span> },
+            { title: 'Tổng Lead', dataIndex: 'totalLeads', key: 'totalLeads', align: 'center' as const },
+            { title: 'Tỷ lệ mất', dataIndex: 'lostRate', key: 'lostRate', align: 'center' as const, render: (v: number) => <span style={{ fontWeight: 600, color: v >= 50 ? '#ef4444' : v >= 30 ? '#f59e0b' : '#10b981' }}>{v}%</span> },
+        ];
+
+        return (
+            <Card
+                title={<span><FallOutlined style={{ color: '#ef4444' }} /> Báo cáo 5: Phân tích Deal Thất bại</span>}
+                bordered={false}
+                style={{ borderRadius: 16, marginBottom: 24 }}
+            >
+                {lostReasons.length > 0 ? (
+                    <Row gutter={24}>
+                        <Col xs={24} md={10}>
+                            <Pie
+                                data={pieData}
+                                angleField="value"
+                                colorField="type"
+                                radius={0.85}
+                                innerRadius={0.55}
+                                height={250}
+                                label={{ text: 'type', position: 'outside', style: { fontSize: 11 } }}
+                                legend={false}
+                                color={['#ef4444', '#f97316', '#eab308', '#6366f1', '#ec4899', '#8b5cf6']}
+                            />
+                            <div style={{ textAlign: 'center', marginTop: 8 }}>
+                                <Statistic
+                                    title="Tổng giá trị mất"
+                                    value={lostReasons.reduce((s: number, r: any) => s + r.lostValue, 0)}
+                                    formatter={(v) => <span style={{ color: '#ef4444' }}>{fmtVND(Number(v))}</span>}
+                                />
+                            </div>
+                        </Col>
+                        <Col xs={24} md={14}>
+                            <Table dataSource={lostReasons} columns={columns} rowKey="source" pagination={false} size="small" scroll={{ x: isMobile ? 500 : undefined }} />
+                        </Col>
+                    </Row>
+                ) : <Empty description="Không có deal thất bại trong kỳ" />}
+            </Card>
+        );
+    };
+
+    // === REPORT 6: TOP PRODUCTS ===
+    const TopProducts = () => {
+        const topProducts = data?.topProducts || [];
+
+        const columns = [
+            { title: '#', key: 'rank', width: 40, render: (_: any, __: any, idx: number) => <span style={{ fontWeight: 700, color: idx < 3 ? '#f59e0b' : '#888' }}>{idx + 1}</span> },
+            { title: 'Mã SP (SKU)', dataIndex: 'sku', key: 'sku', render: (v: string) => <b>{v}</b> },
+            { title: 'SL bán', dataIndex: 'totalQuantity', key: 'totalQuantity', align: 'center' as const, render: (v: number) => v.toLocaleString('vi-VN') },
+            { title: 'Doanh thu', dataIndex: 'totalRevenue', key: 'totalRevenue', align: 'right' as const, render: (v: number) => <span style={{ fontWeight: 600, color: '#059669' }}>{fmtVND(v)}</span> },
+            { title: isMobile ? 'Đơn' : 'Số đơn hàng', dataIndex: 'orderCount', key: 'orderCount', align: 'center' as const },
+        ];
+
+        return (
+            <Card
+                title={<span><CrownOutlined style={{ color: '#f59e0b' }} /> Báo cáo 6: Top Sản Phẩm Bán Chạy</span>}
+                bordered={false}
+                style={{ borderRadius: 16, marginBottom: 24 }}
+            >
+                {topProducts.length > 0 ? (
+                    <Table dataSource={topProducts} columns={columns} rowKey="sku" pagination={false} size="small" scroll={{ x: isMobile ? 450 : undefined }} />
+                ) : <Empty description="Chưa có dữ liệu sản phẩm" />}
+            </Card>
+        );
+    };
+
+    // === REPORT 7: HIGH-VALUE LEADS TO WIN ===
+    const HighValueLeads = () => {
+        const leads = data?.highValueLeads || [];
+
+        const priorityConfig: Record<string, { color: string; label: string }> = {
+            HOT: { color: '#ef4444', label: '🔥 HOT' },
+            WARM: { color: '#f59e0b', label: '⚡ WARM' },
+            NORMAL: { color: '#64748b', label: '💎 NORMAL' },
+        };
+
+        const columns = [
+            {
+                title: '', key: 'priority', width: 70,
+                render: (_: any, r: any) => {
+                    const p = priorityConfig[r.priority] || priorityConfig.NORMAL;
+                    return <Tag color={r.priority === 'HOT' ? 'red' : r.priority === 'WARM' ? 'orange' : 'default'} style={{ fontWeight: 700 }}>{p.label}</Tag>;
+                },
+            },
+            {
+                title: 'Khách hàng', dataIndex: 'name', key: 'name',
+                render: (v: string, r: any) => <div><b>{v}</b><div style={{ fontSize: 11, color: '#888' }}>{r.phone} • {r.sourceLabel}</div></div>,
+            },
+            {
+                title: 'Trạng thái', dataIndex: 'status', key: 'status',
+                render: (v: string) => <Tag color={v === 'NEGOTIATION' ? 'orange' : v === 'QUALIFIED' ? 'blue' : v === 'SAMPLE_APPROVED' ? 'purple' : 'default'}>{statusLabel[v] || v}</Tag>,
+            },
+            {
+                title: 'Giá trị tiềm năng', dataIndex: 'potentialValue', key: 'potentialValue',
+                align: 'right' as const,
+                render: (v: number) => <span style={{ fontWeight: 700, color: '#059669', fontSize: 14 }}>{fmtVND(v)}</span>,
+                sorter: (a: any, b: any) => a.potentialValue - b.potentialValue,
+                defaultSortOrder: 'descend' as const,
+            },
+            {
+                title: isMobile ? 'GT W.' : 'Giá trị Weighted', dataIndex: 'weightedValue', key: 'weightedValue',
+                align: 'right' as const,
+                render: (v: number) => <span style={{ color: '#3b82f6' }}>{fmtVND(v)}</span>,
+            },
+            {
+                title: 'Phụ trách', dataIndex: 'assignedTo', key: 'assignedTo',
+                width: 100,
+            },
+            {
+                title: isMobile ? 'Ngày' : 'Ngày chưa action', dataIndex: 'daysSinceLastAction', key: 'days',
+                align: 'center' as const,
+                render: (v: number) => <span style={{ fontWeight: 600, color: v > 7 ? '#ef4444' : v > 3 ? '#f59e0b' : '#10b981' }}>{v} ngày</span>,
+            },
+        ];
+
+        const totalPotential = leads.reduce((s: number, l: any) => s + l.potentialValue, 0);
+        const totalWeighted = leads.reduce((s: number, l: any) => s + l.weightedValue, 0);
+        const hotCount = leads.filter((l: any) => l.priority === 'HOT').length;
+
+        return (
+            <Card
+                title={<span><StarOutlined style={{ color: '#f59e0b' }} /> Báo cáo 7: Leads Giá trị cao cần Win</span>}
+                bordered={false}
+                style={{ borderRadius: 16, marginBottom: 24, border: '2px solid #fef3c7' }}
+                extra={
+                    <Space>
+                        {hotCount > 0 && <Tag color="red" style={{ fontWeight: 600 }}>🔥 {hotCount} HOT</Tag>}
+                        <span style={{ fontSize: 12, color: '#888' }}>Top {leads.length} leads</span>
+                    </Space>
+                }
+            >
+                {/* SUMMARY ROW */}
+                <Row gutter={16} style={{ marginBottom: 16 }}>
+                    <Col xs={8}>
+                        <Card bordered={false} style={{ background: '#f0fdf4', borderRadius: 12, textAlign: 'center' }}>
+                            <Statistic title="Tổng giá trị tiềm năng" value={totalPotential} formatter={(v) => <span style={{ color: '#059669', fontSize: 16 }}>{fmtVND(Number(v))}</span>} />
+                        </Card>
+                    </Col>
+                    <Col xs={8}>
+                        <Card bordered={false} style={{ background: '#eff6ff', borderRadius: 12, textAlign: 'center' }}>
+                            <Statistic title="Giá trị Weighted" value={totalWeighted} formatter={(v) => <span style={{ color: '#3b82f6', fontSize: 16 }}>{fmtVND(Number(v))}</span>} />
+                        </Card>
+                    </Col>
+                    <Col xs={8}>
+                        <Card bordered={false} style={{ background: '#fef2f2', borderRadius: 12, textAlign: 'center' }}>
+                            <Statistic title="Leads cần focus" value={leads.length} valueStyle={{ color: '#ef4444', fontWeight: 700, fontSize: 24 }} />
+                        </Card>
+                    </Col>
+                </Row>
+
+                {leads.length > 0 ? (
+                    <Table
+                        dataSource={leads}
+                        columns={columns}
+                        rowKey="id"
+                        pagination={false}
+                        size="small"
+                        scroll={{ x: isMobile ? 700 : undefined }}
+                        onRow={(r: any) => ({
+                            style: {
+                                background: r.priority === 'HOT' ? '#fef2f2' : r.priority === 'WARM' ? '#fffbeb' : 'transparent',
+                            }
+                        })}
+                    />
+                ) : <Empty description="Không có leads giá trị cao" />}
             </Card>
         );
     };
@@ -375,10 +568,13 @@ const SalesStrategyDashboard: React.FC = () => {
 
             <Spin spinning={loading}>
                 <KpiCards />
+                <HighValueLeads />
                 <LeadSourceFunnel />
                 <VelocityAlerts />
                 <KpiScorecard />
                 <RevenueForecast />
+                <LostDealAnalysis />
+                <TopProducts />
             </Spin>
         </div>
     );
