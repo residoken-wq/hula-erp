@@ -61,6 +61,7 @@ export class PublicController {
             'site_name', 'site_description', 'logo_url', 'favicon_url', 'contact_phone', 'contact_email', 'contact_address',
             'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url',
             // Page Banners
+            'banner_shop_title', 'banner_shop_desc', 'banner_shop_image',
             'banner_projects_title', 'banner_projects_desc', 'banner_projects_image',
             'banner_b2b_title', 'banner_b2b_desc', 'banner_b2b_image',
             'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
@@ -73,6 +74,8 @@ export class PublicController {
             'section_hero_text', 'section_hero_usp_text',
             'section_categories_text', 'section_about_text', 'section_journey_text',
             'section_projects_text', 'section_partners_text', 'section_testimonials_text', 'section_blog_text',
+            // Missing configurations
+            'product_tags_config', 'hidden_pages'
         ];
         const configs = await this.configRepo.find({
             where: { key: In(cmsKeys) }
@@ -107,7 +110,13 @@ export class PublicController {
             zalo_url: result.zalo_url || '',
             google_maps_url: result.google_maps_url || '',
             facebook_page_url: result.facebook_page_url || '',
+            // Options
+            product_tags_config: result.product_tags_config || '',
+            hidden_pages: result.hidden_pages || '',
             // Page Banners
+            banner_shop_title: result.banner_shop_title || '',
+            banner_shop_desc: result.banner_shop_desc || '',
+            banner_shop_image: result.banner_shop_image || '',
             banner_projects_title: result.banner_projects_title || '',
             banner_projects_desc: result.banner_projects_desc || '',
             banner_projects_image: result.banner_projects_image || '',
