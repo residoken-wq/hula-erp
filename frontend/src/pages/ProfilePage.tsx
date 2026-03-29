@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Card, Tabs, Row, Col, Button, Table, Tag, Statistic, Space, Empty,
-    Form, Input, DatePicker, message, Divider, Timeline, Descriptions, Avatar
+    Form, Input, DatePicker, message, Divider, Timeline, Descriptions, Avatar, InputNumber, Checkbox
 } from 'antd';
 import {
     UserOutlined, ClockCircleOutlined, CalendarOutlined, DollarOutlined,
@@ -26,6 +26,8 @@ const ProfilePage: React.FC = () => {
     const [assets, setAssets] = useState<any[]>([]);
     const [leaveForm] = Form.useForm();
     const [viewPayslip, setViewPayslip] = useState<any>(null);
+    const [isHalfDay, setIsHalfDay] = useState(false);
+    const [computedDays, setComputedDays] = useState<number>(1);
 
     useEffect(() => {
         const userStr = localStorage.getItem('user');
@@ -115,9 +117,12 @@ const ProfilePage: React.FC = () => {
                 start_date: values.start_date.format('YYYY-MM-DD'),
                 end_date: values.end_date.format('YYYY-MM-DD'),
                 reason: values.reason,
+                days: Number(values.days || computedDays),
             });
             message.success('Đã gửi đơn nghỉ phép');
             leaveForm.resetFields();
+            setIsHalfDay(false);
+            setComputedDays(1);
             loadEmployeeData(currentUser.id);
         } catch (e) { message.error('Lỗi gửi đơn'); }
     };
@@ -457,6 +462,16 @@ const ProfilePage: React.FC = () => {
                                                         style={{ width: '100%', borderRadius: 8 }}
                                                         format="DD/MM/YYYY"
                                                         placeholder="Chọn ngày"
+                                                        onChange={(d) => {
+                                                            const start = d;
+                                                            const end = leaveForm.getFieldValue('end_date');
+                                                            if (start && end) {
+                                                                const fullDays = end.diff(start, 'day') + 1;
+                                                                const days = isHalfDay ? Math.max(0.5, fullDays - 0.5) : fullDays;
+                                                                setComputedDays(days);
+                                                                leaveForm.setFieldValue('days', days);
+                                                            }
+                                                        }}
                                                     />
                                                 </Form.Item>
                                             </Col>
@@ -466,6 +481,50 @@ const ProfilePage: React.FC = () => {
                                                         style={{ width: '100%', borderRadius: 8 }}
                                                         format="DD/MM/YYYY"
                                                         placeholder="Chọn ngày"
+                                                        onChange={(d) => {
+                                                            const start = leaveForm.getFieldValue('start_date');
+                                                            const end = d;
+                                                            if (start && end) {
+                                                                const fullDays = end.diff(start, 'day') + 1;
+                                                                const days = isHalfDay ? Math.max(0.5, fullDays - 0.5) : fullDays;
+                                                                setComputedDays(days);
+                                                                leaveForm.setFieldValue('days', days);
+                                                            }
+                                                        }}
+                                                    />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+                                        <Row gutter={16} align="middle">
+                                            <Col span={12}>
+                                                <Form.Item style={{ marginBottom: 8 }}>
+                                                    <Checkbox
+                                                        checked={isHalfDay}
+                                                        onChange={(e) => {
+                                                            const checked = e.target.checked;
+                                                            setIsHalfDay(checked);
+                                                            const start = leaveForm.getFieldValue('start_date');
+                                                            const end = leaveForm.getFieldValue('end_date');
+                                                            if (start && end) {
+                                                                const fullDays = end.diff(start, 'day') + 1;
+                                                                const days = checked ? Math.max(0.5, fullDays - 0.5) : fullDays;
+                                                                setComputedDays(days);
+                                                                leaveForm.setFieldValue('days', days);
+                                                            }
+                                                        }}
+                                                    >
+                                                        Nghỉ nửa ngày (0.5)
+                                                    </Checkbox>
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={12}>
+                                                <Form.Item name="days" label={<span style={{ fontWeight: 500 }}>Số ngày nghỉ</span>} style={{ marginBottom: 8 }}>
+                                                    <InputNumber
+                                                        min={0.5}
+                                                        step={0.5}
+                                                        precision={1}
+                                                        style={{ width: '100%', borderRadius: 8 }}
+                                                        addonAfter="ngày"
                                                     />
                                                 </Form.Item>
                                             </Col>

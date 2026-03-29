@@ -50,7 +50,7 @@ export const TwoColumnBlock = ({ data }: { data: any }) => {
         <section className="container mx-auto px-4 py-16">
             <div className={`flex flex-col md:flex-row items-center gap-12 ${isImageLeft ? 'md:flex-row-reverse' : ''}`}>
                 <div className="flex-1 w-full space-y-6">
-                    {data.title && <h2 className="text-3xl md:text-4xl font-bold text-[#2C3E50] leading-tight">{data.title}</h2>}
+                    {data.title && <h2 className="font-bold text-[#2C3E50] leading-tight">{data.title}</h2>}
                     {data.content && (
                         <div
                             className="prose prose-lg text-gray-600"
@@ -148,7 +148,7 @@ export const CallToActionBlock = ({ data }: { data: any }) => {
                 <div className="absolute bottom-0 left-0 w-96 h-96 bg-black/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
 
                 <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
-                    {data.title && <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white leading-tight">{data.title}</h2>}
+                    {data.title && <h2 className="font-bold mb-6 text-white leading-tight">{data.title}</h2>}
                     {data.description && <p className="text-xl opacity-90 mb-10 text-blue-50">{data.description}</p>}
 
                     {data.buttonText && data.buttonUrl && (
@@ -171,7 +171,7 @@ export const TeamMembersBlock = ({ data }: { data: any }) => {
     return (
         <section className="bg-white py-20">
             <div className="container mx-auto px-4">
-                {data.title && <h2 className="text-4xl font-bold text-center mb-16 text-[#2C3E50] relative inline-block left-1/2 -translate-x-1/2">
+                {data.title && <h2 className="font-bold text-center mb-16 text-[#2C3E50] relative inline-block left-1/2 -translate-x-1/2">
                     {data.title}
                     <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-24 h-1.5 bg-[#1D9ED9] rounded-full"></div>
                 </h2>}

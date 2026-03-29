@@ -78,6 +78,16 @@ const menuItems = [
         path: '/settings',
         name: 'Cài đặt',
         icon: <SettingOutlined />,
+        routes: [
+            {
+                path: '/settings',
+                name: 'Cài đặt chung',
+            },
+            {
+                path: '/settings/menu',
+                name: 'Menu & Hiển thị',
+            }
+        ]
     },
 ];
 
@@ -194,6 +204,7 @@ export default function AdminLayout({
                     path: item.path,
                     name: item.name,
                     icon: item.icon,
+                    routes: item.routes,
                 })),
             }}
             location={{ pathname }}

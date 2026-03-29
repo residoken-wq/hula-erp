@@ -18,6 +18,24 @@ const EmployeesTab: React.FC<Props> = ({ employees, users, shifts, onRefresh }) 
     const [modal, setModal] = useState(false);
     const [form] = Form.useForm();
     const [editing, setEditing] = useState<any>(null);
+    const [balances, setBalances] = useState<Record<number, number>>({});
+
+    useEffect(() => {
+        const fetchBalances = async () => {
+            const currentYear = new Date().getFullYear();
+            const newBalances: Record<number, number> = {};
+            await Promise.all(employees.map(async (emp) => {
+                try {
+                    const res = await api.get(`/hr/balance/${emp.id}?year=${currentYear}`);
+                    newBalances[emp.id] = res.data.remaining_days;
+                } catch (e) { }
+            }));
+            setBalances(newBalances);
+        };
+        if (employees && employees.length > 0) {
+            fetchBalances();
+        }
+    }, [employees]);
 
     const handleSave = async (values: any) => {
         try {
@@ -73,7 +91,8 @@ const EmployeesTab: React.FC<Props> = ({ employees, users, shifts, onRefresh }) 
         { title: 'Ngày sinh', dataIndex: 'date_of_birth', render: (d: string) => d ? dayjs(d).format('DD/MM/YYYY') : '-' },
         { title: 'Phòng ban', dataIndex: 'department' },
         { title: 'Chức vụ', dataIndex: 'position' },
-        { title: 'Lương CB', dataIndex: 'base_salary', render: (v: number) => v?.toLocaleString() + ' đ' },
+        { title: 'Lương CB', dataIndex: 'base_salary', render: (v: number) => v ? Number(v).toLocaleString('vi-VN') + ' đ' : '-' },
+        { title: 'Phép còn lại', dataIndex: 'id', render: (id: number) => balances[id] !== undefined ? <Tag color={balances[id] > 0 ? "green" : balances[id] === 0 ? "orange" : "red"}>{balances[id]} ngày</Tag> : '-' },
         { title: 'Ca', dataIndex: ['work_shift', 'name'], render: (n: string) => n || <Tag>Chưa gán</Tag> },
         { title: 'User', dataIndex: ['user', 'username'], render: (u: string) => u || <Tag>Chưa liên kết</Tag> },
         {

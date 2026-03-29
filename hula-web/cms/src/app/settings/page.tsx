@@ -574,36 +574,7 @@ export default function SettingsPage() {
                 </div>
             ),
         },
-        {
-            key: 'display_settings',
-            label: <span><EyeOutlined /> Menu & Hiển Thị</span>,
-            children: (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <Alert
-                        message="Ẩn trang trên Website"
-                        description="Chọn các trang mảng bạn muốn ẨN khỏi thanh menu điều hướng chính trên Desktop và Mobile của Hula Website. Những trang được chọn sẽ không xuất hiện trên Menu cấu hình."
-                        type="warning"
-                        showIcon
-                        style={{ marginBottom: 24 }}
-                    />
-                    <Form.Item name="hidden_pages" label="Các trang đang bị ẩn">
-                        <Select
-                            mode="multiple"
-                            placeholder="Chọn trang để ẩn..."
-                            style={{ width: '100%' }}
-                            options={[
-                                { label: 'Về Hula (/ve-hula)', value: '/ve-hula' },
-                                { label: 'Dự án (/du-an)', value: '/du-an' },
-                                { label: 'Đặt hàng B2B (/dat-hang-si)', value: '/dat-hang-si' },
-                                { label: 'Hula Shop (/san-pham)', value: '/san-pham' },
-                                { label: 'Tin Tức (/tin-tuc)', value: '/tin-tuc' },
-                                { label: 'Liên Hệ (/lien-he)', value: '/lien-he' },
-                            ]}
-                        />
-                    </Form.Item>
-                </div>
-            )
-        },
+
         {
             key: 'product_tags',
             label: <span><TagOutlined /> Tags Sản Phẩm</span>,
