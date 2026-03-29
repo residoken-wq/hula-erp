@@ -45,6 +45,7 @@ export const getProducts = async (params?: {
     limit?: number;
     page?: number;
     sort?: string;
+    tags?: string[];
 }) => {
     const { data } = await api.get('/products', { params });
     return data;

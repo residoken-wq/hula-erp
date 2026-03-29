@@ -57,6 +57,9 @@ export class Product {
   @Column('text', { nullable: true })
   processing_description: string;
 
+  @Column('jsonb', { nullable: true, default: [] })
+  tags: string[];
+
   @Column('text', { nullable: true })
   image_url: string; // Google Drive Link or Direct URL
 

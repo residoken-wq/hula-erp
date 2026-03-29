@@ -396,7 +396,8 @@ export class PublicController {
         @Query('page') page = 1,
         @Query('limit') limit = 12,
         @Query('sort') sort = 'newest', // newest, price_asc, price_desc
-        @Query('category') categoryId?: number
+        @Query('category') categoryId?: number,
+        @Query('tags') tags?: string | string[]
     ) {
         const qb = this.productRepo.createQueryBuilder('p')
             .leftJoinAndSelect('p.category_link', 'cat')
@@ -405,6 +406,14 @@ export class PublicController {
 
         if (categoryId) {
             qb.andWhere('p.category_id = :catId', { catId: categoryId });
+        }
+
+        if (tags) {
+            const tagArray = Array.isArray(tags) ? tags : [tags];
+            tagArray.forEach((tag, index) => {
+                // Postgres ? operator checks if top-level JSON array contains the scalar value
+                qb.andWhere(`p.tags ? :tag${index}`, { [`tag${index}`]: tag });
+            });
         }
 
         // Sorting

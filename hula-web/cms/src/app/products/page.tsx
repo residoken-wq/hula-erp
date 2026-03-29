@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, InputNumber, Tabs, Switch, Typography, Segmented } from 'antd';
+import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, InputNumber, Tabs, Switch, Typography, Segmented, Select } from 'antd';
 import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, MinusCircleOutlined, EyeInvisibleOutlined, AppstoreOutlined, DeleteOutlined } from '@ant-design/icons';
 
-import { productsApi } from '@/lib/api';
+import { productsApi, systemApi } from '@/lib/api';
 import { ProductVisualEditor } from './ProductVisualEditor';
 import ImageUploader from '@/components/ImageUploader';
 
@@ -92,10 +92,12 @@ interface Product {
         colors?: Array<{ name: string; code: string; image_url?: string; pillow_image_url?: string }>;
         accessories?: Array<{ name: string; price: number; image_url?: string }>;
     };
+    tags?: string[];
 }
 
 export default function ProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
+    const [tagsConfig, setTagsConfig] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState('');
     const [showFilter, setShowFilter] = useState<'all' | 'visible' | 'hidden'>('all');
@@ -108,6 +110,17 @@ export default function ProductsPage() {
             const res = await productsApi.getAll();
             const data = res.data;
             setProducts(Array.isArray(data) ? data : []);
+
+            try {
+                const configRes = await systemApi.getConfig('product_tags_config');
+                if (configRes.data && configRes.data.value) {
+                    let parsed = configRes.data.value;
+                    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+                    setTagsConfig(Array.isArray(parsed) ? parsed : []);
+                }
+            } catch (e) {
+                console.error("Failed to load tags config", e);
+            }
         } catch (error) {
             message.error('Không thể tải danh sách sản phẩm');
             setProducts([]);
@@ -136,6 +149,7 @@ export default function ProductsPage() {
                 website_display_name: product.website_display_name || '',
                 image_url: parsedImg,
                 customer_description: product.customer_description,
+                tags: product.tags || [],
                 customization_config: config
             });
             setEditModal(true);
@@ -150,6 +164,7 @@ export default function ProductsPage() {
                 website_display_name: product.website_display_name || '',
                 image_url: parsedImg,
                 customer_description: product.customer_description,
+                tags: product.tags || [],
                 customization_config: { colors: [], accessories: [], allow_logo: false, gallery_images: [] }
             });
             setEditModal(true);
@@ -161,11 +176,12 @@ export default function ProductsPage() {
         try {
             const values = await form.validateFields();
 
-            // 1. Save Core Product Info (Image/Desc)
+            // 1. Save Core Product Info (Image/Desc/Tags)
             await productsApi.update(editingProduct.id, {
                 website_display_name: values.website_display_name || null,
                 image_url: values.image_url,
-                customer_description: values.customer_description
+                customer_description: values.customer_description,
+                tags: values.tags || []
             });
 
             // 2. Save Separate Website Config
@@ -405,6 +421,25 @@ export default function ProductsPage() {
                                     <Form.Item name="customer_description" label="Mô tả cho khách hàng">
                                         <Input.TextArea rows={5} placeholder="Mô tả chi tiết sản phẩm hiển thị trên website..." />
                                     </Form.Item>
+
+                                    {tagsConfig && tagsConfig.length > 0 && (
+                                        <div style={{ marginBottom: 16, padding: 16, background: '#fafafa', border: '1px solid #eee', borderRadius: 8 }}>
+                                            <p style={{ fontWeight: 500, margin: '0 0 12px 0' }}>🏷️ Phân loại Tags</p>
+                                            <Form.Item name="tags" noStyle>
+                                                <Select
+                                                    mode="multiple"
+                                                    style={{ width: '100%' }}
+                                                    placeholder="Chọn tags cho sản phẩm"
+                                                    options={tagsConfig.flatMap(group => 
+                                                        (group.tags || []).map((tag: string) => ({
+                                                            label: `${group.group} - ${tag}`,
+                                                            value: `${group.group}:${tag}`
+                                                        }))
+                                                    )}
+                                                />
+                                            </Form.Item>
+                                        </div>
+                                    )}
                                 </>
                             ),
                         },

@@ -8,12 +8,16 @@ export const dynamic = 'force-dynamic';
 export default async function ProductsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ category?: string; sort?: string; page?: string }>;
+    searchParams: Promise<{ category?: string; sort?: string; page?: string; tags?: string | string[] }>;
 }) {
     const resolvedParams = await searchParams;
     const categoryId = resolvedParams.category ? Number(resolvedParams.category) : undefined;
     const sort = resolvedParams.sort || 'newest';
     const page = Number(resolvedParams.page) || 1;
+    let selectedTags: string[] = [];
+    if (resolvedParams.tags) {
+        selectedTags = Array.isArray(resolvedParams.tags) ? resolvedParams.tags : [resolvedParams.tags];
+    }
 
     // Fetch data in parallel with error handling
     let products: any[] = [];
@@ -23,7 +27,7 @@ export default async function ProductsPage({
 
     try {
         const [productsRes, categoriesRes, settingsRes] = await Promise.all([
-            getProducts({ limit: 12, page, sort, category: categoryId?.toString() }).catch(() => ({ data: [], meta: {} })),
+            getProducts({ limit: 12, page, sort, category: categoryId?.toString(), tags: selectedTags }).catch(() => ({ data: [], meta: {} })),
             getCategories().catch(() => []),
             getSettings().catch(() => ({}))
         ]);
@@ -36,6 +40,23 @@ export default async function ProductsPage({
     } catch (error) {
         console.error('Error fetching products:', error);
     }
+
+    let tagsConfig: any[] = [];
+    if (settings.product_tags_config) {
+        try {
+            tagsConfig = JSON.parse(settings.product_tags_config);
+        } catch (e) { }
+    }
+
+    const buildTagUrl = (tagValue: string) => {
+        let newTags = [...selectedTags];
+        if (newTags.includes(tagValue)) {
+            newTags = newTags.filter(t => t !== tagValue);
+        } else {
+            newTags.push(tagValue);
+        }
+        return { query: { ...resolvedParams, tags: newTags, page: 1 } };
+    };
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -54,7 +75,7 @@ export default async function ProductsPage({
                             <ul className="space-y-2">
                                 <li>
                                     <Link
-                                        href="/san-pham"
+                                        href={`/san-pham`}
                                         className={`block w-full text-left px-3 py-2 rounded-lg font-medium transition-colors ${!categoryId ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50'}`}
                                     >
                                         Tất cả sản phẩm
@@ -72,16 +93,37 @@ export default async function ProductsPage({
                                 ))}
                             </ul>
 
-                            {/* Simple Price Filter (Placeholder for now as backend needs update to support range) */}
-                            <div className="mt-6 pt-6 border-t border-gray-100 opacity-50 pointer-events-none">
-                                <h3 className="font-semibold text-gray-900 mb-4">Khoảng giá</h3>
-                                <div className="space-y-2">
-                                    <label className="flex items-center cursor-pointer">
-                                        <input type="radio" name="price" className="w-4 h-4 text-primary-600" defaultChecked />
-                                        <span className="ml-2 text-gray-600">Tất cả</span>
-                                    </label>
+                            {/* Tags Filters */}
+                            {tagsConfig && tagsConfig.length > 0 && (
+                                <div className="mt-6 pt-6 border-t border-gray-100">
+                                    {tagsConfig.map((groupConfig: any, index: number) => (
+                                        <div key={index} className="mb-6 last:mb-0">
+                                            <h3 className="font-semibold text-gray-900 mb-3">{groupConfig.group}</h3>
+                                            <ul className="space-y-2">
+                                                {(groupConfig.tags || []).map((tag: string) => {
+                                                    const tagValue = `${groupConfig.group}:${tag}`;
+                                                    const isActive = selectedTags.includes(tagValue);
+                                                    return (
+                                                        <li key={tag}>
+                                                            <Link href={buildTagUrl(tagValue)} className="flex items-center cursor-pointer group">
+                                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isActive ? 'bg-primary-600 border-primary-600' : 'border-gray-300 group-hover:border-primary-500'}`}>
+                                                                    {isActive && (
+                                                                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                        </svg>
+                                                                    )}
+                                                                </div>
+                                                                <span className={`ml-2 text-sm ${isActive ? 'font-medium text-gray-900' : 'text-gray-600 group-hover:text-gray-900'}`}>{tag}</span>
+                                                            </Link>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
+                            )}
+
                         </div>
                     </aside>
 

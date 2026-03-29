@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Form, Input, Button, Space, message, Divider, Switch, Tabs, Radio, Alert, Spin, ColorPicker, Row, Col } from 'antd';
-import { SaveOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined, BgColorsOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Space, message, Divider, Switch, Tabs, Radio, Alert, Spin, ColorPicker, Row, Col, Select } from 'antd';
+import { SaveOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined, BgColorsOutlined, TagOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { systemApi } from '@/lib/api';
 import ImageUploader from '@/components/ImageUploader';
 
@@ -36,9 +36,10 @@ export default function SettingsPage() {
                     'banner_b2b_title', 'banner_b2b_desc', 'banner_b2b_image',
                     'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
                     'banner_news_title', 'banner_news_desc', 'banner_news_image',
-                    'banner_shop_title', 'banner_shop_desc', 'banner_shop_image'
+                    'banner_shop_title', 'banner_shop_desc', 'banner_shop_image',
+                    'product_tags_config'
                 ];
-                const configValues: Record<string, string> = {};
+                const configValues: Record<string, any> = {};
 
                 for (const key of configKeys) {
                     try {
@@ -54,7 +55,17 @@ export default function SettingsPage() {
                             } else if (val === '[object Object]') {
                                 val = '';
                             }
-                            configValues[key] = val;
+
+                            // Special handling for JSON fields
+                            if (key === 'product_tags_config') {
+                                try {
+                                    configValues[key] = JSON.parse(val);
+                                } catch (e) {
+                                    configValues[key] = [];
+                                }
+                            } else {
+                                configValues[key] = val;
+                            }
                         }
                     } catch (e) {
                         // Key doesn't exist yet, use default
@@ -104,12 +115,17 @@ export default function SettingsPage() {
                 'banner_b2b_title', 'banner_b2b_desc', 'banner_b2b_image',
                 'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
                 'banner_news_title', 'banner_news_desc', 'banner_news_image',
-                'banner_shop_title', 'banner_shop_desc', 'banner_shop_image'
+                'banner_shop_title', 'banner_shop_desc', 'banner_shop_image',
+                'product_tags_config'
             ];
 
             for (const key of configKeys) {
                 if (values[key] !== undefined) {
-                    await systemApi.setConfig(key, values[key] || '', `Website ${key}`);
+                    let valToSave = values[key];
+                    if (key === 'product_tags_config') {
+                        valToSave = JSON.stringify(valToSave || []);
+                    }
+                    await systemApi.setConfig(key, valToSave || '', `Website ${key}`);
                 }
             }
 
@@ -557,6 +573,63 @@ export default function SettingsPage() {
                     </Form.Item>
                 </div>
             ),
+        },
+        {
+            key: 'product_tags',
+            label: <span><TagOutlined /> Tags Sản Phẩm</span>,
+            children: (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <Alert
+                        message="Quản lý Tag (2 cấp)"
+                        description="Hệ thống lọc sản phẩm trên Hula Shop sẽ dựa vào các Nhóm Tag này. Nhập tên Nhóm (vd: Phân loại, Độ tuổi) và các Tag con tương ứng."
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 24 }}
+                    />
+                    
+                    <Form.List name="product_tags_config">
+                        {(fields, { add, remove }) => (
+                            <>
+                                {fields.map(({ key, name, ...restField }) => (
+                                    <div key={key} style={{ display: 'flex', gap: 16, marginBottom: 16, alignItems: 'flex-start', background: '#fafafa', padding: 16, borderRadius: 8, border: '1px solid #d9d9d9' }}>
+                                        <div style={{ flex: 1, display: 'flex', gap: 16 }}>
+                                            <Form.Item
+                                                {...restField}
+                                                name={[name, 'group']}
+                                                rules={[{ required: true, message: 'Nhập tên nhóm' }]}
+                                                style={{ marginBottom: 0, width: '30%' }}
+                                                label="Nhóm Tag"
+                                            >
+                                                <Input placeholder="Vd: Độ tuổi" />
+                                            </Form.Item>
+                                            <Form.Item
+                                                {...restField}
+                                                name={[name, 'tags']}
+                                                rules={[{ required: true, message: 'Nhập ít nhất 1 tag' }]}
+                                                style={{ marginBottom: 0, width: '70%' }}
+                                                label="Các Tag thuộc nhóm"
+                                            >
+                                                <Select 
+                                                    mode="tags" 
+                                                    style={{ width: '100%' }} 
+                                                    placeholder="Gõ tên tag và nhấn Enter (Vd: Mầm non, Tiểu học)"
+                                                    tokenSeparators={[',']} 
+                                                />
+                                            </Form.Item>
+                                        </div>
+                                        <MinusCircleOutlined onClick={() => remove(name)} style={{ marginTop: 36, color: '#ff4d4f', fontSize: 18, cursor: 'pointer' }} />
+                                    </div>
+                                ))}
+                                <Form.Item>
+                                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                        Thêm Nhóm Tag mới
+                                    </Button>
+                                </Form.Item>
+                            </>
+                        )}
+                    </Form.List>
+                </div>
+            )
         },
         {
             key: 'notification',
