@@ -31,6 +31,13 @@ export default function Header() {
         return () => { document.body.style.overflow = ''; };
     }, [isMenuOpen]);
 
+    let hiddenPages: string[] = [];
+    try {
+        if (settings.hidden_pages) {
+            hiddenPages = JSON.parse(settings.hidden_pages);
+        }
+    } catch (e) {}
+
     const navLinks = [
         { href: '/', label: 'Trang chủ' },
         { href: '/ve-hula', label: 'Về Hula' },
@@ -39,7 +46,7 @@ export default function Header() {
         { href: '/san-pham', label: 'Hula Shop' },
         { href: '/tin-tuc', label: 'Blog tư vấn' },
         { href: '/lien-he', label: 'Liên hệ' },
-    ];
+    ].filter(link => !hiddenPages.includes(link.href));
 
     const logoUrl = resolveImageUrl(settings.logo_url);
 

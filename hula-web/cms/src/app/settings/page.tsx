@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, Form, Input, Button, Space, message, Divider, Switch, Tabs, Radio, Alert, Spin, ColorPicker, Row, Col, Select } from 'antd';
-import { SaveOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined, BgColorsOutlined, TagOutlined, PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { SaveOutlined, GlobalOutlined, ToolOutlined, ClockCircleOutlined, BgColorsOutlined, TagOutlined, PlusOutlined, MinusCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import { systemApi } from '@/lib/api';
 import ImageUploader from '@/components/ImageUploader';
 
@@ -37,7 +37,7 @@ export default function SettingsPage() {
                     'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
                     'banner_news_title', 'banner_news_desc', 'banner_news_image',
                     'banner_shop_title', 'banner_shop_desc', 'banner_shop_image',
-                    'product_tags_config'
+                    'product_tags_config', 'hidden_pages'
                 ];
                 const configValues: Record<string, any> = {};
 
@@ -57,7 +57,7 @@ export default function SettingsPage() {
                             }
 
                             // Special handling for JSON fields
-                            if (key === 'product_tags_config') {
+                            if (key === 'product_tags_config' || key === 'hidden_pages') {
                                 try {
                                     configValues[key] = JSON.parse(val);
                                 } catch (e) {
@@ -116,13 +116,13 @@ export default function SettingsPage() {
                 'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
                 'banner_news_title', 'banner_news_desc', 'banner_news_image',
                 'banner_shop_title', 'banner_shop_desc', 'banner_shop_image',
-                'product_tags_config'
+                'product_tags_config', 'hidden_pages'
             ];
 
             for (const key of configKeys) {
                 if (values[key] !== undefined) {
                     let valToSave = values[key];
-                    if (key === 'product_tags_config') {
+                    if (key === 'product_tags_config' || key === 'hidden_pages') {
                         valToSave = JSON.stringify(valToSave || []);
                     }
                     await systemApi.setConfig(key, valToSave || '', `Website ${key}`);
@@ -573,6 +573,36 @@ export default function SettingsPage() {
                     </Form.Item>
                 </div>
             ),
+        },
+        {
+            key: 'display_settings',
+            label: <span><EyeOutlined /> Menu & Hiển Thị</span>,
+            children: (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <Alert
+                        message="Ẩn trang trên Website"
+                        description="Chọn các trang mảng bạn muốn ẨN khỏi thanh menu điều hướng chính trên Desktop và Mobile của Hula Website. Những trang được chọn sẽ không xuất hiện trên Menu cấu hình."
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: 24 }}
+                    />
+                    <Form.Item name="hidden_pages" label="Các trang đang bị ẩn">
+                        <Select
+                            mode="multiple"
+                            placeholder="Chọn trang để ẩn..."
+                            style={{ width: '100%' }}
+                            options={[
+                                { label: 'Về Hula (/ve-hula)', value: '/ve-hula' },
+                                { label: 'Dự án (/du-an)', value: '/du-an' },
+                                { label: 'Đặt hàng B2B (/dat-hang-si)', value: '/dat-hang-si' },
+                                { label: 'Hula Shop (/san-pham)', value: '/san-pham' },
+                                { label: 'Tin Tức (/tin-tuc)', value: '/tin-tuc' },
+                                { label: 'Liên Hệ (/lien-he)', value: '/lien-he' },
+                            ]}
+                        />
+                    </Form.Item>
+                </div>
+            )
         },
         {
             key: 'product_tags',

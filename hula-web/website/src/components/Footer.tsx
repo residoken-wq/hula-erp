@@ -66,10 +66,17 @@ export default function Footer() {
         fetchFooterConfig();
     }, []);
 
+    let hiddenPages: string[] = [];
+    try {
+        if (settings.hidden_pages) {
+            hiddenPages = JSON.parse(settings.hidden_pages);
+        }
+    } catch (e) {}
+
     const slogan = footerConfig.footer_slogan || 'Hơn 10 năm đồng hành cùng giấc ngủ học đường. Giải pháp nệm, gối, chăn trường học toàn diện.';
     const copyright = footerConfig.footer_copyright || `© ${new Date().getFullYear()} HULA - Giải pháp nệm trường học toàn diện. Tất cả quyền được bảo lưu.`;
-    const quickLinks = (footerConfig.footer_quick_links && footerConfig.footer_quick_links.length > 0) ? footerConfig.footer_quick_links : defaultQuickLinks;
-    const productLinks = (footerConfig.footer_product_links && footerConfig.footer_product_links.length > 0) ? footerConfig.footer_product_links : defaultProductLinks;
+    const quickLinks = ((footerConfig.footer_quick_links && footerConfig.footer_quick_links.length > 0) ? footerConfig.footer_quick_links : defaultQuickLinks).filter(link => !hiddenPages.includes(link.url));
+    const productLinks = ((footerConfig.footer_product_links && footerConfig.footer_product_links.length > 0) ? footerConfig.footer_product_links : defaultProductLinks).filter(link => !hiddenPages.includes(link.url));
 
     const bgStyle = footerConfig.footer_bg && typeof footerConfig.footer_bg === 'string' ? { backgroundColor: footerConfig.footer_bg } : {};
     const textStyle = footerConfig.footer_text_color && typeof footerConfig.footer_text_color === 'string' ? { color: footerConfig.footer_text_color } : {};

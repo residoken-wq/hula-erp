@@ -33,6 +33,7 @@ interface Settings {
     section_partners_text: string;
     section_testimonials_text: string;
     section_blog_text: string;
+    hidden_pages: string;
 }
 
 interface SettingsContextType {
@@ -69,6 +70,7 @@ const defaultSettings: Settings = {
     section_partners_text: '',
     section_testimonials_text: '',
     section_blog_text: '',
+    hidden_pages: '',
 };
 
 const SettingsContext = createContext<SettingsContextType>({
@@ -127,6 +129,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         section_partners_text: data.section_partners_text || '',
                         section_testimonials_text: data.section_testimonials_text || '',
                         section_blog_text: data.section_blog_text || '',
+                        hidden_pages: data.hidden_pages || '',
                     });
                 } else {
                     console.error('Failed to fetch settings:', res.status);
