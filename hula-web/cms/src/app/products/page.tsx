@@ -275,6 +275,19 @@ export default function ProductsPage() {
             ),
         },
         {
+            title: 'Tags',
+            dataIndex: 'tags',
+            key: 'tags',
+            width: 180,
+            render: (tags: string[]) => (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {tags && tags.length > 0 ? tags.map(tag => (
+                        <Tag key={tag} color="blue" bordered={false}>{tag}</Tag>
+                    )) : <span style={{ color: '#ccc' }}>-</span>}
+                </div>
+            )
+        },
+        {
             title: 'Tồn kho',
             dataIndex: 'quantity_in_stock',
             key: 'quantity_in_stock',
