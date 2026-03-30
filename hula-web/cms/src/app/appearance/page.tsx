@@ -155,7 +155,7 @@ export default function AppearancePage() {
     const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
 
     // --- NEW: Featured Projects ---
-    const [projectOptions, setProjectOptions] = useState<{label: string, value: number}[]>([]);
+    const [projectOptions, setProjectOptions] = useState<{ label: string, value: number }[]>([]);
 
     // --- Nguồn Blog ---
     const [blogOptions, setBlogOptions] = useState<{ label: string, value: string }[]>([]);
@@ -253,7 +253,7 @@ export default function AppearancePage() {
                         blogsApi.getAll(),
                         websiteProjectsApi.getAll({ limit: 100 })
                     ]);
-                    
+
                     if (blogsRes.data) {
                         const bData = Array.isArray(blogsRes.data) ? blogsRes.data : blogsRes.data.data;
                         if (Array.isArray(bData)) {
@@ -755,20 +755,20 @@ export default function AppearancePage() {
                                     </>
                                 )}
                             </Form.List>
+                            <Divider orientation="left">Dự án nổi bật (liên kết: /du-an)</Divider>
+                            <Alert message="Dự án có Độ ưu tiên cao nhất sẽ có hình ảnh hiển thị lớn nhất." type="info" showIcon style={{ marginBottom: 16 }} />
+                            <Form.Item name="selected_project_ids" rules={[{ required: true, message: 'Vui lòng chọn ít nhất 1 dự án' }]}>
+                                <Select
+                                    mode="multiple"
+                                    placeholder="Khám phá và chọn dự án..."
+                                    options={projectOptions}
+                                    maxCount={12}
+                                    optionFilterProp="label"
+                                    style={{ width: '100%' }}
+                                    size="large"
+                                />
+                            </Form.Item>
                         </Form>
-                        <Divider orientation="left">Dự án nổi bật (liên kết: /du-an)</Divider>
-                        <Alert message="Dự án có Độ ưu tiên cao nhất sẽ có hình ảnh hiển thị lớn nhất." type="info" showIcon style={{ marginBottom: 16 }} />
-                        <Form.Item name="selected_project_ids" rules={[{ required: true, message: 'Vui lòng chọn ít nhất 1 dự án' }]}>
-                            <Select
-                                mode="multiple"
-                                placeholder="Khám phá và chọn dự án..."
-                                options={projectOptions}
-                                maxCount={12}
-                                optionFilterProp="label"
-                                style={{ width: '100%' }}
-                                size="large"
-                            />
-                        </Form.Item>
                     </>
                 );
 
@@ -1238,7 +1238,7 @@ export default function AppearancePage() {
                 placement="right"
                 onClose={() => { setDrawerOpen(false); setActiveSection(null); }}
                 open={drawerOpen}
-                width={Math.min(480, typeof window !== 'undefined' ? window.innerWidth : 480)}
+                width={Math.min(1080, typeof window !== 'undefined' ? window.innerWidth : 1080)}
                 footer={
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                         <Button onClick={() => { setDrawerOpen(false); setActiveSection(null); }}>
