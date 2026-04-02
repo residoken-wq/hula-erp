@@ -15,6 +15,7 @@ interface Product {
     id: number;
     sku: string;
     name: string;
+    website_display_name?: string;
     base_price: number;
     image_url?: string;
     category?: string;
@@ -148,12 +149,38 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                                 <p className="text-center text-xs text-gray-500 mt-2">🔄 Xoay để xem 360° | 📱 Nhấn AR để xem trong không gian thực</p>
                             </div>
                         ) : mainImage ? (
-                            <div className="w-full flex flex-col gap-4">
-                                <img
-                                    src={resolveImageUrl(mainImage)}
-                                    alt={product.name}
-                                    className="max-w-full h-auto rounded-lg shadow-md"
-                                />
+                            <div className="w-full flex flex-col gap-4 relative">
+                                <div className="relative w-full aspect-square rounded-lg shadow-md overflow-hidden bg-white">
+                                    <img
+                                        src={resolveImageUrl(mainImage)}
+                                        alt={product.website_display_name || product.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    {allImages.length > 1 && (
+                                        <>
+                                            <button
+                                                onClick={() => {
+                                                    const currentIndex = allImages.findIndex(img => img === mainImage);
+                                                    const prevIndex = (currentIndex - 1 + allImages.length) % allImages.length;
+                                                    setMainImage(allImages[prevIndex]);
+                                                }}
+                                                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-lg transition-all z-10"
+                                            >
+                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    const currentIndex = allImages.findIndex(img => img === mainImage);
+                                                    const nextIndex = (currentIndex + 1) % allImages.length;
+                                                    setMainImage(allImages[nextIndex]);
+                                                }}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white text-gray-800 rounded-full flex items-center justify-center shadow-lg transition-all z-10"
+                                            >
+                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                                 {allImages.length > 1 && (
                                     <div className="flex gap-3 overflow-x-auto py-2 px-1 scrollbar-hide">
                                         {allImages.map((img, idx) => (
@@ -177,7 +204,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
                     {/* Right: Info & Config */}
                     <div className="p-8 lg:pr-12">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.website_display_name || product.name}</h1>
                         <p className="text-sm text-gray-500 mb-6">SKU: {product.sku}</p>
 
                         <div className="text-3xl font-bold text-primary-600 mb-8">
@@ -352,9 +379,11 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
                         <div className="mt-8 prose prose-sm text-gray-600">
                             <h3 className="text-gray-900">Mô tả sản phẩm</h3>
-                            <p className="whitespace-pre-line">
-                                {product.customer_description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
-                            </p>
+                            {product.customer_description ? (
+                                <div className="ck-content" dangerouslySetInnerHTML={{ __html: product.customer_description }} />
+                            ) : (
+                                <p className="whitespace-pre-line">Chưa có mô tả chi tiết cho sản phẩm này.</p>
+                            )}
                         </div>
 
                     </div>

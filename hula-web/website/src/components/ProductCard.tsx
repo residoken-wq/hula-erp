@@ -8,6 +8,7 @@ interface Product {
     id: number;
     sku: string;
     name: string;
+    website_display_name?: string;
     base_price?: number;  // From product detail API
     price?: number;       // From product list API
     image_url?: string;
@@ -59,7 +60,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 {imageUrl ? (
                     <img
                         src={imageUrl}
-                        alt={product.name}
+                        alt={product.website_display_name || product.name}
                         className="w-full h-full object-cover"
                     />
                 ) : (
@@ -87,7 +88,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <div className="p-4">
                 <Link href={`/san-pham/${product.sku}`}>
                     <h3 className="font-semibold text-gray-900 text-sm sm:text-base line-clamp-2 leading-tight min-h-[2.5rem] group-hover:text-accent transition-colors">
-                        {product.name}
+                        {product.website_display_name || product.name}
                     </h3>
                 </Link>
 

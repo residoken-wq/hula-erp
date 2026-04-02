@@ -8,6 +8,7 @@ import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, 
 import { productsApi, systemApi } from '@/lib/api';
 import { ProductVisualEditor } from './ProductVisualEditor';
 import ImageUploader from '@/components/ImageUploader';
+import RichEditor from '@/components/RichEditor';
 
 // Helper to convert Google Drive URLs to thumbnail URLs
 const getGoogleDriveImageUrl = (url?: string) => {
@@ -432,7 +433,7 @@ export default function ProductsPage() {
                                     </div>
                                     
                                     <Form.Item name="customer_description" label="Mô tả cho khách hàng">
-                                        <Input.TextArea rows={5} placeholder="Mô tả chi tiết sản phẩm hiển thị trên website..." />
+                                        <RichEditor placeholder="Mô tả chi tiết sản phẩm hiển thị trên website..." />
                                     </Form.Item>
 
                                     {tagsConfig && tagsConfig.length > 0 && (
