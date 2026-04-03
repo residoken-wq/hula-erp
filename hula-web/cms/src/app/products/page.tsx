@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, InputNumber, Tabs, Switch, Typography, Segmented, Select } from 'antd';
+import { Card, Table, Button, Space, Tag, Input, Image, message, Modal, Form, InputNumber, Tabs, Switch, Typography, Segmented, Select, Upload } from 'antd';
 import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, MinusCircleOutlined, EyeInvisibleOutlined, AppstoreOutlined, DeleteOutlined } from '@ant-design/icons';
 
 import { productsApi, systemApi } from '@/lib/api';
@@ -421,12 +421,65 @@ export default function ProductsPage() {
                                                         </div>
                                                     ))}
                                                     {fields.length < 10 && (
-                                                        <div style={{ width: 140, height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                            <Button type="dashed" onClick={() => add()} style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                                                <PlusOutlined style={{ fontSize: 20, marginBottom: 8 }} />
-                                                                Thêm ảnh phụ
-                                                            </Button>
-                                                        </div>
+                                                        <>
+                                                            <Upload
+                                                                multiple
+                                                                showUploadList={false}
+                                                                accept="image/*"
+                                                                beforeUpload={async (_file, fileList) => {
+                                                                    if (_file !== fileList[0]) return false;
+                                                                    try {
+                                                                        const { uploadApi } = await import('@/lib/api');
+                                                                        const hide = message.loading('Đang tải lên các hình ảnh...', 0);
+                                                                        
+                                                                        for (const f of fileList) {
+                                                                            try {
+                                                                                const res = await uploadApi.image(f as File);
+                                                                                if (res.data?.url) {
+                                                                                    add(res.data.url);
+                                                                                }
+                                                                            } catch (e) {
+                                                                                message.error(`Lỗi khi tải lên ${f.name}`);
+                                                                            }
+                                                                        }
+                                                                        hide();
+                                                                        message.success(`Đã xử lý xong tải lên.`);
+                                                                    } catch (err) {
+                                                                        message.error('Lỗi hệ thống khi tải ảnh');
+                                                                    }
+                                                                    return false;
+                                                                }}
+                                                            >
+                                                                <div 
+                                                                    style={{ 
+                                                                        width: 120, height: 120, 
+                                                                        border: '1px dashed #d9d9d9', borderRadius: 8, 
+                                                                        display: 'flex', flexDirection: 'column', 
+                                                                        alignItems: 'center', justifyContent: 'center',
+                                                                        cursor: 'pointer', background: '#fff'
+                                                                    }}
+                                                                    className="hover:border-primary-500 hover:text-primary-500 transition-colors"
+                                                                >
+                                                                    <PlusOutlined style={{ fontSize: 24, color: '#999', marginBottom: 8 }} />
+                                                                    <span style={{ fontSize: 13, color: '#666' }}>Tải lên nhiều</span>
+                                                                </div>
+                                                            </Upload>
+                                                            
+                                                            <div 
+                                                                style={{ 
+                                                                    width: 120, height: 120, 
+                                                                    border: '1px dashed #d9d9d9', borderRadius: 8, 
+                                                                    display: 'flex', flexDirection: 'column', 
+                                                                    alignItems: 'center', justifyContent: 'center',
+                                                                    cursor: 'pointer', background: '#fff'
+                                                                }}
+                                                                onClick={() => add()}
+                                                                className="hover:border-primary-500 hover:text-primary-500 transition-colors"
+                                                            >
+                                                                <PlusOutlined style={{ fontSize: 24, color: '#999', marginBottom: 8 }} />
+                                                                <span style={{ fontSize: 13, color: '#666' }}>Thêm ô trống</span>
+                                                            </div>
+                                                        </>
                                                     )}
                                                 </div>
                                             )}
