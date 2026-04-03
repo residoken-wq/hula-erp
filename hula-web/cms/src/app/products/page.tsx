@@ -433,6 +433,7 @@ export default function ProductsPage() {
                                     </div>
                                     
                                     <Form.Item name="customer_description" label="Mô tả cho khách hàng">
+                                        {/* @ts-expect-error Ant Design injects value and onChange automatically */}
                                         <RichEditor placeholder="Mô tả chi tiết sản phẩm hiển thị trên website..." />
                                     </Form.Item>
 
