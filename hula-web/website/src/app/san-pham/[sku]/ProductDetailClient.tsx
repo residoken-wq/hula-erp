@@ -388,14 +388,15 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                             )}
                         </div>
 
-                        {product.customization_config?.blocks && product.customization_config.blocks.length > 0 && (
-                            <div className="mt-12 pt-8 border-t border-gray-100">
-                                <BlockRenderer blocks={product.customization_config.blocks} />
-                            </div>
-                        )}
-
                     </div>
                 </div>
+
+                {/* Block Builder Content (Full Width Below) */}
+                {product.customization_config?.blocks && product.customization_config.blocks.length > 0 && (
+                    <div className="mt-12">
+                        <BlockRenderer blocks={product.customization_config.blocks} />
+                    </div>
+                )}
             </div>
         </div>
     );
