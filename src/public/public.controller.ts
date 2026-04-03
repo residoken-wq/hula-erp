@@ -450,6 +450,7 @@ export class PublicController {
                 id: p.id,
                 sku: p.sku,
                 name: p.name,
+                website_display_name: p.website_display_name,
                 image_url: p.image_url,
                 price: p.website_price || p.base_price || 0,
                 original_price: p.base_price, // Show strike-through if website_price < base_price
