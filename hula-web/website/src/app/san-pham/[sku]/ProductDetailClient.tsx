@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useCart } from '@/contexts/CartContext';
 import { resolveImageUrl } from '@/lib/utils';
+import BlockRenderer from '@/components/BlockRenderer/BlockRenderer';
 
 // Dynamically import ModelViewer (client-only, no SSR)
 const ModelViewer3D = dynamic(() => import('@/components/ModelViewer'), {
@@ -31,6 +32,7 @@ interface Product {
         colors?: Array<{ name: string; code: string; image_url?: string; pillow_image_url?: string }>;
         accessories?: Array<{ name: string; price: number; image_url?: string }>;
         gallery_images?: string[];
+        blocks?: any[];
     };
 }
 
@@ -385,6 +387,12 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                                 <p className="whitespace-pre-line">Chưa có mô tả chi tiết cho sản phẩm này.</p>
                             )}
                         </div>
+
+                        {product.customization_config?.blocks && product.customization_config.blocks.length > 0 && (
+                            <div className="mt-12 pt-8 border-t border-gray-100">
+                                <BlockRenderer blocks={product.customization_config.blocks} />
+                            </div>
+                        )}
 
                     </div>
                 </div>

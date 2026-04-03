@@ -9,6 +9,7 @@ import { productsApi, systemApi } from '@/lib/api';
 import { ProductVisualEditor } from './ProductVisualEditor';
 import ImageUploader from '@/components/ImageUploader';
 import RichEditor from '@/components/RichEditor';
+import PageBuilder from '@/components/PageBuilder/PageBuilder';
 
 // Helper to convert Google Drive URLs to thumbnail URLs
 const getGoogleDriveImageUrl = (url?: string) => {
@@ -455,6 +456,13 @@ export default function ProductsPage() {
                                             </Form.Item>
                                         </div>
                                     )}
+
+                                    <div style={{ marginBottom: 16, padding: 16, background: '#fafafa', border: '1px solid #eee', borderRadius: 8 }}>
+                                        <p style={{ fontWeight: 500, margin: '0 0 12px 0' }}>🧩 Nội dung mở rộng (Block Builder)</p>
+                                        <Form.Item name={['customization_config', 'blocks']} noStyle>
+                                            <PageBuilder />
+                                        </Form.Item>
+                                    </div>
                                 </>
                             ),
                         },
