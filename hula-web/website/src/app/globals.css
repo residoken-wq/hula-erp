@@ -112,7 +112,7 @@ button {
 
 .btn-primary:hover {
   background-color: #1e8fb5;
-  color: #E5A82F;
+  /*color: #E5A82F; */
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(35, 167, 211, 0.4);
 }
