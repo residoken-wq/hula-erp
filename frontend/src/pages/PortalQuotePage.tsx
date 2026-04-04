@@ -11,12 +11,12 @@ import 'react-quill/dist/quill.snow.css';
 
 const { Title, Text } = Typography;
 
-// --- CSS FOR PRINT ---
+// --- CSS FOR PRINT (fallback for Ctrl+P on portal page) ---
 const printStyles = `
 @media print {
     @page { 
-        size: landscape; 
-        margin: 5mm 10mm; 
+        size: A4 portrait; 
+        margin: 10mm 15mm; 
     }
     body { 
         -webkit-print-color-adjust: exact !important; 
@@ -32,7 +32,6 @@ const printStyles = `
     .ant-table {
         font-size: 11px !important;
     }
-    /* Hide URL/Page info if possible (browser dependent) or adjust scaling */
     #root {
         width: 100% !important;
         margin: 0 !important;
@@ -135,6 +134,316 @@ const PortalQuotePage: React.FC = () => {
             await axios.post(`${API_URL}/sales/${data.id}/comment`, { content: commentText, sender: 'CUSTOMER', name: data.customer_name || 'Khách hàng' });
             setCommentText(''); fetchQuote(); message.success('Đã gửi tin nhắn');
         } catch (e) { }
+    };
+
+    // --- PRINT ORDER: A4 Portrait XÁC NHẬN ĐƠN ĐẶT HÀNG ---
+    const handlePrintOrder = () => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const isOrder = ['DEPOSITED', 'PLANNED', 'PARTIAL_DELIVERY', 'DELIVERED', 'COMPLETED', 'IN_PRODUCTION', 'SAMPLE_APPROVED', 'MANUFACTURING_COMPLETED'].includes(data.status) || Number(data.paid_amount) > 0;
+        const docTitle = isOrder ? 'XÁC NHẬN ĐƠN ĐẶT HÀNG' : 'BẢNG BÁO GIÁ';
+        const docSubTitle = isOrder ? 'ORDER CONFIRMATION' : 'QUOTATION';
+
+        const customerName = data.customer?.name || data.customer_name || data.receiver_name || 'Khách lẻ';
+        const customerPhone = data.receiver_phone || data.customer?.phone || '';
+        const customerAddress = data.shipping_address || data.customer?.address || '';
+        const vatCompany = data.customer?.legal_name || data.vat_company_name || data.customer?.name || '';
+        const vatTax = data.customer?.tax_code || data.vat_tax_code || '';
+        const vatAddress = data.customer?.legal_address || data.vat_address || customerAddress;
+
+        // Calculate totals
+        const subTotal = data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0);
+        const discountAmount = Number(data.discount_amount || 0);
+        const vatRate = data.vat_rate || 0;
+        const taxable = Math.max(0, subTotal - discountAmount);
+        const vatAmount = Math.round(taxable * (vatRate / 100));
+        const shippingFee = Number(data.shipping_fee || 0);
+        const total = taxable + vatAmount + shippingFee;
+        const paidAmount = Number(data.paid_amount || 0);
+        const remaining = total - paidAmount;
+
+        // QR Code
+        const qrAmount = Math.floor(remaining > 0 ? remaining : total);
+        const qrLink = `https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${qrAmount}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`;
+
+        // Product items HTML
+        const itemsHtml = (data.items || []).map((item: any, idx: number) => {
+            const imgUrl = item.image_url || item.sample_image || item.product?.image_url;
+            let imgSrc = '';
+            if (imgUrl) {
+                if (imgUrl.includes('drive.google.com')) {
+                    const match = imgUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                    if (match && match[1]) imgSrc = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w200`;
+                    else imgSrc = imgUrl;
+                } else if (imgUrl.startsWith('http') || imgUrl.startsWith('data:')) {
+                    imgSrc = imgUrl;
+                } else {
+                    imgSrc = `${window.location.origin}${imgUrl}`;
+                }
+            }
+            const productName = item.product_name_real || item.product?.name || item.sku;
+            const customerDesc = item.product?.customer_description || '';
+            const descLines = customerDesc ? customerDesc.split('\n').filter((l: string) => l.trim()).map((l: string) => `<div style="font-size:10px;color:#555;line-height:1.4;">${l.trim().replace(/^[•-]\s*/, '· ')}</div>`).join('') : '';
+
+            return `
+            <tr>
+                <td style="text-align:center;font-weight:600;">${idx + 1}</td>
+                <td style="text-align:center;padding:4px;">
+                    ${imgSrc ? `<img src="${imgSrc}" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display='none'" />` : '<span style="color:#ccc;font-size:10px;">-</span>'}
+                </td>
+                <td style="text-align:left;padding:6px 8px;">
+                    <div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-bottom:2px;">${productName}</div>
+                    ${item.variant_color ? `<div style="font-size:10px;color:#888;">Màu: ${item.variant_color}</div>` : ''}
+                    ${descLines}
+                    <div style="margin-top:3px;"><span style="font-size:9px;color:#999;background:#f5f5f5;padding:1px 5px;border-radius:3px;">${item.sku}</span></div>
+                </td>
+                <td style="text-align:center;">Cái</td>
+                <td style="text-align:center;font-weight:700;font-size:13px;">${Number(item.quantity)}</td>
+                <td style="text-align:right;padding-right:8px;">${Number(item.unit_price).toLocaleString()}</td>
+                <td style="text-align:right;padding-right:8px;font-weight:700;">${Number(item.subtotal).toLocaleString()}</td>
+            </tr>`;
+        }).join('');
+
+        // Terms content
+        const termsHtml = data.terms_content 
+            ? data.terms_content.split('\n').map((line: string) => `<div>${line}</div>`).join('')
+            : '';
+
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>${docTitle} - ${data.order_code}</title>
+    <style>
+        @page { size: A4 portrait; margin: 12mm 15mm 15mm 15mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Times New Roman', Times, serif; 
+            font-size: 13px; 
+            color: #1a1a1a;
+            line-height: 1.5;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        .page { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0; }
+        
+        /* HEADER */
+        .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 3px solid #0050b3; margin-bottom: 15px; }
+        .header-left { flex: 1; }
+        .header-right { text-align: right; min-width: 200px; }
+        .doc-title { font-size: 22px; font-weight: 800; color: #0050b3; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+        .doc-subtitle { font-size: 11px; color: #666; font-style: italic; text-transform: uppercase; letter-spacing: 2px; }
+        .doc-meta { font-size: 12px; color: #555; margin-top: 8px; }
+        .doc-meta b { color: #0050b3; }
+        
+        /* PARTY INFO */
+        .parties { display: flex; gap: 15px; margin-bottom: 15px; }
+        .party-box { flex: 1; padding: 10px 12px; border-radius: 6px; font-size: 12px; line-height: 1.6; }
+        .party-a { background: #f0f5ff; border: 1px solid #adc6ff; }
+        .party-b { background: #fff7e6; border: 1px solid #ffd591; }
+        .party-label { font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1); }
+        .party-a .party-label { color: #0050b3; }
+        .party-b .party-label { color: #d46b08; }
+        .party-row { margin-bottom: 2px; }
+        .party-row b { color: #333; }
+        
+        /* TABLE */
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 0; font-size: 12px; }
+        .items-table th { 
+            background: #0050b3; 
+            color: #fff; 
+            padding: 8px 6px; 
+            font-weight: 700; 
+            font-size: 11px; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+            border: 1px solid #003d8a;
+        }
+        .items-table td { 
+            padding: 6px; 
+            border: 1px solid #d9d9d9; 
+            vertical-align: middle; 
+        }
+        .items-table tbody tr:nth-child(even) { background: #fafafa; }
+        .items-table tbody tr:hover { background: #f0f5ff; }
+        
+        /* SUMMARY */
+        .summary-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .summary-table td { padding: 5px 8px; border: 1px solid #d9d9d9; }
+        .summary-label { text-align: right; color: #555; font-weight: 500; }
+        .summary-value { text-align: right; font-weight: 600; width: 140px; }
+        .summary-total { background: #f0f5ff !important; }
+        .summary-total .summary-label { font-size: 14px; font-weight: 800; color: #0050b3; }
+        .summary-total .summary-value { font-size: 15px; font-weight: 800; color: #cf1322; }
+        
+        /* BOTTOM SECTION */
+        .bottom-section { display: flex; gap: 15px; margin-top: 15px; }
+        .terms-box { flex: 1; font-size: 11px; line-height: 1.5; }
+        .terms-title { font-weight: 700; text-transform: uppercase; font-size: 11px; color: #0050b3; margin-bottom: 6px; border-bottom: 1px solid #0050b3; padding-bottom: 3px; }
+        .bank-info { background: #f9f9f9; padding: 8px 10px; border-radius: 6px; border: 1px solid #e8e8e8; margin-top: 8px; font-size: 11px; }
+        .qr-box { width: 145px; text-align: center; border: 1px solid #d9d9d9; border-radius: 8px; padding: 8px; flex-shrink: 0; }
+        .qr-box img { width: 120px; }
+        .qr-label { font-size: 9px; color: #888; margin-bottom: 4px; }
+        
+        /* SIGNATURES */
+        .signatures { display: flex; justify-content: space-between; margin-top: 25px; text-align: center; page-break-inside: avoid; }
+        .sig-col { width: 45%; }
+        .sig-role { font-weight: 700; font-size: 13px; text-transform: uppercase; margin-bottom: 4px; }
+        .sig-note { font-size: 11px; font-style: italic; color: #888; }
+        .sig-space { height: 70px; }
+        
+        /* FOOTER */
+        .page-footer { margin-top: 15px; padding-top: 8px; border-top: 1px solid #e8e8e8; text-align: center; font-size: 9px; color: #bbb; }
+        
+        /* NOTE BOX */
+        .note-box { background: #fffbe6; border: 1px solid #ffe58f; padding: 8px 10px; border-radius: 6px; margin-bottom: 12px; font-size: 11px; }
+        .note-box .note-label { font-weight: 700; color: #d48806; margin-bottom: 3px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-left">
+                <img src="${window.location.origin}/company_header.png" alt="Company" style="max-height:70px;max-width:280px;" onerror="this.parentElement.innerHTML='<div style=font-size:20px;font-weight:800;color:#0050b3>HULA</div><div style=font-size:10px;color:#888>CTY TNHH TM DV TƯỜNG LINH</div>'" />
+            </div>
+            <div class="header-right">
+                <div class="doc-title">${docTitle}</div>
+                <div class="doc-subtitle">${docSubTitle}</div>
+                <div class="doc-meta">
+                    Số: <b>${data.order_code}</b><br/>
+                    Ngày ${dayjs(data.order_date).format('DD')} tháng ${dayjs(data.order_date).format('MM')} năm ${dayjs(data.order_date).format('YYYY')}
+                </div>
+            </div>
+        </div>
+        
+        <!-- PARTY INFO -->
+        <div class="parties">
+            <div class="party-box party-a">
+                <div class="party-label">Bên bán (Party A)</div>
+                <div class="party-row"><b>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</b></div>
+                <div class="party-row">📍 74/21/2A Nguyễn Khuyến, P.12, Q.Bình Thạnh, TP.HCM</div>
+                <div class="party-row">📞 0983.882210 - 0983.796654</div>
+                <div class="party-row">MST: <b>0311.874.522</b></div>
+            </div>
+            <div class="party-box party-b">
+                <div class="party-label">Bên mua (Party B)</div>
+                <div class="party-row"><b>${vatCompany || customerName}</b></div>
+                <div class="party-row">📍 ${vatAddress || customerAddress || '...'}</div>
+                <div class="party-row">📞 ${customerPhone || '...'}</div>
+                ${vatTax ? `<div class="party-row">MST: <b>${vatTax}</b></div>` : ''}
+                <div class="party-row">Người nhận: <b>${data.receiver_name || customerName}</b></div>
+            </div>
+        </div>
+
+        ${data.note ? `
+        <div class="note-box">
+            <div class="note-label">📝 Ghi chú:</div>
+            <div>${data.note}</div>
+        </div>` : ''}
+        
+        <!-- PRODUCT TABLE -->
+        <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#333;">Chi tiết sản phẩm:</div>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width:35px;">STT</th>
+                    <th style="width:70px;">Hình</th>
+                    <th>Mô tả Sản Phẩm</th>
+                    <th style="width:45px;">ĐVT</th>
+                    <th style="width:40px;">SL</th>
+                    <th style="width:90px;">Đơn Giá</th>
+                    <th style="width:100px;">Thành Tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${itemsHtml}
+            </tbody>
+        </table>
+        
+        <!-- SUMMARY -->
+        <table class="summary-table">
+            <tr>
+                <td class="summary-label" colspan="1">Tổng tiền hàng:</td>
+                <td class="summary-value">${subTotal.toLocaleString()}</td>
+            </tr>
+            ${discountAmount > 0 ? `
+            <tr>
+                <td class="summary-label">Giảm giá (${data.discount_rate || 0}%):</td>
+                <td class="summary-value" style="color:#52c41a;">-${discountAmount.toLocaleString()}</td>
+            </tr>` : ''}
+            <tr>
+                <td class="summary-label">Thuế VAT (${vatRate}%):</td>
+                <td class="summary-value">${vatAmount.toLocaleString()}</td>
+            </tr>
+            ${shippingFee > 0 ? `
+            <tr>
+                <td class="summary-label">Phí vận chuyển:</td>
+                <td class="summary-value">${shippingFee.toLocaleString()}</td>
+            </tr>` : ''}
+            <tr class="summary-total">
+                <td class="summary-label">TỔNG CỘNG:</td>
+                <td class="summary-value">${total.toLocaleString()} ₫</td>
+            </tr>
+            ${paidAmount > 0 ? `
+            <tr>
+                <td class="summary-label" style="color:#52c41a;">Đã thanh toán:</td>
+                <td class="summary-value" style="color:#52c41a;">${paidAmount.toLocaleString()} ₫</td>
+            </tr>
+            <tr>
+                <td class="summary-label" style="color:#cf1322;font-weight:700;">Còn lại cần thanh toán:</td>
+                <td class="summary-value" style="color:#cf1322;font-weight:800;font-size:14px;">${remaining.toLocaleString()} ₫</td>
+            </tr>` : ''}
+        </table>
+        
+        <!-- BOTTOM: TERMS + QR -->
+        <div class="bottom-section">
+            <div class="terms-box">
+                ${termsHtml ? `
+                <div class="terms-title">Điều khoản & Quy định</div>
+                <div style="white-space:pre-line;color:#555;">${data.terms_content}</div>` : ''}
+                
+                <div class="bank-info">
+                    <div style="font-weight:700;margin-bottom:4px;">💳 Thông tin chuyển khoản:</div>
+                    <div>Ngân hàng: <b>ACB</b> - CN TP.HCM</div>
+                    <div>Số TK: <b style="font-family:monospace;background:#f0f0f0;padding:0 4px;">141847859</b></div>
+                    <div>Chủ TK: <b>CTY TNHH TM DV TƯỜNG LINH</b></div>
+                    <div>Nội dung CK: <b style="color:#0050b3;">${data.order_code}</b></div>
+                </div>
+            </div>
+            <div class="qr-box">
+                <div class="qr-label">Quét mã thanh toán</div>
+                <img src="${qrLink}" alt="QR" />
+                <div style="font-size:10px;font-weight:700;color:#0050b3;margin-top:4px;">HULA PAYMENT</div>
+            </div>
+        </div>
+        
+        <!-- SIGNATURES -->
+        <div class="signatures">
+            <div class="sig-col">
+                <div class="sig-role">Đại diện khách hàng</div>
+                <div class="sig-note">(Ký, ghi rõ họ tên)</div>
+                <div class="sig-space"></div>
+            </div>
+            <div class="sig-col">
+                <div class="sig-role">Đại diện Cty Tường Linh</div>
+                <div class="sig-note">(Ký, đóng dấu)</div>
+                <div class="sig-space"></div>
+                <div style="font-weight:700;">${data.assigned_to?.full_name || ''}</div>
+            </div>
+        </div>
+        
+        <div class="page-footer">
+            Xác nhận đơn đặt hàng được tạo tự động bởi Hula ERP &bull; ${window.location.origin}/portal/${data.uuid}
+        </div>
+    </div>
+    <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
     };
 
     const handleDeleteComment = async (commentId: number) => {
@@ -419,7 +728,7 @@ const PortalQuotePage: React.FC = () => {
                         <Col>
                             <Space>
                                 <Button icon={<LinkOutlined />} onClick={() => { navigator.clipboard.writeText(window.location.href); message.success('Đã copy link!'); }}>Copy Link</Button>
-                                <Button icon={<PrinterOutlined />} onClick={() => window.print()}>In Trang Này</Button>
+                                <Button icon={<PrinterOutlined />} onClick={handlePrintOrder}>In Đơn Hàng (A4)</Button>
                             </Space>
                         </Col>
                     </Row>
