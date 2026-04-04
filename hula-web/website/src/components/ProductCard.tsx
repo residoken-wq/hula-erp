@@ -105,7 +105,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                         disabled={isAdding}
                         className={`relative px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 ${showSuccess
                             ? 'bg-green-500 text-white'
-                            : 'bg-white text-gray-900 border border-gray-200 hover:bg-[#23a7d3] hover:text-[#E5A82F] hover:border-[#23a7d3]'
+                            : 'bg-white text-gray-900 border border-gray-200 hover:bg-[#23a7d3] hover:border-[#23a7d3]'
                             }`}
                     >
                         {showSuccess ? (
