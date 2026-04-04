@@ -84,7 +84,7 @@ export default function Header() {
                                     <Link
                                         key={link.href}
                                         href={link.href}
-                                        className={`px-3 xl:px-4 py-2 text-sm xl:text-base font-medium rounded-[12px] hover:bg-transparent transition-all ${isActive ? 'text-[#F3CB58] font-bold' : 'text-[#23a7d3] hover:text-[#F3CB58]'}`}
+                                        className={`px-3 xl:px-4 py-2 text-sm xl:text-base font-medium rounded-[12px] hover:bg-transparent transition-all ${isActive ? 'text-[#E5A82F] font-bold' : 'text-[#23a7d3] hover:text-[#E5A82F]'}`}
                                     >
                                         {link.label}
                                     </Link>
@@ -156,7 +156,7 @@ export default function Header() {
                                     <Link
                                         key={link.href}
                                         href={link.href}
-                                        className={`flex items-center gap-4 p-4 rounded-[12px] bg-transparent font-medium transition-all active:scale-[0.98] ${isActive ? 'text-[#F3CB58] font-bold bg-primary-50' : 'text-[#23a7d3] hover:text-[#F3CB58] hover:bg-gray-50'}`}
+                                        className={`flex items-center gap-4 p-4 rounded-[12px] bg-transparent font-medium transition-all active:scale-[0.98] ${isActive ? 'text-[#E5A82F] font-bold bg-primary-50' : 'text-[#23a7d3] hover:text-[#E5A82F] hover:bg-gray-50'}`}
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <span className="text-lg">{link.label}</span>

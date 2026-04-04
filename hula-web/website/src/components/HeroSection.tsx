@@ -41,7 +41,7 @@ export default function HeroSection({ title1, title2, description, btn1, btn2, i
                         <div className="mt-8 flex flex-wrap gap-4">
                             <Link
                                 href="/san-pham"
-                                className="inline-flex items-center px-6 py-3 bg-white text-[#23a7d3] font-semibold rounded-lg hover:text-[#F3CB58] transition-colors shadow-lg"
+                                className="inline-flex items-center px-6 py-3 bg-white text-[#23a7d3] font-semibold rounded-lg hover:text-[#E5A82F] transition-colors shadow-lg"
                             >
                                 {btn1}
                                 <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
