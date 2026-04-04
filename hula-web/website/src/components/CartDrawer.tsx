@@ -1,6 +1,7 @@
 'use client';
 
 import { useCart } from '@/contexts/CartContext';
+import { resolveImageUrl } from '@/lib/utils';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -109,7 +110,7 @@ export default function CartDrawer() {
                                     {/* Product Image */}
                                     <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-xl flex-shrink-0 overflow-hidden shadow-inner">
                                         {item.image_url ? (
-                                            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                                            <img src={resolveImageUrl(item.image_url)} alt={item.name} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
                                                 <span className="text-3xl">🛏️</span>

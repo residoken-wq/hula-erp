@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCart } from '@/contexts/CartContext';
+import { resolveImageUrl } from '@/lib/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -399,7 +400,7 @@ export default function CheckoutPage() {
                                     <div key={item.sku} className="flex gap-3 p-2 bg-gray-50 rounded-xl">
                                         <div className="w-16 h-16 bg-white rounded-lg flex-shrink-0 overflow-hidden shadow-sm">
                                             {item.image_url ? (
-                                                <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                                                <img src={resolveImageUrl(item.image_url)} alt={item.name} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 text-2xl">🛏️</div>
                                             )}
