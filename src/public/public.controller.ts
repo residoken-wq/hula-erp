@@ -177,7 +177,7 @@ export class PublicController {
             sku: product.sku,
             name: product.website_display_name || product.name,
             category: product.category,
-            base_price: product.website_price || product.base_price,
+            base_price: Number(product.website_price) || Number(product.base_price),
             image_url: product.image_url,
             customer_description: product.customer_description,
             attributes: product.attributes,
@@ -428,11 +428,11 @@ export class PublicController {
         // Sorting
         switch (sort) {
             case 'price_asc':
-                // Use website_price if available, else base_price
-                qb.orderBy('COALESCE(p.website_price, p.base_price)', 'ASC');
+                // Use website_price if available and > 0, else base_price
+                qb.orderBy('COALESCE(NULLIF(p.website_price, 0), p.base_price)', 'ASC', 'NULLS LAST');
                 break;
             case 'price_desc':
-                qb.orderBy('COALESCE(p.website_price, p.base_price)', 'DESC');
+                qb.orderBy('COALESCE(NULLIF(p.website_price, 0), p.base_price)', 'DESC', 'NULLS LAST');
                 break;
             case 'newest':
             default:
@@ -452,8 +452,8 @@ export class PublicController {
                 name: p.name,
                 website_display_name: p.website_display_name,
                 image_url: p.image_url,
-                price: p.website_price || p.base_price || 0,
-                original_price: p.base_price, // Show strike-through if website_price < base_price
+                price: Number(p.website_price) || Number(p.base_price) || 0,
+                original_price: Number(p.base_price), // Show strike-through if website_price < base_price
                 category: p.category_link?.name || 'Uncategorized',
                 slug: p.sku // In Hula, SKU is effectively the slug
             })),
