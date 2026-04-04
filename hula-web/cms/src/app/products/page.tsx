@@ -427,7 +427,7 @@ export default function ProductsPage() {
                                             style={{ width: '100%' }} 
                                             placeholder="Nhập giá khuyến mãi..." 
                                             formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
-                                            parser={(displayVal) => displayVal?.replace(/\$\s?|(,*)/g, '') as unknown as number}
+                                            parser={(displayVal: any) => displayVal?.replace(/\$\s?|(,*)/g, '') as any}
                                             min={0}
                                         />
                                     </Form.Item>

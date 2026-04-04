@@ -94,7 +94,7 @@ export default function CartDrawer() {
                             <p className="text-gray-500 text-center mb-6">Bạn chưa có sản phẩm nào trong giỏ hàng</p>
                             <button
                                 onClick={handleClose}
-                                className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-white transition-all active:scale-95"
+                                className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl transition-all active:scale-95"
                             >
                                 Khám phá sản phẩm
                             </button>
