@@ -77,11 +77,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 )}
 
                 {/* Quick View Button - Desktop hover */}
-                <div className="absolute inset-0 bg-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:flex items-end justify-center pb-4">
-                    <span className="px-4 py-2 bg-transparent text-accent text-sm font-medium rounded-full shadow-none transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                        Xem chi tiết
-                    </span>
-                </div>
+
             </Link>
 
             {/* Content */}
