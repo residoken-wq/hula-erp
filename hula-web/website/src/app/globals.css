@@ -112,7 +112,7 @@ button {
 
 .btn-primary:hover {
   background-color: #1e8fb5;
-  color: #ffe293;
+  color: #F3CB58;
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(35, 167, 211, 0.4);
 }
@@ -303,7 +303,8 @@ button {
 }
 
 /* Fix for Ordered/Numbered Lists from CMS */
-.prose ul, .prose ol {
+.prose ul,
+.prose ol {
   padding-left: 1.5rem;
   margin-top: 1rem;
   margin-bottom: 1rem;
