@@ -54,17 +54,18 @@ export default function GalleryViewer({ images, title }: GalleryViewerProps) {
                 </h2>
             )}
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="masonry-gallery" style={{ columns: 3, columnGap: '10px' }}>
                 {images.map((url, idx) => (
                     <div 
                         key={idx} 
-                        className="group relative aspect-[16/9] rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer bg-gray-100"
+                        className="group relative rounded-lg overflow-hidden cursor-pointer bg-gray-100 masonry-item"
+                        style={{ breakInside: 'avoid', marginBottom: '10px' }}
                         onClick={() => openModal(idx)}
                     >
                         <img
                             src={resolveImageUrl(url)}
                             alt={`Gallery image ${idx + 1}`}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-110 block"
                             loading="lazy"
                         />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
@@ -131,6 +132,20 @@ export default function GalleryViewer({ images, title }: GalleryViewerProps) {
             )}
 
             <style jsx>{`
+                .masonry-gallery {
+                    columns: 1;
+                    column-gap: 10px;
+                }
+                @media (min-width: 640px) {
+                    .masonry-gallery {
+                        columns: 2;
+                    }
+                }
+                @media (min-width: 1024px) {
+                    .masonry-gallery {
+                        columns: 3;
+                    }
+                }
                 .animate-fade-in {
                     animation: fadeIn 0.3s ease-out;
                 }
