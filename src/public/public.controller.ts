@@ -172,12 +172,17 @@ export class PublicController {
             where: { product_id: product.id }
         });
 
+        const displayPrice = Number(product.website_price) || Number(product.base_price);
+        const salePrice = Number(product.website_sale_price) || 0;
+
         return {
             id: product.id,
             sku: product.sku,
             name: product.website_display_name || product.name,
             category: product.category,
-            base_price: Number(product.website_price) || Number(product.base_price),
+            base_price: salePrice > 0 ? salePrice : displayPrice,
+            original_price: salePrice > 0 ? displayPrice : undefined,
+            sale_price: salePrice > 0 ? salePrice : undefined,
             image_url: product.image_url,
             customer_description: product.customer_description,
             attributes: product.attributes,
@@ -446,17 +451,22 @@ export class PublicController {
             .getManyAndCount();
 
         return {
-            data: items.map(p => ({
-                id: p.id,
-                sku: p.sku,
-                name: p.name,
-                website_display_name: p.website_display_name,
-                image_url: p.image_url,
-                price: Number(p.website_price) || Number(p.base_price) || 0,
-                original_price: Number(p.base_price), // Show strike-through if website_price < base_price
-                category: p.category_link?.name || 'Uncategorized',
-                slug: p.sku // In Hula, SKU is effectively the slug
-            })),
+            data: items.map(p => {
+                const displayPrice = Number(p.website_price) || Number(p.base_price) || 0;
+                const salePrice = Number(p.website_sale_price) || 0;
+                return {
+                    id: p.id,
+                    sku: p.sku,
+                    name: p.name,
+                    website_display_name: p.website_display_name,
+                    image_url: p.image_url,
+                    price: salePrice > 0 ? salePrice : displayPrice,
+                    original_price: salePrice > 0 ? displayPrice : undefined,
+                    sale_price: salePrice > 0 ? salePrice : undefined,
+                    category: p.category_link?.name || 'Uncategorized',
+                    slug: p.sku
+                };
+            }),
             meta: {
                 total,
                 page: Number(page),

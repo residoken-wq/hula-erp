@@ -75,6 +75,7 @@ interface Product {
     is_active: boolean;
     show_on_website: boolean;
     website_price?: number;
+    website_sale_price?: number;
     website_display_name?: string;
     image_url: string;
     customer_description: string;
@@ -149,6 +150,7 @@ export default function ProductsPage() {
 
             form.setFieldsValue({
                 website_display_name: product.website_display_name || '',
+                website_sale_price: product.website_sale_price || undefined,
                 image_url: parsedImg,
                 customer_description: product.customer_description,
                 tags: product.tags || [],
@@ -164,6 +166,7 @@ export default function ProductsPage() {
 
             form.setFieldsValue({
                 website_display_name: product.website_display_name || '',
+                website_sale_price: product.website_sale_price || undefined,
                 image_url: parsedImg,
                 customer_description: product.customer_description,
                 tags: product.tags || [],
@@ -181,6 +184,7 @@ export default function ProductsPage() {
             // 1. Save Core Product Info (Image/Desc/Tags)
             await productsApi.update(editingProduct.id, {
                 website_display_name: values.website_display_name || null,
+                website_sale_price: values.website_sale_price || null,
                 image_url: values.image_url,
                 customer_description: values.customer_description,
                 tags: values.tags || []
@@ -263,18 +267,35 @@ export default function ProductsPage() {
             dataIndex: 'base_price',
             key: 'base_price',
             width: 130,
-            render: (_: any, record: Product) => (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <strong style={{ color: '#1890ff' }}>
-                        {formatPrice(record.website_price || record.base_price)}
-                    </strong>
-                    {record.website_price && record.website_price !== record.base_price && (
-                        <span style={{ fontSize: 11, color: '#999', textDecoration: 'line-through' }}>
-                            {formatPrice(record.base_price)}
-                        </span>
-                    )}
-                </div>
-            ),
+            render: (_: any, record: Product) => {
+                const mainPrice = record.website_price || record.base_price;
+                const salePrice = record.website_sale_price;
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {salePrice && salePrice > 0 ? (
+                            <>
+                                <strong style={{ color: '#f5222d' }}>
+                                    {formatPrice(salePrice)}
+                                </strong>
+                                <span style={{ fontSize: 11, color: '#999', textDecoration: 'line-through' }}>
+                                    {formatPrice(mainPrice)}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <strong style={{ color: '#1890ff' }}>
+                                    {formatPrice(mainPrice)}
+                                </strong>
+                                {record.website_price && record.website_price !== record.base_price && (
+                                    <span style={{ fontSize: 11, color: '#999', textDecoration: 'line-through' }}>
+                                        {formatPrice(record.base_price)}
+                                    </span>
+                                )}
+                            </>
+                        )}
+                    </div>
+                );
+            },
         },
         {
             title: 'Tags',
@@ -396,6 +417,19 @@ export default function ProductsPage() {
                                 <>
                                     <Form.Item name="website_display_name" label="Tên sản phẩm hiển thị trên website" extra="Để trống nếu muốn sử dụng tên sản phẩm gốc từ ERP">
                                         <Input placeholder={editingProduct?.name || 'Nhập tên hiển thị riêng cho website...'} allowClear />
+                                    </Form.Item>
+                                    <Form.Item 
+                                        name="website_sale_price" 
+                                        label="💰 Giá khuyến mãi trên website (VNĐ)" 
+                                        extra={`Để trống nếu không có khuyến mãi. Giá bán hiện tại: ${editingProduct ? formatPrice(editingProduct.website_price || editingProduct.base_price) : ''}`}
+                                    >
+                                        <InputNumber 
+                                            style={{ width: '100%' }} 
+                                            placeholder="Nhập giá khuyến mãi..." 
+                                            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
+                                            parser={(displayVal) => displayVal?.replace(/\$\s?|(,*)/g, '') as unknown as number}
+                                            min={0}
+                                        />
                                     </Form.Item>
                                     <Form.Item name="image_url" label="Hình ảnh chính của sản phẩm (Bắt buộc)">
                                         <ImageUploader simple hint="📐 Kích thước: 800x800px (tỷ lệ 1:1, vuông)" />

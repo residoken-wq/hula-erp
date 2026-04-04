@@ -18,6 +18,8 @@ interface Product {
     name: string;
     website_display_name?: string;
     base_price: number;
+    original_price?: number;
+    sale_price?: number;
     image_url?: string;
     category?: string;
     customer_description?: string;
@@ -209,9 +211,21 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                         <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.website_display_name || product.name}</h1>
                         <p className="text-sm text-gray-500 mb-6">SKU: {product.sku}</p>
 
-                        <div className="text-3xl font-bold text-primary-600 mb-8">
-                            {formatPrice(totalPrice)}
-                        </div>
+                        {product.sale_price && product.original_price ? (
+                            <div className="mb-8">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-3xl font-bold text-red-500">{formatPrice(totalPrice)}</span>
+                                    <span className="px-2.5 py-1 bg-red-100 text-red-600 text-sm font-bold rounded-full">
+                                        -{Math.round((1 - Number(product.sale_price) / Number(product.original_price)) * 100)}%
+                                    </span>
+                                </div>
+                                <span className="text-lg text-gray-400 line-through">{formatPrice(Number(product.original_price))}</span>
+                            </div>
+                        ) : (
+                            <div className="text-3xl font-bold text-primary-600 mb-8">
+                                {formatPrice(totalPrice)}
+                            </div>
+                        )}
 
                         <hr className="border-gray-100 my-6" />
 

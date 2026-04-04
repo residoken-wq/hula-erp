@@ -70,6 +70,9 @@ export class Product {
   @Column('decimal', { precision: 15, scale: 2, nullable: true })
   website_price: number;  // Giá bán trên website (nếu khác base_price)
 
+  @Column('decimal', { precision: 15, scale: 2, nullable: true })
+  website_sale_price: number;  // Giá khuyến mãi trên website
+
   @Column({ default: 0 })
   website_order: number;  // Thứ tự hiển thị trên website
 

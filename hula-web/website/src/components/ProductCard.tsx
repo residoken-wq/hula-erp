@@ -11,6 +11,8 @@ interface Product {
     website_display_name?: string;
     base_price?: number;  // From product detail API
     price?: number;       // From product list API
+    original_price?: number; // Original price before sale
+    sale_price?: number;     // Sale/promotional price
     image_url?: string;
     category?: string;
 }
@@ -52,6 +54,8 @@ export default function ProductCard({ product }: ProductCardProps) {
     };
 
     const imageUrl = resolveImageUrl(product.image_url);
+    const currentPrice = product.price ?? product.base_price ?? 0;
+    const hasSale = !!(product.sale_price && product.original_price && product.original_price > product.sale_price);
 
     return (
         <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
@@ -76,7 +80,12 @@ export default function ProductCard({ product }: ProductCardProps) {
                     </span>
                 )}
 
-                {/* Quick View Button - Desktop hover */}
+                {/* Sale Badge */}
+                {hasSale && (
+                    <span className="absolute top-3 right-3 px-2.5 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-sm">
+                        -{Math.round((1 - product.sale_price! / product.original_price!) * 100)}%
+                    </span>
+                )}
 
             </Link>
 
@@ -90,9 +99,20 @@ export default function ProductCard({ product }: ProductCardProps) {
 
                 <div className="mt-3 flex items-center justify-between gap-2">
                     <div>
-                        <span className="text-lg sm:text-xl font-bold text-primary-600">
-                            {formatPrice(product.price ?? product.base_price ?? 0)}
-                        </span>
+                        {hasSale ? (
+                            <div className="flex flex-col">
+                                <span className="text-lg sm:text-xl font-bold text-red-500">
+                                    {formatPrice(currentPrice)}
+                                </span>
+                                <span className="text-xs sm:text-sm text-gray-400 line-through">
+                                    {formatPrice(product.original_price!)}
+                                </span>
+                            </div>
+                        ) : (
+                            <span className="text-lg sm:text-xl font-bold text-primary-600">
+                                {formatPrice(currentPrice)}
+                            </span>
+                        )}
                     </div>
 
                     {/* Add to Cart Button */}
