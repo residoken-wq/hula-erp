@@ -107,6 +107,7 @@ export default async function HomePage() {
                     images={heroImages}
                     heroTitle1={config.hero_title_1}
                     heroTitle2={config.hero_title_2}
+                    heroDescription={config.hero_description}
                     heroButton1={config.hero_button_1}
                     heroButton2={config.hero_button_2}
                     heroMaskOpacity={config.hero_mask_opacity}
