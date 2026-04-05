@@ -77,6 +77,7 @@ interface Product {
     website_price?: number;
     website_sale_price?: number;
     website_display_name?: string;
+    contact_for_price?: boolean;
     image_url: string;
     customer_description: string;
     customization_config?: {
@@ -151,6 +152,7 @@ export default function ProductsPage() {
             form.setFieldsValue({
                 website_display_name: product.website_display_name || '',
                 website_sale_price: product.website_sale_price || undefined,
+                contact_for_price: product.contact_for_price || false,
                 image_url: parsedImg,
                 customer_description: product.customer_description,
                 tags: product.tags || [],
@@ -167,6 +169,7 @@ export default function ProductsPage() {
             form.setFieldsValue({
                 website_display_name: product.website_display_name || '',
                 website_sale_price: product.website_sale_price || undefined,
+                contact_for_price: product.contact_for_price || false,
                 image_url: parsedImg,
                 customer_description: product.customer_description,
                 tags: product.tags || [],
@@ -181,10 +184,11 @@ export default function ProductsPage() {
         try {
             const values = await form.validateFields();
 
-            // 1. Save Core Product Info (Image/Desc/Tags)
+            // 1. Save Core Product Info (Image/Desc/Tags/Contact For Price)
             await productsApi.update(editingProduct.id, {
                 website_display_name: values.website_display_name || null,
                 website_sale_price: values.website_sale_price || null,
+                contact_for_price: values.contact_for_price,
                 image_url: values.image_url,
                 customer_description: values.customer_description,
                 tags: values.tags || []
@@ -430,6 +434,9 @@ export default function ProductsPage() {
                                             parser={(displayVal: any) => displayVal?.replace(/\$\s?|(,*)/g, '') as any}
                                             min={0}
                                         />
+                                    </Form.Item>
+                                    <Form.Item name="contact_for_price" valuePropName="checked" label="🎯 Liên hệ tư vấn (ẩn giá bán)">
+                                        <Switch />
                                     </Form.Item>
                                     <Form.Item name="image_url" label="Hình ảnh chính của sản phẩm (Bắt buộc)">
                                         <ImageUploader simple hint="📐 Kích thước: 800x800px (tỷ lệ 1:1, vuông)" />

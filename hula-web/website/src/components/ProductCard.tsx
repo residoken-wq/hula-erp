@@ -13,6 +13,7 @@ interface Product {
     price?: number;       // From product list API
     original_price?: number; // Original price before sale
     sale_price?: number;     // Sale/promotional price
+    contact_for_price?: boolean;
     image_url?: string;
     category?: string;
 }
@@ -99,7 +100,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
                 <div className="mt-3 flex items-center justify-between gap-2">
                     <div>
-                        {hasSale ? (
+                        {product.contact_for_price ? (
+                            <span className="text-lg sm:text-xl font-bold text-primary-600">
+                                Liên hệ
+                            </span>
+                        ) : hasSale ? (
                             <div className="flex flex-col">
                                 <span className="text-lg sm:text-xl font-bold text-red-500">
                                     {formatPrice(currentPrice)}
@@ -115,31 +120,40 @@ export default function ProductCard({ product }: ProductCardProps) {
                         )}
                     </div>
 
-                    {/* Add to Cart Button */}
-                    <button
-                        onClick={handleAddToCart}
-                        disabled={isAdding}
-                        className={`relative px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 ${showSuccess
-                            ? 'bg-green-500 text-white'
-                            : 'bg-white text-gray-900 border border-gray-200 hover:bg-[#23a7d3] hover:border-[#23a7d3]'
-                            }`}
-                    >
-                        {showSuccess ? (
-                            <span className="flex items-center gap-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span className="hidden sm:inline">Đã thêm</span>
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                <span>Thêm</span>
-                            </span>
-                        )}
-                    </button>
+                    {/* Add to Cart / Liên Hệ Button */}
+                    {product.contact_for_price ? (
+                        <Link
+                            href={`/lien-he?product_sku=${product.sku}`}
+                            className="relative px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 bg-primary-600 text-white border border-primary-600 hover:bg-primary-700 whitespace-nowrap"
+                        >
+                            Tư vấn
+                        </Link>
+                    ) : (
+                        <button
+                            onClick={handleAddToCart}
+                            disabled={isAdding}
+                            className={`relative px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 ${showSuccess
+                                ? 'bg-green-500 text-white'
+                                : 'bg-white text-gray-900 border border-gray-200 hover:bg-[#23a7d3] hover:border-[#23a7d3]'
+                                }`}
+                        >
+                            {showSuccess ? (
+                                <span className="flex items-center gap-1">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    <span className="hidden sm:inline">Đã thêm</span>
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Thêm</span>
+                                </span>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

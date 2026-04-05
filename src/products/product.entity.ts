@@ -67,6 +67,9 @@ export class Product {
   @Column({ default: false })
   show_on_website: boolean;  // Hiển thị trên website
 
+  @Column({ default: false })
+  contact_for_price: boolean;  // Liên hệ tư vấn (ẩn giá)
+
   @Column('decimal', { precision: 15, scale: 2, nullable: true })
   website_price: number;  // Giá bán trên website (nếu khác base_price)
 
