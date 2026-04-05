@@ -100,7 +100,7 @@ export default function Footer() {
                                 <img
                                     src={resolveImageUrl(settings.logo_url)}
                                     alt={settings.site_name || 'HULA'}
-                                    className="h-[8rem] w-auto object-contain"
+                                    className="h-16 lg:h-[6rem] w-auto object-contain max-w-[250px] lg:max-w-[400px]"
                                     style={{ filter: 'brightness(0) invert(1)' }}
                                 />
                             ) : (

@@ -64,7 +64,7 @@ export default function Header() {
                                 <img
                                     src={logoUrl}
                                     alt={settings.site_name || 'HULA'}
-                                    className="h-[5rem] w-auto object-contain"
+                                    className="h-10 lg:h-[4rem] w-auto object-contain max-w-[200px] lg:max-w-[300px]"
                                 />
                             ) : (
                                 <>
