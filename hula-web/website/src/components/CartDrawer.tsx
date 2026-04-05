@@ -195,7 +195,7 @@ export default function CartDrawer() {
                             <Link
                                 href="/checkout"
                                 onClick={handleClose}
-                                className="flex-[2] py-3.5 px-4 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold text-center rounded-xl hover:bg-none hover:bg-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                className="flex-[2] py-3.5 px-4 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold text-center rounded-xl hover:bg-none transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                             >
                                 Thanh toán
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

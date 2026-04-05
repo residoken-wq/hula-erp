@@ -5,6 +5,7 @@ import Header from './Header';
 import Footer from './Footer';
 import CartDrawer from './CartDrawer';
 import Topbar from './Topbar';
+import FloatingActionWidgets from './FloatingActionWidgets';
 import { CartProvider } from '@/contexts/CartContext';
 import { SettingsProvider } from '@/contexts/SettingsContext';
 
@@ -33,6 +34,7 @@ export default function LayoutWrapper({
                 </main>
                 <Footer />
                 <CartDrawer />
+                <FloatingActionWidgets />
             </CartProvider>
         </SettingsProvider>
     );

@@ -7,36 +7,16 @@ import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, 
 
 import { productsApi, systemApi } from '@/lib/api';
 import { ProductVisualEditor } from './ProductVisualEditor';
-import ImageUploader from '@/components/ImageUploader';
+import ImageUploader, { resolveImageUrl } from '@/components/ImageUploader';
 import RichEditor from '@/components/RichEditor';
 import PageBuilder from '@/components/PageBuilder/PageBuilder';
 
-// Helper to convert Google Drive URLs to thumbnail URLs
-const getGoogleDriveImageUrl = (url?: string) => {
-    if (!url) return '';
-    try {
-        if (url.includes('drive.google.com')) {
-            // Case 1: /file/d/FILE_ID/view
-            const standardMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-            if (standardMatch) {
-                return `https://drive.google.com/thumbnail?id=${standardMatch[1]}&sz=w1000`;
-            }
-            // Case 2: ?id=FILE_ID
-            const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-            if (idMatch) {
-                return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
-            }
-        }
-        return url;
-    } catch {
-        return url || '';
-    }
-};
+
 
 // Image Preview Component with Google Drive support
 const ImagePreview = ({ url }: { url?: string }) => {
     const [hasError, setHasError] = useState(false);
-    const imageUrl = getGoogleDriveImageUrl(url);
+    const imageUrl = resolveImageUrl(url);
 
     useEffect(() => {
         setHasError(false);
@@ -241,7 +221,7 @@ export default function ProductsPage() {
                 if (typeof url === 'string' && url.startsWith('{')) {
                     try { parsedUrl = JSON.parse(url).url || url; } catch { }
                 }
-                const imageUrl = getGoogleDriveImageUrl(parsedUrl);
+                const imageUrl = resolveImageUrl(parsedUrl);
                 return imageUrl ? (
                     <Image src={imageUrl} width={50} height={50} style={{ objectFit: 'cover', borderRadius: 4 }} fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" />
                 ) : (

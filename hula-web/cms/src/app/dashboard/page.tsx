@@ -64,7 +64,16 @@ export default function DashboardPage() {
             // Fetch leads
             const customersRes = await leadsApi.getAll(); // Using leadsApi (mapped to /customers)
             const customers = customersRes.data;
-            const leads = (Array.isArray(customers) ? customers : []).filter((c: any) => c.type === 'LEAD');
+            const leads = (Array.isArray(customers) ? customers : []).filter((c: any) => {
+                if (c.type !== 'LEAD') return false;
+                if (c.lead_source && c.lead_source.toUpperCase() === 'WEBSITE') return true;
+                if (Array.isArray(c.history)) {
+                    return c.history.some((h: any) => 
+                        h.action === 'CREATED_FROM_WEBSITE' || h.action === 'CREATED_FROM_WIZARD'
+                    );
+                }
+                return false;
+            });
 
             setStats({
                 blogs: Array.isArray(blogs) ? blogs.length : 0,

@@ -57,7 +57,7 @@ export default function CheckoutPage() {
                 })),
             };
 
-            const res = await fetch(`${API_URL}/api/public/orders`, {
+            const res = await fetch(`${API_URL}/public/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderData),
@@ -103,6 +103,22 @@ export default function CheckoutPage() {
                             <p className="text-sm text-gray-500 mb-1">Mã đơn hàng của bạn</p>
                             <p className="text-2xl font-bold text-primary-600 tracking-wider">{orderCode}</p>
                         </div>
+
+                        {formData.payment_method === 'BANK_TRANSFER' && (
+                            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6 text-left">
+                                <h3 className="text-blue-800 font-bold mb-3 flex items-center gap-2">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                    Hướng dẫn chuyển khoản
+                                </h3>
+                                <div className="space-y-2 text-sm text-gray-700">
+                                    <p><span className="text-gray-500 w-24 inline-block">Ngân hàng:</span> <strong>Vietcombank</strong></p>
+                                    <p><span className="text-gray-500 w-24 inline-block">Số tài khoản:</span> <strong>0123456789</strong></p>
+                                    <p><span className="text-gray-500 w-24 inline-block">Người nhận:</span> <strong>CÔNG TY TNHH HULA</strong></p>
+                                    <p><span className="text-gray-500 w-24 inline-block">Nội dung CK:</span> <strong className="text-primary-600">Thanh toan don {orderCode}</strong></p>
+                                </div>
+                                <p className="text-xs text-blue-600 mt-4 italic">* Đơn hàng sẽ được lên đơn ngay sau khi chúng tôi nhận được tiền cọc/thanh toán.</p>
+                            </div>
+                        )}
 
                         <Link
                             href="/san-pham"
