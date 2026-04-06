@@ -86,6 +86,7 @@ export default function MenuDisplaySettingsPage() {
                                 { label: 'Đặt hàng B2B (/dat-hang-si)', value: '/dat-hang-si' },
                                 { label: 'Hula Shop (/san-pham)', value: '/san-pham' },
                                 { label: 'Tin Tức (/tin-tuc)', value: '/tin-tuc' },
+                                { label: 'Tuyển Dụng (/tuyen-dung)', value: '/tuyen-dung' },
                                 { label: 'Liên Hệ (/lien-he)', value: '/lien-he' },
                             ]}
                         />
