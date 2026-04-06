@@ -23,5 +23,6 @@ import { UsersModule } from '../users/users.module';
     ],
     controllers: [AiController],
     providers: [AiService],
+    exports: [AiService]
 })
 export class AiModule { }
