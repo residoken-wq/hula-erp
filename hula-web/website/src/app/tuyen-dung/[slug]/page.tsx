@@ -29,7 +29,7 @@ export default async function JobDetailPage({ params }: { params: { slug: string
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                             <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-4">Chi tiết công việc</h2>
                             <div 
-                                className="prose max-w-none prose-primary"
+                                className="prose max-w-none prose-primary ck-content"
                                 dangerouslySetInnerHTML={{ __html: job.description || 'Chưa có mô tả chi tiết.' }}
                             />
                         </div>

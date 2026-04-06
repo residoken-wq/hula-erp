@@ -3,6 +3,7 @@ import { Tabs, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker
 import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SendOutlined, CalendarOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
+import RichTextEditor from '../common/RichTextEditor';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
@@ -240,7 +241,7 @@ const RecruitmentTab: React.FC = () => {
                         <Form.Item name="salary_range" label="Mức lương (Hiển thị text)"><Input /></Form.Item>
                         <Form.Item name="show_on_website" label="Hiển thị Website" valuePropName="checked"><Switch /></Form.Item>
                     </div>
-                    <Form.Item name="description" label="Mô tả công việc (HTML cho phép)"><TextArea rows={4} /></Form.Item>
+                    <Form.Item name="description" label="Mô tả công việc" getValueProps={(v: any) => ({ value: v })}><RichTextEditor minHeight={300} /></Form.Item>
                     <Form.Item name="assessment_template" label="Template Câu hỏi mặc định (JSON Array hoặc list text)">
                         <TextArea rows={3} placeholder='[{"category": "Logic", "question": "Tại sao nắp cống hình tròn?"}]' />
                     </Form.Item>
