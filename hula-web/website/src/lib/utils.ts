@@ -28,13 +28,13 @@ export const getGoogleDriveImageUrl = (url?: string) => {
             // Case 1: /file/d/VIDEO_ID/view
             const standardMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
             if (standardMatch) {
-                return `https://drive.google.com/thumbnail?id=${standardMatch[1]}&sz=w1000`;
+                return `https://drive.google.com/uc?export=view&id=${standardMatch[1]}`;
             }
 
             // Case 2: ?id=VIDEO_ID
             const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
             if (idMatch) {
-                return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
+                return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
             }
         }
         return url;
