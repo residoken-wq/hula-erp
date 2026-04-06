@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker, Switch, message, Tooltip, Typography, Alert } from 'antd';
+import { Tabs, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker, Switch, message, Tooltip, Typography, Alert, Drawer, Divider, Card, Badge } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SendOutlined, CalendarOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
@@ -143,10 +143,13 @@ const RecruitmentTab: React.FC = () => {
     return (
         <div>
             <Tabs activeKey={activeKey} onChange={setActiveKey} size="small" type="card">
-                <TabPane tab="Tin Tuyển Dụng" key="jobs">
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setJobModalVisible(true); }} style={{ marginBottom: 16 }}>
-                        Tạo JD Mới
-                    </Button>
+                <TabPane tab={<><Badge status="processing" /> Tin Tuyển Dụng</>} key="jobs">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                        <div style={{ fontSize: 16, fontWeight: 600 }}>Quản lý Tin Tuyển Dụng</div>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); form.setFieldsValue({ status: 'DRAFT', job_type: 'FULL_TIME', show_on_website: true }); setJobModalVisible(true); }}>
+                            Tạo JD Mới
+                        </Button>
+                    </div>
                     <Table
                         size="small"
                         loading={loading}
@@ -227,26 +230,65 @@ const RecruitmentTab: React.FC = () => {
                 </TabPane>
             </Tabs>
 
-            {/* JOB MODAL */}
-            <Modal title="Cập nhật Job" visible={jobModalVisible} onCancel={() => setJobModalVisible(false)} onOk={() => form.submit()} width={800}>
-                <Form form={form} layout="vertical" onFinish={handleSaveJob}>
+            {/* JOB DRAWER */}
+            <Drawer 
+                title={form.getFieldValue('id') ? "Cập nhật Tin Tuyển Dụng" : "Tạo Tin Tuyển Dụng mới"} 
+                open={jobModalVisible} 
+                onClose={() => setJobModalVisible(false)} 
+                width={960}
+                extra={
+                    <Space>
+                        <Button onClick={() => setJobModalVisible(false)}>Hủy</Button>
+                        <Button type="primary" onClick={() => form.submit()} icon={<SendOutlined />}>Lưu thông tin</Button>
+                    </Space>
+                }
+            >
+                <Form form={form} layout="vertical" onFinish={handleSaveJob} requiredMark="optional">
                     <Form.Item name="id" hidden><Input /></Form.Item>
-                    <div className="grid grid-cols-2 gap-4">
-                        <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}><Input /></Form.Item>
-                        <Form.Item name="slug" label="Slug URL" rules={[{ required: true }]}><Input /></Form.Item>
-                        <Form.Item name="department" label="Phòng ban"><Input /></Form.Item>
-                        <Form.Item name="location" label="Địa điểm"><Input /></Form.Item>
-                        <Form.Item name="job_type" label="Loại hợp đồng"><Select><Select.Option value="FULL_TIME">Full Time</Select.Option><Select.Option value="PART_TIME">Part Time</Select.Option><Select.Option value="INTERN">Thực tập sinh</Select.Option></Select></Form.Item>
-                        <Form.Item name="status" label="Trạng thái"><Select><Select.Option value="DRAFT">Nháp</Select.Option><Select.Option value="PUBLISHED">Đang mở</Select.Option><Select.Option value="CLOSED">Đóng</Select.Option></Select></Form.Item>
-                        <Form.Item name="salary_range" label="Mức lương (Hiển thị text)"><Input /></Form.Item>
-                        <Form.Item name="show_on_website" label="Hiển thị Website" valuePropName="checked"><Switch /></Form.Item>
-                    </div>
-                    <Form.Item name="description" label="Mô tả công việc" getValueProps={(v: any) => ({ value: v })}><RichTextEditor minHeight={300} /></Form.Item>
-                    <Form.Item name="assessment_template" label="Template Câu hỏi mặc định (JSON Array hoặc list text)">
-                        <TextArea rows={3} placeholder='[{"category": "Logic", "question": "Tại sao nắp cống hình tròn?"}]' />
+                    
+                    <Card size="small" title="Thông tin cơ bản" bordered={false} style={{ marginBottom: 16, background: '#f8fafc' }}>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                            <Form.Item name="title" label="Tiêu đề JD" rules={[{ required: true, message: 'Vui lòng nhập tiêu đề' }]}><Input placeholder="VD: Nhân viên Kinh Doanh" size="large" /></Form.Item>
+                            <Form.Item name="slug" label="Đường dẫn (Slug)" rules={[{ required: true, message: 'Vui lòng nhập slug' }]}><Input placeholder="vd: nhan-vien-kinh-doanh" size="large" addonBefore="/" /></Form.Item>
+                            <Form.Item name="department" label="Phòng ban"><Input placeholder="VD: Phòng Kinh Doanh" /></Form.Item>
+                            <Form.Item name="location" label="Địa điểm làm việc"><Input placeholder="VD: Trụ sở chính HN" /></Form.Item>
+                            <Form.Item name="job_type" label="Loại hợp đồng">
+                                <Select>
+                                    <Select.Option value="FULL_TIME">Full Time (Toàn thời gian)</Select.Option>
+                                    <Select.Option value="PART_TIME">Part Time (Bán thời gian)</Select.Option>
+                                    <Select.Option value="INTERN">Thực tập sinh</Select.Option>
+                                </Select>
+                            </Form.Item>
+                            <Form.Item name="salary_range" label="Mức lương đề xuất"><Input placeholder="VD: 10.000.000 - 15.000.000 VNĐ" /></Form.Item>
+                        </div>
+                    </Card>
+
+                    <Card size="small" title="Cấu hình hiển thị" bordered={false} style={{ marginBottom: 16, background: '#f8fafc' }}>
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                            <Form.Item name="status" label="Trạng thái tuyển dụng">
+                                <Select>
+                                    <Select.Option value="DRAFT">Nháp (Chưa công bố)</Select.Option>
+                                    <Select.Option value="PUBLISHED">Đang mở (Nhận hồ sơ)</Select.Option>
+                                    <Select.Option value="CLOSED">Đóng (Ngừng nhận)</Select.Option>
+                                </Select>
+                            </Form.Item>
+                            <Form.Item name="show_on_website" label="Hiển thị trên Trang chủ Website" valuePropName="checked">
+                                <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
+                            </Form.Item>
+                        </div>
+                    </Card>
+
+                    <Alert message="Mô tả công việc sẽ hiển thị nguyên bản trên màn hình ứng viên. Vui lòng trình bày rõ ràng, sạch sẽ." type="info" showIcon style={{ marginBottom: 16 }} />
+                    <Form.Item name="description" label={<span style={{fontWeight: 600}}>Chi tiết Mô Tả Công Việc (JD)</span>} getValueProps={(v: any) => ({ value: v })}>
+                        <RichTextEditor minHeight={450} placeholder="Nhập mục tiêu công việc, yêu cầu kỹ năng, quyền lợi..." />
+                    </Form.Item>
+
+                    <Divider />
+                    <Form.Item name="assessment_template" label={<span style={{fontWeight: 600}}>Khung câu hỏi Test Năng lực (Tùy chọn)</span>} tooltip="Danh sách bộ câu hỏi mặc định khi gửi bài Test cho ứng viên vị trí này">
+                        <TextArea rows={4} placeholder='VD: [{"category": "Chuyên môn", "question": "Bạn đã có kinh nghiệm gì?"}]' />
                     </Form.Item>
                 </Form>
-            </Modal>
+            </Drawer>
 
             {/* SEND ASSESSMENT MODAL */}
             <Modal title={`Gửi bài test cho ${selectedCandidate?.name}`} visible={assessmentModalVisible} onCancel={() => setAssessmentModalVisible(false)} onOk={() => assessmentForm.submit()}>

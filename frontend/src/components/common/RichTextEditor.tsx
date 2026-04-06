@@ -4,6 +4,7 @@ import { Modal, Input, Button, Spin, Empty, message } from 'antd';
 import { PictureOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import { API_URL } from '../../config';
+import 'ckeditor5/ckeditor5.css';
 
 interface RichTextEditorProps {
     value?: string;
