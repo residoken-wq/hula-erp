@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker, Switch, message, Tooltip, Typography } from 'antd';
+import { Tabs, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker, Switch, message, Tooltip, Typography, Alert } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SendOutlined, CalendarOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
@@ -217,7 +217,7 @@ const RecruitmentTab: React.FC = () => {
                         rowKey="id"
                         columns={[
                             { title: 'Ứng viên', key: 'candidate', render: (_, record) => record.candidate?.name },
-                            { title: 'Thời gian', dataIndex: 'scheduled_at', key: 'scheduled_at', render: val => moment(val).format('HH:mm DD/MM/YYYY') },
+                            { title: 'Thời gian', dataIndex: 'scheduled_at', key: 'scheduled_at', render: val => dayjs(val).format('HH:mm DD/MM/YYYY') },
                             { title: 'Hình thức', key: 'loc', render: (_, record) => record.meeting_link ? <a href={record.meeting_link} target="_blank" rel="noreferrer">Online</a> : record.location },
                             { title: 'Người PV', dataIndex: 'hr_interviewer', key: 'hr' },
                             { title: 'Ket quả', dataIndex: 'result_status', key: 'status', render: val => <Tag color={val === 'PASS' ? 'green' : (val === 'FAIL' ? 'red' : 'default')}>{val}</Tag> }

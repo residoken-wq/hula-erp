@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Spin, Card, Typography, Steps, Button, Form, Input, Alert, message, Result, Tag, Divider, Space } from 'antd';
 import { CheckCircleOutlined, SolutionOutlined, IdcardOutlined, SendOutlined } from '@ant-design/icons';
 import api from '../utils/api';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
 const { Step } = Steps;
@@ -133,7 +133,7 @@ const PortalRecruitmentPage: React.FC = () => {
                             <Title level={4}>Lịch Phỏng Vấn</Title>
                             {interviews.map((intv: any) => (
                                 <Card size="small" style={{ marginBottom: 16, borderColor: '#1890ff' }} key={intv.id}>
-                                    <Paragraph><b>Thời gian:</b> {moment(intv.scheduled_at).format('HH:mm - DD/MM/YYYY')}</Paragraph>
+                                    <Paragraph><b>Thời gian:</b> {dayjs(intv.scheduled_at).format('HH:mm - DD/MM/YYYY')}</Paragraph>
                                     <Paragraph><b>Địa điểm:</b> {intv.location || 'Online'}</Paragraph>
                                     {intv.meeting_link && <Paragraph><b>Link:</b> <a href={intv.meeting_link} target="_blank" rel="noreferrer">{intv.meeting_link}</a></Paragraph>}
                                     <Paragraph><b>Trạng thái:</b> <Tag color={intv.result_status === 'PASS' ? 'green' : (intv.result_status === 'FAIL' ? 'red' : 'blue')}>{intv.result_status}</Tag></Paragraph>
@@ -161,7 +161,7 @@ const PortalRecruitmentPage: React.FC = () => {
 const Descriptions = ({ item, job }: { item: any, job: any }) => (
     <Space direction="vertical" style={{ width: '100%' }}>
         <Text><b>Vị trí:</b> {job?.title} ({job?.job_type})</Text>
-        <Text><b>Ngày ứng tuyển:</b> {moment(item.applied_at).format('DD/MM/YYYY')}</Text>
+        <Text><b>Ngày ứng tuyển:</b> {dayjs(item.applied_at).format('DD/MM/YYYY')}</Text>
         <Text><b>Email:</b> {item.email}</Text>
         <Text><b>SĐT:</b> {item.phone}</Text>
     </Space>
