@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Product } from '../products/product.entity';
@@ -12,6 +12,8 @@ import { SystemService } from '../system/system.service';
 import { WebsitePolicy } from './entities/website-policy.entity';
 import { WizardConfig, WizardConfigData } from './entities/wizard-config.entity';
 import { WebProject } from '../website-projects/entities/web-project.entity';
+import { HrService } from '../hr/hr.service';
+import { JobPostStatus } from '../hr/entities/job-post.entity';
 
 @Controller('public')
 export class PublicController {
@@ -35,7 +37,8 @@ export class PublicController {
         @InjectRepository(WebProject)
         private readonly websiteProjectRepo: Repository<WebProject>,
         private readonly salesService: SalesService,
-        private readonly systemService: SystemService
+        private readonly systemService: SystemService,
+        private readonly hrService: HrService
     ) { }
 
     // ... (settings code)
@@ -66,6 +69,7 @@ export class PublicController {
             'banner_b2b_title', 'banner_b2b_desc', 'banner_b2b_image',
             'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
             'banner_news_title', 'banner_news_desc', 'banner_news_image',
+            'banner_recruitment_title', 'banner_recruitment_desc', 'banner_recruitment_image',
             // Section background colors
             'section_hero_bg', 'section_hero_usp_bg',
             'section_categories_bg', 'section_about_bg', 'section_journey_bg',
@@ -597,9 +601,64 @@ export class PublicController {
             }
             return { success: true, message: 'Wizard config updated' };
         } catch (error) {
-            console.error('Wizard config update error:', error);
-            return { success: false, message: 'Failed to update wizard config - table may not exist' };
+            console.error('Lỗi khi lưu Web Project liên hệ:', error);
+            throw new HttpException('Lỗi server', HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    // ========================================
+    // RECRUITMENT PUBLIC APIs
+    // ========================================
+
+    @Get('recruitment/jobs')
+    async getPublicJobs() {
+        // Return only published & show_on_website jobs
+        const allJobs = await this.hrService.findAllJobs();
+        return allJobs.filter(job => job.status === JobPostStatus.PUBLISHED && job.show_on_website);
+    }
+
+    @Get('recruitment/jobs/:slug')
+    async getJobBySlug(@Param('slug') slug: string) {
+        const job = await this.hrService.findJobBySlug(slug);
+        if (!job || job.status !== JobPostStatus.PUBLISHED || !job.show_on_website) {
+            throw new HttpException('Job not found', HttpStatus.NOT_FOUND);
+        }
+        return job;
+    }
+
+    @Post('recruitment/apply')
+    async applyJob(@Body() data: any) {
+        // data contains job_post_id, name, email, phone, cv_url, etc.
+        const candidate = await this.hrService.createCandidate(data);
+        
+        // TODO: Send email to candidate with portal_token here if SMTP is configured
+        
+        return {
+            success: true,
+            message: 'Application submitted',
+            token: candidate.portal_token
+        };
+    }
+
+    @Get('recruitment/portal/:token')
+    async getCandidatePortal(@Param('token') token: string) {
+        const candidate = await this.hrService.getCandidateByToken(token);
+        if (!candidate) throw new HttpException('Invalid or expired application link', HttpStatus.NOT_FOUND);
+
+        const assessment = await this.hrService.getAssessmentByCandidate(candidate.id);
+        const interviews = await this.hrService.findInterviews(candidate.id);
+
+        return {
+            candidate,
+            job_post: candidate.job_post,
+            assessment,
+            interviews
+        };
+    }
+
+    @Post('recruitment/portal/:token/submit-assessment')
+    async submitPortalAssessment(@Param('token') token: string, @Body() body: any) {
+        return this.hrService.submitAssessment(token, body.answers);
     }
 
     @Post('wizard/submit')

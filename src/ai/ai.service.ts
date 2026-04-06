@@ -615,4 +615,16 @@ Chỉ trả về nội dung gợi ý, không giải thích thêm.`;
             return { suggestion: 'Xin chào! Cảm ơn bạn đã liên hệ. Tôi có thể giúp gì cho bạn?' };
         }
     }
+
+    // --- RECRUITMENT: AI EVALUATION ---
+    async evaluateAssessment(prompt: string): Promise<any> {
+        try {
+            const reply = await this.callGemini(prompt);
+            const cleanJson = reply.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanJson);
+        } catch (e) {
+            console.error('AI Evaluate Error:', e);
+            return null;
+        }
+    }
 }

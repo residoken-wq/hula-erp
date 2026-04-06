@@ -45,6 +45,7 @@ export default function Header() {
         { href: '/dat-hang-si', label: 'Đặt hàng B2B' },
         { href: '/san-pham', label: 'Hula Shop' },
         { href: '/tin-tuc', label: 'Blog tư vấn' },
+        { href: '/tuyen-dung', label: 'Tuyển dụng' },
         { href: '/lien-he', label: 'Liên hệ' },
     ].filter(link => !hiddenPages.includes(link.href));
 

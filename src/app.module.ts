@@ -111,6 +111,10 @@ import { AssetAssignment } from './hr/entities/asset-assignment.entity';
 import { Payslip } from './hr/entities/payslip.entity';
 import { TrainingPlan } from './hr/entities/training-plan.entity';
 import { WorkShift } from './hr/entities/work-shift.entity';
+import { JobPost } from './hr/entities/job-post.entity';
+import { Candidate } from './hr/entities/candidate.entity';
+import { Assessment } from './hr/entities/assessment.entity';
+import { Interview } from './hr/entities/interview.entity';
 
 import { AppController } from './app.controller';
 
@@ -163,6 +167,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           SystemConfig, ActivityLog,
           BlogPost,
           Employee, Attendance, LeaveRequest, LeaveEntitlement, AssetAssignment, Payslip, TrainingPlan, WorkShift,
+          JobPost, Candidate, Assessment, Interview,
           // Website Config & Templates
           ProductWebsiteConfig, ContractTemplate, WebsitePolicy,
           // Social & Marketing

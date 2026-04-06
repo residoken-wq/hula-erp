@@ -9,6 +9,12 @@ import { AssetAssignment } from './entities/asset-assignment.entity';
 import { Payslip } from './entities/payslip.entity';
 import { TrainingPlan } from './entities/training-plan.entity';
 import { WorkShift, AttendanceCalcType } from './entities/work-shift.entity';
+import { JobPost, JobPostStatus } from './entities/job-post.entity';
+import { Candidate, CandidateStatus } from './entities/candidate.entity';
+import { Assessment, AssessmentStatus } from './entities/assessment.entity';
+import { Interview, InterviewStatus } from './entities/interview.entity';
+import { AiService } from '../ai/ai.service';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class HrService {
@@ -21,6 +27,11 @@ export class HrService {
         @InjectRepository(Payslip) private payslipRepo: Repository<Payslip>,
         @InjectRepository(TrainingPlan) private trainingRepo: Repository<TrainingPlan>,
         @InjectRepository(WorkShift) private shiftRepo: Repository<WorkShift>,
+        @InjectRepository(JobPost) private jobPostRepo: Repository<JobPost>,
+        @InjectRepository(Candidate) private candidateRepo: Repository<Candidate>,
+        @InjectRepository(Assessment) private assessmentRepo: Repository<Assessment>,
+        @InjectRepository(Interview) private interviewRepo: Repository<Interview>,
+        private aiService: AiService,
     ) { }
 
     // ==================== WORK SHIFT ====================
@@ -384,5 +395,163 @@ export class HrService {
 
     async deleteTrainingPlan(id: number) {
         return this.trainingRepo.delete(id);
+    }
+
+    // ==================== RECRUITMENT ====================
+
+    // --- JOB POSTS ---
+    async findAllJobs() {
+        return this.jobPostRepo.find({ order: { created_at: 'DESC' } });
+    }
+
+    async findJobBySlug(slug: string) {
+        return this.jobPostRepo.findOne({ where: { slug } });
+    }
+
+    async createJob(data: Partial<JobPost>) {
+        const job = this.jobPostRepo.create(data);
+        return this.jobPostRepo.save(job);
+    }
+
+    async updateJob(id: number, data: Partial<JobPost>) {
+        await this.jobPostRepo.update(id, data);
+        return this.jobPostRepo.findOne({ where: { id } });
+    }
+
+    async deleteJob(id: number) {
+        return this.jobPostRepo.delete(id);
+    }
+
+    // --- CANDIDATES ---
+    async findCandidates(jobId?: number) {
+        const where: any = {};
+        if (jobId) where.job_post_id = jobId;
+        return this.candidateRepo.find({ where, relations: ['job_post'], order: { applied_at: 'DESC' } });
+    }
+
+    async getCandidateByToken(token: string) {
+        return this.candidateRepo.findOne({ 
+            where: { portal_token: token },
+            relations: ['job_post'] 
+        });
+    }
+
+    async createCandidate(data: Partial<Candidate>) {
+        data.portal_token = randomUUID();
+        const candidate = this.candidateRepo.create(data);
+        return this.candidateRepo.save(candidate);
+    }
+
+    async updateCandidate(id: number, data: Partial<Candidate>) {
+        await this.candidateRepo.update(id, data);
+        return this.candidateRepo.findOne({ where: { id } });
+    }
+
+    async deleteCandidate(id: number) {
+        return this.candidateRepo.delete(id);
+    }
+
+    // --- ASSESSMENTS ---
+    async getAssessmentByCandidate(candidateId: number) {
+        return this.assessmentRepo.findOne({
+            where: { candidate_id: candidateId },
+            order: { created_at: 'DESC' }
+        });
+    }
+
+    async createAssessment(candidateId: number, questions: any[]) {
+        const assessment = this.assessmentRepo.create({
+            candidate_id: candidateId,
+            questions_json: questions,
+            status: AssessmentStatus.PENDING
+        });
+        
+        // Update candidate status
+        await this.candidateRepo.update(candidateId, { status: CandidateStatus.ASSESSMENT_SENT });
+        
+        return this.assessmentRepo.save(assessment);
+    }
+
+    async submitAssessment(token: string, answers: any[]) {
+        const candidate = await this.getCandidateByToken(token);
+        if (!candidate) throw new NotFoundException('Invalid token');
+
+        const assessment = await this.getAssessmentByCandidate(candidate.id);
+        if (!assessment) throw new NotFoundException('No pending assessment found');
+
+        assessment.answers_json = answers;
+        assessment.status = AssessmentStatus.SUBMITTED;
+        assessment.submitted_at = new Date();
+        await this.assessmentRepo.save(assessment);
+
+        return this.evaluateAssessment(assessment.id); // Auto evaluate after submit
+    }
+
+    async evaluateAssessment(assessmentId: number) {
+        const assessment = await this.assessmentRepo.findOne({
+            where: { id: assessmentId },
+            relations: ['candidate', 'candidate.job_post']
+        });
+
+        if (!assessment) throw new NotFoundException('Assessment not found');
+
+        const job = assessment.candidate.job_post;
+
+        const prompt = `
+### TASK:
+Evaluate candidate answers based on the job description.
+Job Title: ${job?.title}
+Job Description: ${job?.description}
+Questions & Candidate Answers: ${JSON.stringify({ questions: assessment.questions_json, answers: assessment.answers_json })}
+
+### OUTPUT FORMAT:
+You MUST return ONLY a valid JSON object in this structure:
+{
+  "score": <number 1-10>,
+  "pros": ["point 1", "point 2"],
+  "cons": ["point 1", "point 2"],
+  "recommendation": "HIRE" | "POTENTIAL" | "REJECT"
+}
+`;
+
+        const feedback = await this.aiService.evaluateAssessment(prompt);
+        
+        if (feedback) {
+            assessment.ai_feedback = feedback;
+            assessment.status = AssessmentStatus.EVALUATED;
+            await this.assessmentRepo.save(assessment);
+
+            const score = feedback?.score;
+            if (score) {
+                await this.candidateRepo.update(assessment.candidate_id, {
+                    overall_score: score,
+                    status: CandidateStatus.ASSESSED
+                });
+            }
+        }
+        
+        return assessment;
+    }
+
+    // --- INTERVIEWS ---
+    async findInterviews(candidateId?: number) {
+         const where: any = {};
+         if (candidateId) where.candidate_id = candidateId;
+         return this.interviewRepo.find({ where, relations: ['candidate'], order: { scheduled_at: 'ASC' } });
+    }
+
+    async createInterview(data: Partial<Interview>) {
+        const interview = this.interviewRepo.create(data);
+        await this.candidateRepo.update(data.candidate_id, { status: CandidateStatus.INTERVIEW_SCHEDULED });
+        return this.interviewRepo.save(interview);
+    }
+
+    async updateInterview(id: number, data: Partial<Interview>) {
+        await this.interviewRepo.update(id, data);
+        return this.interviewRepo.findOne({ where: { id } });
+    }
+    
+    async deleteInterview(id: number) {
+        return this.interviewRepo.delete(id);
     }
 }

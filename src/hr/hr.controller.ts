@@ -225,4 +225,81 @@ export class HrController {
     deleteTrainingPlan(@Param('id') id: string) {
         return this.hrService.deleteTrainingPlan(+id);
     }
+
+    // ==================== RECRUITMENT ====================
+
+    @Get('recruitment/jobs')
+    findAllJobs() {
+        return this.hrService.findAllJobs();
+    }
+
+    @Post('recruitment/jobs')
+    createJob(@Body() data: any) {
+        return this.hrService.createJob(data);
+    }
+
+    @Put('recruitment/jobs/:id')
+    updateJob(@Param('id') id: string, @Body() data: any) {
+        return this.hrService.updateJob(+id, data);
+    }
+
+    @Delete('recruitment/jobs/:id')
+    deleteJob(@Param('id') id: string) {
+        return this.hrService.deleteJob(+id);
+    }
+
+    @Get('recruitment/candidates')
+    findCandidates(@Query('job_id') jobId?: string) {
+        return this.hrService.findCandidates(jobId ? +jobId : undefined);
+    }
+
+    @Post('recruitment/candidates')
+    createCandidate(@Body() data: any) {
+        return this.hrService.createCandidate(data);
+    }
+
+    @Put('recruitment/candidates/:id')
+    updateCandidate(@Param('id') id: string, @Body() data: any) {
+        return this.hrService.updateCandidate(+id, data);
+    }
+
+    @Delete('recruitment/candidates/:id')
+    deleteCandidate(@Param('id') id: string) {
+        return this.hrService.deleteCandidate(+id);
+    }
+
+    @Post('recruitment/candidates/:id/send-assessment')
+    sendAssessment(@Param('id') id: string, @Body('questions') questions: any[]) {
+        return this.hrService.createAssessment(+id, questions);
+    }
+
+    @Get('recruitment/assessments/:candidateId')
+    getAssessment(@Param('candidateId') candidateId: string) {
+        return this.hrService.getAssessmentByCandidate(+candidateId);
+    }
+    
+    @Post('recruitment/assessments/:id/evaluate')
+    evaluateAssessment(@Param('id') id: string) {
+        return this.hrService.evaluateAssessment(+id);
+    }
+
+    @Get('recruitment/interviews')
+    findInterviews(@Query('candidate_id') candidateId?: string) {
+        return this.hrService.findInterviews(candidateId ? +candidateId : undefined);
+    }
+
+    @Post('recruitment/interviews')
+    createInterview(@Body() data: any) {
+        return this.hrService.createInterview(data);
+    }
+
+    @Put('recruitment/interviews/:id')
+    updateInterview(@Param('id') id: string, @Body() data: any) {
+        return this.hrService.updateInterview(+id, data);
+    }
+
+    @Delete('recruitment/interviews/:id')
+    deleteInterview(@Param('id') id: string) {
+        return this.hrService.deleteInterview(+id);
+    }
 }

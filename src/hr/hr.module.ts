@@ -10,6 +10,11 @@ import { AssetAssignment } from './entities/asset-assignment.entity';
 import { Payslip } from './entities/payslip.entity';
 import { TrainingPlan } from './entities/training-plan.entity';
 import { WorkShift } from './entities/work-shift.entity';
+import { JobPost } from './entities/job-post.entity';
+import { Candidate } from './entities/candidate.entity';
+import { Assessment } from './entities/assessment.entity';
+import { Interview } from './entities/interview.entity';
+import { AiModule } from '../ai/ai.module';
 
 @Module({
     imports: [
@@ -22,7 +27,12 @@ import { WorkShift } from './entities/work-shift.entity';
             Payslip,
             TrainingPlan,
             WorkShift,
+            JobPost,
+            Candidate,
+            Assessment,
+            Interview,
         ]),
+        AiModule,
     ],
     controllers: [HrController],
     providers: [HrService],

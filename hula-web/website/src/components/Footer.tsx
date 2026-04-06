@@ -26,7 +26,8 @@ const defaultQuickLinks: FooterLink[] = [
     { id: '2', label: 'Về Hula', url: '/ve-hula' },
     { id: '3', label: 'Dự án', url: '/du-an' },
     { id: '4', label: 'Đặt hàng B2B', url: '/dat-hang-si' },
-    { id: '5', label: 'Liên hệ', url: '/lien-he' },
+    { id: '5', label: 'Tuyển dụng', url: '/tuyen-dung' },
+    { id: '6', label: 'Liên hệ', url: '/lien-he' },
 ];
 
 const defaultProductLinks: FooterLink[] = [

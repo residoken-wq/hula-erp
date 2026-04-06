@@ -35,6 +35,7 @@ const ProcessesPage = React.lazy(() => import('./pages/ProcessesPage'));
 const CategoriesPage = React.lazy(() => import('./pages/CategoriesPage'));
 const PortalQuotePage = React.lazy(() => import('./pages/PortalQuotePage'));
 const PortalPurchasePage = React.lazy(() => import('./pages/PortalPurchasePage'));
+const PortalRecruitmentPage = React.lazy(() => import('./pages/PortalRecruitmentPage'));
 const PriceListsPage = React.lazy(() => import('./pages/PriceListPage'));
 const UsersPage = React.lazy(() => import('./pages/UsersPage'));
 const UserGroupsPage = React.lazy(() => import('./pages/UserGroupsPage'));
@@ -242,6 +243,7 @@ const App: React.FC = () => {
                 <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
                 <Route path="/portal/quote/:uuid" element={<PortalQuotePage />} />
                 <Route path="/portal/po/:uuid" element={<PortalPurchasePage />} />
+                <Route path="/portal/recruitment/:token" element={<PortalRecruitmentPage />} />
 
                 <Route path="*" element={
                     isAuthenticated ? (

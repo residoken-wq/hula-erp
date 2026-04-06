@@ -139,4 +139,28 @@ export const getAboutConfig = async () => {
     }
 };
 
+// Recruitment
+export const getRecruitmentJobs = async () => {
+    try {
+        const { data } = await api.get('/recruitment/jobs');
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
+};
+
+export const getRecruitmentJobBySlug = async (slug: string) => {
+    try {
+        const { data } = await api.get(`/recruitment/jobs/${slug}`);
+        return data;
+    } catch {
+        return null;
+    }
+};
+
+export const applyRecruitment = async (payload: any) => {
+    const { data } = await api.post('/recruitment/apply', payload);
+    return data;
+};
+
 export default api;
