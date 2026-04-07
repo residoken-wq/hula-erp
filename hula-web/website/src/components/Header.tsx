@@ -58,14 +58,14 @@ export default function Header() {
                 : 'bg-white border-b border-gray-100'
                 }`}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16 lg:h-[72px]">
+                    <div className="flex items-center justify-between h-[4.5rem] md:h-[5rem] lg:h-[72px]">
                         {/* Logo */}
                         <Link href="/" className="flex items-center space-x-2 group flex-shrink-0">
                             {logoUrl ? (
                                 <img
                                     src={logoUrl}
                                     alt={settings.site_name || 'HULA'}
-                                    className="h-10 lg:h-[6rem] w-auto object-contain max-w-[200px] lg:max-w-[300px]"
+                                    className="h-14 md:h-[4rem] lg:h-[6rem] w-auto object-contain max-w-[220px] md:max-w-[260px] lg:max-w-[300px]"
                                 />
                             ) : (
                                 <>
