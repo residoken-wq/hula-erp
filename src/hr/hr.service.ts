@@ -573,7 +573,7 @@ You MUST return ONLY a valid JSON object in this structure:
                         scheduled_at: scheduledDate,
                         location: 'Google Meet',
                         hr_interviewer: 'HR Dept',
-                        result_status: 'PENDING'
+                        result_status: InterviewStatus.PENDING
                     });
                     await this.interviewRepo.save(interview);
 
