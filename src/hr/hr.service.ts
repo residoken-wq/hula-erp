@@ -588,6 +588,28 @@ You MUST return ONLY a valid JSON object in this structure:
                         <a href="https://erp.nemmamnon.com/portal/recruitment/${assessment.candidate.portal_token}" style="padding:10px 20px; background:#0056b3; color:white; text-decoration:none; border-radius:5px; display:inline-block; margin-top:10px;">Xem lịch phỏng vấn</a>
                     `;
                     await this.emailService.sendMail(assessment.candidate.email, '[HULA] Vượt qua bài test - Thư mời phỏng vấn', html);
+                } else {
+                    // Score < 7: Send rejection/feedback email
+                    const recommendation = feedback?.recommendation || 'REJECT';
+                    const pros = (feedback?.pros || []).map((p: string) => `<li>${p}</li>`).join('');
+                    const cons = (feedback?.cons || []).map((c: string) => `<li>${c}</li>`).join('');
+
+                    if (recommendation === 'REJECT') {
+                        updateData.status = CandidateStatus.REJECTED;
+                    }
+
+                    const html = `
+                        <h2>Chào ${assessment.candidate.name},</h2>
+                        <p>Cảm ơn bạn đã hoàn thành bài đánh giá năng lực tại Hula.</p>
+                        <p>Sau khi xem xét kỹ lưỡng, kết quả bài test của bạn (Điểm: <strong>${score}/10</strong>) ${recommendation === 'REJECT' ? 'chưa đạt yêu cầu cho vị trí này.' : 'được đánh giá ở mức <strong>Tiềm năng</strong>.'}</p>
+                        ${pros ? `<p><strong>Điểm mạnh:</strong></p><ul>${pros}</ul>` : ''}
+                        ${cons ? `<p><strong>Cần cải thiện:</strong></p><ul>${cons}</ul>` : ''}
+                        <p>${recommendation === 'REJECT' 
+                            ? 'Chúng tôi hy vọng sẽ có cơ hội hợp tác cùng bạn trong tương lai. Hula luôn chào đón bạn ứng tuyển lại các vị trí phù hợp khác.' 
+                            : 'Chúng tôi sẽ lưu hồ sơ của bạn và liên hệ nếu có vị trí phù hợp hơn.'}</p>
+                        <p style="color:#888; font-size:12px; margin-top:20px;">Trân trọng,<br/>Phòng Nhân sự — Hula</p>
+                    `;
+                    await this.emailService.sendMail(assessment.candidate.email, `[HULA] Phản hồi kết quả bài đánh giá`, html);
                 }
 
                 await this.candidateRepo.update(assessment.candidate_id, updateData);

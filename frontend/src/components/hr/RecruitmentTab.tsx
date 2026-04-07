@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker, Switch, message, Tooltip, Typography, Alert, Drawer, Divider, Card, Badge } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SendOutlined, CalendarOutlined } from '@ant-design/icons';
+import { Tabs, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker, Switch, message, Tooltip, Typography, Alert, Drawer, Divider, Card, Badge, Spin, Progress } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SendOutlined, CalendarOutlined, LoadingOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 import RichTextEditor from '../common/RichTextEditor';
@@ -23,6 +23,8 @@ const RecruitmentTab: React.FC = () => {
     const [interviewModalVisible, setInterviewModalVisible] = useState(false);
     const [assessmentModalVisible, setAssessmentModalVisible] = useState(false);
     const [selectedCandidate, setSelectedCandidate] = useState<any>(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [questionsCache, setQuestionsCache] = useState<Record<number, string>>({});
     const [form] = Form.useForm();
     const [interviewForm] = Form.useForm();
     const [assessmentForm] = Form.useForm();
@@ -160,14 +162,15 @@ const RecruitmentTab: React.FC = () => {
 
     const handleGenerateAIQuestions = async () => {
         if (!selectedCandidate) return;
-        setLoading(true);
-        message.loading({ content: 'AI đang tạo câu hỏi...', key: 'ai-gen' });
+        setAiLoading(true);
+        message.loading({ content: 'AI đang phân tích JD & CV để tạo câu hỏi... (10-30 giây)', key: 'ai-gen', duration: 60 });
         try {
             const res = await api.post(`/hr/recruitment/candidates/${selectedCandidate.id}/generate-questions`);
             const qs = res.data?.questions || [];
             if (qs.length > 0) {
                 const text = qs.map((q: any, i: number) => `Câu ${i+1}: ${q.question}`).join('\n');
                 assessmentForm.setFieldsValue({ questionsStr: text });
+                setQuestionsCache(prev => ({ ...prev, [selectedCandidate.id]: text }));
                 message.success({ content: `Đã tạo xong ${qs.length} câu hỏi`, key: 'ai-gen' });
             } else {
                 const errMsg = res.data?.error || 'Không tạo được câu hỏi (JD có thể trống)';
@@ -177,7 +180,7 @@ const RecruitmentTab: React.FC = () => {
             const errDetail = e?.response?.data?.message || e?.message || 'Lỗi tạo câu hỏi chạy AI';
             message.error({ content: errDetail, key: 'ai-gen', duration: 5 });
         }
-        setLoading(false);
+        setAiLoading(false);
     };
 
     return (
@@ -236,10 +239,15 @@ const RecruitmentTab: React.FC = () => {
                                             <Button size="small" type="text" icon={<SendOutlined />} onClick={() => { 
                                                 setSelectedCandidate(record); 
                                                 assessmentForm.resetFields(); 
-                                                // Pre-fill from job template if any
-                                                const jt = record.job_post?.assessment_template;
-                                                if (jt && Array.isArray(jt)) {
-                                                    assessmentForm.setFieldsValue({ questionsStr: jt.map((q:any) => q.question || q).join('\n') });
+                                                // Restore from cache first, then from job template
+                                                const cached = questionsCache[record.id];
+                                                if (cached) {
+                                                    assessmentForm.setFieldsValue({ questionsStr: cached });
+                                                } else {
+                                                    const jt = record.job_post?.assessment_template;
+                                                    if (jt && Array.isArray(jt)) {
+                                                        assessmentForm.setFieldsValue({ questionsStr: jt.map((q:any) => q.question || q).join('\n') });
+                                                    }
                                                 }
                                                 setAssessmentModalVisible(true); 
                                             }} />
@@ -341,14 +349,15 @@ const RecruitmentTab: React.FC = () => {
             </Drawer>
 
             {/* SEND ASSESSMENT MODAL */}
-            <Modal title={`Gửi bài test cho ${selectedCandidate?.name}`} visible={assessmentModalVisible} onCancel={() => setAssessmentModalVisible(false)} onOk={() => assessmentForm.submit()}>
+            <Modal title={`Gửi bài test cho ${selectedCandidate?.name}`} open={assessmentModalVisible} onCancel={() => setAssessmentModalVisible(false)} onOk={() => assessmentForm.submit()} okButtonProps={{ disabled: aiLoading }}>
                 <Alert message="Sẽ tạo 1 link Portal riêng cho ứng viên và thay đổi trạng thái thành 'Đã Gửi Bài Test'" type="info" showIcon style={{marginBottom: 16}} />
-                <Button type="dashed" block style={{marginBottom: 16}} disabled={loading} onClick={handleGenerateAIQuestions} icon={<span style={{fontSize: 16}}>🤖</span>}>
-                    AI Tạo 10 Câu Hỏi (Dựa theo JD & CV)
+                <Button type="dashed" block style={{marginBottom: 16}} loading={aiLoading} onClick={handleGenerateAIQuestions} icon={!aiLoading ? <span style={{fontSize: 16}}>🤖</span> : undefined}>
+                    {aiLoading ? 'AI đang tạo câu hỏi... vui lòng chờ' : 'AI Tạo 10 Câu Hỏi (Dựa theo JD & CV)'}
                 </Button>
+                {aiLoading && <Progress percent={99.9} status="active" showInfo={false} strokeColor={{ from: '#108ee9', to: '#87d068' }} style={{marginBottom: 16, marginTop: -8}} />}
                 <Form form={assessmentForm} layout="vertical" onFinish={sendAssessment}>
                     <Form.Item name="questionsStr" label="Danh sách câu hỏi (Mỗi câu 1 dòng)" rules={[{ required: true }]}>
-                        <TextArea rows={6} placeholder="Câu 1: ...&#10;Câu 2: ..." />
+                        <TextArea rows={8} placeholder="Câu 1: ...&#10;Câu 2: ..." disabled={aiLoading} />
                     </Form.Item>
                 </Form>
             </Modal>
