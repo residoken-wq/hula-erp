@@ -14,6 +14,7 @@ import { Candidate, CandidateStatus } from './entities/candidate.entity';
 import { Assessment, AssessmentStatus } from './entities/assessment.entity';
 import { Interview, InterviewStatus } from './entities/interview.entity';
 import { AiService } from '../ai/ai.service';
+import { EmailService } from '../common/services/email.service';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -32,6 +33,7 @@ export class HrService {
         @InjectRepository(Assessment) private assessmentRepo: Repository<Assessment>,
         @InjectRepository(Interview) private interviewRepo: Repository<Interview>,
         private aiService: AiService,
+        private emailService: EmailService,
     ) { }
 
     // ==================== WORK SHIFT ====================
@@ -422,6 +424,10 @@ export class HrService {
         return this.jobPostRepo.delete(id);
     }
 
+    async parseJDCompetencies(description: string) {
+        return this.aiService.parseJDCompetencies(description);
+    }
+
     // --- CANDIDATES ---
     async findCandidates(jobId?: number) {
         const where: any = {};
@@ -439,7 +445,20 @@ export class HrService {
     async createCandidate(data: Partial<Candidate>) {
         data.portal_token = randomUUID();
         const candidate = this.candidateRepo.create(data);
-        return this.candidateRepo.save(candidate);
+        const saved = await this.candidateRepo.save(candidate);
+
+        // Send email with portal link
+        const portalUrl = `https://erp.nemmamnon.com/portal/recruitment/${saved.portal_token}`;
+        const html = `
+            <h2>Chào <span style="color:#0056b3">${saved.name}</span>,</h2>
+            <p>Cảm ơn bạn đã ứng tuyển tại Hula.</p>
+            <p>Vui lòng truy cập Portal Ứng Viên để theo dõi tiến trình tuyển dụng và thực hiện bài đánh giá năng lực khi được yêu cầu:</p>
+            <p><a href="${portalUrl}" style="padding:10px 20px; background:#0056b3; color:white; text-decoration:none; border-radius:5px; display:inline-block; margin-top:10px; margin-bottom:10px;">Truy Cập Portal</a></p>
+            <p style="font-size:12px; color:#555;">Hoặc copy link này vào trình duyệt: ${portalUrl}</p>
+        `;
+        await this.emailService.sendMail(saved.email, '[HULA] Nhận hồ sơ ứng tuyển & Truy cập Portal', html);
+
+        return saved;
     }
 
     async updateCandidate(id: number, data: Partial<Candidate>) {
@@ -468,8 +487,22 @@ export class HrService {
         
         // Update candidate status
         await this.candidateRepo.update(candidateId, { status: CandidateStatus.ASSESSMENT_SENT });
-        
-        return this.assessmentRepo.save(assessment);
+        const saved = await this.assessmentRepo.save(assessment);
+
+        // Notification email
+        const candidate = await this.candidateRepo.findOne({ where: { id: candidateId }, relations: ['job_post'] });
+        if (candidate) {
+            const portalUrl = `https://erp.nemmamnon.com/portal/recruitment/${candidate.portal_token}`;
+            const html = `
+                <h2>Chào ${candidate.name},</h2>
+                <p>Nhân sự Hula vừa gửi cho bạn một bài đánh giá năng lực cho vị trí <strong>${candidate.job_post?.title || 'ứng tuyển'}</strong>.</p>
+                <p>Vui lòng truy cập Portal Ứng Viên để hoàn thành bài test càng sớm càng tốt.</p>
+                <p><a href="${portalUrl}" style="padding:10px 20px; background:#0056b3; color:white; text-decoration:none; border-radius:5px; display:inline-block; margin-top:10px;">Làm Bài Đánh Giá Ngay</a></p>
+            `;
+            await this.emailService.sendMail(candidate.email, `[HULA] Yêu cầu thực hiện bài đánh giá`, html);
+        }
+
+        return saved;
     }
 
     async submitAssessment(token: string, answers: any[]) {
@@ -499,7 +532,7 @@ export class HrService {
 
         const prompt = `
 ### TASK:
-Evaluate candidate answers based on the job description.
+Evaluate candidate answers based on the job description. Review for duplicated answers, generic AI-generated content patterns, and copy-pasting.
 Job Title: ${job?.title}
 Job Description: ${job?.description}
 Questions & Candidate Answers: ${JSON.stringify({ questions: assessment.questions_json, answers: assessment.answers_json })}
@@ -510,7 +543,8 @@ You MUST return ONLY a valid JSON object in this structure:
   "score": <number 1-10>,
   "pros": ["point 1", "point 2"],
   "cons": ["point 1", "point 2"],
-  "recommendation": "HIRE" | "POTENTIAL" | "REJECT"
+  "recommendation": "HIRE" | "POTENTIAL" | "REJECT",
+  "duplication_flag": <boolean: true if answers appear highly suspicious, AI-generated, or copy-pasted>
 }
 `;
 
@@ -522,15 +556,58 @@ You MUST return ONLY a valid JSON object in this structure:
             await this.assessmentRepo.save(assessment);
 
             const score = feedback?.score;
-            if (score) {
-                await this.candidateRepo.update(assessment.candidate_id, {
+            if (score !== undefined) {
+                let updateData: Partial<Candidate> = {
                     overall_score: score,
                     status: CandidateStatus.ASSESSED
-                });
+                };
+
+                // Feature 3: Auto-Schedule Interview when score >= 7
+                if (score >= 7) {
+                    const scheduledDate = new Date();
+                    scheduledDate.setDate(scheduledDate.getDate() + 3);
+                    scheduledDate.setHours(14, 0, 0, 0); // Default to 2:00 PM
+                    
+                    const interview = this.interviewRepo.create({
+                        candidate_id: assessment.candidate_id,
+                        scheduled_at: scheduledDate,
+                        location: 'Google Meet',
+                        hr_interviewer: 'HR Dept',
+                        result_status: 'PENDING'
+                    });
+                    await this.interviewRepo.save(interview);
+
+                    updateData.status = CandidateStatus.INTERVIEW_SCHEDULED;
+                    
+                    // Notify candidate of the auto-scheduled interview
+                    const html = `
+                        <h2>Chúc mừng ${assessment.candidate.name},</h2>
+                        <p>Bài đánh giá của bạn (Điểm: ${score}/10) đã đạt yêu cầu!</p>
+                        <p>Chúng tôi đã tự động lên lịch phỏng vấn vào lúc <strong>${scheduledDate.toLocaleString('vi-VN')}</strong>.</p>
+                        <p>Vui lòng truy cập Portal Ứng Viên để xem chi tiết lịch hẹn phỏng vấn.</p>
+                        <a href="https://erp.nemmamnon.com/portal/recruitment/${assessment.candidate.portal_token}" style="padding:10px 20px; background:#0056b3; color:white; text-decoration:none; border-radius:5px; display:inline-block; margin-top:10px;">Xem lịch phỏng vấn</a>
+                    `;
+                    await this.emailService.sendMail(assessment.candidate.email, '[HULA] Vượt qua bài test - Thư mời phỏng vấn', html);
+                }
+
+                await this.candidateRepo.update(assessment.candidate_id, updateData);
             }
         }
         
         return assessment;
+    }
+
+    async generateAIQuestions(candidateId: number) {
+        const candidate = await this.candidateRepo.findOne({
+            where: { id: candidateId },
+            relations: ['job_post']
+        });
+        if (!candidate) throw new NotFoundException('Candidate not found');
+
+        return this.aiService.generateRecruitmentQuestions(
+            candidate.job_post?.description || '',
+            candidate.cv_url || ''
+        );
     }
 
     // --- INTERVIEWS ---
@@ -543,7 +620,21 @@ You MUST return ONLY a valid JSON object in this structure:
     async createInterview(data: Partial<Interview>) {
         const interview = this.interviewRepo.create(data);
         await this.candidateRepo.update(data.candidate_id, { status: CandidateStatus.INTERVIEW_SCHEDULED });
-        return this.interviewRepo.save(interview);
+        const saved = await this.interviewRepo.save(interview);
+
+        // Notify candidate of the manually scheduled interview
+        const candidate = await this.candidateRepo.findOne({ where: { id: data.candidate_id } });
+        if (candidate) {
+            const html = `
+                <h2>Chào ${candidate.name},</h2>
+                <p>Nhân sự Hula vừa lên lịch phỏng vấn cho bạn.</p>
+                <p>Vui lòng đăng nhập vào Portal Ứng Viên để xem chi tiết lịch phỏng vấn và địa điểm / meeting link.</p>
+                <a href="https://erp.nemmamnon.com/portal/recruitment/${candidate.portal_token}" style="padding:10px 20px; background:#0056b3; color:white; text-decoration:none; border-radius:5px; display:inline-block; margin-top:10px;">Chi tiết lịch phỏng vấn</a>
+            `;
+            await this.emailService.sendMail(candidate.email, '[HULA] Thư mời phỏng vấn & Lịch hẹn', html);
+        }
+
+        return saved;
     }
 
     async updateInterview(id: number, data: Partial<Interview>) {

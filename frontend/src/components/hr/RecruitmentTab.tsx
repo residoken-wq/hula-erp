@@ -140,6 +140,44 @@ const RecruitmentTab: React.FC = () => {
         }
     };
 
+    const handleParseJD = async () => {
+        const desc = form.getFieldValue('description');
+        if (!desc || desc.trim() === '') {
+            message.warning('Vui lòng nhập mô tả công việc (JD) trước khi phân tích');
+            return;
+        }
+        setLoading(true);
+        message.loading({ content: 'AI đang phân tích JD...', key: 'ai-parse' });
+        try {
+            const res = await api.post('/hr/recruitment/jobs/parse-requirements', { description: desc });
+            form.setFieldsValue({ requirements_json: JSON.stringify(res.data, null, 2) });
+            message.success({ content: 'Phân tích thành công', key: 'ai-parse' });
+        } catch (e) {
+            message.error({ content: 'Lỗi phân tích JD', key: 'ai-parse' });
+        }
+        setLoading(false);
+    };
+
+    const handleGenerateAIQuestions = async () => {
+        if (!selectedCandidate) return;
+        setLoading(true);
+        message.loading({ content: 'AI đang tạo câu hỏi...', key: 'ai-gen' });
+        try {
+            const res = await api.post(`/hr/recruitment/candidates/${selectedCandidate.id}/generate-questions`);
+            const qs = res.data?.questions || [];
+            if (qs.length > 0) {
+                const text = qs.map((q: any, i: number) => `Câu ${i+1}: ${q.question}`).join('\n');
+                assessmentForm.setFieldsValue({ questionsStr: text });
+                message.success({ content: 'Đã tạo xong câu hỏi', key: 'ai-gen' });
+            } else {
+                message.warning({ content: 'Không tạo được câu hỏi', key: 'ai-gen' });
+            }
+        } catch (e) {
+            message.error({ content: 'Lỗi tạo câu hỏi chạy AI', key: 'ai-gen' });
+        }
+        setLoading(false);
+    };
+
     return (
         <div>
             <Tabs activeKey={activeKey} onChange={setActiveKey} size="small" type="card">
@@ -185,6 +223,7 @@ const RecruitmentTab: React.FC = () => {
                             { title: 'Score', dataIndex: 'overall_score', key: 'score', render: val => val ? <Tag color={val >= 7 ? 'green' : 'red'}>{val}</Tag> : '-' },
                             { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: val => <Tag color="geekblue">{val}</Tag> },
                             { title: 'Nguồn', dataIndex: 'source', key: 'source' },
+                            { title: 'CV', dataIndex: 'cv_url', key: 'cv', render: val => val ? <a href={val} target="_blank" rel="noreferrer">Xem CV</a> : '-' },
                             {
                                 title: 'Thao tác', key: 'actions', render: (_, record) => (
                                     <Space size="small" wrap>
@@ -284,6 +323,15 @@ const RecruitmentTab: React.FC = () => {
                     </Form.Item>
 
                     <Divider />
+                    <Form.Item name="requirements_json" label={
+                        <Space>
+                            <span style={{fontWeight: 600}}>Yêu cầu năng lực (Competencies)</span>
+                            <Button type="dashed" size="small" onClick={handleParseJD} disabled={loading} icon={<span style={{fontSize: 14}}>🤖</span>}>AI Phân Tích JD</Button>
+                        </Space>
+                    }>
+                        <TextArea rows={4} placeholder='VD: {"skills": ["React"], "experience": ["2 years"]}' />
+                    </Form.Item>
+
                     <Form.Item name="assessment_template" label={<span style={{fontWeight: 600}}>Khung câu hỏi Test Năng lực (Tùy chọn)</span>} tooltip="Danh sách bộ câu hỏi mặc định khi gửi bài Test cho ứng viên vị trí này">
                         <TextArea rows={4} placeholder='VD: [{"category": "Chuyên môn", "question": "Bạn đã có kinh nghiệm gì?"}]' />
                     </Form.Item>
@@ -293,6 +341,9 @@ const RecruitmentTab: React.FC = () => {
             {/* SEND ASSESSMENT MODAL */}
             <Modal title={`Gửi bài test cho ${selectedCandidate?.name}`} visible={assessmentModalVisible} onCancel={() => setAssessmentModalVisible(false)} onOk={() => assessmentForm.submit()}>
                 <Alert message="Sẽ tạo 1 link Portal riêng cho ứng viên và thay đổi trạng thái thành 'Đã Gửi Bài Test'" type="info" showIcon style={{marginBottom: 16}} />
+                <Button type="dashed" block style={{marginBottom: 16}} disabled={loading} onClick={handleGenerateAIQuestions} icon={<span style={{fontSize: 16}}>🤖</span>}>
+                    AI Tạo 10 Câu Hỏi (Dựa theo JD & CV)
+                </Button>
                 <Form form={assessmentForm} layout="vertical" onFinish={sendAssessment}>
                     <Form.Item name="questionsStr" label="Danh sách câu hỏi (Mỗi câu 1 dòng)" rules={[{ required: true }]}>
                         <TextArea rows={6} placeholder="Câu 1: ...&#10;Câu 2: ..." />

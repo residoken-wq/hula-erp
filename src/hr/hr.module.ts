@@ -15,6 +15,7 @@ import { Candidate } from './entities/candidate.entity';
 import { Assessment } from './entities/assessment.entity';
 import { Interview } from './entities/interview.entity';
 import { AiModule } from '../ai/ai.module';
+import { EmailService } from '../common/services/email.service';
 
 @Module({
     imports: [
@@ -35,8 +36,9 @@ import { AiModule } from '../ai/ai.module';
         AiModule,
     ],
     controllers: [HrController],
-    providers: [HrService],
+    providers: [HrService, EmailService],
     exports: [HrService],
 })
 export class HrModule { }
+
 
