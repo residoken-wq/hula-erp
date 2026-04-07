@@ -123,7 +123,7 @@ const PortalRecruitmentPage: React.FC = () => {
 
                     {assessment && assessment.status !== 'PENDING' && (
                         <div style={{ marginTop: 24 }}>
-                            <Alert message="Bạn đã hoàn thành bài thi đánh giá năng lực." type="success" showIcon />
+                            <Alert message="Bạn đã hoàn thành phần đánh giá năng lực." type="success" showIcon />
                         </div>
                     )}
 

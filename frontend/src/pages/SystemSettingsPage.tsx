@@ -4,6 +4,7 @@ import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutline
 import axios from 'axios';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
+import RichTextEditor from '../components/common/RichTextEditor';
 
 const SystemSettingsPage: React.FC = () => {
     return (
@@ -195,7 +196,7 @@ const ContractTemplatesTab: React.FC = () => {
                         <Input placeholder="VD: Hợp đồng nguyên tắc 2024" />
                     </Form.Item>
                     <Form.Item name="content" label="Nội dung hợp đồng (HTML/Text)" rules={[{ required: true }]}>
-                        <Input.TextArea rows={15} showCount />
+                        <RichTextEditor />
                     </Form.Item>
                 </Form>
             </Modal>
