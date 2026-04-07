@@ -234,7 +234,18 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             const currentData = editorRef.current.getData();
             if (value !== currentData && value !== undefined) {
                 const isFocused = editorRef.current.editing.view.document.isFocused;
-                if (!isFocused) {
+                
+                let isSourceEditing = false;
+                try {
+                    const sourceEditingPlugin = editorRef.current.plugins.get('SourceEditing');
+                    if (sourceEditingPlugin) {
+                        isSourceEditing = sourceEditingPlugin.isSourceEditingMode;
+                    }
+                } catch (e) {
+                    console.warn(e);
+                }
+
+                if (!isFocused && !isSourceEditing) {
                     editorRef.current.setData(value || '');
                 }
             }
