@@ -168,12 +168,14 @@ const RecruitmentTab: React.FC = () => {
             if (qs.length > 0) {
                 const text = qs.map((q: any, i: number) => `Câu ${i+1}: ${q.question}`).join('\n');
                 assessmentForm.setFieldsValue({ questionsStr: text });
-                message.success({ content: 'Đã tạo xong câu hỏi', key: 'ai-gen' });
+                message.success({ content: `Đã tạo xong ${qs.length} câu hỏi`, key: 'ai-gen' });
             } else {
-                message.warning({ content: 'Không tạo được câu hỏi', key: 'ai-gen' });
+                const errMsg = res.data?.error || 'Không tạo được câu hỏi (JD có thể trống)';
+                message.warning({ content: errMsg, key: 'ai-gen', duration: 5 });
             }
-        } catch (e) {
-            message.error({ content: 'Lỗi tạo câu hỏi chạy AI', key: 'ai-gen' });
+        } catch (e: any) {
+            const errDetail = e?.response?.data?.message || e?.message || 'Lỗi tạo câu hỏi chạy AI';
+            message.error({ content: errDetail, key: 'ai-gen', duration: 5 });
         }
         setLoading(false);
     };

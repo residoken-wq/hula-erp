@@ -74,7 +74,7 @@ export class AiService {
 
             if (!data.models) {
                 console.error('DEBUG AI: Failed to list models', data);
-                return 'gemini-1.5-flash';
+                return 'models/gemini-1.5-flash';
             }
 
             const models = data.models.filter((m: any) =>
@@ -94,7 +94,7 @@ export class AiService {
             console.error('DEBUG AI: Error listing models:', e);
         }
 
-        return 'gemini-1.5-flash';
+        return 'models/gemini-1.5-flash';
     }
 
     private async callGemini(prompt: string): Promise<string> {
@@ -660,8 +660,8 @@ You MUST return ONLY a valid JSON object in this structure:
             const cleanJson = reply.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(cleanJson);
         } catch (e) {
-            console.error('AI Generate Questions Error:', e);
-            return { questions: [] };
+            console.error('AI Generate Questions Error:', e?.message || e);
+            return { questions: [], error: e?.message || 'Unknown AI error' };
         }
     }
 
