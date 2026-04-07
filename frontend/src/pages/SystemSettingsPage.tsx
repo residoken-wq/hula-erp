@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip } from 'antd';
-import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip, Tag, Space } from 'antd';
+import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SettingOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
@@ -112,6 +112,22 @@ const ContractTemplatesTab: React.FC = () => {
     const [editingTemplate, setEditingTemplate] = useState<any>(null);
     const [form] = Form.useForm();
 
+    // Placeholders Management
+    const [customPlaceholders, setCustomPlaceholders] = useState<{key: string, desc: string}[]>([]);
+    const [placeholderModalOpen, setPlaceholderModalOpen] = useState(false);
+    const [placeholderForm] = Form.useForm();
+
+    const fetchPlaceholders = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/system/config/CONTRACT_CUSTOM_PLACEHOLDERS`);
+            if (res.data && res.data.value) {
+                const parsed = JSON.parse(res.data.value);
+                setCustomPlaceholders(parsed);
+                placeholderForm.setFieldsValue({ placeholders: parsed });
+            }
+        } catch (e) { }
+    };
+
     const fetchTemplates = async () => {
         setLoading(true);
         try {
@@ -121,7 +137,25 @@ const ContractTemplatesTab: React.FC = () => {
         setLoading(false);
     };
 
-    useEffect(() => { fetchTemplates(); }, []);
+    useEffect(() => { 
+        fetchTemplates(); 
+        fetchPlaceholders();
+    }, []);
+
+    const handleSavePlaceholders = async (values: any) => {
+        try {
+            await axios.post(`${API_URL}/system/config`, {
+                key: 'CONTRACT_CUSTOM_PLACEHOLDERS',
+                value: JSON.stringify(values.placeholders || []),
+                description: 'Danh sách Placeholder Hợp đồng tự tạo'
+            });
+            message.success('Đã lưu danh sách Placeholder');
+            setPlaceholderModalOpen(false);
+            fetchPlaceholders();
+        } catch (e) {
+            message.error('Lỗi khi lưu Placeholder');
+        }
+    };
 
     const handleSave = async (values: any) => {
         try {
@@ -159,25 +193,59 @@ const ContractTemplatesTab: React.FC = () => {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                 <h3>Danh Sách Mẫu Hợp Đồng</h3>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTemplate(null); form.resetFields(); setModalOpen(true); }}>Tạo Mẫu Mới</Button>
+                <Space>
+                    <Button icon={<SettingOutlined />} onClick={() => setPlaceholderModalOpen(true)}>Cấu Hình Nhãn (Placeholders)</Button>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTemplate(null); form.resetFields(); setModalOpen(true); }}>Tạo Mẫu Mới</Button>
+                </Space>
             </div>
 
             <Alert
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message="Hướng dẫn"
+                message="Hướng dẫn sử dụng Nhãn (Placeholder)"
                 description={
-                    <span>
-                        Sử dụng các placeholder sau trong nội dung:
-                        <Tag style={{ marginLeft: 5 }}>{'{{customer_name}}'}</Tag>
-                        <Tag>{'{{customer_address}}'}</Tag>
-                        <Tag>{'{{customer_tax_code}}'}</Tag>
-                        <Tag>{'{{order_code}}'}</Tag>
-                        <Tag>{'{{order_date}}'}</Tag>
-                        <Tag>{'{{total_amount_text}}'}</Tag>
-                        <Tag>{'{{items_table}}'}</Tag>
-                    </span>
+                    <div style={{ marginTop: 8 }}>
+                        <p style={{ marginBottom: 8, fontSize: 13, color: '#666' }}>Click vào các nhãn dưới đây để copy, sau đó <strong>DÁN</strong> vào trình soạn thảo bằng <code>Ctrl + V</code>.</p>
+                        <Space size={[8, 8]} wrap>
+                            {/* Default Placeholders */}
+                            {[
+                                { key: 'customer_name', desc: 'Tên Khách hàng' },
+                                { key: 'customer_address', desc: 'Địa chỉ Khách hàng' },
+                                { key: 'customer_tax_code', desc: 'Mã số thuế Khách hàng' },
+                                { key: 'order_code', desc: 'Mã Đơn hàng / Hợp đồng' },
+                                { key: 'order_date', desc: 'Ngày tạo đơn' },
+                                { key: 'total_amount_text', desc: 'Tổng tiền bằng chữ' },
+                                { key: 'items_table', desc: 'Bảng chi tiết mặt hàng' }
+                            ].map(p => (
+                                <Tooltip title={`Mặc định: ${p.desc}`} key={p.key}>
+                                    <Tag color="blue" style={{ cursor: 'pointer', padding: '4px 8px', fontSize: 13 }} onClick={() => {
+                                        navigator.clipboard.writeText(`{{${p.key}}}`);
+                                        message.success(`Đã copy: {{${p.key}}}`);
+                                    }}>
+                                        <Space size={4}>
+                                            <CopyOutlined style={{ opacity: 0.6 }} />
+                                            {`{{${p.key}}}`}
+                                        </Space>
+                                    </Tag>
+                                </Tooltip>
+                            ))}
+                            {/* Custom Placeholders */}
+                            {customPlaceholders.map(p => (
+                                <Tooltip title={`Tự định nghĩa: ${p.desc}`} key={p.key}>
+                                    <Tag color="green" style={{ cursor: 'pointer', padding: '4px 8px', fontSize: 13 }} onClick={() => {
+                                        navigator.clipboard.writeText(`{{${p.key}}}`);
+                                        message.success(`Đã copy: {{${p.key}}}`);
+                                    }}>
+                                        <Space size={4}>
+                                            <CopyOutlined style={{ opacity: 0.6 }} />
+                                            {`{{${p.key}}}`}
+                                        </Space>
+                                    </Tag>
+                                </Tooltip>
+                            ))}
+                        </Space>
+                    </div>
                 }
             />
 
@@ -198,6 +266,62 @@ const ContractTemplatesTab: React.FC = () => {
                     <Form.Item name="content" label="Nội dung hợp đồng (HTML/Text)" rules={[{ required: true }]}>
                         <RichTextEditor />
                     </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* Placeholder Config Modal */}
+            <Modal
+                title="Cấu Hình Danh Sách Nhãn (Placeholders)"
+                open={placeholderModalOpen}
+                onCancel={() => setPlaceholderModalOpen(false)}
+                onOk={placeholderForm.submit}
+                width={600}
+                destroyOnClose
+            >
+                <div style={{ marginBottom: 16, color: '#666', fontSize: 13 }}>
+                    Bạn có thể tự định nghĩa các từ khóa Placeholder. Khi xuất hợp đồng, 
+                    hệ thống có thể thay thế bằng dữ liệu tương ứng hoặc bạn để các biến này chờ xử lý.
+                    <br/>Lưu ý: Bạn không thể sửa/xoá các thuộc tính mặc định của hệ thống.
+                </div>
+                <Form form={placeholderForm} layout="vertical" onFinish={handleSavePlaceholders}>
+                    <Form.List name="placeholders">
+                        {(fields, { add, remove }) => (
+                            <>
+                                {fields.map(({ key, name, ...restField }) => (
+                                    <Row key={key} gutter={8} align="middle" style={{ marginBottom: 8 }}>
+                                        <Col flex="180px">
+                                            <Form.Item
+                                                {...restField}
+                                                name={[name, 'key']}
+                                                rules={[{ required: true, message: 'Nhập key' }]}
+                                                style={{ marginBottom: 0 }}
+                                            >
+                                                <Input addonBefore="{{" addonAfter="}}" placeholder="chi_nhanh" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col flex="auto">
+                                            <Form.Item
+                                                {...restField}
+                                                name={[name, 'desc']}
+                                                rules={[{ required: true, message: 'Nhập ghi chú' }]}
+                                                style={{ marginBottom: 0 }}
+                                            >
+                                                <Input placeholder="Chi nhánh văn phòng" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col>
+                                            <MinusCircleOutlined onClick={() => remove(name)} style={{ color: '#ff4d4f', fontSize: 16 }} />
+                                        </Col>
+                                    </Row>
+                                ))}
+                                <Form.Item style={{ marginTop: 16 }}>
+                                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                        Thêm Placeholder tùy chỉnh
+                                    </Button>
+                                </Form.Item>
+                            </>
+                        )}
+                    </Form.List>
                 </Form>
             </Modal>
         </div>
@@ -313,8 +437,6 @@ const CompanyConfigForm = () => {
     );
 };
 
-// Simple Tag component since I don't want to import from antd if it's not already there? 
-// Wait, Tag is in antd. I added it to imports.
-import { Tag } from 'antd'; // Adding to top imports
+
 
 export default SystemSettingsPage;
