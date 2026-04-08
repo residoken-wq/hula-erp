@@ -252,21 +252,76 @@ const ContractTemplatesTab: React.FC = () => {
             <Table dataSource={templates} columns={columns} rowKey="id" loading={loading} pagination={false} />
 
             <Modal
-                title={editingTemplate ? "Chỉnh Sửa Mẫu" : "Tạo Mẫu Mới"}
+                title={editingTemplate ? "Chỉnh Sửa Mẫu Hợp Đồng" : "Tạo Mẫu Mới"}
                 open={modalOpen}
                 onCancel={() => setModalOpen(false)}
                 onOk={form.submit}
-                width={800}
+                width={1200}
+                style={{ top: 20 }}
                 maskClosable={false}
             >
-                <Form form={form} layout="vertical" onFinish={handleSave}>
-                    <Form.Item name="name" label="Tên mẫu" rules={[{ required: true, message: 'Nhập tên mẫu' }]}>
-                        <Input placeholder="VD: Hợp đồng nguyên tắc 2024" />
-                    </Form.Item>
-                    <Form.Item name="content" label="Nội dung hợp đồng (HTML/Text)" rules={[{ required: true }]}>
-                        <RichTextEditor />
-                    </Form.Item>
-                </Form>
+                <Row gutter={24}>
+                    <Col span={17}>
+                        <Form form={form} layout="vertical" onFinish={handleSave}>
+                            <Form.Item name="name" label={<span style={{fontWeight: 600}}>Tên mẫu hợp đồng</span>} rules={[{ required: true, message: 'Nhập tên mẫu' }]}>
+                                <Input placeholder="VD: Hợp đồng nguyên tắc 2024" size="large" />
+                            </Form.Item>
+                            <Form.Item name="content" label={<span style={{fontWeight: 600}}>Nội dung hợp đồng (HTML/Text)</span>} rules={[{ required: true }]}>
+                                <RichTextEditor minHeight={500} />
+                            </Form.Item>
+                        </Form>
+                    </Col>
+                    <Col span={7}>
+                        <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 8, height: '100%' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 12, fontSize: 15 }}>Danh Sách Placeholder</div>
+                            <p style={{ fontSize: 13, color: '#666', marginBottom: 16, lineHeight: 1.4 }}>
+                                Click để copy biến và DÁN (<code>Ctrl+V</code>) vào vị trí cần thiết. Các biến này sẽ được hệ thống dữ liệu tự động thay thế khi in hợp đồng.
+                            </p>
+                            <div style={{ maxHeight: 600, overflowY: 'auto', paddingRight: 4 }}>
+                                <Space size={[8, 12]} wrap direction="vertical" style={{ width: '100%' }}>
+                                    {/* Default Placeholders */}
+                                    {[
+                                        { key: 'customer_name', desc: 'Tên Khách hàng' },
+                                        { key: 'customer_address', desc: 'Địa chỉ Khách hàng' },
+                                        { key: 'customer_tax_code', desc: 'Mã số thuế Khách hàng' },
+                                        { key: 'order_code', desc: 'Mã Đơn hàng / Hợp đồng' },
+                                        { key: 'order_date', desc: 'Ngày tạo đơn' },
+                                        { key: 'total_amount_text', desc: 'Tổng tiền bằng chữ' },
+                                        { key: 'items_table', desc: 'Bảng chi tiết mặt hàng' }
+                                    ].map(p => (
+                                        <div key={p.key} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Tag color="blue" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 13, width: 'fit-content' }} onClick={() => {
+                                                navigator.clipboard.writeText(`{{${p.key}}}`);
+                                                message.success(`Đã copy: {{${p.key}}}`);
+                                            }}>
+                                                <Space size={4}>
+                                                    <CopyOutlined style={{ opacity: 0.6 }} />
+                                                    {`{{${p.key}}}`}
+                                                </Space>
+                                            </Tag>
+                                            <span style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 4 }}>{p.desc}</span>
+                                        </div>
+                                    ))}
+                                    {customPlaceholders.length > 0 && <Divider style={{ margin: '12px 0' }} orientation="left" plain><span style={{fontSize: 12, color: '#aaa'}}>Tự định nghĩa</span></Divider>}
+                                    {customPlaceholders.map(p => (
+                                        <div key={p.key} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Tag color="green" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 13, width: 'fit-content' }} onClick={() => {
+                                                navigator.clipboard.writeText(`{{${p.key}}}`);
+                                                message.success(`Đã copy: {{${p.key}}}`);
+                                            }}>
+                                                <Space size={4}>
+                                                    <CopyOutlined style={{ opacity: 0.6 }} />
+                                                    {`{{${p.key}}}`}
+                                                </Space>
+                                            </Tag>
+                                            <span style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 4 }}>{p.desc}</span>
+                                        </div>
+                                    ))}
+                                </Space>
+                            </div>
+                        </div>
+                    </Col>
+                </Row>
             </Modal>
 
             {/* Placeholder Config Modal */}
