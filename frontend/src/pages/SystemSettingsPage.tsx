@@ -333,11 +333,18 @@ const ContractTemplatesTab: React.FC = () => {
                 width={600}
                 destroyOnClose
             >
-                <div style={{ marginBottom: 16, color: '#666', fontSize: 13 }}>
-                    Bạn có thể tự định nghĩa các từ khóa Placeholder. Khi xuất hợp đồng, 
-                    hệ thống có thể thay thế bằng dữ liệu tương ứng hoặc bạn để các biến này chờ xử lý.
-                    <br/>Lưu ý: Bạn không thể sửa/xoá các thuộc tính mặc định của hệ thống.
-                </div>
+                <Alert
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                    message="Quy tắc tạo mã Placeholder (Mã biến)"
+                    description={
+                        <ul style={{ paddingLeft: 20, margin: 0, fontSize: 13 }}>
+                            <li><strong>Định dạng đúng:</strong> Ghi bằng chữ thường, tiếng Anh không dấu, sử dụng dấu gạch dưới <code>_</code> thay cho dấu cách (VD: <code>contract_value</code>, <code>buyer_email</code>). Không dùng chữ in hoa, không dùng ký tự đặc biệt.</li>
+                            <li><strong>Khớp dữ liệu:</strong> Tên biến phải <strong>chính xác</strong> với các trường dữ liệu trên hệ thống CRM (VD: khách hàng có số điện thoại là `phone` thì đặt biến là <code>customer_phone</code> hoặc <code>buyer_phone</code> tùy thiết lập tính năng in). Nếu đặt sai mã, hệ thống không thể tự lấy dữ liệu điền vào khoảng trống.</li>
+                        </ul>
+                    }
+                />
                 <Form form={placeholderForm} layout="vertical" onFinish={handleSavePlaceholders}>
                     <Form.List name="placeholders">
                         {(fields, { add, remove }) => (
