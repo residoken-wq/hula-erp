@@ -4,6 +4,18 @@ import { PrinterOutlined, ReloadOutlined, SaveOutlined, FileSyncOutlined } from 
 import dayjs from 'dayjs';
 import AttachmentUpload from '../common/AttachmentUpload';
 import api from '../../utils/api';
+import { numberToWords } from '../../utils/numberToWords';
+
+const formatImgUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.includes('drive.google.com/file/d/')) {
+        const match = url.match(/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+        }
+    }
+    return url;
+};
 
 interface Props {
     open: boolean;
@@ -24,6 +36,7 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
     const [previewHtml, setPreviewHtml] = useState('');
     const [customVariables, setCustomVariables] = useState<string[]>([]);
     const [saving, setSaving] = useState(false);
+    const [autoFillValues, setAutoFillValues] = useState<boolean>(true);
 
     // Initial Setup
     useEffect(() => {
@@ -72,6 +85,41 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
         
         return opts;
     }, [initialData]);
+
+    const hulaSuggestions = [
+        { value: 'Công ty Cổ phần Hula', label: 'Pháp nhân: Công ty Cổ phần Hula' },
+        { value: '0101234567', label: 'MST Hula: 0101234567' },
+        { value: 'Hà Nội, Việt Nam', label: 'Địa chỉ: Hà Nội, Việt Nam' },
+        { value: '19001234', label: 'Hotline: 19001234' },
+    ];
+
+    const customerVars = useMemo(() => customVariables.filter(v => ['buyer', 'customer', 'khach_hang', 'ben_mua', 'dai_dien', 'sdt', 'email', 'mst', 'address', 'dia_chi'].some(k => v.toLowerCase().includes(k))), [customVariables]);
+    const hulaVars = useMemo(() => customVariables.filter(v => ['seller', 'hula', 'ben_ban', 'nhan_vien'].some(k => v.toLowerCase().includes(k))), [customVariables]);
+    const orderVars = useMemo(() => customVariables.filter(v => ['total', 'subtotal', 'vat', 'tien', 'gia_tri', 'word', 'discount', 'giam_gia', 'chi_phi'].some(k => v.toLowerCase().includes(k))), [customVariables]);
+    const otherVars = useMemo(() => customVariables.filter(v => !customerVars.includes(v) && !hulaVars.includes(v) && !orderVars.includes(v)), [customVariables, customerVars, hulaVars, orderVars]);
+
+    // Format auto values when toggle changes or when variables loaded
+    useEffect(() => {
+        if (autoFillValues && orderVars.length > 0) {
+            const total = initialData.total_amount || 0;
+            const subtotal = initialData.items?.reduce((sum: number, item: any) => sum + (Number(item.total_price) || 0), 0) || 0;
+            const vat = initialData.vat_amount || 0;
+            
+            const updates: any = {};
+            orderVars.forEach(v => {
+                const vl = v.toLowerCase();
+                if (vl.includes('subtotal') || vl.includes('tien_hang')) updates[v] = subtotal.toLocaleString('vi-VN');
+                else if (vl.includes('vat') || vl.includes('thue')) updates[v] = vat.toLocaleString('vi-VN');
+                else if (vl.includes('word') || vl.includes('bang_chu') || vl.includes('chu')) updates[v] = numberToWords(total);
+                else if (vl.includes('total') || vl.includes('tong_cong')) updates[v] = total.toLocaleString('vi-VN');
+            });
+            if (Object.keys(updates).length > 0) {
+                form.setFieldsValue(updates);
+                // Note: handleGeneratePreview is called debounced from Form onChange anyway but we can trigger it 
+                setTimeout(handleGeneratePreview, 200);
+            }
+        }
+    }, [autoFillValues, orderVars, initialData, form]);
 
     const handleGeneratePreview = async () => {
         const values = form.getFieldsValue();
@@ -153,22 +201,22 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                                 <tr>
                                     <td style="text-align:center; padding: 8px;">${index + 1}</td>
                                     <td style="text-align:center; padding: 8px;">
-                                        ${item.image_url ? `<img src="${item.image_url}" style="width: 50px; height: 50px; object-fit: cover;" />` : ''}
+                                        ${item.image_url ? `<img src="${formatImgUrl(item.image_url)}" style="width: 50px; height: 50px; object-fit: cover;" />` : ''}
                                     </td>
                                     <td style="padding: 8px;">
                                         <div><b>${item.sku || 'SP'}</b></div>
                                         <div style="font-size: 12px; color: #666;">${item.product?.name || ''}</div>
                                     </td>
                                     <td style="text-align:center; padding: 8px;">${item.quantity}</td>
-                                    <td style="text-align:right; padding: 8px;">${(item.unit_price || 0).toLocaleString()}</td>
-                                    <td style="text-align:right; padding: 8px;">${(item.total_price || 0).toLocaleString()}</td>
+                                    <td style="text-align:right; padding: 8px;">${(item.unit_price || 0).toLocaleString('vi-VN')}</td>
+                                    <td style="text-align:right; padding: 8px;">${(item.total_price || 0).toLocaleString('vi-VN')}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
                         <tfoot>
                              <tr>
                                 <td colspan="5" style="text-align:right; padding: 8px; font-weight:bold">Tổng cộng:</td>
-                                <td style="text-align:right; padding: 8px; font-weight:bold">${(initialData.total_amount || 0).toLocaleString()}</td>
+                                <td style="text-align:right; padding: 8px; font-weight:bold">${(initialData.total_amount || 0).toLocaleString('vi-VN')}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -184,7 +232,7 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                     <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px;">
                         ${appendixImages.map(img => `
                             <div style="text-align: center; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
-                                <img src="${img}" style="max-width: 300px; max-height: 300px; object-fit: contain;" />
+                                <img src="${formatImgUrl(img)}" style="max-width: 300px; max-height: 300px; object-fit: contain;" />
                             </div>
                         `).join('')}
                     </div>
@@ -339,24 +387,73 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                         {customVariables.length > 0 && (
                             <>
                                 <Divider style={{ margin: '12px 0' }} />
-                                <Card title={<span style={{ color: '#1890ff' }}>2. Thông Tin Điền Thêm</span>} size="small" bordered={false}>
-                                    <div style={{ marginBottom: 12, fontSize: 13, color: '#666' }}>
-                                        <i>Các biến được phát hiện từ mẫu hợp đồng (gõ để hiển thị gợi ý thông tin của KH):</i>
-                                    </div>
-                                    {customVariables.map(v => (
-                                        <Form.Item key={v} name={v} label={<span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: 12 }}>{`{${v}}`}</span>}>
-                                            <AutoComplete
-                                                options={suggestions}
-                                                placeholder={`Tìm thông tin KH hoặc nhập tự do...`}
-                                                filterOption={(inputValue: string, option: any) =>
-                                                    String(option!.label).toUpperCase().indexOf(inputValue.toUpperCase()) !== -1 ||
-                                                    String(option!.value).toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
-                                                }
-                                                allowClear
-                                            />
-                                        </Form.Item>
-                                    ))}
-                                </Card>
+                                <div style={{ fontWeight: 'bold', color: '#1890ff', marginBottom: 10, fontSize: 15 }}>2. Thông Tin Điền Thêm</div>
+                                <div style={{ marginBottom: 12, fontSize: 13, color: '#666' }}>
+                                    <i>Các biến tùy chỉnh từ mẫu ({customVariables.length} biến):</i>
+                                </div>
+                                
+                                {customerVars.length > 0 && (
+                                    <Card title="🔹 Thông Tin Khách Hàng (Bên Mua)" size="small" bordered={true} style={{ marginBottom: 10, borderColor: '#d9d9d9' }} headStyle={{ background: '#fafafa', fontSize: 13 }}>
+                                        {customerVars.map(v => (
+                                            <Form.Item key={v} name={v} label={<span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: 12 }}>{`{${v}}`}</span>} style={{ marginBottom: 12 }}>
+                                                <AutoComplete
+                                                    options={suggestions}
+                                                    placeholder={`Tìm thông tin KH...`}
+                                                    filterOption={(inputValue: string, option: any) =>
+                                                        String(option!.label).toUpperCase().indexOf(inputValue.toUpperCase()) !== -1 ||
+                                                        String(option!.value).toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                                    }
+                                                    allowClear
+                                                />
+                                            </Form.Item>
+                                        ))}
+                                    </Card>
+                                )}
+
+                                {hulaVars.length > 0 && (
+                                    <Card title="🔸 Thông Tin Hula (Bên Bán)" size="small" bordered={true} style={{ marginBottom: 10, borderColor: '#d9d9d9' }} headStyle={{ background: '#fafafa', fontSize: 13 }}>
+                                        {hulaVars.map(v => (
+                                            <Form.Item key={v} name={v} label={<span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: 12 }}>{`{${v}}`}</span>} style={{ marginBottom: 12 }}>
+                                                <AutoComplete
+                                                    options={hulaSuggestions}
+                                                    placeholder={`Tìm thông tin Hula...`}
+                                                    filterOption={(inputValue: string, option: any) =>
+                                                        String(option!.label).toUpperCase().indexOf(inputValue.toUpperCase()) !== -1 ||
+                                                        String(option!.value).toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                                    }
+                                                    allowClear
+                                                />
+                                            </Form.Item>
+                                        ))}
+                                    </Card>
+                                )}
+
+                                {orderVars.length > 0 && (
+                                    <Card title={<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span>💎 Giá Trị Đơn Hàng</span>
+                                    </div>} size="small" bordered={true} style={{ marginBottom: 10, borderColor: '#d9d9d9' }} headStyle={{ background: '#fafafa', fontSize: 13 }}>
+                                        <div style={{ marginBottom: 10 }}>
+                                            <Checkbox checked={autoFillValues} onChange={(e) => setAutoFillValues(e.target.checked)}>
+                                                Tự động lấy tiền từ hệ thống (SO)
+                                            </Checkbox>
+                                        </div>
+                                        {orderVars.map(v => (
+                                            <Form.Item key={v} name={v} label={<span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: 12 }}>{`{${v}}`}</span>} style={{ marginBottom: 12 }}>
+                                                <Input disabled={autoFillValues && ['subtotal','vat','total','word'].some(k => v.toLowerCase().includes(k))} placeholder={`Tự nhập giá trị...`} />
+                                            </Form.Item>
+                                        ))}
+                                    </Card>
+                                )}
+
+                                {otherVars.length > 0 && (
+                                    <Card title="📌 Thông Tin Khác" size="small" bordered={true} style={{ marginBottom: 10, borderColor: '#d9d9d9' }} headStyle={{ background: '#fafafa', fontSize: 13 }}>
+                                        {otherVars.map(v => (
+                                            <Form.Item key={v} name={v} label={<span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: 12 }}>{`{${v}}`}</span>} style={{ marginBottom: 12 }}>
+                                                 <Input placeholder={`Nhập nội dung cho {${v}}`} />
+                                            </Form.Item>
+                                        ))}
+                                    </Card>
+                                )}
                             </>
                         )}
 
