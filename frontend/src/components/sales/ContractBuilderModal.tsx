@@ -8,13 +8,21 @@ import { numberToWords } from '../../utils/numberToWords';
 
 const formatImgUrl = (url?: string) => {
     if (!url) return '';
-    if (url.includes('drive.google.com/file/d/')) {
+    try {
+        if (url.startsWith('[') || url.startsWith('{')) {
+            const parsed = JSON.parse(url);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                url = parsed[0];
+            }
+        }
+    } catch(e) {}
+    if (url && url.includes('drive.google.com/file/d/')) {
         const match = url.match(/file\/d\/([a-zA-Z0-9_-]+)/);
         if (match && match[1]) {
             return `https://drive.google.com/uc?export=view&id=${match[1]}`;
         }
     }
-    return url;
+    return url || '';
 };
 
 interface Props {
@@ -46,7 +54,7 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
             if (initialData.contract_variables?.appendixImages) {
                  restoredImages = initialData.contract_variables.appendixImages;
             } else {
-                 const itemImages = initialData.items?.filter((i: any) => i.image_url).map((i: any) => i.image_url) || [];
+                 const itemImages = initialData.items?.map((i: any) => i.image_url || i.product?.image_url).filter(Boolean) || [];
                  restoredImages = [...new Set(itemImages)] as string[];
             }
             setAppendixImages(restoredImages);
@@ -101,14 +109,19 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
     // Format auto values when toggle changes or when variables loaded
     useEffect(() => {
         if (autoFillValues && orderVars.length > 0) {
-            const total = initialData.total_amount || 0;
-            const subtotal = initialData.items?.reduce((sum: number, item: any) => sum + (Number(item.total_price) || 0), 0) || 0;
-            const vat = initialData.vat_amount || 0;
+            let subtotal = 0;
+            initialData.items?.forEach((item: any) => {
+                 subtotal += Number(item.quantity || 0) * Number(item.unit_price || 0);
+            });
+            const discountValue = Number(initialData.discount_amount || 0) || (subtotal * Number(initialData.discount_rate || 0) / 100);
+            const subtotalAfterDiscount = subtotal - discountValue;
+            const vat = (subtotalAfterDiscount * Number(initialData.vat_rate || 0)) / 100;
+            const total = subtotalAfterDiscount + vat + Number(initialData.shipping_fee || 0);
             
             const updates: any = {};
             orderVars.forEach(v => {
                 const vl = v.toLowerCase();
-                if (vl.includes('subtotal') || vl.includes('tien_hang')) updates[v] = subtotal.toLocaleString('vi-VN');
+                if (vl.includes('subtotal') || vl.includes('sub_total') || vl.includes('tien_hang')) updates[v] = subtotal.toLocaleString('vi-VN');
                 else if (vl.includes('vat') || vl.includes('thue')) updates[v] = vat.toLocaleString('vi-VN');
                 else if (vl.includes('word') || vl.includes('bang_chu') || vl.includes('chu')) updates[v] = numberToWords(total);
                 else if (vl.includes('total') || vl.includes('tong_cong')) updates[v] = total.toLocaleString('vi-VN');
@@ -201,22 +214,22 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                                 <tr>
                                     <td style="text-align:center; padding: 8px;">${index + 1}</td>
                                     <td style="text-align:center; padding: 8px;">
-                                        ${item.image_url ? `<img src="${formatImgUrl(item.image_url)}" style="width: 50px; height: 50px; object-fit: cover;" />` : ''}
+                                        ${(item.image_url || item.product?.image_url) ? `<img src="${formatImgUrl(item.image_url || item.product?.image_url)}" style="width: 50px; height: 50px; object-fit: cover;" />` : ''}
                                     </td>
                                     <td style="padding: 8px;">
                                         <div><b>${item.sku || 'SP'}</b></div>
                                         <div style="font-size: 12px; color: #666;">${item.product?.name || ''}</div>
                                     </td>
                                     <td style="text-align:center; padding: 8px;">${item.quantity}</td>
-                                    <td style="text-align:right; padding: 8px;">${(item.unit_price || 0).toLocaleString('vi-VN')}</td>
-                                    <td style="text-align:right; padding: 8px;">${(item.total_price || 0).toLocaleString('vi-VN')}</td>
+                                    <td style="text-align:right; padding: 8px;">${Number(item.unit_price || 0).toLocaleString('vi-VN')}</td>
+                                    <td style="text-align:right; padding: 8px;">${(Number(item.quantity || 0) * Number(item.unit_price || 0)).toLocaleString('vi-VN')}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
                         <tfoot>
                              <tr>
                                 <td colspan="5" style="text-align:right; padding: 8px; font-weight:bold">Tổng cộng:</td>
-                                <td style="text-align:right; padding: 8px; font-weight:bold">${(initialData.total_amount || 0).toLocaleString('vi-VN')}</td>
+                                <td style="text-align:right; padding: 8px; font-weight:bold">${Number(initialData.total_amount || 0).toLocaleString('vi-VN')}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -439,7 +452,7 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                                         </div>
                                         {orderVars.map(v => (
                                             <Form.Item key={v} name={v} label={<span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: 12 }}>{`{${v}}`}</span>} style={{ marginBottom: 12 }}>
-                                                <Input disabled={autoFillValues && ['subtotal','vat','total','word'].some(k => v.toLowerCase().includes(k))} placeholder={`Tự nhập giá trị...`} />
+                                                <Input disabled={autoFillValues && ['subtotal', 'sub_total', 'vat', 'total', 'word'].some(k => v.toLowerCase().includes(k))} placeholder={`Tự nhập giá trị...`} />
                                             </Form.Item>
                                         ))}
                                     </Card>
