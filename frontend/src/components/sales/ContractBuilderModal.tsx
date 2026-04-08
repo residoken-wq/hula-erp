@@ -1,37 +1,77 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Form, Select, Button, Checkbox, Row, Col, Input, Divider, Card, Image } from 'antd';
-import { PrinterOutlined, ReloadOutlined } from '@ant-design/icons';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Modal, Form, Select, Button, Checkbox, Row, Col, Input, Divider, Card, AutoComplete, message, Spin } from 'antd';
+import { PrinterOutlined, ReloadOutlined, SaveOutlined, FileSyncOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import AttachmentUpload from '../common/AttachmentUpload';
+import api from '../../utils/api';
 
 interface Props {
     open: boolean;
     onCancel: () => void;
+    onSuccess?: () => void; // Added for reload
     initialData: any; // Order Data
     templates: any[]; // Contract Templates
 }
 
-const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, initialData, templates }) => {
+const BUILT_IN_VARS = [
+    'customer_name', 'customer_address', 'customer_tax_code', 'customer_representative', 'customer_position',
+    'order_code', 'order_date', 'total_amount_text', 'sign_date', 'items_table'
+];
+
+const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, initialData, templates }) => {
     const [form] = Form.useForm();
     const [appendixImages, setAppendixImages] = useState<string[]>([]);
     const [previewHtml, setPreviewHtml] = useState('');
+    const [customVariables, setCustomVariables] = useState<string[]>([]);
+    const [saving, setSaving] = useState(false);
 
     // Initial Setup
     useEffect(() => {
         if (open && initialData) {
-            // Pre-fill images from order items if available
-            const itemImages = initialData.items?.filter((i: any) => i.image_url).map((i: any) => i.image_url) || [];
-            // Remove duplicates
-            setAppendixImages([...new Set(itemImages)] as string[]);
+            // Restore saved appendix images or from items
+            let restoredImages: string[] = [];
+            if (initialData.contract_variables?.appendixImages) {
+                 restoredImages = initialData.contract_variables.appendixImages;
+            } else {
+                 const itemImages = initialData.items?.filter((i: any) => i.image_url).map((i: any) => i.image_url) || [];
+                 restoredImages = [...new Set(itemImages)] as string[];
+            }
+            setAppendixImages(restoredImages);
 
+            const initialVars = initialData.contract_variables || {};
+            
             form.setFieldsValue({
-                template_id: templates.length > 0 ? templates[0].id : undefined,
-                include_product_list: true,
-                sign_date: dayjs()
+                template_id: initialData.contract_template_id || (templates.length > 0 ? templates[0].id : undefined),
+                include_product_list: initialVars.include_product_list !== false,
+                sign_date: initialVars.sign_date ? dayjs(initialVars.sign_date) : dayjs(),
+                ...initialVars
             });
-            handleGeneratePreview(); // Initial preview
+            setTimeout(handleGeneratePreview, 100); // Initial preview
         }
     }, [open, initialData, templates]);
+
+    const suggestions = useMemo(() => {
+        if (!initialData?.customer) return [];
+        const c = initialData.customer;
+        const opts: {value: string, label: string}[] = [];
+        if (c.name) opts.push({ value: c.name, label: `Tên: ${c.name}` });
+        if (c.legal_name) opts.push({ value: c.legal_name, label: `Pháp nhân: ${c.legal_name}` });
+        if (c.phone) opts.push({ value: c.phone, label: `SĐT: ${c.phone}` });
+        if (c.email) opts.push({ value: c.email, label: `Email: ${c.email}` });
+        if (c.tax_code) opts.push({ value: c.tax_code, label: `MST: ${c.tax_code}` });
+        if (c.address) opts.push({ value: c.address, label: `Địa chỉ: ${c.address}` });
+        if (c.legal_address) opts.push({ value: c.legal_address, label: `ĐC Pháp nhân: ${c.legal_address}` });
+        if (c.legal_representative) opts.push({ value: c.legal_representative, label: `Đại diện: ${c.legal_representative}` });
+        
+        // Add contacts
+        c.contacts?.forEach((contact: any) => {
+            if (contact.name) opts.push({ value: contact.name, label: `Liên hệ: ${contact.name}` });
+            if (contact.phone) opts.push({ value: contact.phone, label: `SĐT LH: ${contact.phone}` });
+            if (contact.email) opts.push({ value: contact.email, label: `Email LH: ${contact.email}` });
+        });
+        
+        return opts;
+    }, [initialData]);
 
     const handleGeneratePreview = async () => {
         const values = form.getFieldsValue();
@@ -39,17 +79,27 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, initialData, te
 
         if (!template) {
             setPreviewHtml('<div style="padding:20px; text-align:center; color:#999">Vui lòng chọn mẫu hợp đồng</div>');
+            setCustomVariables([]);
             return;
         }
 
         let content = template.content;
 
-        // 1. Prepare Data
-        const data = {
+        // Extract placeholders from template
+        const matches = content.match(/\{\{([^\}]+)\}\}/g);
+        let extractedVars: string[] = [];
+        if (matches) {
+            extractedVars = matches.map((m: string) => m.replace('{{', '').replace('}}', '').trim());
+            extractedVars = [...new Set(extractedVars)]; // unique
+            extractedVars = extractedVars.filter(v => !BUILT_IN_VARS.includes(v)); // Keep only custom
+        }
+        setCustomVariables(extractedVars);
+
+        const data: any = {
             customer_name: initialData.customer?.name || '...',
             customer_address: initialData.customer?.address || '...',
             customer_tax_code: initialData.customer?.tax_code || '...',
-            customer_representative: initialData.customer?.representative_name || '...',
+            customer_representative: initialData.customer?.representative_name || initialData.customer?.legal_representative || '...',
             customer_position: initialData.customer?.representative_position || 'Giám Đốc',
 
             order_code: initialData.order_code || '...',
@@ -63,8 +113,20 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, initialData, te
 
         // 2. Replace Placeholders
         Object.keys(data).forEach(key => {
-            const regex = new RegExp(`{{${key}}}`, 'g');
-            content = content.replace(regex, (data as any)[key]);
+            if (data[key] !== undefined && data[key] !== null) {
+                // Ensure strictly global replace
+                const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+                content = content.replace(regex, (data as any)[key]);
+            }
+        });
+        
+        // Ensure unknown variables are not completely hidden or left as {{code}}, maybe leave them so user sees they are missing?
+        // We leave them so the user knows they need to fill them, or we can replace them with a red span.
+        extractedVars.forEach(key => {
+             if (!data[key]) {
+                  const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+                  content = content.replace(regex, `<span style="color:red; background: #ffe6e6; border-bottom: 1px dotted red;"> [Điền: ${key}] </span>`);
+             }
         });
 
         // 3. Generate Appendix
@@ -141,6 +203,67 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, initialData, te
         setPreviewHtml(content);
     };
 
+    const handleSave = async (createVersion: boolean = false) => {
+        try {
+            setSaving(true);
+            const values = form.getFieldsValue();
+            
+            // Clean content to not include the red spans when saving (just re-evaluate without replacing empties with red spans)
+            // Actually it is better to generate the clean HTML to save.
+            const template = templates.find(t => t.id === values.template_id);
+            if (!template) {
+                 message.error("Vui lòng chọn mẫu hợp đồng");
+                 return;
+            }
+            
+            let cleanContent = template.content;
+            const dataToSave = {
+                customer_name: initialData.customer?.name || '',
+                customer_address: initialData.customer?.address || '',
+                customer_tax_code: initialData.customer?.tax_code || '',
+                customer_representative: initialData.customer?.representative_name || initialData.customer?.legal_representative || '',
+                customer_position: initialData.customer?.representative_position || '',
+                order_code: initialData.order_code || '',
+                order_date: dayjs(initialData.order_date).format('DD/MM/YYYY'),
+                total_amount_text: (initialData.total_amount || 0).toLocaleString() + ' đ',
+                ...values,
+                sign_date: values.sign_date ? dayjs(values.sign_date).format('DD/MM/YYYY') : '',
+                appendixImages // Include images in variables
+            };
+            
+            Object.keys(dataToSave).forEach(key => {
+                if (dataToSave[key] !== undefined && dataToSave[key] !== null) {
+                    const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+                    cleanContent = cleanContent.replace(regex, (dataToSave as any)[key]);
+                }
+            });
+            // (Note: Optional: We don't append the product table directly into the saved HTML string if we want it strictly dynamic, 
+            // but for a true snapshot, the previewHtml should be what is saved).
+            // Let's just save the `previewHtml` as it represents what the user saw, but we replace the red spans with empty string or keep them.
+            // Actually, `previewHtml` is fine.
+            let finalHtmlToSave = previewHtml.replace(/<span style="color:red; background: #ffe6e6; border-bottom: 1px dotted red;"> \[Điền: [^\]]+\] <\/span>/g, '...');
+            
+            await api.put(`/sales/${initialData.id}`, {
+                contract_template_id: values.template_id,
+                contract_html: finalHtmlToSave,
+                contract_variables: { ...values, appendixImages }
+            });
+            
+            if (createVersion) {
+                await api.post(`/sales/${initialData.id}/revision`);
+                message.success("Đã lưu hợp đồng và tạo Version mới!");
+            } else {
+                message.success("Đã lưu bản nháp hợp đồng thành công!");
+            }
+            
+            if (onSuccess) onSuccess();
+        } catch(e) {
+            message.error("Lỗi khi lưu hợp đồng");
+        } finally {
+            setSaving(false);
+        }
+    };
+
     const handlePrint = () => {
         const printWindow = window.open('', '_blank');
         if (printWindow) {
@@ -183,14 +306,26 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, initialData, te
             width={1200}
             style={{ top: 20 }}
             footer={[
-                <Button key="cancel" onClick={onCancel}>Đóng</Button>,
-                <Button key="print" type="primary" icon={<PrinterOutlined />} onClick={handlePrint} size="large">
-                    In Hợp Đồng
-                </Button>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }} key="footer-group">
+                    <div>
+                        <Button key="save_draft" type="default" icon={<SaveOutlined />} onClick={() => handleSave(false)} loading={saving}>
+                            Lưu Bản Nháp
+                        </Button>
+                        <Button key="save_version" type="dashed" icon={<FileSyncOutlined />} onClick={() => handleSave(true)} loading={saving} style={{ marginLeft: 8 }}>
+                            Lưu & Tạo Version
+                        </Button>
+                    </div>
+                    <div>
+                        <Button key="cancel" onClick={onCancel}>Đóng</Button>
+                        <Button key="print" type="primary" icon={<PrinterOutlined />} onClick={handlePrint} size="middle" style={{ marginLeft: 8 }}>
+                            In Hợp Đồng
+                        </Button>
+                    </div>
+                 </div>
             ]}
         >
             <Row gutter={24} style={{ height: '70vh' }}>
-                <Col span={8} style={{ borderRight: '1px solid #f0f0f0', height: '100%', overflowY: 'auto', paddingRight: 10 }}>
+                <Col span={7} style={{ borderRight: '1px solid #f0f0f0', height: '100%', overflowY: 'auto', paddingRight: 10 }}>
                     <Form form={form} layout="vertical" onValuesChange={() => setTimeout(handleGeneratePreview, 200)}>
                         <Card title="1. Thông Tin Chung" size="small" bordered={false}>
                             <Form.Item name="template_id" label="Mẫu Hợp Đồng">
@@ -201,9 +336,33 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, initialData, te
                             </Form.Item>
                         </Card>
 
+                        {customVariables.length > 0 && (
+                            <>
+                                <Divider style={{ margin: '12px 0' }} />
+                                <Card title={<span style={{ color: '#1890ff' }}>2. Thông Tin Điền Thêm</span>} size="small" bordered={false}>
+                                    <div style={{ marginBottom: 12, fontSize: 13, color: '#666' }}>
+                                        <i>Các biến được phát hiện từ mẫu hợp đồng (gõ để hiển thị gợi ý thông tin của KH):</i>
+                                    </div>
+                                    {customVariables.map(v => (
+                                        <Form.Item key={v} name={v} label={<span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: 12 }}>{`{${v}}`}</span>}>
+                                            <AutoComplete
+                                                options={suggestions}
+                                                placeholder={`Tìm thông tin KH hoặc nhập tự do...`}
+                                                filterOption={(inputValue: string, option: any) =>
+                                                    String(option!.label).toUpperCase().indexOf(inputValue.toUpperCase()) !== -1 ||
+                                                    String(option!.value).toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                                }
+                                                allowClear
+                                            />
+                                        </Form.Item>
+                                    ))}
+                                </Card>
+                            </>
+                        )}
+
                         <Divider style={{ margin: '12px 0' }} />
 
-                        <Card title="2. Nội Dung Phụ Lục" size="small" bordered={false}>
+                        <Card title={`${customVariables.length > 0 ? '3' : '2'}. Nội Dung Phụ Lục`} size="small" bordered={false}>
                             <Form.Item name="include_product_list" valuePropName="checked">
                                 <Checkbox>Bao gồm Danh Sách Sản Phẩm</Checkbox>
                             </Form.Item>
@@ -233,13 +392,15 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, initialData, te
                         </Card>
                     </Form>
                 </Col>
-                <Col span={16} style={{ height: '100%', overflowY: 'auto', background: '#f5f5f5', padding: 20 }}>
+                <Col span={17} style={{ height: '100%', overflowY: 'auto', background: '#e8e8e8', padding: '20px 40px' }}>
+                    {saving && <Spin spinning style={{position: 'absolute', top: '50%', left: '50%', zIndex: 10}}/>}
                     <div
                         style={{
                             background: 'white',
-                            padding: '40px',
+                            padding: '40px 60px',
                             minHeight: '100%',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+                            opacity: saving ? 0.6 : 1
                         }}
                         dangerouslySetInnerHTML={{ __html: previewHtml }}
                     />

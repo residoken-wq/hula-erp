@@ -323,6 +323,11 @@ export class SalesService {
         if (data.deposit_amount !== undefined) order.deposit_amount = Number(data.deposit_amount);
         if (data.assigned_to_id !== undefined) order.assigned_to = data.assigned_to_id ? { id: data.assigned_to_id } as any : null;
 
+        // --- CONTRACT BUILDER DATA ---
+        if (data.contract_html !== undefined) order.contract_html = data.contract_html;
+        if (data.contract_variables !== undefined) order.contract_variables = data.contract_variables;
+        if (data.contract_template_id !== undefined) order.contract_template_id = data.contract_template_id;
+
         if (data.items) {
             console.log('--- UPDATING ITEMS ---');                    // DEBUG
             console.log(JSON.stringify(data.items, null, 2));         // DEBUG

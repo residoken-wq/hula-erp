@@ -667,11 +667,16 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             <div style={{ fontWeight: 600, marginBottom: 10, color: '#1890ff' }}><FileTextOutlined /> TẠO HỢP ĐỒNG</div>
                             <Row gutter={16} align="middle">
                                 <Col flex="auto">
-                                    <i>Soạn thảo hợp đồng, chọn mẫu và thêm phụ lục hình ảnh.</i>
+                                    <i>Soạn thảo hợp đồng, tự động điền biến và thêm phụ lục hình ảnh.</i>
+                                    {initialData?.contract_html && (
+                                        <div style={{ color: '#52c41a', marginTop: 5, fontSize: 13 }}>
+                                            <CheckCircleOutlined /> Đã có bản nháp hợp đồng lưu trên hệ thống
+                                        </div>
+                                    )}
                                 </Col>
                                 <Col>
-                                    <Button type="primary" icon={<PrinterOutlined />} onClick={() => setContractBuilderOpen(true)}>
-                                        Soạn Thảo & In Hợp Đồng
+                                    <Button type={initialData?.contract_html ? "default" : "primary"} icon={<PrinterOutlined />} onClick={() => setContractBuilderOpen(true)}>
+                                        {initialData?.contract_html ? 'Mở Hợp Đồng Đã Lưu' : 'Soạn Thảo & In Hợp Đồng'}
                                     </Button>
                                 </Col>
                             </Row>
@@ -783,6 +788,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             <ContractBuilderModal
                 open={contractBuilderOpen}
                 onCancel={() => setContractBuilderOpen(false)}
+                onSuccess={onSuccess}
                 initialData={initialData}
                 templates={contractTemplates}
             />
