@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import useMobile from '../hooks/useMobile'; // <--- Import Hook
 import { FloatButton } from 'antd'; // <--- Import FloatButton
+import { InputNumber } from 'antd'; // <--- Import InputNumber
 
 const { Header, Content } = Layout;
 const { Title, Text } = Typography;
@@ -41,6 +42,7 @@ const PosPage: React.FC = () => {
     const [vatRate, setVatRate] = useState<number>(0);
     const [printModalVisible, setPrintModalVisible] = useState<boolean>(false);
     const [printedOrder, setPrintedOrder] = useState<any>(null);
+    const [shippingFee, setShippingFee] = useState<number>(0);
 
     // Initial Data Fetch
     useEffect(() => {
@@ -114,6 +116,7 @@ const PosPage: React.FC = () => {
                 })),
                 total_amount: totalAmount,
                 vat_rate: vatRate,
+                shipping_fee: shippingFee,
                 status: 'COMPLETED', // Auto complete for retail
                 billing_address: 'Tại quầy',
                 notes: 'Đơn bán lẻ POS' // Identify source
@@ -124,6 +127,7 @@ const PosPage: React.FC = () => {
             setCart([]);
             setSelectedCustomer(null);
             setVatRate(0);
+            setShippingFee(0);
 
             if (res.data) {
                 setPrintedOrder(res.data);
@@ -158,7 +162,7 @@ const PosPage: React.FC = () => {
     const categories = useMemo(() => [...new Set(products.map(p => p.category || 'Khác'))], [products]);
     const subtotalAmount = cart.reduce((acc, item) => acc + (item.qty * item.base_price), 0);
     const vatAmount = subtotalAmount * vatRate / 100;
-    const totalAmount = subtotalAmount + vatAmount;
+    const totalAmount = subtotalAmount + vatAmount + shippingFee;
     const totalQty = cart.reduce((acc, item) => acc + item.qty, 0);
 
     // --- RENDER HELPERS ---
@@ -317,6 +321,19 @@ const PosPage: React.FC = () => {
                         <Text strong>{Number(vatAmount).toLocaleString('vi-VN')}đ</Text>
                     </div>
                 )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
+                    <Text>Phí vận chuyển:</Text>
+                    <InputNumber
+                        value={shippingFee}
+                        min={0}
+                        onChange={(val) => setShippingFee(val === null ? 0 : Number(val))}
+                        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                        parser={(value) => value!.replace(/\$\s?|(,*)/g, '') as any}
+                        style={{ width: 120, marginLeft: 10 }}
+                        size="small"
+                        addonAfter="đ"
+                    />
+                </div>
                 <Divider style={{ margin: '12px 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center' }}>
                     <Title level={4} style={{ margin: 0 }}>Tổng:</Title>
@@ -500,6 +517,12 @@ const PosPage: React.FC = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                             <span>VAT ({printedOrder.vat_rate}%):</span>
                             <span>{Number(vatVal).toLocaleString('vi-VN')}đ</span>
+                        </div>
+                    )}
+                    {printedOrder.shipping_fee > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                            <span>Phí vận chuyển:</span>
+                            <span>{Number(printedOrder.shipping_fee).toLocaleString('vi-VN')}đ</span>
                         </div>
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: 15, marginTop: 5 }}>
