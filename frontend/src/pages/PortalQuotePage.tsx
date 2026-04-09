@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag, Empty } from 'antd';
+import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag, Empty, Dropdown } from 'antd';
 import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
@@ -137,7 +137,7 @@ const PortalQuotePage: React.FC = () => {
     };
 
     // --- PRINT ORDER: A4 Portrait XÁC NHẬN ĐƠN ĐẶT HÀNG ---
-    const handlePrintOrder = () => {
+    const handlePrintOrder = (mode: 'standard' | 'retail' | 'pos' = 'standard') => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
 
@@ -166,6 +166,99 @@ const PortalQuotePage: React.FC = () => {
         // QR Code
         const qrAmount = Math.floor(remaining > 0 ? remaining : total);
         const qrLink = `https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${qrAmount}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`;
+
+        if (mode === 'pos') {
+            const posHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Hóa Đơn POS - ${data.order_code}</title>
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #pos-receipt, #pos-receipt * { visibility: visible; }
+            #pos-receipt { position: absolute; left: 0; top: 0; width: 300px; margin: 0; padding: 0; }
+            html, body { background: #fff; height: auto; margin: 0; }
+        }
+    </style>
+</head>
+<body style="background: #f0f0f0; display: flex; justify-content: center; padding: 20px;">
+    <div id="pos-receipt" style="width: 300px; font-family: monospace; color: #000; font-size: 13px; padding: 10px; background: #fff;">
+        <div style="text-align: center; margin-bottom: 10px;">
+            <h2 style="margin: 0; font-size: 18px;">HULA ERP</h2>
+            <div>Hóa Đơn Bán Lẻ POS</div>
+            <div>================================</div>
+        </div>
+        <div style="margin-bottom: 10px;">
+            <div><strong>Mã đơn:</strong> ${data.order_code}</div>
+            <div><strong>Ngày:</strong> ${dayjs(data.order_date || new Date()).format('DD/MM/YYYY HH:mm')}</div>
+            <div><strong>Khách hàng:</strong> ${customerName}</div>
+        </div>
+        <div>================================</div>
+        <table style="width: 100%; margin-bottom: 10px; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px dashed #000;">
+                    <th style="text-align: left; padding-bottom: 5px;">SP</th>
+                    <th style="text-align: center; padding-bottom: 5px; width: 30px;">SL</th>
+                    <th style="text-align: right; padding-bottom: 5px; width: 80px;">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${(data.items || []).map((item: any) => {
+                    const productName = item.product_name_real || item.product?.name || item.sku;
+                    return \`
+                    <tr>
+                        <td style="padding: 5px 0; vertical-align: top;">
+                            <div style="max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">\${productName}</div>
+                            <span style="font-size: 11px;">\${Number(item.unit_price).toLocaleString('vi-VN')}</span>
+                        </td>
+                        <td style="text-align: center; vertical-align: top; padding-top: 5px;">\${item.quantity}</td>
+                        <td style="text-align: right; vertical-align: top; padding-top: 5px;">\${Number(item.subtotal).toLocaleString('vi-VN')}</td>
+                    </tr>
+                    \`;
+                }).join('')}
+            </tbody>
+        </table>
+        <div>================================</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>Cộng tiền hàng:</span>
+            <span>${subTotal.toLocaleString('vi-VN')}đ</span>
+        </div>
+        ${discountAmount > 0 ? \`<div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #52c41a;">
+            <span>Giảm giá:</span>
+            <span>-\${discountAmount.toLocaleString('vi-VN')}đ</span>
+        </div>\` : ''}
+        ${vatAmount > 0 ? \`<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>VAT (\${vatRate}%):</span>
+            <span>\${vatAmount.toLocaleString('vi-VN')}đ</span>
+        </div>\` : ''}
+        ${shippingFee > 0 ? \`<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>Phí vận chuyển:</span>
+            <span>\${shippingFee.toLocaleString('vi-VN')}đ</span>
+        </div>\` : ''}
+        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; margin-top: 5px;">
+            <span>TỔNG CỘNG:</span>
+            <span>${total.toLocaleString('vi-VN')}đ</span>
+        </div>
+        ${paidAmount > 0 ? \`<div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #52c41a; font-weight: bold;">
+            <span>Đã cọc:</span>
+            <span>\${paidAmount.toLocaleString('vi-VN')}đ</span>
+        </div>\` : ''}
+        <div style="text-align: center; margin-top: 20px;">
+            <div style="margin-bottom: 5px; font-size: 12px;">Quét mã để thanh toán / Chuyển khoản</div>
+            <img src="${qrLink}" alt="VietQR" style="width: 180px; height: 180px;" />
+        </div>
+        <div style="text-align: center; margin-top: 15px; font-size: 12px; border-top: 1px dashed #000; padding-top: 10px;">
+            Trân trọng cảm ơn quý khách!
+        </div>
+    </div>
+    <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
+            printWindow.document.write(posHtml);
+            printWindow.document.close();
+            return;
+        }
 
         // Product items HTML
         const itemsHtml = (data.items || []).map((item: any, idx: number) => {
@@ -319,6 +412,7 @@ const PortalQuotePage: React.FC = () => {
         </div>
         
         <!-- PARTY INFO -->
+        ${mode === 'retail' ? '' : `
         <div class="parties">
             <div class="party-box party-a">
                 <div class="party-label">Bên bán (Party A)</div>
@@ -332,10 +426,11 @@ const PortalQuotePage: React.FC = () => {
                 <div class="party-row"><b>${vatCompany || customerName}</b></div>
                 <div class="party-row">📍 ${vatAddress || customerAddress || '...'}</div>
                 <div class="party-row">📞 ${customerPhone || '...'}</div>
-                ${vatTax ? `<div class="party-row">MST: <b>${vatTax}</b></div>` : ''}
+                ${vatTax ? \`<div class="party-row">MST: <b>\${vatTax}</b></div>\` : ''}
                 <div class="party-row">Người nhận: <b>${data.receiver_name || customerName}</b></div>
             </div>
         </div>
+        `}
 
         ${data.note ? `
         <div class="note-box">
@@ -420,6 +515,7 @@ const PortalQuotePage: React.FC = () => {
         </div>
         
         <!-- SIGNATURES -->
+        ${mode === 'retail' ? '' : `
         <div class="signatures">
             <div class="sig-col">
                 <div class="sig-role">Đại diện khách hàng</div>
@@ -433,6 +529,7 @@ const PortalQuotePage: React.FC = () => {
                 <div style="font-weight:700;">${data.assigned_to?.full_name || ''}</div>
             </div>
         </div>
+        `}
         
         <div class="page-footer">
             Xác nhận đơn đặt hàng được tạo tự động bởi Hula ERP &bull; ${window.location.origin}/portal/${data.uuid}
@@ -728,7 +825,15 @@ const PortalQuotePage: React.FC = () => {
                         <Col>
                             <Space>
                                 <Button icon={<LinkOutlined />} onClick={() => { navigator.clipboard.writeText(window.location.href); message.success('Đã copy link!'); }}>Copy Link</Button>
-                                <Button icon={<PrinterOutlined />} onClick={handlePrintOrder}>In Đơn Hàng (A4)</Button>
+                                <Dropdown menu={{
+                                    items: [
+                                        { key: 'standard', label: 'Mẫu công ty (B2B)', onClick: () => handlePrintOrder('standard') },
+                                        { key: 'retail', label: 'Mẫu khách lẻ (Rút gọn)', onClick: () => handlePrintOrder('retail') },
+                                        { key: 'pos', label: 'Mẫu POS (Hóa đơn dọc)', onClick: () => handlePrintOrder('pos') }
+                                    ]
+                                }}>
+                                    <Button icon={<PrinterOutlined />}>In Đơn Hàng (A4)</Button>
+                                </Dropdown>
                             </Space>
                         </Col>
                     </Row>
