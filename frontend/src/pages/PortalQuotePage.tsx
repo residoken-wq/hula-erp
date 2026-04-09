@@ -206,16 +206,16 @@ const PortalQuotePage: React.FC = () => {
             <tbody>
                 ${(data.items || []).map((item: any) => {
                     const productName = item.product_name_real || item.product?.name || item.sku;
-                    return \`
+                    return `
                     <tr>
                         <td style="padding: 5px 0; vertical-align: top;">
-                            <div style="max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">\${productName}</div>
-                            <span style="font-size: 11px;">\${Number(item.unit_price).toLocaleString('vi-VN')}</span>
+                            <div style="max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${productName}</div>
+                            <span style="font-size: 11px;">${Number(item.unit_price).toLocaleString('vi-VN')}</span>
                         </td>
-                        <td style="text-align: center; vertical-align: top; padding-top: 5px;">\${item.quantity}</td>
-                        <td style="text-align: right; vertical-align: top; padding-top: 5px;">\${Number(item.subtotal).toLocaleString('vi-VN')}</td>
+                        <td style="text-align: center; vertical-align: top; padding-top: 5px;">${item.quantity}</td>
+                        <td style="text-align: right; vertical-align: top; padding-top: 5px;">${Number(item.subtotal).toLocaleString('vi-VN')}</td>
                     </tr>
-                    \`;
+                    `;
                 }).join('')}
             </tbody>
         </table>
@@ -224,26 +224,26 @@ const PortalQuotePage: React.FC = () => {
             <span>Cộng tiền hàng:</span>
             <span>${subTotal.toLocaleString('vi-VN')}đ</span>
         </div>
-        ${discountAmount > 0 ? \`<div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #52c41a;">
+        ${discountAmount > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #52c41a;">
             <span>Giảm giá:</span>
-            <span>-\${discountAmount.toLocaleString('vi-VN')}đ</span>
-        </div>\` : ''}
-        ${vatAmount > 0 ? \`<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>VAT (\${vatRate}%):</span>
-            <span>\${vatAmount.toLocaleString('vi-VN')}đ</span>
-        </div>\` : ''}
-        ${shippingFee > 0 ? \`<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>-${discountAmount.toLocaleString('vi-VN')}đ</span>
+        </div>` : ''}
+        ${vatAmount > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>VAT (${vatRate}%):</span>
+            <span>${vatAmount.toLocaleString('vi-VN')}đ</span>
+        </div>` : ''}
+        ${shippingFee > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span>Phí vận chuyển:</span>
-            <span>\${shippingFee.toLocaleString('vi-VN')}đ</span>
-        </div>\` : ''}
+            <span>${shippingFee.toLocaleString('vi-VN')}đ</span>
+        </div>` : ''}
         <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; margin-top: 5px;">
             <span>TỔNG CỘNG:</span>
             <span>${total.toLocaleString('vi-VN')}đ</span>
         </div>
-        ${paidAmount > 0 ? \`<div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #52c41a; font-weight: bold;">
+        ${paidAmount > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #52c41a; font-weight: bold;">
             <span>Đã cọc:</span>
-            <span>\${paidAmount.toLocaleString('vi-VN')}đ</span>
-        </div>\` : ''}
+            <span>${paidAmount.toLocaleString('vi-VN')}đ</span>
+        </div>` : ''}
         <div style="text-align: center; margin-top: 20px;">
             <div style="margin-bottom: 5px; font-size: 12px;">Quét mã để thanh toán / Chuyển khoản</div>
             <img src="${qrLink}" alt="VietQR" style="width: 180px; height: 180px;" />
