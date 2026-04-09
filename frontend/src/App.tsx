@@ -41,6 +41,7 @@ const UsersPage = React.lazy(() => import('./pages/UsersPage'));
 const UserGroupsPage = React.lazy(() => import('./pages/UserGroupsPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 const InventoryPage = React.lazy(() => import('./pages/InventoryPage'));
+const SampleInventoryPage = React.lazy(() => import('./pages/inventory/SampleInventoryPage'));
 const FinancePage = React.lazy(() => import('./pages/FinancePage'));
 const TasksPage = React.lazy(() => import('./pages/TasksPage'));
 const PurchasingPage = React.lazy(() => import('./pages/PurchasingPage'));
@@ -161,6 +162,7 @@ const App: React.FC = () => {
                 getItem(<Link to="/suppliers">Nhà cung cấp (NPL)</Link>, 'supp'),
                 getItem(<Link to="/manufacturers">Nhà gia công</Link>, 'manu'),
                 getItem(<Link to="/inventory">Nhập xuất kho</Link>, '4'),
+                getItem(<Link to="/inventory/samples">Kho hàng mẫu</Link>, 'inv_samples'),
             ]));
         }
 
@@ -318,6 +320,7 @@ const App: React.FC = () => {
                                                         <Route path="/suppliers" element={<SuppliersPage />} />
                                                         <Route path="/manufacturers" element={<ManufacturersPage />} />
                                                         <Route path="/inventory" element={<InventoryPage />} />
+                                                        <Route path="/inventory/samples" element={<SampleInventoryPage />} />
                                                     </>
                                                 )}
 

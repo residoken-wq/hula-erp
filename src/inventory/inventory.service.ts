@@ -105,10 +105,12 @@ export class InventoryService {
 
     await this.stockRepo.save(stockRecord);
 
-    // 4. Cập nhật Tổng Tồn vào Master (để hiển thị nhanh)
+    // 4. Cập nhật Tổng Tồn vào Master (để hiển thị nhanh - Bỏ qua KHO_MAU)
     // Tính tổng lại từ bảng inventory_stock cho chính xác
     const allStocks = await this.stockRepo.find({ where: { item_type: itemType, item_id: itemId } });
-    const totalQty = allStocks.reduce((sum, s) => sum + Number(s.quantity), 0);
+    const totalQty = allStocks
+      .filter(s => s.warehouse_code !== 'KHO_MAU')
+      .reduce((sum, s) => sum + Number(s.quantity), 0);
 
     if (itemType === 'PRODUCT') {
       await this.productRepo.update(itemId, { quantity_in_stock: totalQty });

@@ -14,6 +14,10 @@ import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.en
 import { SalesDelivery } from '../sales/sales-delivery.entity'; // <--- Import SalesDelivery
 import { ShippingCarrier } from './entities/shipping-carrier.entity'; // <--- Import ShippingCarrier
 import { ProductsModule } from '../products/products.module'; // <--- Import ProductsModule for Combos
+import { SampleTransaction } from './samples/sample-transaction.entity';
+import { SampleTransactionItem } from './samples/sample-transaction-item.entity';
+import { InventorySamplesService } from './samples/inventory-samples.service';
+import { InventorySamplesController } from './samples/inventory-samples.controller';
 
 @Module({
   imports: [
@@ -29,12 +33,14 @@ import { ProductsModule } from '../products/products.module'; // <--- Import Pro
       PurchaseOrder,
       PurchaseOrderItem,
       SalesDelivery, // <--- Register SalesDelivery
-      ShippingCarrier // <--- Register ShippingCarrier
+      ShippingCarrier, // <--- Register ShippingCarrier
+      SampleTransaction,
+      SampleTransactionItem
     ]),
     ProductsModule // <--- Register ProductsModule
   ],
-  controllers: [InventoryController],
-  providers: [InventoryService],
-  exports: [InventoryService],
+  controllers: [InventoryController, InventorySamplesController],
+  providers: [InventoryService, InventorySamplesService],
+  exports: [InventoryService, InventorySamplesService],
 })
 export class InventoryModule { }

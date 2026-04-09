@@ -63,6 +63,8 @@ import { PurchaseOrder } from './purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from './purchasing/entities/purchase-order-item.entity';
 import { GoodsReceipt } from './inventory/entities/goods-receipt.entity';
 import { GoodsReceiptItem } from './inventory/entities/goods-receipt-item.entity';
+import { SampleTransaction } from './inventory/samples/sample-transaction.entity';
+import { SampleTransactionItem } from './inventory/samples/sample-transaction-item.entity';
 
 import { ProductionOrder } from './production/entities/production-order.entity';
 
@@ -155,7 +157,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           SalesChecklist, SalesChecklistItem,
           PriceList, PriceListRule, SalesOrderVersion, SalesTarget,
           PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
-          StockHistory, InventoryStock, ShippingCarrier,
+          StockHistory, InventoryStock, ShippingCarrier, SampleTransaction, SampleTransactionItem,
           ProductionOrder,
           Transaction, TransactionCategory,
           Task, TaskTimeLog, Notification,
