@@ -1,5 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { SampleTransactionItem } from './sample-transaction-item.entity';
+import { Customer } from '../../customers/customer.entity';
 
 export enum SampleTransactionType {
     IMPORT = 'IMPORT',
@@ -32,6 +33,16 @@ export class SampleTransaction {
 
     @Column({ nullable: true })
     reference_id: number;
+
+    @ManyToOne(() => Customer, { nullable: true })
+    @JoinColumn({ name: 'customer_id' })
+    customer: Customer;
+
+    @Column({ nullable: true })
+    customer_id: number;
+
+    @Column('decimal', { precision: 15, scale: 2, default: 0 })
+    deposit_amount: number;
 
     @Column({ nullable: true })
     note: string;

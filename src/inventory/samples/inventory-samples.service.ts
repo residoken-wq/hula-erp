@@ -22,6 +22,8 @@ export class InventorySamplesService {
         type: SampleTransactionType;
         reference_type?: string;
         reference_id?: number;
+        customer_id?: number;
+        deposit_amount?: number;
         note?: string;
         created_by?: string;
         items: { product_id: number; quantity: number; note?: string }[];
@@ -38,6 +40,8 @@ export class InventorySamplesService {
             type: data.type,
             reference_type: data.reference_type,
             reference_id: data.reference_id,
+            customer_id: data.customer_id,
+            deposit_amount: data.deposit_amount || 0,
             note: data.note,
             status: SampleTransactionStatus.DRAFT,
             created_by: data.created_by
@@ -60,7 +64,7 @@ export class InventorySamplesService {
 
     async getTransactions() {
         return this.txRepo.find({
-            relations: ['items', 'items.product'],
+            relations: ['items', 'items.product', 'customer'],
             order: { created_at: 'DESC' }
         });
     }
@@ -68,7 +72,7 @@ export class InventorySamplesService {
     async getTransaction(id: number) {
         return this.txRepo.findOne({
             where: { id },
-            relations: ['items', 'items.product']
+            relations: ['items', 'items.product', 'customer']
         });
     }
 

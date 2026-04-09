@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Typography, Card, Table, Button, Tabs, Space, Modal, Form, InputNumber, Input, Select, message, Tag, Popconfirm } from 'antd';
+import { Layout, Typography, Card, Table, Button, Tabs, Space, Modal, Form, InputNumber, Input, Select, message, Tag, Popconfirm, Row, Col } from 'antd';
 import { PlusOutlined, HistoryOutlined, CheckCircleOutlined, AppstoreOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
@@ -12,6 +12,9 @@ const SampleInventoryPage: React.FC = () => {
     const [stocks, setStocks] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
     const [products, setProducts] = useState<any[]>([]);
+    const [customers, setCustomers] = useState<any[]>([]);
+    const [salesOrders, setSalesOrders] = useState<any[]>([]);
+    const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
     
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,9 +25,23 @@ const SampleInventoryPage: React.FC = () => {
 
     useEffect(() => {
         fetchProducts();
+        fetchSalesAndCustomers();
         if (activeTab === 'stocks') fetchStocks();
         if (activeTab === 'transactions') fetchTransactions();
     }, [activeTab]);
+
+    const fetchSalesAndCustomers = async () => {
+        try {
+            const [custRes, soRes] = await Promise.all([
+                api.get('/customers'),
+                api.get('/sales')
+            ]);
+            setCustomers(Array.isArray(custRes.data) ? custRes.data : []);
+            setSalesOrders(Array.isArray(soRes.data) ? soRes.data : []);
+        } catch (e) {
+            console.error('Error fetching customers or SOs');
+        }
+    };
 
     const fetchProducts = async () => {
         try {
@@ -102,6 +119,106 @@ const SampleInventoryPage: React.FC = () => {
         }
     };
 
+    const handlePrintExport = (tx: any) => {
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        if (!printWindow) return message.error('Vui lòng cho phép popup để in');
+
+        const customerName = tx.customer?.name || '..............................................';
+        const customerAddress = tx.customer?.address || '..............................................';
+        const customerPhone = tx.customer?.phone || '......................';
+        const deposit = tx.deposit_amount ? Number(tx.deposit_amount).toLocaleString('vi-VN') + ' VNĐ' : '0 VNĐ';
+
+        let html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Phiếu Xuất Kho Hàng Mẫu - ${tx.code}</title>
+    <style>
+        body { font-family: 'Times New Roman', serif; font-size: 14px; color: #000; padding: 20px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+        .company-info { font-size: 13px; line-height: 1.5; }
+        .title { text-align: center; margin-bottom: 30px; }
+        .title h2 { margin: 0; font-size: 22px; font-weight: bold; text-transform: uppercase; }
+        .title p { margin: 5px 0 0 0; font-style: italic; }
+        .info-group { margin-bottom: 20px; line-height: 1.6; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+        th { font-weight: bold; text-align: center; background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; }
+        .signatures { display: flex; justify-content: space-around; margin-top: 50px; text-align: center; }
+        .sig-box { width: 30%; }
+        .sig-box strong { display: block; margin-bottom: 70px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-info">
+            <strong>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</strong><br>
+            📍 74/21/2A Nguyễn Khuyến, P.12, Q.Bình Thạnh, TP.HCM<br>
+            📞 0983.882210 - 0983.796654<br>
+            MST: 0311.874.522
+        </div>
+        <div style="text-align: right;">
+            <strong>Mã phiếu:</strong> ${tx.code}<br>
+            <strong>Ngày lập:</strong> ${dayjs(tx.created_at).format('DD/MM/YYYY')}
+        </div>
+    </div>
+
+    <div class="title">
+        <h2>PHIẾU XUẤT KHO HÀNG MẪU</h2>
+        <p>(Kèm theo đơn: ${tx.reference_type} #${tx.reference_id || '......'})</p>
+    </div>
+
+    <div class="info-group">
+        Khách hàng nhận mẫu: <b>${customerName}</b><br>
+        Số điện thoại: <b>${customerPhone}</b><br>
+        Địa chỉ: <b>${customerAddress}</b><br>
+        Ghi chú: ${tx.note || '..............................................'}<br>
+        <strong>Tiền cọc mẫu: <span style="font-size: 16px;">${deposit}</span></strong>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 50px;">STT</th>
+                <th>Tên Sản Phẩm Mẫu</th>
+                <th style="width: 80px;">Số Lượng</th>
+                <th>Ghi chú</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${(tx.items || []).map((item: any, idx: number) => `
+            <tr>
+                <td style="text-align: center;">${idx + 1}</td>
+                <td>${item.product?.sku} - ${item.product?.name || ''}</td>
+                <td style="text-align: center;">${item.quantity}</td>
+                <td>${item.note || ''}</td>
+            </tr>
+            `).join('')}
+        </tbody>
+    </table>
+
+    <div class="signatures">
+        <div class="sig-box">
+            <strong>Người Nhận Mẫu</strong>
+            <i>(Ký, ghi rõ họ tên)</i>
+        </div>
+        <div class="sig-box">
+            <strong>Người Giao</strong>
+            <i>(Ký, ghi rõ họ tên)</i>
+        </div>
+        <div class="sig-box">
+            <strong>Quản Lý Duyệt</strong>
+            <i>(Ký, ghi rõ họ tên)</i>
+        </div>
+    </div>
+
+    <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
+        printWindow.document.write(html);
+        printWindow.document.close();
+    };
+
     const stockColumns = [
         { title: 'Item ID', dataIndex: 'item_id', width: 80 },
         { 
@@ -157,6 +274,9 @@ const SampleInventoryPage: React.FC = () => {
                                 <Button size="small" danger icon={<DeleteOutlined />} />
                             </Popconfirm>
                         </>
+                    )}
+                    {r.type === 'EXPORT' && (
+                        <Button size="small" onClick={() => handlePrintExport(r)}>In Phiếu</Button>
                     )}
                 </Space>
             )
@@ -223,24 +343,55 @@ const SampleInventoryPage: React.FC = () => {
                 open={isModalOpen}
                 onCancel={() => setIsModalOpen(false)}
                 onOk={() => form.submit()}
-                width={700}
+                width={1000}
                 destroyOnClose
             >
                 <Form form={form} layout="vertical" onFinish={handleCreateTransaction}>
                     {modalType === 'EXPORT' && (
-                        <Space style={{ display: 'flex' }}>
-                            <Form.Item name="reference_type" label="Loại chứng từ">
-                                <Select style={{ width: 150 }} placeholder="Chọn loại">
-                                    <Option value="LEAD">Khách tiềm năng (Lead)</Option>
-                                    <Option value="QUOTE">Báo giá (Quote)</Option>
-                                    <Option value="SO">Đơn hàng (SO)</Option>
-                                    <Option value="OTHER">Khác</Option>
-                                </Select>
-                            </Form.Item>
-                            <Form.Item name="reference_id" label="Mã Số Chứng Từ">
-                                <Input placeholder="Nhập ID hoặc mã..." style={{ width: 200 }} />
-                            </Form.Item>
-                        </Space>
+                        <Row gutter={16}>
+                            <Col span={8}>
+                                <Form.Item name="customer_id" label="Khách hàng">
+                                    <Select showSearch filterOption={(inpt, opt:any) => (opt?.children as string).toLowerCase().includes(inpt.toLowerCase())} placeholder="Chọn khách hàng" onChange={val => {
+                                        setSelectedCustomerId(val);
+                                        form.setFieldsValue({ ref_order: undefined, reference_type: undefined, reference_id: undefined });
+                                    }}>
+                                        {customers.map(c => <Option key={c.id} value={c.id}>{c.name}</Option>)}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item name="ref_order" label="Chọn Báo giá / SO">
+                                    <Select placeholder="Chọn đơn hàng tham chiếu" allowClear
+                                        onChange={(val, opt:any) => {
+                                            if (val) {
+                                                const order = salesOrders.find(o => o.order_code === val);
+                                                if (order) {
+                                                    form.setFieldsValue({
+                                                        reference_type: order.status === 'QUOTATION' ? 'QUOTE' : 'SO',
+                                                        reference_id: order.id
+                                                    });
+                                                }
+                                            } else {
+                                                form.setFieldsValue({ reference_type: undefined, reference_id: undefined });
+                                            }
+                                        }}
+                                    >
+                                        {salesOrders.filter(o => o.customer_id === selectedCustomerId).map(o => (
+                                            <Option key={o.order_code} value={o.order_code}>
+                                                {o.order_code} ({o.status === 'QUOTATION' ? 'Báo giá' : 'SO'})
+                                            </Option>
+                                        ))}
+                                    </Select>
+                                    <Form.Item name="reference_type" hidden style={{ margin: 0 }}><Input /></Form.Item>
+                                    <Form.Item name="reference_id" hidden style={{ margin: 0 }}><Input /></Form.Item>
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item name="deposit_amount" label="Phí đặt cọc (VND)">
+                                    <InputNumber style={{width:'100%'}} formatter={(val) => `${val}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(val: any) => val!.replace(/\$\s?|(,*)/g, '')} placeholder="Vd: 50,000" />
+                                </Form.Item>
+                            </Col>
+                        </Row>
                     )}
                     
                     <Form.Item name="note" label="Ghi chú chung">

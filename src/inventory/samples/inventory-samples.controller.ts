@@ -16,6 +16,8 @@ export class InventorySamplesController {
         type: SampleTransactionType;
         reference_type?: string;
         reference_id?: number;
+        customer_id?: number;
+        deposit_amount?: number;
         note?: string;
         created_by?: string;
         items: { product_id: number; quantity: number; note?: string }[];
