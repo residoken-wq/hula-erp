@@ -4,6 +4,7 @@ import { Modal, Input, Button, Spin, Empty, message } from 'antd';
 import { PictureOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import { API_URL } from '../../config';
+import 'ckeditor5/ckeditor5.css';
 
 interface RichTextEditorProps {
     value?: string;
@@ -210,6 +211,26 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                     });
                 }, 300);
 
+                // Listen to mode toggle to sync data
+                const sourceEditing = editorInstance.plugins.get('SourceEditing');
+                if (sourceEditing) {
+                    sourceEditing.on('change:isSourceEditingMode', (evt: any, name: string, isSourceMode: boolean) => {
+                        if (!isSourceMode) {
+                            if (onChangeRef.current) onChangeRef.current(editorInstance.getData());
+                        } else {
+                            // When entering source mode, attach input listener to the textarea
+                            setTimeout(() => {
+                                const textarea = editorContainerRef.current?.querySelector('.ck-source-editing-area textarea');
+                                if (textarea) {
+                                    textarea.addEventListener('input', () => {
+                                        if (onChangeRef.current) onChangeRef.current(editorInstance.getData());
+                                    });
+                                }
+                            }, 100);
+                        }
+                    });
+                }
+
             } catch (error) {
                 console.error('Failed to initialize CKEditor:', error);
             }
@@ -233,7 +254,18 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             const currentData = editorRef.current.getData();
             if (value !== currentData && value !== undefined) {
                 const isFocused = editorRef.current.editing.view.document.isFocused;
-                if (!isFocused) {
+                
+                let isSourceEditing = false;
+                try {
+                    const sourceEditingPlugin = editorRef.current.plugins.get('SourceEditing');
+                    if (sourceEditingPlugin) {
+                        isSourceEditing = sourceEditingPlugin.isSourceEditingMode;
+                    }
+                } catch (e) {
+                    console.warn(e);
+                }
+
+                if (!isFocused && !isSourceEditing) {
                     editorRef.current.setData(value || '');
                 }
             }

@@ -248,6 +248,14 @@ export class HrController {
         return this.hrService.deleteJob(+id);
     }
 
+    @Post('recruitment/jobs/parse-requirements')
+    parseRequirements(@Body('description') description: string) {
+        // We inject AiService implicitly via HrService, wait, HrService does not expose it natively unless we add a wrapper.
+        // It's better to add the wrapper in HrService or inject AiService directly into HrController.
+        // Let's call hrService.parseJDCompetencies (need to add it)
+        return this.hrService.parseJDCompetencies(description);
+    }
+
     @Get('recruitment/candidates')
     findCandidates(@Query('job_id') jobId?: string) {
         return this.hrService.findCandidates(jobId ? +jobId : undefined);
@@ -271,6 +279,11 @@ export class HrController {
     @Post('recruitment/candidates/:id/send-assessment')
     sendAssessment(@Param('id') id: string, @Body('questions') questions: any[]) {
         return this.hrService.createAssessment(+id, questions);
+    }
+
+    @Post('recruitment/candidates/:id/generate-questions')
+    generateQuestions(@Param('id') id: string) {
+        return this.hrService.generateAIQuestions(+id);
     }
 
     @Get('recruitment/assessments/:candidateId')

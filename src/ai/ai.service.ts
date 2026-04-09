@@ -74,7 +74,7 @@ export class AiService {
 
             if (!data.models) {
                 console.error('DEBUG AI: Failed to list models', data);
-                return 'gemini-1.5-flash';
+                return 'models/gemini-1.5-flash';
             }
 
             const models = data.models.filter((m: any) =>
@@ -94,7 +94,7 @@ export class AiService {
             console.error('DEBUG AI: Error listing models:', e);
         }
 
-        return 'gemini-1.5-flash';
+        return 'models/gemini-1.5-flash';
     }
 
     private async callGemini(prompt: string): Promise<string> {
@@ -625,6 +625,68 @@ Chỉ trả về nội dung gợi ý, không giải thích thêm.`;
         } catch (e) {
             console.error('AI Evaluate Error:', e);
             return null;
+        }
+    }
+
+    // Feature 1: AI Generate 10 STAR Questions
+    async generateRecruitmentQuestions(jdText: string, cvText: string): Promise<any> {
+        const prompt = `
+### ROLE: Chuyên gia Phỏng Vấn Tuyển Dụng cao cấp (Senior Talent Acquisition).
+### TASK: Tạo 10 câu hỏi phỏng vấn dựa trên Mô tả công việc (JD) và CV ứng viên.
+
+Job Description: ${jdText}
+Candidate CV Summary: ${cvText || 'N/A'}
+
+### YÊU CẦU:
+1. Tạo đúng 10 câu hỏi phỏng vấn, áp dụng mô hình S.T.A.R nếu phù hợp.
+2. Dựa vào JD để đánh giá Core Skills, Dựa vào CV để đào sâu kinh nghiệm.
+3. Câu hỏi phải bằng tiếng Việt, rõ ràng.
+
+### OUTPUT FORMAT:
+You MUST return ONLY a valid JSON object in this structure:
+{
+  "questions": [
+    {
+       "id": "1",
+       "category": "Behavioral",
+       "question": "Nội dung câu hỏi...",
+       "intent": "Mục đích câu hỏi"
+    }
+  ]
+}
+`;
+        try {
+            const reply = await this.callGemini(prompt);
+            const cleanJson = reply.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanJson);
+        } catch (e) {
+            console.error('AI Generate Questions Error:', e?.message || e);
+            return { questions: [], error: e?.message || 'Unknown AI error' };
+        }
+    }
+
+    // Feature 4: Parse JD to JSON Competency
+    async parseJDCompetencies(description: string): Promise<any> {
+        const prompt = `
+### TASK:
+Phân tích mô tả công việc (JD) sau đây và trích xuất ra các yêu cầu năng lực.
+Job Description: ${description}
+
+### OUTPUT FORMAT:
+You MUST return ONLY a valid JSON object in this structure:
+{
+  "skills": ["Kỹ năng 1", "Kỹ năng 2"],
+  "experience": ["Kinh nghiệm 1", "Kinh nghiệm 2"],
+  "attitude": ["Thái độ/Phẩm chất 1", "Thái độ/Phẩm chất 2"]
+}
+`;
+        try {
+            const reply = await this.callGemini(prompt);
+            const cleanJson = reply.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanJson);
+        } catch (e) {
+            console.error('AI Parse JD Error:', e);
+            return { skills: [], experience: [], attitude: [] };
         }
     }
 }

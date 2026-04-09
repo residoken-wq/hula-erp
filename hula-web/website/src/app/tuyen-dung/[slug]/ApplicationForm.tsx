@@ -57,7 +57,7 @@ export default function ApplicationForm({ job }: { job: any }) {
                 <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6 inline-block text-left relative group">
                     <p className="text-sm text-gray-500 mb-1">Hoặc bạn có thể lưu lại link này để theo dõi tiến độ:</p>
                     <code className="text-primary-600 font-mono text-sm break-all">
-                        {`${typeof window !== 'undefined' ? window.location.origin : ''}/portal/recruitment/${portalToken}`}
+                        {`https://erp.nemmamnon.com/portal/recruitment/${portalToken}`}
                     </code>
                 </div>
                 <div>

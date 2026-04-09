@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip } from 'antd';
-import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip, Tag, Space } from 'antd';
+import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SettingOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
+import RichTextEditor from '../components/common/RichTextEditor';
 
 const SystemSettingsPage: React.FC = () => {
     return (
@@ -111,6 +112,22 @@ const ContractTemplatesTab: React.FC = () => {
     const [editingTemplate, setEditingTemplate] = useState<any>(null);
     const [form] = Form.useForm();
 
+    // Placeholders Management
+    const [customPlaceholders, setCustomPlaceholders] = useState<{key: string, desc: string}[]>([]);
+    const [placeholderModalOpen, setPlaceholderModalOpen] = useState(false);
+    const [placeholderForm] = Form.useForm();
+
+    const fetchPlaceholders = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/system/config/CONTRACT_CUSTOM_PLACEHOLDERS`);
+            if (res.data && res.data.value) {
+                const parsed = JSON.parse(res.data.value);
+                setCustomPlaceholders(parsed);
+                placeholderForm.setFieldsValue({ placeholders: parsed });
+            }
+        } catch (e) { }
+    };
+
     const fetchTemplates = async () => {
         setLoading(true);
         try {
@@ -120,7 +137,25 @@ const ContractTemplatesTab: React.FC = () => {
         setLoading(false);
     };
 
-    useEffect(() => { fetchTemplates(); }, []);
+    useEffect(() => { 
+        fetchTemplates(); 
+        fetchPlaceholders();
+    }, []);
+
+    const handleSavePlaceholders = async (values: any) => {
+        try {
+            await axios.post(`${API_URL}/system/config`, {
+                key: 'CONTRACT_CUSTOM_PLACEHOLDERS',
+                value: JSON.stringify(values.placeholders || []),
+                description: 'Danh sách Placeholder Hợp đồng tự tạo'
+            });
+            message.success('Đã lưu danh sách Placeholder');
+            setPlaceholderModalOpen(false);
+            fetchPlaceholders();
+        } catch (e) {
+            message.error('Lỗi khi lưu Placeholder');
+        }
+    };
 
     const handleSave = async (values: any) => {
         try {
@@ -158,45 +193,197 @@ const ContractTemplatesTab: React.FC = () => {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
                 <h3>Danh Sách Mẫu Hợp Đồng</h3>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTemplate(null); form.resetFields(); setModalOpen(true); }}>Tạo Mẫu Mới</Button>
+                <Space>
+                    <Button icon={<SettingOutlined />} onClick={() => setPlaceholderModalOpen(true)}>Cấu Hình Nhãn (Placeholders)</Button>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTemplate(null); form.resetFields(); setModalOpen(true); }}>Tạo Mẫu Mới</Button>
+                </Space>
             </div>
 
             <Alert
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message="Hướng dẫn"
+                message="Hướng dẫn sử dụng Nhãn (Placeholder)"
                 description={
-                    <span>
-                        Sử dụng các placeholder sau trong nội dung:
-                        <Tag style={{ marginLeft: 5 }}>{'{{customer_name}}'}</Tag>
-                        <Tag>{'{{customer_address}}'}</Tag>
-                        <Tag>{'{{customer_tax_code}}'}</Tag>
-                        <Tag>{'{{order_code}}'}</Tag>
-                        <Tag>{'{{order_date}}'}</Tag>
-                        <Tag>{'{{total_amount_text}}'}</Tag>
-                        <Tag>{'{{items_table}}'}</Tag>
-                    </span>
+                    <div style={{ marginTop: 8 }}>
+                        <p style={{ marginBottom: 8, fontSize: 13, color: '#666' }}>Click vào các nhãn dưới đây để copy, sau đó <strong>DÁN</strong> vào trình soạn thảo bằng <code>Ctrl + V</code>.</p>
+                        <Space size={[8, 8]} wrap>
+                            {/* Default Placeholders */}
+                            {[
+                                { key: 'customer_name', desc: 'Tên Khách hàng' },
+                                { key: 'customer_address', desc: 'Địa chỉ Khách hàng' },
+                                { key: 'customer_tax_code', desc: 'Mã số thuế Khách hàng' },
+                                { key: 'order_code', desc: 'Mã Đơn hàng / Hợp đồng' },
+                                { key: 'order_date', desc: 'Ngày tạo đơn' },
+                                { key: 'total_amount_text', desc: 'Tổng tiền bằng chữ' },
+                                { key: 'items_table', desc: 'Bảng chi tiết mặt hàng' }
+                            ].map(p => (
+                                <Tooltip title={`Mặc định: ${p.desc}`} key={p.key}>
+                                    <Tag color="blue" style={{ cursor: 'pointer', padding: '4px 8px', fontSize: 13 }} onClick={() => {
+                                        navigator.clipboard.writeText(`{{${p.key}}}`);
+                                        message.success(`Đã copy: {{${p.key}}}`);
+                                    }}>
+                                        <Space size={4}>
+                                            <CopyOutlined style={{ opacity: 0.6 }} />
+                                            {`{{${p.key}}}`}
+                                        </Space>
+                                    </Tag>
+                                </Tooltip>
+                            ))}
+                            {/* Custom Placeholders */}
+                            {customPlaceholders.map(p => (
+                                <Tooltip title={`Tự định nghĩa: ${p.desc}`} key={p.key}>
+                                    <Tag color="green" style={{ cursor: 'pointer', padding: '4px 8px', fontSize: 13 }} onClick={() => {
+                                        navigator.clipboard.writeText(`{{${p.key}}}`);
+                                        message.success(`Đã copy: {{${p.key}}}`);
+                                    }}>
+                                        <Space size={4}>
+                                            <CopyOutlined style={{ opacity: 0.6 }} />
+                                            {`{{${p.key}}}`}
+                                        </Space>
+                                    </Tag>
+                                </Tooltip>
+                            ))}
+                        </Space>
+                    </div>
                 }
             />
 
             <Table dataSource={templates} columns={columns} rowKey="id" loading={loading} pagination={false} />
 
             <Modal
-                title={editingTemplate ? "Chỉnh Sửa Mẫu" : "Tạo Mẫu Mới"}
+                title={editingTemplate ? "Chỉnh Sửa Mẫu Hợp Đồng" : "Tạo Mẫu Mới"}
                 open={modalOpen}
                 onCancel={() => setModalOpen(false)}
                 onOk={form.submit}
-                width={800}
+                width={1200}
+                style={{ top: 20 }}
                 maskClosable={false}
             >
-                <Form form={form} layout="vertical" onFinish={handleSave}>
-                    <Form.Item name="name" label="Tên mẫu" rules={[{ required: true, message: 'Nhập tên mẫu' }]}>
-                        <Input placeholder="VD: Hợp đồng nguyên tắc 2024" />
-                    </Form.Item>
-                    <Form.Item name="content" label="Nội dung hợp đồng (HTML/Text)" rules={[{ required: true }]}>
-                        <Input.TextArea rows={15} showCount />
-                    </Form.Item>
+                <Row gutter={24}>
+                    <Col span={17}>
+                        <Form form={form} layout="vertical" onFinish={handleSave}>
+                            <Form.Item name="name" label={<span style={{fontWeight: 600}}>Tên mẫu hợp đồng</span>} rules={[{ required: true, message: 'Nhập tên mẫu' }]}>
+                                <Input placeholder="VD: Hợp đồng nguyên tắc 2024" size="large" />
+                            </Form.Item>
+                            <Form.Item name="content" label={<span style={{fontWeight: 600}}>Nội dung hợp đồng (HTML/Text)</span>} rules={[{ required: true }]}>
+                                <RichTextEditor minHeight={500} />
+                            </Form.Item>
+                        </Form>
+                    </Col>
+                    <Col span={7}>
+                        <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 8, height: '100%' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 12, fontSize: 15 }}>Danh Sách Placeholder</div>
+                            <p style={{ fontSize: 13, color: '#666', marginBottom: 16, lineHeight: 1.4 }}>
+                                Click để copy biến và DÁN (<code>Ctrl+V</code>) vào vị trí cần thiết. Các biến này sẽ được hệ thống dữ liệu tự động thay thế khi in hợp đồng.
+                            </p>
+                            <div style={{ maxHeight: 600, overflowY: 'auto', paddingRight: 4 }}>
+                                <Space size={[8, 12]} wrap direction="vertical" style={{ width: '100%' }}>
+                                    {/* Default Placeholders */}
+                                    {[
+                                        { key: 'customer_name', desc: 'Tên Khách hàng' },
+                                        { key: 'customer_address', desc: 'Địa chỉ Khách hàng' },
+                                        { key: 'customer_tax_code', desc: 'Mã số thuế Khách hàng' },
+                                        { key: 'order_code', desc: 'Mã Đơn hàng / Hợp đồng' },
+                                        { key: 'order_date', desc: 'Ngày tạo đơn' },
+                                        { key: 'total_amount_text', desc: 'Tổng tiền bằng chữ' },
+                                        { key: 'items_table', desc: 'Bảng chi tiết mặt hàng' }
+                                    ].map(p => (
+                                        <div key={p.key} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Tag color="blue" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 13, width: 'fit-content' }} onClick={() => {
+                                                navigator.clipboard.writeText(`{{${p.key}}}`);
+                                                message.success(`Đã copy: {{${p.key}}}`);
+                                            }}>
+                                                <Space size={4}>
+                                                    <CopyOutlined style={{ opacity: 0.6 }} />
+                                                    {`{{${p.key}}}`}
+                                                </Space>
+                                            </Tag>
+                                            <span style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 4 }}>{p.desc}</span>
+                                        </div>
+                                    ))}
+                                    {customPlaceholders.length > 0 && <Divider style={{ margin: '12px 0' }} orientation="left" plain><span style={{fontSize: 12, color: '#aaa'}}>Tự định nghĩa</span></Divider>}
+                                    {customPlaceholders.map(p => (
+                                        <div key={p.key} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Tag color="green" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 13, width: 'fit-content' }} onClick={() => {
+                                                navigator.clipboard.writeText(`{{${p.key}}}`);
+                                                message.success(`Đã copy: {{${p.key}}}`);
+                                            }}>
+                                                <Space size={4}>
+                                                    <CopyOutlined style={{ opacity: 0.6 }} />
+                                                    {`{{${p.key}}}`}
+                                                </Space>
+                                            </Tag>
+                                            <span style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 4 }}>{p.desc}</span>
+                                        </div>
+                                    ))}
+                                </Space>
+                            </div>
+                        </div>
+                    </Col>
+                </Row>
+            </Modal>
+
+            {/* Placeholder Config Modal */}
+            <Modal
+                title="Cấu Hình Danh Sách Nhãn (Placeholders)"
+                open={placeholderModalOpen}
+                onCancel={() => setPlaceholderModalOpen(false)}
+                onOk={placeholderForm.submit}
+                width={600}
+                destroyOnClose
+            >
+                <Alert
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                    message="Quy tắc tạo mã Placeholder (Mã biến)"
+                    description={
+                        <ul style={{ paddingLeft: 20, margin: 0, fontSize: 13 }}>
+                            <li><strong>Định dạng đúng:</strong> Ghi bằng chữ thường, tiếng Anh không dấu, sử dụng dấu gạch dưới <code>_</code> thay cho dấu cách (VD: <code>contract_value</code>, <code>buyer_email</code>). Không dùng chữ in hoa, không dùng ký tự đặc biệt.</li>
+                            <li><strong>Khớp dữ liệu:</strong> Tên biến phải <strong>chính xác</strong> với các trường dữ liệu trên hệ thống CRM (VD: khách hàng có số điện thoại là `phone` thì đặt biến là <code>customer_phone</code> hoặc <code>buyer_phone</code> tùy thiết lập tính năng in). Nếu đặt sai mã, hệ thống không thể tự lấy dữ liệu điền vào khoảng trống.</li>
+                        </ul>
+                    }
+                />
+                <Form form={placeholderForm} layout="vertical" onFinish={handleSavePlaceholders}>
+                    <Form.List name="placeholders">
+                        {(fields, { add, remove }) => (
+                            <>
+                                {fields.map(({ key, name, ...restField }) => (
+                                    <Row key={key} gutter={8} align="middle" style={{ marginBottom: 8 }}>
+                                        <Col flex="180px">
+                                            <Form.Item
+                                                {...restField}
+                                                name={[name, 'key']}
+                                                rules={[{ required: true, message: 'Nhập key' }]}
+                                                style={{ marginBottom: 0 }}
+                                            >
+                                                <Input addonBefore="{{" addonAfter="}}" placeholder="chi_nhanh" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col flex="auto">
+                                            <Form.Item
+                                                {...restField}
+                                                name={[name, 'desc']}
+                                                rules={[{ required: true, message: 'Nhập ghi chú' }]}
+                                                style={{ marginBottom: 0 }}
+                                            >
+                                                <Input placeholder="Chi nhánh văn phòng" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col>
+                                            <MinusCircleOutlined onClick={() => remove(name)} style={{ color: '#ff4d4f', fontSize: 16 }} />
+                                        </Col>
+                                    </Row>
+                                ))}
+                                <Form.Item style={{ marginTop: 16 }}>
+                                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                        Thêm Placeholder tùy chỉnh
+                                    </Button>
+                                </Form.Item>
+                            </>
+                        )}
+                    </Form.List>
                 </Form>
             </Modal>
         </div>
@@ -312,8 +499,6 @@ const CompanyConfigForm = () => {
     );
 };
 
-// Simple Tag component since I don't want to import from antd if it's not already there? 
-// Wait, Tag is in antd. I added it to imports.
-import { Tag } from 'antd'; // Adding to top imports
+
 
 export default SystemSettingsPage;

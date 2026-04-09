@@ -105,6 +105,11 @@ export class SalesOrder {
   // --- MỚI: CỘT LƯU ĐIỀU KHOẢN ---
   @Column('text', { nullable: true }) terms_content: string;
 
+  // --- DỮ LIỆU HỢP ĐỒNG KHÁCH HÀNG ---
+  @Column('text', { nullable: true }) contract_html: string;
+  @Column('jsonb', { nullable: true }) contract_variables: any;
+  @Column({ nullable: true }) contract_template_id: number;
+
   @ManyToOne(() => ProductionPlan, (plan) => plan.sales_orders, { nullable: true })
   @JoinColumn({ name: 'plan_id' })
   production_plan: ProductionPlan;

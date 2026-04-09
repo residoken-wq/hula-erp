@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useSettings } from '@/contexts/SettingsContext';
 import { useState, useEffect } from 'react';
 import { resolveImageUrl } from '@/lib/utils';
@@ -38,7 +37,6 @@ const defaultProductLinks: FooterLink[] = [
 
 export default function Footer() {
     const { settings, loading } = useSettings();
-    const pathname = usePathname();
     const [footerConfig, setFooterConfig] = useState<FooterConfig>({});
 
     useEffect(() => {
@@ -72,7 +70,7 @@ export default function Footer() {
         if (settings.hidden_pages) {
             hiddenPages = JSON.parse(settings.hidden_pages);
         }
-    } catch (e) {}
+    } catch (e) { }
 
     const slogan = footerConfig.footer_slogan || 'Hơn 10 năm đồng hành cùng giấc ngủ học đường. Giải pháp nệm, gối, chăn trường học toàn diện.';
     const copyright = footerConfig.footer_copyright || `© ${new Date().getFullYear()} HULA - Giải pháp nệm trường học toàn diện. Tất cả quyền được bảo lưu.`;
@@ -101,7 +99,7 @@ export default function Footer() {
                                 <img
                                     src={resolveImageUrl(settings.logo_url)}
                                     alt={settings.site_name || 'HULA'}
-                                    className="h-16 lg:h-[6rem] w-auto object-contain max-w-[250px] lg:max-w-[400px]"
+                                    className="h-20 md:h-24 lg:h-[12rem] w-auto object-contain max-w-[280px] md:max-w-[320px] lg:max-w-[400px]"
                                     style={{ filter: 'brightness(0) invert(1)' }}
                                 />
                             ) : (
@@ -219,12 +217,13 @@ export default function Footer() {
                     <div>
                         <h3 className="text-white font-heading font-semibold mb-4 text-sm uppercase tracking-wider">Kết nối</h3>
                         {settings.facebook_page_url ? (
-                            <div key={pathname} className="rounded-[12px] overflow-hidden mb-6">
+                            <div className="rounded-[12px] overflow-hidden mb-6">
                                 <iframe
                                     src={`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(settings.facebook_page_url)}&tabs=timeline&width=300&height=200&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true`}
                                     width="100%"
                                     height="200"
                                     style={{ border: 'none', overflow: 'hidden' }}
+                                    sandbox="allow-scripts allow-same-origin allow-popups"
                                     allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                                     title="Facebook Page"
                                     loading="lazy"
