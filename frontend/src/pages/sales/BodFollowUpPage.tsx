@@ -10,7 +10,7 @@ const { Title } = Typography;
 
 const VALID_STATUSES = ['DEPOSITED', 'SAMPLE_APPROVED', 'IN_PRODUCTION', 'MANUFACTURING_COMPLETED', 'PLANNED', 'PARTIAL_DELIVERY'];
 
-type FollowUpKey = 'care' | 'design' | 'production' | 'debt' | 'photo' | 'delivery' | 'other';
+type FollowUpKey = 'care' | 'design' | 'npl' | 'production' | 'debt' | 'photo' | 'delivery' | 'other' | 'other2';
 
 export default function BodFollowUpPage() {
     const isMobile = useMobile();
@@ -50,7 +50,31 @@ export default function BodFollowUpPage() {
         );
     }, [data, searchText]);
 
+    const checkPermissionForCol = (colKey: FollowUpKey) => {
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        
+        const permissions = user?.permissions || [];
+        let moduleCode = '';
+        if (['care', 'delivery'].includes(colKey)) moduleCode = 'FUP_SALES';
+        else if (colKey === 'npl') moduleCode = 'FUP_PURCHASE';
+        else if (['design', 'production'].includes(colKey)) moduleCode = 'FUP_PRODUCTION';
+        else if (colKey === 'debt') moduleCode = 'FUP_ACCOUNTING';
+        else if (colKey === 'photo') moduleCode = 'FUP_MEDIA';
+        else if (['other', 'other2'].includes(colKey)) moduleCode = 'FUP_OTHER';
+        
+        if (!moduleCode) return true;
+        
+        const p = permissions.find((perm: any) => perm.module_code === moduleCode);
+        return p?.can_update || false;
+    };
+
     const handleOpenEdit = (order: any, colKey: FollowUpKey) => {
+        if (!checkPermissionForCol(colKey)) {
+            message.warning('Bạn không có quyền cập nhật mục này!');
+            return;
+        }
+
         setCurrentOrder(order);
         setCurrentColumn(colKey);
         
@@ -61,6 +85,12 @@ export default function BodFollowUpPage() {
                 form.setFieldsValue({
                     design_note: fup.design_note || '',
                     design_checkboxes: fup.design_checkboxes || []
+                });
+                break;
+            case 'npl':
+                form.setFieldsValue({
+                    npl_note: fup.npl_note || '',
+                    npl_checkboxes: fup.npl_checkboxes || []
                 });
                 break;
             case 'production':
@@ -83,6 +113,9 @@ export default function BodFollowUpPage() {
                 break;
             case 'other':
                 form.setFieldsValue({ other_note: fup.other_note || '' });
+                break;
+            case 'other2':
+                form.setFieldsValue({ other2_note: fup.other2_note || '' });
                 break;
         }
 
@@ -123,6 +156,11 @@ export default function BodFollowUpPage() {
             const labels: any = { 'design': 'Design', 'approve': 'Duyệt in', 'print': 'Đặt in', 'sew': 'Đạt may' };
             if (arr.length > 0) cbs = <div style={{marginBottom:4}}>{arr.map(x => <Tag key={x} color="cyan">{labels[x] || x}</Tag>)}</div>;
             noteStr = fup.design_note || '';
+        } else if (key === 'npl') {
+            const arr = (fup.npl_checkboxes || []) as string[];
+            const labels: any = { 'fabric': 'Vải', 'quilt': 'Gòn', 'accessories': 'Phụ kiện' };
+            if (arr.length > 0) cbs = <div style={{marginBottom:4}}>{arr.map(x => <Tag key={x} color="purple">{labels[x] || x}</Tag>)}</div>;
+            noteStr = fup.npl_note || '';
         } else if (key === 'production') {
             const arr = (fup.prod_checkboxes || []) as string[];
             const labels: any = { 'fabric': 'Lấy vải', 'quilt': 'Chần gòn', 'embroider': 'Thêu', 'process': 'Gia công' };
@@ -224,6 +262,10 @@ export default function BodFollowUpPage() {
             render: (r:any) => renderCell(r, 'design', 'Thiết kế & Túi')
         },
         {
+            title: 'NGUYÊN PHỤ LIỆU', key: 'col_npl', width: 250,
+            render: (r:any) => renderCell(r, 'npl', 'Nguyên Phụ Liệu')
+        },
+        {
             title: 'SẢN XUẤT', key: 'col_prod', width: 250,
             render: (r:any) => renderCell(r, 'production', 'Sản xuất')
         },
@@ -238,6 +280,10 @@ export default function BodFollowUpPage() {
         {
             title: 'Khác', key: 'col_other', width: 200,
             render: (r:any) => renderCell(r, 'other', 'Ghi chú Khác')
+        },
+        {
+            title: 'Khác 2', key: 'col_other2', width: 200,
+            render: (r:any) => renderCell(r, 'other2', 'Ghi chú Khác 2')
         }
     ];
 
@@ -245,10 +291,12 @@ export default function BodFollowUpPage() {
         'care': 'Cập nhật Chăm sóc khách hàng',
         'design': 'Cập nhật Tiến độ Thiết kế & Làm túi',
         'production': 'Cập nhật Tiến độ Sản xuất chính',
+        'npl': 'Cập nhật Nguyên Phụ Liệu',
         'debt': 'Cập nhật Công Nợ / Kế Toán',
         'photo': 'Cập nhật Hình chụp mẫu / Media',
         'delivery': 'Cập nhật Thông tin Giao hàng',
-        'other': 'Cập nhật Ghi chú chung'
+        'other': 'Cập nhật Ghi chú chung',
+        'other2': 'Cập nhật Ghi chú chung 2'
     }
 
     return (
@@ -310,9 +358,24 @@ export default function BodFollowUpPage() {
                         </Card>
                     )}
 
+                    {currentColumn === 'npl' && (
+                        <Card size="small" style={{ marginBottom: 16, background: '#f9f0ff' }}>
+                            <Form.Item name="npl_checkboxes" label={<b>Checklist NPL</b>}>
+                                <Checkbox.Group style={{ width: '100%' }}>
+                                    <Space direction="vertical">
+                                        <Checkbox value="fabric">Vải</Checkbox>
+                                        <Checkbox value="quilt">Gòn</Checkbox>
+                                        <Checkbox value="accessories">Phụ kiện</Checkbox>
+                                    </Space>
+                                </Checkbox.Group>
+                            </Form.Item>
+                        </Card>
+                    )}
+
                     {/* DYNAMIC CkEditor field base on currentColumn */}
                     <Form.Item name={currentColumn === 'design' ? 'design_note' : 
                                     currentColumn === 'production' ? 'prod_note' : 
+                                    currentColumn === 'npl' ? 'npl_note' :
                                     `${currentColumn}_note`} 
                                label={<b>Ghi chú chi tiết</b>}>
                         <RichTextEditor />

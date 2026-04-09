@@ -15,6 +15,12 @@ const SYSTEM_MODULES = [
     { code: 'HR', name: 'Nhân sự (HR)' },
     { code: 'USERS', name: 'Hệ thống & User' },
     { code: 'CMS', name: 'CMS Website' },
+    { code: 'FUP_SALES', name: 'BOD FollowUp - Cột Sales (Chăm sóc, Giao hàng)' },
+    { code: 'FUP_PURCHASE', name: 'BOD FollowUp - Cột Mua hàng (NPL)' },
+    { code: 'FUP_PRODUCTION', name: 'BOD FollowUp - Cột Sản xuất (Sản xuất, Thiết kế...)' },
+    { code: 'FUP_ACCOUNTING', name: 'BOD FollowUp - Cột Công Nợ' },
+    { code: 'FUP_MEDIA', name: 'BOD FollowUp - Cột Chụp Mẫu (Media)' },
+    { code: 'FUP_OTHER', name: 'BOD FollowUp - Cột Ghi chú Khác' },
 ];
 
 const UserGroupsPage: React.FC = () => {
