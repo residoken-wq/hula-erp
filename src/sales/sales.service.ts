@@ -581,6 +581,15 @@ export class SalesService {
     }
     async deleteQuote(id: number) { return this.orderRepo.delete(id); }
 
+    // --- BOD FOLLOW UP ---
+    async updateBodFollowUp(id: number, bodFollowUpData: any) {
+        const order = await this.orderRepo.findOne({ where: { id } });
+        if (!order) throw new NotFoundException('Order not found');
+        
+        order.bod_follow_up = bodFollowUpData;
+        return this.orderRepo.save(order);
+    }
+
     // --- DELETE ORDER (Only SO_PENDING status allowed) ---
     async deleteOrder(id: number) {
         const order = await this.orderRepo.findOne({ where: { id } });

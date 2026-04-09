@@ -115,6 +115,9 @@ export class SalesOrder {
   production_plan: ProductionPlan;
   @Column({ nullable: true }) plan_id: number;
 
+  // --- BOD FOLLOW UP ---
+  @Column('jsonb', { nullable: true }) bod_follow_up: any;
+
   @Column({ type: 'enum', enum: SalesOrderStatus, default: SalesOrderStatus.QUOTATION }) status: SalesOrderStatus;
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 }) total_amount: number;

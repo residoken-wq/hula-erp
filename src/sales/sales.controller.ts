@@ -134,6 +134,12 @@ export class SalesController {
     @Post(':id/convert')
     convert(@Param('id') id: number, @Body('accepted') accepted: boolean) { return this.s.convertQuoteToSo(id, accepted); }
 
+    // --- BOD FOLLOW UP ---
+    @Put(':id/bod-follow-up')
+    updateBodFollowUp(@Param('id') id: number, @Body() body: any) {
+        return this.s.updateBodFollowUp(Number(id), body);
+    }
+
     @Put('quote/:id')
     updateQuote(@Param('id') id: number, @Body() b: any) { return this.s.updateQuote(id, b); }
 

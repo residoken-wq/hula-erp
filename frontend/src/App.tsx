@@ -47,6 +47,7 @@ const TasksPage = React.lazy(() => import('./pages/TasksPage'));
 const PurchasingPage = React.lazy(() => import('./pages/PurchasingPage'));
 const SalesPage = React.lazy(() => import('./pages/SalesPage'));
 const PosPage = React.lazy(() => import('./pages/PosPage')); // <--- MỚI
+const BodFollowUpPage = React.lazy(() => import('./pages/sales/BodFollowUpPage'));
 const HelpPage = React.lazy(() => import('./pages/HelpPage'));
 const DocsPage = React.lazy(() => import('./pages/DocsPage'));
 const SystemSettingsPage = React.lazy(() => import('./pages/SystemSettingsPage'));
@@ -175,6 +176,7 @@ const App: React.FC = () => {
                 getItem(<Link to="/sales/pricelist">Bảng giá (Price List)</Link>, 'pl_page'),
                 getItem(<Link to="/sales/strategy">📊 Chiến lược Sales</Link>, 'sales_strategy'),
                 getItem(<Link to="/sales/bod">🏫 BOD Dashboard</Link>, 'sales_bod'),
+                getItem(<Link to="/sales/bod-follow-up">BOD Follow Up</Link>, 'bod_followup'),
             ]));
         }
 
@@ -330,6 +332,7 @@ const App: React.FC = () => {
                                                         <Route path="/sales/pos" element={<PosPage />} /> {/* <--- MỚI: Route POS */}
                                                         <Route path="/sales/strategy" element={<SalesStrategyDashboard />} />
                                                         <Route path="/sales/bod" element={<BodDashboard />} />
+                                                        <Route path="/sales/bod-follow-up" element={<BodFollowUpPage />} />
                                                         <Route path="/orders" element={<SalesPage />} /> {/* <--- MỚI: Route cho trang Đơn hàng */}
                                                         <Route path="/customers" element={<CustomersPage />} />
                                                         <Route path="/sales/pricelist" element={<PriceListsPage />} />
