@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Tag, Tooltip, Progress, Drawer, Button, Form, Checkbox, message, Space, Card, Typography, Input } from 'antd';
 import { EditOutlined, SearchOutlined } from '@ant-design/icons';
-import api from '../../../utils/api';
+import api from '../../utils/api';
 import dayjs from 'dayjs';
-import RichTextEditor from '../../components/RichTextEditor';
+import RichTextEditor from '../../components/common/RichTextEditor';
 import useMobile from '../../hooks/useMobile';
 
 const { Title } = Typography;
