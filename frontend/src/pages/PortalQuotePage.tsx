@@ -426,7 +426,7 @@ const PortalQuotePage: React.FC = () => {
                 <div class="party-row"><b>${vatCompany || customerName}</b></div>
                 <div class="party-row">📍 ${vatAddress || customerAddress || '...'}</div>
                 <div class="party-row">📞 ${customerPhone || '...'}</div>
-                ${vatTax ? \`<div class="party-row">MST: <b>\${vatTax}</b></div>\` : ''}
+                ${vatTax ? `<div class="party-row">MST: <b>${vatTax}</b></div>` : ''}
                 <div class="party-row">Người nhận: <b>${data.receiver_name || customerName}</b></div>
             </div>
         </div>
