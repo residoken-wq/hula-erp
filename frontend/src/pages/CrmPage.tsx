@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge, Tabs, InputNumber, Typography, DatePicker, List } from 'antd'; // <--- Đã thêm Tabs
 import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined, SearchOutlined, FilterOutlined, RiseOutlined, TagOutlined, CalendarOutlined, RightOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -16,6 +16,7 @@ const { Text } = Typography;
 
 const CrmPage: React.FC = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const isMobile = useMobile();
     const { RangePicker } = DatePicker;
 
@@ -135,6 +136,19 @@ const CrmPage: React.FC = () => {
     };
 
     useEffect(() => { fetchData(); }, []);
+
+    useEffect(() => {
+        const customerId = searchParams.get('customer');
+        if (customerId && allCustomers.length > 0) {
+            const customer = allCustomers.find(c => c.id === parseInt(customerId, 10));
+            if (customer) {
+                setCurrentCustomer(customer);
+                setFollowDrawerOpen(true);
+            }
+            // Clear param
+            setSearchParams({});
+        }
+    }, [searchParams, allCustomers]);
 
     // --- FILTERING ---
     const filterByDate = (list: any[]) => {

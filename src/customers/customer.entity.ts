@@ -83,6 +83,9 @@ export class Customer {
   @Column('jsonb', { nullable: true, default: [] })
   history: any;
 
+  @Column('jsonb', { nullable: true })
+  bod_follow_up: any;
+
   @Column({ nullable: true })
   tax_code: string;
 

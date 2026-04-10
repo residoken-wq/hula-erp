@@ -1,22 +1,35 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Tag, Tooltip, Progress, Drawer, Button, Form, Checkbox, message, Space, Card, Typography, Input } from 'antd';
-import { EditOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Tag, Tooltip, Progress, Drawer, Button, Form, Checkbox, message, Space, Card, Typography, Input, DatePicker, Select, Tabs } from 'antd';
+import { EditOutlined, SearchOutlined, CalendarOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
+import isBetween from 'dayjs/plugin/isBetween';
 import RichTextEditor from '../../components/common/RichTextEditor';
 import useMobile from '../../hooks/useMobile';
 
-const { Title } = Typography;
+dayjs.extend(isBetween);
 
+const { Title } = Typography;
+const { RangePicker } = DatePicker;
+
+// Status cho tab đơn hàng đang rớt vào phễu sản xuất
 const VALID_STATUSES = ['DEPOSITED', 'SAMPLE_APPROVED', 'IN_PRODUCTION', 'MANUFACTURING_COMPLETED', 'PLANNED', 'PARTIAL_DELIVERY'];
 
 type FollowUpKey = 'care' | 'design' | 'npl' | 'production' | 'debt' | 'photo' | 'delivery' | 'other' | 'other2';
 
 export default function BodFollowUpPage() {
     const isMobile = useMobile();
-    const [data, setData] = useState<any[]>([]);
+    const [ordersData, setOrdersData] = useState<any[]>([]);
+    const [leadsData, setLeadsData] = useState<any[]>([]);
+
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
+    const [activeTab, setActiveTab] = useState('ORDERS');
+
+    // Date Filter State
+    const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+    const [selectedYear, setSelectedYear] = useState(dayjs().year());
+    const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [currentOrder, setCurrentOrder] = useState<any>(null);
@@ -24,13 +37,78 @@ export default function BodFollowUpPage() {
 
     const [form] = Form.useForm();
 
+    const years = Array.from({ length: 5 }, (_, i) => dayjs().year() - 2 + i);
+
+    const handleMonthClick = (month: number) => {
+        setSelectedMonth(month);
+        const start = dayjs().year(selectedYear).month(month - 1).startOf('month');
+        const end = dayjs().year(selectedYear).month(month - 1).endOf('month');
+        setDateRange([start, end]);
+    };
+
+    const handleAllMonthClick = () => {
+        setSelectedMonth(null);
+        const start = dayjs().year(selectedYear).startOf('year');
+        const end = dayjs().year(selectedYear).endOf('year');
+        setDateRange([start, end]);
+    };
+
+    const handleYearChange = (val: number) => {
+        setSelectedYear(val);
+        if (selectedMonth !== null) {
+            const start = dayjs().year(val).month(selectedMonth - 1).startOf('month');
+            const end = dayjs().year(val).month(selectedMonth - 1).endOf('month');
+            setDateRange([start, end]);
+        } else {
+            const start = dayjs().year(val).startOf('year');
+            const end = dayjs().year(val).endOf('year');
+            setDateRange([start, end]);
+        }
+    };
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/sales');
-            const arr = Array.isArray(res.data) ? res.data : [];
-            const filtered = arr.filter(o => VALID_STATUSES.includes(o.status));
-            setData(filtered);
+            const [resSales, resCust] = await Promise.all([
+                api.get('/sales').catch(() => ({ data: [] })),
+                api.get('/customers').catch(() => ({ data: [] }))
+            ]);
+
+            const salesArr = Array.isArray(resSales.data) ? resSales.data : [];
+            const custArr = Array.isArray(resCust.data) ? resCust.data : [];
+
+            // Orders Tab Data
+            const activeOrders = salesArr.filter(o => VALID_STATUSES.includes(o.status));
+
+            // Leads Tab Data: Sales where QUOTATION or SO_PENDING
+            const quotesAndNew = salesArr.filter(o => ['QUOTATION', 'SO_PENDING'].includes(o.status));
+
+            // Customers that are LEAD and don't have orders, or just display them distinctively
+            // The requirement: "Lead chưa có báo giá"
+            const leadCustomers = custArr.filter(c => c.type === 'LEAD');
+
+            const formattedLeads = leadCustomers.map(c => {
+                return {
+                    id: c.id,
+                    is_customer_record: true, // Identify that this is a customer, not a sales order
+                    order_code: c.code, // View code
+                    customer: { name: c.name, id: c.id },
+                    order_date: c.created_at,
+                    total_amount: c.potential_value || 0,
+                    paid_amount: 0,
+                    status: 'LEAD',
+                    bod_follow_up: c.bod_follow_up || {}
+                };
+            });
+
+            // Gộp danh sách: Lead Customers + Quotes/SO_Pending
+            const mergedLeads = [...quotesAndNew, ...formattedLeads];
+
+            // Sort by Date
+            const sortFn = (a: any, b: any) => new Date(b.order_date || b.created_at).getTime() - new Date(a.order_date || a.created_at).getTime();
+
+            setOrdersData(activeOrders.sort(sortFn));
+            setLeadsData(mergedLeads.sort(sortFn));
         } catch (e) {
             message.error('Lỗi tải dữ liệu');
         } finally {
@@ -42,18 +120,35 @@ export default function BodFollowUpPage() {
         fetchData();
     }, []);
 
-    const filteredData = useMemo(() => {
-        return data.filter(x => 
-            x.order_code?.toLowerCase().includes(searchText.toLowerCase()) || 
-            x.customer?.name?.toLowerCase().includes(searchText.toLowerCase()) ||
-            x.customer_name?.toLowerCase().includes(searchText.toLowerCase())
-        );
-    }, [data, searchText]);
+    const filterByDateAndSearch = (list: any[]) => {
+        let filtered = list;
+
+        if (searchText) {
+            const lowerFilter = searchText.toLowerCase();
+            filtered = filtered.filter(x =>
+                x.order_code?.toLowerCase().includes(lowerFilter) ||
+                x.customer?.name?.toLowerCase().includes(lowerFilter) ||
+                x.customer_name?.toLowerCase().includes(lowerFilter)
+            );
+        }
+
+        if (dateRange[0] && dateRange[1]) {
+            filtered = filtered.filter(x => {
+                const date = dayjs(x.order_date || x.created_at);
+                if (!date.isValid()) return true;
+                return date.isBetween(dateRange[0], dateRange[1], 'day', '[]');
+            });
+        }
+        return filtered;
+    };
+
+    const currentData = activeTab === 'ORDERS' ? ordersData : leadsData;
+    const filteredData = filterByDateAndSearch(currentData);
 
     const checkPermissionForCol = (colKey: FollowUpKey) => {
         const userStr = localStorage.getItem('user');
         const user = userStr ? JSON.parse(userStr) : null;
-        
+
         const permissions = user?.permissions || [];
         let moduleCode = '';
         if (['care', 'delivery'].includes(colKey)) moduleCode = 'FUP_SALES';
@@ -62,9 +157,9 @@ export default function BodFollowUpPage() {
         else if (colKey === 'debt') moduleCode = 'FUP_ACCOUNTING';
         else if (colKey === 'photo') moduleCode = 'FUP_MEDIA';
         else if (['other', 'other2'].includes(colKey)) moduleCode = 'FUP_OTHER';
-        
+
         if (!moduleCode) return true;
-        
+
         const p = permissions.find((perm: any) => perm.module_code === moduleCode);
         return p?.can_update || false;
     };
@@ -77,9 +172,9 @@ export default function BodFollowUpPage() {
 
         setCurrentOrder(order);
         setCurrentColumn(colKey);
-        
+
         const fup = order.bod_follow_up || {};
-        
+
         switch (colKey) {
             case 'design':
                 form.setFieldsValue({
@@ -127,18 +222,28 @@ export default function BodFollowUpPage() {
         try {
             const currentFup = currentOrder.bod_follow_up || {};
             const newFup = { ...currentFup, ...values };
-            
-            await api.put(`/sales/${currentOrder.id}/bod-follow-up`, newFup);
-            message.success('Đã cập nhật tiến độ!');
-            
-            // local update
-            const newData = [...data];
-            const idx = newData.findIndex(o => o.id === currentOrder.id);
-            if (idx > -1) {
-                newData[idx].bod_follow_up = newFup;
-                setData(newData);
+
+            // Phân biệt lưu cho Lead (Customer) hay lưu cho Đơn hàng/Báo giá (Sales)
+            if (currentOrder.is_customer_record) {
+                await api.put(`/customers/${currentOrder.id}/bod-follow-up`, newFup);
+            } else {
+                await api.put(`/sales/${currentOrder.id}/bod-follow-up`, newFup);
             }
-            
+
+            message.success('Đã cập nhật tiến độ!');
+
+            // Update local state
+            if (activeTab === 'ORDERS') {
+                const newData = [...ordersData];
+                const idx = newData.findIndex(o => o.id === currentOrder.id);
+                if (idx > -1) { newData[idx].bod_follow_up = newFup; setOrdersData(newData); }
+            } else {
+                const newData = [...leadsData];
+                // So sánh thêm is_customer_record để tránh trùng ID giữa 2 bảng
+                const idx = newData.findIndex(o => o.id === currentOrder.id && o.is_customer_record === currentOrder.is_customer_record);
+                if (idx > -1) { newData[idx].bod_follow_up = newFup; setLeadsData(newData); }
+            }
+
             setDrawerOpen(false);
         } catch (e) {
             message.error('Lỗi khi lưu');
@@ -147,30 +252,29 @@ export default function BodFollowUpPage() {
 
     const renderCell = (order: any, key: FollowUpKey, title: string) => {
         const fup = order.bod_follow_up || {};
-        
+
         let cbs: React.ReactNode = null;
         let noteStr = '';
 
         if (key === 'design') {
             const arr = (fup.design_checkboxes || []) as string[];
             const labels: any = { 'design': 'Design', 'approve': 'Duyệt in', 'print': 'Đặt in', 'sew': 'Đạt may' };
-            if (arr.length > 0) cbs = <div style={{marginBottom:4}}>{arr.map(x => <Tag key={x} color="cyan">{labels[x] || x}</Tag>)}</div>;
+            if (arr.length > 0) cbs = <div style={{ marginBottom: 4 }}>{arr.map(x => <Tag key={x} color="cyan">{labels[x] || x}</Tag>)}</div>;
             noteStr = fup.design_note || '';
         } else if (key === 'npl') {
             const arr = (fup.npl_checkboxes || []) as string[];
             const labels: any = { 'fabric': 'Vải', 'quilt': 'Gòn', 'accessories': 'Phụ kiện' };
-            if (arr.length > 0) cbs = <div style={{marginBottom:4}}>{arr.map(x => <Tag key={x} color="purple">{labels[x] || x}</Tag>)}</div>;
+            if (arr.length > 0) cbs = <div style={{ marginBottom: 4 }}>{arr.map(x => <Tag key={x} color="purple">{labels[x] || x}</Tag>)}</div>;
             noteStr = fup.npl_note || '';
         } else if (key === 'production') {
             const arr = (fup.prod_checkboxes || []) as string[];
             const labels: any = { 'fabric': 'Lấy vải', 'quilt': 'Chần gòn', 'embroider': 'Thêu', 'process': 'Gia công' };
-            if (arr.length > 0) cbs = <div style={{marginBottom:4}}>{arr.map(x => <Tag key={x} color="blue">{labels[x] || x}</Tag>)}</div>;
+            if (arr.length > 0) cbs = <div style={{ marginBottom: 4 }}>{arr.map(x => <Tag key={x} color="blue">{labels[x] || x}</Tag>)}</div>;
             noteStr = fup.prod_note || '';
         } else {
             noteStr = fup[`${key}_note`] || '';
         }
 
-        // strip html for preview
         const plainText = noteStr.replace(/<[^>]*>?/gm, '').substring(0, 50) + (noteStr.length > 50 ? '...' : '');
 
         return (
@@ -191,15 +295,24 @@ export default function BodFollowUpPage() {
     const columns = [
         {
             title: 'Mã Đơn', dataIndex: 'order_code', width: 140, fixed: 'left' as const,
-            render: (t: any) => <b>{t}</b>
+            render: (t: any, r: any) => {
+                // Determine Deep Link Path
+                let linkPath = `/orders?order=${r.id}`;
+                if (r.is_customer_record) {
+                    // It is a Lead Customer
+                    linkPath = `/sales?customer=${r.id}`;
+                }
+
+                return <a href={linkPath} target="_blank" rel="noreferrer"><b>{t}</b></a>
+            }
         },
         {
             title: 'Khách Hàng', width: 180, fixed: 'left' as const,
             render: (r: any) => <span style={{ fontWeight: 500 }}>{r.customer?.name || r.customer_name || 'Khách lẻ'}</span>
         },
         {
-            title: 'Ngày Đặt', dataIndex: 'order_date', width: 110,
-            render: (t: any) => <span style={{ color: '#666' }}>{dayjs(t).format('DD/MM/YYYY')}</span>
+            title: 'Ngày', dataIndex: 'order_date', width: 110,
+            render: (t: any) => <span style={{ color: '#666' }}>{t ? dayjs(t).format('DD/MM/YYYY') : '-'}</span>
         },
         {
             title: 'Ngày Giao', dataIndex: 'delivery_date', width: 110,
@@ -227,7 +340,9 @@ export default function BodFollowUpPage() {
             render: (t: any) => {
                 let color = 'default';
                 let label = t;
-                if (t === 'SO_PENDING') { color = 'processing'; label = 'Mới'; }
+                if (t === 'LEAD') { color = 'geekblue'; label = 'Lead'; }
+                if (t === 'QUOTATION') { color = 'orange'; label = 'Báo Giá'; }
+                if (t === 'SO_PENDING') { color = 'processing'; label = 'Mới/Chưa cọc'; }
                 if (t === 'SAMPLE_APPROVED') { color = 'cyan'; label = 'Đã Duyệt'; }
                 if (t === 'DEPOSITED') { color = 'purple'; label = 'Đã Cọc'; }
                 if (t === 'IN_PRODUCTION') { color = 'blue'; label = 'Đang SX'; }
@@ -251,39 +366,39 @@ export default function BodFollowUpPage() {
         },
         {
             title: 'Công Nợ', key: 'col_debt', width: 200,
-            render: (r:any) => renderCell(r, 'debt', 'Công Nợ')
+            render: (r: any) => renderCell(r, 'debt', 'Công Nợ')
         },
         {
             title: 'Chăm sóc', key: 'col_care', width: 200,
-            render: (r:any) => renderCell(r, 'care', 'Chăm sóc')
+            render: (r: any) => renderCell(r, 'care', 'Chăm sóc')
         },
         {
             title: 'THIẾT KẾ (Làm túi)', key: 'col_design', width: 250,
-            render: (r:any) => renderCell(r, 'design', 'Thiết kế & Túi')
+            render: (r: any) => renderCell(r, 'design', 'Thiết kế & Túi')
         },
         {
             title: 'NGUYÊN PHỤ LIỆU', key: 'col_npl', width: 250,
-            render: (r:any) => renderCell(r, 'npl', 'Nguyên Phụ Liệu')
+            render: (r: any) => renderCell(r, 'npl', 'Nguyên Phụ Liệu')
         },
         {
             title: 'SẢN XUẤT', key: 'col_prod', width: 250,
-            render: (r:any) => renderCell(r, 'production', 'Sản xuất')
+            render: (r: any) => renderCell(r, 'production', 'Sản xuất')
         },
         {
             title: 'Chụp mẫu', key: 'col_photo', width: 200,
-            render: (r:any) => renderCell(r, 'photo', 'Chụp mẫu')
+            render: (r: any) => renderCell(r, 'photo', 'Chụp mẫu')
         },
         {
             title: 'Giao hàng', key: 'col_deliv', width: 200,
-            render: (r:any) => renderCell(r, 'delivery', 'Giao hàng')
+            render: (r: any) => renderCell(r, 'delivery', 'Giao hàng')
         },
         {
             title: 'Khác', key: 'col_other', width: 200,
-            render: (r:any) => renderCell(r, 'other', 'Ghi chú Khác')
+            render: (r: any) => renderCell(r, 'other', 'Ghi chú Khác')
         },
         {
             title: 'Khác 2', key: 'col_other2', width: 200,
-            render: (r:any) => renderCell(r, 'other2', 'Ghi chú Khác 2')
+            render: (r: any) => renderCell(r, 'other2', 'Ghi chú Khác 2')
         }
     ];
 
@@ -301,16 +416,102 @@ export default function BodFollowUpPage() {
 
     return (
         <div>
+            <div style={{ marginBottom: 16 }}>
+                {/* FILTER BAR - MOBILE FRIENDLY */}
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: 16, gap: isMobile ? 12 : 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, color: '#555', whiteSpace: 'nowrap' }}><CalendarOutlined />  Thống kê:</span>
+
+                        {/* Year Select */}
+                        <Select
+                            value={selectedYear}
+                            onChange={handleYearChange}
+                            style={{ width: isMobile ? 100 : 120 }}
+                            options={years.map(y => ({ label: `${y}`, value: y }))}
+                        />
+
+                        {/* Month Blocks - HIDE ON MOBILE */}
+                        {!isMobile && (
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => {
+                                    const isActive = selectedMonth === m;
+                                    return (
+                                        <div
+                                            key={m}
+                                            onClick={() => handleMonthClick(m)}
+                                            style={{
+                                                padding: '4px 12px',
+                                                borderRadius: 4,
+                                                cursor: 'pointer',
+                                                border: isActive ? '1px solid #1890ff' : '1px solid #d9d9d9',
+                                                background: isActive ? '#e6f7ff' : '#fff',
+                                                color: isActive ? '#1890ff' : '#666',
+                                                fontSize: 13,
+                                                transition: 'all 0.2s',
+                                                fontWeight: isActive ? 500 : 400
+                                            }}
+                                            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#40a9ff'; }}
+                                            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.borderColor = '#d9d9d9'; }}
+                                        >
+                                            T{m}
+                                        </div>
+                                    )
+                                })}
+                                {/* ALL BLOCK */}
+                                <div
+                                    onClick={handleAllMonthClick}
+                                    style={{
+                                        padding: '4px 12px',
+                                        borderRadius: 4,
+                                        cursor: 'pointer',
+                                        border: selectedMonth === null ? '1px solid #722ed1' : '1px solid #d9d9d9',
+                                        background: selectedMonth === null ? '#f9f0ff' : '#fff',
+                                        color: selectedMonth === null ? '#722ed1' : '#666',
+                                        fontSize: 13,
+                                        transition: 'all 0.2s',
+                                        fontWeight: selectedMonth === null ? 500 : 400
+                                    }}
+                                    onMouseEnter={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#b37feb'; }}
+                                    onMouseLeave={(e) => { if (selectedMonth !== null) e.currentTarget.style.borderColor = '#d9d9d9'; }}
+                                >
+                                    All
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <RangePicker
+                        style={{ width: isMobile ? '100%' : 260 }}
+                        placeholder={['Từ ngày', 'Đến ngày']}
+                        value={dateRange as any}
+                        onChange={(dates) => {
+                            setDateRange(dates as any);
+                            if (dates) setSelectedMonth(null);
+                        }}
+                    />
+                </div>
+            </div>
+
             <Card bodyStyle={{ padding: '16px 24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <Title level={4} style={{ margin: 0, color: '#fa8c16' }}>BOD Follow Up: Tiến độ Đơn hàng</Title>
-                    <Input prefix={<SearchOutlined />} placeholder="Tìm mã đơn, tên khách..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} />
+                    <Title level={4} style={{ margin: 0, color: '#fa8c16' }}>BOD Follow Up: Tiến độ Công việc</Title>
+                    <Input prefix={<SearchOutlined />} placeholder="Tìm mã, tên khách..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} />
                 </div>
 
-                <Table 
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={setActiveTab}
+                    items={[
+                        { key: 'ORDERS', label: 'Đơn Hàng (Đang SX)' },
+                        { key: 'LEADS', label: 'Tab Lead (Báo giá & Chưa cọc)' }
+                    ]}
+                    style={{ marginBottom: 16 }}
+                />
+
+                <Table
                     columns={columns}
                     dataSource={filteredData}
-                    rowKey="id"
+                    rowKey={(r) => r.is_customer_record ? `cust_${r.id}` : `sale_${r.id}`}
                     loading={loading}
                     scroll={{ x: 2600 }}
                     size="middle"
@@ -372,15 +573,13 @@ export default function BodFollowUpPage() {
                         </Card>
                     )}
 
-                    {/* DYNAMIC CkEditor field base on currentColumn */}
-                    <Form.Item name={currentColumn === 'design' ? 'design_note' : 
-                                    currentColumn === 'production' ? 'prod_note' : 
-                                    currentColumn === 'npl' ? 'npl_note' :
-                                    `${currentColumn}_note`} 
-                               label={<b>Ghi chú chi tiết</b>}>
+                    <Form.Item name={currentColumn === 'design' ? 'design_note' :
+                        currentColumn === 'production' ? 'prod_note' :
+                            currentColumn === 'npl' ? 'npl_note' :
+                                `${currentColumn}_note`}
+                        label={<b>Ghi chú chi tiết</b>}>
                         <RichTextEditor />
                     </Form.Item>
-
                 </Form>
             </Drawer>
         </div>

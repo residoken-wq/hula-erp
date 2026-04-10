@@ -188,6 +188,13 @@ export class CustomersService {
         return this.customerRepo.update(id, { type: CustomerType.CUSTOMER });
     }
 
+    async updateBodFollowUp(id: number, bodData: any) {
+        const customer = await this.findOne(id);
+        if (!customer) throw new NotFoundException('Customer not found');
+        customer.bod_follow_up = bodData;
+        return this.customerRepo.save(customer);
+    }
+
     // --- LEAD CARE: GET ALL COMMENTS ---
     async getComments(customerId: number) {
         const customer = await this.customerRepo.findOne({
