@@ -76,9 +76,14 @@ const App: React.FC = () => {
     const [collapsed, setCollapsed] = useState(false);
     const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
 
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [currentUser, setCurrentUser] = useState<any>(null);
-    const [permissions, setPermissions] = useState<any[]>([]);
+    // Initialize state synchronously to prevent route redirects on first render
+    const initialToken = localStorage.getItem('token');
+    const initialUserStr = localStorage.getItem('user');
+    const initialUser = initialUserStr ? JSON.parse(initialUserStr) : null;
+
+    const [isAuthenticated, setIsAuthenticated] = useState(!!(initialToken && initialUser));
+    const [currentUser, setCurrentUser] = useState<any>(initialUser);
+    const [permissions, setPermissions] = useState<any[]>(initialUser?.permissions || []);
 
     // --- CHANGE PASSWORD STATE ---
     const [isChangePassOpen, setIsChangePassOpen] = useState(false);

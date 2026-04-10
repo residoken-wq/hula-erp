@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Tag, Tooltip, Progress, Drawer, Button, Form, Checkbox, message, Space, Card, Typography, Input, DatePicker, Select, Tabs } from 'antd';
+import { Table, Tag, Tooltip, Progress, Drawer, Button, Form, Checkbox, message, Space, Card, Typography, Input, DatePicker, Select, Tabs, Statistic } from 'antd';
 import { EditOutlined, SearchOutlined, CalendarOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
@@ -83,32 +83,11 @@ export default function BodFollowUpPage() {
             // Leads Tab Data: Sales where QUOTATION or SO_PENDING
             const quotesAndNew = salesArr.filter(o => ['QUOTATION', 'SO_PENDING'].includes(o.status));
 
-            // Customers that are LEAD and don't have orders, or just display them distinctively
-            // The requirement: "Lead chưa có báo giá"
-            const leadCustomers = custArr.filter(c => c.type === 'LEAD');
-
-            const formattedLeads = leadCustomers.map(c => {
-                return {
-                    id: c.id,
-                    is_customer_record: true, // Identify that this is a customer, not a sales order
-                    order_code: c.code, // View code
-                    customer: { name: c.name, id: c.id },
-                    order_date: c.created_at,
-                    total_amount: c.potential_value || 0,
-                    paid_amount: 0,
-                    status: 'LEAD',
-                    bod_follow_up: c.bod_follow_up || {}
-                };
-            });
-
-            // Gộp danh sách: Lead Customers + Quotes/SO_Pending
-            const mergedLeads = [...quotesAndNew, ...formattedLeads];
-
             // Sort by Date
             const sortFn = (a: any, b: any) => new Date(b.order_date || b.created_at).getTime() - new Date(a.order_date || a.created_at).getTime();
 
             setOrdersData(activeOrders.sort(sortFn));
-            setLeadsData(mergedLeads.sort(sortFn));
+            setLeadsData(quotesAndNew.sort(sortFn));
         } catch (e) {
             message.error('Lỗi tải dữ liệu');
         } finally {
@@ -144,6 +123,11 @@ export default function BodFollowUpPage() {
 
     const currentData = activeTab === 'ORDERS' ? ordersData : leadsData;
     const filteredData = filterByDateAndSearch(currentData);
+
+    const totalRevenue = filteredData.reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
+    const totalPaid = filteredData.reduce((acc, curr) => acc + (Number(curr.paid_amount) || 0), 0);
+    const totalDebt = totalRevenue - totalPaid;
+
 
     const checkPermissionForCol = (colKey: FollowUpKey) => {
         const userStr = localStorage.getItem('user');
@@ -508,12 +492,26 @@ export default function BodFollowUpPage() {
                     style={{ marginBottom: 16 }}
                 />
 
+                {/* THỐNG KÊ */}
+                <div style={{ display: 'flex', gap: 16, marginBottom: 24, overflowX: 'auto' }}>
+                    <Card size="small" style={{ minWidth: 200, flex: 1, borderLeft: '4px solid #1890ff' }}>
+                        <Statistic title="Tổng G.Trị" value={totalRevenue} precision={0} valueStyle={{ color: '#1890ff', fontWeight: 'bold' }} suffix="đ" />
+                    </Card>
+                    <Card size="small" style={{ minWidth: 200, flex: 1, borderLeft: '4px solid #52c41a' }}>
+                        <Statistic title="Thực Thu" value={totalPaid} precision={0} valueStyle={{ color: '#52c41a', fontWeight: 'bold' }} suffix="đ" />
+                    </Card>
+                    <Card size="small" style={{ minWidth: 200, flex: 1, borderLeft: '4px solid #f5222d' }}>
+                        <Statistic title="Công Nợ" value={totalDebt > 0 ? totalDebt : 0} precision={0} valueStyle={{ color: '#f5222d', fontWeight: 'bold' }} suffix="đ" />
+                    </Card>
+                </div>
+
                 <Table
                     columns={columns}
                     dataSource={filteredData}
                     rowKey={(r) => r.is_customer_record ? `cust_${r.id}` : `sale_${r.id}`}
                     loading={loading}
                     scroll={{ x: 2600 }}
+                    sticky={true}
                     size="middle"
                     bordered
                     pagination={{ pageSize: 20 }}
