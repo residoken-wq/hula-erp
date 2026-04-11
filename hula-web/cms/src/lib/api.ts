@@ -101,6 +101,7 @@ export const uploadApi = {
         });
     },
     listFiles: () => api.get('/upload/list'),
+    imageUsage: () => api.get('/upload/usage'),
     deleteFile: (filename: string) => api.delete(`/upload/files/${filename}`),
 };
 

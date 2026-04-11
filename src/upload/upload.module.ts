@@ -7,15 +7,19 @@ import { ProductsModule } from '../products/products.module';
 import { SalesModule } from '../sales/sales.module';
 // Entities
 import { Product } from '../products/product.entity';
+import { ProductWebsiteConfig } from '../products/entities/product-website-config.entity';
 import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from '../products/product-component.entity';
 import { Customer } from '../customers/customer.entity';
+import { BlogPost } from '../blogs/blog-post.entity';
+import { WebProject } from '../website-projects/entities/web-project.entity';
+import { SystemConfig } from '../system/system-config.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Product, BOM, ProductComponent,
-      Customer
+      Product, ProductWebsiteConfig, BOM, ProductComponent,
+      Customer, BlogPost, WebProject, SystemConfig
     ]),
     MaterialsModule,
     ProductsModule,

@@ -14,6 +14,8 @@ import {
     EyeOutlined,
     CloudUploadOutlined,
     CheckCircleOutlined,
+    LinkOutlined,
+    StopOutlined,
 } from '@ant-design/icons';
 import { uploadApi } from '@/lib/api';
 
@@ -50,12 +52,18 @@ export default function MediaPage() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [usageMap, setUsageMap] = useState<Record<string, Array<{ type: string; id?: number; label: string }>>>({});
+    const [usageFilter, setUsageFilter] = useState<'all' | 'used' | 'unused'>('all');
 
     const loadFiles = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await uploadApi.listFiles();
-            setFiles(res.data || []);
+            const [filesRes, usageRes] = await Promise.all([
+                uploadApi.listFiles(),
+                uploadApi.imageUsage()
+            ]);
+            setFiles(filesRes.data || []);
+            setUsageMap(usageRes.data || {});
         } catch {
             message.error('Không thể tải danh sách hình ảnh');
         } finally {
@@ -97,9 +105,18 @@ export default function MediaPage() {
         message.success('Đã copy URL');
     };
 
-    const filteredFiles = files.filter(f =>
-        f.name.toLowerCase().includes(search.toLowerCase())
-    );
+    const getFileUsage = (name: string) => usageMap[name] || [];
+
+    const filteredFiles = files.filter(f => {
+        const matchSearch = f.name.toLowerCase().includes(search.toLowerCase());
+        if (!matchSearch) return false;
+        if (usageFilter === 'used') return getFileUsage(f.name).length > 0;
+        if (usageFilter === 'unused') return getFileUsage(f.name).length === 0;
+        return true;
+    });
+
+    const usedCount = files.filter(f => getFileUsage(f.name).length > 0).length;
+    const unusedCount = files.length - usedCount;
 
     return (
         <AdminLayout>
@@ -108,7 +125,11 @@ export default function MediaPage() {
                     <Space>
                         <span style={{ fontSize: 20 }}>🖼️</span>
                         <span>Quản lý Hình ảnh</span>
+                        <Space>
                         <Tag color="blue">{files.length} files</Tag>
+                        <Tag color="green">{usedCount} đang dùng</Tag>
+                        <Tag color="default">{unusedCount} chưa dùng</Tag>
+                    </Space>
                     </Space>
                 }
                 extra={
@@ -121,6 +142,30 @@ export default function MediaPage() {
                             style={{ width: 200 }}
                             allowClear
                         />
+                        <Button.Group>
+                            <Tooltip title="Tất cả">
+                                <Button
+                                    type={usageFilter === 'all' ? 'primary' : 'default'}
+                                    onClick={() => setUsageFilter('all')}
+                                >
+                                    Tất cả
+                                </Button>
+                            </Tooltip>
+                            <Tooltip title="Đang sử dụng">
+                                <Button
+                                    icon={<LinkOutlined />}
+                                    type={usageFilter === 'used' ? 'primary' : 'default'}
+                                    onClick={() => setUsageFilter('used')}
+                                />
+                            </Tooltip>
+                            <Tooltip title="Chưa sử dụng">
+                                <Button
+                                    icon={<StopOutlined />}
+                                    type={usageFilter === 'unused' ? 'primary' : 'default'}
+                                    onClick={() => setUsageFilter('unused')}
+                                />
+                            </Tooltip>
+                        </Button.Group>
                         <Button.Group>
                             <Tooltip title="Grid">
                                 <Button
@@ -231,13 +276,32 @@ export default function MediaPage() {
                                 {/* File Info */}
                                 <div style={{ padding: '8px 12px' }}>
                                     <Text ellipsis style={{ fontSize: 12, display: 'block' }}>{file.name}</Text>
+                                    {(() => {
+                                        const usage = getFileUsage(file.name);
+                                        return usage.length > 0 ? (
+                                            <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                                {usage.slice(0, 2).map((u, i) => (
+                                                    <Tag key={i} color="green" style={{ fontSize: 10, lineHeight: '16px', margin: 0 }}>{u.type}</Tag>
+                                                ))}
+                                                {usage.length > 2 && <Tag style={{ fontSize: 10, lineHeight: '16px', margin: 0 }}>+{usage.length - 2}</Tag>}
+                                            </div>
+                                        ) : (
+                                            <Tag color="default" style={{ fontSize: 10, lineHeight: '16px', marginTop: 4 }}>Chưa dùng</Tag>
+                                        );
+                                    })()}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
                                         <Text type="secondary" style={{ fontSize: 11 }}>{formatSize(file.size)}</Text>
                                         <Space size={4}>
                                             <Tooltip title="Copy URL">
                                                 <Button type="text" size="small" icon={<CopyOutlined />} onClick={(e) => { e.stopPropagation(); handleCopyUrl(file); }} />
                                             </Tooltip>
-                                            <Popconfirm title="Xóa hình này?" onConfirm={() => handleDelete(file.name)} okText="Xóa" cancelText="Hủy">
+                                            <Popconfirm
+                                                title={getFileUsage(file.name).length > 0 ? `⚠️ Hình này đang được sử dụng tại ${getFileUsage(file.name).length} nơi. Xóa?` : 'Xóa hình này?'}
+                                                onConfirm={() => handleDelete(file.name)}
+                                                okText="Xóa"
+                                                cancelText="Hủy"
+                                                okButtonProps={getFileUsage(file.name).length > 0 ? { danger: true } : {}}
+                                            >
                                                 <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={(e) => e.stopPropagation()} />
                                             </Popconfirm>
                                         </Space>
@@ -271,10 +335,28 @@ export default function MediaPage() {
                                 </div>
                                 <Text type="secondary" style={{ fontSize: 12, flexShrink: 0 }}>{formatSize(file.size)}</Text>
                                 <Text type="secondary" style={{ fontSize: 12, flexShrink: 0 }}>{new Date(file.modified).toLocaleDateString('vi-VN')}</Text>
+                                <div style={{ flexShrink: 0 }}>
+                                    {(() => {
+                                        const usage = getFileUsage(file.name);
+                                        return usage.length > 0 ? (
+                                            <Tooltip title={usage.map(u => `${u.type}: ${u.label}`).join('\n')}>
+                                                <Tag color="green" style={{ cursor: 'help' }}><LinkOutlined /> {usage.length}</Tag>
+                                            </Tooltip>
+                                        ) : (
+                                            <Tag color="default">Chưa dùng</Tag>
+                                        );
+                                    })()}
+                                </div>
                                 <Space size={4}>
                                     <Tooltip title="Xem"><Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setPreviewFile(file)} /></Tooltip>
                                     <Tooltip title="Copy URL"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => handleCopyUrl(file)} /></Tooltip>
-                                    <Popconfirm title="Xóa hình này?" onConfirm={() => handleDelete(file.name)} okText="Xóa" cancelText="Hủy">
+                                    <Popconfirm
+                                        title={getFileUsage(file.name).length > 0 ? `⚠️ Hình này đang được sử dụng tại ${getFileUsage(file.name).length} nơi. Xóa?` : 'Xóa hình này?'}
+                                        onConfirm={() => handleDelete(file.name)}
+                                        okText="Xóa"
+                                        cancelText="Hủy"
+                                        okButtonProps={getFileUsage(file.name).length > 0 ? { danger: true } : {}}
+                                    >
                                         <Button type="text" size="small" danger icon={<DeleteOutlined />} />
                                     </Popconfirm>
                                 </Space>
@@ -319,6 +401,26 @@ export default function MediaPage() {
                                 {resolveUrl(previewFile.url)}
                             </Text>
                         </div>
+                        {(() => {
+                            const usage = getFileUsage(previewFile.name);
+                            return usage.length > 0 ? (
+                                <div style={{ marginTop: 12, padding: '12px 16px', background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 8 }}>
+                                    <Text strong style={{ fontSize: 13 }}><LinkOutlined /> Đang sử dụng tại {usage.length} nơi:</Text>
+                                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        {usage.map((u, i) => (
+                                            <div key={i} style={{ fontSize: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                <Tag color="green" style={{ margin: 0 }}>{u.type}</Tag>
+                                                <span>{u.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ marginTop: 12, padding: '12px 16px', background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 8 }}>
+                                    <Text type="warning" style={{ fontSize: 13 }}><StopOutlined /> Hình ảnh này chưa được sử dụng trong bài viết, sản phẩm hay trang nào.</Text>
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
             </Modal>
