@@ -21,6 +21,11 @@ export class CustomersController {
     return this.s.getOrders(id);
   }
 
+  @Put(':id/bod-follow-up')
+  updateBodFollowUp(@Param('id') id: number, @Body() b: any) {
+    return this.s.updateBodFollowUp(id, b);
+  }
+
   // --- LEAD CARE: COMMENTS ---
   @Get(':id/comments')
   getComments(@Param('id') id: number) {
