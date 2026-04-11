@@ -8,6 +8,7 @@ import { SearchOutlined, EditOutlined, SyncOutlined, EyeOutlined, PlusOutlined, 
 import { productsApi, systemApi } from '@/lib/api';
 import { ProductVisualEditor } from './ProductVisualEditor';
 import ImageUploader, { resolveImageUrl } from '@/components/ImageUploader';
+import ImageLibraryMultiPicker from '@/components/ImageLibraryMultiPicker';
 import RichEditor from '@/components/RichEditor';
 import PageBuilder from '@/components/PageBuilder/PageBuilder';
 
@@ -87,6 +88,8 @@ export default function ProductsPage() {
     const [showFilter, setShowFilter] = useState<'all' | 'visible' | 'hidden'>('all');
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [editModal, setEditModal] = useState(false);
+    const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
+    const [galleryAddFn, setGalleryAddFn] = useState<((url: string) => void) | null>(null);
     const [form] = Form.useForm();
     const loadProducts = async () => {
         setLoading(true);
@@ -485,6 +488,23 @@ export default function ProductsPage() {
                                                                     <span style={{ fontSize: 13, color: '#666' }}>Tải lên nhiều</span>
                                                                 </div>
                                                             </Upload>
+
+                                                            <div 
+                                                                style={{ 
+                                                                    width: 120, height: 120, 
+                                                                    border: '1px dashed #1677ff', borderRadius: 8, 
+                                                                    display: 'flex', flexDirection: 'column', 
+                                                                    alignItems: 'center', justifyContent: 'center',
+                                                                    cursor: 'pointer', background: '#f0f5ff'
+                                                                }}
+                                                                onClick={() => {
+                                                                    setGalleryAddFn(() => add);
+                                                                    setGalleryPickerOpen(true);
+                                                                }}
+                                                            >
+                                                                <AppstoreOutlined style={{ fontSize: 24, color: '#1677ff', marginBottom: 8 }} />
+                                                                <span style={{ fontSize: 13, color: '#1677ff' }}>Chọn từ thư viện</span>
+                                                            </div>
                                                             
                                                             <div 
                                                                 style={{ 
@@ -643,6 +663,19 @@ export default function ProductsPage() {
                     ]} />
                 </Form>
             </Modal>
+
+            <ImageLibraryMultiPicker
+                open={galleryPickerOpen}
+                onCancel={() => setGalleryPickerOpen(false)}
+                max={10}
+                onConfirm={(urls) => {
+                    if (galleryAddFn) {
+                        urls.forEach(url => galleryAddFn(url));
+                    }
+                    setGalleryPickerOpen(false);
+                    message.success(`Đã thêm ${urls.length} hình ảnh`);
+                }}
+            />
         </AdminLayout>
     );
 }

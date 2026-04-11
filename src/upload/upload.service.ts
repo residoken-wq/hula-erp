@@ -81,9 +81,22 @@ export class UploadService {
       }
     }
 
-    // Generate unique name
-    const filename = `${prefix}_${Date.now()}${finalExt}`;
-    const filePath = path.join(uploadDir, filename);
+    // Preserve original filename (sanitize special chars, keep readable)
+    const originalName = path.basename(file.originalname, ext);
+    const safeName = originalName
+      .normalize('NFC')                           // normalize unicode
+      .replace(/[<>:"/\\|?*]/g, '')              // remove filesystem-unsafe chars
+      .replace(/\s+/g, '_')                      // spaces -> underscores
+      .substring(0, 100);                        // limit length
+
+    let filename = `${safeName}${finalExt}`;
+    let filePath = path.join(uploadDir, filename);
+
+    // If file already exists, append timestamp to avoid overwrite
+    if (fs.existsSync(filePath)) {
+      filename = `${safeName}_${Date.now()}${finalExt}`;
+      filePath = path.join(uploadDir, filename);
+    }
 
     fs.writeFileSync(filePath, buffer);
 
