@@ -584,71 +584,20 @@ const PortalQuotePage: React.FC = () => {
             render: (_: any, __: any, index: number) => <span style={{ color: '#999' }}>{index + 1}</span>
         },
         {
-            title: 'Hình',
-            key: 'image',
-            width: 60,
-            align: 'center' as const,
-            render: (_: any, r: any) => {
-                const rawUrl = r.image_url || r.sample_image || r.product?.image_url;
-                if (!rawUrl) return <div style={{ color: '#ccc', fontSize: 10, textAlign: 'center' }}>No Img</div>;
-
-                let finalSrc = rawUrl;
-                let isImage = false;
-
-                // 1. Handle Google Drive
-                if (rawUrl.includes('drive.google.com')) {
-                    let id = '';
-                    try {
-                        const urlObj = new URL(rawUrl);
-                        if (urlObj.pathname.includes('/d/')) {
-                            const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                            if (match && match[1]) id = match[1];
-                        } else if (urlObj.searchParams.has('id')) {
-                            id = urlObj.searchParams.get('id') || '';
-                        }
-                    } catch (e) {
-                        // Fallback regex if URL parsing fails
-                        const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                        if (match && match[1]) id = match[1];
-                    }
-
-                    if (id) {
-                        // Use thumbnail endpoint for reliable image rendering
-                        finalSrc = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
-                        isImage = true;
-                    }
-                }
-                // 2. Handle Google User Content (already direct)
-                else if (rawUrl.includes('googleusercontent.com')) {
-                    isImage = true;
-                }
-                // 3. Handle Normal Images
-                else {
-                    if (!rawUrl.startsWith('http') && !rawUrl.startsWith('data:')) finalSrc = `${API_URL}${rawUrl}`;
-                    isImage = !!(rawUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || rawUrl.startsWith('data:image'));
-                }
-
-                // Force isImage true if we detected Drive link
-                if (rawUrl.includes('drive.google.com')) isImage = true;
-
+            title: 'Tên Sản Phẩm (VAT)',
+            dataIndex: 'vat_content',
+            key: 'vat_content',
+            width: 180,
+            render: (text: string) => {
                 return (
-                    <div style={{ textAlign: 'center' }}>
-                        {isImage ? (
-                            <img
-                                src={finalSrc}
-                                alt="product"
-                                style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee' }}
-                                onClick={() => handlePreview(finalSrc)}
-                                onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                    (e.target as HTMLImageElement).onerror = null;
-                                }}
-                            />
-                        ) : (
-                            <a href={finalSrc} target="_blank" rel="noopener noreferrer">
-                                <LinkOutlined style={{ fontSize: 18, color: '#1890ff' }} />
-                            </a>
-                        )}
+                    <div style={{
+                        fontSize: 13,
+                        color: '#555',
+                        whiteSpace: 'pre-wrap',
+                        lineHeight: 1.5,
+                        minWidth: 200
+                    }}>
+                        {text || '-'}
                     </div>
                 );
             }
@@ -754,25 +703,6 @@ const PortalQuotePage: React.FC = () => {
             }
         },
         {
-            title: 'Tên Sản Phẩm (VAT)',
-            dataIndex: 'vat_content',
-            key: 'vat_content',
-            width: 180,
-            render: (text: string) => {
-                return (
-                    <div style={{
-                        fontSize: 13,
-                        color: '#555',
-                        whiteSpace: 'pre-wrap',
-                        lineHeight: 1.5,
-                        minWidth: 200
-                    }}>
-                        {text || '-'}
-                    </div>
-                );
-            }
-        },
-        {
             title: 'ĐVT',
             dataIndex: 'unit',
             width: 50,
@@ -799,6 +729,76 @@ const PortalQuotePage: React.FC = () => {
             width: 110,
             align: 'right' as const,
             render: (v: any) => <b style={{ fontSize: 14, color: '#1f1f1f' }}>{Number(v).toLocaleString()}</b>
+        },
+        {
+            title: 'Hình',
+            key: 'image',
+            width: 60,
+            align: 'center' as const,
+            render: (_: any, r: any) => {
+                const rawUrl = r.image_url || r.sample_image || r.product?.image_url;
+                if (!rawUrl) return <div style={{ color: '#ccc', fontSize: 10, textAlign: 'center' }}>No Img</div>;
+
+                let finalSrc = rawUrl;
+                let isImage = false;
+
+                // 1. Handle Google Drive
+                if (rawUrl.includes('drive.google.com')) {
+                    let id = '';
+                    try {
+                        const urlObj = new URL(rawUrl);
+                        if (urlObj.pathname.includes('/d/')) {
+                            const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                            if (match && match[1]) id = match[1];
+                        } else if (urlObj.searchParams.has('id')) {
+                            id = urlObj.searchParams.get('id') || '';
+                        }
+                    } catch (e) {
+                        // Fallback regex if URL parsing fails
+                        const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                        if (match && match[1]) id = match[1];
+                    }
+
+                    if (id) {
+                        // Use thumbnail endpoint for reliable image rendering
+                        finalSrc = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+                        isImage = true;
+                    }
+                }
+                // 2. Handle Google User Content (already direct)
+                else if (rawUrl.includes('googleusercontent.com')) {
+                    isImage = true;
+                }
+                // 3. Handle Normal Images
+                else {
+                    if (!rawUrl.startsWith('http') && !rawUrl.startsWith('data:')) finalSrc = `${API_URL}${rawUrl}`;
+                    isImage = !!(rawUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || rawUrl.startsWith('data:image'));
+                }
+
+                // Force isImage true if we detected Drive link
+                if (rawUrl.includes('drive.google.com')) isImage = true;
+
+                return (
+                    <div style={{ textAlign: 'center' }}>
+                        {isImage ? (
+                            <img
+                                src={finalSrc}
+                                alt="product"
+                                style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee' }}
+                                onClick={() => handlePreview(finalSrc)}
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                    (e.target as HTMLImageElement).onerror = null;
+                                }}
+                            />
+                        ) : (
+                            <a href={finalSrc} target="_blank" rel="noopener noreferrer">
+                                <LinkOutlined style={{ fontSize: 18, color: '#1890ff' }} />
+                            </a>
+                        )}
+                    </div>
+                );
+            }
         }
     ];
 
