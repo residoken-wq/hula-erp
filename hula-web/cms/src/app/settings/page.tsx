@@ -37,6 +37,7 @@ export default function SettingsPage() {
                     'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
                     'banner_news_title', 'banner_news_desc', 'banner_news_image',
                     'banner_shop_title', 'banner_shop_desc', 'banner_shop_image',
+                    'banner_careers_title', 'banner_careers_desc', 'banner_careers_image',
                     'product_tags_config', 'hidden_pages'
                 ];
                 const configValues: Record<string, any> = {};
@@ -116,6 +117,7 @@ export default function SettingsPage() {
                 'banner_contact_title', 'banner_contact_desc', 'banner_contact_image',
                 'banner_news_title', 'banner_news_desc', 'banner_news_image',
                 'banner_shop_title', 'banner_shop_desc', 'banner_shop_image',
+                'banner_careers_title', 'banner_careers_desc', 'banner_careers_image',
                 'product_tags_config', 'hidden_pages'
             ];
 
@@ -511,7 +513,7 @@ export default function SettingsPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <Alert
                         message="Quản lý Banner các trang con"
-                        description="Cấu hình Hình nền, Tiêu đề và Mô tả cho Hero banner của các trang: Dự án, Đặt hàng B2B, Liên hệ, Tin tức. (Trang Về Hula được cấu hình ở menu riêng bên trái)."
+                        description="Cấu hình Hình nền, Tiêu đề và Mô tả cho Hero banner của các trang: Dự án, Đặt hàng B2B, Liên hệ, Tin tức, Tuyển dụng. (Trang Về Hula được cấu hình ở menu riêng bên trái)."
                         type="info"
                         showIcon
                         style={{ marginBottom: 24 }}
@@ -569,6 +571,17 @@ export default function SettingsPage() {
                         <Input.TextArea placeholder="Cập nhật thông tin hữu ích..." rows={2} />
                     </Form.Item>
                     <Form.Item name="banner_news_image" label="Hình nền">
+                        <ImageUploader simple hint="1920x400 (hoặc 600) pixels" />
+                    </Form.Item>
+
+                    <Divider orientation="left">Trang Tuyển dụng (/tuyen-dung)</Divider>
+                    <Form.Item name="banner_careers_title" label="Tiêu đề banner">
+                        <Input placeholder="Tuyển Dụng" />
+                    </Form.Item>
+                    <Form.Item name="banner_careers_desc" label="Mô tả">
+                        <Input.TextArea placeholder="Gia nhập đội ngũ HULA - Cùng kiến tạo giấc ngủ ngon cho bé" rows={2} />
+                    </Form.Item>
+                    <Form.Item name="banner_careers_image" label="Hình nền">
                         <ImageUploader simple hint="1920x400 (hoặc 600) pixels" />
                     </Form.Item>
                 </div>
