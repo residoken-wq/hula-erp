@@ -5,6 +5,9 @@ import { ProductionController } from './production.controller';
 
 // Entities
 import { ProductionOrder } from './entities/production-order.entity';
+import { WorkOrder } from './work-order.entity';
+import { WorkOrderStep } from './work-order-step.entity';
+import { OutsourcingAssignment } from './entities/outsourcing-assignment.entity';
 
 // External Modules
 import { InventoryModule } from '../inventory/inventory.module';
@@ -13,7 +16,10 @@ import { ProductsModule } from '../products/products.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-        ProductionOrder // <--- Đảm bảo đã đăng ký
+        ProductionOrder,
+        WorkOrder,
+        WorkOrderStep,
+        OutsourcingAssignment
     ]),
     InventoryModule,
     ProductsModule

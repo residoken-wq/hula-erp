@@ -203,4 +203,63 @@ export class PlanningService {
     async saveGanttConfig(planId: number, config: any) {
         return this.ganttService.saveGanttConfig(planId, config);
     }
+
+    // =============================================
+    // --- MỚI: PLAN LIFECYCLE MANAGEMENT ---
+    // =============================================
+
+    // Cập nhật status plan thủ công
+    async updatePlanStatus(planId: number, status: string) {
+        const plan = await this.planRepo.findOne({ where: { id: planId } });
+        if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
+
+        // Validate transition
+        const validTransitions: Record<string, string[]> = {
+            'DRAFT': ['CALCULATED'],
+            'CALCULATED': ['IN_PRODUCTION', 'DRAFT'],
+            'IN_PRODUCTION': ['COMPLETED', 'CALCULATED'],
+            'COMPLETED': ['IN_PRODUCTION'] // Cho phép reopen
+        };
+
+        const allowed = validTransitions[plan.status] || [];
+        if (!allowed.includes(status)) {
+            throw new BadRequestException(`Không thể chuyển từ ${plan.status} sang ${status}`);
+        }
+
+        plan.status = status as PlanStatus;
+        return this.planRepo.save(plan);
+    }
+
+    // Auto-detect plan status từ PO statuses
+    async checkAndUpdatePlanStatus(planId: number) {
+        try {
+            const plan = await this.planRepo.findOne({ where: { id: planId } });
+            if (!plan) return;
+
+            // Lấy tất cả PO thuộc plan này
+            const pos = await this.poRepo.find({ where: { plan_id: planId } });
+            if (pos.length === 0) return;
+
+            const allPosDelivered = pos.every(
+                po => ['DELIVERED', 'COMPLETED'].includes(po.status)
+            );
+            const anyPoOrdered = pos.some(
+                po => ['ORDERED', 'PARTIAL_DELIVERED', 'DELIVERED', 'COMPLETED', 'CONFIRMED'].includes(po.status)
+            );
+
+            // Auto-transition logic
+            if (allPosDelivered && plan.status !== PlanStatus.COMPLETED) {
+                // Tất cả PO đã giao đủ → Có thể chuyển Plan sang COMPLETED
+                // Nhưng cần kiểm tra thêm ProductionOrder nếu có
+                plan.status = PlanStatus.COMPLETED;
+                await this.planRepo.save(plan);
+            } else if (anyPoOrdered && plan.status === PlanStatus.CALCULATED) {
+                // Có ít nhất 1 PO đã order → Plan chuyển sang IN_PRODUCTION
+                plan.status = PlanStatus.IN_PRODUCTION;
+                await this.planRepo.save(plan);
+            }
+        } catch (e) {
+            console.error('Auto-update plan status failed:', e);
+        }
+    }
 }

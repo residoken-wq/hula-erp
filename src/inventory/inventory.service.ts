@@ -13,6 +13,9 @@ import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { SalesDelivery } from '../sales/sales-delivery.entity';
 import { ProductsService } from '../products/products.service';
+import { GoodsIssue, GoodsIssueStatus } from './entities/goods-issue.entity';
+import { GoodsIssueItem } from './entities/goods-issue-item.entity';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class InventoryService {
@@ -28,6 +31,8 @@ export class InventoryService {
     @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
     @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
     @InjectRepository(SalesDelivery) private deliveryRepo: Repository<SalesDelivery>,
+    @InjectRepository(GoodsIssue) private goodsIssueRepo: Repository<GoodsIssue>,
+    @InjectRepository(GoodsIssueItem) private giItemRepo: Repository<GoodsIssueItem>,
     private productsService: ProductsService,
   ) { }
 
@@ -211,7 +216,7 @@ export class InventoryService {
   async confirmReceipt(id: number, warehouseCode: string = 'KHO_NPL') {
     const receipt = await this.receiptRepo.findOne({
       where: { id },
-      relations: ['items', 'purchase_order']
+      relations: ['items', 'purchase_order', 'purchase_order.items']
     });
     if (!receipt) throw new BadRequestException('Phiếu nhập không tồn tại');
     if (receipt.status !== GoodsReceiptStatus.DRAFT) throw new BadRequestException('Phiếu đã xử lý');
@@ -250,11 +255,67 @@ export class InventoryService {
       }
     }
 
-    // 3. Update Status
+    // 3. Update Receipt Status
     receipt.delivery_date = new Date().toISOString();
+    receipt.status = GoodsReceiptStatus.COMPLETED;
     await this.receiptRepo.save(receipt);
 
+    // 4. --- MỚI: Auto-detect Partial / Full Delivery → Update PO Status ---
+    if (receipt.po_id && receipt.purchase_order) {
+      await this.updatePODeliveryStatus(receipt.po_id);
+    }
+
     return { message: 'Đã nhập kho thành công', receipt };
+  }
+
+  // --- MỚI: Kiểm tra và cập nhật PO delivery status ---
+  private async updatePODeliveryStatus(poId: number) {
+    try {
+      const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items'] });
+      if (!po || !po.items || po.items.length === 0) return;
+
+      // Lấy tất cả phiếu nhập đã confirmed cho PO này
+      const allReceipts = await this.receiptRepo.find({
+        where: { po_id: poId, status: GoodsReceiptStatus.COMPLETED },
+        relations: ['items']
+      });
+
+      // Tính tổng đã nhận per PO item
+      const totalReceived = new Map<number, number>();
+      for (const gr of allReceipts) {
+        for (const ri of (gr.items || [])) {
+          if (ri.po_item_id) {
+            totalReceived.set(
+              ri.po_item_id,
+              (totalReceived.get(ri.po_item_id) || 0) + Number(ri.quantity)
+            );
+          }
+        }
+      }
+
+      // So sánh vs PO items
+      let allDelivered = true;
+      let anyDelivered = false;
+
+      for (const poItem of po.items) {
+        const received = totalReceived.get(poItem.id) || 0;
+        if (received > 0) anyDelivered = true;
+        if (received < Number(poItem.quantity) * 0.95) allDelivered = false; // Tolerance 5%
+      }
+
+      // Update PO status
+      if (allDelivered) {
+        po.status = 'DELIVERED' as any;
+      } else if (anyDelivered) {
+        po.status = 'PARTIAL_DELIVERED' as any;
+      }
+      // Nếu chưa giao gì thì giữ nguyên status
+
+      await this.poRepo.save(po);
+    } catch (e) {
+      console.error('Auto-update PO delivery status failed:', e);
+      // Không throw — không block nhập kho
+    }
   }
 
   // --- SALES DELIVERY CONFIRMATION FLOW ---
@@ -335,4 +396,99 @@ export class InventoryService {
 
     return { message: 'Đã xuất kho thành công', delivery };
   }
-}
+
+  // ==========================================
+  // --- GOODS ISSUE (PHIẾU XUẤT KHO NPL) ---
+  // ==========================================
+
+  async createGoodsIssue(data: any) {
+    const gi = this.goodsIssueRepo.create({
+      code: data.code || `PXK-${dayjs().format('YYMMDD')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+      type: data.type || 'OUTSOURCING',
+      delivery_mode: data.delivery_mode || 'PER_ORDER',
+      po_id: data.po_id || null,
+      supplier_id: data.supplier_id || null,
+      plan_id: data.plan_id || null,
+      issue_date: data.issue_date || dayjs().format('YYYY-MM-DD'),
+      vehicle: data.vehicle || null,
+      note: data.note || null,
+      status: GoodsIssueStatus.DRAFT
+    });
+    const saved = await this.goodsIssueRepo.save(gi);
+
+    if (data.items && data.items.length > 0) {
+      for (const item of data.items) {
+        const giItem = this.giItemRepo.create({
+          issue_id: saved.id,
+          material_id: item.material_id,
+          quantity: Number(item.quantity),
+          material_category: item.material_category || null,
+          note: item.note || null
+        });
+        await this.giItemRepo.save(giItem);
+      }
+    }
+
+    return this.goodsIssueRepo.findOne({ where: { id: saved.id }, relations: ['items', 'items.material', 'supplier'] });
+  }
+
+  async getGoodsIssues(query?: { po_id?: number; supplier_id?: number }) {
+    const where: any = {};
+    if (query?.po_id) where.po_id = query.po_id;
+    if (query?.supplier_id) where.supplier_id = query.supplier_id;
+
+    return this.goodsIssueRepo.find({
+      where,
+      relations: ['items', 'items.material', 'supplier', 'purchase_order'],
+      order: { created_at: 'DESC' }
+    });
+  }
+
+  async getGoodsIssueDetail(id: number) {
+    const gi = await this.goodsIssueRepo.findOne({
+      where: { id },
+      relations: ['items', 'items.material', 'supplier', 'purchase_order']
+    });
+    if (!gi) throw new BadRequestException('Phiếu xuất kho không tồn tại');
+    return gi;
+  }
+
+  async confirmGoodsIssue(id: number) {
+    const gi = await this.goodsIssueRepo.findOne({
+      where: { id },
+      relations: ['items', 'items.material']
+    });
+    if (!gi) throw new BadRequestException('Phiếu xuất kho không tồn tại');
+    if (gi.status !== GoodsIssueStatus.DRAFT) throw new BadRequestException('Phiếu đã xử lý');
+
+    // Xuất kho thực tế từng NPL
+    for (const item of gi.items) {
+      if (item.material_id) {
+        await this.adjustStock(
+          'EXPORT', 'MATERIAL', item.material_id,
+          Number(item.quantity), gi.code,
+          `Xuất cho GC: ${gi.note || gi.code}`,
+          'KHO_NPL'
+        );
+      }
+    }
+
+    gi.status = GoodsIssueStatus.CONFIRMED;
+    return this.goodsIssueRepo.save(gi);
+  }
+
+  async markGoodsIssueDelivered(id: number) {
+    const gi = await this.goodsIssueRepo.findOne({ where: { id } });
+    if (!gi) throw new BadRequestException('Phiếu xuất kho không tồn tại');
+    gi.status = GoodsIssueStatus.DELIVERED;
+    return this.goodsIssueRepo.save(gi);
+  }
+
+  async deleteGoodsIssue(id: number) {
+    const gi = await this.goodsIssueRepo.findOne({ where: { id } });
+    if (!gi) throw new BadRequestException('Phiếu xuất kho không tồn tại');
+    if (gi.status !== GoodsIssueStatus.DRAFT) throw new BadRequestException('Chỉ xóa được phiếu nháp');
+    await this.goodsIssueRepo.delete(id);
+    return { success: true };
+  }
+}

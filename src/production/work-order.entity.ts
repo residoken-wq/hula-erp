@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { WorkOrderStep } from './work-order-step.entity';
+import { ProductionOrder } from './entities/production-order.entity';
 
 export enum WorkOrderStatus {
   PENDING = 'PENDING',       
@@ -28,6 +29,17 @@ export class WorkOrder {
     default: WorkOrderStatus.PENDING
   })
   status: WorkOrderStatus;
+
+  // --- MỚI: Link to ProductionOrder ---
+  @ManyToOne(() => ProductionOrder, po => po.work_orders, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'production_order_id' })
+  production_order: ProductionOrder;
+
+  @Column({ nullable: true })
+  production_order_id: number;
+
+  @Column({ nullable: true })
+  plan_id: number;
 
   // --- QUẢN LÝ TIẾN ĐỘ CHI TIẾT ---
   @OneToMany(() => WorkOrderStep, (step) => step.work_order, { cascade: true })

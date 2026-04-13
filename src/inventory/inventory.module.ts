@@ -18,6 +18,8 @@ import { SampleTransaction } from './samples/sample-transaction.entity';
 import { SampleTransactionItem } from './samples/sample-transaction-item.entity';
 import { InventorySamplesService } from './samples/inventory-samples.service';
 import { InventorySamplesController } from './samples/inventory-samples.controller';
+import { GoodsIssue } from './entities/goods-issue.entity';
+import { GoodsIssueItem } from './entities/goods-issue-item.entity';
 
 @Module({
   imports: [
@@ -35,7 +37,9 @@ import { InventorySamplesController } from './samples/inventory-samples.controll
       SalesDelivery, // <--- Register SalesDelivery
       ShippingCarrier, // <--- Register ShippingCarrier
       SampleTransaction,
-      SampleTransactionItem
+      SampleTransactionItem,
+      GoodsIssue,          // <--- MỚI: Phiếu xuất kho
+      GoodsIssueItem       // <--- MỚI: Chi tiết xuất kho
     ]),
     ProductsModule // <--- Register ProductsModule
   ],

@@ -34,7 +34,7 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
         { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
         { title: 'Tên Đợt', dataIndex: 'name' },
         { title: 'Thời Gian', render: (r: any) => <small>{dayjs(r.start_date).format('DD/MM')} - {dayjs(r.end_date).format('DD/MM')}</small> },
-        { title: 'Trạng Thái', dataIndex: 'status', align: 'center' as const, render: (t: any) => t === 'CALCULATED' ? <Tag color="green">Đã tính MRP</Tag> : <Tag>Mới</Tag> },
+        { title: 'Trạng Thái', dataIndex: 'status', align: 'center' as const, render: (t: any) => t === 'COMPLETED' ? <Tag color="green">Hoàn thành</Tag> : t === 'IN_PRODUCTION' ? <Tag color="blue">Đang SX</Tag> : t === 'CALCULATED' ? <Tag color="cyan">Đã tính MRP</Tag> : <Tag>Mới</Tag> },
         {
             title: 'Hành động', key: 'act', align: 'right' as const, render: (_: any, r: any) => (
                 <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>

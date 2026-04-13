@@ -7,7 +7,8 @@ export enum POStatus {
   DRAFT = 'DRAFT',
   SENT = 'SENT',
   CONFIRMED = 'CONFIRMED',
-  ORDERED = 'ORDERED', // Mới
+  ORDERED = 'ORDERED',
+  PARTIAL_DELIVERED = 'PARTIAL_DELIVERED', // Đã giao 1 phần
   DELIVERED = 'DELIVERED', // Đã giao đủ
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED'

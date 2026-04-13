@@ -64,8 +64,10 @@ const ProjectsPage = React.lazy(() => import('./pages/ProjectsPage')); // <--- P
 const ProjectDetailPage = React.lazy(() => import('./pages/ProjectDetailPage')); // <--- Project Detail
 const WorkSpacePage = React.lazy(() => import('./pages/WorkSpacePage')); // <--- Consolidated WorkSpace
 const SalesStrategyDashboard = React.lazy(() => import('./pages/SalesStrategyDashboard')); // <--- Sales Strategy
-const BodDashboard = React.lazy(() => import('./pages/BodDashboard')); // <--- BOD Dashboard
+const BodDashboard = React.lazy(() => import('./pages/BodDashboard'));
 const DiscussionDetailPage = React.lazy(() => import('./pages/DiscussionDetailPage'));
+const QCPage = React.lazy(() => import('./pages/QCPage'));
+const ProductionDashboardPage = React.lazy(() => import('./pages/ProductionDashboardPage'));
 
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
@@ -192,6 +194,8 @@ const App: React.FC = () => {
                 getItem(<Link to="/purchasing">Đơn Mua Hàng & GC</Link>, 'po_page'),
                 getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
                 getItem(<Link to="/processes">DM Công Đoạn</Link>, 'proc_list'),
+                getItem(<Link to="/qc">🔬 Kiểm Tra Chất Lượng</Link>, 'qc_page'),
+                getItem(<Link to="/production-dashboard">📊 Dashboard Sản xuất</Link>, 'prod_dashboard'),
             ]));
         }
 
@@ -350,6 +354,8 @@ const App: React.FC = () => {
                                                         <Route path="/routes" element={<ProductionRoutePage />} />
                                                         <Route path="/processes" element={<ProcessesPage />} />
                                                         <Route path="/purchasing" element={<PurchasingPage />} />
+                                                        <Route path="/qc" element={<QCPage />} />
+                                                        <Route path="/production-dashboard" element={<ProductionDashboardPage />} />
                                                     </>
                                                 )}
 

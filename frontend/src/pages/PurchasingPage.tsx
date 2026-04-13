@@ -5,6 +5,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import useMobile from '../hooks/useMobile';
+import OutsourcingMaterialIssueModal from '../components/purchasing/OutsourcingMaterialIssueModal';
 
 const PurchasingPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
@@ -36,6 +37,10 @@ const PurchasingPage: React.FC = () => {
     const [isMonitorOpen, setIsMonitorOpen] = useState(false);
     const [monitorMaterials, setMonitorMaterials] = useState<any[]>([]);
     const [deliveryInfo, setDeliveryInfo] = useState<any>({});
+
+    // --- MỚI: Modal Xuất Kho NPL Gia Công ---
+    const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
+    const [issueModalPO, setIssueModalPO] = useState<any>(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -324,12 +329,12 @@ const PurchasingPage: React.FC = () => {
         { title: 'Ngày', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
         { title: 'Đối tác', dataIndex: 'supplier', render: (s: any, r: any) => s?.name || (r.note?.split('NCC: ')[1] || '-') },
         { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
-        { title: 'Trạng thái', dataIndex: 'status', align: 'center' as const, render: (t: string) => <Tag color={t === 'COMPLETED' ? 'green' : t === 'DELIVERED' ? 'cyan' : t === 'SENT' ? 'blue' : 'default'}>{t === 'DELIVERED' ? 'Đã giao đủ' : t}</Tag> },
+        { title: 'Trạng thái', dataIndex: 'status', align: 'center' as const, render: (t: string) => <Tag color={t === 'COMPLETED' ? 'green' : t === 'DELIVERED' ? 'cyan' : t === 'PARTIAL_DELIVERED' ? 'orange' : t === 'ORDERED' ? 'geekblue' : t === 'SENT' ? 'blue' : t === 'CONFIRMED' ? 'purple' : 'default'}>{t === 'DELIVERED' ? 'Đã giao đủ' : t === 'PARTIAL_DELIVERED' ? 'Giao 1 phần' : t === 'ORDERED' ? 'Đã đặt' : t === 'CONFIRMED' ? 'Đã xác nhận' : t === 'SENT' ? 'Đã gửi' : t === 'COMPLETED' ? 'Hoàn thành' : t}</Tag> },
         {
             title: '', key: 'act', align: 'right' as const,
             render: (r: any) => (
                 <Space>
-                    {r.type === 'OUTSOURCING' && (<Tooltip title="Theo dõi NPL"><Button size="small" style={{ color: '#fa8c16', borderColor: '#fa8c16' }} icon={<CarOutlined />} onClick={() => openMonitorModal(r)} /></Tooltip>)}
+                    {r.type === 'OUTSOURCING' && (<Tooltip title="Xuất Kho NPL"><Button size="small" style={{ color: '#fa8c16', borderColor: '#fa8c16' }} icon={<CarOutlined />} onClick={() => { setIssueModalPO(r); setIsIssueModalOpen(true); }} /></Tooltip>)}
                     <Tooltip title="Xem"><Button size="small" icon={<EyeOutlined />} onClick={() => viewDetail(r)} /></Tooltip>
                     {r.status === 'DRAFT' && (<Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button size="small" danger icon={<DeleteOutlined />} /></Popconfirm>)}
                 </Space>
@@ -706,7 +711,7 @@ const PurchasingPage: React.FC = () => {
                             { title: 'NCC', dataIndex: 'supplier', render: (s: any) => s?.name || '-' },
                             { title: 'Số mặt hàng', width: 100, align: 'center' as const, render: (r: any) => r.items?.length || 0 },
                             { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
-                            { title: 'Trạng thái', dataIndex: 'status', width: 100, align: 'center' as const, render: (t: string) => <Tag color={t === 'ORDERED' ? 'blue' : 'default'}>{t}</Tag> },
+                            { title: 'Trạng thái', dataIndex: 'status', width: 100, align: 'center' as const, render: (t: string) => <Tag color={t === 'COMPLETED' ? 'green' : t === 'DELIVERED' ? 'cyan' : t === 'PARTIAL_DELIVERED' ? 'orange' : t === 'ORDERED' ? 'blue' : 'default'}>{t === 'PARTIAL_DELIVERED' ? 'Giao 1 phần' : t === 'DELIVERED' ? 'Đã giao đủ' : t}</Tag> },
                             { title: 'Ngày tạo', dataIndex: 'created_at', width: 100, align: 'right' as const, render: (t: any) => dayjs(t).format('DD/MM/YY') }
                         ]}
                     />
@@ -734,6 +739,7 @@ const PurchasingPage: React.FC = () => {
                 width={1200}
                 style={{ top: 20 }}
                 footer={[
+                    <Button key="portal" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/po/${currentPO?.uuid}`); message.success('Đã copy link Portal NCC!'); }}>📎 Copy Link Portal</Button>,
                     <Button key="print" icon={<PrinterOutlined />} onClick={() => setIsPrintModalOpen(true)}>In PO</Button>,
                     <Button key="receipt" icon={<ImportOutlined />} type="dashed" onClick={handleCreateReceipt}>Tạo Phiếu Kho</Button>,
                     <Button key="save" type="primary" onClick={handleSavePOChanges}>Lưu Thay Đổi</Button>,
@@ -758,8 +764,13 @@ const PurchasingPage: React.FC = () => {
                             onChange={(v) => setCurrentPO({ ...currentPO, status: v })}
                             options={[
                                 { value: 'DRAFT', label: 'Nháp' },
-                                { value: 'ORDERED', label: 'Đặt hàng' },
-                                { value: 'COMPLETED', label: 'Đã Thanh toán' }, // Mapping 'COMPLETED' to 'Đã Thanh toán'
+                                { value: 'SENT', label: 'Đã gửi NCC' },
+                                { value: 'CONFIRMED', label: 'NCC xác nhận' },
+                                { value: 'ORDERED', label: 'Đã đặt hàng' },
+                                { value: 'PARTIAL_DELIVERED', label: '⚡ Giao 1 phần' },
+                                { value: 'DELIVERED', label: '✅ Đã giao đủ' },
+                                { value: 'COMPLETED', label: '💰 Đã thanh toán' },
+                                { value: 'CANCELLED', label: '❌ Đã hủy' },
                             ]}
                         />
                     </Descriptions.Item>
@@ -1273,6 +1284,14 @@ const PurchasingPage: React.FC = () => {
                     </Col>
                 </Row>
             </Modal>
+
+            {/* MỚI: Modal Xuất Kho NPL Gia Công */}
+            <OutsourcingMaterialIssueModal
+                open={isIssueModalOpen}
+                onClose={() => setIsIssueModalOpen(false)}
+                currentPO={issueModalPO}
+                onRefresh={fetchData}
+            />
         </div>
     );
 };

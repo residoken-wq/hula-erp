@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Body, Delete } from '@nestjs/common';
 import { PlanningService } from './planning.service';
 
 @Controller('planning')
@@ -19,7 +19,17 @@ export class PlanningController {
   // Endpoint chung để tạo PO (cho cả NPL và Gia công)
   @Post(':id/generate-pos')
   generatePos(@Param('id') id: number, @Body() body: any) {
-    // body.items: Danh sách các item cần mua (đã lọc và điền note từ FE)
     return this.s.generatePos(id, body.items);
+  }
+
+  // --- MỚI: Plan Status Management ---
+  @Put(':id/status')
+  updatePlanStatus(@Param('id') id: number, @Body('status') status: string) {
+    return this.s.updatePlanStatus(id, status);
+  }
+
+  @Post(':id/check-status')
+  checkPlanStatus(@Param('id') id: number) {
+    return this.s.checkAndUpdatePlanStatus(id);
   }
 }

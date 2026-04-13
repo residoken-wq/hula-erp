@@ -3,18 +3,22 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { ProductionPlan, PlanStatus } from './production-plan.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
+import { WorkOrder } from '../production/work-order.entity';
+import { WorkOrderStep } from '../production/work-order-step.entity';
 
 @Injectable()
 export class GanttService {
     constructor(
         @InjectRepository(ProductionPlan) private planRepo: Repository<ProductionPlan>,
         @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
+        @InjectRepository(WorkOrder) private woRepo: Repository<WorkOrder>,
+        @InjectRepository(WorkOrderStep) private stepRepo: Repository<WorkOrderStep>,
     ) { }
 
     // --- Gantt Chart: Lấy các kế hoạch chưa hoàn thiện kèm công đoạn sản phẩm ---
     async getGanttData() {
         const plans = await this.planRepo.find({
-            where: { status: In([PlanStatus.DRAFT, PlanStatus.CALCULATED]) },
+            where: { status: In([PlanStatus.DRAFT, PlanStatus.CALCULATED, PlanStatus.IN_PRODUCTION]) },
             relations: [
                 'sales_orders',
                 'sales_orders.items',
@@ -122,7 +126,7 @@ export class GanttService {
                 start_date: plan.start_date,
                 end_date: plan.end_date,
                 status: plan.status,
-                products: Array.from(productMap.values()),
+                products: await this.enrichProductsWithProgress(Array.from(productMap.values()), plan.id),
                 npl_status: { total: totalMaterials, purchased: purchasedCount, status: nplStatus },
                 delivery_warnings: deliveryWarnings
             };
@@ -136,5 +140,46 @@ export class GanttService {
         plan.gantt_config = config;
         await this.planRepo.save(plan);
         return { message: 'Đã lưu cấu hình Gantt' };
+    }
+
+    // --- MỚI: Enrich products với live progress từ WorkOrder ---
+    private async enrichProductsWithProgress(products: any[], planId: number) {
+        try {
+            // Load tất cả WO của plan này
+            const workOrders = await this.woRepo.find({
+                where: { plan_id: planId },
+                relations: ['steps']
+            });
+
+            for (const prod of products) {
+                // Tìm WO matching product SKU
+                const wo = workOrders.find(w => w.product_sku === prod.sku);
+                if (wo && wo.steps && wo.steps.length > 0) {
+                    const total = wo.steps.length;
+                    const completed = wo.steps.filter(s => s.status === 'COMPLETED').length;
+                    const inProgress = wo.steps.filter(s => s.status === 'IN_PROGRESS').length;
+                    prod.progress = total > 0 ? Math.round(((completed + inProgress * 0.5) / total) * 100) : 0;
+                    prod.wo_status = wo.status;
+
+                    // Merge live step status vào steps
+                    for (const step of prod.steps) {
+                        const woStep = wo.steps.find(s => s.step_name === step.step_name);
+                        if (woStep) {
+                            step.live_status = woStep.status;
+                            step.actual_start = woStep.actual_start;
+                            step.actual_end = woStep.actual_end;
+                            step.supplier_id = woStep.supplier_id;
+                            step.step_note = woStep.note;
+                        }
+                    }
+                } else {
+                    prod.progress = 0;
+                    prod.wo_status = null;
+                }
+            }
+        } catch (e) {
+            console.error('Enrich progress failed:', e);
+        }
+        return products;
     }
 }

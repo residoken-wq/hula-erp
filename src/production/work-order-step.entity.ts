@@ -21,4 +21,25 @@ export class WorkOrderStep {
 
   @Column({ nullable: true })
   assigned_to: string; // Tên tổ đội / Nhà gia công
+
+  // --- MỚI: Link NCC gia công ---
+  @Column({ nullable: true })
+  supplier_id: number;
+
+  // --- MỚI: Kế hoạch thời gian ---
+  @Column({ type: 'date', nullable: true })
+  start_date: Date;
+
+  @Column({ type: 'date', nullable: true })
+  end_date: Date;
+
+  // --- MỚI: Thời gian thực tế ---
+  @Column({ type: 'date', nullable: true })
+  actual_start: Date;
+
+  @Column({ type: 'date', nullable: true })
+  actual_end: Date;
+
+  @Column({ nullable: true })
+  note: string;
 }

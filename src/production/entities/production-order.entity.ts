@@ -1,5 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { Product } from '../../products/product.entity';
+import { ProductionPlan } from '../../planning/production-plan.entity';
+import { WorkOrder } from '../work-order.entity';
 
 @Entity('production_orders')
 export class ProductionOrder {
@@ -16,6 +18,22 @@ export class ProductionOrder {
   @Column()
   product_id: number;
 
+  // --- MỚI: Liên kết Kế hoạch SX ---
+  @ManyToOne(() => ProductionPlan, { nullable: true })
+  @JoinColumn({ name: 'plan_id' })
+  plan: ProductionPlan;
+
+  @Column({ nullable: true })
+  plan_id: number;
+
+  // --- MỚI: Truy vết đơn hàng gốc ---
+  @Column({ nullable: true })
+  sales_order_code: string;
+
+  // --- MỚI: NCC gia công chính (nếu có) ---
+  @Column({ nullable: true })
+  assigned_supplier_id: number;
+
   @Column('decimal', { precision: 15, scale: 2 })
   quantity: number;
 
@@ -27,6 +45,10 @@ export class ProductionOrder {
 
   @Column({ default: 'PLANNED' }) // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
   status: string;
+
+  // --- MỚI: Work Orders (tracking từng công đoạn) ---
+  @OneToMany(() => WorkOrder, wo => wo.production_order)
+  work_orders: WorkOrder[];
 
   @CreateDateColumn() created_at: Date;
   @UpdateDateColumn() updated_at: Date;

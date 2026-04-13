@@ -32,6 +32,7 @@ import { SocialModule } from './social/social.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { WebsiteProjectsModule } from './website-projects/website-projects.module';
+import { QCModule } from './qc/qc.module';
 
 // Entities
 import { Product } from './products/product.entity';
@@ -65,8 +66,16 @@ import { GoodsReceipt } from './inventory/entities/goods-receipt.entity';
 import { GoodsReceiptItem } from './inventory/entities/goods-receipt-item.entity';
 import { SampleTransaction } from './inventory/samples/sample-transaction.entity';
 import { SampleTransactionItem } from './inventory/samples/sample-transaction-item.entity';
+import { GoodsIssue } from './inventory/entities/goods-issue.entity';
+import { GoodsIssueItem } from './inventory/entities/goods-issue-item.entity';
 
 import { ProductionOrder } from './production/entities/production-order.entity';
+import { WorkOrder } from './production/work-order.entity';
+import { WorkOrderStep } from './production/work-order-step.entity';
+import { OutsourcingAssignment } from './production/entities/outsourcing-assignment.entity';
+
+import { QualityInspection } from './qc/quality-inspection.entity';
+import { QCDefectItem } from './qc/qc-defect-item.entity';
 
 // Finance Entities
 import { Transaction } from './finance/transaction.entity';
@@ -158,7 +167,9 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           PriceList, PriceListRule, SalesOrderVersion, SalesTarget,
           PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
           StockHistory, InventoryStock, ShippingCarrier, SampleTransaction, SampleTransactionItem,
-          ProductionOrder,
+          GoodsIssue, GoodsIssueItem,
+          ProductionOrder, WorkOrder, WorkOrderStep, OutsourcingAssignment,
+          QualityInspection, QCDefectItem,
           Transaction, TransactionCategory,
           Task, TaskTimeLog, Notification,
           Project, Milestone, Discussion, DiscussionComment,
@@ -196,6 +207,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
     MarketingModule, // Marketing campaigns, segments, automation
     AnnouncementsModule, // Announcements for employees
     WebsiteProjectsModule,
+    QCModule, // Quality Control module
     TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
   ],
   providers: [

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Put, Delete, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Put, Delete, Query, UsePipes, ValidationPipe } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './create-inventory.dto';
 
@@ -23,7 +23,7 @@ export class InventoryController {
       dto.quantity,
       dto.ref,
       dto.note,
-      dto.warehouse // <--- Truyền kho xuống service
+      dto.warehouse
     );
   }
 
@@ -92,4 +92,41 @@ export class InventoryController {
   async deleteShippingCarrier(@Param('id') id: string) {
     return this.inventoryService.deleteShippingCarrier(Number(id));
   }
-}
+
+  // ===========================================
+  // --- GOODS ISSUE (PHIẾU XUẤT KHO) API ---
+  // ===========================================
+
+  @Post('goods-issue')
+  async createGoodsIssue(@Body() body: any) {
+    return this.inventoryService.createGoodsIssue(body);
+  }
+
+  @Get('goods-issue')
+  async getGoodsIssues(@Query('po_id') poId?: string, @Query('supplier_id') supplierId?: string) {
+    const query: any = {};
+    if (poId) query.po_id = Number(poId);
+    if (supplierId) query.supplier_id = Number(supplierId);
+    return this.inventoryService.getGoodsIssues(query);
+  }
+
+  @Get('goods-issue/:id')
+  async getGoodsIssueDetail(@Param('id') id: string) {
+    return this.inventoryService.getGoodsIssueDetail(Number(id));
+  }
+
+  @Post('goods-issue/:id/confirm')
+  async confirmGoodsIssue(@Param('id') id: string) {
+    return this.inventoryService.confirmGoodsIssue(Number(id));
+  }
+
+  @Post('goods-issue/:id/delivered')
+  async markGoodsIssueDelivered(@Param('id') id: string) {
+    return this.inventoryService.markGoodsIssueDelivered(Number(id));
+  }
+
+  @Delete('goods-issue/:id')
+  async deleteGoodsIssue(@Param('id') id: string) {
+    return this.inventoryService.deleteGoodsIssue(Number(id));
+  }
+}

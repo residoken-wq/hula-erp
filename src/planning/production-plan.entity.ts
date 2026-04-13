@@ -2,9 +2,10 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany } f
 import { SalesOrder } from '../sales/sales-order.entity';
 
 export enum PlanStatus {
-  DRAFT = 'DRAFT',           // Mới tạo
-  CALCULATED = 'CALCULATED', // Đã chạy MRP (Tính toán vật tư)
-  COMPLETED = 'COMPLETED'    // Đã hoàn thành SX
+  DRAFT = 'DRAFT',                     // Mới tạo
+  CALCULATED = 'CALCULATED',           // Đã chạy MRP (Tính toán vật tư)
+  IN_PRODUCTION = 'IN_PRODUCTION',     // Đang sản xuất
+  COMPLETED = 'COMPLETED'              // Đã hoàn thành SX
 }
 
 @Entity('production_plans')

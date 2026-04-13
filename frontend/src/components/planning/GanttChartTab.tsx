@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Tag, Space, Empty, Tooltip, Modal, DatePicker, Alert, message } from 'antd';
+import { Card, Tag, Space, Empty, Tooltip, Modal, DatePicker, Alert, message, Progress } from 'antd';
 import { WarningOutlined, CheckCircleOutlined, ClockCircleOutlined, DragOutlined } from '@ant-design/icons';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -31,7 +31,7 @@ const SortableStepBar = ({ step, si, stepCount, totalDays, planStart, colors, on
         left: `${left}%`,
         width: `${width}%`,
         height: '100%',
-        background: isDragging ? '#40a9ff' : bgColor,
+        background: isDragging ? '#40a9ff' : (step.live_status === 'COMPLETED' ? '#52c41a' : step.live_status === 'IN_PROGRESS' ? '#1890ff' : bgColor),
         opacity: isDragging ? 1 : 0.85,
         borderRight: '1px solid #fff',
         display: 'flex',
@@ -45,7 +45,7 @@ const SortableStepBar = ({ step, si, stepCount, totalDays, planStart, colors, on
     };
 
     return (
-        <Tooltip title={`${step.step_name}${step.supplier_name ? ` (NCC: ${step.supplier_name})` : ''}${step.start_date ? `\n${dayjs(step.start_date).format('DD/MM')} → ${dayjs(step.end_date).format('DD/MM')}` : ''}\n🖱 Click để chỉnh thời gian | ✋ Kéo để đổi thứ tự`}>
+        <Tooltip title={`${step.step_name}${step.supplier_name ? ` (NCC: ${step.supplier_name})` : ''}${step.start_date ? `\n${dayjs(step.start_date).format('DD/MM')} → ${dayjs(step.end_date).format('DD/MM')}` : ''}${step.live_status ? `\n⏱ ${step.live_status === 'COMPLETED' ? '✅ Hoàn thành' : step.live_status === 'IN_PROGRESS' ? '🔄 Đang thực hiện' : '⏳ Chờ'}` : ''}\n🖱 Click để chỉnh thời gian | ✋ Kéo để đổi thứ tự`}>
             <div
                 ref={setNodeRef}
                 style={style}
@@ -135,7 +135,7 @@ const GanttChartTab: React.FC<GanttChartTabProps> = ({ ganttPlans, setGanttPlans
                                     <span><b>{plan.plan_code}</b> - {plan.plan_name}</span>
                                     <Space size={8} wrap>
                                         <Tag icon={nplIcon} color={nplColor} style={{ fontWeight: 500 }}>{nplText}</Tag>
-                                        <Tag color={plan.status === 'CALCULATED' ? 'green' : 'orange'}>{plan.status === 'CALCULATED' ? 'Đã tính MRP' : 'Mới'}</Tag>
+                                        <Tag color={plan.status === 'COMPLETED' ? 'green' : plan.status === 'IN_PRODUCTION' ? 'blue' : plan.status === 'CALCULATED' ? 'cyan' : 'orange'}>{plan.status === 'COMPLETED' ? 'Hoàn thành' : plan.status === 'IN_PRODUCTION' ? 'Đang SX' : plan.status === 'CALCULATED' ? 'Đã tính MRP' : 'Mới'}</Tag>
                                         <small style={{ color: '#888' }}>{planStart.format('DD/MM/YYYY')} → {planEnd.format('DD/MM/YYYY')}</small>
                                     </Space>
                                 </div>
@@ -196,6 +196,9 @@ const GanttChartTab: React.FC<GanttChartTabProps> = ({ ganttPlans, setGanttPlans
                                             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
                                                 <Tag color="blue" style={{ margin: 0 }}>{prod.sku}</Tag>
                                                 <span style={{ marginLeft: 8, fontSize: 13, color: '#333' }}>{prod.product_name}</span>
+                                                {prod.progress !== undefined && prod.progress !== null && (
+                                                    <Progress percent={prod.progress} size="small" style={{ width: 120, marginLeft: 12 }} strokeColor={prod.progress >= 100 ? '#52c41a' : prod.progress > 0 ? '#1890ff' : '#d9d9d9'} />
+                                                )}
                                             </div>
                                             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                                                 <SortableContext items={stepIds} strategy={horizontalListSortingStrategy}>

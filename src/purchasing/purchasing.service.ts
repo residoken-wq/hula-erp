@@ -203,9 +203,14 @@ export class PurchasingService {
 
         const savedPO = await this.poRepo.save(po);
 
-        // --- MỚI: Sync Price to Planning if Ordered ---
+        // --- Sync Price to Planning if Ordered ---
         if (data.status === 'ORDERED' && savedPO.plan_id) {
             await this.planningService.syncPoPrices(savedPO.plan_id);
+        }
+
+        // --- MỚI: Auto-check Plan Status khi PO status thay đổi ---
+        if (data.status && savedPO.plan_id) {
+            await this.planningService.checkAndUpdatePlanStatus(savedPO.plan_id);
         }
 
         return savedPO;
@@ -303,8 +308,77 @@ export class PurchasingService {
         return this.poRepo.save(po);
     }
 
-    async getByUuid(uuid: string) { return this.poRepo.findOne({ where: { uuid }, relations: ['supplier', 'items'] }); }
-    async supplierAction(uuid: string, action: string, note?: string) { return null; }
+    async getByUuid(uuid: string) {
+        const po = await this.poRepo.findOne({
+            where: { uuid },
+            relations: ['supplier', 'items', 'items.product', 'items.material']
+        });
+        if (!po) throw new NotFoundException('Đơn hàng không tồn tại hoặc link đã hết hạn');
+        return po;
+    }
+
+    async supplierAction(uuid: string, action: string, data?: any) {
+        const po = await this.poRepo.findOne({ where: { uuid }, relations: ['items'] });
+        if (!po) throw new NotFoundException('Đơn hàng không tồn tại');
+
+        // Initialize outsourcing_delivery_info if null
+        if (!po.outsourcing_delivery_info) po.outsourcing_delivery_info = {};
+        if (!po.outsourcing_delivery_info.progress_updates) po.outsourcing_delivery_info.progress_updates = [];
+
+        switch (action) {
+            case 'CONFIRM':
+                if (!['DRAFT', 'SENT'].includes(po.status)) {
+                    throw new BadRequestException('Đơn hàng đã được xác nhận trước đó');
+                }
+                po.status = POStatus.CONFIRMED;
+                po.outsourcing_delivery_info.confirmed_at = new Date().toISOString();
+                po.outsourcing_delivery_info.confirmed_note = data?.note || null;
+                break;
+
+            case 'UPDATE_PROGRESS':
+                // data: { completed_qty, note, photos }
+                po.outsourcing_delivery_info.progress_updates.push({
+                    completed_qty: Number(data?.completed_qty || 0),
+                    note: data?.note || '',
+                    photos: data?.photos || [],
+                    timestamp: new Date().toISOString()
+                });
+                // Auto-update status to ORDERED nếu chưa
+                if (['CONFIRMED', 'DRAFT', 'SENT'].includes(po.status)) {
+                    po.status = POStatus.ORDERED;
+                }
+                break;
+
+            case 'MARK_COMPLETED':
+                po.outsourcing_delivery_info.completed_at = new Date().toISOString();
+                po.outsourcing_delivery_info.completion_note = data?.note || '';
+                po.outsourcing_delivery_info.completion_photos = data?.photos || [];
+                // Chuyển sang DELIVERED (chờ nội bộ confirm nhập kho)
+                po.status = POStatus.DELIVERED;
+                break;
+
+            case 'REJECT':
+                po.outsourcing_delivery_info.rejection = {
+                    reason: data?.reason || 'Không có lý do',
+                    rejected_at: new Date().toISOString(),
+                    note: data?.note || ''
+                };
+                po.status = POStatus.CANCELLED;
+                break;
+
+            default:
+                throw new BadRequestException(`Action không hợp lệ: ${action}`);
+        }
+
+        const saved = await this.poRepo.save(po);
+
+        // Auto-check plan status
+        if (saved.plan_id) {
+            await this.planningService.checkAndUpdatePlanStatus(saved.plan_id);
+        }
+
+        return saved;
+    }
 
     // --- MỚI: TỔNG HỢP NHU CẦU MUA HÀNG (PO GỘP) ---
     async getPendingRequirements() {

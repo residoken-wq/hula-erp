@@ -48,7 +48,7 @@ export class PurchasingController {
   getPortal(@Param('uuid') uuid: string) { return this.s.getByUuid(uuid); }
 
   @Post('portal/:uuid/action')
-  portalAction(@Param('uuid') uuid: string, @Body() b: any) { return this.s.supplierAction(uuid, b.action, b.note); }
+  portalAction(@Param('uuid') uuid: string, @Body() b: any) { return this.s.supplierAction(uuid, b.action, b); }
 
 
 }
