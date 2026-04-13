@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { ProductionOrder } from '../production/entities/production-order.entity';
-import { Supplier } from '../suppliers/supplier.entity';
-import { WorkOrderStep } from '../production/work-order-step.entity';
+import { ProductionOrder } from './production-order.entity';
+import { Supplier } from '../../suppliers/supplier.entity';
+import { WorkOrderStep } from '../work-order-step.entity';
 
 export enum AssignmentStatus {
   PLANNED = 'PLANNED',       // Đã lên kế hoạch  

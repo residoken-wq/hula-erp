@@ -42,7 +42,7 @@ export class GanttService {
 
         const now = new Date();
 
-        return plans.map(plan => {
+        return Promise.all(plans.map(async plan => {
             // --- NPL Status ---
             const planPos = allPos.filter(po => po.plan_id === plan.id);
             const materialPos = planPos.filter(po => po.type === 'MATERIAL');
@@ -130,7 +130,7 @@ export class GanttService {
                 npl_status: { total: totalMaterials, purchased: purchasedCount, status: nplStatus },
                 delivery_warnings: deliveryWarnings
             };
-        });
+        }));
     }
 
     // --- Lưu cấu hình Gantt (step order + timing) ---
