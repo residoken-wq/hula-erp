@@ -938,15 +938,6 @@ const PortalQuotePage: React.FC = () => {
                 <Row gutter={24}>
                     <Col span={24}>
                         <Card title={<span style={{ fontWeight: 700, fontSize: 16 }}>📋 Chi Tiết Đơn Hàng</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
-                            {data.note && (
-                                <div style={{ display: 'flex', gap: 10, marginBottom: 20, background: '#fff7e6', padding: 15, borderRadius: 8, border: '1px solid #ffec3d' }}>
-                                    <InfoCircleOutlined style={{ color: '#faad14', marginTop: 4 }} />
-                                    <div>
-                                        <div style={{ fontWeight: 700, color: '#d48806', marginBottom: 5 }}>Ghi chú từ người bán:</div>
-                                        <div style={{ color: '#595959', whiteSpace: 'pre-line' }}>{data.note}</div>
-                                    </div>
-                                </div>
-                            )}
 
                             {isMobile ? (
                                 // MOBILE LIST VIEW
@@ -1105,6 +1096,17 @@ const PortalQuotePage: React.FC = () => {
                                                 (Math.max(0, data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0) - Number(data.discount_amount || 0))) * (1 + (data.vat_rate || 0) / 100) + Number(data.shipping_fee || 0)
                                             ).toLocaleString()} ₫
                                         </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Note - below items table */}
+                            {data.note && (
+                                <div style={{ display: 'flex', gap: 10, marginTop: 20, background: '#fff7e6', padding: 15, borderRadius: 8, border: '1px solid #ffec3d' }}>
+                                    <InfoCircleOutlined style={{ color: '#faad14', marginTop: 4 }} />
+                                    <div>
+                                        <div style={{ fontWeight: 700, color: '#d48806', marginBottom: 5 }}>Ghi chú từ người bán:</div>
+                                        <div style={{ color: '#595959', whiteSpace: 'pre-line' }}>{data.note}</div>
                                     </div>
                                 </div>
                             )}

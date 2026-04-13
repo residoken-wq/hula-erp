@@ -139,6 +139,19 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     note: isInternal ? 'Đơn nhập kho (Make to Stock)' : ''
                 });
 
+                // Load default terms & note from system config
+                if (isQuotation && !isInternal) {
+                    Promise.all([
+                        api.get('/system/config/QUOTE_DEFAULT_TERMS').catch(() => ({ data: null })),
+                        api.get('/system/config/QUOTE_DEFAULT_NOTE').catch(() => ({ data: null })),
+                    ]).then(([termsRes, noteRes]) => {
+                        const updates: any = {};
+                        if (termsRes.data?.value) updates.terms_content = termsRes.data.value;
+                        if (noteRes.data?.value) updates.note = noteRes.data.value;
+                        if (Object.keys(updates).length > 0) form.setFieldsValue(updates);
+                    });
+                }
+
                 if (isInternal) {
                     // Mock Internal Customer if not exists in list, or just display "Nội Bộ"
                     // Better: Handle in rendering
@@ -488,6 +501,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             <Col span={24}>
                                 <Form.Item name="note" label="Ghi chú nội bộ (Hiển thị trên Portal)">
                                     <Input.TextArea rows={2} placeholder="Nhập ghi chú cho khách hàng..." />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col span={24}>
+                                <Form.Item name="terms_content" label="Điều khoản & Quy định (Hiển thị trên Portal & Bản in)">
+                                    <Input.TextArea rows={4} placeholder="VD: 1. Thời gian giao hàng: 15-20 ngày..." />
                                 </Form.Item>
                             </Col>
                         </Row>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip, Tag, Space } from 'antd';
-import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SettingOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SettingOutlined, MinusCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
@@ -19,6 +19,11 @@ const SystemSettingsPage: React.FC = () => {
                     <Tabs.TabPane tab={<span><FileTextOutlined /> Mẫu Hợp Đồng</span>} key="2">
                         <div style={{ padding: 24 }}>
                             <ContractTemplatesTab />
+                        </div>
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab={<span><ShopOutlined /> Terms Báo giá</span>} key="3">
+                        <div style={{ padding: 24 }}>
+                            <QuoteTermsTab />
                         </div>
                     </Tabs.TabPane>
                 </Tabs>
@@ -499,6 +504,109 @@ const CompanyConfigForm = () => {
     );
 };
 
+const QuoteTermsTab: React.FC = () => {
+    const [termsContent, setTermsContent] = useState('');
+    const [defaultNote, setDefaultNote] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
 
+    useEffect(() => {
+        setLoading(true);
+        Promise.all([
+            axios.get(`${API_URL}/system/config/QUOTE_DEFAULT_TERMS`).catch(() => ({ data: null })),
+            axios.get(`${API_URL}/system/config/QUOTE_DEFAULT_NOTE`).catch(() => ({ data: null })),
+        ]).then(([termsRes, noteRes]) => {
+            if (termsRes.data?.value) setTermsContent(termsRes.data.value);
+            if (noteRes.data?.value) setDefaultNote(noteRes.data.value);
+        }).finally(() => setLoading(false));
+    }, []);
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await Promise.all([
+                axios.post(`${API_URL}/system/config`, {
+                    key: 'QUOTE_DEFAULT_TERMS',
+                    value: termsContent,
+                    description: 'Nội dung Điều khoản & Quy định mặc định cho Báo giá'
+                }),
+                axios.post(`${API_URL}/system/config`, {
+                    key: 'QUOTE_DEFAULT_NOTE',
+                    value: defaultNote,
+                    description: 'Ghi chú mặc định cho Báo giá'
+                })
+            ]);
+            message.success('Đã lưu cấu hình Terms Báo giá!');
+        } catch (e) {
+            message.error('Lỗi khi lưu');
+        }
+        setSaving(false);
+    };
+
+    if (loading) return <Spin />;
+
+    return (
+        <>
+            <Alert
+                message="Cấu hình nội dung mặc định cho Báo giá B2B"
+                description="Nội dung dưới đây sẽ được tự động điền khi tạo báo giá mới. Nhân viên Sales có thể chỉnh sửa cho từng đơn cụ thể."
+                type="info"
+                showIcon
+                style={{ marginBottom: 24 }}
+            />
+
+            <Card title="📝 Ghi chú mặc định (Note)" bordered={false} size="small" style={{ marginBottom: 20 }}>
+                <div style={{ marginBottom: 8, fontSize: 12, color: '#888' }}>
+                    Nội dung này sẽ hiển thị trong phần "Ghi chú từ người bán" trên Portal và bản in.
+                </div>
+                <Input.TextArea
+                    rows={4}
+                    value={defaultNote}
+                    onChange={e => setDefaultNote(e.target.value)}
+                    placeholder="VD: Báo giá có hiệu lực trong 7 ngày kể từ ngày gửi. Giá chưa bao gồm VAT và phí vận chuyển."
+                    style={{ fontSize: 13 }}
+                />
+            </Card>
+
+            <Card title="📋 Điều khoản & Quy định mặc định (Terms)" bordered={false} size="small" style={{ marginBottom: 20 }}>
+                <div style={{ marginBottom: 8, fontSize: 12, color: '#888' }}>
+                    Nội dung hiển thị ở phần "Điều khoản & Quy định" cuối trang Portal và bản in. Hỗ trợ nhiều dòng.
+                </div>
+                <Input.TextArea
+                    rows={10}
+                    value={termsContent}
+                    onChange={e => setTermsContent(e.target.value)}
+                    placeholder={`VD:\n1. Thời gian giao hàng: 15-20 ngày làm việc kể từ ngày xác nhận đơn và đặt cọc.\n2. Thanh toán: Đặt cọc 50% khi xác nhận, 50% còn lại khi giao hàng.\n3. Bảo hành: 12 tháng cho lỗi sản xuất.\n4. Đổi/trả: Trong 3 ngày kể từ ngày nhận hàng nếu có lỗi từ nhà sản xuất.`}
+                    style={{ fontSize: 13 }}
+                />
+            </Card>
+
+            {/* Preview */}
+            {(termsContent || defaultNote) && (
+                <Card title="👁 Xem trước trên Portal" bordered={false} size="small" style={{ marginBottom: 20, background: '#fafafa' }}>
+                    {defaultNote && (
+                        <div style={{ display: 'flex', gap: 10, marginBottom: 16, background: '#fff7e6', padding: 15, borderRadius: 8, border: '1px solid #ffec3d' }}>
+                            <InfoCircleOutlined style={{ color: '#faad14', marginTop: 4 }} />
+                            <div>
+                                <div style={{ fontWeight: 700, color: '#d48806', marginBottom: 5 }}>Ghi chú từ người bán:</div>
+                                <div style={{ color: '#595959', whiteSpace: 'pre-line' }}>{defaultNote}</div>
+                            </div>
+                        </div>
+                    )}
+                    {termsContent && (
+                        <div style={{ background: '#f9f9f9', padding: 20, borderRadius: 8, border: '1px solid #f0f0f0' }}>
+                            <div style={{ fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', fontSize: 12, color: '#999' }}>Điều khoản & Quy định</div>
+                            <div style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#555', lineHeight: 1.6 }}>{termsContent}</div>
+                        </div>
+                    )}
+                </Card>
+            )}
+
+            <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave} size="large">
+                Lưu Cấu Hình Terms
+            </Button>
+        </>
+    );
+};
 
 export default SystemSettingsPage;
