@@ -302,6 +302,7 @@ export class SalesService {
         // if (data.delivery_date) order.delivery_date = data.delivery_date; // Remove duplicate
         if (data.status) order.status = data.status;
         if (data.note !== undefined) order.note = data.note;
+        if (data.terms_content !== undefined) order.terms_content = data.terms_content;
         if (data.is_production_sample_approved !== undefined) order.is_production_sample_approved = data.is_production_sample_approved;
 
         // --- SAMPLE IMAGES ---

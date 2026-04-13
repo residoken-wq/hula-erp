@@ -272,7 +272,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     const handleSave = async () => {
         try {
-            const values = await form.validateFields();
+            const values = form.getFieldsValue(true);
 
             // --- VALIDATION: Check Production Sample Approval ---
             if (values.status === 'IN_PRODUCTION' && !values.is_production_sample_approved) { // Checkbox value
