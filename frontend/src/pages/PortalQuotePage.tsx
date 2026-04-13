@@ -419,39 +419,35 @@ const PortalQuotePage: React.FC = () => {
                     if (imgUrl) {
                         if (imgUrl.includes('drive.google.com')) {
                             const match = imgUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                            if (match && match[1]) imgSrc = \`https://drive.google.com/thumbnail?id=\${match[1]}&sz=w200\`;
+                            if (match && match[1]) imgSrc = 'https://drive.google.com/thumbnail?id=' + match[1] + '&sz=w200';
                             else imgSrc = imgUrl;
                         } else if (imgUrl.startsWith('http') || imgUrl.startsWith('data:')) {
                             imgSrc = imgUrl;
                         } else {
-                            imgSrc = \`\${window.location.origin}\${imgUrl}\`;
+                            imgSrc = window.location.origin + imgUrl;
                         }
                     }
                     const productName = item.product_name_real || item.product?.name || item.sku;
                     const vatContent = item.vat_content || '';
                     const customerDesc = item.product?.customer_description || '';
-                    const descLines = customerDesc ? customerDesc.split('\\n').filter((l: string) => l.trim()).map((l: string) => \`<div style="font-size:10px;color:#555;line-height:1.4;">\${l.trim().replace(/^[•-]\\s*/, '· ')}</div>\`).join('') : '';
+                    const descLines = customerDesc ? customerDesc.split('\\n').filter((l: string) => l.trim()).map((l: string) => '<div style="font-size:10px;color:#555;line-height:1.4;">' + l.trim().replace(/^[•-]\s*/, '· ') + '</div>').join('') : '';
+                    const imgCell = imgSrc ? '<img src="' + imgSrc + '" style="width:55px;height:55px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display=\'none\'" />' : '<span style="color:#ccc;font-size:10px;">-</span>';
+                    const colorLine = item.variant_color ? '<div style="font-size:10px;color:#888;">Màu: ' + item.variant_color + '</div>' : '';
 
-                    return \`
-                    <tr>
-                        <td style="text-align:center;font-weight:600;">\${idx + 1}</td>
-                        <td style="text-align:center;padding:4px;">
-                            \${imgSrc ? \`<img src="\${imgSrc}" style="width:55px;height:55px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display='none'" />\` : '<span style="color:#ccc;font-size:10px;">-</span>'}
-                        </td>
-                        <td style="text-align:left;padding:6px 8px;font-size:11px;color:#555;white-space:pre-wrap;line-height:1.5;">
-                            \${vatContent || '-'}
-                        </td>
-                        <td style="text-align:left;padding:6px 8px;">
-                            <div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-bottom:2px;">\${productName}</div>
-                            \${item.variant_color ? \`<div style="font-size:10px;color:#888;">Màu: \${item.variant_color}</div>\` : ''}
-                            \${descLines}
-                            <div style="margin-top:3px;"><span style="font-size:9px;color:#999;background:#f5f5f5;padding:1px 5px;border-radius:3px;">\${item.sku}</span></div>
-                        </td>
-                        <td style="text-align:center;">Cái</td>
-                        <td style="text-align:center;font-weight:700;font-size:13px;">\${Number(item.quantity)}</td>
-                        <td style="text-align:right;padding-right:8px;">\${Number(item.unit_price).toLocaleString()}</td>
-                        <td style="text-align:right;padding-right:8px;font-weight:700;">\${Number(item.subtotal).toLocaleString()}</td>
-                    </tr>\`;
+                    return '<tr>'
+                        + '<td style="text-align:center;font-weight:600;">' + (idx + 1) + '</td>'
+                        + '<td style="text-align:center;padding:4px;">' + imgCell + '</td>'
+                        + '<td style="text-align:left;padding:6px 8px;font-size:11px;color:#555;white-space:pre-wrap;line-height:1.5;">' + (vatContent || '-') + '</td>'
+                        + '<td style="text-align:left;padding:6px 8px;">'
+                        +   '<div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-bottom:2px;">' + productName + '</div>'
+                        +   colorLine + descLines
+                        +   '<div style="margin-top:3px;"><span style="font-size:9px;color:#999;background:#f5f5f5;padding:1px 5px;border-radius:3px;">' + item.sku + '</span></div>'
+                        + '</td>'
+                        + '<td style="text-align:center;">Cái</td>'
+                        + '<td style="text-align:center;font-weight:700;font-size:13px;">' + Number(item.quantity) + '</td>'
+                        + '<td style="text-align:right;padding-right:8px;">' + Number(item.unit_price).toLocaleString() + '</td>'
+                        + '<td style="text-align:right;padding-right:8px;font-weight:700;">' + Number(item.subtotal).toLocaleString() + '</td>'
+                        + '</tr>';
                 }).join('')}
             </tbody>
         </table>
@@ -462,50 +458,25 @@ const PortalQuotePage: React.FC = () => {
                 <td class="summary-label" colspan="1">Tổng tiền hàng:</td>
                 <td class="summary-value">${subTotal.toLocaleString()}</td>
             </tr>
-            ${discountAmount > 0 ? \`
-            <tr>
-                <td class="summary-label">Giảm giá (\${data.discount_rate || 0}%):</td>
-                <td class="summary-value" style="color:#52c41a;">-\${discountAmount.toLocaleString()}</td>
-            </tr>\` : ''}
+            ${discountAmount > 0 ? '<tr><td class="summary-label">Giảm giá (' + (data.discount_rate || 0) + '%):</td><td class="summary-value" style="color:#52c41a;">-' + discountAmount.toLocaleString() + '</td></tr>' : ''}
             <tr>
                 <td class="summary-label">Thuế VAT (${vatRate}%):</td>
                 <td class="summary-value">${vatAmount.toLocaleString()}</td>
             </tr>
-            ${shippingFee > 0 ? \`
-            <tr>
-                <td class="summary-label">Phí vận chuyển:</td>
-                <td class="summary-value">\${shippingFee.toLocaleString()}</td>
-            </tr>\` : ''}
+            ${shippingFee > 0 ? '<tr><td class="summary-label">Phí vận chuyển:</td><td class="summary-value">' + shippingFee.toLocaleString() + '</td></tr>' : ''}
             <tr class="summary-total">
                 <td class="summary-label">TỔNG CỘNG:</td>
                 <td class="summary-value">${total.toLocaleString()} ₫</td>
             </tr>
-            ${paidAmount > 0 ? \`
-            <tr>
-                <td class="summary-label" style="color:#52c41a;">Đã thanh toán:</td>
-                <td class="summary-value" style="color:#52c41a;">\${paidAmount.toLocaleString()} ₫</td>
-            </tr>
-            <tr>
-                <td class="summary-label" style="color:#cf1322;font-weight:700;">Còn lại cần thanh toán:</td>
-                <td class="summary-value" style="color:#cf1322;font-weight:800;font-size:14px;">\${remaining.toLocaleString()} ₫</td>
-            </tr>\` : ''}
+            ${paidAmount > 0 ? '<tr><td class="summary-label" style="color:#52c41a;">Đã thanh toán:</td><td class="summary-value" style="color:#52c41a;">' + paidAmount.toLocaleString() + ' ₫</td></tr><tr><td class="summary-label" style="color:#cf1322;font-weight:700;">Còn lại cần thanh toán:</td><td class="summary-value" style="color:#cf1322;font-weight:800;font-size:14px;">' + remaining.toLocaleString() + ' ₫</td></tr>' : ''}
         </table>
 
-        ${data.note ? \`
-        <div style="margin-top:12px;display:flex;gap:10px;background:#fff7e6;padding:12px 14px;border-radius:8px;border:1px solid #ffec3d;font-size:12px;">
-            <span style="color:#faad14;font-size:16px;margin-top:2px;">ℹ️</span>
-            <div>
-                <div style="font-weight:700;color:#d48806;margin-bottom:4px;">Ghi chú từ người bán:</div>
-                <div style="color:#595959;white-space:pre-line;line-height:1.6;">\${data.note}</div>
-            </div>
-        </div>\` : ''}
+        ${data.note ? '<div style="margin-top:12px;display:flex;gap:10px;background:#fff7e6;padding:12px 14px;border-radius:8px;border:1px solid #ffec3d;font-size:12px;"><span style="color:#faad14;font-size:16px;margin-top:2px;">ℹ️</span><div><div style="font-weight:700;color:#d48806;margin-bottom:4px;">Ghi chú từ người bán:</div><div style="color:#595959;white-space:pre-line;line-height:1.6;">' + data.note + '</div></div></div>' : ''}
         
         <!-- BOTTOM: TERMS + QR -->
         <div class="bottom-section">
             <div class="terms-box">
-                ${termsHtml ? \`
-                <div class="terms-title">Điều khoản & Quy định</div>
-                <div style="white-space:pre-line;color:#555;">\${data.terms_content}</div>\` : ''}
+                ${termsHtml ? '<div class="terms-title">Điều khoản & Quy định</div><div style="white-space:pre-line;color:#555;">' + data.terms_content + '</div>' : ''}
                 
                 <div class="bank-info">
                     <div style="font-weight:700;margin-bottom:4px;">💳 Thông tin chuyển khoản:</div>
