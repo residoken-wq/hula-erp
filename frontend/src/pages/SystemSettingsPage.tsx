@@ -212,8 +212,8 @@ const ContractTemplatesTab: React.FC = () => {
                 description={
                     <div style={{ marginTop: 8 }}>
                         <p style={{ marginBottom: 8, fontSize: 13, color: '#666' }}>Click vào các nhãn dưới đây để copy, sau đó <strong>DÁN</strong> vào trình soạn thảo bằng <code>Ctrl + V</code>.</p>
-                        <Space size={[8, 8]} wrap>
-                            {/* Default Placeholders */}
+                        <div style={{ marginBottom: 6, fontWeight: 600, fontSize: 12, color: '#555' }}>🔹 Khách hàng & Đơn hàng</div>
+                        <Space size={[8, 8]} wrap style={{ marginBottom: 12 }}>
                             {[
                                 { key: 'customer_name', desc: 'Tên Khách hàng' },
                                 { key: 'customer_address', desc: 'Địa chỉ Khách hàng' },
@@ -235,10 +235,23 @@ const ContractTemplatesTab: React.FC = () => {
                                     </Tag>
                                 </Tooltip>
                             ))}
-                            {/* Custom Placeholders */}
-                            {customPlaceholders.map(p => (
-                                <Tooltip title={`Tự định nghĩa: ${p.desc}`} key={p.key}>
-                                    <Tag color="green" style={{ cursor: 'pointer', padding: '4px 8px', fontSize: 13 }} onClick={() => {
+                        </Space>
+                        <div style={{ marginBottom: 6, fontWeight: 600, fontSize: 12, color: '#555' }}>🔸 Bên Bán (Thông tin Doanh nghiệp)</div>
+                        <Space size={[8, 8]} wrap style={{ marginBottom: 12 }}>
+                            {[
+                                { key: 'seller_company_name', desc: 'Tên công ty' },
+                                { key: 'seller_address', desc: 'Địa chỉ công ty' },
+                                { key: 'seller_phone', desc: 'Số điện thoại' },
+                                { key: 'seller_email', desc: 'Email' },
+                                { key: 'seller_website', desc: 'Website' },
+                                { key: 'seller_tax_code', desc: 'Mã số thuế' },
+                                { key: 'seller_representative', desc: 'Người đại diện' },
+                                { key: 'seller_bank_name', desc: 'Tên ngân hàng' },
+                                { key: 'seller_bank_account', desc: 'Số tài khoản' },
+                                { key: 'seller_bank_holder', desc: 'Chủ tài khoản' },
+                            ].map(p => (
+                                <Tooltip title={`Bên bán: ${p.desc}`} key={p.key}>
+                                    <Tag color="orange" style={{ cursor: 'pointer', padding: '4px 8px', fontSize: 13 }} onClick={() => {
                                         navigator.clipboard.writeText(`{{${p.key}}}`);
                                         message.success(`Đã copy: {{${p.key}}}`);
                                     }}>
@@ -250,6 +263,48 @@ const ContractTemplatesTab: React.FC = () => {
                                 </Tooltip>
                             ))}
                         </Space>
+                        <div style={{ marginBottom: 6, fontWeight: 600, fontSize: 12, color: '#555' }}>📝 Nội dung tự soạn</div>
+                        <Space size={[8, 8]} wrap style={{ marginBottom: 12 }}>
+                            {[
+                                { key: 'text_content_1', desc: 'Nội dung tự soạn 1' },
+                                { key: 'text_content_2', desc: 'Nội dung tự soạn 2' },
+                                { key: 'text_content_3', desc: 'Nội dung tự soạn 3' },
+                                { key: 'text_content_4', desc: 'Nội dung tự soạn 4' },
+                                { key: 'text_content_5', desc: 'Nội dung tự soạn 5' },
+                            ].map(p => (
+                                <Tooltip title={p.desc} key={p.key}>
+                                    <Tag color="purple" style={{ cursor: 'pointer', padding: '4px 8px', fontSize: 13 }} onClick={() => {
+                                        navigator.clipboard.writeText(`{{${p.key}}}`);
+                                        message.success(`Đã copy: {{${p.key}}}`);
+                                    }}>
+                                        <Space size={4}>
+                                            <CopyOutlined style={{ opacity: 0.6 }} />
+                                            {`{{${p.key}}}`}
+                                        </Space>
+                                    </Tag>
+                                </Tooltip>
+                            ))}
+                        </Space>
+                        {customPlaceholders.length > 0 && (
+                            <>
+                                <div style={{ marginBottom: 6, fontWeight: 600, fontSize: 12, color: '#555' }}>🟢 Tự định nghĩa</div>
+                                <Space size={[8, 8]} wrap>
+                                    {customPlaceholders.map(p => (
+                                        <Tooltip title={`Tự định nghĩa: ${p.desc}`} key={p.key}>
+                                            <Tag color="green" style={{ cursor: 'pointer', padding: '4px 8px', fontSize: 13 }} onClick={() => {
+                                                navigator.clipboard.writeText(`{{${p.key}}}`);
+                                                message.success(`Đã copy: {{${p.key}}}`);
+                                            }}>
+                                                <Space size={4}>
+                                                    <CopyOutlined style={{ opacity: 0.6 }} />
+                                                    {`{{${p.key}}}`}
+                                                </Space>
+                                            </Tag>
+                                        </Tooltip>
+                                    ))}
+                                </Space>
+                            </>
+                        )}
                     </div>
                 }
             />
@@ -284,7 +339,8 @@ const ContractTemplatesTab: React.FC = () => {
                             </p>
                             <div style={{ maxHeight: 600, overflowY: 'auto', paddingRight: 4 }}>
                                 <Space size={[8, 12]} wrap direction="vertical" style={{ width: '100%' }}>
-                                    {/* Default Placeholders */}
+                                    {/* Default Placeholders - Khách hàng & Đơn hàng */}
+                                    <div style={{ fontWeight: 600, fontSize: 11, color: '#999', textTransform: 'uppercase' }}>🔹 Khách hàng & Đơn hàng</div>
                                     {[
                                         { key: 'customer_name', desc: 'Tên Khách hàng' },
                                         { key: 'customer_address', desc: 'Địa chỉ Khách hàng' },
@@ -307,7 +363,56 @@ const ContractTemplatesTab: React.FC = () => {
                                             <span style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 4 }}>{p.desc}</span>
                                         </div>
                                     ))}
-                                    {customPlaceholders.length > 0 && <Divider style={{ margin: '12px 0' }} orientation="left" plain><span style={{fontSize: 12, color: '#aaa'}}>Tự định nghĩa</span></Divider>}
+                                    {/* Seller Placeholders */}
+                                    <Divider style={{ margin: '8px 0' }} orientation="left" plain><span style={{fontSize: 11, color: '#aaa'}}>🔸 Bên Bán</span></Divider>
+                                    {[
+                                        { key: 'seller_company_name', desc: 'Tên công ty' },
+                                        { key: 'seller_address', desc: 'Địa chỉ' },
+                                        { key: 'seller_phone', desc: 'Số điện thoại' },
+                                        { key: 'seller_email', desc: 'Email' },
+                                        { key: 'seller_website', desc: 'Website' },
+                                        { key: 'seller_tax_code', desc: 'Mã số thuế' },
+                                        { key: 'seller_representative', desc: 'Người đại diện' },
+                                        { key: 'seller_bank_name', desc: 'Ngân hàng' },
+                                        { key: 'seller_bank_account', desc: 'Số tài khoản' },
+                                        { key: 'seller_bank_holder', desc: 'Chủ tài khoản' },
+                                    ].map(p => (
+                                        <div key={p.key} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Tag color="orange" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 13, width: 'fit-content' }} onClick={() => {
+                                                navigator.clipboard.writeText(`{{${p.key}}}`);
+                                                message.success(`Đã copy: {{${p.key}}}`);
+                                            }}>
+                                                <Space size={4}>
+                                                    <CopyOutlined style={{ opacity: 0.6 }} />
+                                                    {`{{${p.key}}}`}
+                                                </Space>
+                                            </Tag>
+                                            <span style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 4 }}>{p.desc}</span>
+                                        </div>
+                                    ))}
+                                    {/* Text Content Placeholders */}
+                                    <Divider style={{ margin: '8px 0' }} orientation="left" plain><span style={{fontSize: 11, color: '#aaa'}}>📝 Nội dung tự soạn</span></Divider>
+                                    {[
+                                        { key: 'text_content_1', desc: 'Nội dung 1' },
+                                        { key: 'text_content_2', desc: 'Nội dung 2' },
+                                        { key: 'text_content_3', desc: 'Nội dung 3' },
+                                        { key: 'text_content_4', desc: 'Nội dung 4' },
+                                        { key: 'text_content_5', desc: 'Nội dung 5' },
+                                    ].map(p => (
+                                        <div key={p.key} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Tag color="purple" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 13, width: 'fit-content' }} onClick={() => {
+                                                navigator.clipboard.writeText(`{{${p.key}}}`);
+                                                message.success(`Đã copy: {{${p.key}}}`);
+                                            }}>
+                                                <Space size={4}>
+                                                    <CopyOutlined style={{ opacity: 0.6 }} />
+                                                    {`{{${p.key}}}`}
+                                                </Space>
+                                            </Tag>
+                                            <span style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 4 }}>{p.desc}</span>
+                                        </div>
+                                    ))}
+                                    {customPlaceholders.length > 0 && <Divider style={{ margin: '8px 0' }} orientation="left" plain><span style={{fontSize: 11, color: '#aaa'}}>🟢 Tự định nghĩa</span></Divider>}
                                     {customPlaceholders.map(p => (
                                         <div key={p.key} style={{ display: 'flex', flexDirection: 'column' }}>
                                             <Tag color="green" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 13, width: 'fit-content' }} onClick={() => {
@@ -498,6 +603,16 @@ const CompanyConfigForm = () => {
             <Row gutter={16}>
                 <Col span={12}><Form.Item name="COMPANY_EMAIL" label="Email"><Input /></Form.Item></Col>
                 <Col span={12}><Form.Item name="COMPANY_WEBSITE" label="Website"><Input /></Form.Item></Col>
+            </Row>
+            <Row gutter={16}>
+                <Col span={12}><Form.Item name="COMPANY_TAX_CODE" label="Mã số thuế"><Input placeholder="0123456789" /></Form.Item></Col>
+                <Col span={12}><Form.Item name="COMPANY_REPRESENTATIVE" label="Người đại diện"><Input placeholder="Nguyễn Văn A" /></Form.Item></Col>
+            </Row>
+            <Divider orientation="left" plain>🏦 Thông tin Ngân hàng</Divider>
+            <Row gutter={16}>
+                <Col span={8}><Form.Item name="COMPANY_BANK_NAME" label="Tên Ngân hàng"><Input placeholder="VD: Vietcombank" /></Form.Item></Col>
+                <Col span={8}><Form.Item name="COMPANY_BANK_ACCOUNT" label="Số tài khoản"><Input placeholder="0123456789" /></Form.Item></Col>
+                <Col span={8}><Form.Item name="COMPANY_BANK_HOLDER" label="Chủ tài khoản"><Input placeholder="CÔNG TY TNHH ABC" /></Form.Item></Col>
             </Row>
             <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={loading}>Lưu Thông Tin</Button>
         </Form>

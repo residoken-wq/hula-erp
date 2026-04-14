@@ -25,6 +25,11 @@ export class SystemController {
         return this.s.saveCompanyConfig(body);
     }
 
+    @Get('seller-info')
+    getSellerInfo() {
+        return this.s.getSellerInfo();
+    }
+
     @Get('logs')
     getLogs() {
         return this.s.getLogs();

@@ -33,9 +33,19 @@ interface Props {
     templates: any[]; // Contract Templates
 }
 
+const SELLER_KEYS = [
+    'seller_company_name', 'seller_address', 'seller_phone', 'seller_email', 'seller_website',
+    'seller_tax_code', 'seller_representative',
+    'seller_bank_name', 'seller_bank_account', 'seller_bank_holder'
+];
+
+const TEXT_CONTENT_KEYS = ['text_content_1', 'text_content_2', 'text_content_3', 'text_content_4', 'text_content_5'];
+
 const BUILT_IN_VARS = [
     'customer_name', 'customer_address', 'customer_tax_code', 'customer_representative', 'customer_position',
-    'order_code', 'order_date', 'total_amount_text', 'sign_date', 'items_table'
+    'order_code', 'order_date', 'total_amount_text', 'sign_date', 'items_table',
+    ...SELLER_KEYS,
+    ...TEXT_CONTENT_KEYS
 ];
 
 const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, initialData, templates }) => {
@@ -45,6 +55,31 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
     const [customVariables, setCustomVariables] = useState<string[]>([]);
     const [saving, setSaving] = useState(false);
     const [autoFillValues, setAutoFillValues] = useState<boolean>(true);
+    const [sellerInfo, setSellerInfo] = useState<Record<string, string>>({});
+    const [sellerLoading, setSellerLoading] = useState(false);
+
+    // Detect which text_content vars are used in current template
+    const [activeTextContentVars, setActiveTextContentVars] = useState<string[]>([]);
+
+    // Fetch seller info on mount
+    useEffect(() => {
+        if (open) {
+            setSellerLoading(true);
+            api.get('/system/seller-info')
+                .then(res => {
+                    const data = res.data || {};
+                    setSellerInfo(data);
+                    // Auto-fill seller fields in form
+                    const sellerFormValues: any = {};
+                    SELLER_KEYS.forEach(k => {
+                        if (data[k]) sellerFormValues[k] = data[k];
+                    });
+                    form.setFieldsValue(sellerFormValues);
+                })
+                .catch(() => { /* ignore */ })
+                .finally(() => setSellerLoading(false));
+        }
+    }, [open]);
 
     // Initial Setup
     useEffect(() => {
@@ -94,12 +129,21 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
         return opts;
     }, [initialData]);
 
-    const hulaSuggestions = [
-        { value: 'Công ty Cổ phần Hula', label: 'Pháp nhân: Công ty Cổ phần Hula' },
-        { value: '0101234567', label: 'MST Hula: 0101234567' },
-        { value: 'Hà Nội, Việt Nam', label: 'Địa chỉ: Hà Nội, Việt Nam' },
-        { value: '19001234', label: 'Hotline: 19001234' },
-    ];
+    // Build seller suggestions from actual data
+    const hulaSuggestions = useMemo(() => {
+        const opts: {value: string, label: string}[] = [];
+        if (sellerInfo.seller_company_name) opts.push({ value: sellerInfo.seller_company_name, label: `Pháp nhân: ${sellerInfo.seller_company_name}` });
+        if (sellerInfo.seller_tax_code) opts.push({ value: sellerInfo.seller_tax_code, label: `MST: ${sellerInfo.seller_tax_code}` });
+        if (sellerInfo.seller_address) opts.push({ value: sellerInfo.seller_address, label: `Địa chỉ: ${sellerInfo.seller_address}` });
+        if (sellerInfo.seller_phone) opts.push({ value: sellerInfo.seller_phone, label: `Hotline: ${sellerInfo.seller_phone}` });
+        if (sellerInfo.seller_email) opts.push({ value: sellerInfo.seller_email, label: `Email: ${sellerInfo.seller_email}` });
+        if (sellerInfo.seller_website) opts.push({ value: sellerInfo.seller_website, label: `Website: ${sellerInfo.seller_website}` });
+        if (sellerInfo.seller_representative) opts.push({ value: sellerInfo.seller_representative, label: `Đại diện: ${sellerInfo.seller_representative}` });
+        if (sellerInfo.seller_bank_name) opts.push({ value: sellerInfo.seller_bank_name, label: `Ngân hàng: ${sellerInfo.seller_bank_name}` });
+        if (sellerInfo.seller_bank_account) opts.push({ value: sellerInfo.seller_bank_account, label: `STK: ${sellerInfo.seller_bank_account}` });
+        if (sellerInfo.seller_bank_holder) opts.push({ value: sellerInfo.seller_bank_holder, label: `Chủ TK: ${sellerInfo.seller_bank_holder}` });
+        return opts;
+    }, [sellerInfo]);
 
     const customerVars = useMemo(() => customVariables.filter(v => ['buyer', 'customer', 'khach_hang', 'ben_mua', 'dai_dien', 'sdt', 'email', 'mst', 'address', 'dia_chi'].some(k => v.toLowerCase().includes(k))), [customVariables]);
     const hulaVars = useMemo(() => customVariables.filter(v => ['seller', 'hula', 'ben_ban', 'nhan_vien'].some(k => v.toLowerCase().includes(k))), [customVariables]);
@@ -141,6 +185,7 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
         if (!template) {
             setPreviewHtml('<div style="padding:20px; text-align:center; color:#999">Vui lòng chọn mẫu hợp đồng</div>');
             setCustomVariables([]);
+            setActiveTextContentVars([]);
             return;
         }
 
@@ -156,6 +201,10 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
         }
         setCustomVariables(extractedVars);
 
+        // Detect which text_content vars are in template
+        const allVarsInTemplate = matches ? matches.map((m: string) => m.replace('{{', '').replace('}}', '').trim()) : [];
+        setActiveTextContentVars(TEXT_CONTENT_KEYS.filter(k => allVarsInTemplate.includes(k)));
+
         const data: any = {
             customer_name: initialData.customer?.name || '...',
             customer_address: initialData.customer?.address || '...',
@@ -167,10 +216,20 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
             order_date: dayjs(initialData.order_date).format('DD/MM/YYYY'),
             total_amount_text: (initialData.total_amount || 0).toLocaleString() + ' đ',
 
+            // Seller info from settings
+            ...sellerInfo,
+
             // Custom fields that might be in the form (placeholder)
             ...values,
             sign_date: values.sign_date ? dayjs(values.sign_date).format('DD/MM/YYYY') : '...'
         };
+
+        // Convert text_content newlines to <br/> for HTML rendering
+        TEXT_CONTENT_KEYS.forEach(key => {
+            if (data[key] && typeof data[key] === 'string') {
+                data[key] = data[key].replace(/\n/g, '<br/>');
+            }
+        });
 
         // 2. Replace Placeholders
         Object.keys(data).forEach(key => {
@@ -188,6 +247,14 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                   const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
                   content = content.replace(regex, `<span style="color:red; background: #ffe6e6; border-bottom: 1px dotted red;"> [Điền: ${key}] </span>`);
              }
+        });
+
+        // Also mark unfilled text_content vars
+        TEXT_CONTENT_KEYS.forEach(key => {
+            if (!values[key]) {
+                const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+                content = content.replace(regex, `<span style="color:purple; background: #f3e8ff; border-bottom: 1px dotted purple;"> [Soạn: ${key}] </span>`);
+            }
         });
 
         // 3. Generate Appendix
@@ -287,10 +354,18 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                 order_code: initialData.order_code || '',
                 order_date: dayjs(initialData.order_date).format('DD/MM/YYYY'),
                 total_amount_text: (initialData.total_amount || 0).toLocaleString() + ' đ',
+                ...sellerInfo,
                 ...values,
                 sign_date: values.sign_date ? dayjs(values.sign_date).format('DD/MM/YYYY') : '',
                 appendixImages // Include images in variables
             };
+
+            // Convert text_content newlines to <br/> for saved HTML
+            TEXT_CONTENT_KEYS.forEach(key => {
+                if (dataToSave[key] && typeof dataToSave[key] === 'string') {
+                    dataToSave[key] = dataToSave[key].replace(/\n/g, '<br/>');
+                }
+            });
             
             Object.keys(dataToSave).forEach(key => {
                 if (dataToSave[key] !== undefined && dataToSave[key] !== null) {
@@ -303,6 +378,7 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
             // Let's just save the `previewHtml` as it represents what the user saw, but we replace the red spans with empty string or keep them.
             // Actually, `previewHtml` is fine.
             let finalHtmlToSave = previewHtml.replace(/<span style="color:red; background: #ffe6e6; border-bottom: 1px dotted red;"> \[Điền: [^\]]+\] <\/span>/g, '...');
+            finalHtmlToSave = finalHtmlToSave.replace(/<span style="color:purple; background: #f3e8ff; border-bottom: 1px dotted purple;"> \[Soạn: [^\]]+\] <\/span>/g, '...');
             
             await api.put(`/sales/${initialData.id}`, {
                 contract_template_id: values.template_id,
@@ -396,6 +472,23 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                                 <Input type="date" />
                             </Form.Item>
                         </Card>
+
+                        {/* Text Content Section - only show if template uses text_content vars */}
+                        {activeTextContentVars.length > 0 && (
+                            <>
+                                <Divider style={{ margin: '12px 0' }} />
+                                <Card title="📝 Nội Dung Tự Soạn" size="small" bordered={true} style={{ marginBottom: 10, borderColor: '#d3adf7' }} headStyle={{ background: '#f9f0ff', fontSize: 13 }}>
+                                    <div style={{ marginBottom: 8, fontSize: 12, color: '#888' }}>
+                                        <i>Nhập nội dung văn bản dài. Hỗ trợ xuống dòng.</i>
+                                    </div>
+                                    {activeTextContentVars.map((v, idx) => (
+                                        <Form.Item key={v} name={v} label={<span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: 12 }}>{`{{${v}}}`} — <span style={{ fontFamily: 'inherit', color: '#666' }}>Nội dung {idx + 1}</span></span>} style={{ marginBottom: 12 }}>
+                                            <Input.TextArea rows={3} placeholder={`Nhập nội dung tự soạn ${idx + 1}...`} />
+                                        </Form.Item>
+                                    ))}
+                                </Card>
+                            </>
+                        )}
 
                         {customVariables.length > 0 && (
                             <>
@@ -503,7 +596,7 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                     </Form>
                 </Col>
                 <Col span={17} style={{ height: '100%', overflowY: 'auto', background: '#e8e8e8', padding: '20px 40px' }}>
-                    {saving && <Spin spinning style={{position: 'absolute', top: '50%', left: '50%', zIndex: 10}}/>}
+                    {(saving || sellerLoading) && <Spin spinning style={{position: 'absolute', top: '50%', left: '50%', zIndex: 10}}/>}
                     <div
                         style={{
                             background: 'white',

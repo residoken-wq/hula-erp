@@ -54,7 +54,9 @@ export class SystemService {
 
     // --- COMPANY CONFIG HELPER ---
     async getCompanyConfig() {
-        const keys = ['COMPANY_NAME', 'COMPANY_ADDRESS', 'COMPANY_PHONE', 'COMPANY_EMAIL', 'COMPANY_WEBSITE'];
+        const keys = ['COMPANY_NAME', 'COMPANY_ADDRESS', 'COMPANY_PHONE', 'COMPANY_EMAIL', 'COMPANY_WEBSITE',
+            'COMPANY_TAX_CODE', 'COMPANY_REPRESENTATIVE',
+            'COMPANY_BANK_NAME', 'COMPANY_BANK_ACCOUNT', 'COMPANY_BANK_HOLDER'];
         const configs = await this.configRepo.findByIds(keys);
         const result: any = {};
         keys.forEach(k => {
@@ -70,7 +72,29 @@ export class SystemService {
         await this.setValue('COMPANY_PHONE', data.COMPANY_PHONE || '', 'Số điện thoại');
         await this.setValue('COMPANY_EMAIL', data.COMPANY_EMAIL || '', 'Email liên hệ');
         await this.setValue('COMPANY_WEBSITE', data.COMPANY_WEBSITE || '', 'Website');
+        await this.setValue('COMPANY_TAX_CODE', data.COMPANY_TAX_CODE || '', 'Mã số thuế');
+        await this.setValue('COMPANY_REPRESENTATIVE', data.COMPANY_REPRESENTATIVE || '', 'Người đại diện');
+        await this.setValue('COMPANY_BANK_NAME', data.COMPANY_BANK_NAME || '', 'Tên ngân hàng');
+        await this.setValue('COMPANY_BANK_ACCOUNT', data.COMPANY_BANK_ACCOUNT || '', 'Số tài khoản ngân hàng');
+        await this.setValue('COMPANY_BANK_HOLDER', data.COMPANY_BANK_HOLDER || '', 'Chủ tài khoản ngân hàng');
         return { success: true };
+    }
+
+    // --- SELLER INFO FOR CONTRACT ---
+    async getSellerInfo() {
+        const company = await this.getCompanyConfig();
+        return {
+            seller_company_name: company.COMPANY_NAME || '',
+            seller_address: company.COMPANY_ADDRESS || '',
+            seller_phone: company.COMPANY_PHONE || '',
+            seller_email: company.COMPANY_EMAIL || '',
+            seller_website: company.COMPANY_WEBSITE || '',
+            seller_tax_code: company.COMPANY_TAX_CODE || '',
+            seller_representative: company.COMPANY_REPRESENTATIVE || '',
+            seller_bank_name: company.COMPANY_BANK_NAME || '',
+            seller_bank_account: company.COMPANY_BANK_ACCOUNT || '',
+            seller_bank_holder: company.COMPANY_BANK_HOLDER || '',
+        };
     }
     // --- ACTIVITY LOGGING ---
     async logAction(module: string, action: string, description: string, userId?: number, username?: string, entityId?: string, details?: any, metadata?: any, fullName?: string) {
