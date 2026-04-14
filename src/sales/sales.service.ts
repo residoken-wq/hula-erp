@@ -21,7 +21,7 @@ import { SystemService } from '../system/system.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SalesTarget } from './sales-target.entity';
 import { Customer } from '../customers/customer.entity';
-
+import { ProjectsService } from '../projects/projects.service';
 // --- CHECKLIST TEMPLATES ---
 const CHECKLIST_TEMPLATES: Record<string, Array<{ code: string; name: string; sort: number }>> = {
     QUOTATION: [
@@ -80,6 +80,7 @@ export class SalesService {
         private inventoryService: InventoryService,
         private customersService: CustomersService,
         private notificationsService: NotificationsService,
+        private projectsService: ProjectsService,
     ) { }
 
 
@@ -568,7 +569,22 @@ export class SalesService {
         if (!order) throw new NotFoundException();
         order.status = accepted ? SalesOrderStatus.SO_PENDING : SalesOrderStatus.CANCELLED;
         const saved = await this.orderRepo.save(order);
-        if (accepted) await this.syncChecklistWithStatus(saved.id, saved.status);
+        if (accepted) {
+            await this.syncChecklistWithStatus(saved.id, saved.status);
+            // Auto-create SO Project template
+            try {
+                await this.projectsService.createSOProject(saved.id);
+            } catch (error) {
+                this.logger.error(`Failed to auto-create SO_PROJECT for SO ${saved.id}`, error);
+            }
+        } else {
+            // Cancel project if SO is rejected/cancelled
+             try {
+                await this.projectsService.cancelSOProject(saved.id);
+            } catch (error) {
+                 this.logger.error(`Failed to cancel SO_PROJECT for SO ${saved.id}`, error);
+            }
+        }
         return saved;
     }
     async approveAllSamples(id: number) {

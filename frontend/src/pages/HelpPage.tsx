@@ -394,6 +394,55 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'sales-contract-builder':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Hướng dẫn thao tác</Tag>
+                        <Title level={2}>📝 Tính năng Soạn Thảo Hợp Đồng</Title>
+                        <Paragraph>
+                            Hệ thống cho phép bạn tạo tự động các hợp đồng chuẩn dựa trên dữ liệu báo giá / đơn hàng giúp tiết kiệm thời gian và sai sót.
+                        </Paragraph>
+
+                        <Steps
+                            direction="vertical"
+                            current={-1}
+                            items={[
+                                {
+                                    title: 'Bước 1: Khởi tạo Hợp đồng',
+                                    description: 'Từ trang Chi tiết Báo Giá/SO, nhấn chọn tab "Hợp Đồng" rồi nhấn nút "Tạo mới".',
+                                    icon: <FileDoneOutlined />
+                                },
+                                {
+                                    title: 'Bước 2: Chọn Mẫu Hợp đồng',
+                                    description: 'Chọn mẫu hợp đồng trong danh sách (Quản trị viên có thể cấu hình trước trong mục Settings -> Mẫu Hợp Đồng).',
+                                },
+                                {
+                                    title: 'Bước 3: Điền nội dung tự soạn',
+                                    description: 'Dựa trên việc chọn mẫu, nếu Mẫu Hợp Đồng của bạn chứa tham số {{text_content_...}}, một nhóm "Nội Dung Tự Soạn" sẽ xuất hiện để bạn có thể soạn thảo thêm các điều khoản riêng dài cho Hợp đồng.',
+                                },
+                                {
+                                    title: 'Bước 4: Xem trước & Xuất',
+                                    description: 'Kiểm tra kỹ nội dung đã auto-fill (thông tin người bán, người mua). Nhấn "Lưu & Xem Trước" sau đó xuất và In.',
+                                    icon: <SaveOutlined />
+                                }
+                            ]}
+                        />
+
+                        <Divider orientation="left">💡 Mẹo: Hệ thống tham số Auto-fill</Divider>
+                        <Alert
+                            message="Tự động điền dữ liệu"
+                            description={
+                                <ul style={{ marginBottom: 0 }}>
+                                    <li><b>Bên bán (seller_xxx):</b> Tự động lấy cấu hình hệ thống (Settings -> Thông tin DN) bao gồm MST, Người đại diện, Tài khoản ngân hàng. Tiết kiệm thời gian tự gõ.</li>
+                                    <li><b>Khách hàng:</b> Lấy toàn bộ thông tin công ty, liên hệ từ hồ sơ khách hàng.</li>
+                                    <li><b>Sản phẩm:</b> Tự động tính toán tổng tiền chữ và tiền số, in bảng chi tiết hàng hóa có trong đơn hàng này.</li>
+                                </ul>
+                            }
+                            type="info"
+                            showIcon
+                        />
+                    </div>
+                );
             case 'finance-guide':
                 return (
                     <div>
@@ -1206,7 +1255,27 @@ const HelpPage: React.FC = () => {
                 return (
                     <div>
                         <Tag color="green" style={{ marginBottom: 16 }}>Cập nhật mới</Tag>
-                        <Title level={2}>🚀 Tính năng mới (từ 28/02/2026)</Title>
+                        <Title level={2}>🚀 Tính năng mới (từ 14/04/2026)</Title>
+
+                        <Card title="14/04/2026 - Nâng cấp Contract Builder & Module Lập Kế Hoạch (MRP)" style={{ marginBottom: 16 }}>
+                            <Descriptions column={1} bordered size="small">
+                                <Descriptions.Item label="Soạn Thảo Hợp Đồng (Contract Builder)">
+                                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                        <li><b>Biến tự soạn (text_content):</b> Hỗ trợ 5 trường TextBox dài tự động hiển thị trong form nếu Mẫu Hợp Đồng có sử dụng hệ biến này.</li>
+                                        <li><b>Thông tin Bên Bán (seller_xxx):</b> Bổ sung 10 tham số auto-fill lấy trực tiếp từ phần Settings - Thông tin doanh nghiệp (bao gồm cả Mã số thuế, Người đại diện, Thông tin Ngân hàng).</li>
+                                        <li><b>Settings Variables:</b> Chia nhóm màu sắc (Bên mua, Bên bán, Tự định nghĩa...) giúp user nhúng biến vào mẫu dễ dàng hơn.</li>
+                                    </ul>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Phân hệ Sản xuất & MRP">
+                                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                        <li><b>Lập kế hoạch & Gom đơn:</b> Tự động tập hợp các Đơn hàng (SO) cần sản xuất để chạy phân tích nhu cầu NPL (MRP) tập trung.</li>
+                                        <li><b>Tính toán tự động:</b> Hệ thống tự bóc tách Định mức (BOM), đối chiếu với Tồn kho thực tế để đưa ra khuyến nghị Cần Mua NPL và Cần Thuê Gia Công ngoài.</li>
+                                        <li><b>Auto-Generate PO:</b> Tự động sinh Hợp đồng Mua NPL (PO NPL) và PO Gia Công sau khi người dùng tinh chỉnh xong số liệu phân tích.</li>
+                                        <li><b>Quản lý chất lượng (QC):</b> Bổ sung module QC giúp kiểm soát chất lượng tại từng công đoạn sản xuất.</li>
+                                    </ul>
+                                </Descriptions.Item>
+                            </Descriptions>
+                        </Card>
 
                         <Card title="28/02/2026 - Nâng cấp Quản lý Dự án & Thông báo" style={{ marginBottom: 16 }}>
                             <Descriptions column={1} bordered size="small">
@@ -2022,6 +2091,7 @@ const HelpPage: React.FC = () => {
                                 { key: 'sales-process', label: 'Quy trình Bán hàng' },
                                 { key: 'internal-sales', label: 'Bán hàng Nội bộ' }, // <--- NEW
                                 { key: 'sales-create', label: 'Tạo đơn mới' },
+                                { key: 'sales-contract-builder', label: 'Soạn Hợp Đồng' }, // <--- NEW Contract Builder
                                 { key: 'sales-approval', label: 'Duyệt mẫu' },
                                 { key: 'sales-revisions', label: 'Quản lý version (Báo giá)' }, // <--- NEW
                                 { key: 'sales-pos', label: 'Bán Lẻ (POS)' }, // <--- NEW POS

@@ -40,6 +40,7 @@ const ProjectsPage: React.FC = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [searchText, setSearchText] = useState('');
     const [filterStatus, setFilterStatus] = useState<string>('ALL');
+    const [filterType, setFilterType] = useState<string>('ALL'); // Add Type Filter
 
     const navigate = useNavigate();
     const isMobile = useMobile();
@@ -104,9 +105,10 @@ const ProjectsPage: React.FC = () => {
             const matchSearch = p.title?.toLowerCase().includes(searchText.toLowerCase()) ||
                 p.manager?.full_name?.toLowerCase().includes(searchText.toLowerCase());
             const matchStatus = filterStatus === 'ALL' || p.status === filterStatus;
-            return matchSearch && matchStatus;
+            const matchType = filterType === 'ALL' || p.project_type === filterType;
+            return matchSearch && matchStatus && matchType;
         });
-    }, [projects, searchText, filterStatus]);
+    }, [projects, searchText, filterStatus, filterType]);
 
     // Generate Avatar initial
     const getInitials = (name?: string) => {
@@ -130,6 +132,7 @@ const ProjectsPage: React.FC = () => {
             render: (t: string, r: any) => (
                 <div style={{ cursor: 'pointer', color: '#1890ff', fontWeight: 500 }} onClick={() => navigate(`/projects/${r.id}`)}>
                     <FolderOutlined style={{ marginRight: 8 }} />
+                    {r.project_type === 'SO_PROJECT' && <Tag color="megenta">Đơn Hàng</Tag>}
                     {t}
                 </div>
             )
@@ -252,6 +255,15 @@ const ProjectsPage: React.FC = () => {
                         <Select
                             defaultValue="ALL"
                             style={{ width: 140 }}
+                            onChange={(val) => setFilterType(val)}
+                        >
+                            <Option value="ALL">All Types</Option>
+                            <Option value="SO_PROJECT">SO Project</Option>
+                            <Option value="GENERAL">General Project</Option>
+                        </Select>
+                        <Select
+                            defaultValue="ALL"
+                            style={{ width: 140 }}
                             onChange={(val) => setFilterStatus(val)}
                         >
                             <Option value="ALL">All Status</Option>
@@ -310,6 +322,7 @@ const ProjectsPage: React.FC = () => {
                                             </Avatar>
                                             <div style={{ overflow: 'hidden' }}>
                                                 <Title level={5} style={{ margin: 0, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.title}>
+                                                    {r.project_type === 'SO_PROJECT' && <Tag color="magenta">Đơn Hàng</Tag>}
                                                     {r.title}
                                                 </Title>
                                                 <Text type="secondary" style={{ fontSize: 12 }}>
@@ -366,11 +379,11 @@ const ProjectsPage: React.FC = () => {
                 width={600}
                 centered
             >
-                <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ status: 'PLANNING' }}>
+                <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ status: 'PLANNING', project_type: 'GENERAL' }}>
                     <Form.Item name="title" label="Project Title" rules={[{ required: true }]}><Input size="large" placeholder="Enter project name..." /></Form.Item>
                     <Form.Item name="description" label="Description"><Input.TextArea rows={3} placeholder="Optional project description..." /></Form.Item>
                     <Row gutter={16}>
-                        <Col span={12}>
+                        <Col span={8}>
                             <Form.Item name="status" label="Status">
                                 <Select size="large">
                                     <Option value="PLANNING">Planning</Option>
@@ -381,7 +394,15 @@ const ProjectsPage: React.FC = () => {
                                 </Select>
                             </Form.Item>
                         </Col>
-                        <Col span={12}>
+                        <Col span={8}>
+                            <Form.Item name="project_type" label="Project Type">
+                                <Select size="large">
+                                    <Option value="GENERAL">General Project</Option>
+                                    <Option value="SO_PROJECT" disabled>Sales Order Project (Auto-created)</Option>
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={8}>
                             <Form.Item name="manager_id" label="Project Manager">
                                 <Select size="large" showSearch optionFilterProp="children" placeholder="Select a manager...">
                                     <Option value={null}>Unassigned</Option>

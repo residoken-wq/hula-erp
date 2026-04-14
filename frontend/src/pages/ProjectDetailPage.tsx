@@ -13,6 +13,7 @@ const ProjectDetailPage: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [project, setProject] = useState<any>(null);
+    const [costSummary, setCostSummary] = useState<any>(null);
     const [milestones, setMilestones] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -33,13 +34,15 @@ const ProjectDetailPage: React.FC = () => {
     const fetchProject = async () => {
         setLoading(true);
         try {
-            const [resProject, resUsers] = await Promise.all([
+            const [resProject, resUsers, resCostSummary] = await Promise.all([
                 api.get(`/projects/${id}`),
-                api.get('/users')
+                api.get('/users'),
+                api.get(`/projects/${id}/cost-summary`).catch(() => ({ data: null }))
             ]);
             setProject(resProject.data);
             setMilestones(resProject.data.milestones || []);
             setUsers(resUsers.data);
+            if (resCostSummary.data) setCostSummary(resCostSummary.data);
         } catch (e) { message.error('Failed to load project data'); }
         setLoading(false);
     };
@@ -110,6 +113,14 @@ const ProjectDetailPage: React.FC = () => {
                     <Descriptions title="Project Details" bordered extra={<Button onClick={() => { membersForm.setFieldsValue({ member_ids: project.members?.map((m: any) => m.id) }); setIsMembersModalOpen(true); }}>Manage Members</Button>}>
                         <Descriptions.Item label="Manager">{project.manager?.full_name}</Descriptions.Item>
                         <Descriptions.Item label="Status"><Tag color="blue">{project.status}</Tag></Descriptions.Item>
+                        {project.project_type === 'SO_PROJECT' && (
+                            <>
+                                <Descriptions.Item label="Sales Order">
+                                    <a href={`/sales?order=${project.sales_order?.id}`}>{project.sales_order?.order_code}</a>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Customer">{project.sales_order?.customer?.name}</Descriptions.Item>
+                            </>
+                        )}
                         <Descriptions.Item label="Timeline">
                             {project.start_date ? dayjs(project.start_date).format('DD/MM/YYYY') : '...'} - {project.end_date ? dayjs(project.end_date).format('DD/MM/YYYY') : '...'}
                         </Descriptions.Item>
@@ -137,6 +148,8 @@ const ProjectDetailPage: React.FC = () => {
                         rowKey="id"
                         columns={[
                             { title: 'Title', dataIndex: 'title', render: (t, r) => <b>{t}</b> },
+                            { title: 'Department', dataIndex: 'department', render: (d: string) => d ? <Tag>{d}</Tag> : '-' },
+                            { title: 'Owner', dataIndex: 'owner', render: (o: any) => o?.full_name || '-' },
                             { title: 'Start Date', dataIndex: 'start_date', render: (d) => d ? dayjs(d).format('DD/MM/YYYY') : '-' },
                             { title: 'Due Date', dataIndex: 'due_date', render: (d) => d ? dayjs(d).format('DD/MM/YYYY') : '-' },
                             { title: 'Status', dataIndex: 'status', render: (s: string) => <Tag color={s === 'ACTIVE' ? 'green' : s === 'COMPLETED' ? 'blue' : 'default'}>{s}</Tag> },
@@ -168,6 +181,8 @@ const ProjectDetailPage: React.FC = () => {
                             { title: 'Task', dataIndex: 'title' },
                             { title: 'Status', dataIndex: 'status', render: (s: string) => <Tag>{s}</Tag> },
                             { title: 'Assignee', dataIndex: 'assignee', render: (u: any) => u?.full_name },
+                            { title: 'Est. Cost', dataIndex: 'estimated_cost', render: (c: number) => c ? c.toLocaleString() : '-' },
+                            { title: 'Act. Cost', dataIndex: 'actual_cost', render: (c: number) => c ? c.toLocaleString() : '-' },
                             { title: 'Start', dataIndex: 'start_date', render: (d: string) => d ? dayjs(d).format('DD/MM/YY') : '-' },
                             { title: 'Deadline', dataIndex: 'due_date', render: (d: string) => d ? dayjs(d).format('DD/MM/YY') : '-' },
                             {
@@ -188,6 +203,59 @@ const ProjectDetailPage: React.FC = () => {
                     milestones={milestones}
                     onUpdate={fetchProject}
                 />
+            )
+        },
+        {
+            key: 'cost', label: '💰 Chi phí (Cost Analysis)',
+            children: (
+                <div>
+                    {costSummary ? (
+                        <>
+                            <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+                                {project.project_type === 'SO_PROJECT' && (
+                                    <Col span={8}>
+                                        <Card size="small" style={{ background: '#e6f7ff', borderColor: '#91d5ff' }}>
+                                            <div style={{ color: '#1890ff', fontSize: 13 }}>Doanh thu SO</div>
+                                            <div style={{ fontSize: 20, fontWeight: 'bold' }}>{Number(costSummary.so_revenue).toLocaleString()} đ</div>
+                                        </Card>
+                                    </Col>
+                                )}
+                                <Col span={project.project_type === 'SO_PROJECT' ? 8 : 12}>
+                                    <Card size="small" style={{ background: '#fffbe6', borderColor: '#ffe58f' }}>
+                                        <div style={{ color: '#faad14', fontSize: 13 }}>Tổng chi phí (THỰC TẾ / DỰ TOÁN)</div>
+                                        <div style={{ fontSize: 20, fontWeight: 'bold' }}>
+                                            {Number(costSummary.total_actual_cost).toLocaleString()} / {Number(costSummary.total_estimated_cost).toLocaleString()} đ
+                                        </div>
+                                    </Card>
+                                </Col>
+                                {project.project_type === 'SO_PROJECT' && (
+                                    <Col span={8}>
+                                        <Card size="small" style={{ background: Number(costSummary.profit) > 0 ? '#f6ffed' : '#fff1f0', borderColor: Number(costSummary.profit) > 0 ? '#b7eb8f' : '#ffa39e' }}>
+                                            <div style={{ color: Number(costSummary.profit) > 0 ? '#52c41a' : '#f5222d', fontSize: 13 }}>Lợi nhuận dự kiến</div>
+                                            <div style={{ fontSize: 20, fontWeight: 'bold' }}>{Number(costSummary.profit).toLocaleString()} đ</div>
+                                        </Card>
+                                    </Col>
+                                )}
+                            </Row>
+                            
+                            <h4>Chi tiết thực tế theo Milestone</h4>
+                            <Table
+                                dataSource={costSummary.by_milestone}
+                                rowKey="milestone_id"
+                                pagination={false}
+                                columns={[
+                                    { title: 'Milestone', dataIndex: 'milestone_title', render: (t, r) => <b>{t}</b> },
+                                    { title: 'Bộ phận', dataIndex: 'department', render: (d: string) => <Tag>{d}</Tag> },
+                                    { title: 'Tasks', render: (r) => `${r.done_count}/${r.task_count}` },
+                                    { title: 'Chi phí Dự toán', dataIndex: 'estimated_cost', render: (c: number) => c.toLocaleString() },
+                                    { title: 'Chi phí Thực tế', dataIndex: 'actual_cost', render: (c: number) => <b>{c.toLocaleString()}</b> },
+                                ]}
+                            />
+                        </>
+                    ) : (
+                        <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>Không có dữ liệu chi phí</div>
+                    )}
+                </div>
             )
         }
     ];
@@ -272,8 +340,7 @@ const ProjectDetailPage: React.FC = () => {
                         </Col>
                     </Row>
 
-                    <Row gutter={16}>
-                        <Col span={12}>
+                        <Col span={8}>
                             <Form.Item name="status" label="Status">
                                 <Select>
                                     <Option value="TODO">To Do</Option>
@@ -283,7 +350,18 @@ const ProjectDetailPage: React.FC = () => {
                                 </Select>
                             </Form.Item>
                         </Col>
+                        <Col span={8}>
+                            <Form.Item name="estimated_cost" label="Estimated Cost (đ)">
+                                <Input type="number" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                            <Form.Item name="actual_cost" label="Actual Cost (đ)">
+                                <Input type="number" />
+                            </Form.Item>
+                        </Col>
                     </Row>
+                    <Form.Item name="cost_note" label="Cost Note"><Input.TextArea rows={2} /></Form.Item>
                 </Form>
             </Modal>
 

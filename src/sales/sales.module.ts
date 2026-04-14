@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ProjectsModule } from '../projects/projects.module';
 import { SalesOrder } from './sales-order.entity';
 import { SalesOrderItem } from './sales-order-item.entity';
 import { ProductSample } from './product-sample.entity';
@@ -54,6 +55,7 @@ import { Customer } from '../customers/customer.entity';
     CustomersModule,
     SystemModule,
     NotificationsModule,
+    ProjectsModule,
     forwardRef(() => FinanceModule)
   ],
   controllers: [SalesController],

@@ -143,6 +143,14 @@ const TasksPage: React.FC = () => {
             render: (u: any) => u ? <Tag color="blue">{u.full_name}</Tag> : <Tag>Chưa gán</Tag>
         },
         {
+            title: 'Dự toán', dataIndex: 'estimated_cost', width: 110,
+            render: (c: number) => c ? c.toLocaleString() : '-'
+        },
+        {
+            title: 'Thực tế', dataIndex: 'actual_cost', width: 110,
+            render: (c: number) => c ? c.toLocaleString() : '-'
+        },
+        {
             title: 'Người tạo', dataIndex: 'creator', width: 130,
             render: (u: any) => u ? <Tag color="purple">{u.full_name}</Tag> : <Tag>-</Tag>
         },
@@ -278,6 +286,20 @@ const TasksPage: React.FC = () => {
                             </Form.Item>
                         </Col>
                     </Row>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="estimated_cost" label="Chi phí dự toán (đ)">
+                                <Input type="number" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="actual_cost" label="Chi phí thực tế (đ)">
+                                <Input type="number" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    
+                    <Form.Item name="cost_note" label="Ghi chú chi phí"><Input.TextArea rows={2} /></Form.Item>
                 </Form>
             </Modal>
         </div>

@@ -43,7 +43,7 @@ const TEXT_CONTENT_KEYS = ['text_content_1', 'text_content_2', 'text_content_3',
 
 const BUILT_IN_VARS = [
     'customer_name', 'customer_address', 'customer_tax_code', 'customer_representative', 'customer_position',
-    'order_code', 'order_date', 'total_amount_text', 'sign_date', 'items_table',
+    'order_code', 'contract_code', 'order_date', 'total_amount_text', 'sign_date', 'items_table',
     ...SELLER_KEYS,
     ...TEXT_CONTENT_KEYS
 ];
@@ -213,6 +213,7 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
             customer_position: initialData.customer?.representative_position || 'Giám Đốc',
 
             order_code: initialData.order_code || '...',
+            contract_code: `TLG/${dayjs().format('YYYY')}-${initialData.id || ''}`,
             order_date: dayjs(initialData.order_date).format('DD/MM/YYYY'),
             total_amount_text: (initialData.total_amount || 0).toLocaleString() + ' đ',
 

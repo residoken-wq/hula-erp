@@ -44,7 +44,7 @@ export class Task {
   @Column({ default: false })
   is_reminded: boolean;
 
-  // --- MỚI: LIÊN KẾT MODULE KHÁC ---
+  // --- LIÊN KẾT MODULE KHÁC ---
   @Column({ nullable: true })
   reference_code: string; // VD: LEAD-2312, SO-9999, PO-123
 
@@ -73,6 +73,20 @@ export class Task {
   @OneToMany(() => TaskTimeLog, (log) => log.task)
   time_logs: TaskTimeLog[];
   // --------------------------
+
+  // --- COST TRACKING ---
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  estimated_cost: number;
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  actual_cost: number;
+
+  @Column({ type: 'text', nullable: true })
+  cost_note: string;
+
+  @Column({ nullable: true })
+  department: string; // Kế thừa từ milestone hoặc tự set
+  // ---------------------
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'assignee_id' })

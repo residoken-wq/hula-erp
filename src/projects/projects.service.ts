@@ -1,42 +1,147 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Project } from './entities/project.entity';
+import { Repository, In } from 'typeorm';
+import { Project, ProjectStatus, ProjectType } from './entities/project.entity';
 import { Milestone } from './entities/milestone.entity';
+import { SalesOrder } from '../sales/sales-order.entity';
+import { Task } from '../tasks/task.entity';
+
+// 8 Milestones chuẩn cho Dự án Đơn hàng
+const SO_TEMPLATE_MILESTONES = [
+    {
+        title: 'Chốt đơn & Hợp đồng',
+        department: 'SALES',
+        sort_order: 1,
+        tasks: [
+            'Xác nhận đơn hàng (SO)',
+            'Ký hợp đồng',
+            'Thu đặt cọc',
+        ]
+    },
+    {
+        title: 'Thiết kế mẫu In/Thêu & Quản lý Gia công',
+        department: 'DESIGN',
+        sort_order: 2,
+        tasks: [
+            'Thiết kế mẫu in',
+            'Thiết kế mẫu thêu',
+            'Duyệt mẫu với khách hàng',
+            'Quản lý gia công In',
+            'Quản lý gia công Thêu',
+        ]
+    },
+    {
+        title: 'Lập kế hoạch SX',
+        department: 'PLANNING',
+        sort_order: 3,
+        tasks: [
+            'Chạy phân tích MRP',
+            'Xác nhận phương án vật tư',
+            'Tạo PO NPL & PO Gia công',
+        ]
+    },
+    {
+        title: 'Mua hàng NPL',
+        department: 'PURCHASING',
+        sort_order: 4,
+        tasks: [
+            'Đặt hàng NCC',
+            'Theo dõi tiến độ giao hàng NCC',
+            'Nhận hàng & Nhập kho NPL',
+        ]
+    },
+    {
+        title: 'Sản xuất & Gia công',
+        department: 'PRODUCTION',
+        sort_order: 5,
+        tasks: [
+            'Xuất NPL cho sản xuất',
+            'Theo dõi tiến độ sản xuất',
+            'Kiểm QC từng công đoạn',
+        ]
+    },
+    {
+        title: 'Kiểm tra & Đóng gói',
+        department: 'QC',
+        sort_order: 6,
+        tasks: [
+            'QC cuối (Final Inspection)',
+            'Đóng gói thành phẩm',
+            'Nhập kho Thành phẩm',
+        ]
+    },
+    {
+        title: 'Giao hàng',
+        department: 'LOGISTICS',
+        sort_order: 7,
+        tasks: [
+            'Soạn & Xuất kho',
+            'Vận chuyển / Bàn giao khách',
+            'Xác nhận khách nhận hàng',
+        ]
+    },
+    {
+        title: 'Thanh toán & Thanh lý',
+        department: 'FINANCE',
+        sort_order: 8,
+        tasks: [
+            'Thu thanh toán đợt cuối',
+            'Đối soát công nợ',
+            'Thanh lý hợp đồng',
+        ]
+    }
+];
 
 @Injectable()
 export class ProjectsService {
     constructor(
         @InjectRepository(Project) private repo: Repository<Project>,
         @InjectRepository(Milestone) private milestoneRepo: Repository<Milestone>,
+        @InjectRepository(SalesOrder) private soRepo: Repository<SalesOrder>,
+        @InjectRepository(Task) private taskRepo: Repository<Task>,
     ) { }
 
     async findAll(user: any) {
-        return this.repo.find({
-            relations: ['manager', 'members'],
+        // Get all projects where user is manager, member, or assigned to a task
+        const allProjects = await this.repo.find({
+            relations: ['manager', 'members', 'sales_order', 'sales_order.customer', 'tasks'],
             order: { created_at: 'DESC' },
-            where: [
-                { manager_id: user.id },
-                { members: { id: user.id } }
-            ]
+        });
+
+        return allProjects.filter(p => {
+            // Manager always sees the project
+            if (p.manager_id === user.id) return true;
+            // Members see the project
+            if (p.members?.some(m => m.id === user.id)) return true;
+            // For SO_PROJECT: users assigned to any task see the project
+            if (p.tasks?.some(t => t.assignee_id === user.id)) return true;
+            return false;
         });
     }
 
     async findOne(id: number, user?: any) {
         const project = await this.repo.findOne({
             where: { id },
-            relations: ['manager', 'milestones', 'members', 'tasks', 'tasks.assignee']
+            relations: ['manager', 'milestones', 'milestones.owner', 'milestones.tasks', 'milestones.tasks.assignee',
+                'members', 'tasks', 'tasks.assignee',
+                'sales_order', 'sales_order.customer', 'sales_order.items']
         });
         if (!project) throw new NotFoundException('Project not found');
 
-        // Check Access if user is provided
+        // Access check: manager, member, or task assignee
         if (user) {
             const isMember = project.members?.some(m => m.id === user.id);
             const isManager = project.manager_id === user.id;
+            const isTaskAssignee = project.tasks?.some(t => t.assignee_id === user.id);
 
-            if (!isMember && !isManager) {
+            if (!isMember && !isManager && !isTaskAssignee) {
                 throw new NotFoundException('Project not found or access denied');
             }
+        }
+
+        // Sort milestones by sort_order
+        if (project.milestones) {
+            project.milestones.sort((a, b) => a.sort_order - b.sort_order);
         }
 
         return project;
@@ -64,14 +169,139 @@ export class ProjectsService {
 
         Object.assign(project, rest);
         await this.repo.save(project);
-        return this.findOne(id, { id: project.manager_id }); // Return as manager/system
+        return this.findOne(id);
     }
 
     async remove(id: number) {
         return this.repo.delete(id);
     }
 
-    // Milesstones
+    // ============================
+    // SO PROJECT: Auto-create
+    // ============================
+    async createSOProject(salesOrderId: number) {
+        // Check if project already exists for this SO
+        const existing = await this.repo.findOne({ where: { sales_order_id: salesOrderId } });
+        if (existing) return existing;
+
+        const so = await this.soRepo.findOne({
+            where: { id: salesOrderId },
+            relations: ['customer', 'items']
+        });
+        if (!so) throw new NotFoundException('Sales Order not found');
+
+        // Calculate total from SO
+        let subtotal = 0;
+        so.items?.forEach(item => {
+            subtotal += Number(item.quantity || 0) * Number(item.unit_price || 0);
+        });
+
+        const project = this.repo.create({
+            title: `[${so.order_code}] ${so.customer?.name || 'Đơn hàng'}`,
+            description: `Dự án đơn hàng ${so.order_code} - Khách hàng: ${so.customer?.name || ''}`,
+            project_type: ProjectType.SO_PROJECT,
+            sales_order_id: salesOrderId,
+            status: ProjectStatus.ACTIVE,
+            manager_id: so.assigned_to_id || null,
+            budget: Number(so.total_amount) || subtotal,
+            start_date: new Date(),
+        });
+
+        const savedProject = await this.repo.save(project);
+
+        // Create 8 template milestones + default tasks
+        for (const tmpl of SO_TEMPLATE_MILESTONES) {
+            const ms = this.milestoneRepo.create({
+                project_id: savedProject.id,
+                title: tmpl.title,
+                department: tmpl.department,
+                sort_order: tmpl.sort_order,
+                status: 'PLANNING',
+                is_active: true,
+            });
+            const savedMs = await this.milestoneRepo.save(ms);
+
+            // Create default tasks for this milestone
+            for (const taskTitle of tmpl.tasks) {
+                await this.taskRepo.save(this.taskRepo.create({
+                    title: taskTitle,
+                    project_id: savedProject.id,
+                    milestone_id: savedMs.id,
+                    department: tmpl.department,
+                    status: 'TODO',
+                    priority: 'MEDIUM',
+                    reference_code: so.order_code,
+                    reference_type: 'SALES',
+                }));
+            }
+        }
+
+        return this.findOne(savedProject.id);
+    }
+
+    // Cancel project when SO is cancelled
+    async cancelSOProject(salesOrderId: number) {
+        const project = await this.repo.findOne({ where: { sales_order_id: salesOrderId } });
+        if (project) {
+            project.status = ProjectStatus.CANCELLED;
+            await this.repo.save(project);
+        }
+    }
+
+    // ============================
+    // COST SUMMARY
+    // ============================
+    async getCostSummary(projectId: number) {
+        const project = await this.repo.findOne({
+            where: { id: projectId },
+            relations: ['milestones', 'sales_order']
+        });
+        if (!project) throw new NotFoundException('Project not found');
+
+        // Get all tasks for project
+        const tasks = await this.taskRepo.find({ where: { project_id: projectId }, relations: ['assignee'] });
+
+        // Group by milestone
+        const milestones = await this.milestoneRepo.find({ where: { project_id: projectId }, order: { sort_order: 'ASC' } });
+        const byMilestone = milestones.map(ms => {
+            const msTasks = tasks.filter(t => t.milestone_id === ms.id);
+            return {
+                milestone_id: ms.id,
+                milestone_title: ms.title,
+                department: ms.department,
+                is_active: ms.is_active,
+                task_count: msTasks.length,
+                done_count: msTasks.filter(t => t.status === 'DONE').length,
+                estimated_cost: msTasks.reduce((sum, t) => sum + Number(t.estimated_cost || 0), 0),
+                actual_cost: msTasks.reduce((sum, t) => sum + Number(t.actual_cost || 0), 0),
+            };
+        });
+
+        // Unassigned tasks (no milestone)
+        const unassignedTasks = tasks.filter(t => !t.milestone_id);
+
+        const totalEstimated = tasks.reduce((sum, t) => sum + Number(t.estimated_cost || 0), 0);
+        const totalActual = tasks.reduce((sum, t) => sum + Number(t.actual_cost || 0), 0);
+
+        return {
+            project_id: projectId,
+            project_type: project.project_type,
+            budget: Number(project.budget) || 0,
+            so_revenue: project.sales_order ? Number(project.sales_order.total_amount) || 0 : 0,
+            total_estimated_cost: totalEstimated,
+            total_actual_cost: totalActual,
+            profit: project.sales_order ? (Number(project.sales_order.total_amount) || 0) - totalActual : null,
+            by_milestone: byMilestone,
+            unassigned_cost: {
+                estimated: unassignedTasks.reduce((sum, t) => sum + Number(t.estimated_cost || 0), 0),
+                actual: unassignedTasks.reduce((sum, t) => sum + Number(t.actual_cost || 0), 0),
+            },
+            total_tasks: tasks.length,
+            done_tasks: tasks.filter(t => t.status === 'DONE').length,
+        };
+    }
+
+    // Milestones
     async addMilestone(projectId: number, data: any) {
         const ms = this.milestoneRepo.create({
             project_id: projectId,

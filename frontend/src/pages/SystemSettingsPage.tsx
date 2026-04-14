@@ -345,7 +345,8 @@ const ContractTemplatesTab: React.FC = () => {
                                         { key: 'customer_name', desc: 'Tên Khách hàng' },
                                         { key: 'customer_address', desc: 'Địa chỉ Khách hàng' },
                                         { key: 'customer_tax_code', desc: 'Mã số thuế Khách hàng' },
-                                        { key: 'order_code', desc: 'Mã Đơn hàng / Hợp đồng' },
+                                        { key: 'order_code', desc: 'Mã Đơn hàng (Của PM)' },
+                                        { key: 'contract_code', desc: 'Mã số Hợp đồng tự động (TLG/Năm-ID)' },
                                         { key: 'order_date', desc: 'Ngày tạo đơn' },
                                         { key: 'total_amount_text', desc: 'Tổng tiền bằng chữ' },
                                         { key: 'items_table', desc: 'Bảng chi tiết mặt hàng' }

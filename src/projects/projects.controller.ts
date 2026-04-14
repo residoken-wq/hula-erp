@@ -3,7 +3,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ProjectsService } from './projects.service';
 
 @Controller('projects')
-@UseGuards(JwtAuthGuard) // Ensure user is authenticated
+@UseGuards(JwtAuthGuard)
 export class ProjectsController {
     constructor(private readonly service: ProjectsService) { }
 
@@ -30,6 +30,18 @@ export class ProjectsController {
     @Delete(':id')
     remove(@Param('id') id: number) {
         return this.service.remove(id);
+    }
+
+    // --- SO PROJECT ---
+    @Post('from-so/:soId')
+    createFromSO(@Param('soId') soId: number) {
+        return this.service.createSOProject(soId);
+    }
+
+    // --- COST SUMMARY ---
+    @Get(':id/cost-summary')
+    getCostSummary(@Param('id') id: number) {
+        return this.service.getCostSummary(id);
     }
 
     // Milestones
