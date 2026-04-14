@@ -433,7 +433,7 @@ const HelpPage: React.FC = () => {
                             message="Tự động điền dữ liệu"
                             description={
                                 <ul style={{ marginBottom: 0 }}>
-                                    <li><b>Bên bán (seller_xxx):</b> Tự động lấy cấu hình hệ thống (Settings -> Thông tin DN) bao gồm MST, Người đại diện, Tài khoản ngân hàng. Tiết kiệm thời gian tự gõ.</li>
+                                    <li><b>Bên bán (seller_xxx):</b> Tự động lấy cấu hình hệ thống (Settings -&gt; Thông tin DN) bao gồm MST, Người đại diện, Tài khoản ngân hàng. Tiết kiệm thời gian tự gõ.</li>
                                     <li><b>Khách hàng:</b> Lấy toàn bộ thông tin công ty, liên hệ từ hồ sơ khách hàng.</li>
                                     <li><b>Sản phẩm:</b> Tự động tính toán tổng tiền chữ và tiền số, in bảng chi tiết hàng hóa có trong đơn hàng này.</li>
                                 </ul>

@@ -340,6 +340,7 @@ const ProjectDetailPage: React.FC = () => {
                         </Col>
                     </Row>
 
+                    <Row gutter={16}>
                         <Col span={8}>
                             <Form.Item name="status" label="Status">
                                 <Select>
