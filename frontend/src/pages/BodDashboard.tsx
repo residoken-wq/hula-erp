@@ -4,7 +4,7 @@ import {
     DollarOutlined, FunnelPlotOutlined, TrophyOutlined, TeamOutlined,
     ArrowUpOutlined, ArrowDownOutlined, MinusOutlined, ReloadOutlined,
     RiseOutlined, FallOutlined, FireOutlined, ClockCircleOutlined,
-    CrownOutlined, StarOutlined, BankOutlined, BarChartOutlined
+    CrownOutlined, StarOutlined, BankOutlined, BarChartOutlined, AppstoreOutlined, TagsOutlined
 } from '@ant-design/icons';
 import { Column, Funnel, Area } from '@ant-design/plots';
 import api from '../utils/api';
@@ -469,6 +469,76 @@ const BodDashboard: React.FC = () => {
         );
     };
 
+    // === NEW: TOP PRODUCTS ===
+    const TopProducts = () => {
+        const topProducts = data?.topProducts || [];
+
+        const columns = [
+            { title: '#', key: 'rank', width: 40, render: (_: any, __: any, idx: number) => <span style={{ fontWeight: 700, color: idx < 3 ? '#f59e0b' : '#888' }}>{idx + 1}</span> },
+            {
+                title: 'Sản phẩm', dataIndex: 'productName', key: 'name',
+                render: (v: string, r: any) => <div><b>{v || r.sku}</b><div style={{ fontSize: 11, color: '#888' }}>{r.category}</div></div>,
+            },
+            {
+                title: 'SL Bán', dataIndex: 'totalQuantity', key: 'totalQuantity',
+                align: 'center' as const, width: 80,
+                render: (v: number) => <Tag color="blue">{v}</Tag>,
+            },
+            {
+                title: 'Doanh thu', dataIndex: 'totalRevenue', key: 'totalRevenue',
+                align: 'right' as const,
+                render: (v: number) => <span style={{ fontWeight: 700, color: '#059669' }}>{fmtVND(v)}</span>,
+            },
+        ];
+
+        return (
+            <Card
+                title={<span><AppstoreOutlined style={{ color: '#10b981' }} /> Top Sản phẩm</span>}
+                bordered={false}
+                style={{ borderRadius: 16 }}
+            >
+                {topProducts.length > 0 ? (
+                    <Table dataSource={topProducts} columns={columns} rowKey="sku" pagination={false} size="small" scroll={{ x: isMobile ? 400 : undefined }} />
+                ) : <Empty description="Chưa có dữ liệu" />}
+            </Card>
+        );
+    };
+
+    // === NEW: TOP CATEGORIES ===
+    const TopCategories = () => {
+        const topCategories = data?.topCategories || [];
+
+        const columns = [
+            { title: '#', key: 'rank', width: 40, render: (_: any, __: any, idx: number) => <span style={{ fontWeight: 700, color: idx < 3 ? '#f59e0b' : '#888' }}>{idx + 1}</span> },
+            {
+                title: 'Danh mục', dataIndex: 'category', key: 'category',
+                render: (v: string) => <b>{v}</b>,
+            },
+            {
+                title: 'SL Bán', dataIndex: 'totalQuantity', key: 'totalQuantity',
+                align: 'center' as const, width: 80,
+                render: (v: number) => <Tag color="purple">{v}</Tag>,
+            },
+            {
+                title: 'Doanh thu', dataIndex: 'totalRevenue', key: 'totalRevenue',
+                align: 'right' as const,
+                render: (v: number) => <span style={{ fontWeight: 700, color: '#059669' }}>{fmtVND(v)}</span>,
+            },
+        ];
+
+        return (
+            <Card
+                title={<span><TagsOutlined style={{ color: '#8b5cf6' }} /> Top Danh mục</span>}
+                bordered={false}
+                style={{ borderRadius: 16 }}
+            >
+                {topCategories.length > 0 ? (
+                    <Table dataSource={topCategories} columns={columns} rowKey="category" pagination={false} size="small" scroll={{ x: isMobile ? 400 : undefined }} />
+                ) : <Empty description="Chưa có dữ liệu" />}
+            </Card>
+        );
+    };
+
     // === NEW: ACCOUNTS RECEIVABLE AGING ===
     const AccountsReceivable = () => {
         const ar = data?.accountsReceivable || { details: [], summary: {} };
@@ -671,13 +741,16 @@ const BodDashboard: React.FC = () => {
                     </Col>
                 </Row>
 
-                {/* TOP CUSTOMERS + AR */}
+                {/* TOP CUSTOMERS + TOP PRODUCTS/CATEGORIES */}
                 <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                    <Col xs={24} lg={12}>
+                    <Col xs={24} lg={12} style={{ display: 'flex', flexDirection: 'column' }}>
                         <TopCustomers />
                     </Col>
                     <Col xs={24} lg={12}>
-                        {/* Placeholder for future section */}
+                        <Space direction="vertical" size="large" style={{ display: 'flex' }}>
+                            <TopProducts />
+                            <TopCategories />
+                        </Space>
                     </Col>
                 </Row>
 

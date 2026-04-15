@@ -1074,12 +1074,15 @@ export class SalesService {
         const monthlyTrend = await this.calculateMonthlyTrendData();
 
         // === 10. TOP CUSTOMERS ===
-        const topCustomers = await this.calculateTopCustomersData(start, end);
+        const topCustomers = await this.calculateTopCustomersData(start, end, filters.assignedToId);
 
         // === 11. HIGH-VALUE LEADS TO WIN ===
         const highValueLeads = await this.calculateHighValueLeadsData(filters.assignedToId);
 
-        return { kpi, funnelData, velocityData, scorecardData, forecastData, topProducts, lostReasons, accountsReceivable, monthlyTrend, topCustomers, highValueLeads };
+        // === 12. TOP CATEGORIES ===
+        const topCategories = await this.calculateTopCategoriesData(start, end, filters.assignedToId);
+
+        return { kpi, funnelData, velocityData, scorecardData, forecastData, topProducts, lostReasons, accountsReceivable, monthlyTrend, topCustomers, highValueLeads, topCategories };
     }
 
     private async calculateKPIs(
@@ -1454,25 +1457,59 @@ export class SalesService {
         try {
             const query = this.itemRepo.createQueryBuilder('i')
                 .select('i.sku', 'sku')
+                .addSelect('p.name', 'productName')
+                .addSelect('p.category', 'category')
                 .addSelect('SUM(i.quantity)', 'totalQuantity')
                 .addSelect('SUM(i.subtotal)', 'totalRevenue')
                 .addSelect('COUNT(DISTINCT i.order_id)', 'orderCount')
                 .innerJoin('i.order', 'o')
+                .leftJoin('i.product', 'p')
                 .where('o.status NOT IN (:...statuses)', { statuses: ['QUOTATION', 'CANCELLED'] })
                 .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
             if (assignedToId) query.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
             query.groupBy('i.sku')
+                .addGroupBy('p.name')
+                .addGroupBy('p.category')
                 .orderBy('"totalRevenue"', 'DESC')
                 .limit(10);
             const results = await query.getRawMany();
             return results.map(r => ({
                 sku: r.sku,
+                productName: r.productName || 'N/A',
+                category: r.category || 'N/A',
                 totalQuantity: Number(r.totalQuantity || 0),
                 totalRevenue: Number(r.totalRevenue || 0),
                 orderCount: Number(r.orderCount || 0),
             }));
         } catch (e) {
             console.error('Error calculating top products:', e);
+            return [];
+        }
+    }
+
+    // ===================== NEW ANALYTICS: TOP CATEGORIES =====================
+    private async calculateTopCategoriesData(start: Date, end: Date, assignedToId?: number) {
+        try {
+            const query = this.itemRepo.createQueryBuilder('i')
+                .select('COALESCE(p.category, \'Chưa phân loại\')', 'category')
+                .addSelect('SUM(i.quantity)', 'totalQuantity')
+                .addSelect('SUM(i.subtotal)', 'totalRevenue')
+                .innerJoin('i.order', 'o')
+                .leftJoin('i.product', 'p')
+                .where('o.status NOT IN (:...statuses)', { statuses: ['QUOTATION', 'CANCELLED'] })
+                .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
+            if (assignedToId) query.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
+            query.groupBy('p.category')
+                .orderBy('"totalRevenue"', 'DESC')
+                .limit(10);
+            const results = await query.getRawMany();
+            return results.map(r => ({
+                category: r.category,
+                totalQuantity: Number(r.totalQuantity || 0),
+                totalRevenue: Number(r.totalRevenue || 0),
+            }));
+        } catch (e) {
+            console.error('Error calculating top categories:', e);
             return [];
         }
     }
@@ -1636,9 +1673,9 @@ export class SalesService {
     }
 
     // ===================== NEW ANALYTICS: TOP CUSTOMERS =====================
-    private async calculateTopCustomersData(start: Date, end: Date) {
+    private async calculateTopCustomersData(start: Date, end: Date, assignedToId?: number) {
         try {
-            const results = await this.orderRepo.createQueryBuilder('o')
+            const query = this.orderRepo.createQueryBuilder('o')
                 .select('o.customer_id', 'customerId')
                 .addSelect('c.name', 'customerName')
                 .addSelect('c.phone', 'phone')
@@ -1646,7 +1683,13 @@ export class SalesService {
                 .addSelect('COUNT(o.id)', 'orderCount')
                 .innerJoin('o.customer', 'c')
                 .where('o.status NOT IN (:...statuses)', { statuses: ['QUOTATION', 'CANCELLED'] })
-                .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
+                .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
+            
+            if (assignedToId) {
+                query.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
+            }
+
+            const results = await query
                 .groupBy('o.customer_id')
                 .addGroupBy('c.name')
                 .addGroupBy('c.phone')
