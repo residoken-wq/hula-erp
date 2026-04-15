@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table } from 'antd';
 import { PlusOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined, FileTextOutlined } from '@ant-design/icons';
+import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined, FileTextOutlined, AppstoreAddOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import SalesPayments from './sales/SalesPayments';
@@ -355,6 +355,20 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     };
 
+    const handleCreateProject = async () => {
+        if (!initialData?.id) return;
+        try {
+            setLoading(true);
+            await api.post(`/projects/from-so/${initialData.id}`);
+            message.success('Đã tạo/cập nhật dự án thành công');
+            onSuccess();
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Có lỗi khi tạo dự án');
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
 
 
@@ -399,6 +413,11 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     {(!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
                         <Button size={isMobile ? 'small' : 'middle'} danger icon={<DeleteOutlined />} onClick={() => setCancelModalOpen(true)}>
                             {isMobile ? 'Hủy' : 'Hủy Đơn'}
+                        </Button>
+                    )}
+                    {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
+                        <Button size={isMobile ? 'small' : 'middle'} icon={<AppstoreAddOutlined />} onClick={handleCreateProject}>
+                            {isMobile ? 'Tạo Project' : 'Tạo Dự án'}
                         </Button>
                     )}
                     {(!isQuotation && initialData && initialData.status === 'SO_PENDING') && (
