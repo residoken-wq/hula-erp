@@ -4,7 +4,7 @@ import { Repository, In } from 'typeorm';
 import { Project, ProjectStatus, ProjectType } from './entities/project.entity';
 import { Milestone } from './entities/milestone.entity';
 import { SalesOrder } from '../sales/sales-order.entity';
-import { Task } from '../tasks/task.entity';
+import { Task, TaskStatus, TaskPriority } from '../tasks/task.entity';
 
 // 8 Milestones chuẩn cho Dự án Đơn hàng
 const SO_TEMPLATE_MILESTONES = [
@@ -228,8 +228,8 @@ export class ProjectsService {
                     project_id: savedProject.id,
                     milestone_id: savedMs.id,
                     department: tmpl.department,
-                    status: 'TODO',
-                    priority: 'MEDIUM',
+                    status: TaskStatus.TODO,
+                    priority: TaskPriority.MEDIUM,
                     reference_code: so.order_code,
                     reference_type: 'SALES',
                 }));
