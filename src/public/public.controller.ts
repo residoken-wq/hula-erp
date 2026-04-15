@@ -434,14 +434,16 @@ export class PublicController {
             });
         }
 
+        qb.addSelect('COALESCE(NULLIF(p.website_price, 0), p.base_price)', 'sort_price');
+
         // Sorting
         switch (sort) {
             case 'price_asc':
                 // Use website_price if available and > 0, else base_price
-                qb.orderBy('COALESCE(NULLIF(p.website_price, 0), p.base_price)', 'ASC', 'NULLS LAST');
+                qb.orderBy('sort_price', 'ASC', 'NULLS LAST');
                 break;
             case 'price_desc':
-                qb.orderBy('COALESCE(NULLIF(p.website_price, 0), p.base_price)', 'DESC', 'NULLS LAST');
+                qb.orderBy('sort_price', 'DESC', 'NULLS LAST');
                 break;
             case 'newest':
             default:

@@ -1177,9 +1177,43 @@ const PortalQuotePage: React.FC = () => {
                     </Col>
                 </Row>
 
+                {/* --- CONTRACT SECTION --- */}
+                {data.contract_html && (
+                    <Row gutter={24} style={{ marginBottom: 24 }}>
+                        <Col span={24}>
+                            <Card 
+                                title={<span style={{ fontWeight: 700, fontSize: 16 }}><SolutionOutlined /> Nội Dung Hợp Đồng / Biên Bản</span>} 
+                                bordered={false} 
+                                style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}
+                                extra={
+                                    <Button type="primary" icon={<SendOutlined />} onClick={() => {
+                                        const el = document.getElementById('thao-luan-section');
+                                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                    }}>
+                                        Ghi chú / Phản hồi
+                                    </Button>
+                                }
+                            >
+                                <div style={{ 
+                                    background: '#fff', 
+                                    padding: isMobile ? '15px' : '40px 60px', 
+                                    maxHeight: '600px', 
+                                    overflowY: 'auto', 
+                                    border: '1px solid #d9d9d9',
+                                    borderRadius: 8,
+                                    fontFamily: '"Times New Roman", Times, serif',
+                                    fontSize: '12pt',
+                                    lineHeight: 1.5,
+                                    color: '#000'
+                                }} dangerouslySetInnerHTML={{ __html: data.contract_html }} />
+                            </Card>
+                        </Col>
+                    </Row>
+                )}
+
                 {/* --- BOTTOM ROW: COMMENTS & HISTORY --- */}
                 <Row gutter={24}>
-                    <Col xs={24} md={12}>
+                    <Col xs={24} md={12} id="thao-luan-section">
                         <Card title="💬 Thảo Luận" bordered={false} bodyStyle={{ padding: 0 }} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12, overflow: 'hidden', height: '100%' }}>
                             <div style={{ height: 300, overflowY: 'auto', padding: 20, background: '#f9f9f9' }}>
                                 <List dataSource={visibleComments} renderItem={(item: any) => (
