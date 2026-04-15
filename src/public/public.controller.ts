@@ -133,6 +133,9 @@ export class PublicController {
             banner_news_title: result.banner_news_title || '',
             banner_news_desc: result.banner_news_desc || '',
             banner_news_image: result.banner_news_image || '',
+            banner_recruitment_title: result.banner_recruitment_title || '',
+            banner_recruitment_desc: result.banner_recruitment_desc || '',
+            banner_recruitment_image: result.banner_recruitment_image || '',
             // Section background colors
             section_hero_bg: result.section_hero_bg || '',
             section_hero_usp_bg: result.section_hero_usp_bg || '',
