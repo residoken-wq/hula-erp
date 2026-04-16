@@ -16,11 +16,27 @@ const formatImgUrl = (url?: string) => {
             }
         }
     } catch(e) {}
-    if (url && url.includes('drive.google.com/file/d/')) {
-        const match = url.match(/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (match && match[1]) {
-            return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+    if (!url) return '';
+    // Handle Google Drive URLs - use thumbnail endpoint (uc?export=view is deprecated/blocked)
+    if (url.includes('drive.google.com')) {
+        let id = '';
+        // Format: /file/d/FILE_ID/...
+        const fileMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (fileMatch && fileMatch[1]) {
+            id = fileMatch[1];
         }
+        // Format: ?id=FILE_ID
+        if (!id) {
+            const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (idMatch && idMatch[1]) id = idMatch[1];
+        }
+        if (id) {
+            return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+        }
+    }
+    // Handle relative URLs (e.g. /uploads/...)
+    if (url && !url.startsWith('http') && !url.startsWith('data:')) {
+        return `${window.location.origin}${url}`;
     }
     return url || '';
 };

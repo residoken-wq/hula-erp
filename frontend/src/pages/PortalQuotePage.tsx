@@ -40,6 +40,27 @@ const printStyles = `
 }
 `;
 
+// Fix broken Google Drive image URLs in saved contract HTML
+const fixContractImageUrls = (html: string): string => {
+    if (!html) return '';
+    // Fix deprecated uc?export=view format -> thumbnail format
+    let fixed = html.replace(
+        /https:\/\/drive\.google\.com\/uc\?export=view&id=([a-zA-Z0-9_-]+)/g,
+        'https://drive.google.com/thumbnail?id=$1&sz=w1000'
+    );
+    // Also fix any remaining /file/d/ID/view links used as img src
+    fixed = fixed.replace(
+        /https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)\/[^"']*/g,
+        'https://drive.google.com/thumbnail?id=$1&sz=w1000'
+    );
+    // Fix relative URLs in img src (e.g. src="/uploads/...")
+    fixed = fixed.replace(
+        /src="(\/[^"]+)"/g,
+        `src="${window.location.origin}$1"`
+    );
+    return fixed;
+};
+
 const PortalQuotePage: React.FC = () => {
     const { uuid } = useParams();
     const [data, setData] = useState<any>(null);
@@ -1205,7 +1226,7 @@ const PortalQuotePage: React.FC = () => {
                                     fontSize: '12pt',
                                     lineHeight: 1.5,
                                     color: '#000'
-                                }} dangerouslySetInnerHTML={{ __html: data.contract_html }} />
+                                }} dangerouslySetInnerHTML={{ __html: fixContractImageUrls(data.contract_html) }} />
                             </Card>
                         </Col>
                     </Row>
