@@ -34,6 +34,8 @@ import { AnnouncementsModule } from './announcements/announcements.module';
 import { WebsiteProjectsModule } from './website-projects/website-projects.module';
 import { QCModule } from './qc/qc.module';
 
+import { AnalyticsModule } from './analytics/analytics.module';
+
 // Entities
 import { Product } from './products/product.entity';
 import { Material } from './materials/material.entity';
@@ -143,6 +145,7 @@ import { AutomationWorkflow } from './marketing/entities/automation-workflow.ent
 import { Announcement } from './announcements/announcement.entity';
 import { AnnouncementRead } from './announcements/announcement-read.entity';
 import { WebProject } from './website-projects/entities/web-project.entity';
+import { AnalyticsVisitor } from './analytics/analytics-visitor.entity';
 
 import { MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
 import { UserContextInterceptor } from './common/interceptors/user-context.interceptor';
@@ -189,7 +192,8 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           // Announcements
           Announcement, AnnouncementRead,
           // Website
-          WebProject
+          WebProject,
+          AnalyticsVisitor
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         subscribers: [],
@@ -207,6 +211,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
     MarketingModule, // Marketing campaigns, segments, automation
     AnnouncementsModule, // Announcements for employees
     WebsiteProjectsModule,
+    AnalyticsModule, // Website Analytics tracking
     QCModule, // Quality Control module
     TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
   ],

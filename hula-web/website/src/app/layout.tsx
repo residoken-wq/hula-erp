@@ -44,6 +44,8 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
+import AnalyticsTracker from '@/components/AnalyticsTracker';
+
 export default function RootLayout({
     children,
 }: {
@@ -52,6 +54,7 @@ export default function RootLayout({
     return (
         <html lang="vi" className={mainFont.variable}>
             <body className="min-h-screen flex flex-col font-sans antialiased">
+                <AnalyticsTracker />
                 <LayoutWrapper>
                     {children}
                 </LayoutWrapper>

@@ -21,7 +21,12 @@ export const blogsApi = {
 };
 
 // ============================================
-// WEBSITE PROJECTS APIs
+// SYSTEM ANALYTICS APIs
+// ============================================
+export const analyticsApi = {
+    getStats: () => api.get('/public/analytics/stats'),
+};
+
 // ============================================
 export const websiteProjectsApi = {
     getAll: (params?: any) => api.get('/website-projects', { params }),
