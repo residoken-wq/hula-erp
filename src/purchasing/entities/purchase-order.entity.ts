@@ -61,6 +61,12 @@ export class PurchaseOrder {
   @Column({ nullable: true })
   plan_id: number;
 
+  @Column({ nullable: true })
+  project_id: number;
+
+  @Column({ nullable: true })
+  task_id: number;
+
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   total_amount: number;
 

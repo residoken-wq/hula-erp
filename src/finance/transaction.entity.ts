@@ -47,6 +47,12 @@ export class Transaction {
   @Column({ nullable: true })
   reference_type: string; // SALES, PURCHASE
 
+  @Column({ nullable: true })
+  project_id: number;
+
+  @Column({ nullable: true })
+  task_id: number;
+
   // --- MỚI: THÔNG TIN HÓA ĐƠN VAT ---
   @Column({ nullable: true })
   vat_invoice_code: string; // Số hóa đơn VAT

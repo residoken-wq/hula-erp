@@ -20,6 +20,7 @@ const ProjectDetailPage: React.FC = () => {
 
     // Task Modal
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+    const [editingTask, setEditingTask] = useState<any>(null);
     const [taskForm] = Form.useForm();
 
     // Milestone Modal
@@ -78,7 +79,7 @@ const ProjectDetailPage: React.FC = () => {
         } catch (e: any) { message.error('Failed to delete'); }
     };
 
-    const handleCreateTask = async (values: any) => {
+    const handleSaveTask = async (values: any) => {
         try {
             const payload = {
                 ...values,
@@ -86,12 +87,19 @@ const ProjectDetailPage: React.FC = () => {
                 start_date: values.start_date ? values.start_date.toISOString() : null,
                 due_date: values.due_date ? values.due_date.toISOString() : null
             };
-            await api.post('/tasks', payload);
-            message.success('Task created successfully');
+            
+            if (editingTask) {
+                await api.put(`/tasks/${editingTask.id}`, payload);
+                message.success('Task updated successfully');
+            } else {
+                await api.post('/tasks', payload);
+                message.success('Task created successfully');
+            }
+            
             setIsTaskModalOpen(false);
             taskForm.resetFields();
             fetchProject(); // Reload to see new task
-        } catch (e) { message.error('Failed to create task'); }
+        } catch (e) { message.error('Failed to save task'); }
     };
 
     const handleUpdateMembers = async (values: any) => {
@@ -172,7 +180,7 @@ const ProjectDetailPage: React.FC = () => {
             children: (
                 <div>
                     <div style={{ marginBottom: 16 }}>
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsTaskModalOpen(true)}>Add Project Task</Button>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTask(null); taskForm.resetFields(); setIsTaskModalOpen(true); }}>Add Project Task</Button>
                     </div>
                     <Table
                         dataSource={project.tasks || []}
@@ -186,9 +194,23 @@ const ProjectDetailPage: React.FC = () => {
                             { title: 'Start', dataIndex: 'start_date', render: (d: string) => d ? dayjs(d).format('DD/MM/YY') : '-' },
                             { title: 'Deadline', dataIndex: 'due_date', render: (d: string) => d ? dayjs(d).format('DD/MM/YY') : '-' },
                             {
-                                title: 'Timer',
+                                title: 'Timer / Action',
                                 key: 'timer',
-                                render: (r: any) => <TaskTimer taskId={r.id} />
+                                width: 150,
+                                render: (r: any) => (
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <TaskTimer taskId={r.id} />
+                                        <Button size="small" icon={<EditOutlined />} onClick={() => {
+                                            setEditingTask(r);
+                                            taskForm.setFieldsValue({
+                                                ...r,
+                                                start_date: r.start_date ? dayjs(r.start_date) : null,
+                                                due_date: r.due_date ? dayjs(r.due_date) : null
+                                            });
+                                            setIsTaskModalOpen(true);
+                                        }} />
+                                    </div>
+                                )
                             }
                         ]}
                     />
@@ -301,12 +323,12 @@ const ProjectDetailPage: React.FC = () => {
             </Modal>
 
             <Modal
-                title="Create New Task for Project"
+                title={editingTask ? "Edit Task" : "Create New Task for Project"}
                 open={isTaskModalOpen}
                 onCancel={() => setIsTaskModalOpen(false)}
                 onOk={() => taskForm.submit()}
             >
-                <Form form={taskForm} layout="vertical" onFinish={handleCreateTask} initialValues={{ status: 'TODO', priority: 'MEDIUM' }}>
+                <Form form={taskForm} layout="vertical" onFinish={handleSaveTask} initialValues={{ status: 'TODO', priority: 'MEDIUM' }}>
                     <Form.Item name="title" label="Task Title" rules={[{ required: true }]}><Input /></Form.Item>
                     <Form.Item name="description" label="Description"><Input.TextArea rows={3} /></Form.Item>
 

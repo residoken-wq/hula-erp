@@ -25,6 +25,7 @@ const PurchasingPage: React.FC = () => {
     const [planSearchText, setPlanSearchText] = useState('');
     const [products, setProducts] = useState<any[]>([]); // All Products for Relinking
     const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [projects, setProjects] = useState<any[]>([]);
     const [companyConfig, setCompanyConfig] = useState<any>(null);
 
     // Delivery Matrix State
@@ -55,6 +56,7 @@ const PurchasingPage: React.FC = () => {
         fetchData();
         axios.get(`${API_URL}/products`).then(res => setProducts(res.data)).catch(console.error);
         axios.get(`${API_URL}/suppliers`).then(res => setSuppliers(res.data)).catch(console.error);
+        axios.get(`${API_URL}/projects`).then(res => setProjects(res.data)).catch(console.error);
         axios.get(`${API_URL}/system/company`).then(res => setCompanyConfig(res.data)).catch(console.error);
     }, []);
 
@@ -411,7 +413,10 @@ const PurchasingPage: React.FC = () => {
                 items: editingItems,
                 packing_list_details: packingList,
                 supplier_id: currentPO.supplier?.id, // Include Supplier ID
-                status: currentPO.status
+                project_id: currentPO.project_id, // Include project
+                task_id: currentPO.task_id, // Include task
+                status: currentPO.status,
+                note: currentPO.note
             });
             message.success('Đã lưu thay đổi PO');
             fetchData(); // Refresh global list
@@ -777,6 +782,31 @@ const PurchasingPage: React.FC = () => {
                     <Descriptions.Item label="Tổng tiền"><b style={{ fontSize: 16 }}>{Number(currentPO?.total_amount).toLocaleString()} ₫</b></Descriptions.Item>
                     <Descriptions.Item label="Đã trả" contentStyle={{ color: 'green', fontWeight: 'bold' }}>{Number(currentPO?.paid_amount).toLocaleString()} ₫</Descriptions.Item>
                     <Descriptions.Item label="Còn lại" contentStyle={{ color: 'red' }}>{Number((currentPO?.total_amount || 0) - (currentPO?.paid_amount || 0)).toLocaleString()} ₫</Descriptions.Item>
+                    <Descriptions.Item label="Dự án & Task" span={1}>
+                        <div style={{ display: 'flex', gap: 5, flexDirection: 'column' }}>
+                            <Select 
+                                allowClear 
+                                placeholder="Chọn dự án..." 
+                                style={{ width: '100%' }}
+                                value={currentPO?.project_id}
+                                onChange={(val) => setCurrentPO({ ...currentPO, project_id: val, task_id: null })}
+                            >
+                                {projects.map(p => <Option key={p.id} value={p.id}>{p.title}</Option>)}
+                            </Select>
+                            <Select 
+                                allowClear 
+                                placeholder="Chọn công việc (Task)..." 
+                                style={{ width: '100%' }}
+                                disabled={!currentPO?.project_id}
+                                value={currentPO?.task_id}
+                                onChange={(val) => setCurrentPO({ ...currentPO, task_id: val })}
+                            >
+                                {currentPO?.project_id && projects.find(p => p.id === currentPO.project_id)?.tasks?.map((t: any) =>
+                                    <Option key={t.id} value={t.id}>{t.title}</Option>
+                                )}
+                            </Select>
+                        </div>
+                    </Descriptions.Item>
                     <Descriptions.Item label="Ghi chú chung" span={2}>
                         <Input.TextArea
                             rows={2}

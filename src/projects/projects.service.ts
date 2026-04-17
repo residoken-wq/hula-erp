@@ -5,6 +5,8 @@ import { Project, ProjectStatus, ProjectType } from './entities/project.entity';
 import { Milestone } from './entities/milestone.entity';
 import { SalesOrder } from '../sales/sales-order.entity';
 import { Task, TaskStatus, TaskPriority } from '../tasks/task.entity';
+import { Transaction } from '../finance/transaction.entity';
+import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 
 // 8 Milestones chuẩn cho Dự án Đơn hàng
 const SO_TEMPLATE_MILESTONES = [
@@ -99,6 +101,8 @@ export class ProjectsService {
         @InjectRepository(Milestone) private milestoneRepo: Repository<Milestone>,
         @InjectRepository(SalesOrder) private soRepo: Repository<SalesOrder>,
         @InjectRepository(Task) private taskRepo: Repository<Task>,
+        @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
+        @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
     ) { }
 
     async findAll(user: any) {
@@ -268,6 +272,53 @@ export class ProjectsService {
         // Get all tasks for project
         const tasks = await this.taskRepo.find({ where: { project_id: projectId }, relations: ['assignee'] });
 
+        // Get Transactions directly mapped to project
+        const transactions = await this.transRepo.find({
+            where: { project_id: projectId }
+        });
+
+        // Get POs mapped to project
+        const pos = await this.poRepo.find({
+            where: { project_id: projectId }
+        });
+
+        // Get Transactions linked to POs
+        const poCodes = pos.map(p => p.po_code).filter(c => !!c);
+        let poTransactions: Transaction[] = [];
+        if (poCodes.length > 0) {
+            poTransactions = await this.transRepo.find({
+                where: { reference_code: In(poCodes) } // PO payments
+            });
+        }
+
+        // Apply dynamic actual_cost for tasks based on Transactions & POs
+        for (const t of tasks) {
+            let taskTransCost = 0;
+            // 1. Direct transactions mapped to this task (only EXPENSE counts as cost, or we just sum amount if it's EXPENSE)
+            const directTrans = transactions.filter(tr => tr.task_id === t.id && tr.type === 'EXPENSE');
+            taskTransCost += directTrans.reduce((s, tr) => s + Number(tr.amount || 0), 0);
+
+            // 2. Transactions mapped to a PO that is mapped to this task
+            const taskPOs = pos.filter(p => p.task_id === t.id);
+            const taskPOCodes = taskPOs.map(p => p.po_code);
+            const poTrans = poTransactions.filter(tr => taskPOCodes.includes(tr.reference_code) && tr.type === 'EXPENSE');
+            taskTransCost += poTrans.reduce((s, tr) => s + Number(tr.amount || 0), 0);
+
+            // Update dynamically
+            t.actual_cost = Number(t.actual_cost || 0) + taskTransCost;
+        }
+
+        // Project Root level explicit costs (Not tied to a specific task)
+        const unassignedTrans = transactions.filter(tr => !tr.task_id && tr.type === 'EXPENSE');
+        const rootTransCost = unassignedTrans.reduce((s, tr) => s + Number(tr.amount || 0), 0);
+        
+        const rootPOs = pos.filter(p => !p.task_id);
+        const rootPOCodes = rootPOs.map(p => p.po_code);
+        const rootPOTrans = poTransactions.filter(tr => rootPOCodes.includes(tr.reference_code) && tr.type === 'EXPENSE');
+        const rootPOTransCost = rootPOTrans.reduce((s, tr) => s + Number(tr.amount || 0), 0);
+        
+        const extraRootActualCost = rootTransCost + rootPOTransCost;
+
         // Group by milestone
         const milestones = await this.milestoneRepo.find({ where: { project_id: projectId }, order: { sort_order: 'ASC' } });
         const byMilestone = milestones.map(ms => {
@@ -288,7 +339,7 @@ export class ProjectsService {
         const unassignedTasks = tasks.filter(t => !t.milestone_id);
 
         const totalEstimated = tasks.reduce((sum, t) => sum + Number(t.estimated_cost || 0), 0);
-        const totalActual = tasks.reduce((sum, t) => sum + Number(t.actual_cost || 0), 0);
+        const totalActual = tasks.reduce((sum, t) => sum + Number(t.actual_cost || 0), 0) + extraRootActualCost;
 
         return {
             project_id: projectId,
@@ -301,7 +352,7 @@ export class ProjectsService {
             by_milestone: byMilestone,
             unassigned_cost: {
                 estimated: unassignedTasks.reduce((sum, t) => sum + Number(t.estimated_cost || 0), 0),
-                actual: unassignedTasks.reduce((sum, t) => sum + Number(t.actual_cost || 0), 0),
+                actual: unassignedTasks.reduce((sum, t) => sum + Number(t.actual_cost || 0), 0) + extraRootActualCost,
             },
             total_tasks: tasks.length,
             done_tasks: tasks.filter(t => t.status === 'DONE').length,

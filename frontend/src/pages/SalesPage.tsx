@@ -56,7 +56,7 @@ const SalesPage: React.FC = () => {
             // Open order by ID
             const openOrderById = async () => {
                 try {
-                    const res = await api.get(`/sales/by-id/${orderId}`);
+                    const res = await api.get(`/sales/${orderId}`);
                     if (res.data) {
                         setEditingOrder(res.data);
                         setDetailModalOpen(true);

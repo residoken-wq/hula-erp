@@ -36,6 +36,7 @@ const FinancePage: React.FC = () => {
     const [categories, setCategories] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]); // <--- New State
     const [suppliers, setSuppliers] = useState<any[]>([]); // <--- New State
+    const [projects, setProjects] = useState<any[]>([]); 
     const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
 
     // UI State
@@ -54,6 +55,7 @@ const FinancePage: React.FC = () => {
     const currentTransType = Form.useWatch('type', formTrans);
     const isRetail = Form.useWatch('is_retail', formTrans); // <--- Watch checkbox Income
     const isOtherExpense = Form.useWatch('is_other_expense', formTrans); // <--- Watch checkbox Expense
+    const selectedProjectId = Form.useWatch('project_id', formTrans);
 
     // --- REPORT STATE ---
     const [reportData, setReportData] = useState<any>({ transactions: [], summary: { income: 0, expense: 0, profit: 0 } });
@@ -67,18 +69,20 @@ const FinancePage: React.FC = () => {
         setLoading(true);
         try {
             const monthStr = filterMonth.format('YYYY-MM');
-            const [resTrans, resCat, resSum, resCust, resSup] = await Promise.all([
+            const [resTrans, resCat, resSum, resCust, resSup, resProj] = await Promise.all([
                 axios.get(`${API_URL}/finance/transactions?month=${monthStr}`),
                 axios.get(`${API_URL}/finance/categories`),
                 axios.get(`${API_URL}/finance/summary`),
                 axios.get(`${API_URL}/customers`), // <--- Fetch Customers
-                axios.get(`${API_URL}/suppliers`)  // <--- Fetch Suppliers
+                axios.get(`${API_URL}/suppliers`),  // <--- Fetch Suppliers
+                axios.get(`${API_URL}/projects`)
             ]);
             setTransactions(Array.isArray(resTrans.data) ? resTrans.data : []);
             setCategories(Array.isArray(resCat.data) ? resCat.data : []);
             setSummary(resSum.data || { income: 0, expense: 0, balance: 0 });
             setCustomers(Array.isArray(resCust.data) ? resCust.data : []);
             setSuppliers(Array.isArray(resSup.data) ? resSup.data : []);
+            setProjects(Array.isArray(resProj.data) ? resProj.data : []);
         } catch (e) { message.error('Lỗi tải dữ liệu'); }
         setLoading(false);
     };
@@ -680,6 +684,36 @@ const FinancePage: React.FC = () => {
                             </Form.Item>
                         </Col>
                     </Row>
+
+                    {/* --- PROJECT & TASK LINKING --- */}
+                    <div style={{ background: '#e6f7ff', padding: 12, borderRadius: 6, marginBottom: 16 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 8, color: '#1890ff' }}>Gán chi phí / doanh thu (Tùy chọn)</div>
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Form.Item name="project_id" label="Thuộc Dự án">
+                                    <Select allowClear placeholder="Chọn dự án..." showSearch optionFilterProp="children" onChange={() => formTrans.setFieldsValue({ task_id: undefined })}>
+                                        {projects.map(p => <Option key={p.id} value={p.id}>{p.title}</Option>)}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                                <Form.Item name="task_id" label="Công việc (Task)">
+                                    <Select allowClear placeholder="Chọn công việc..." disabled={!selectedProjectId}>
+                                        {selectedProjectId && projects.find(p => p.id === selectedProjectId)?.tasks?.map((t: any) =>
+                                            <Option key={t.id} value={t.id}>{t.title}</Option>
+                                        )}
+                                    </Select>
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                        <Row gutter={16}>
+                            <Col span={24}>
+                                <Form.Item name="reference_code" label="Mã tham chiếu (PO, Hợp đồng...)">
+                                    <Input placeholder="Vd: PO-2311-0001" />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                    </div>
 
                     <Form.Item
                         name="category_id"

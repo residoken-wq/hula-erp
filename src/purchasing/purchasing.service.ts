@@ -172,6 +172,9 @@ export class PurchasingService {
         if (data.status) po.status = data.status;
         if (data.note !== undefined) po.note = data.note; // Update General Note
         if (data.supplier_id) po.supplier = { id: data.supplier_id } as any; // Update Supplier relation
+        
+        if (data.project_id !== undefined) po.project_id = data.project_id;
+        if (data.task_id !== undefined) po.task_id = data.task_id;
 
         // --- MỚI: Update Items logic ---
         if (data.items && Array.isArray(data.items)) {
