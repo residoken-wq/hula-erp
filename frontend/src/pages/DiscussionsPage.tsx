@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, List, Button, Avatar, Tag, Modal, Form, Input, Select, message, Tabs, Typography, Space } from 'antd';
+import { Card, List, Button, Avatar, Tag, Modal, Form, Input, Select, message, Tabs, Typography, Space, Switch } from 'antd';
 import { MessageOutlined, PlusOutlined, UserOutlined, CommentOutlined, FlagOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
@@ -147,12 +147,9 @@ const DiscussionsPage: React.FC = () => {
                             </Select>
                         </Form.Item>
 
-                        {currentUser.username === 'admin' && (
-                            <Form.Item name="is_pinned" label="Ghim" valuePropName="checked">
-                                <Select>
-                                    <Option value={false}>Không</Option>
-                                    <Option value={true}>Có</Option>
-                                </Select>
+                        {(currentUser.username === 'admin' || currentUser.role === 'ADMIN') && (
+                            <Form.Item name="is_pinned" label="Ghim" valuePropName="checked" style={{ width: 100 }}>
+                                <Switch />
                             </Form.Item>
                         )}
                     </div>
