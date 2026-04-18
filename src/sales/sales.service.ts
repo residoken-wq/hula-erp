@@ -236,9 +236,13 @@ export class SalesService {
     }
 
     // --- LOGIC TÍNH TOÁN THANH TOÁN (Helper) ---
-    private async calculatePaidAmount(orderCode: string): Promise<number> {
-        const payments = await this.transRepo.find({ where: { reference_code: orderCode } });
-        return payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    private async calculatePaymentInfo(orderCode: string): Promise<{ paid_amount: number, deposit_date: Date | null }> {
+        const payments = await this.transRepo.find({ 
+            where: { reference_code: orderCode },
+            order: { date: 'ASC' }
+        });
+        const paid_amount = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+        return { paid_amount, deposit_date: payments.length > 0 ? payments[0].date : null };
     }
 
     // --- FIND ALL (FIX: Tính tổng tiền đã trả) ---
@@ -250,8 +254,8 @@ export class SalesService {
 
         // Map qua từng order để tính tiền đã trả từ bảng Transaction
         const ordersWithPayment = await Promise.all(orders.map(async (order) => {
-            const paid = await this.calculatePaidAmount(order.order_code);
-            return { ...order, paid_amount: paid };
+            const info = await this.calculatePaymentInfo(order.order_code);
+            return { ...order, paid_amount: info.paid_amount, deposit_date: info.deposit_date };
         }));
 
         return ordersWithPayment;
@@ -277,9 +281,9 @@ export class SalesService {
         if (!order) throw new NotFoundException('Order not found');
 
         // Tính toán số tiền đã trả
-        const paid = await this.calculatePaidAmount(order.order_code);
+        const info = await this.calculatePaymentInfo(order.order_code);
 
-        return { ...order, paid_amount: paid }; // Trả về paid_amount realtime
+        return { ...order, paid_amount: info.paid_amount, deposit_date: info.deposit_date }; // Trả về paid_amount realtime
     }
 
     // --- UPDATE ---
@@ -665,8 +669,8 @@ export class SalesService {
             order: { date: 'DESC' }
         });
 
-        const paid = await this.calculatePaidAmount(order.order_code);
-        return { ...order, paid_amount: paid, payments: transactions };
+        const info = await this.calculatePaymentInfo(order.order_code);
+        return { ...order, paid_amount: info.paid_amount, payments: transactions, deposit_date: info.deposit_date };
     }
     async customerAction(uuid: string, action: 'ACCEPT' | 'REJECT', metadata?: any) {
         const q = await this.getQuoteByUuid(uuid);

@@ -295,8 +295,19 @@ export default function BodFollowUpPage() {
             render: (r: any) => <span style={{ fontWeight: 500 }}>{r.customer?.name || r.customer_name || 'Khách lẻ'}</span>
         },
         {
-            title: 'Ngày', dataIndex: 'order_date', width: 110,
-            render: (t: any) => <span style={{ color: '#666' }}>{t ? dayjs(t).format('DD/MM/YYYY') : '-'}</span>
+            title: 'Ngày Tạo / Cọc', width: 120,
+            render: (r: any) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <Tooltip title="Ngày tạo đơn">
+                        <span style={{ color: '#666', fontSize: 13 }}>📝 {r.order_date || r.created_at ? dayjs(r.order_date || r.created_at).format('DD/MM/YY') : '-'}</span>
+                    </Tooltip>
+                    {r.deposit_date && (
+                        <Tooltip title="Ngày đặt cọc (Thanh toán lần đầu)">
+                            <Tag color="purple" style={{ margin: 0, fontSize: 11, padding: '0 4px', alignSelf: 'flex-start' }}>Cọc: {dayjs(r.deposit_date).format('DD/MM/YY')}</Tag>
+                        </Tooltip>
+                    )}
+                </div>
+            )
         },
         {
             title: 'Ngày Giao', dataIndex: 'delivery_date', width: 110,
