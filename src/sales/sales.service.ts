@@ -236,7 +236,7 @@ export class SalesService {
     }
 
     // --- LOGIC TÍNH TOÁN THANH TOÁN (Helper) ---
-    private async calculatePaymentInfo(orderCode: string): Promise<{ paid_amount: number, deposit_date: Date | null }> {
+    private async calculatePaymentInfo(orderCode: string): Promise<{ paid_amount: number, deposit_date: any | null }> {
         const payments = await this.transRepo.find({ 
             where: { reference_code: orderCode },
             order: { date: 'ASC' }
@@ -1579,8 +1579,8 @@ export class SalesService {
             const arData = [];
 
             for (const order of orders) {
-                const paid = await this.calculatePaidAmount(order.order_code);
-                const remaining = Number(order.total_amount) - paid;
+                const info = await this.calculatePaymentInfo(order.order_code);
+                const remaining = Number(order.total_amount) - info.paid_amount;
                 if (remaining <= 0) continue;
 
                 const orderDate = new Date(order.order_date);
