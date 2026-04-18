@@ -421,6 +421,9 @@ export class PublicController {
         @Query('category') categoryId?: number,
         @Query('tags') tags?: string | string[]
     ) {
+        const parsedPage = isNaN(Number(page)) || Number(page) < 1 ? 1 : Number(page);
+        const parsedLimit = isNaN(Number(limit)) || Number(limit) < 1 ? 12 : Number(limit);
+
         const qb = this.productRepo.createQueryBuilder('p')
             .leftJoinAndSelect('p.category_link', 'cat')
             .where('p.is_active = :isActive', { isActive: true })
@@ -456,8 +459,8 @@ export class PublicController {
         }
 
         const [items, total] = await qb
-            .skip((page - 1) * limit)
-            .take(limit)
+            .skip((parsedPage - 1) * parsedLimit)
+            .take(parsedLimit)
             .getManyAndCount();
 
         return {
@@ -479,8 +482,8 @@ export class PublicController {
             }),
             meta: {
                 total,
-                page: Number(page),
-                last_page: Math.ceil(total / limit)
+                page: parsedPage,
+                last_page: Math.ceil(total / parsedLimit)
             }
         };
     }
