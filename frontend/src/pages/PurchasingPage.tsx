@@ -791,7 +791,7 @@ const PurchasingPage: React.FC = () => {
                                 value={currentPO?.project_id}
                                 onChange={(val) => setCurrentPO({ ...currentPO, project_id: val, task_id: null })}
                             >
-                                {projects.map(p => <Option key={p.id} value={p.id}>{p.title}</Option>)}
+                                {projects.map(p => <Select.Option key={p.id} value={p.id}>{p.title}</Select.Option>)}
                             </Select>
                             <Select 
                                 allowClear 
@@ -802,7 +802,7 @@ const PurchasingPage: React.FC = () => {
                                 onChange={(val) => setCurrentPO({ ...currentPO, task_id: val })}
                             >
                                 {currentPO?.project_id && projects.find(p => p.id === currentPO.project_id)?.tasks?.map((t: any) =>
-                                    <Option key={t.id} value={t.id}>{t.title}</Option>
+                                    <Select.Option key={t.id} value={t.id}>{t.title}</Select.Option>
                                 )}
                             </Select>
                         </div>

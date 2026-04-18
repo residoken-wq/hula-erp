@@ -229,6 +229,7 @@ export class PublicController {
     async getBlogs(@Query('limit') limit?: number) {
         const query = this.blogRepo.createQueryBuilder('b')
             .where('b.status = :status', { status: BlogStatus.PUBLISHED })
+            .andWhere('b.is_hidden = :hidden', { hidden: false })
             .orderBy('b.published_at', 'DESC');
 
         if (limit) {
@@ -251,7 +252,7 @@ export class PublicController {
     @Get('blogs/:slug')
     async getBlogBySlug(@Param('slug') slug: string) {
         const blog = await this.blogRepo.findOne({
-            where: { slug, status: BlogStatus.PUBLISHED },
+            where: { slug, status: BlogStatus.PUBLISHED, is_hidden: false },
             relations: ['author']
         });
 
@@ -742,7 +743,7 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
     @Get('projects')
     async getWebsiteProjects() {
         const projects = await this.websiteProjectRepo.find({
-            where: { status: 'PUBLISHED' as any },
+            where: { status: 'PUBLISHED' as any, is_hidden: false },
             order: { sort_order: 'ASC', created_at: 'DESC' }
         });
         return { data: projects };
@@ -751,7 +752,7 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
     @Get('projects/:slug')
     async getWebsiteProject(@Param('slug') slug: string) {
         const project = await this.websiteProjectRepo.findOne({
-            where: { slug, status: 'PUBLISHED' as any }
+            where: { slug, status: 'PUBLISHED' as any, is_hidden: false }
         });
         if (!project) {
             return { error: 'Project not found' };

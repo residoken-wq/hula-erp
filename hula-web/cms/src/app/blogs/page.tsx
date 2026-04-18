@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Table, Button, Space, Tag, Modal, message, Input } from 'antd';
+import { Card, Table, Button, Space, Tag, Modal, message, Input, Switch } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutlined, FolderOutlined } from '@ant-design/icons';
 import { blogsApi } from '@/lib/api';
 
@@ -14,6 +14,7 @@ interface BlogPost {
     status: string;
     category: string;
     view_count: number;
+    is_hidden: boolean;
     published_at: string | null;
     created_at: string;
 }
@@ -91,6 +92,16 @@ export default function BlogsPage() {
         }
     };
 
+    const handleToggleHidden = async (id: number, hidden: boolean) => {
+        try {
+            await blogsApi.update(id, { is_hidden: hidden });
+            loadBlogs();
+            message.success(hidden ? 'Đã ẩn bài viết khỏi website' : 'Đã hiển thị bài viết trên website');
+        } catch {
+            message.error('Có lỗi xảy ra');
+        }
+    };
+
     const handleAddCategory = () => {
         const trimmed = newCategory.trim();
         if (!trimmed) return;
@@ -152,6 +163,22 @@ export default function BlogsPage() {
             key: 'created_at',
             width: 120,
             render: (date: string) => date ? new Date(date).toLocaleDateString('vi-VN') : '-',
+        },
+        {
+            title: 'Hiển thị',
+            dataIndex: 'is_hidden',
+            key: 'is_hidden',
+            width: 90,
+            align: 'center' as const,
+            render: (isHidden: boolean, record: BlogPost) => (
+                <Switch
+                    checked={!isHidden}
+                    onChange={(checked) => handleToggleHidden(record.id, !checked)}
+                    checkedChildren="Hiện"
+                    unCheckedChildren="Ẩn"
+                    size="small"
+                />
+            ),
         },
         {
             title: 'Thao tác',
@@ -226,7 +253,12 @@ export default function BlogsPage() {
                     rowKey="id"
                     loading={loading}
                     pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `Tổng ${total} bài viết` }}
+                    rowClassName={(record: BlogPost) => record.is_hidden ? 'row-hidden' : ''}
                 />
+                <style jsx global>{`
+                    .row-hidden { opacity: 0.5; }
+                    .row-hidden td:first-child { text-decoration: line-through; }
+                `}</style>
             </Card>
 
             {/* Category Management Modal */}

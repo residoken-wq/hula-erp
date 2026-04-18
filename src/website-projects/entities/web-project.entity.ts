@@ -58,6 +58,9 @@ export class WebProject {
     @Column('json', { nullable: true })
     seo_meta: any;
 
+    @Column({ default: false })
+    is_hidden: boolean;
+
     @Column('int', { default: 0 })
     view_count: number;
 

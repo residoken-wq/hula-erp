@@ -83,6 +83,9 @@ export class BlogPost {
         robots?: string[]; // index, noindex, follow, nofollow
     };
 
+    @Column({ default: false })
+    is_hidden: boolean;
+
     @Column({ default: 0 })
     view_count: number;
 

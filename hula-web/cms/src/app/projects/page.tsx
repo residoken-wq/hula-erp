@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Table, Button, Space, Tag, Modal, Input, message, Typography, Alert } from 'antd';
+import { Card, Table, Button, Space, Tag, Modal, Input, message, Typography, Alert, Switch } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SyncOutlined, UploadOutlined, GlobalOutlined } from '@ant-design/icons';
 import dynamic from 'next/dynamic';
 import { websiteProjectsApi } from '@/lib/api';
@@ -78,6 +78,16 @@ export default function WebsiteProjectsPage() {
         });
     };
 
+    const handleToggleHidden = async (id: number, hidden: boolean) => {
+        try {
+            await websiteProjectsApi.update(id, { is_hidden: hidden });
+            fetchData(pagination.current, searchText);
+            message.success(hidden ? 'Đã ẩn dự án khỏi website' : 'Đã hiển thị dự án trên website');
+        } catch {
+            message.error('Có lỗi xảy ra');
+        }
+    };
+
     const columns = [
         {
             title: 'Hình ảnh',
@@ -115,6 +125,21 @@ export default function WebsiteProjectsPage() {
             title: 'Ngày tạo',
             dataIndex: 'created_at',
             render: (d: string) => new Date(d).toLocaleDateString('vi-VN')
+        },
+        {
+            title: 'Hiển thị',
+            dataIndex: 'is_hidden',
+            width: 90,
+            align: 'center' as const,
+            render: (isHidden: boolean, record: any) => (
+                <Switch
+                    checked={!isHidden}
+                    onChange={(checked) => handleToggleHidden(record.id, !checked)}
+                    checkedChildren="Hiện"
+                    unCheckedChildren="Ẩn"
+                    size="small"
+                />
+            )
         },
         {
             title: 'Hành động',
@@ -175,7 +200,12 @@ export default function WebsiteProjectsPage() {
                         showTotal: (total) => `Tổng ${total} dự án`
                     }}
                     onChange={handleTableChange}
+                    rowClassName={(record: any) => record.is_hidden ? 'row-hidden' : ''}
                 />
+                <style jsx global>{`
+                    .row-hidden { opacity: 0.5; }
+                    .row-hidden td:nth-child(2) { text-decoration: line-through; }
+                `}</style>
             </Card>
         </AdminLayout>
     );
