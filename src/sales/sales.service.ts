@@ -1595,7 +1595,7 @@ export class SalesService {
                     orderCode: order.order_code,
                     customerName: order.customer?.name || order.customer_name || 'N/A',
                     totalAmount: Number(order.total_amount),
-                    paidAmount: paid,
+                    paidAmount: info.paid_amount,
                     remainingAmount: remaining,
                     daysPast,
                     agingBucket,
