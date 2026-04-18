@@ -37,9 +37,33 @@ const AnnouncementBanner: React.FC = () => {
 
     const loadAnnouncements = async () => {
         try {
-            const res = await api.get('/announcements/user/active');
-            setAnnouncements(res.data);
-            setUnreadCount(res.data.filter((a: Announcement) => !a.is_read).length);
+            const [annRes, discRes] = await Promise.all([
+                api.get('/announcements/user/active').catch(() => ({ data: [] })),
+                api.get('/discussions').catch(() => ({ data: [] }))
+            ]);
+
+            const normalAnnouncements = Array.isArray(annRes.data) ? annRes.data : [];
+            const allDiscussions = Array.isArray(discRes.data) ? discRes.data : [];
+
+            // Extract pinned discussions to show as global announcements
+            const pinnedDiscussions = allDiscussions
+                .filter((d: any) => d.is_pinned || d.is_pinned === 1 || d.is_pinned === '1' || d.is_pinned === 'true')
+                .map((d: any) => ({
+                    id: `disc_${d.id}`,
+                    title: `[Thảo luận] ${d.title}`,
+                    content: d.content || d.description || '(Xem chi tiết trong thảo luận)',
+                    type: d.type === 'ANNOUNCEMENT' ? 'IMPORTANT' : 'INFO',
+                    priority: 'HIGH',
+                    is_pinned: true,
+                    is_read: true, // We don't track read state for discussions globally here
+                    created_at: d.created_at,
+                    is_discussion: true,
+                    original_id: d.id
+                }));
+
+            const combined = [...normalAnnouncements, ...pinnedDiscussions];
+            setAnnouncements(combined);
+            setUnreadCount(normalAnnouncements.filter((a: any) => !a.is_read).length);
         } catch (e) {
             console.error('Failed to load announcements:', e);
         }
@@ -52,7 +76,8 @@ const AnnouncementBanner: React.FC = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const handleMarkAsRead = async (id: number) => {
+    const handleMarkAsRead = async (id: number | string) => {
+        if (typeof id === 'string' && id.startsWith('disc_')) return;
         try {
             await api.post(`/announcements/${id}/read`);
             loadAnnouncements();
@@ -171,6 +196,13 @@ const AnnouncementBanner: React.FC = () => {
                             dangerouslySetInnerHTML={{ __html: selectedAnnouncement.content }}
                             style={{ lineHeight: 1.8 }}
                         />
+                        {(selectedAnnouncement as any).is_discussion && (
+                            <div style={{ marginTop: 24, textAlign: 'center' }}>
+                                <Button type="primary" onClick={() => window.location.href = `/workspace/discussions/${(selectedAnnouncement as any).original_id}`}>
+                                    Đi đến trang Thảo luận
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <List
