@@ -223,10 +223,8 @@ export default function Footer() {
                                     width="100%"
                                     height="200"
                                     style={{ border: 'none', overflow: 'hidden' }}
-                                    sandbox="allow-scripts allow-same-origin allow-popups"
                                     allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                                     title="Facebook Page"
-                                    loading="lazy"
                                 ></iframe>
                             </div>
                         ) : (
