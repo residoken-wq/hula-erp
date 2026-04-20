@@ -58,10 +58,18 @@ function getYoutubeEmbedUrl(url: string) {
 }
 
 export default async function HomePage() {
-    const config = await getHomeConfig() || {};
-    const settings = await getSettings() || {};
+    const [configRes, settingsRes, projectsRes] = await Promise.all([
+        getHomeConfig(),
+        getSettings(),
+        getProjects(),
+    ]);
+
+    const config = configRes || {};
+    const settings = settingsRes || {};
+    const projects = projectsRes || [];
+    
+    // BlogPosts may depend on config, so it fetches after config
     const blogPosts = await getBlogPosts(6, config);
-    const projects = await getProjects() || [];
 
     let featuredProjects = [];
     if (config.selected_project_ids && Array.isArray(config.selected_project_ids)) {

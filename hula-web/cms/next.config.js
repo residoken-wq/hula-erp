@@ -13,6 +13,9 @@ const nextConfig = {
         'rc-pagination',
         'rc-picker',
     ],
+    experimental: {
+        optimizePackageImports: ['antd', '@ant-design/icons', '@ant-design/pro-components', '@ant-design/pro-layout'],
+    },
 };
 
 module.exports = nextConfig;

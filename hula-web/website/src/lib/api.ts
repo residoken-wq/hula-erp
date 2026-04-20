@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-// CRITICAL: SSR runs on server, need to use internal Docker network (fast)
+import { cache } from 'react';// CRITICAL: SSR runs on server, need to use internal Docker network (fast)
 // Client-side runs in browser, needs to use public URL
 const getApiUrl = () => {
     const isServer = typeof window === 'undefined';
@@ -40,7 +39,7 @@ const api = axios.create({
 });
 
 // Products
-export const getProducts = async (params?: {
+export const getProducts = cache(async (params?: {
     category?: string;
     limit?: number;
     page?: number;
@@ -49,7 +48,7 @@ export const getProducts = async (params?: {
 }) => {
     const { data } = await api.get('/products', { params });
     return data;
-};
+});
 
 export const getProductBySku = async (sku: string) => {
     const { data } = await api.get(`/products/${sku}`);
@@ -57,26 +56,26 @@ export const getProductBySku = async (sku: string) => {
 };
 
 // Categories
-export const getCategories = async () => {
+export const getCategories = cache(async () => {
     const { data } = await api.get('/categories');
     return data;
-};
+});
 
 // Projects
-export const getProjects = async () => {
+export const getProjects = cache(async () => {
     try {
         const { data } = await api.get('/projects');
         return data.data || [];
     } catch {
         return [];
     }
-};
+});
 
 // Blogs
-export const getBlogs = async (limit?: number) => {
+export const getBlogs = cache(async (limit?: number) => {
     const { data } = await api.get('/blogs', { params: { limit } });
     return data;
-};
+});
 
 export const getBlogBySlug = async (slug: string) => {
     const { data } = await api.get(`/blogs/${slug}`);
@@ -111,23 +110,23 @@ export const createOrder = async (data: {
 };
 
 // Config
-export const getHomeConfig = async () => {
+export const getHomeConfig = cache(async () => {
     try {
         const { data } = await api.get('/home-config');
         return data;
     } catch {
         return null;
     }
-};
+});
 
-export const getSettings = async () => {
+export const getSettings = cache(async () => {
     try {
         const { data } = await api.get('/settings');
         return data;
     } catch {
         return null;
     }
-};
+});
 
 // About Hula Config
 export const getAboutConfig = async () => {
