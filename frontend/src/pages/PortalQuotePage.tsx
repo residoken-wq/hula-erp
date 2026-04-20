@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag, Empty, Dropdown } from 'antd';
-import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined, FilePdfOutlined, LockOutlined } from '@ant-design/icons';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
 import useMobile from '../hooks/useMobile'; // <--- Import Hook
@@ -70,6 +70,8 @@ const PortalQuotePage: React.FC = () => {
     const [previewVisible, setPreviewVisible] = useState(false);
     const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
     const [verifyInput, setVerifyInput] = useState('');
+    const [isPasswordCorrect, setIsPasswordCorrect] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
     const isMobile = useMobile(); // <--- Detect Mobile
 
     const handlePreview = (imageUrl: string) => {
@@ -562,6 +564,47 @@ const PortalQuotePage: React.FC = () => {
 
     if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" tip="Đang tải dữ liệu..." /></div>;
     if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy báo giá hoặc đường dẫn không hợp lệ." />;
+
+    if (!isPasswordCorrect) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f4f7f6' }}>
+                <Modal
+                    title={<span style={{ fontWeight: 700 }}><LockOutlined /> Mật Khẩu Truy Cập</span>}
+                    open={true}
+                    closable={false}
+                    maskClosable={false}
+                    footer={[
+                        <Button key="submit" type="primary" onClick={() => {
+                            if (passwordInput.trim().toLowerCase() === 'hula') {
+                                setIsPasswordCorrect(true);
+                            } else {
+                                message.error('Mật khẩu không chính xác!');
+                            }
+                        }}>
+                            Xác nhận truy cập
+                        </Button>
+                    ]}
+                >
+                    <div style={{ marginBottom: 16 }}>
+                        Để bảo mật thông tin, vui lòng nhập mật khẩu để xem báo giá.
+                    </div>
+                    <Input.Password
+                        placeholder="Nhập mật khẩu (hula)..."
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        onPressEnter={() => {
+                            if (passwordInput.trim().toLowerCase() === 'hula') {
+                                setIsPasswordCorrect(true);
+                            } else {
+                                message.error('Mật khẩu không chính xác!');
+                            }
+                        }}
+                        autoFocus
+                    />
+                </Modal>
+            </div>
+        );
+    }
 
     const statusList = ['QUOTATION', 'DEPOSITED', 'SAMPLE_APPROVED', 'IN_PRODUCTION', 'MANUFACTURING_COMPLETED', 'DELIVERED', 'COMPLETED'];
     let currentStep = statusList.indexOf(data.status);
