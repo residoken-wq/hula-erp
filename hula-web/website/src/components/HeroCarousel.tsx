@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { resolveImageUrl } from '@/lib/utils';
 import Link from 'next/link';
 
+import Image from 'next/image';
+
 interface HeroSlide {
     url: string;
     alt?: string;
@@ -74,10 +76,13 @@ export default function HeroCarousel({
                     className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
                         }`}
                 >
-                    <img
+                    <Image
                         src={resolveImageUrl(typeof img === 'string' ? img : img.url)}
                         alt={getAlt(img, index)}
-                        className="w-full h-full object-cover"
+                        fill
+                        priority={index === 0}
+                        className="object-cover"
+                        sizes="100vw"
                     />
                     {/* Dynamic Overlay Mask (no blur) */}
                     <div

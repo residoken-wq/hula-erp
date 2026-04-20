@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { resolveImageUrl } from '@/lib/utils';
 
+import Image from 'next/image';
+
 interface CategoryCardsProps {
     categories?: Array<{
         title: string;
@@ -42,10 +44,12 @@ export default function CategoryCards({ categories, bgColor, textColor }: Catego
                             {/* Image — no card, no border, no shadow */}
                             <div className="aspect-[4/3] rounded-[12px] bg-gradient-to-br from-section-blue to-primary-100 flex items-center justify-center relative overflow-hidden">
                                 {cat.image_url ? (
-                                    <img
+                                    <Image
                                         src={resolveImageUrl(cat.image_url)}
                                         alt={cat.title}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        fill
+                                        sizes="(max-width: 768px) 50vw, 25vw"
+                                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                                     />
                                 ) : (
                                     <span className="text-6xl lg:text-7xl group-hover:scale-110 transition-transform duration-500">

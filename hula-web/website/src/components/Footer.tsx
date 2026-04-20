@@ -219,7 +219,7 @@ export default function Footer() {
                         {settings.facebook_page_url ? (
                             <div className="rounded-[12px] overflow-hidden mb-6">
                                 <iframe
-                                    src={`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(settings.facebook_page_url)}&tabs=timeline&width=300&height=200&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true`}
+                                    src={`https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(settings.facebook_page_url)}&tabs=timeline&width=300&height=200&small_header=true&adapt_container_width=false&hide_cover=false&show_facepile=true`}
                                     width="100%"
                                     height="200"
                                     style={{ border: 'none', overflow: 'hidden' }}
