@@ -22,6 +22,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { SalesTarget } from './sales-target.entity';
 import { Customer } from '../customers/customer.entity';
 import { ProjectsService } from '../projects/projects.service';
+import { Promotion } from './promotion.entity';
 // --- CHECKLIST TEMPLATES ---
 const CHECKLIST_TEMPLATES: Record<string, Array<{ code: string; name: string; sort: number }>> = {
     QUOTATION: [
@@ -81,6 +82,7 @@ export class SalesService {
         private customersService: CustomersService,
         private notificationsService: NotificationsService,
         private projectsService: ProjectsService,
+        @InjectRepository(Promotion) private promotionRepo: Repository<Promotion>,
     ) { }
 
 
@@ -1803,5 +1805,112 @@ export class SalesService {
             return this.targetRepo.save(existing);
         }
         return this.targetRepo.save(this.targetRepo.create(data));
+    }
+
+    // ============================================================
+    // PROMOTIONS CRUD
+    // ============================================================
+
+    async getAllPromotions() {
+        try {
+            return await this.promotionRepo.find({ order: { created_at: 'DESC' } });
+        } catch (error) {
+            console.error('Promotions table may not exist:', error.message);
+            return [];
+        }
+    }
+
+    async getActivePromotions() {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            return await this.promotionRepo
+                .createQueryBuilder('p')
+                .where('p.is_active = :active', { active: true })
+                .andWhere('p.start_date <= :today', { today })
+                .andWhere('p.end_date >= :today', { today })
+                .andWhere('(p.max_uses IS NULL OR p.used_count < p.max_uses)')
+                .orderBy('p.created_at', 'DESC')
+                .getMany();
+        } catch (error) {
+            console.error('Error fetching active promotions:', error.message);
+            return [];
+        }
+    }
+
+    async getActivePromotionsForCustomer(customerId: number) {
+        try {
+            const allActive = await this.getActivePromotions();
+            // Filter: applicable_customer_ids is empty (=all) or contains customerId
+            return allActive.filter(p => {
+                const customerIds = p.applicable_customer_ids || [];
+                return customerIds.length === 0 || customerIds.includes(customerId);
+            });
+        } catch (error) {
+            console.error('Error fetching promotions for customer:', error.message);
+            return [];
+        }
+    }
+
+    async createPromotion(data: any) {
+        try {
+            const promotion = this.promotionRepo.create({
+                name: data.name,
+                description: data.description,
+                discount_type: data.discount_type,
+                discount_value: Number(data.discount_value) || 0,
+                start_date: data.start_date,
+                end_date: data.end_date,
+                is_active: data.is_active !== undefined ? data.is_active : true,
+                applicable_customer_ids: data.applicable_customer_ids || [],
+                applicable_product_ids: data.applicable_product_ids || [],
+                min_quantity: data.min_quantity || null,
+                min_order_value: data.min_order_value || null,
+                max_uses: data.max_uses || null,
+                used_count: 0,
+            });
+            return await this.promotionRepo.save(promotion);
+        } catch (error) {
+            console.error('Error creating promotion:', error);
+            throw error;
+        }
+    }
+
+    async updatePromotion(id: number, data: any) {
+        try {
+            const promotion = await this.promotionRepo.findOne({ where: { id } });
+            if (!promotion) throw new NotFoundException('Promotion not found');
+
+            if (data.name !== undefined) promotion.name = data.name;
+            if (data.description !== undefined) promotion.description = data.description;
+            if (data.discount_type !== undefined) promotion.discount_type = data.discount_type;
+            if (data.discount_value !== undefined) promotion.discount_value = Number(data.discount_value);
+            if (data.start_date !== undefined) promotion.start_date = data.start_date;
+            if (data.end_date !== undefined) promotion.end_date = data.end_date;
+            if (data.is_active !== undefined) promotion.is_active = data.is_active;
+            if (data.applicable_customer_ids !== undefined) promotion.applicable_customer_ids = data.applicable_customer_ids;
+            if (data.applicable_product_ids !== undefined) promotion.applicable_product_ids = data.applicable_product_ids;
+            if (data.min_quantity !== undefined) promotion.min_quantity = data.min_quantity;
+            if (data.min_order_value !== undefined) promotion.min_order_value = data.min_order_value;
+            if (data.max_uses !== undefined) promotion.max_uses = data.max_uses;
+
+            return await this.promotionRepo.save(promotion);
+        } catch (error) {
+            if (error instanceof NotFoundException) throw error;
+            console.error('Error updating promotion:', error);
+            throw error;
+        }
+    }
+
+    async deletePromotion(id: number) {
+        try {
+            const promotion = await this.promotionRepo.findOne({ where: { id } });
+            if (!promotion) throw new NotFoundException('Promotion not found');
+            await this.promotionRepo.delete(id);
+            return { success: true, message: 'Xóa khuyến mãi thành công' };
+        } catch (error) {
+            if (error instanceof NotFoundException) throw error;
+            console.error('Error deleting promotion:', error);
+            throw error;
+        }
     }
 }

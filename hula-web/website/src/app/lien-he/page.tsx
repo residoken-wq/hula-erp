@@ -136,6 +136,35 @@ export default function ContactPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* --- Login Portal Button --- */}
+                        <div className="mt-10 pt-8 border-t border-gray-200">
+                            <div className="bg-gradient-to-r from-[#23A7D3]/10 to-[#23A7D3]/5 rounded-2xl p-6 border border-[#23A7D3]/20">
+                                <div className="flex items-center space-x-3 mb-3">
+                                    <div className="w-10 h-10 bg-[#23A7D3] rounded-full flex items-center justify-center flex-shrink-0">
+                                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 text-lg">Cổng Đối Tác B2B</h3>
+                                        <p className="text-sm text-gray-500">Dành cho đại lý & trường học đã đăng ký</p>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Đăng nhập để xem lịch sử đơn hàng, báo giá, đặt hàng nhanh và nhận ưu đãi đối tác độc quyền.
+                                </p>
+                                <a
+                                    href="https://erp.nemmamnon.com/portal/login"
+                                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#23A7D3] text-white font-semibold rounded-full shadow-lg shadow-[#23A7D3]/30 hover:bg-[#1e8fb5] hover:shadow-xl transition-all active:scale-[0.98]"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                    </svg>
+                                    Đăng Nhập Đối Tác
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Right: Form */}

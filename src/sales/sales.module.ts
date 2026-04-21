@@ -28,6 +28,7 @@ import { FinanceModule } from '../finance/finance.module';
 import { SystemModule } from '../system/system.module';
 import { SalesOrderVersion } from './sales-order-version.entity';
 import { SalesTarget } from './sales-target.entity';
+import { Promotion } from './promotion.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { Customer } from '../customers/customer.entity';
 
@@ -48,7 +49,8 @@ import { Customer } from '../customers/customer.entity';
       PriceListRule,
       User,
       SalesTarget,
-      Customer
+      Customer,
+      Promotion
     ]),
     ProductsModule,
     InventoryModule,

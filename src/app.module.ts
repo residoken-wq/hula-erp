@@ -114,6 +114,9 @@ import { ActivityInterceptor } from './common/interceptors/activity.interceptor'
 import { ActivityLog } from './system/entities/activity-log.entity';
 import { ProductWebsiteConfig } from './products/entities/product-website-config.entity';
 import { WebsitePolicy } from './public/entities/website-policy.entity';
+import { PortalOtp } from './public/entities/portal-otp.entity';
+import { PortalSession } from './public/entities/portal-session.entity';
+import { Promotion } from './sales/promotion.entity';
 
 // HR Entities
 import { Employee } from './hr/entities/employee.entity';
@@ -193,6 +196,10 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           Announcement, AnnouncementRead,
           // Website
           WebProject,
+          // Portal
+          PortalOtp, PortalSession,
+          // Promotions
+          Promotion,
           AnalyticsVisitor
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',

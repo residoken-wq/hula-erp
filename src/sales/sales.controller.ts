@@ -58,6 +58,31 @@ export class SalesController {
         return this.s.upsertTarget(body);
     }
 
+    // --- PROMOTIONS ---
+    @Get('promotions')
+    getAllPromotions() { return this.s.getAllPromotions(); }
+
+    @Get('promotions/active')
+    getActivePromotions() { return this.s.getActivePromotions(); }
+
+    @Get('promotions/for-customer/:customerId')
+    getPromotionsForCustomer(@Param('customerId') customerId: number) {
+        return this.s.getActivePromotionsForCustomer(Number(customerId));
+    }
+
+    @Post('promotions')
+    createPromotion(@Body() body: any) { return this.s.createPromotion(body); }
+
+    @Put('promotions/:id')
+    updatePromotion(@Param('id') id: number, @Body() body: any) {
+        return this.s.updatePromotion(Number(id), body);
+    }
+
+    @Delete('promotions/:id')
+    deletePromotion(@Param('id') id: number) {
+        return this.s.deletePromotion(Number(id));
+    }
+
     // ============================================================
     // 2. CÁC API CON (SUB-RESOURCES)
     // ============================================================

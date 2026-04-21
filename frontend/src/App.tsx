@@ -36,6 +36,9 @@ const CategoriesPage = React.lazy(() => import('./pages/CategoriesPage'));
 const PortalQuotePage = React.lazy(() => import('./pages/PortalQuotePage'));
 const PortalPurchasePage = React.lazy(() => import('./pages/PortalPurchasePage'));
 const PortalRecruitmentPage = React.lazy(() => import('./pages/PortalRecruitmentPage'));
+const PortalLoginPage = React.lazy(() => import('./pages/PortalLoginPage'));
+const PortalDashboardPage = React.lazy(() => import('./pages/PortalDashboardPage'));
+const PromotionPage = React.lazy(() => import('./pages/PromotionPage'));
 const PriceListsPage = React.lazy(() => import('./pages/PriceListPage'));
 const UsersPage = React.lazy(() => import('./pages/UsersPage'));
 const UserGroupsPage = React.lazy(() => import('./pages/UserGroupsPage'));
@@ -184,6 +187,7 @@ const App: React.FC = () => {
                 getItem(<Link to="/sales/strategy">📊 Chiến lược Sales</Link>, 'sales_strategy'),
                 getItem(<Link to="/sales/bod">🏫 BOD Dashboard</Link>, 'sales_bod'),
                 getItem(<Link to="/sales/bod-follow-up">BOD Follow Up</Link>, 'bod_followup'),
+                getItem(<Link to="/sales/promotions">🎁 Khuyến mãi</Link>, 'promotions'),
             ]));
         }
 
@@ -257,6 +261,8 @@ const App: React.FC = () => {
                 <Route path="/portal/quote/:uuid" element={<PortalQuotePage />} />
                 <Route path="/portal/po/:uuid" element={<PortalPurchasePage />} />
                 <Route path="/portal/recruitment/:token" element={<PortalRecruitmentPage />} />
+                <Route path="/portal/login" element={<PortalLoginPage />} />
+                <Route path="/portal/:slug" element={<PortalDashboardPage />} />
 
                 <Route path="*" element={
                     isAuthenticated ? (
@@ -345,6 +351,7 @@ const App: React.FC = () => {
                                                         <Route path="/orders" element={<SalesPage />} /> {/* <--- MỚI: Route cho trang Đơn hàng */}
                                                         <Route path="/customers" element={<CustomersPage />} />
                                                         <Route path="/sales/pricelist" element={<PriceListsPage />} />
+                                                        <Route path="/sales/promotions" element={<PromotionPage />} />
                                                     </>
                                                 )}
 
