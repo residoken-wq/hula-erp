@@ -1,13 +1,13 @@
 import { Controller, Post, Get, Body, Param, HttpException, HttpStatus, Headers } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
-import { Customer } from '../../customers/customer.entity';
-import { CustomerContact } from '../../customers/customer-contact.entity';
-import { PortalOtp } from '../entities/portal-otp.entity';
-import { PortalSession } from '../entities/portal-session.entity';
-import { SalesOrder } from '../../sales/sales-order.entity';
-import { EmailService } from '../../common/services/email.service';
-import { SalesService } from '../../sales/sales.service';
+import { Customer } from '../customers/customer.entity';
+import { CustomerContact } from '../customers/customer-contact.entity';
+import { PortalOtp } from './entities/portal-otp.entity';
+import { PortalSession } from './entities/portal-session.entity';
+import { SalesOrder } from '../sales/sales-order.entity';
+import { EmailService } from '../common/services/email.service';
+import { SalesService } from '../sales/sales.service';
 import * as crypto from 'crypto';
 
 @Controller('public/portal')
