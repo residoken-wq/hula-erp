@@ -50,6 +50,7 @@ export default function CategoryCards({ categories, bgColor, textColor }: Catego
                                         fill
                                         sizes="(max-width: 768px) 50vw, 25vw"
                                         className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                        unoptimized
                                     />
                                 ) : (
                                     <span className="text-6xl lg:text-7xl group-hover:scale-110 transition-transform duration-500">

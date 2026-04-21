@@ -83,6 +83,7 @@ export default function HeroCarousel({
                         priority={index === 0}
                         className="object-cover"
                         sizes="100vw"
+                        unoptimized
                     />
                     {/* Dynamic Overlay Mask (no blur) */}
                     <div
