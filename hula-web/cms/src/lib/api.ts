@@ -25,6 +25,7 @@ export const blogsApi = {
 // ============================================
 export const analyticsApi = {
     getStats: () => api.get('/public/analytics/stats'),
+    getVisitors: (params?: any) => api.get('/public/analytics/visitors', { params }),
 };
 
 // ============================================

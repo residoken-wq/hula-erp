@@ -26,4 +26,9 @@ export class AnalyticsController {
     async getStats() {
         return this.analyticsService.getStats();
     }
+
+    @Get('visitors')
+    async getVisitors(@Req() req: Request) {
+        return this.analyticsService.getVisitors(req.query);
+    }
 }

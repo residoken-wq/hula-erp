@@ -52,6 +52,12 @@ export default function DashboardPage() {
     const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const [visitors, setVisitors] = useState<any[]>([]);
+    const [visitorsLoading, setVisitorsLoading] = useState(false);
+    const [visitorsTotal, setVisitorsTotal] = useState(0);
+    const [visitorsPage, setVisitorsPage] = useState(1);
+    const [visitorsPageSize, setVisitorsPageSize] = useState(10);
+
     const loadDashboard = async () => {
         setLoading(true);
         try {
@@ -106,6 +112,25 @@ export default function DashboardPage() {
         loadDashboard();
     }, []);
 
+    const loadVisitors = async (page: number, pageSize: number) => {
+        setVisitorsLoading(true);
+        try {
+            const res = await analyticsApi.getVisitors({ page, pageSize });
+            if (res.data && res.data.success) {
+                setVisitors(res.data.data);
+                setVisitorsTotal(res.data.total);
+            }
+        } catch (error) {
+            console.error('Failed to load visitors', error);
+        } finally {
+            setVisitorsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadVisitors(visitorsPage, visitorsPageSize);
+    }, [visitorsPage, visitorsPageSize]);
+
     const leadsColumns = [
         { title: 'Mã', dataIndex: 'code', key: 'code', width: 120 },
         { title: 'Tên', dataIndex: 'name', key: 'name' },
@@ -121,6 +146,14 @@ export default function DashboardPage() {
                 </Tag>
             ),
         },
+    ];
+
+    const visitorColumns = [
+        { title: 'Quốc gia', dataIndex: 'country', key: 'country', width: 120, render: (text: string) => text ? <Tag color="blue">{text}</Tag> : <Tag>Chưa rõ</Tag> },
+        { title: 'IP Address', dataIndex: 'ip_address', key: 'ip_address', width: 140 },
+        { title: 'Truy cập cuối', dataIndex: 'last_active', key: 'last_active', width: 180, render: (date: string) => new Date(date).toLocaleString('vi-VN') },
+        { title: 'Trình duyệt/Thiết bị', dataIndex: 'user_agent', key: 'user_agent', ellipsis: true },
+        { title: 'Ngày tạo', dataIndex: 'created_at', key: 'created_at', width: 150, render: (date: string) => new Date(date).toLocaleDateString('vi-VN') },
     ];
 
     const statCards = [
@@ -250,6 +283,30 @@ export default function DashboardPage() {
                         <p style={{ color: '#666', fontSize: 13 }}>
                             Cập nhật nội dung thường xuyên để thu hút khách hàng. Kiểm tra leads mới hàng ngày để không bỏ lỡ cơ hội.
                         </p>
+                    </Card>
+                </Col>
+            </Row>
+            <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+                <Col span={24}>
+                    <Card title="Thống Kê IP Truy Cập">
+                        <Table
+                            columns={visitorColumns}
+                            dataSource={visitors}
+                            rowKey="id"
+                            loading={visitorsLoading}
+                            pagination={{
+                                current: visitorsPage,
+                                pageSize: visitorsPageSize,
+                                total: visitorsTotal,
+                                showSizeChanger: true,
+                                onChange: (page, pageSize) => {
+                                    setVisitorsPage(page);
+                                    setVisitorsPageSize(pageSize);
+                                }
+                            }}
+                            size="middle"
+                            scroll={{ x: 800 }}
+                        />
                     </Card>
                 </Col>
             </Row>

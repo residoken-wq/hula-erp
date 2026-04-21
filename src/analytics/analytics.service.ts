@@ -13,18 +13,44 @@ export class AnalyticsService {
         private visitorRepo: Repository<AnalyticsVisitor>,
     ) { }
 
+    private async resolveIpCountry(ip: string, visitor: AnalyticsVisitor) {
+        if (!ip || ip === '127.0.0.1' || ip.includes('localhost') || ip === '::1') return;
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            const res = await fetch(`http://ip-api.com/json/${ip.split(',')[0].trim()}`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.country) {
+                    visitor.country = data.country;
+                    await this.visitorRepo.save(visitor);
+                }
+            }
+        } catch (error) {
+            // Silently fail on timeout or error
+        }
+    }
+
     async ping(data: { session_id: string; ip_address?: string; user_agent?: string }) {
         try {
             let visitor = await this.visitorRepo.findOne({
                 where: { session_id: data.session_id }
             });
 
+            let ipNeedsResolve = false;
+
             if (visitor) {
                 // Update last_active
                 visitor.last_active = new Date();
-                if (data.ip_address && !visitor.ip_address) visitor.ip_address = data.ip_address;
+                if (data.ip_address && visitor.ip_address !== data.ip_address) {
+                    visitor.ip_address = data.ip_address;
+                    ipNeedsResolve = true; // IP changed
+                } else if (data.ip_address && !visitor.country) {
+                    ipNeedsResolve = true; // Missing country
+                }
+                
                 if (data.user_agent && !visitor.user_agent) visitor.user_agent = data.user_agent;
-                await this.visitorRepo.save(visitor);
             } else {
                 // Create new
                 visitor = this.visitorRepo.create({
@@ -33,8 +59,16 @@ export class AnalyticsService {
                     user_agent: data.user_agent,
                     last_active: new Date(),
                 });
-                await this.visitorRepo.save(visitor);
+                if (data.ip_address) ipNeedsResolve = true;
             }
+            
+            const savedVisitor = await this.visitorRepo.save(visitor);
+            
+            // Asynchronously resolve IP to Country to avoid blocking ping response
+            if (ipNeedsResolve) {
+                this.resolveIpCountry(savedVisitor.ip_address, savedVisitor);
+            }
+
             return { success: true };
         } catch (error) {
             this.logger.error('Error in ping: Table might not exist yet', error);
@@ -75,6 +109,29 @@ export class AnalyticsService {
                 todayVisitors: 0,
                 onlineVisitors: 0
             };
+        }
+    }
+
+    async getVisitors(query: any) {
+        try {
+            const page = parseInt(query.current || query.page) || 1;
+            const pageSize = parseInt(query.pageSize) || 20;
+            const skip = (page - 1) * pageSize;
+            
+            const [data, total] = await this.visitorRepo.findAndCount({
+                order: { last_active: 'DESC' },
+                skip,
+                take: pageSize,
+            });
+            
+            return {
+                data,
+                total,
+                success: true
+            };
+        } catch (error) {
+            this.logger.error('Error fetching visitors', error);
+            return { data: [], total: 0, success: false };
         }
     }
 }

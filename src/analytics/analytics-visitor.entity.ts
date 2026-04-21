@@ -17,6 +17,9 @@ export class AnalyticsVisitor {
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     last_active: Date;
 
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    country: string;
+
     @CreateDateColumn()
     created_at: Date;
 }
