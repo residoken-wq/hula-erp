@@ -15,7 +15,7 @@ export class EmailService {
     private async getSmtpConfig() {
         try {
             const configs = await this.dataSource.query(`
-                SELECT key, value FROM system_config 
+                SELECT key, value FROM system_configs 
                 WHERE key IN ('SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM_NAME', 'SMTP_FROM_EMAIL', 'SMTP_SECURE')
             `);
             const result: Record<string, string> = {};
