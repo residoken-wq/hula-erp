@@ -51,6 +51,16 @@ interface PromotionInfo {
     end_date: string;
 }
 
+interface PromotionProduct {
+    id: number;
+    sku: string;
+    name: string;
+    unit: string;
+    base_price: number;
+    image_url?: string;
+    category: string;
+}
+
 interface DashboardData {
     customer: CustomerInfo;
     stats: { total_orders: number; total_revenue: number; active_orders: number };
@@ -162,6 +172,75 @@ const PortalDashboardPage: React.FC = () => {
 
     const fmt = (n: number) => Number(n).toLocaleString('vi-VN');
 
+    // ===== PROMOTION MODAL STATE =====
+    const [promoModal, setPromoModal] = useState<{ promo: PromotionInfo; products: PromotionProduct[] } | null>(null);
+    const [promoLoading, setPromoLoading] = useState(false);
+    const [promoCart, setPromoCart] = useState<Record<string, number>>({});
+    const [promoOrderLoading, setPromoOrderLoading] = useState(false);
+
+    const openPromoModal = async (promo: PromotionInfo) => {
+        if (!token) return;
+        setPromoLoading(true);
+        try {
+            const res = await axios.get(`${API_URL}/public/portal/promotion/${slug}/${promo.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setPromoModal({ promo: res.data.promotion, products: res.data.products });
+            setPromoCart({});
+        } catch (err: any) {
+            setReorderResult({ success: false, message: err.response?.data?.message || 'Lỗi tải khuyến mãi' });
+        } finally {
+            setPromoLoading(false);
+        }
+    };
+
+    const updatePromoQty = (sku: string, qty: number) => {
+        setPromoCart(prev => {
+            const next = { ...prev };
+            if (qty <= 0) delete next[sku];
+            else next[sku] = qty;
+            return next;
+        });
+    };
+
+    const promoCartTotal = promoModal ? Object.entries(promoCart).reduce((sum, [sku, qty]) => {
+        const p = promoModal.products.find(x => x.sku === sku);
+        return sum + (p ? p.base_price * qty : 0);
+    }, 0) : 0;
+
+    const promoDiscount = promoModal ? (
+        promoModal.promo.discount_type === 'PERCENTAGE'
+            ? promoCartTotal * Number(promoModal.promo.discount_value) / 100
+            : Number(promoModal.promo.discount_value)
+    ) : 0;
+
+    const handlePromoOrder = async () => {
+        if (!token || !promoModal) return;
+        const items = Object.entries(promoCart)
+            .filter(([, qty]) => qty > 0)
+            .map(([sku, qty]) => {
+                const p = promoModal.products.find(x => x.sku === sku);
+                return { sku, quantity: qty, unit_price: p?.base_price || 0 };
+            });
+        if (items.length === 0) return;
+
+        setPromoOrderLoading(true);
+        try {
+            const res = await axios.post(
+                `${API_URL}/public/portal/promotion/${slug}/${promoModal.promo.id}/order`,
+                { items },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setReorderResult({ success: true, message: res.data.message || 'Đã tạo báo giá!' });
+            setPromoModal(null);
+            fetchDashboard();
+        } catch (err: any) {
+            setReorderResult({ success: false, message: err.response?.data?.message || 'Lỗi đặt hàng' });
+        } finally {
+            setPromoOrderLoading(false);
+        }
+    };
+
     if (loading) return (
         <div style={{ ...S.wrapper, justifyContent: 'center', alignItems: 'center' }}>
             <div style={{ textAlign: 'center' }}>
@@ -258,7 +337,7 @@ const PortalDashboardPage: React.FC = () => {
                                     <div style={S.promoHeader}>
                                         <span style={S.promoBadge}>
                                             {p.discount_type === 'PERCENTAGE' ? `Giảm ${p.discount_value}%` :
-                                                p.discount_type === 'FIXED_AMOUNT' ? `Giảm ${fmt(p.discount_value)}đ` : 'Mua X tặng Y'}
+                                                p.discount_type === 'FIXED_AMOUNT' ? `Giảm ${fmt(p.discount_value)}đ` : p.discount_type}
                                         </span>
                                     </div>
                                     <h3 style={S.promoName}>{p.name}</h3>
@@ -266,6 +345,15 @@ const PortalDashboardPage: React.FC = () => {
                                     <div style={S.promoDate}>
                                         📅 {new Date(p.start_date).toLocaleDateString('vi-VN')} - {new Date(p.end_date).toLocaleDateString('vi-VN')}
                                     </div>
+                                    {(p.discount_type === 'PERCENTAGE' || p.discount_type === 'FIXED_AMOUNT') && (
+                                        <button
+                                            onClick={() => openPromoModal(p)}
+                                            disabled={promoLoading}
+                                            style={{ ...S.reorderBtn, marginTop: 12, width: '100%', padding: '10px 0', fontSize: 13 }}
+                                        >
+                                            {promoLoading ? '⏳ Đang tải...' : '🛒 Xem & Đặt hàng'}
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -438,6 +526,103 @@ const PortalDashboardPage: React.FC = () => {
                     </div>
                 </section>
             </main>
+
+            {/* ===== PROMOTION DETAIL MODAL ===== */}
+            {promoModal && (
+                <div style={S.modalOverlay} onClick={() => setPromoModal(null)}>
+                    <div style={S.modalContent} onClick={e => e.stopPropagation()}>
+                        {/* Modal Header */}
+                        <div style={S.modalHeader}>
+                            <div>
+                                <span style={{ ...S.promoBadge, fontSize: 11, marginRight: 8 }}>
+                                    {promoModal.promo.discount_type === 'PERCENTAGE'
+                                        ? `Giảm ${promoModal.promo.discount_value}%`
+                                        : `Giảm ${fmt(promoModal.promo.discount_value)}đ`}
+                                </span>
+                                <span style={{ fontSize: 11, color: '#999' }}>
+                                    📅 {new Date(promoModal.promo.start_date).toLocaleDateString('vi-VN')} - {new Date(promoModal.promo.end_date).toLocaleDateString('vi-VN')}
+                                </span>
+                            </div>
+                            <button onClick={() => setPromoModal(null)} style={S.modalClose}>✕</button>
+                        </div>
+                        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>🎁 {promoModal.promo.name}</h2>
+                        {promoModal.promo.description && (
+                            <p style={{ fontSize: 13, color: '#888', margin: '0 0 16px', lineHeight: 1.5 }}>{promoModal.promo.description}</p>
+                        )}
+
+                        {/* Product List */}
+                        {promoModal.products.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '32px 0', color: '#aaa' }}>
+                                <div style={{ fontSize: 40, marginBottom: 8 }}>📦</div>
+                                <p>Chương trình này chưa có sản phẩm cụ thể.<br />Vui lòng liên hệ Sales để biết thêm chi tiết.</p>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#555', marginBottom: 8 }}>Chọn sản phẩm ({promoModal.products.length})</div>
+                                <div style={S.productList}>
+                                    {promoModal.products.map(p => {
+                                        const qty = promoCart[p.sku] || 0;
+                                        return (
+                                            <div key={p.sku} style={S.productRow}>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ fontSize: 14, fontWeight: 600, color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                                                    <div style={{ fontSize: 11, color: '#aaa' }}>{p.sku} • {p.unit || 'Cái'}{p.category ? ` • ${p.category}` : ''}</div>
+                                                    <div style={{ fontSize: 14, fontWeight: 700, color: '#23A7D3', marginTop: 2 }}>{fmt(p.base_price)}đ</div>
+                                                </div>
+                                                <div style={S.qtyControl}>
+                                                    <button onClick={() => updatePromoQty(p.sku, qty - 1)} style={S.qtyBtn} disabled={qty <= 0}>−</button>
+                                                    <input
+                                                        type="number"
+                                                        value={qty}
+                                                        onChange={e => updatePromoQty(p.sku, Math.max(0, parseInt(e.target.value) || 0))}
+                                                        style={S.qtyInput}
+                                                        min={0}
+                                                    />
+                                                    <button onClick={() => updatePromoQty(p.sku, qty + 1)} style={S.qtyBtn}>+</button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Summary */}
+                                {Object.keys(promoCart).length > 0 && (
+                                    <div style={S.promoSummary}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                            <span style={{ color: '#888' }}>Tạm tính:</span>
+                                            <span style={{ fontWeight: 600 }}>{fmt(promoCartTotal)}đ</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                            <span style={{ color: '#fa8c16' }}>Giảm giá:</span>
+                                            <span style={{ fontWeight: 700, color: '#fa8c16' }}>-{fmt(promoDiscount)}đ</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #eee', paddingTop: 8, marginTop: 4 }}>
+                                            <span style={{ fontWeight: 700, fontSize: 15 }}>Ước tính:</span>
+                                            <span style={{ fontWeight: 800, fontSize: 16, color: '#23A7D3' }}>{fmt(Math.max(0, promoCartTotal - promoDiscount))}đ</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={handlePromoOrder}
+                                    disabled={promoOrderLoading || Object.keys(promoCart).length === 0}
+                                    style={{
+                                        ...S.primaryBtn,
+                                        width: '100%',
+                                        marginTop: 12,
+                                        opacity: (promoOrderLoading || Object.keys(promoCart).length === 0) ? 0.5 : 1,
+                                    }}
+                                >
+                                    {promoOrderLoading ? '⏳ Đang xử lý...' : '🛒 Tạo Báo Giá Từ Ưu Đãi'}
+                                </button>
+                                <p style={{ fontSize: 11, color: '#bbb', textAlign: 'center', marginTop: 8 }}>
+                                    Báo giá sẽ được đội Sales xác nhận trước khi chốt đơn.
+                                </p>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* ===== FOOTER ===== */}
             <footer style={S.footer}>
@@ -805,6 +990,98 @@ const S: Record<string, React.CSSProperties> = {
         fontSize: 12,
         borderTop: '1px solid #eee',
         background: '#fff',
+    },
+    // Promotion Modal
+    modalOverlay: {
+        position: 'fixed' as const,
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.45)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+    },
+    modalContent: {
+        background: '#fff',
+        borderRadius: 20,
+        padding: '24px',
+        maxWidth: 520,
+        width: '100%',
+        maxHeight: '85vh',
+        overflowY: 'auto' as const,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+        position: 'relative' as const,
+    },
+    modalHeader: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    modalClose: {
+        background: 'none',
+        border: 'none',
+        fontSize: 20,
+        color: '#aaa',
+        cursor: 'pointer',
+        padding: '4px 8px',
+    },
+    productList: {
+        display: 'flex',
+        flexDirection: 'column' as const,
+        gap: 10,
+        maxHeight: 320,
+        overflowY: 'auto' as const,
+        marginBottom: 16,
+    },
+    productRow: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '10px 12px',
+        background: '#f9fafb',
+        borderRadius: 12,
+        border: '1px solid #f0f0f0',
+    },
+    qtyControl: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        flexShrink: 0,
+    },
+    qtyBtn: {
+        width: 30,
+        height: 30,
+        borderRadius: 8,
+        border: '1px solid #d9d9d9',
+        background: '#fff',
+        fontSize: 16,
+        fontWeight: 700,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#555',
+        fontFamily: "'Be Vietnam Pro', sans-serif",
+    },
+    qtyInput: {
+        width: 44,
+        height: 30,
+        borderRadius: 8,
+        border: '1px solid #d9d9d9',
+        textAlign: 'center' as const,
+        fontSize: 13,
+        fontWeight: 700,
+        fontFamily: "'Be Vietnam Pro', sans-serif",
+        outline: 'none',
+    },
+    promoSummary: {
+        background: 'linear-gradient(135deg, #f0faff 0%, #e8f7fc 100%)',
+        borderRadius: 12,
+        padding: '12px 16px',
+        border: '1px solid rgba(35,167,211,0.15)',
+        fontSize: 14,
     },
 };
 

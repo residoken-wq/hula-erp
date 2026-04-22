@@ -409,4 +409,113 @@ export class PortalController {
             } : null,
         };
     }
+
+    // ============================================================
+    // 6. PROMOTION DETAIL (Products list for a promotion)
+    // ============================================================
+    @Get('promotion/:slug/:id')
+    async getPromotionDetail(
+        @Param('slug') slug: string,
+        @Param('id') id: string,
+        @Headers('authorization') authHeader: string,
+    ) {
+        const session = await this.validateSession(authHeader);
+        if (session.slug !== slug) {
+            throw new HttpException('Slug không khớp', HttpStatus.FORBIDDEN);
+        }
+
+        try {
+            const result = await this.salesService.getPromotionWithProducts(
+                Number(id),
+                session.customer_id,
+            );
+            return result;
+        } catch (error) {
+            if (error instanceof HttpException) throw error;
+            throw new HttpException('Lỗi tải chi tiết khuyến mãi', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // ============================================================
+    // 7. ORDER FROM PROMOTION
+    // ============================================================
+    @Post('promotion/:slug/:id/order')
+    async orderFromPromotion(
+        @Param('slug') slug: string,
+        @Param('id') id: string,
+        @Headers('authorization') authHeader: string,
+        @Body() body: { items: Array<{ sku: string; quantity: number; unit_price: number }> },
+    ) {
+        const session = await this.validateSession(authHeader);
+        if (session.slug !== slug) {
+            throw new HttpException('Slug không khớp', HttpStatus.FORBIDDEN);
+        }
+
+        if (!body.items || body.items.length === 0) {
+            throw new HttpException('Vui lòng chọn ít nhất 1 sản phẩm', HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            // Verify promotion exists and is valid for this customer
+            const { promotion } = await this.salesService.getPromotionWithProducts(
+                Number(id),
+                session.customer_id,
+            );
+
+            // Calculate discount
+            let discountRate = 0;
+            let discountAmount = 0;
+            if (promotion.discount_type === 'PERCENTAGE') {
+                discountRate = Number(promotion.discount_value);
+            } else if (promotion.discount_type === 'FIXED_AMOUNT') {
+                discountAmount = Number(promotion.discount_value);
+            }
+
+            // Create quotation
+            const customer = await this.customerRepo.findOne({ where: { id: session.customer_id } });
+            const newOrder = await this.salesService.createOrder({
+                customer_id: session.customer_id,
+                customer_name: customer?.name || '',
+                items: body.items.map(i => ({
+                    sku: i.sku,
+                    quantity: i.quantity,
+                    unit_price: i.unit_price,
+                })),
+                is_quotation: true,
+                discount_rate: discountRate,
+                discount_amount: discountAmount,
+                note: `🎁 Đặt hàng từ chương trình KM: ${promotion.name} (Portal B2B)`,
+                order_source: 'B2B_PORTAL_PROMO',
+            });
+
+            // Increment used_count
+            promotion.used_count = (promotion.used_count || 0) + 1;
+            await this.salesService.updatePromotion(promotion.id, { used_count: promotion.used_count });
+
+            // Log to customer history
+            if (customer) {
+                const history = customer.history || [];
+                history.push({
+                    action: 'ORDER_FROM_PROMOTION',
+                    timestamp: new Date(),
+                    data: {
+                        promotion_name: promotion.name,
+                        order_code: newOrder.order_code,
+                    },
+                });
+                customer.history = history;
+                await this.customerRepo.save(customer);
+            }
+
+            return {
+                success: true,
+                message: `Báo giá ${newOrder.order_code} đã được tạo thành công từ chương trình khuyến mãi "${promotion.name}". Đội ngũ Sales sẽ liên hệ xác nhận.`,
+                order_code: newOrder.order_code,
+            };
+        } catch (error) {
+            if (error instanceof HttpException) throw error;
+            console.error('Error creating promotion order:', error);
+            throw new HttpException('Lỗi khi tạo đơn hàng từ khuyến mãi', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -1851,6 +1851,45 @@ export class SalesService {
         }
     }
 
+    async getPromotionWithProducts(promotionId: number, customerId: number) {
+        const promotion = await this.promotionRepo.findOne({ where: { id: promotionId } });
+        if (!promotion) throw new NotFoundException('Promotion not found');
+
+        // Verify customer is eligible
+        const customerIds = promotion.applicable_customer_ids || [];
+        if (customerIds.length > 0 && !customerIds.includes(customerId)) {
+            throw new NotFoundException('Promotion not available for this customer');
+        }
+
+        // Check if promotion is active
+        const today = new Date().toISOString().split('T')[0];
+        if (!promotion.is_active || promotion.start_date > new Date(today) || promotion.end_date < new Date(today)) {
+            throw new NotFoundException('Promotion is no longer active');
+        }
+
+        // If no applicable products, return empty products list
+        const productIds = promotion.applicable_product_ids || [];
+        if (productIds.length === 0) {
+            return { promotion, products: [] };
+        }
+
+        // Fetch products
+        const products = await this.productsService.findAll();
+        const filtered = products
+            .filter((p: any) => productIds.includes(p.id) && p.is_active)
+            .map((p: any) => ({
+                id: p.id,
+                sku: p.sku,
+                name: p.name,
+                unit: p.unit,
+                base_price: Number(p.base_price),
+                image_url: p.image_url,
+                category: p.category_link?.name || p.category || '',
+            }));
+
+        return { promotion, products: filtered };
+    }
+
     async createPromotion(data: any) {
         try {
             const promotion = this.promotionRepo.create({
