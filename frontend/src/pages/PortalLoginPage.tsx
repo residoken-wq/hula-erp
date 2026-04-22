@@ -66,7 +66,7 @@ const PortalLoginPage: React.FC = () => {
                 {/* Logo */}
                 <div style={styles.logoSection}>
                     <a href="https://nemmamnon.com" target="_blank" rel="noopener noreferrer" style={styles.logoLink}>
-                        <img src="/logo-hula.png" alt="HULA" style={{ height: 80, width: 'auto', marginBottom: 8, objectFit: 'contain' }} />
+                        <img src="/logo-hula.png" alt="HULA" style={{ height: 150, width: 'auto', marginBottom: 8, objectFit: 'contain' }} />
                         <div style={styles.logoSub}>Cổng Đối Tác B2B</div>
                     </a>
                 </div>
@@ -189,7 +189,7 @@ const PortalLoginPage: React.FC = () => {
                 <div style={styles.footer}>
                     <p>Chưa có tài khoản? <a href="https://nemmamnon.com/lien-he" style={styles.footerLink}>Đăng ký đối tác</a></p>
                     <p style={{ marginTop: 4, fontSize: 12, color: '#aaa' }}>
-                        © 2024 HULA - Nệm Mầm Non | erp.nemmamnon.com
+                        © 2026 HULA - Nệm Mầm Non | www.nemmamnon.com
                     </p>
                 </div>
             </div>

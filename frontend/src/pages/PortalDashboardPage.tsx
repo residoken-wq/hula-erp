@@ -519,7 +519,7 @@ const PortalDashboardPage: React.FC = () => {
                             <a href="tel:0983882210" style={{ ...S.supportBtn, background: '#23A7D3', color: '#fff' }}>
                                 📞 Hotline
                             </a>
-                            <a href="mailto:sales@nemmamnon.com" style={{ ...S.supportBtn, background: '#fff', color: '#23A7D3', border: '1px solid #23A7D3' }}>
+                            <a href="mailto:phamhang.hula@gmail.com" style={{ ...S.supportBtn, background: '#fff', color: '#23A7D3', border: '1px solid #23A7D3' }}>
                                 ✉️ Email
                             </a>
                         </div>
