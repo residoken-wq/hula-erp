@@ -21,6 +21,11 @@ const SystemSettingsPage: React.FC = () => {
                             <ContractTemplatesTab />
                         </div>
                     </Tabs.TabPane>
+                    <Tabs.TabPane tab={<span><MailOutlined /> Mẫu Email</span>} key="4">
+                        <div style={{ padding: 24 }}>
+                            <EmailTemplatesTab />
+                        </div>
+                    </Tabs.TabPane>
                     <Tabs.TabPane tab={<span><ShopOutlined /> Terms Báo giá</span>} key="3">
                         <div style={{ padding: 24 }}>
                             <QuoteTermsTab />
@@ -36,6 +41,7 @@ const GeneralSettingsTab: React.FC = () => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [testingSmtp, setTestingSmtp] = useState(false);
 
     const fetchConfig = async () => {
         setLoading(true);
@@ -47,6 +53,23 @@ const GeneralSettingsTab: React.FC = () => {
             message.error('Không thể tải cấu hình SMTP');
         }
         setLoading(false);
+    };
+
+    const handleTestSmtp = async () => {
+        const testEmail = prompt('Nhập địa chỉ email để nhận thư test:');
+        if (!testEmail) return;
+        setTestingSmtp(true);
+        try {
+            const res = await axios.post(`${API_URL}/system/smtp/test`, { email: testEmail });
+            if (res.data.success) {
+                message.success(res.data.message);
+            } else {
+                message.error(res.data.message);
+            }
+        } catch (error) {
+            message.error('Lỗi khi gọi API Test SMTP. Vui lòng kiểm tra lại cấu hình.');
+        }
+        setTestingSmtp(false);
     };
 
     useEffect(() => {
@@ -84,7 +107,10 @@ const GeneralSettingsTab: React.FC = () => {
                             <Col span={12}><Form.Item name="SMTP_FROM_EMAIL" label="Email người gửi" rules={[{ required: true }]}><Input placeholder="no-reply@domain.com" /></Form.Item></Col>
                         </Row>
                         <Form.Item name="SMTP_SECURE" valuePropName="checked" label="Sử dụng SSL/TLS"><Switch /></Form.Item>
-                        <Button type="primary" icon={<SaveOutlined />} onClick={form.submit} loading={submitting}>Lưu Cấu Hình Email</Button>
+                        <Space>
+                            <Button type="primary" icon={<SaveOutlined />} onClick={form.submit} loading={submitting}>Lưu Cấu Hình Email</Button>
+                            <Button icon={<MailOutlined />} onClick={handleTestSmtp} loading={testingSmtp}>Test Cấu hình SMTP</Button>
+                        </Space>
                     </Form>
                 )}
             </Card>
@@ -722,6 +748,168 @@ const QuoteTermsTab: React.FC = () => {
                 Lưu Cấu Hình Terms
             </Button>
         </>
+    );
+};
+
+const EmailTemplatesTab: React.FC = () => {
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editingTemplate, setEditingTemplate] = useState<any>(null);
+    const [form] = Form.useForm();
+
+    const [customPlaceholders, setCustomPlaceholders] = useState<{key: string, desc: string}[]>([]);
+
+    const fetchPlaceholders = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/system/config/CONTRACT_CUSTOM_PLACEHOLDERS`);
+            if (res.data && res.data.value) {
+                setCustomPlaceholders(JSON.parse(res.data.value));
+            }
+        } catch (e) { }
+    };
+
+    const fetchTemplates = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(`${API_URL}/system/email-templates`);
+            setTemplates(res.data);
+        } catch (e) { message.error('Lỗi tải danh sách mẫu email'); }
+        setLoading(false);
+    };
+
+    useEffect(() => { 
+        fetchTemplates(); 
+        fetchPlaceholders();
+    }, []);
+
+    const handleSave = async (values: any) => {
+        try {
+            await axios.post(`${API_URL}/system/email-templates`, { ...values, id: editingTemplate?.id });
+            message.success('Đã lưu mẫu email');
+            setModalOpen(false);
+            fetchTemplates();
+        } catch (e) { message.error('Lỗi lưu mẫu email'); }
+    };
+
+    const handleDelete = async (id: number) => {
+        try {
+            await axios.delete(`${API_URL}/system/email-templates/${id}`);
+            message.success('Đã xóa mẫu email');
+            fetchTemplates();
+        } catch (e) { message.error('Lỗi xóa mẫu email'); }
+    };
+
+    const columns = [
+        { title: 'Tên Mẫu', dataIndex: 'name', key: 'name', width: '25%', render: (t: string) => <b>{t}</b> },
+        { title: 'Tiêu đề Email', dataIndex: 'subject', key: 'subject', width: '35%' },
+        { title: 'Cập nhật lần cuối', dataIndex: 'updated_at', key: 'updated_at', render: (t: string) => dayjs(t).format('DD/MM/YYYY HH:mm') },
+        {
+            title: 'Hành động', key: 'action', width: 150, render: (_: any, r: any) => (
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <Button icon={<EditOutlined />} size="small" onClick={() => { setEditingTemplate(r); form.setFieldsValue(r); setModalOpen(true); }} />
+                    <Popconfirm title="Xóa mẫu này?" onConfirm={() => handleDelete(r.id)}>
+                        <Button icon={<DeleteOutlined />} danger size="small" />
+                    </Popconfirm>
+                </div>
+            )
+        }
+    ];
+
+    return (
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h3>Danh Sách Mẫu Email</h3>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTemplate(null); form.resetFields(); setModalOpen(true); }}>Tạo Mẫu Mới</Button>
+            </div>
+
+            <Table dataSource={templates} columns={columns} rowKey="id" loading={loading} pagination={false} />
+
+            <Modal
+                title={editingTemplate ? "Chỉnh Sửa Mẫu Email" : "Tạo Mẫu Email"}
+                open={modalOpen}
+                onCancel={() => setModalOpen(false)}
+                onOk={form.submit}
+                width={1200}
+                style={{ top: 20 }}
+                maskClosable={false}
+            >
+                <Row gutter={24}>
+                    <Col span={17}>
+                        <Form form={form} layout="vertical" onFinish={handleSave}>
+                            <Form.Item name="name" label={<span style={{fontWeight: 600}}>Tên mẫu (Dùng để quản lý nội bộ)</span>} rules={[{ required: true, message: 'Nhập tên mẫu' }]}>
+                                <Input placeholder="VD: Gửi Báo Giá Khách Hàng" size="large" />
+                            </Form.Item>
+                            <Form.Item name="subject" label={<span style={{fontWeight: 600}}>Tiêu đề Email</span>} rules={[{ required: true, message: 'Nhập tiêu đề email' }]}>
+                                <Input placeholder="VD: Báo giá dịch vụ từ Hula ERP - {{order_code}}" size="large" />
+                            </Form.Item>
+                            <Form.Item name="content" label={<span style={{fontWeight: 600}}>Nội dung Email (HTML)</span>} rules={[{ required: true }]}>
+                                <RichTextEditor minHeight={400} />
+                            </Form.Item>
+                        </Form>
+                    </Col>
+                    <Col span={7}>
+                        <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 8, height: '100%' }}>
+                            <div style={{ fontWeight: 600, marginBottom: 12, fontSize: 15 }}>Danh Sách Placeholder</div>
+                            <p style={{ fontSize: 13, color: '#666', marginBottom: 16, lineHeight: 1.4 }}>
+                                Dùng chung nhãn với Mẫu hợp đồng. Click để copy và dán vào tiêu đề hoặc nội dung.
+                            </p>
+                            <div style={{ maxHeight: 500, overflowY: 'auto', paddingRight: 4 }}>
+                                <Space size={[8, 12]} wrap direction="vertical" style={{ width: '100%' }}>
+                                    <div style={{ fontWeight: 600, fontSize: 11, color: '#999', textTransform: 'uppercase' }}>🔹 Khách hàng & Đơn hàng</div>
+                                    {[
+                                        { key: 'customer_name', desc: 'Tên Khách hàng' },
+                                        { key: 'customer_email', desc: 'Email Khách hàng' },
+                                        { key: 'order_code', desc: 'Mã Đơn hàng / Báo giá' },
+                                        { key: 'order_date', desc: 'Ngày tạo' },
+                                        { key: 'total_amount_text', desc: 'Tổng tiền (chữ)' },
+                                    ].map(p => (
+                                        <div key={p.key} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Tag color="blue" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 13, width: 'fit-content' }} onClick={() => {
+                                                navigator.clipboard.writeText(`{{${p.key}}}`);
+                                                message.success(`Đã copy: {{${p.key}}}`);
+                                            }}>
+                                                <Space size={4}><CopyOutlined style={{ opacity: 0.6 }} />{`{{${p.key}}}`}</Space>
+                                            </Tag>
+                                            <span style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 4 }}>{p.desc}</span>
+                                        </div>
+                                    ))}
+                                    <Divider style={{ margin: '8px 0' }} orientation="left" plain><span style={{fontSize: 11, color: '#aaa'}}>🔸 Bên Bán</span></Divider>
+                                    {[
+                                        { key: 'seller_company_name', desc: 'Tên công ty' },
+                                        { key: 'seller_phone', desc: 'Số điện thoại' },
+                                        { key: 'seller_email', desc: 'Email' },
+                                        { key: 'seller_website', desc: 'Website' },
+                                    ].map(p => (
+                                        <div key={p.key} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Tag color="orange" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 13, width: 'fit-content' }} onClick={() => {
+                                                navigator.clipboard.writeText(`{{${p.key}}}`);
+                                                message.success(`Đã copy: {{${p.key}}}`);
+                                            }}>
+                                                <Space size={4}><CopyOutlined style={{ opacity: 0.6 }} />{`{{${p.key}}}`}</Space>
+                                            </Tag>
+                                            <span style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 4 }}>{p.desc}</span>
+                                        </div>
+                                    ))}
+                                    {customPlaceholders.length > 0 && <Divider style={{ margin: '8px 0' }} orientation="left" plain><span style={{fontSize: 11, color: '#aaa'}}>🟢 Tự định nghĩa</span></Divider>}
+                                    {customPlaceholders.map(p => (
+                                        <div key={p.key} style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <Tag color="green" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: 13, width: 'fit-content' }} onClick={() => {
+                                                navigator.clipboard.writeText(`{{${p.key}}}`);
+                                                message.success(`Đã copy: {{${p.key}}}`);
+                                            }}>
+                                                <Space size={4}><CopyOutlined style={{ opacity: 0.6 }} />{`{{${p.key}}}`}</Space>
+                                            </Tag>
+                                            <span style={{ fontSize: 12, color: '#888', marginTop: 4, marginLeft: 4 }}>{p.desc}</span>
+                                        </div>
+                                    ))}
+                                </Space>
+                            </div>
+                        </div>
+                    </Col>
+                </Row>
+            </Modal>
+        </div>
     );
 };
 

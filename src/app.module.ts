@@ -109,6 +109,7 @@ import { UserGroup } from './users/entities/user-group.entity';
 import { GroupPermission } from './users/entities/group-permission.entity';
 import { SystemConfig } from './system/system-config.entity';
 import { ContractTemplate } from './system/contract-template.entity';
+import { EmailTemplate } from './system/email-template.entity';
 import { BlogPost } from './blogs/blog-post.entity';
 import { ActivityInterceptor } from './common/interceptors/activity.interceptor';
 import { ActivityLog } from './system/entities/activity-log.entity';
@@ -188,7 +189,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           Employee, Attendance, LeaveRequest, LeaveEntitlement, AssetAssignment, Payslip, TrainingPlan, WorkShift,
           JobPost, Candidate, Assessment, Interview,
           // Website Config & Templates
-          ProductWebsiteConfig, ContractTemplate, WebsitePolicy,
+          ProductWebsiteConfig, ContractTemplate, EmailTemplate, WebsitePolicy,
           // Social & Marketing
           SocialChannel, SocialOrder, SocialProductMapping,
           MarketingCampaign, CustomerSegment, AutomationWorkflow,

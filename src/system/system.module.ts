@@ -4,12 +4,14 @@ import { SystemController } from './system.controller';
 import { SystemService } from './system.service';
 import { SystemConfig } from './system-config.entity';
 import { ActivityLog } from './entities/activity-log.entity';
-import { ContractTemplate } from './contract-template.entity'; // <--- NEW
+import { ContractTemplate } from './contract-template.entity';
+import { EmailTemplate } from './email-template.entity';
+import { EmailService } from '../common/services/email.service';
 
 import { ActivitySubscriber } from './subscribers/activity.subscriber';
 import { UserContextService } from '../common/services/user-context.service';
 
-import { DashboardController } from './dashboard.controller'; // <--- NEW
+import { DashboardController } from './dashboard.controller';
 import { SalesOrder } from '../sales/sales-order.entity';
 import { InventoryStock } from '../inventory/inventory-stock.entity';
 import { GoodsReceipt } from '../inventory/entities/goods-receipt.entity';
@@ -20,15 +22,16 @@ import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
         TypeOrmModule.forFeature([
             SystemConfig,
             ActivityLog,
-            ContractTemplate, // <--- NEW
-            SalesOrder,      // <--- For Dashboard
-            InventoryStock,  // <--- For Dashboard
-            GoodsReceipt,    // <--- For Dashboard
-            PurchaseOrder    // <--- For Dashboard
+            ContractTemplate,
+            EmailTemplate,
+            SalesOrder,
+            InventoryStock,
+            GoodsReceipt,
+            PurchaseOrder
         ])
     ],
-    controllers: [SystemController, DashboardController], // <--- Register DashboardController
-    providers: [SystemService, ActivitySubscriber, UserContextService],
+    controllers: [SystemController, DashboardController],
+    providers: [SystemService, ActivitySubscriber, UserContextService, EmailService],
     exports: [SystemService, UserContextService]
 })
 export class SystemModule { }

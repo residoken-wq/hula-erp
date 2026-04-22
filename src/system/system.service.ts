@@ -4,13 +4,17 @@ import { Repository } from 'typeorm';
 import { SystemConfig } from './system-config.entity';
 import { ActivityLog } from './entities/activity-log.entity';
 import { ContractTemplate } from './contract-template.entity';
+import { EmailTemplate } from './email-template.entity';
+import { EmailService } from '../common/services/email.service';
 
 @Injectable()
 export class SystemService {
     constructor(
         @InjectRepository(SystemConfig) private configRepo: Repository<SystemConfig>,
         @InjectRepository(ActivityLog) private logRepo: Repository<ActivityLog>,
-        @InjectRepository(ContractTemplate) private templateRepo: Repository<ContractTemplate> // <--- Inject
+        @InjectRepository(ContractTemplate) private templateRepo: Repository<ContractTemplate>,
+        @InjectRepository(EmailTemplate) private emailTemplateRepo: Repository<EmailTemplate>,
+        private emailService: EmailService
     ) { }
 
     async getValue(key: string): Promise<string | null> {
@@ -50,6 +54,10 @@ export class SystemService {
         await this.setValue('SMTP_FROM_EMAIL', data.SMTP_FROM_EMAIL || '', 'Sender Email');
         await this.setValue('SMTP_SECURE', String(data.SMTP_SECURE), 'Use SSL/TLS'); // 'true' or 'false'
         return { success: true };
+    }
+
+    async testSmtpConnection(email: string) {
+        return this.emailService.testConnection(email);
     }
 
     // --- COMPANY CONFIG HELPER ---
@@ -138,6 +146,25 @@ export class SystemService {
 
     async deleteTemplate(id: number) {
         return this.templateRepo.delete(id);
+    }
+
+    // --- EMAIL TEMPLATES ---
+    async getEmailTemplates() {
+        return this.emailTemplateRepo.find({ order: { updated_at: 'DESC' } });
+    }
+
+    async saveEmailTemplate(data: any) {
+        if (data.id) {
+            await this.emailTemplateRepo.update(data.id, data);
+            return this.emailTemplateRepo.findOne({ where: { id: data.id } });
+        } else {
+            const t = this.emailTemplateRepo.create(data);
+            return this.emailTemplateRepo.save(t);
+        }
+    }
+
+    async deleteEmailTemplate(id: number) {
+        return this.emailTemplateRepo.delete(id);
     }
 
     // --- HOME PAGE CONFIG ---

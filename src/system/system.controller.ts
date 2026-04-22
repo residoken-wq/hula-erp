@@ -15,6 +15,11 @@ export class SystemController {
         return this.s.saveSmtpConfig(body);
     }
 
+    @Post('smtp/test')
+    testSmtp(@Body() body: { email: string }) {
+        return this.s.testSmtpConnection(body.email);
+    }
+
     @Get('company')
     getCompanyConfig() {
         return this.s.getCompanyConfig();
@@ -55,6 +60,16 @@ export class SystemController {
 
     @Delete('templates/:id')
     deleteTemplate(@Param('id') id: number) { return this.s.deleteTemplate(id); }
+
+    // --- EMAIL TEMPLATES ---
+    @Get('email-templates')
+    getEmailTemplates() { return this.s.getEmailTemplates(); }
+
+    @Post('email-templates')
+    saveEmailTemplate(@Body() body: any) { return this.s.saveEmailTemplate(body); }
+
+    @Delete('email-templates/:id')
+    deleteEmailTemplate(@Param('id') id: number) { return this.s.deleteEmailTemplate(id); }
 
     // --- HOME PAGE CONFIG ---
     @Get('home-config')
