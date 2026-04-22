@@ -271,7 +271,7 @@ const PortalDashboardPage: React.FC = () => {
             <header style={S.header}>
                 <div style={S.headerInner}>
                     <a href="https://nemmamnon.com" target="_blank" rel="noopener noreferrer" style={S.headerLogo}>
-                        <span style={{ fontSize: 24, fontWeight: 900, color: '#23A7D3', letterSpacing: 3 }}>HULA</span>
+                        <img src="/logo-hula.png" alt="HULA" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
                         {!isMobile && <span style={{ fontSize: 12, color: '#aaa', marginLeft: 10 }}>Cổng Đối Tác</span>}
                     </a>
                     <div style={S.headerRight}>

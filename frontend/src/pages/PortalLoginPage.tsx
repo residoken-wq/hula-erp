@@ -66,7 +66,7 @@ const PortalLoginPage: React.FC = () => {
                 {/* Logo */}
                 <div style={styles.logoSection}>
                     <a href="https://nemmamnon.com" target="_blank" rel="noopener noreferrer" style={styles.logoLink}>
-                        <div style={styles.logoText}>HULA</div>
+                        <img src="/logo-hula.png" alt="HULA" style={{ height: 80, width: 'auto', marginBottom: 8, objectFit: 'contain' }} />
                         <div style={styles.logoSub}>Cổng Đối Tác B2B</div>
                     </a>
                 </div>
