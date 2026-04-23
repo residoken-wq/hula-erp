@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip, Tag, Space, Typography } from 'antd';
+import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip, Tag, Space, Typography, Checkbox } from 'antd';
 import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SettingOutlined, MinusCircleOutlined, InfoCircleOutlined, KeyOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
@@ -1013,19 +1013,16 @@ const ApiKeysTab: React.FC = () => {
                         }
                     />
                 ) : (
-                    <Form form={form} layout="vertical" onFinish={handleCreate}>
+                    <Form form={form} layout="vertical" onFinish={handleCreate} initialValues={{ permissions: ['full_access'] }}>
                         <Form.Item name="name" label="Tên gợi nhớ (Tên Bot/Hệ thống)" rules={[{ required: true, message: 'Nhập tên' }]}>
                             <Input placeholder="VD: Agent Daily Report" />
                         </Form.Item>
                         <Form.Item name="permissions" label="Quyền truy cập" rules={[{ required: true, message: 'Chọn ít nhất 1 quyền' }]}>
-                            <Tabs defaultActiveKey="1" items={[
-                                {
-                                    key: '1',
-                                    label: 'Full Access',
-                                    children: <Alert message="Cấp toàn quyền đọc dữ liệu (Orders, Inventory, MRP, Customers) cho Agent." type="info" />
-                                }
-                            ]} />
-                            {/* Hidden field as we currently give default full access or specific perms based on string arrays */}
+                            <Checkbox.Group>
+                                <Space direction="vertical">
+                                    <Checkbox value="full_access"><b>Full Access</b> (Đọc toàn bộ dữ liệu Orders, Inventory, MRP, Customers)</Checkbox>
+                                </Space>
+                            </Checkbox.Group>
                         </Form.Item>
                     </Form>
                 )}
