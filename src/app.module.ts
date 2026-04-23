@@ -108,6 +108,7 @@ import { User } from './users/entities/user.entity';
 import { UserGroup } from './users/entities/user-group.entity';
 import { GroupPermission } from './users/entities/group-permission.entity';
 import { SystemConfig } from './system/system-config.entity';
+import { ApiToken } from './system/entities/api-token.entity';
 import { ContractTemplate } from './system/contract-template.entity';
 import { EmailTemplate } from './system/email-template.entity';
 import { BlogPost } from './blogs/blog-post.entity';
@@ -184,7 +185,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           Customer, CustomerContact, CustomerComment,
           ProductionPlan, Process, Category,
           User, UserGroup, GroupPermission,
-          SystemConfig, ActivityLog,
+          SystemConfig, ActivityLog, ApiToken,
           BlogPost,
           Employee, Attendance, LeaveRequest, LeaveEntitlement, AssetAssignment, Payslip, TrainingPlan, WorkShift,
           JobPost, Candidate, Assessment, Interview,

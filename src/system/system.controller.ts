@@ -40,6 +40,22 @@ export class SystemController {
         return this.s.getLogs();
     }
 
+    // --- API TOKENS ---
+    @Get('api-tokens')
+    getApiTokens() {
+        return this.s.listApiTokens();
+    }
+
+    @Post('api-tokens')
+    createApiToken(@Body() body: { name: string; permissions: string[] }) {
+        return this.s.generateApiToken(body.name, body.permissions);
+    }
+
+    @Delete('api-tokens/:id')
+    revokeApiToken(@Param('id') id: number) {
+        return this.s.revokeApiToken(id);
+    }
+
     @Get('config/:key')
     async getConfig(@Param('key') key: string) {
         const val = await this.s.getValue(key);

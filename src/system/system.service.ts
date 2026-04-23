@@ -2,8 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SystemConfig } from './system-config.entity';
+import { ApiToken } from './entities/api-token.entity';
 import { ActivityLog } from './entities/activity-log.entity';
 import { ContractTemplate } from './contract-template.entity';
+import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { EmailTemplate } from './email-template.entity';
 import { EmailService } from '../common/services/email.service';
 
@@ -11,6 +14,7 @@ import { EmailService } from '../common/services/email.service';
 export class SystemService {
     constructor(
         @InjectRepository(SystemConfig) private configRepo: Repository<SystemConfig>,
+        @InjectRepository(ApiToken) private apiTokenRepo: Repository<ApiToken>,
         @InjectRepository(ActivityLog) private logRepo: Repository<ActivityLog>,
         @InjectRepository(ContractTemplate) private templateRepo: Repository<ContractTemplate>,
         @InjectRepository(EmailTemplate) private emailTemplateRepo: Repository<EmailTemplate>,
@@ -126,6 +130,63 @@ export class SystemService {
             take: limit
         });
     }
+
+    // --- API KEY MANAGEMENT ---
+    async generateApiToken(name: string, permissions: string[] = []) {
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const tokenHash = await bcrypt.hash(rawToken, 10);
+        const hint = rawToken.substring(rawToken.length - 4);
+
+        const token = this.apiTokenRepo.create({
+            name,
+            token_hash: tokenHash,
+            token_hint: hint,
+            permissions,
+            is_active: true
+        });
+        await this.apiTokenRepo.save(token);
+
+        return {
+            id: token.id,
+            name: token.name,
+            api_key: rawToken, // Only return the raw token once!
+            token_hint: hint,
+            permissions: token.permissions
+        };
+    }
+
+    async validateApiToken(rawToken: string) {
+        // Since we don't know which token it is from the raw string alone without a prefix/id,
+        // we'd normally have to check all hashes, which is slow.
+        // A better approach is to require the API Key in the format: "id:rawToken" or standard "sk_..."
+        // For simplicity and since there are few bots, we check active tokens.
+        // But to be scalable, let's assume the client passes the token as is. 
+        // We will fetch all active tokens and compare. (OK for < 10 bots)
+        const activeTokens = await this.apiTokenRepo.find({ where: { is_active: true } });
+        
+        for (const token of activeTokens) {
+            const isMatch = await bcrypt.compare(rawToken, token.token_hash);
+            if (isMatch) {
+                // Update last used asynchronously
+                this.apiTokenRepo.update(token.id, { last_used_at: new Date() }).catch(console.error);
+                return token;
+            }
+        }
+        return null;
+    }
+
+    async listApiTokens() {
+        return this.apiTokenRepo.find({ 
+            select: ['id', 'name', 'token_hint', 'permissions', 'last_used_at', 'created_at', 'is_active'],
+            order: { created_at: 'DESC' } 
+        });
+    }
+
+    async revokeApiToken(id: number) {
+        await this.apiTokenRepo.update(id, { is_active: false });
+        return { success: true };
+    }
+
 
 
     // --- CONTRACT TEMPLATES ---

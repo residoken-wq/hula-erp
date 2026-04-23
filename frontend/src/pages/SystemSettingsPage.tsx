@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip, Tag, Space } from 'antd';
-import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SettingOutlined, MinusCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip, Tag, Space, Typography } from 'antd';
+import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SettingOutlined, MinusCircleOutlined, InfoCircleOutlined, KeyOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
@@ -29,6 +29,11 @@ const SystemSettingsPage: React.FC = () => {
                     <Tabs.TabPane tab={<span><ShopOutlined /> Terms Báo giá</span>} key="3">
                         <div style={{ padding: 24 }}>
                             <QuoteTermsTab />
+                        </div>
+                    </Tabs.TabPane>
+                    <Tabs.TabPane tab={<span><KeyOutlined /> API Management</span>} key="5">
+                        <div style={{ padding: 24 }}>
+                            <ApiKeysTab />
                         </div>
                     </Tabs.TabPane>
                 </Tabs>
@@ -908,6 +913,122 @@ const EmailTemplatesTab: React.FC = () => {
                         </div>
                     </Col>
                 </Row>
+            </Modal>
+        </div>
+    );
+};
+
+const ApiKeysTab: React.FC = () => {
+    const [tokens, setTokens] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [form] = Form.useForm();
+    const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+
+    const fetchTokens = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(`${API_URL}/system/api-tokens`);
+            setTokens(res.data);
+        } catch (e) { message.error('Lỗi tải danh sách API Keys'); }
+        setLoading(false);
+    };
+
+    useEffect(() => { fetchTokens(); }, []);
+
+    const handleCreate = async (values: any) => {
+        try {
+            const res = await axios.post(`${API_URL}/system/api-tokens`, values);
+            setGeneratedKey(res.data.api_key);
+            message.success('Tạo API Key thành công');
+            fetchTokens();
+        } catch (e) { message.error('Lỗi khi tạo API Key'); }
+    };
+
+    const handleRevoke = async (id: number) => {
+        try {
+            await axios.delete(`${API_URL}/system/api-tokens/${id}`);
+            message.success('Đã thu hồi API Key');
+            fetchTokens();
+        } catch (e) { message.error('Lỗi thu hồi API Key'); }
+    };
+
+    const columns = [
+        { title: 'Tên Bot / Dịch Vụ', dataIndex: 'name', key: 'name', render: (t: string) => <b>{t}</b> },
+        { title: 'Token Hint', dataIndex: 'token_hint', key: 'token_hint', render: (t: string) => <Tag color="default">...{t}</Tag> },
+        { title: 'Quyền Hạn', dataIndex: 'permissions', key: 'permissions', render: (perms: string[]) => (
+            <>
+                {perms?.map(p => <Tag color="blue" key={p}>{p}</Tag>)}
+            </>
+        )},
+        { title: 'Trạng Thái', dataIndex: 'is_active', key: 'is_active', render: (active: boolean) => (
+            <Tag color={active ? 'green' : 'red'}>{active ? 'Đang hoạt động' : 'Đã thu hồi'}</Tag>
+        )},
+        { title: 'Lần Dùng Cuối', dataIndex: 'last_used_at', key: 'last_used_at', render: (t: string) => t ? dayjs(t).format('DD/MM/YYYY HH:mm') : 'Chưa sử dụng' },
+        { title: 'Ngày Tạo', dataIndex: 'created_at', key: 'created_at', render: (t: string) => dayjs(t).format('DD/MM/YYYY') },
+        {
+            title: 'Hành động', key: 'action', width: 100, render: (_: any, r: any) => (
+                r.is_active && (
+                    <Popconfirm title="Bạn có chắc chắn muốn thu hồi (revoke) key này? Bot sử dụng key này sẽ mất quyền truy cập ngay lập tức." onConfirm={() => handleRevoke(r.id)}>
+                        <Button danger size="small">Thu hồi</Button>
+                    </Popconfirm>
+                )
+            )
+        }
+    ];
+
+    return (
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div>
+                    <h3>Quản Lý API Keys</h3>
+                    <p style={{ color: '#888', marginBottom: 0 }}>Cấp phát và thu hồi API Key cho các hệ thống Agent (Bot) tích hợp.</p>
+                </div>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => { setGeneratedKey(null); form.resetFields(); setModalOpen(true); }}>Tạo API Key</Button>
+            </div>
+
+            <Table dataSource={tokens} columns={columns} rowKey="id" loading={loading} pagination={false} />
+
+            <Modal
+                title="Tạo API Key Mới"
+                open={modalOpen}
+                onCancel={() => { setModalOpen(false); setGeneratedKey(null); }}
+                onOk={generatedKey ? () => { setModalOpen(false); setGeneratedKey(null); } : form.submit}
+                okText={generatedKey ? "Đóng" : "Tạo Key"}
+                cancelButtonProps={{ style: { display: generatedKey ? 'none' : 'inline-block' } }}
+            >
+                {generatedKey ? (
+                    <Alert
+                        type="success"
+                        message="API Key đã được tạo thành công!"
+                        description={
+                            <div>
+                                <p style={{ marginBottom: 8 }}>Vui lòng copy và lưu trữ mã Key dưới đây ngay lập tức. <b>Mã này sẽ chỉ được hiển thị 1 lần duy nhất</b> để đảm bảo bảo mật.</p>
+                                <div style={{ background: '#f6ffed', padding: '10px 15px', border: '1px solid #b7eb8f', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Typography.Text copyable={{ text: generatedKey }} style={{ fontFamily: 'monospace', fontSize: 16, wordBreak: 'break-all' }}>
+                                        {generatedKey}
+                                    </Typography.Text>
+                                </div>
+                            </div>
+                        }
+                    />
+                ) : (
+                    <Form form={form} layout="vertical" onFinish={handleCreate}>
+                        <Form.Item name="name" label="Tên gợi nhớ (Tên Bot/Hệ thống)" rules={[{ required: true, message: 'Nhập tên' }]}>
+                            <Input placeholder="VD: Agent Daily Report" />
+                        </Form.Item>
+                        <Form.Item name="permissions" label="Quyền truy cập" rules={[{ required: true, message: 'Chọn ít nhất 1 quyền' }]}>
+                            <Tabs defaultActiveKey="1" items={[
+                                {
+                                    key: '1',
+                                    label: 'Full Access',
+                                    children: <Alert message="Cấp toàn quyền đọc dữ liệu (Orders, Inventory, MRP, Customers) cho Agent." type="info" />
+                                }
+                            ]} />
+                            {/* Hidden field as we currently give default full access or specific perms based on string arrays */}
+                        </Form.Item>
+                    </Form>
+                )}
             </Modal>
         </div>
     );
