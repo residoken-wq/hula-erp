@@ -193,8 +193,8 @@ export class AgentApiService {
             materialIds.length > 0 ? this.materialRepo.find({ where: { id: In(materialIds) }, select: ['id', 'code', 'name', 'unit'] }) : []
         ]);
 
-        const productMap = new Map<number, Product>(products.map(p => [p.id, p as Product]));
-        const materialMap = new Map<number, Material>(materials.map(m => [m.id, m as Material]));
+        const productMap = new Map<number, Product>(products.map(p => [p.id, p as Product] as [number, Product]));
+        const materialMap = new Map<number, Material>(materials.map(m => [m.id, m as Material] as [number, Material]));
 
         result = result.map(r => {
             if (r.item_type === 'PRODUCT') {
