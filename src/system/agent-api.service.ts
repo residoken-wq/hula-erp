@@ -193,15 +193,24 @@ export class AgentApiService {
             materialIds.length > 0 ? this.materialRepo.find({ where: { id: In(materialIds) }, select: ['id', 'code', 'name', 'unit'] }) : []
         ]);
 
-        const productMap = new Map(products.map(p => [p.id, p]));
-        const materialMap = new Map(materials.map(m => [m.id, m]));
+        const productMap = new Map<number, Product>(products.map(p => [p.id, p as Product]));
+        const materialMap = new Map<number, Material>(materials.map(m => [m.id, m as Material]));
 
         result = result.map(r => {
-            const master = r.item_type === 'PRODUCT' ? productMap.get(r.item_id) : materialMap.get(r.item_id);
-            if (master) {
-                r.item_name = master.name;
-                r.item_code = r.item_type === 'PRODUCT' ? (master as any).sku : (master as any).code;
-                r.unit = master.unit;
+            if (r.item_type === 'PRODUCT') {
+                const master = productMap.get(r.item_id);
+                if (master) {
+                    r.item_name = master.name;
+                    r.item_code = master.sku;
+                    r.unit = master.unit;
+                }
+            } else {
+                const master = materialMap.get(r.item_id);
+                if (master) {
+                    r.item_name = master.name;
+                    r.item_code = master.code;
+                    r.unit = master.unit;
+                }
             }
             return r;
         });
