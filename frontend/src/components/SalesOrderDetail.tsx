@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table } from 'antd';
+import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table, Switch } from 'antd';
 import { PlusOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined, FileTextOutlined, AppstoreAddOutlined } from '@ant-design/icons';
 import api from '../utils/api';
@@ -93,7 +93,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     vat_tax_code: initialData.vat_tax_code || initialData.customer?.tax_code || '',
                     vat_address: initialData.vat_address || initialData.customer?.legal_address || initialData.customer?.address || '',
                     vat_invoice_link: initialData.vat_invoice_link || '',
-                    vat_email: initialData.vat_email || initialData.customer?.einvoice_email || ''
+                    vat_email: initialData.vat_email || initialData.customer?.einvoice_email || '',
+                    require_invoice: initialData.require_invoice !== undefined ? initialData.require_invoice : true
                 });
 
                 // FIX LỖI: Map dữ liệu từ Backend (subtotal) sang Frontend (total_price)
@@ -136,7 +137,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     shipping_fee: 0,
                     // --- AUTO FILL FOR INTERNAL ---
                     customer_id: isInternal ? -1 : undefined, // Use -1 or handle effectively
-                    note: isInternal ? 'Đơn nhập kho (Make to Stock)' : ''
+                    note: isInternal ? 'Đơn nhập kho (Make to Stock)' : '',
+                    require_invoice: true
                 });
 
                 // Load default terms & note from system config
@@ -507,8 +509,16 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 </Form.Item>
                             </Col>
                         </Row>
-                        <Row>
-                            <Col span={24}>
+                        <Row gutter={16}>
+                            <Col xs={12} sm={8}>
+                                <Form.Item name="require_invoice" valuePropName="checked">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Switch checkedChildren="Có" unCheckedChildren="Không" />
+                                        <span style={{ fontWeight: 500, color: '#1890ff' }}>Lấy hóa đơn</span>
+                                    </div>
+                                </Form.Item>
+                            </Col>
+                            <Col xs={12} sm={16}>
                                 <Form.Item name="is_production_sample_approved" valuePropName="checked">
                                     <Checkbox style={{ fontWeight: 600, color: '#1890ff' }}>
                                         {isMobile ? 'Đã duyệt mẫu SX' : 'Đã duyệt mẫu tiêu chuẩn - Production Sample Approved'}

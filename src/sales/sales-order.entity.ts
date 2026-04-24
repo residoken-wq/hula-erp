@@ -105,6 +105,9 @@ export class SalesOrder {
   // --- MỚI: CỘT LƯU ĐIỀU KHOẢN ---
   @Column('text', { nullable: true }) terms_content: string;
 
+  // --- LẤY HÓA ĐƠN ---
+  @Column({ type: 'boolean', default: true }) require_invoice: boolean;
+
   // --- DỮ LIỆU HỢP ĐỒNG KHÁCH HÀNG ---
   @Column('text', { nullable: true }) contract_html: string;
   @Column('jsonb', { nullable: true }) contract_variables: any;
