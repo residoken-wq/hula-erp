@@ -292,7 +292,7 @@ const SalesPage: React.FC = () => {
                                 <Progress percent={pct} size="small" steps={5} strokeColor={pct >= 100 ? '#52c41a' : '#1890ff'} showInfo={false} />
                                 <span style={{ fontSize: 11, color: pct >= 100 ? 'green' : '#666' }}>{pct}%</span>
                             </div>
-                            {r.require_invoice && <Tag color="blue" size="small" style={{ margin: 0 }}>Lấy HĐ</Tag>}
+                            {r.require_invoice && <Tag color="blue" style={{ margin: 0 }}>Lấy HĐ</Tag>}
                         </div>
                     </Tooltip>
                 )
