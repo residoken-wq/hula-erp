@@ -90,21 +90,32 @@ moment(date).format('...');
 
 ## 🔴 CRITICAL: NestJS Module & Entity Registration
 
-> **Nguyên nhân:** Commits `55eb470`, `9c96fff`, `e4e5487` - Quên đăng ký entity/service gây crash khi startup.
+> **Nguyên nhân:** Lỗi `EntityMetadataNotFoundError: No metadata for "..." was found.` (Commits `55eb470`, `9c96fff`, `e4e5487`, `ab796f2`) do quên đăng ký entity gây crash.
 
-### Khi tạo Entity mới - PHẢI làm đủ 3 bước:
+### Khi tạo Entity mới - PHẢI làm đủ 4 bước:
 
 1. Tạo entity file trong `src/[module]/`
-2. **Import entity trong `app.module.ts`** → thêm vào `TypeOrmModule.forFeature([...])`
-3. Thêm try-catch để xử lý graceful khi table chưa tồn tại
+2. **Khai báo trong `app.module.ts`** → Thêm vào mảng `entities: [...]` của `TypeOrmModule.forRootAsync`. **Đây là nguyên nhân chính gây lỗi EntityMetadataNotFoundError.**
+3. **Khai báo trong feature module** (VD: `public.module.ts`) → Thêm vào `TypeOrmModule.forFeature([...])`.
+4. Thêm try-catch để xử lý graceful khi table chưa tồn tại (nếu query lúc startup).
 
 ```typescript
-// Bước 2: Đăng ký trong app.module.ts
+// Bước 2: Đăng ký root trong app.module.ts
 import { NewEntity } from './module/new-entity.entity';
 
+TypeOrmModule.forRootAsync({
+    useFactory: () => ({
+        // ...
+        entities: [
+            // ... existing entities,
+            NewEntity,  // ← KHÔNG ĐƯỢC QUÊN ĐỂ TRÁNH LỖI EntityMetadataNotFoundError
+        ]
+    })
+})
+
+// Bước 3: Đăng ký feature module (ví dụ: public.module.ts)
 TypeOrmModule.forFeature([
-    // ... existing entities,
-    NewEntity,  // ← KHÔNG ĐƯỢC QUÊN
+    NewEntity,
 ])
 ```
 
@@ -381,7 +392,8 @@ Khi cần `position: sticky`, phải reset `overflow` trên **tất cả parent 
 - [ ] Responsive: luôn có 3 breakpoints (`base`, `md:`, `lg:`)
 
 ### Backend (NestJS):
-- [ ] **Import entity** trong `app.module.ts` → `TypeOrmModule.forFeature([...])`
+- [ ] **Import entity** vào mảng `entities` của `TypeOrmModule.forRootAsync` trong `app.module.ts`
+- [ ] **Khai báo entity** trong `TypeOrmModule.forFeature([...])` của Feature Module
 - [ ] **Export service** trong module nếu cần dùng ở nơi khác
 - [ ] Import đầy đủ TypeORM decorators (`ManyToOne`, `JoinColumn`, etc.)
 - [ ] Dùng **entity property name** trong QueryBuilder (kiểm tra file `.entity.ts`)
