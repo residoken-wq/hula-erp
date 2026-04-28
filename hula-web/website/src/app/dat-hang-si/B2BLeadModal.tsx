@@ -29,7 +29,7 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
 
         for (const step of steps) {
             const optId = selections[step.id];
-            const opt = step.options.find(o => o.id === optId);
+            const opt = step.options?.find(o => o.id === optId);
             if (opt) {
                 modifier += opt.price_modifier;
                 options.push({
@@ -45,7 +45,7 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
         if (subcategory.price_tiers && subcategory.price_tiers.length > 0) {
             // Sort by min_quantity desc to find the highest applicable tier
             const sortedTiers = [...subcategory.price_tiers].sort((a, b) => b.min_quantity - a.min_quantity);
-            const applicableTier = sortedTiers.find(t => quantity >= t.min_quantity);
+            const applicableTier = sortedTiers?.find(t => quantity >= t.min_quantity);
             
             if (applicableTier) {
                 basePrice = applicableTier.base_price;

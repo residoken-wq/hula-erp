@@ -117,7 +117,7 @@ export default function B2BConfiguratorPage() {
 
     const selectedOptionsList = currentL2?.customization_steps?.map(step => {
         const optionId = stepSelections[step.id];
-        return step.options.find(o => o.id === optionId);
+        return step.options?.find(o => o.id === optionId);
     }).filter(Boolean) as any[] || [];
 
     return (

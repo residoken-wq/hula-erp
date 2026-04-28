@@ -13,8 +13,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
     
     // Tạm thời, mình sẽ lấy base_image, và phủ một lớp color overlay (mix-blend-mode: multiply) nếu có color_code
     
-    const colorOption = selectedOptions.find(o => o.color_code);
-    const textureOption = selectedOptions.find(o => o.visualization_overlay);
+    const colorOption = selectedOptions?.find(o => o.color_code);
+    const textureOption = selectedOptions?.find(o => o.visualization_overlay);
 
     return (
         <div className="relative w-full aspect-square bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 p-4">

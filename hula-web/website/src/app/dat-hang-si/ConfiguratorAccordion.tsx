@@ -16,7 +16,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange }: P
         if (step.type === 'toggle') {
             return (
                 <div className="flex flex-wrap gap-2">
-                    {step.options.map(opt => (
+                    {(step.options || []).map(opt => (
                         <button
                             key={opt.id}
                             onClick={() => {
@@ -43,7 +43,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange }: P
         if (step.type === 'color_swatch') {
             return (
                 <div className="flex flex-wrap gap-3">
-                    {step.options.map(opt => (
+                    {(step.options || []).map(opt => (
                         <button
                             key={opt.id}
                             onClick={() => {
@@ -79,7 +79,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange }: P
         // Default: dropdown
         return (
             <div className="flex flex-col gap-2">
-                {step.options.map(opt => (
+                {(step.options || []).map(opt => (
                     <label
                         key={opt.id}
                         className={`flex items-center justify-between p-3 border-2 rounded-lg cursor-pointer transition-colors ${
@@ -121,7 +121,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange }: P
         <div className="border border-primary/20 rounded-xl overflow-hidden bg-white shadow-sm">
             {steps.map((step, index) => {
                 const isOpen = openStep === step.id;
-                const selectedOption = step.options.find(o => o.id === selections[step.id]);
+                const selectedOption = step.options?.find(o => o.id === selections[step.id]);
 
                 return (
                     <div key={step.id} className="border-b border-gray-100 last:border-b-0">
