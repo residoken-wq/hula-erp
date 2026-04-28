@@ -292,7 +292,7 @@ const SalesPage: React.FC = () => {
                                 <Progress percent={pct} size="small" steps={5} strokeColor={pct >= 100 ? '#52c41a' : '#1890ff'} showInfo={false} />
                                 <span style={{ fontSize: 11, color: pct >= 100 ? 'green' : '#666' }}>{pct}%</span>
                             </div>
-                            {r.require_invoice && <Tag color="blue" style={{ margin: 0 }}>Lấy HĐ</Tag>}
+                            {r.require_invoice && <Tag color="blue" style={{ margin: 0 }}>Lấy hóa đơn</Tag>}
                         </div>
                     </Tooltip>
                 )
@@ -518,7 +518,7 @@ const SalesPage: React.FC = () => {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 11, color: '#999' }}>
                                             <span>{r.order_date ? dayjs(r.order_date).format('DD/MM/YYYY') : '-'}</span>
                                             <span>{r.assigned_to?.full_name || '-'}</span>
-                                            {r.require_invoice && <Tag color="blue" style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px', margin: 0 }}>HĐ</Tag>}
+                                            {r.require_invoice && <Tag color="blue" style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px', margin: 0 }}>Lấy hóa đơn</Tag>}
                                             <RightOutlined style={{ color: '#bfbfbf' }} />
                                         </div>
                                     </div>

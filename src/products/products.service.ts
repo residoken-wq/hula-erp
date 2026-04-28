@@ -62,6 +62,24 @@ export class ProductsService {
                     .map(c => `• ${c.child_product?.name || 'N/A'} (x${c.quantity})${c.child_product?.customer_description ? ` - ${c.child_product.customer_description}` : ''}`)
                     .join('\n');
             }
+
+            // AUTO-CALCULATE COMBO STOCK
+            if (product.product_type === 'COMBO') {
+                if (components.length === 0) {
+                    product.quantity_in_stock = 0;
+                } else {
+                    let minStock = Infinity;
+                    for (const c of components) {
+                        const childStock = Number(c.child_product?.quantity_in_stock) || 0;
+                        const reqQty = Number(c.quantity) || 1;
+                        const possibleStock = Math.floor(childStock / reqQty);
+                        if (possibleStock < minStock) {
+                            minStock = possibleStock;
+                        }
+                    }
+                    product.quantity_in_stock = minStock === Infinity ? 0 : minStock;
+                }
+            }
         }
     }
 

@@ -160,6 +160,7 @@ export class SalesService {
             uuid: uuidv4(),
             vat_company_name: data.vat_company_name, vat_tax_code: data.vat_tax_code, vat_address: data.vat_address, vat_rate: Number(data.vat_rate) || 0,
             vat_invoice_link: data.vat_invoice_link, vat_email: data.vat_email,
+            require_invoice: data.require_invoice !== undefined ? data.require_invoice : true,
             shipping_address: data.shipping_address, receiver_name: data.receiver_name, receiver_phone: data.receiver_phone, shipping_carrier: data.shipping_carrier, shipping_fee: Number(data.shipping_fee) || 0,
             discount_rate: Number(data.discount_rate) || 0,
             discount_amount: Number(data.discount_amount) || 0,
@@ -321,6 +322,7 @@ export class SalesService {
         if (data.vat_address !== undefined) order.vat_address = data.vat_address;
         if (data.vat_invoice_link !== undefined) order.vat_invoice_link = data.vat_invoice_link;
         if (data.vat_email !== undefined) order.vat_email = data.vat_email;
+        if (data.require_invoice !== undefined) order.require_invoice = data.require_invoice;
 
         order.vat_rate = Number(data.vat_rate) || 0;
         order.shipping_fee = Number(data.shipping_fee) || 0;
