@@ -314,7 +314,7 @@ const PortalDashboardPage: React.FC = () => {
                             <div style={S.statIcon}>💰</div>
                             <div>
                                 <div style={S.statValue}>{fmt(stats.total_revenue)}đ</div>
-                                <div style={S.statLabel}>Tổng doanh thu</div>
+                                <div style={S.statLabel}>Đã mua</div>
                             </div>
                         </div>
                         <div style={{ ...S.statCard, borderLeftColor: '#fa8c16' }}>

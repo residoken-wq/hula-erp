@@ -178,7 +178,7 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                                                     </Col>
                                                     <Col span={8}>
                                                         <Form.Item {...field} name={[field.name, 'base_price']} label="Giá Base (VNĐ)" rules={[{ required: true }]}>
-                                                            <InputNumber min={0} style={{ width: '100%' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={value => Number(value?.replace(/\$\s?|(,*)/g, '') || 0)} />
+                                                            <InputNumber min={0} style={{ width: '100%' }} formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(value) => Number(value?.replace(/\$\s?|(,*)/g, '') || 0) as any} />
                                                         </Form.Item>
                                                     </Col>
                                                     <Col span={4}>
