@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpException, HttpStatus, Headers } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Product } from '../products/product.entity';
@@ -58,7 +58,11 @@ export class PublicController {
     }
 
     @Get('settings')
-    async getSettings() {
+    async getSettings(
+        @Headers('origin') origin?: string,
+        @Headers('referer') referer?: string,
+        @Headers('x-forwarded-host') xForwardedHost?: string
+    ) {
         // Fetch settings from CMS config keys (lowercase format from Website CMS)
         const cmsKeys = [
             'site_name', 'site_description', 'logo_url', 'favicon_url', 'contact_phone', 'contact_email', 'contact_address',
@@ -101,6 +105,11 @@ export class PublicController {
             result[key] = val;
         });
 
+        const isBeta = 
+            (origin && origin.includes('beta.nemmamnon.com')) || 
+            (referer && referer.includes('beta.nemmamnon.com')) || 
+            (xForwardedHost && xForwardedHost.includes('beta.nemmamnon.com'));
+
         // Return public system settings formatted for website
         return {
             site_name: result.site_name || 'Nệm Mầm Non HULA',
@@ -116,7 +125,7 @@ export class PublicController {
             facebook_page_url: result.facebook_page_url || '',
             // Options
             product_tags_config: result.product_tags_config || '',
-            hidden_pages: result.hidden_pages || '',
+            hidden_pages: isBeta ? '' : (result.hidden_pages || ''),
             // Page Banners
             banner_shop_title: result.banner_shop_title || '',
             banner_shop_desc: result.banner_shop_desc || '',
