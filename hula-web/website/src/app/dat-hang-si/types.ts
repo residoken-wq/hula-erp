@@ -1,0 +1,53 @@
+export interface WizardOption {
+    id: string;
+    name: string;
+    description?: string;
+    price_modifier: number;
+    image_url?: string;
+    visualization_overlay?: string;
+    color_code?: string;
+    sub_options?: WizardOption[];
+}
+
+export interface WizardCustomizationStep {
+    id: string;
+    label: string;
+    type: 'toggle' | 'dropdown' | 'color_swatch';
+    options: WizardOption[];
+    default_option_id?: string;
+}
+
+export interface WizardPriceTier {
+    min_quantity: number;
+    max_quantity?: number;
+    base_price: number;
+}
+
+export interface WizardCategoryL2 {
+    id: string;
+    name: string;
+    sort_order: number;
+    base_image?: string;
+    customization_steps: WizardCustomizationStep[];
+    price_tiers: WizardPriceTier[];
+}
+
+export interface WizardCategoryL1 {
+    id: string;
+    name: string;
+    icon_url?: string;
+    image_url?: string;
+    sort_order: number;
+    subcategories: WizardCategoryL2[];
+}
+
+export interface WizardConfigData {
+    hero_title: string;
+    hero_subtitle?: string;
+    categories: WizardCategoryL1[];
+    trust_section?: {
+        process_steps: Array<{ icon: string; title: string; description: string }>;
+        quality_badges: Array<{ icon: string; text: string }>;
+        partner_logos: string[];
+    };
+}

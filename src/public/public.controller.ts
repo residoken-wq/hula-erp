@@ -576,21 +576,19 @@ export class PublicController {
         try {
             const config = await this.wizardConfigRepo.findOne({ where: { key: 'wizard_products' } });
             if (!config) {
-                // Return default empty config
+                // Return default empty config v2
                 return {
-                    main: [],
-                    accessory: [],
-                    service: []
+                    hero_title: 'Tự Thiết Kế Bộ Sản Phẩm Mầm Non Cao Cấp',
+                    categories: []
                 };
             }
             return config.value;
         } catch (error) {
-            // Table may not exist yet, return empty config
+            // Table may not exist yet, return empty config v2
             console.error('Wizard config error:', error);
             return {
-                main: [],
-                accessory: [],
-                service: []
+                hero_title: 'Tự Thiết Kế Bộ Sản Phẩm Mầm Non Cao Cấp',
+                categories: []
             };
         }
     }
@@ -678,26 +676,27 @@ export class PublicController {
         email?: string;
         address?: string;
         notes?: string;
-        selected_products: Array<{
-            product_id?: number;
-            name: string;
-            quantity: number;
-            price: number;
-            type: 'main' | 'accessory' | 'service';
-        }>;
+        selected_category: string;
+        selected_subcategory: string;
+        quantity: number;
+        selections: Array<{ step_label: string; option_name: string; modifier?: number }>;
         total_price: number;
         render_image?: string; // base64 image
     }) {
         // Build product summary for notes
-        const productSummary = body.selected_products.map(p =>
-            `- ${p.name} x${p.quantity} = ${p.price.toLocaleString('vi-VN')}đ (${p.type})`
+        const selectionsSummary = body.selections.map(s =>
+            `- ${s.step_label}: ${s.option_name} ${s.modifier ? `(+${s.modifier.toLocaleString('vi-VN')}đ)` : ''}`
         ).join('\n');
 
         const fullNotes = `
-=== ĐƠN HÀNG SỈ TỪ WIZARD ===
+=== ĐƠN HÀNG SỈ TỪ WIZARD V2 ===
 
-Sản phẩm đã chọn:
-${productSummary}
+Danh mục: ${body.selected_category}
+Sản phẩm: ${body.selected_subcategory}
+Số lượng: ${body.quantity} bộ
+
+Cấu hình chi tiết:
+${selectionsSummary}
 
 Tổng tạm tính: ${body.total_price.toLocaleString('vi-VN')}đ
 
@@ -722,7 +721,10 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
                 timestamp: new Date(),
                 data: {
                     contact_person: body.customer_name,
-                    selected_products: body.selected_products,
+                    selected_category: body.selected_category,
+                    selected_subcategory: body.selected_subcategory,
+                    quantity: body.quantity,
+                    selections: body.selections,
                     total_price: body.total_price,
                     notes: fullNotes,
                     has_render_image: !!body.render_image
