@@ -511,12 +511,12 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         </Row>
                         <Row gutter={16}>
                             <Col xs={12} sm={8}>
-                                <Form.Item name="require_invoice" valuePropName="checked">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 5 }}>
+                                    <Form.Item name="require_invoice" valuePropName="checked" noStyle>
                                         <Switch checkedChildren="Có" unCheckedChildren="Không" />
-                                        <span style={{ fontWeight: 500, color: '#1890ff' }}>Lấy hóa đơn</span>
-                                    </div>
-                                </Form.Item>
+                                    </Form.Item>
+                                    <span style={{ fontWeight: 500, color: '#1890ff' }}>Lấy hóa đơn</span>
+                                </div>
                             </Col>
                             <Col xs={12} sm={16}>
                                 <Form.Item name="is_production_sample_approved" valuePropName="checked">
