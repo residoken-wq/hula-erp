@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Upload, Button, Space, message, Modal, Input, Empty, Spin, Tooltip, Typography, Popconfirm, Tag } from 'antd';
+import { Card, Upload, Button, Space, message, Modal, Input, Empty, Spin, Tooltip, Typography, Popconfirm, Tag, Checkbox } from 'antd';
 import {
     UploadOutlined,
     DeleteOutlined,
@@ -54,6 +54,7 @@ export default function MediaPage() {
     const [uploading, setUploading] = useState(false);
     const [usageMap, setUsageMap] = useState<Record<string, Array<{ type: string; id?: number; label: string }>>>({});
     const [usageFilter, setUsageFilter] = useState<'all' | 'used' | 'unused'>('all');
+    const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
 
     const loadFiles = useCallback(async () => {
         try {
@@ -99,6 +100,46 @@ export default function MediaPage() {
         }
     };
 
+    const handleDeleteSelected = () => {
+        Modal.confirm({
+            title: `Xóa ${selectedKeys.length} hình ảnh đã chọn?`,
+            content: 'Hành động này không thể hoàn tác.',
+            okText: 'Xóa',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                try {
+                    setLoading(true);
+                    for (const key of selectedKeys) {
+                        await uploadApi.deleteFile(key);
+                    }
+                    message.success(`Đã xóa ${selectedKeys.length} hình ảnh`);
+                    setSelectedKeys([]);
+                    loadFiles();
+                } catch {
+                    message.error('Có lỗi xảy ra khi xóa một số hình ảnh');
+                    loadFiles();
+                }
+            }
+        });
+    };
+
+    const toggleSelection = (name: string) => {
+        setSelectedKeys(prev => 
+            prev.includes(name) ? prev.filter(k => k !== name) : [...prev, name]
+        );
+    };
+
+    const handleSelectAllUnused = () => {
+        const unusedFiles = filteredFiles.filter(f => getFileUsage(f.name).length === 0);
+        const newSelected = [...selectedKeys];
+        unusedFiles.forEach(f => {
+            if (!newSelected.includes(f.name)) newSelected.push(f.name);
+        });
+        setSelectedKeys(newSelected);
+        message.success(`Đã chọn thêm ${unusedFiles.length} hình chưa dùng trong danh sách`);
+    };
+
     const handleCopyUrl = (file: UploadedFile) => {
         const url = resolveUrl(file.url);
         navigator.clipboard.writeText(url);
@@ -133,7 +174,17 @@ export default function MediaPage() {
                     </Space>
                 }
                 extra={
-                    <Space>
+                    <Space style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {selectedKeys.length > 0 && (
+                            <Space style={{ marginRight: 16 }}>
+                                <Text strong type="danger">{selectedKeys.length} đã chọn</Text>
+                                <Button size="small" onClick={() => setSelectedKeys([])}>Bỏ chọn</Button>
+                                <Button size="small" danger icon={<DeleteOutlined />} onClick={handleDeleteSelected}>Xóa</Button>
+                            </Space>
+                        )}
+                        <Tooltip title="Chọn tất cả hình chưa sử dụng đang hiển thị">
+                            <Button size="small" onClick={handleSelectAllUnused}>Chọn tất cả chưa dùng</Button>
+                        </Tooltip>
                         <Input
                             placeholder="Tìm kiếm..."
                             prefix={<SearchOutlined />}
@@ -256,9 +307,16 @@ export default function MediaPage() {
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         overflow: 'hidden',
+                                        position: 'relative',
                                     }}
                                     onClick={() => setPreviewFile(file)}
                                 >
+                                    <div 
+                                        style={{ position: 'absolute', top: 8, left: 8, zIndex: 10 }}
+                                        onClick={(e) => { e.stopPropagation(); toggleSelection(file.name); }}
+                                    >
+                                        <Checkbox checked={selectedKeys.includes(file.name)} />
+                                    </div>
                                     <img
                                         src={resolveUrl(file.url)}
                                         alt={file.name}
@@ -327,6 +385,10 @@ export default function MediaPage() {
                                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#fafafa'; }}
                                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                             >
+                                <Checkbox 
+                                    checked={selectedKeys.includes(file.name)} 
+                                    onChange={() => toggleSelection(file.name)} 
+                                />
                                 <div style={{ width: 48, height: 48, borderRadius: 8, overflow: 'hidden', background: '#f5f5f5', flexShrink: 0 }}>
                                     <img src={resolveUrl(file.url)} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 </div>
