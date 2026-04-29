@@ -18,117 +18,93 @@ interface Props {
 }
 
 export default function ProductVisualizer({ subcategory, selectedOptions }: Props) {
-    // Tìm các overlay cần hiển thị
-    // Ưu tiên option có visualization_overlay (texture/hình ảnh)
-    // Hoặc option có color_code (để làm mask tinting)
-    
-    const colorOption = selectedOptions?.find(o => o.color_code);
-    const textureOption = selectedOptions?.find(o => o.visualization_overlay);
-
     // Support new base_images[] array with fallback to legacy base_image
     const hasBaseImages = subcategory.base_images && subcategory.base_images.length > 0;
     const legacyBaseImage = subcategory.base_image;
 
-    // For gallery view of base_images
-    const [activeFrameIndex, setActiveFrameIndex] = useState(0);
+    // Global fallback for legacy mode
+    const colorOption = selectedOptions?.find(o => o.color_code);
+    const textureOption = selectedOptions?.find(o => o.visualization_overlay);
 
     return (
         <div className="relative w-full aspect-square bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 p-4">
             {hasBaseImages ? (
                 /* Multi-frame layered view */
                 <div className="relative w-full h-full flex items-center justify-center">
-                    {/* Render all frames stacked by sort_order */}
                     {[...subcategory.base_images!].sort((a, b) => a.sort_order - b.sort_order).map((frame) => {
+                        // Tìm tất cả step đã được map vào frame này
                         const mappedSteps = subcategory.customization_steps?.filter(s => s.required_frame_id === frame.id) || [];
-                        const mappedOptions = mappedSteps.map(step => selectedOptions.find(opt => step.options?.some(o => o.id === opt.id))).filter(Boolean) as WizardOption[];
+                        const mappedOptions = mappedSteps
+                            .map(step => selectedOptions.find(opt => step.options?.some(o => o.id === opt.id)))
+                            .filter(Boolean) as WizardOption[];
+
+                        // Ưu tiên: overlay image > color tint
+                        const overlayOption = mappedOptions.find(o => o.visualization_overlay);
+                        const tintOption = mappedOptions.find(o => o.color_code);
 
                         return (
-                            <React.Fragment key={frame.id}>
-                                <div
-                                    className="absolute transition-transform duration-500"
-                                    style={{
-                                        left: `${(frame.x / 600) * 100}%`,
-                                        top: `${(frame.y / 600) * 100}%`,
-                                        width: `${(frame.width / 600) * 100}%`,
-                                        height: `${(frame.height / 600) * 100}%`,
-                                        zIndex: frame.sort_order + 10,
-                                    }}
-                                >
-                                    <img 
-                                        src={resolveImageUrl(frame.url)} 
-                                        alt={frame.label || subcategory.name}
-                                        className="w-full h-full object-contain"
-                                    />
-                                </div>
+                            <div
+                                key={frame.id}
+                                className="absolute transition-transform duration-500"
+                                style={{
+                                    left: `${(frame.x / 600) * 100}%`,
+                                    top: `${(frame.y / 600) * 100}%`,
+                                    width: `${(frame.width / 600) * 100}%`,
+                                    height: `${(frame.height / 600) * 100}%`,
+                                    zIndex: frame.sort_order + 10,
+                                    isolation: 'isolate', // Tạo stacking context riêng để mix-blend chỉ ảnh hưởng frame này
+                                }}
+                            >
+                                {/* Ảnh gốc frame */}
+                                <img 
+                                    src={resolveImageUrl(frame.url)} 
+                                    alt={frame.label || subcategory.name}
+                                    className="w-full h-full object-contain"
+                                />
 
-                                {/* Mapped Overlays: Priority 1 is Image, Priority 2 is Color Tint */}
-                                {mappedOptions.map((mappedOption, idx) => (
-                                    <React.Fragment key={`${frame.id}-opt-${idx}`}>
-                                        {mappedOption.visualization_overlay ? (
-                                            <div 
-                                                className="absolute transition-opacity duration-500 animate-fade-in"
-                                                style={{
-                                                    left: `${(frame.x / 600) * 100}%`,
-                                                    top: `${(frame.y / 600) * 100}%`,
-                                                    width: `${(frame.width / 600) * 100}%`,
-                                                    height: `${(frame.height / 600) * 100}%`,
-                                                    zIndex: frame.sort_order + 20 + idx, // Stagger zIndex
-                                                }}
-                                            >
-                                                <img 
-                                                    src={resolveImageUrl(mappedOption.visualization_overlay)}
-                                                    className="w-full h-full object-contain"
-                                                    alt="Texture overlay"
-                                                />
-                                            </div>
-                                        ) : mappedOption.color_code ? (
-                                            <div 
-                                                className="absolute pointer-events-none transition-colors duration-500"
-                                                style={{
-                                                    left: `${(frame.x / 600) * 100}%`,
-                                                    top: `${(frame.y / 600) * 100}%`,
-                                                    width: `${(frame.width / 600) * 100}%`,
-                                                    height: `${(frame.height / 600) * 100}%`,
-                                                    zIndex: frame.sort_order + 20 + idx, // Stagger zIndex
-                                                    backgroundColor: mappedOption.color_code,
-                                                    mixBlendMode: 'multiply',
-                                                    WebkitMaskImage: `url("${resolveImageUrl(frame.url)}")`,
-                                                    maskImage: `url("${resolveImageUrl(frame.url)}")`,
-                                                    maskSize: 'contain',
-                                                    maskRepeat: 'no-repeat',
-                                                    maskPosition: 'center',
-                                                    opacity: 0.8
-                                                }}
-                                            />
-                                        ) : null}
-                                    </React.Fragment>
-                                ))}
-                            </React.Fragment>
+                                {/* Priority 1: Overlay image (texture/pattern) */}
+                                {overlayOption && overlayOption.visualization_overlay && (
+                                    <img 
+                                        src={resolveImageUrl(overlayOption.visualization_overlay)}
+                                        className="absolute inset-0 w-full h-full object-contain transition-opacity duration-500 animate-fade-in"
+                                        alt="Texture overlay"
+                                        style={{ zIndex: 2 }}
+                                    />
+                                )}
+
+                                {/* Priority 2: Color tint (chỉ khi không có overlay image) */}
+                                {!overlayOption && tintOption && tintOption.color_code && (
+                                    <div 
+                                        className="absolute inset-0 pointer-events-none transition-colors duration-500"
+                                        style={{
+                                            backgroundColor: tintOption.color_code,
+                                            mixBlendMode: 'multiply',
+                                            opacity: 0.6,
+                                            zIndex: 2,
+                                        }}
+                                    />
+                                )}
+                            </div>
                         );
                     })}
                 </div>
             ) : legacyBaseImage ? (
                 /* Legacy single base_image view */
-                <div className="relative w-full h-full flex items-center justify-center">
+                <div className="relative w-full h-full flex items-center justify-center" style={{ isolation: 'isolate' }}>
                     <img 
                         src={resolveImageUrl(legacyBaseImage)} 
                         alt={subcategory.name}
                         className="max-w-full max-h-full object-contain relative z-10 transition-transform duration-500"
                     />
                     
-                    {/* Color Tinting Overlay using CSS Mix-Blend-Mode */}
+                    {/* Color Tinting Overlay - dùng mix-blend-mode multiply (không cần mask-image) */}
                     {colorOption && colorOption.color_code && (
                         <div 
                             className="absolute inset-0 z-20 pointer-events-none transition-colors duration-500"
                             style={{
                                 backgroundColor: colorOption.color_code,
                                 mixBlendMode: 'multiply',
-                                WebkitMaskImage: `url("${resolveImageUrl(legacyBaseImage)}")`,
-                                maskImage: `url("${resolveImageUrl(legacyBaseImage)}")`,
-                                maskSize: 'contain',
-                                maskRepeat: 'no-repeat',
-                                maskPosition: 'center',
-                                opacity: 0.8
+                                opacity: 0.6,
                             }}
                         />
                     )}
@@ -180,3 +156,4 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
         </div>
     );
 }
+
