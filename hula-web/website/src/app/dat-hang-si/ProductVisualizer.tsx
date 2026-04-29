@@ -39,8 +39,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                 <div className="relative w-full h-full flex items-center justify-center">
                     {/* Render all frames stacked by sort_order */}
                     {[...subcategory.base_images!].sort((a, b) => a.sort_order - b.sort_order).map((frame) => {
-                        const mappedStep = subcategory.customization_steps?.find(s => s.required_frame_id === frame.id);
-                        const mappedOption = mappedStep ? selectedOptions.find(opt => mappedStep.options?.some(o => o.id === opt.id)) : undefined;
+                        const mappedSteps = subcategory.customization_steps?.filter(s => s.required_frame_id === frame.id) || [];
+                        const mappedOptions = mappedSteps.map(step => selectedOptions.find(opt => step.options?.some(o => o.id === opt.id))).filter(Boolean) as WizardOption[];
 
                         return (
                             <React.Fragment key={frame.id}>
@@ -61,44 +61,48 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                                     />
                                 </div>
 
-                                {/* Mapped Overlay: Priority 1 is Image, Priority 2 is Color Tint */}
-                                {mappedOption && mappedOption.visualization_overlay ? (
-                                    <div 
-                                        className="absolute transition-opacity duration-500 animate-fade-in"
-                                        style={{
-                                            left: `${(frame.x / 600) * 100}%`,
-                                            top: `${(frame.y / 600) * 100}%`,
-                                            width: `${(frame.width / 600) * 100}%`,
-                                            height: `${(frame.height / 600) * 100}%`,
-                                            zIndex: frame.sort_order + 20,
-                                        }}
-                                    >
-                                        <img 
-                                            src={resolveImageUrl(mappedOption.visualization_overlay)}
-                                            className="w-full h-full object-contain"
-                                            alt="Texture overlay"
-                                        />
-                                    </div>
-                                ) : mappedOption && mappedOption.color_code ? (
-                                    <div 
-                                        className="absolute pointer-events-none transition-colors duration-500"
-                                        style={{
-                                            left: `${(frame.x / 600) * 100}%`,
-                                            top: `${(frame.y / 600) * 100}%`,
-                                            width: `${(frame.width / 600) * 100}%`,
-                                            height: `${(frame.height / 600) * 100}%`,
-                                            zIndex: frame.sort_order + 20,
-                                            backgroundColor: mappedOption.color_code,
-                                            mixBlendMode: 'multiply',
-                                            WebkitMaskImage: `url(${resolveImageUrl(frame.url)})`,
-                                            maskImage: `url(${resolveImageUrl(frame.url)})`,
-                                            maskSize: 'contain',
-                                            maskRepeat: 'no-repeat',
-                                            maskPosition: 'center',
-                                            opacity: 0.8
-                                        }}
-                                    />
-                                ) : null}
+                                {/* Mapped Overlays: Priority 1 is Image, Priority 2 is Color Tint */}
+                                {mappedOptions.map((mappedOption, idx) => (
+                                    <React.Fragment key={`${frame.id}-opt-${idx}`}>
+                                        {mappedOption.visualization_overlay ? (
+                                            <div 
+                                                className="absolute transition-opacity duration-500 animate-fade-in"
+                                                style={{
+                                                    left: `${(frame.x / 600) * 100}%`,
+                                                    top: `${(frame.y / 600) * 100}%`,
+                                                    width: `${(frame.width / 600) * 100}%`,
+                                                    height: `${(frame.height / 600) * 100}%`,
+                                                    zIndex: frame.sort_order + 20 + idx, // Stagger zIndex
+                                                }}
+                                            >
+                                                <img 
+                                                    src={resolveImageUrl(mappedOption.visualization_overlay)}
+                                                    className="w-full h-full object-contain"
+                                                    alt="Texture overlay"
+                                                />
+                                            </div>
+                                        ) : mappedOption.color_code ? (
+                                            <div 
+                                                className="absolute pointer-events-none transition-colors duration-500"
+                                                style={{
+                                                    left: `${(frame.x / 600) * 100}%`,
+                                                    top: `${(frame.y / 600) * 100}%`,
+                                                    width: `${(frame.width / 600) * 100}%`,
+                                                    height: `${(frame.height / 600) * 100}%`,
+                                                    zIndex: frame.sort_order + 20 + idx, // Stagger zIndex
+                                                    backgroundColor: mappedOption.color_code,
+                                                    mixBlendMode: 'multiply',
+                                                    WebkitMaskImage: `url("${resolveImageUrl(frame.url)}")`,
+                                                    maskImage: `url("${resolveImageUrl(frame.url)}")`,
+                                                    maskSize: 'contain',
+                                                    maskRepeat: 'no-repeat',
+                                                    maskPosition: 'center',
+                                                    opacity: 0.8
+                                                }}
+                                            />
+                                        ) : null}
+                                    </React.Fragment>
+                                ))}
                             </React.Fragment>
                         );
                     })}
@@ -119,8 +123,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                             style={{
                                 backgroundColor: colorOption.color_code,
                                 mixBlendMode: 'multiply',
-                                WebkitMaskImage: `url(${resolveImageUrl(legacyBaseImage)})`,
-                                maskImage: `url(${resolveImageUrl(legacyBaseImage)})`,
+                                WebkitMaskImage: `url("${resolveImageUrl(legacyBaseImage)}")`,
+                                maskImage: `url("${resolveImageUrl(legacyBaseImage)}")`,
                                 maskSize: 'contain',
                                 maskRepeat: 'no-repeat',
                                 maskPosition: 'center',
