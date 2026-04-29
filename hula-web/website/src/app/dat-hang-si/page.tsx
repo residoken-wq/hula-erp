@@ -18,6 +18,7 @@ export default function B2BConfiguratorPage() {
     const [selectedL1, setSelectedL1] = useState<string>('');
     const [selectedL2, setSelectedL2] = useState<string>('');
     const [stepSelections, setStepSelections] = useState<Record<string, string>>({}); // stepId -> optionId
+    const [skippedSteps, setSkippedSteps] = useState<Record<string, boolean>>({});
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -96,6 +97,15 @@ export default function B2BConfiguratorPage() {
             ...prev,
             [stepId]: optionId
         }));
+        // Un-skip if was skipped
+        setSkippedSteps(prev => ({ ...prev, [stepId]: false }));
+    };
+
+    const handleSkipStep = (stepId: string) => {
+        setSkippedSteps(prev => ({
+            ...prev,
+            [stepId]: !prev[stepId]
+        }));
     };
 
     if (loading) {
@@ -146,6 +156,11 @@ export default function B2BConfiguratorPage() {
                                 subcategory={currentL2}
                                 selectedOptions={selectedOptionsList}
                             />
+                            {currentL2.description && (
+                                <div className="mt-4 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+                                    <p className="text-sm text-gray-600 leading-relaxed">{currentL2.description}</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Cột phải: Accordion Configurator & Dynamic Pricing */}
@@ -155,6 +170,8 @@ export default function B2BConfiguratorPage() {
                                     steps={currentL2.customization_steps}
                                     selections={stepSelections}
                                     onChange={handleStepChange}
+                                    skippedSteps={skippedSteps}
+                                    onSkip={handleSkipStep}
                                 />
                             ) : (
                                 <div className="p-8 bg-white rounded-xl shadow-sm text-center border border-gray-100">

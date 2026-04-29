@@ -1,3 +1,14 @@
+export interface WizardBaseImage {
+    id: string;
+    url: string;
+    label?: string;
+    sort_order: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
 export interface WizardOption {
     id: string;
     name: string;
@@ -12,9 +23,11 @@ export interface WizardOption {
 export interface WizardCustomizationStep {
     id: string;
     label: string;
-    type: 'toggle' | 'dropdown' | 'color_swatch';
+    type: 'toggle' | 'dropdown' | 'color_swatch' | 'branding';
     options: WizardOption[];
     default_option_id?: string;
+    is_skippable?: boolean;
+    required_frame_id?: string;
 }
 
 export interface WizardPriceTier {
@@ -26,8 +39,10 @@ export interface WizardPriceTier {
 export interface WizardCategoryL2 {
     id: string;
     name: string;
+    description?: string;
     sort_order: number;
     base_image?: string;
+    base_images?: WizardBaseImage[];
     customization_steps: WizardCustomizationStep[];
     price_tiers: WizardPriceTier[];
 }

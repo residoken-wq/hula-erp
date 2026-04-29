@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, Button, Modal, Form, Input, InputNumber, message, Space, Popconfirm, Collapse, Table, Tabs, Select, Upload } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, SaveOutlined, UploadOutlined, SettingOutlined, DollarOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, EditOutlined, SaveOutlined, UploadOutlined, SettingOutlined, DollarOutlined, FileTextOutlined } from '@ant-design/icons';
 import { wizardApi } from '@/lib/api';
 import AdminLayout from '@/components/AdminLayout';
 import { WizardConfigData, WizardCategoryL1, WizardCategoryL2, WizardCustomizationStep, WizardPriceTier } from '@/types/wizard';
@@ -196,9 +196,10 @@ export default function WizardConfigPage() {
                                     pagination={false}
                                     columns={[
                                         { title: 'Tên Sản Phẩm', dataIndex: 'name' },
-                                        { title: 'Ảnh Base', dataIndex: 'base_image', render: (val) => val ? <img src={val} height={30} /> : 'Trống' },
-                                        { title: 'Số lượng Step', render: (_, r) => r.customization_steps?.length || 0 },
-                                        { title: 'Số mốc giá', render: (_, r) => r.price_tiers?.length || 0 },
+                                        { title: 'Mô tả', dataIndex: 'description', render: (val: string) => val ? <span style={{ fontSize: 12, color: '#888' }}>{val.length > 40 ? val.slice(0, 40) + '...' : val}</span> : <span style={{ color: '#ccc' }}>–</span> },
+                                        { title: 'Frames', render: (_: any, r: any) => r.base_images?.length || (r.base_image ? 1 : 0) },
+                                        { title: 'Số lượng Step', render: (_: any, r: any) => r.customization_steps?.length || 0 },
+                                        { title: 'Số mốc giá', render: (_: any, r: any) => r.price_tiers?.length || 0 },
                                         {
                                             title: 'Thao tác',
                                             width: 250,
@@ -255,7 +256,10 @@ export default function WizardConfigPage() {
                         <Form.Item name="name" label="Tên Sản Phẩm" rules={[{ required: true }]}>
                             <Input placeholder="VD: Bộ Túi Ngủ" />
                         </Form.Item>
-                        <Form.Item name="base_image" label="Base Image URL" extra="Ảnh nền gốc cho Visualization, nền trắng/trong suốt.">
+                        <Form.Item name="description" label="Mô tả sản phẩm">
+                            <Input.TextArea rows={3} placeholder="Nhập mô tả ngắn cho sản phẩm L2..." />
+                        </Form.Item>
+                        <Form.Item name="base_image" label="Base Image URL (Legacy)" extra="Ảnh nền đơn (dùng tab Image Base trong Cấu hình Tùy biến để quản lý nhiều frames).">
                             <Input placeholder="URL ảnh gốc" />
                         </Form.Item>
                         <Form.Item name="sort_order" label="Thứ tự">

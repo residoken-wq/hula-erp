@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { WizardCategoryL2, WizardOption } from './types';
 
 interface Props {
@@ -11,18 +11,79 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
     // Ưu tiên option có visualization_overlay (texture/hình ảnh)
     // Hoặc option có color_code (để làm mask tinting)
     
-    // Tạm thời, mình sẽ lấy base_image, và phủ một lớp color overlay (mix-blend-mode: multiply) nếu có color_code
-    
     const colorOption = selectedOptions?.find(o => o.color_code);
     const textureOption = selectedOptions?.find(o => o.visualization_overlay);
 
+    // Support new base_images[] array with fallback to legacy base_image
+    const hasBaseImages = subcategory.base_images && subcategory.base_images.length > 0;
+    const legacyBaseImage = subcategory.base_image;
+
+    // For gallery view of base_images
+    const [activeFrameIndex, setActiveFrameIndex] = useState(0);
+
     return (
         <div className="relative w-full aspect-square bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 p-4">
-            {/* Base Image */}
-            {subcategory.base_image ? (
+            {hasBaseImages ? (
+                /* Multi-frame layered view */
+                <div className="relative w-full h-full flex items-center justify-center">
+                    {/* Render all frames stacked by sort_order */}
+                    {[...subcategory.base_images!].sort((a, b) => a.sort_order - b.sort_order).map((frame) => (
+                        <div
+                            key={frame.id}
+                            className="absolute transition-transform duration-500"
+                            style={{
+                                left: `${(frame.x / 600) * 100}%`,
+                                top: `${(frame.y / 600) * 100}%`,
+                                width: `${(frame.width / 600) * 100}%`,
+                                height: `${(frame.height / 600) * 100}%`,
+                                zIndex: frame.sort_order + 10,
+                            }}
+                        >
+                            <img 
+                                src={frame.url} 
+                                alt={frame.label || subcategory.name}
+                                className="w-full h-full object-contain"
+                            />
+                        </div>
+                    ))}
+
+                    {/* Color Tinting Overlay using CSS Mix-Blend-Mode - applied to all frames */}
+                    {colorOption && colorOption.color_code && subcategory.base_images!.map(frame => (
+                        <div 
+                            key={`color-${frame.id}`}
+                            className="absolute pointer-events-none transition-colors duration-500"
+                            style={{
+                                left: `${(frame.x / 600) * 100}%`,
+                                top: `${(frame.y / 600) * 100}%`,
+                                width: `${(frame.width / 600) * 100}%`,
+                                height: `${(frame.height / 600) * 100}%`,
+                                zIndex: frame.sort_order + 20,
+                                backgroundColor: colorOption.color_code,
+                                mixBlendMode: 'multiply',
+                                WebkitMaskImage: `url(${frame.url})`,
+                                maskImage: `url(${frame.url})`,
+                                maskSize: 'contain',
+                                maskRepeat: 'no-repeat',
+                                maskPosition: 'center',
+                                opacity: 0.8
+                            }}
+                        />
+                    ))}
+
+                    {/* Texture Overlay */}
+                    {textureOption && textureOption.visualization_overlay && (
+                        <img 
+                            src={textureOption.visualization_overlay}
+                            className="absolute max-w-full max-h-full object-contain z-30 transition-opacity duration-500 animate-fade-in"
+                            alt="Texture overlay"
+                        />
+                    )}
+                </div>
+            ) : legacyBaseImage ? (
+                /* Legacy single base_image view */
                 <div className="relative w-full h-full flex items-center justify-center">
                     <img 
-                        src={subcategory.base_image} 
+                        src={legacyBaseImage} 
                         alt={subcategory.name}
                         className="max-w-full max-h-full object-contain relative z-10 transition-transform duration-500"
                     />
@@ -34,8 +95,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                             style={{
                                 backgroundColor: colorOption.color_code,
                                 mixBlendMode: 'multiply',
-                                WebkitMaskImage: `url(${subcategory.base_image})`,
-                                maskImage: `url(${subcategory.base_image})`,
+                                WebkitMaskImage: `url(${legacyBaseImage})`,
+                                maskImage: `url(${legacyBaseImage})`,
                                 maskSize: 'contain',
                                 maskRepeat: 'no-repeat',
                                 maskPosition: 'center',
@@ -76,6 +137,17 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                         style={{ backgroundColor: colorOption.color_code }}
                     />
                  </div>
+            )}
+
+            {/* Frame labels (bottom) */}
+            {hasBaseImages && (
+                <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1 z-40">
+                    {subcategory.base_images!.map(frame => (
+                        <div key={frame.id} className="bg-black/40 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm">
+                            {frame.label || frame.id}
+                        </div>
+                    ))}
+                </div>
             )}
         </div>
     );

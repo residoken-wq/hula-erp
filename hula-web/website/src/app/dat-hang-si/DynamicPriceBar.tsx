@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function DynamicPriceBar({ subcategory, steps, selections, onShowModal }: Props) {
-    
+
     // Calculate total modifier from selections
     let totalModifier = 0;
     for (const step of steps) {
@@ -40,10 +40,10 @@ export default function DynamicPriceBar({ subcategory, steps, selections, onShow
             <div className="p-4 bg-gradient-to-r from-primary/10 to-transparent">
                 <div className="text-center md:text-left md:flex justify-between items-center">
                     <div>
-                        <p className="text-sm font-medium text-gray-500 mb-1">Dải giá dự kiến</p>
+                        <p className="text-sm font-medium text-gray-500 mb-1">Giá dự kiến</p>
                         <div className="text-2xl font-bold text-primary">
                             {minPrice > 0 ? (
-                                minPrice === maxPrice 
+                                minPrice === maxPrice
                                     ? `${minPrice.toLocaleString('vi-VN')}đ`
                                     : `${minPrice.toLocaleString('vi-VN')}đ - ${maxPrice.toLocaleString('vi-VN')}đ`
                             ) : (
@@ -51,11 +51,11 @@ export default function DynamicPriceBar({ subcategory, steps, selections, onShow
                             )}
                         </div>
                     </div>
-                    
+
                     <div className="mt-4 md:mt-0 flex flex-col items-center">
-                        <button 
+                        <button
                             onClick={onShowModal}
-                            className="w-full md:w-auto px-8 py-3 bg-primary text-white rounded-full font-bold shadow-md hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95"
+                            className="w-full md:w-auto px-8 py-3 bg-primary-500 text-white rounded-full font-bold shadow-md hover:bg-primary/90 transition-transform hover:scale-105 active:scale-95"
                         >
                             NHẬN BÁO GIÁ SỈ CHI TIẾT
                         </button>

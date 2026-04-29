@@ -1,5 +1,16 @@
 import { Entity, Column, PrimaryColumn, UpdateDateColumn, CreateDateColumn } from 'typeorm';
 
+export interface WizardBaseImage {
+    id: string;
+    url: string;
+    label?: string;            // "Mặt trước", "Mặt sau", "Logo frame"...
+    sort_order: number;        // z-index layer order
+    x: number;                 // vị trí X (px)
+    y: number;                 // vị trí Y (px)
+    width: number;             // chiều rộng (px)
+    height: number;            // chiều cao (px)
+}
+
 export interface WizardCategoryL1 {
     id: string;                    // 'BEDDING' | 'BAGS' | 'APPAREL'
     name: string;                  // 'Bộ Nệm & Phụ Kiện Giấc Ngủ'
@@ -12,8 +23,10 @@ export interface WizardCategoryL1 {
 export interface WizardCategoryL2 {
     id: string;                    // 'SLEEPING_BAG' | 'MATTRESS_SET' | ...
     name: string;                  // 'Bộ Túi Ngủ'
+    description?: string;          // Mô tả sản phẩm L2
     sort_order: number;
-    base_image?: string;           // Ảnh mặc định cho visualization
+    base_image?: string;           // Ảnh mặc định cho visualization (backward compat)
+    base_images?: WizardBaseImage[]; // Mảng frames base image (max 5, có vị trí & kích thước)
     customization_steps: WizardCustomizationStep[];
     price_tiers: WizardPriceTier[];
 }
@@ -21,9 +34,11 @@ export interface WizardCategoryL2 {
 export interface WizardCustomizationStep {
     id: string;                    // 'B1' | 'B2' | ... | 'B6'
     label: string;                 // 'Chọn size túi ngủ'
-    type: 'toggle' | 'dropdown' | 'color_swatch';
+    type: 'toggle' | 'dropdown' | 'color_swatch' | 'branding';
     options: WizardOption[];
     default_option_id?: string;
+    is_skippable?: boolean;        // Cho phép khách hàng bỏ qua bước này
+    required_frame_id?: string;    // Liên kết step với frame base image
 }
 
 export interface WizardOption {
