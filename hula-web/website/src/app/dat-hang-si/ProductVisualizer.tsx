@@ -38,57 +38,70 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                 /* Multi-frame layered view */
                 <div className="relative w-full h-full flex items-center justify-center">
                     {/* Render all frames stacked by sort_order */}
-                    {[...subcategory.base_images!].sort((a, b) => a.sort_order - b.sort_order).map((frame) => (
-                        <div
-                            key={frame.id}
-                            className="absolute transition-transform duration-500"
-                            style={{
-                                left: `${(frame.x / 600) * 100}%`,
-                                top: `${(frame.y / 600) * 100}%`,
-                                width: `${(frame.width / 600) * 100}%`,
-                                height: `${(frame.height / 600) * 100}%`,
-                                zIndex: frame.sort_order + 10,
-                            }}
-                        >
-                            <img 
-                                src={resolveImageUrl(frame.url)} 
-                                alt={frame.label || subcategory.name}
-                                className="w-full h-full object-contain"
-                            />
-                        </div>
-                    ))}
+                    {[...subcategory.base_images!].sort((a, b) => a.sort_order - b.sort_order).map((frame) => {
+                        const mappedStep = subcategory.customization_steps?.find(s => s.required_frame_id === frame.id);
+                        const mappedOption = mappedStep ? selectedOptions.find(opt => mappedStep.options?.some(o => o.id === opt.id)) : undefined;
 
-                    {/* Color Tinting Overlay using CSS Mix-Blend-Mode - applied to all frames */}
-                    {colorOption && colorOption.color_code && subcategory.base_images!.map(frame => (
-                        <div 
-                            key={`color-${frame.id}`}
-                            className="absolute pointer-events-none transition-colors duration-500"
-                            style={{
-                                left: `${(frame.x / 600) * 100}%`,
-                                top: `${(frame.y / 600) * 100}%`,
-                                width: `${(frame.width / 600) * 100}%`,
-                                height: `${(frame.height / 600) * 100}%`,
-                                zIndex: frame.sort_order + 20,
-                                backgroundColor: colorOption.color_code,
-                                mixBlendMode: 'multiply',
-                                WebkitMaskImage: `url(${resolveImageUrl(frame.url)})`,
-                                maskImage: `url(${resolveImageUrl(frame.url)})`,
-                                maskSize: 'contain',
-                                maskRepeat: 'no-repeat',
-                                maskPosition: 'center',
-                                opacity: 0.8
-                            }}
-                        />
-                    ))}
+                        return (
+                            <React.Fragment key={frame.id}>
+                                <div
+                                    className="absolute transition-transform duration-500"
+                                    style={{
+                                        left: `${(frame.x / 600) * 100}%`,
+                                        top: `${(frame.y / 600) * 100}%`,
+                                        width: `${(frame.width / 600) * 100}%`,
+                                        height: `${(frame.height / 600) * 100}%`,
+                                        zIndex: frame.sort_order + 10,
+                                    }}
+                                >
+                                    <img 
+                                        src={resolveImageUrl(frame.url)} 
+                                        alt={frame.label || subcategory.name}
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
 
-                    {/* Texture Overlay */}
-                    {textureOption && textureOption.visualization_overlay && (
-                        <img 
-                            src={resolveImageUrl(textureOption.visualization_overlay)}
-                            className="absolute max-w-full max-h-full object-contain z-30 transition-opacity duration-500 animate-fade-in"
-                            alt="Texture overlay"
-                        />
-                    )}
+                                {/* Mapped Overlay: Priority 1 is Image, Priority 2 is Color Tint */}
+                                {mappedOption && mappedOption.visualization_overlay ? (
+                                    <div 
+                                        className="absolute transition-opacity duration-500 animate-fade-in"
+                                        style={{
+                                            left: `${(frame.x / 600) * 100}%`,
+                                            top: `${(frame.y / 600) * 100}%`,
+                                            width: `${(frame.width / 600) * 100}%`,
+                                            height: `${(frame.height / 600) * 100}%`,
+                                            zIndex: frame.sort_order + 20,
+                                        }}
+                                    >
+                                        <img 
+                                            src={resolveImageUrl(mappedOption.visualization_overlay)}
+                                            className="w-full h-full object-contain"
+                                            alt="Texture overlay"
+                                        />
+                                    </div>
+                                ) : mappedOption && mappedOption.color_code ? (
+                                    <div 
+                                        className="absolute pointer-events-none transition-colors duration-500"
+                                        style={{
+                                            left: `${(frame.x / 600) * 100}%`,
+                                            top: `${(frame.y / 600) * 100}%`,
+                                            width: `${(frame.width / 600) * 100}%`,
+                                            height: `${(frame.height / 600) * 100}%`,
+                                            zIndex: frame.sort_order + 20,
+                                            backgroundColor: mappedOption.color_code,
+                                            mixBlendMode: 'multiply',
+                                            WebkitMaskImage: `url(${resolveImageUrl(frame.url)})`,
+                                            maskImage: `url(${resolveImageUrl(frame.url)})`,
+                                            maskSize: 'contain',
+                                            maskRepeat: 'no-repeat',
+                                            maskPosition: 'center',
+                                            opacity: 0.8
+                                        }}
+                                    />
+                                ) : null}
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
             ) : legacyBaseImage ? (
                 /* Legacy single base_image view */
