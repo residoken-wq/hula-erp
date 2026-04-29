@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { WizardCategoryL2, WizardOption } from './types';
 
+const getApiBaseUrl = () => {
+    const base = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
+    return base.endsWith('/api') ? base.replace(/\/api$/, '') : base;
+};
+
+const resolveImageUrl = (url?: string): string => {
+    if (!url) return '';
+    if (url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/${url.replace('/uploads/', '')}`;
+    return url;
+};
+
 interface Props {
     subcategory: WizardCategoryL2;
     selectedOptions: WizardOption[];
@@ -40,7 +51,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                             }}
                         >
                             <img 
-                                src={frame.url} 
+                                src={resolveImageUrl(frame.url)} 
                                 alt={frame.label || subcategory.name}
                                 className="w-full h-full object-contain"
                             />
@@ -60,8 +71,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                                 zIndex: frame.sort_order + 20,
                                 backgroundColor: colorOption.color_code,
                                 mixBlendMode: 'multiply',
-                                WebkitMaskImage: `url(${frame.url})`,
-                                maskImage: `url(${frame.url})`,
+                                WebkitMaskImage: `url(${resolveImageUrl(frame.url)})`,
+                                maskImage: `url(${resolveImageUrl(frame.url)})`,
                                 maskSize: 'contain',
                                 maskRepeat: 'no-repeat',
                                 maskPosition: 'center',
@@ -73,7 +84,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                     {/* Texture Overlay */}
                     {textureOption && textureOption.visualization_overlay && (
                         <img 
-                            src={textureOption.visualization_overlay}
+                            src={resolveImageUrl(textureOption.visualization_overlay)}
                             className="absolute max-w-full max-h-full object-contain z-30 transition-opacity duration-500 animate-fade-in"
                             alt="Texture overlay"
                         />
@@ -83,7 +94,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                 /* Legacy single base_image view */
                 <div className="relative w-full h-full flex items-center justify-center">
                     <img 
-                        src={legacyBaseImage} 
+                        src={resolveImageUrl(legacyBaseImage)} 
                         alt={subcategory.name}
                         className="max-w-full max-h-full object-contain relative z-10 transition-transform duration-500"
                     />
@@ -95,8 +106,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                             style={{
                                 backgroundColor: colorOption.color_code,
                                 mixBlendMode: 'multiply',
-                                WebkitMaskImage: `url(${legacyBaseImage})`,
-                                maskImage: `url(${legacyBaseImage})`,
+                                WebkitMaskImage: `url(${resolveImageUrl(legacyBaseImage)})`,
+                                maskImage: `url(${resolveImageUrl(legacyBaseImage)})`,
                                 maskSize: 'contain',
                                 maskRepeat: 'no-repeat',
                                 maskPosition: 'center',
@@ -108,7 +119,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                     {/* Texture Overlay */}
                     {textureOption && textureOption.visualization_overlay && (
                         <img 
-                            src={textureOption.visualization_overlay}
+                            src={resolveImageUrl(textureOption.visualization_overlay)}
                             className="absolute max-w-full max-h-full object-contain z-30 transition-opacity duration-500 animate-fade-in"
                             alt="Texture overlay"
                         />

@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { WizardCustomizationStep, WizardOption } from './types';
 
+const getApiBaseUrl = () => {
+    const base = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
+    return base.endsWith('/api') ? base.replace(/\/api$/, '') : base;
+};
+
+const resolveImageUrl = (url?: string): string => {
+    if (!url) return '';
+    if (url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/${url.replace('/uploads/', '')}`;
+    return url;
+};
+
 interface Props {
     steps: WizardCustomizationStep[];
     selections: Record<string, string>;
@@ -82,7 +93,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
                             }`}
                             style={{ 
                                 backgroundColor: opt.color_code || '#ddd',
-                                backgroundImage: opt.image_url ? `url(${opt.image_url})` : 'none',
+                                backgroundImage: opt.image_url ? `url(${resolveImageUrl(opt.image_url)})` : 'none',
                                 backgroundSize: 'cover'
                             }}
                         >
@@ -118,7 +129,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {opt.image_url && (
-                                        <img src={opt.image_url} alt={opt.name} className="w-8 h-8 object-contain rounded" />
+                                        <img src={resolveImageUrl(opt.image_url)} alt={opt.name} className="w-8 h-8 object-contain rounded" />
                                     )}
                                     <div>
                                         <span className="font-medium text-gray-800 block">{opt.name}</span>
