@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { WizardCategoryL2, WizardOption } from './types';
 
 const getApiBaseUrl = () => {
@@ -12,6 +12,13 @@ const resolveImageUrl = (url?: string): string => {
     return url;
 };
 
+// Guard: chỉ coi là có color_code khi giá trị thực sự hợp lệ (loại trừ #000000 do HTML color picker mặc định)
+const hasValidColor = (opt?: WizardOption): boolean => {
+    if (!opt?.color_code) return false;
+    const c = opt.color_code.trim().toLowerCase();
+    return c !== '' && c !== '#000000';
+};
+
 interface Props {
     subcategory: WizardCategoryL2;
     selectedOptions: WizardOption[];
@@ -22,8 +29,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
     const hasBaseImages = subcategory.base_images && subcategory.base_images.length > 0;
     const legacyBaseImage = subcategory.base_image;
 
-    // Global fallback for legacy mode
-    const colorOption = selectedOptions?.find(o => o.color_code);
+    // Global: tìm option có color/texture trong tất cả selectedOptions (dùng cho legacy mode + floating badge)
+    const colorOption = selectedOptions?.find(o => hasValidColor(o));
     const textureOption = selectedOptions?.find(o => o.visualization_overlay);
 
     return (
@@ -32,15 +39,17 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                 /* Multi-frame layered view */
                 <div className="relative w-full h-full flex items-center justify-center">
                     {[...subcategory.base_images!].sort((a, b) => a.sort_order - b.sort_order).map((frame) => {
-                        // Tìm tất cả step đã được map vào frame này
-                        const mappedSteps = subcategory.customization_steps?.filter(s => s.required_frame_id === frame.id) || [];
+                        // FIX: Steps gắn frame cụ thể + steps KHÔNG gắn frame (global) đều áp dụng cho frame này
+                        const mappedSteps = subcategory.customization_steps?.filter(s =>
+                            s.required_frame_id === frame.id || !s.required_frame_id
+                        ) || [];
                         const mappedOptions = mappedSteps
                             .map(step => selectedOptions.find(opt => step.options?.some(o => o.id === opt.id)))
                             .filter(Boolean) as WizardOption[];
 
                         // Ưu tiên: overlay image > color tint
                         const overlayOption = mappedOptions.find(o => o.visualization_overlay);
-                        const tintOption = mappedOptions.find(o => o.color_code);
+                        const tintOption = mappedOptions.find(o => hasValidColor(o));
 
                         return (
                             <div
@@ -73,7 +82,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                                 )}
 
                                 {/* Priority 2: Color tint (chỉ khi không có overlay image) */}
-                                {!overlayOption && tintOption && tintOption.color_code && (
+                                {!overlayOption && tintOption && hasValidColor(tintOption) && (
                                     <div 
                                         className="absolute inset-0 pointer-events-none transition-colors duration-500"
                                         style={{
@@ -98,7 +107,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                     />
                     
                     {/* Color Tinting Overlay - dùng mix-blend-mode multiply (không cần mask-image) */}
-                    {colorOption && colorOption.color_code && (
+                    {colorOption && hasValidColor(colorOption) && (
                         <div 
                             className="absolute inset-0 z-20 pointer-events-none transition-colors duration-500"
                             style={{
@@ -134,7 +143,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                 ))}
             </div>
             
-            {colorOption && colorOption.color_code && (
+            {colorOption && hasValidColor(colorOption) && (
                  <div className="absolute right-4 top-4 z-40">
                     <div 
                         className="w-10 h-10 rounded-full shadow-lg border-2 border-white animate-slide-in-right"
@@ -156,4 +165,3 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
         </div>
     );
 }
-

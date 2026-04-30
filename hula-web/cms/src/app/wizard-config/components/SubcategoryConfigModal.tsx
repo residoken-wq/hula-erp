@@ -247,7 +247,7 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                                                                         </Col>
                                                                         <Col span={3}>
                                                                             <Form.Item {...optField} name={[optField.name, 'color_code']} noStyle>
-                                                                                <Input placeholder="Mã màu HEX" type="color" style={{ width: '100%', padding: '0 4px' }} />
+                                                                                <ColorPickerField />
                                                                             </Form.Item>
                                                                         </Col>
                                                                         <Col span={4}>
@@ -340,4 +340,28 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
 // --- Wrapper component for Ant Design Form.Item compatibility ---
 function ImageUrlField({ value, onChange }: { value?: string; onChange?: (val: string) => void }) {
     return <InlineImagePicker value={value} onChange={(url) => onChange?.(url)} />;
+}
+
+// --- Color Picker Field: cho phép nhập HEX, chọn color, và XÓA giá trị (tránh false-positive #000000) ---
+function ColorPickerField({ value, onChange }: { value?: string; onChange?: (val: string) => void }) {
+    const displayValue = value && value !== '#000000' ? value : '';
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Input
+                placeholder="#HEX"
+                size="small"
+                value={displayValue}
+                onChange={(e) => onChange?.(e.target.value)}
+                style={{ width: '100%', flex: 1, fontSize: 11 }}
+                allowClear
+            />
+            <input
+                type="color"
+                value={displayValue || '#ffffff'}
+                onChange={(e) => onChange?.(e.target.value)}
+                style={{ width: 28, height: 24, padding: 0, border: '1px solid #d9d9d9', borderRadius: 4, cursor: 'pointer' }}
+            />
+        </div>
+    );
 }
