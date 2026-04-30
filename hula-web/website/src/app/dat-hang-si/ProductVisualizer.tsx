@@ -22,17 +22,38 @@ const hasValidColor = (opt?: WizardOption): boolean => {
 interface Props {
     subcategory: WizardCategoryL2;
     selectedOptions: WizardOption[];
+    stepSelections?: Record<string, string>; // stepId -> optionId (chính xác, không bị trùng ID)
 }
 
-export default function ProductVisualizer({ subcategory, selectedOptions }: Props) {
-    // Support new base_images[] array with fallback to legacy base_image
+export default function ProductVisualizer({ subcategory, selectedOptions, stepSelections = {} }: Props) {
     const hasBaseImages = subcategory.base_images && subcategory.base_images.length > 0;
     const legacyBaseImage = subcategory.base_image;
 
-    // Global: tìm option có image/color/texture trong tất cả selectedOptions (dùng cho legacy mode + floating badge)
-    const imageSwapOption = selectedOptions?.find(o => o.image_url);
-    const colorOption = selectedOptions?.find(o => hasValidColor(o));
-    const textureOption = selectedOptions?.find(o => o.visualization_overlay);
+    // Resolve selected option cho mỗi step CHÍNH XÁC bằng stepSelections map
+    // Tránh bug: nhiều steps cùng có option id "1", "2"
+    const resolveStepOption = (stepId: string): WizardOption | undefined => {
+        const step = subcategory.customization_steps?.find(s => s.id === stepId);
+        if (!step) return undefined;
+        const selectedOptionId = stepSelections[stepId];
+        if (!selectedOptionId) return undefined;
+        return step.options?.find(o => o.id === selectedOptionId);
+    };
+
+    // Lấy tất cả resolved options cho 1 nhóm steps (dùng cho frame mapping)
+    const resolveOptionsForSteps = (steps: typeof subcategory.customization_steps): WizardOption[] => {
+        if (!steps) return [];
+        return steps
+            .map(step => resolveStepOption(step.id))
+            .filter(Boolean) as WizardOption[];
+    };
+
+    // All resolved options (cho floating badges + legacy mode)
+    const allResolvedOptions = resolveOptionsForSteps(subcategory.customization_steps || []);
+
+    // Global lookups cho legacy mode + floating badge
+    const globalImageSwap = allResolvedOptions.find(o => o.image_url);
+    const globalColor = allResolvedOptions.find(o => hasValidColor(o));
+    const globalTexture = allResolvedOptions.find(o => o.visualization_overlay);
 
     return (
         <div className="relative w-full aspect-square bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 p-4">
@@ -40,13 +61,13 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                 /* Multi-frame layered view */
                 <div className="relative w-full h-full flex items-center justify-center">
                     {[...subcategory.base_images!].sort((a, b) => a.sort_order - b.sort_order).map((frame) => {
-                        // FIX: Steps gắn frame cụ thể + steps KHÔNG gắn frame (global) đều áp dụng cho frame này
+                        // Steps gắn frame cụ thể + steps KHÔNG gắn frame (global)
                         const mappedSteps = subcategory.customization_steps?.filter(s =>
                             s.required_frame_id === frame.id || !s.required_frame_id
                         ) || [];
-                        const mappedOptions = mappedSteps
-                            .map(step => selectedOptions.find(opt => step.options?.some(o => o.id === opt.id)))
-                            .filter(Boolean) as WizardOption[];
+
+                        // Resolve options CHÍNH XÁC bằng stepSelections
+                        const mappedOptions = resolveOptionsForSteps(mappedSteps);
 
                         // Ưu tiên: image swap > overlay texture > color tint
                         const swapOption = mappedOptions.find(o => o.image_url);
@@ -54,7 +75,9 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                         const tintOption = mappedOptions.find(o => hasValidColor(o));
 
                         // Hình hiển thị: nếu option có image_url thì thay thế ảnh gốc frame
-                        const displayImageUrl = swapOption?.image_url ? resolveImageUrl(swapOption.image_url) : resolveImageUrl(frame.url);
+                        const displayImageUrl = swapOption?.image_url
+                            ? resolveImageUrl(swapOption.image_url)
+                            : resolveImageUrl(frame.url);
 
                         return (
                             <div
@@ -66,7 +89,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                                     width: `${(frame.width / 600) * 100}%`,
                                     height: `${(frame.height / 600) * 100}%`,
                                     zIndex: frame.sort_order + 10,
-                                    isolation: 'isolate', // Tạo stacking context riêng để mix-blend chỉ ảnh hưởng frame này
+                                    isolation: 'isolate',
                                 }}
                             >
                                 {/* Ảnh hiển thị: swap nếu option có image_url, fallback về frame gốc */}
@@ -87,8 +110,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                                     />
                                 )}
 
-                                {/* Priority 2: Color tint (chỉ khi không có overlay image) */}
-                                {!overlayOption && tintOption && hasValidColor(tintOption) && (
+                                {/* Priority 2: Color tint (chỉ khi không có overlay image và không swap ảnh) */}
+                                {!overlayOption && !swapOption && tintOption && hasValidColor(tintOption) && (
                                     <div 
                                         className="absolute inset-0 pointer-events-none transition-colors duration-500"
                                         style={{
@@ -107,18 +130,18 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                 /* Legacy single base_image view */
                 <div className="relative w-full h-full flex items-center justify-center" style={{ isolation: 'isolate' }}>
                     <img 
-                        src={imageSwapOption?.image_url ? resolveImageUrl(imageSwapOption.image_url) : resolveImageUrl(legacyBaseImage)} 
+                        src={globalImageSwap?.image_url ? resolveImageUrl(globalImageSwap.image_url) : resolveImageUrl(legacyBaseImage)} 
                         alt={subcategory.name}
                         className="max-w-full max-h-full object-contain relative z-10 transition-all duration-500"
-                        key={imageSwapOption?.image_url || legacyBaseImage}
+                        key={globalImageSwap?.image_url || legacyBaseImage}
                     />
                     
-                    {/* Color Tinting Overlay - dùng mix-blend-mode multiply (không cần mask-image) */}
-                    {colorOption && hasValidColor(colorOption) && (
+                    {/* Color Tinting Overlay */}
+                    {!globalImageSwap && globalColor && hasValidColor(globalColor) && (
                         <div 
                             className="absolute inset-0 z-20 pointer-events-none transition-colors duration-500"
                             style={{
-                                backgroundColor: colorOption.color_code,
+                                backgroundColor: globalColor.color_code,
                                 mixBlendMode: 'multiply',
                                 opacity: 0.6,
                             }}
@@ -126,9 +149,9 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                     )}
 
                     {/* Texture Overlay */}
-                    {textureOption && textureOption.visualization_overlay && (
+                    {globalTexture && globalTexture.visualization_overlay && (
                         <img 
-                            src={resolveImageUrl(textureOption.visualization_overlay)}
+                            src={resolveImageUrl(globalTexture.visualization_overlay)}
                             className="absolute max-w-full max-h-full object-contain z-30 transition-opacity duration-500 animate-fade-in"
                             alt="Texture overlay"
                         />
@@ -150,11 +173,11 @@ export default function ProductVisualizer({ subcategory, selectedOptions }: Prop
                 ))}
             </div>
             
-            {colorOption && hasValidColor(colorOption) && (
+            {globalColor && hasValidColor(globalColor) && (
                  <div className="absolute right-4 top-4 z-40">
                     <div 
                         className="w-10 h-10 rounded-full shadow-lg border-2 border-white animate-slide-in-right"
-                        style={{ backgroundColor: colorOption.color_code }}
+                        style={{ backgroundColor: globalColor.color_code }}
                     />
                  </div>
             )}

@@ -155,6 +155,7 @@ export default function B2BConfiguratorPage() {
                             <ProductVisualizer 
                                 subcategory={currentL2}
                                 selectedOptions={selectedOptionsList}
+                                stepSelections={stepSelections}
                             />
                             {currentL2.description && (
                                 <div className="mt-4 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
