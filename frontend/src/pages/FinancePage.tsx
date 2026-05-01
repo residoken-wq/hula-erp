@@ -12,9 +12,11 @@ import {
     FileTextOutlined, PieChartOutlined, ReloadOutlined, EditOutlined, CloseOutlined, SearchOutlined,
     LineChartOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+import {
+    LineChartOutlined
+} from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { API_URL } from '../config';
+import api from '../utils/api';
 import CashFlowDashboard from '../components/finance/CashFlowDashboard';
 
 const { Option } = Select;
@@ -70,12 +72,12 @@ const FinancePage: React.FC = () => {
         try {
             const monthStr = filterMonth.format('YYYY-MM');
             const [resTrans, resCat, resSum, resCust, resSup, resProj] = await Promise.all([
-                axios.get(`${API_URL}/finance/transactions?month=${monthStr}`),
-                axios.get(`${API_URL}/finance/categories`),
-                axios.get(`${API_URL}/finance/summary`),
-                axios.get(`${API_URL}/customers`), // <--- Fetch Customers
-                axios.get(`${API_URL}/suppliers`),  // <--- Fetch Suppliers
-                axios.get(`${API_URL}/projects`)
+                api.get(`/finance/transactions?month=${monthStr}`),
+                api.get(`/finance/categories`),
+                api.get(`/finance/summary`),
+                api.get(`/customers`), // <--- Fetch Customers
+                api.get(`/suppliers`),  // <--- Fetch Suppliers
+                api.get(`/projects`)
             ]);
             setTransactions(Array.isArray(resTrans.data) ? resTrans.data : []);
             setCategories(Array.isArray(resCat.data) ? resCat.data : []);
@@ -93,7 +95,7 @@ const FinancePage: React.FC = () => {
             if (reportType === 'MONTH') query = `month=${reportFilter.format('YYYY-MM')}`;
             if (reportType === 'YEAR') query = `year=${reportFilter.format('YYYY')}`;
 
-            const res = await axios.get(`${API_URL}/finance/report?${query}`);
+            const res = await api.get(`/finance/report?${query}`);
             setReportData(res.data || { transactions: [], summary: { income: 0, expense: 0, profit: 0 } });
         } catch (e) { message.error('Lỗi tải báo cáo'); }
     }
@@ -131,10 +133,10 @@ const FinancePage: React.FC = () => {
             };
 
             if (editingTransaction) {
-                await axios.put(`${API_URL}/finance/transactions/${editingTransaction.id}`, payload);
+                await api.put(`/finance/transactions/${editingTransaction.id}`, payload);
                 message.success('Cập nhật thành công');
             } else {
-                await axios.post(`${API_URL}/finance/transactions`, payload);
+                await api.post(`/finance/transactions`, payload);
                 message.success('Đã lưu giao dịch');
             }
 
@@ -175,12 +177,12 @@ const FinancePage: React.FC = () => {
         try {
             if (editingCategory) {
                 // Update
-                await axios.put(`${API_URL}/finance/categories/${editingCategory.id}`, values);
+                await api.put(`/finance/categories/${editingCategory.id}`, values);
                 message.success('Cập nhật danh mục thành công');
                 setEditingCategory(null); // Reset mode
             } else {
                 // Create
-                await axios.post(`${API_URL}/finance/categories`, values);
+                await api.post(`/finance/categories`, values);
                 message.success('Đã thêm danh mục mới');
             }
             formCat.resetFields();
@@ -210,7 +212,7 @@ const FinancePage: React.FC = () => {
 
     const handleSaveAccounting = async (values: any) => {
         try {
-            await axios.put(`${API_URL}/finance/transactions/${accountingTrans.id}`, values);
+            await api.put(`/finance/transactions/${accountingTrans.id}`, values);
             message.success('Đã hạch toán');
             setIsAccountingModalOpen(false);
             fetchData(); // Refresh list
@@ -219,7 +221,7 @@ const FinancePage: React.FC = () => {
     // -------------------------------------------------------
 
     const handleDelete = async (endpoint: string, id: number) => {
-        try { await axios.delete(`${API_URL}/finance/${endpoint}/${id}`); message.success('Đã xóa'); fetchData(); }
+        try { await api.delete(`/finance/${endpoint}/${id}`); message.success('Đã xóa'); fetchData(); }
         catch (e) { message.error('Không thể xóa (có thể đang có dữ liệu liên quan)'); }
     };
 

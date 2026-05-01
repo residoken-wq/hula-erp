@@ -46,7 +46,7 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
             // Sort by min_quantity desc to find the highest applicable tier
             const sortedTiers = [...subcategory.price_tiers].sort((a, b) => b.min_quantity - a.min_quantity);
             const applicableTier = sortedTiers?.find(t => quantity >= t.min_quantity);
-            
+
             if (applicableTier) {
                 basePrice = applicableTier.base_price;
             } else {
@@ -64,7 +64,7 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!formData.customer_name || !formData.phone) {
             alert('Vui lòng nhập họ tên và số điện thoại');
             return;
@@ -103,11 +103,11 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-slide-up">
-                
+
                 {/* Left: Summary */}
-                <div className="bg-gray-50 w-full md:w-5/12 p-6 md:p-8 border-b md:border-b-0 md:border-r border-gray-200">
+                <div className="bg-gray-50 w-full md:w-6/12 p-6 md:p-8 border-b md:border-b-0 md:border-r border-gray-200">
                     <h3 className="text-xl font-bold text-gray-800 mb-6">Tóm tắt cấu hình</h3>
-                    
+
                     <div className="mb-6">
                         <p className="text-sm text-gray-500">{category.name}</p>
                         <p className="text-lg font-bold text-primary">{subcategory.name}</p>
@@ -128,17 +128,17 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
                     <div className="border-t border-gray-200 pt-6">
                         <label className="block text-sm font-bold text-gray-700 mb-2">Số lượng đặt hàng (bộ)</label>
                         <div className="flex items-center gap-4">
-                            <input 
-                                type="range" 
-                                min="50" 
-                                max="1000" 
+                            <input
+                                type="range"
+                                min="50"
+                                max="1000"
                                 step="10"
                                 value={quantity}
                                 onChange={e => setQuantity(Number(e.target.value))}
                                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
                             />
-                            <input 
-                                type="number" 
+                            <input
+                                type="number"
                                 value={quantity}
                                 onChange={e => setQuantity(Math.max(1, Number(e.target.value)))}
                                 className="w-20 px-2 py-1 text-center font-bold border rounded-lg"
@@ -159,8 +159,8 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
                 </div>
 
                 {/* Right: Form */}
-                <div className="w-full md:w-7/12 p-6 md:p-8 relative">
-                    <button 
+                <div className="w-full md:w-6/12 p-6 md:p-8 relative">
+                    <button
                         onClick={onClose}
                         className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
                     >
@@ -176,7 +176,7 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
                             <p className="text-gray-600 mb-8">
                                 Cảm ơn bạn đã quan tâm. Đội ngũ Hula sẽ liên hệ lại trong thời gian sớm nhất để tư vấn và gửi mẫu.
                             </p>
-                            <button 
+                            <button
                                 onClick={onClose}
                                 className="btn-primary"
                             >
@@ -191,11 +191,11 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Tên trường học/Công ty <span className="text-red-500">*</span>
                                     </label>
-                                    <input 
+                                    <input
                                         required
-                                        type="text" 
+                                        type="text"
                                         value={formData.company_name}
-                                        onChange={e => setFormData({...formData, company_name: e.target.value})}
+                                        onChange={e => setFormData({ ...formData, company_name: e.target.value })}
                                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 outline-none"
                                         placeholder="VD: Mầm Non Ngôi Sao Sáng"
                                     />
@@ -205,11 +205,11 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Người liên hệ <span className="text-red-500">*</span>
                                         </label>
-                                        <input 
+                                        <input
                                             required
-                                            type="text" 
+                                            type="text"
                                             value={formData.customer_name}
-                                            onChange={e => setFormData({...formData, customer_name: e.target.value})}
+                                            onChange={e => setFormData({ ...formData, customer_name: e.target.value })}
                                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 outline-none"
                                             placeholder="Họ và tên"
                                         />
@@ -218,11 +218,11 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             Số điện thoại/Zalo <span className="text-red-500">*</span>
                                         </label>
-                                        <input 
+                                        <input
                                             required
-                                            type="tel" 
+                                            type="tel"
                                             value={formData.phone}
-                                            onChange={e => setFormData({...formData, phone: e.target.value})}
+                                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
                                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 outline-none"
                                             placeholder="09xx..."
                                         />
@@ -230,34 +230,34 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                    <input 
-                                        type="email" 
+                                    <input
+                                        type="email"
                                         value={formData.email}
-                                        onChange={e => setFormData({...formData, email: e.target.value})}
+                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
                                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 outline-none"
                                         placeholder="Để nhận báo giá qua email"
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Ghi chú bổ sung</label>
-                                    <textarea 
+                                    <textarea
                                         rows={3}
                                         value={formData.notes}
-                                        onChange={e => setFormData({...formData, notes: e.target.value})}
+                                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
                                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 outline-none resize-none"
                                         placeholder="Yêu cầu riêng, ngày cần hàng, in logo..."
                                     />
                                 </div>
-                                
+
                                 <div className="pt-4 flex flex-col gap-3">
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         disabled={isSubmitting}
                                         className="w-full py-3.5 bg-primary text-white rounded-xl font-bold shadow-md hover:bg-primary/90 transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70"
                                     >
                                         {isSubmitting ? 'ĐANG GỬI...' : 'LƯU CẤU HÌNH & GỬI YÊU CẦU'}
                                     </button>
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => {
                                             const message = `Xin chào, tôi muốn yêu cầu gửi mẫu vải miễn phí cho trường.`;

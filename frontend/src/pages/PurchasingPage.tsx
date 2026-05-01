@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, Card, Tabs, Space, Tooltip, Popconfirm, message, Modal, Descriptions, Divider, Input, Statistic, Row, Col, InputNumber, Select, DatePicker, Form } from 'antd';
 import { ReloadOutlined, EyeOutlined, DeleteOutlined, SendOutlined, CheckCircleOutlined, ShopOutlined, ScissorOutlined, PrinterOutlined, SearchOutlined, DollarOutlined, CarOutlined, LinkOutlined, ImportOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../utils/api';
 import dayjs from 'dayjs';
-import { API_URL } from '../config';
 import useMobile from '../hooks/useMobile';
 import OutsourcingMaterialIssueModal from '../components/purchasing/OutsourcingMaterialIssueModal';
 
@@ -46,7 +45,7 @@ const PurchasingPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_URL}/purchasing`);
+            const res = await api.get(`/purchasing`);
             setData(Array.isArray(res.data) ? res.data : []);
         } catch (e) { message.error('Lỗi tải dữ liệu PO'); }
         setLoading(false);
@@ -54,15 +53,15 @@ const PurchasingPage: React.FC = () => {
 
     useEffect(() => {
         fetchData();
-        axios.get(`${API_URL}/products`).then(res => setProducts(res.data)).catch(console.error);
-        axios.get(`${API_URL}/suppliers`).then(res => setSuppliers(res.data)).catch(console.error);
-        axios.get(`${API_URL}/projects`).then(res => setProjects(res.data)).catch(console.error);
-        axios.get(`${API_URL}/system/company`).then(res => setCompanyConfig(res.data)).catch(console.error);
+        api.get(`/products`).then(res => setProducts(res.data)).catch(console.error);
+        api.get(`/suppliers`).then(res => setSuppliers(res.data)).catch(console.error);
+        api.get(`/projects`).then(res => setProjects(res.data)).catch(console.error);
+        api.get(`/system/company`).then(res => setCompanyConfig(res.data)).catch(console.error);
     }, []);
 
     const handleStatusChange = async (id: number, status: string) => {
         try {
-            await axios.put(`${API_URL}/purchasing/${id}/status`, { status });
+            await api.put(`/purchasing/${id}/status`, { status });
             message.success('Cập nhật trạng thái thành công');
             fetchData();
             if (currentPO && currentPO.id === id) setCurrentPO({ ...currentPO, status });
@@ -71,7 +70,7 @@ const PurchasingPage: React.FC = () => {
 
     const handleDelete = async (id: number) => {
         try {
-            await axios.delete(`${API_URL}/purchasing/${id}`);
+            await api.delete(`/purchasing/${id}`);
             message.success('Đã xóa PO');
             fetchData();
         } catch (e) { message.error('Lỗi xóa PO'); }
@@ -80,7 +79,7 @@ const PurchasingPage: React.FC = () => {
     const viewDetail = async (record: any) => {
         try {
             // FIX: Gọi API để lấy data enriched thay vì dùng record từ list
-            const res = await axios.get(`${API_URL}/purchasing/${record.id}`);
+            const res = await api.get(`/purchasing/${record.id}`);
             const poDetail = res.data;
 
             setCurrentPO(poDetail);
@@ -118,7 +117,7 @@ const PurchasingPage: React.FC = () => {
                 const targetMaterialIds = new Set(poDetail.items.map((i: any) => i.material?.id).filter(Boolean));
 
                 try {
-                    const pRes = await axios.get(`${API_URL}/planning/${planId}`);
+                    const pRes = await api.get(`/planning/${planId}`);
                     const plan = pRes.data;
                     // Extract unique products from sales orders
                     const prods = new Map();
@@ -219,7 +218,7 @@ const PurchasingPage: React.FC = () => {
             // Simplified: We assume we can get receipts. 
             // Better: Endpoint `GET /purchasing/:id/delivery-progress` (Mocking logic here for now or assuming we fetch receipts)
 
-            const res = await axios.get(`${API_URL}/inventory/goods-receipt/po/${poId}`);
+            const res = await api.get(`/inventory/goods-receipt/po/${poId}`);
             const receipts = res.data; // List of receipts with items
 
             // We need to aggregate received quantities per Matrix Row (identified by material_name or po_form_code)
@@ -249,7 +248,7 @@ const PurchasingPage: React.FC = () => {
         if (validRows.length === 0) return message.warning('Vui lòng nhập số lượng thực nhận vào cột "Giao"');
 
         try {
-            await axios.post(`${API_URL}/inventory/goods-receipt/draft`, {
+            await api.post(`/inventory/goods-receipt/draft`, {
                 po_id: currentPO.id,
                 items: validRows.map(r => {
                     // Find matching PO Item ID
@@ -285,7 +284,7 @@ const PurchasingPage: React.FC = () => {
         setCurrentPO(record);
         setDeliveryInfo(record.outsourcing_delivery_info || { status: 'PENDING' });
         try {
-            const res = await axios.get(`${API_URL}/purchasing/${record.id}/outsourcing-materials`);
+            const res = await api.get(`/purchasing/${record.id}/outsourcing-materials`);
             setMonitorMaterials(res.data);
             setIsMonitorOpen(true);
         } catch (e) { message.error('Lỗi tải thông tin NPL'); }
@@ -313,7 +312,7 @@ const PurchasingPage: React.FC = () => {
                 materials: updatedMaterials
             };
 
-            await axios.put(`${API_URL}/purchasing/${currentPO.id}`, { outsourcing_delivery_info: payload });
+            await api.put(`/purchasing/${currentPO.id}`, { outsourcing_delivery_info: payload });
             message.success('Đã cập nhật thông tin giao NPL');
             setIsMonitorOpen(false);
             fetchData();
@@ -356,7 +355,7 @@ const PurchasingPage: React.FC = () => {
         try {
             // Lấy danh sách PO_NPL có thể gộp (chưa có parent_po_id)
             const type = activeTab === 'REQ_GC' ? 'OUTSOURCING' : 'MATERIAL';
-            const res = await axios.get(`${API_URL}/purchasing/available-for-pooling?type=${type}`);
+            const res = await api.get(`/purchasing/available-for-pooling?type=${type}`);
             setRequirements(res.data);
         } catch (e) { message.error('Lỗi tải danh sách PO'); }
     };
@@ -395,7 +394,7 @@ const PurchasingPage: React.FC = () => {
 
     const proceedCreatePooled = async (supId: number | null) => {
         try {
-            await axios.post(`${API_URL}/purchasing/create-pooled`, {
+            await api.post(`/purchasing/create-pooled`, {
                 supplier_id: supId,
                 child_po_ids: selectedReqs.map(r => r.id)  // FIX: Đổi tên field
             });
@@ -409,7 +408,7 @@ const PurchasingPage: React.FC = () => {
 
     const handleSavePOChanges = async () => {
         try {
-            await axios.put(`${API_URL}/purchasing/${currentPO.id}`, {
+            await api.put(`/purchasing/${currentPO.id}`, {
                 items: editingItems,
                 packing_list_details: packingList,
                 supplier_id: currentPO.supplier?.id, // Include Supplier ID
@@ -432,7 +431,7 @@ const PurchasingPage: React.FC = () => {
     const handleCreateReceipt = async () => {
         if (!currentPO) return;
         try {
-            await axios.post(`${API_URL}/inventory/goods-receipt/draft`, {
+            await api.post(`/inventory/goods-receipt/draft`, {
                 po_id: currentPO.id,
                 items: currentPO.items.map((i: any) => ({
                     po_item_id: i.id,
@@ -684,7 +683,7 @@ const PurchasingPage: React.FC = () => {
                         <Space>
                             {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedReqs.length === 0}>+ Tạo PO Gộp ({selectedReqs.length})</Button>}
                             {activeTab === 'POOLED' && <Popconfirm title="Xóa tất cả PO Gộp?" onConfirm={async () => {
-                                await axios.delete(`${API_URL}/purchasing/pooled/all`);
+                                await api.delete(`/purchasing/pooled/all`);
                                 message.success('Đã xóa dữ liệu gộp');
                                 fetchData();
                             }}><Button danger>Xóa Data Gộp (Test)</Button></Popconfirm>}
