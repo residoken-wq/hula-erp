@@ -10,6 +10,8 @@ import { resolveImageUrl } from '@/lib/utils';
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
     const pathname = usePathname();
     const { itemCount, setIsCartOpen } = useCart();
     const { settings } = useSettings();
@@ -45,9 +47,15 @@ export default function Header() {
         { href: '/dat-hang-si', label: 'Đặt hàng B2B' },
         { href: '/san-pham', label: 'Hula Shop' },
         { href: '/tin-tuc', label: 'Blog tư vấn' },
-        { href: '/tuyen-dung', label: 'Tuyển dụng' },
-        { href: '/lien-he', label: 'Liên hệ' },
     ].filter(link => !hiddenPages.includes(link.href));
+
+    // Dropdown group: Liên hệ trước, Tuyển dụng sau
+    const moreLinks = [
+        { href: '/lien-he', label: 'Liên hệ' },
+        { href: '/tuyen-dung', label: 'Tuyển dụng' },
+    ].filter(link => !hiddenPages.includes(link.href));
+
+    const isMoreActive = moreLinks.some(l => pathname === l.href || pathname?.startsWith(l.href));
 
     const logoUrl = resolveImageUrl(settings.logo_url);
 
@@ -91,6 +99,43 @@ export default function Header() {
                                     </Link>
                                 );
                             })}
+
+                            {/* Dropdown: Liên hệ + Tuyển dụng */}
+                            {moreLinks.length > 0 && (
+                                <div
+                                    className="relative"
+                                    onMouseEnter={() => setIsDropdownOpen(true)}
+                                    onMouseLeave={() => setIsDropdownOpen(false)}
+                                >
+                                    <button
+                                        className={`px-3 xl:px-4 py-2 text-sm xl:text-base font-medium rounded-[12px] hover:bg-transparent transition-all flex items-center gap-1 ${isMoreActive ? 'text-[#E5A82F] font-bold' : 'text-[#23a7d3] hover:text-[#E5A82F]'}`}
+                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    >
+                                        Liên hệ
+                                        <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+
+                                    {isDropdownOpen && (
+                                        <div className="absolute top-full right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 animate-fade-in z-50">
+                                            {moreLinks.map(link => {
+                                                const isActive = pathname === link.href || pathname?.startsWith(link.href);
+                                                return (
+                                                    <Link
+                                                        key={link.href}
+                                                        href={link.href}
+                                                        className={`block px-4 py-2.5 text-sm font-medium transition-all ${isActive ? 'text-[#E5A82F] bg-amber-50 font-bold' : 'text-gray-700 hover:text-[#E5A82F] hover:bg-gray-50'}`}
+                                                        onClick={() => setIsDropdownOpen(false)}
+                                                    >
+                                                        {link.label}
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </nav>
 
                         {/* Right Section */}
@@ -151,7 +196,7 @@ export default function Header() {
                     />
                     <div className="fixed inset-x-0 top-16 bottom-0 bg-white z-40 lg:hidden overflow-y-auto animate-slide-up">
                         <div className="p-4 space-y-2">
-                            {navLinks.map((link, index) => {
+                            {navLinks.map((link) => {
                                 const isActive = pathname === link.href || (link.href !== '/' && pathname?.startsWith(link.href));
                                 return (
                                     <Link
@@ -167,6 +212,38 @@ export default function Header() {
                                     </Link>
                                 );
                             })}
+
+                            {/* Mobile: Dropdown group Liên hệ + Tuyển dụng */}
+                            {moreLinks.length > 0 && (
+                                <div>
+                                    <button
+                                        onClick={() => setIsMobileDropdownOpen(!isMobileDropdownOpen)}
+                                        className={`flex items-center gap-4 p-4 rounded-[12px] bg-transparent font-medium transition-all active:scale-[0.98] w-full text-left ${isMoreActive ? 'text-[#E5A82F] font-bold bg-primary-50' : 'text-[#23a7d3] hover:text-[#E5A82F] hover:bg-gray-50'}`}
+                                    >
+                                        <span className="text-lg">Liên hệ</span>
+                                        <svg className={`w-5 h-5 ml-auto text-gray-400 transition-transform duration-200 ${isMobileDropdownOpen ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                    {isMobileDropdownOpen && (
+                                        <div className="ml-6 mt-1 space-y-1 border-l-2 border-primary-200 pl-4 animate-fade-in">
+                                            {moreLinks.map(link => {
+                                                const isActive = pathname === link.href || pathname?.startsWith(link.href);
+                                                return (
+                                                    <Link
+                                                        key={link.href}
+                                                        href={link.href}
+                                                        className={`flex items-center gap-3 p-3 rounded-lg font-medium transition-all active:scale-[0.98] ${isActive ? 'text-[#E5A82F] font-bold bg-amber-50' : 'text-gray-600 hover:text-[#E5A82F] hover:bg-gray-50'}`}
+                                                        onClick={() => { setIsMenuOpen(false); setIsMobileDropdownOpen(false); }}
+                                                    >
+                                                        <span className="text-base">{link.label}</span>
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="p-4 mt-4 space-y-3">
