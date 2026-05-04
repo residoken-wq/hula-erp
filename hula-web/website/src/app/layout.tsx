@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Be_Vietnam_Pro } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import { getSettings } from '@/lib/api';
@@ -16,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
     const settings = await getSettings();
     const faviconUrl = settings?.favicon_url;
     let iconUrl = '/favicon.ico';
-    
+
     if (faviconUrl) {
         if (faviconUrl.startsWith('/uploads/')) {
             const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
@@ -53,6 +54,20 @@ export default function RootLayout({
 }) {
     return (
         <html lang="vi" className={mainFont.variable}>
+            <head>
+                {/* Google Analytics */}
+                <Script src="https://www.googletagmanager.com/gtag/js?id=G-RZ5Q0E2CEV" strategy="afterInteractive" />
+                <Script id="google-analytics" strategy="afterInteractive">
+                    {`
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag(){dataLayer.push(arguments);}
+                        gtag('js', new Date());
+
+                        gtag('config', 'G-RZ5Q0E2CEV');
+                    `}
+                </Script>
+                <meta name="p:domain_verify" content="9af76ab5f1321904b5e026363318faa3" />
+            </head>
             <body className="min-h-screen flex flex-col font-sans antialiased">
                 <AnalyticsTracker />
                 <LayoutWrapper>
