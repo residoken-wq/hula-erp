@@ -16,6 +16,7 @@ import { Assessment } from './entities/assessment.entity';
 import { Interview } from './entities/interview.entity';
 import { AiModule } from '../ai/ai.module';
 import { EmailService } from '../common/services/email.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
     imports: [
@@ -34,6 +35,7 @@ import { EmailService } from '../common/services/email.service';
             Interview,
         ]),
         AiModule,
+        AuthModule,
     ],
     controllers: [HrController],
     providers: [HrService, EmailService],

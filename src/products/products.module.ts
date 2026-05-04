@@ -15,6 +15,7 @@ import { ProductWebsiteConfig } from './entities/product-website-config.entity';
 import { Supplier } from '../suppliers/supplier.entity';
 import { SupplierMaterial } from '../suppliers/supplier-material.entity';
 import { CategoriesModule } from '../categories/categories.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { CategoriesModule } from '../categories/categories.module';
       SupplierMaterial
     ]),
     forwardRef(() => CategoriesModule),
+    AuthModule,
   ],
   controllers: [ProductsController],
   providers: [ProductsService],

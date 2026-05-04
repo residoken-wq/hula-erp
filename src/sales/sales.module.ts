@@ -31,6 +31,7 @@ import { SalesTarget } from './sales-target.entity';
 import { Promotion } from './promotion.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { Customer } from '../customers/customer.entity';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -58,7 +59,8 @@ import { Customer } from '../customers/customer.entity';
     SystemModule,
     NotificationsModule,
     ProjectsModule,
-    forwardRef(() => FinanceModule)
+    forwardRef(() => FinanceModule),
+    AuthModule
   ],
   controllers: [SalesController],
   providers: [SalesService],
