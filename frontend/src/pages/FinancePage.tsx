@@ -13,9 +13,6 @@ import {
     FileTextOutlined, PieChartOutlined, ReloadOutlined, EditOutlined, CloseOutlined, SearchOutlined,
     LineChartOutlined
 } from '@ant-design/icons';
-import {
-    LineChartOutlined
-} from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../utils/api';
 import CashFlowDashboard from '../components/finance/CashFlowDashboard';
