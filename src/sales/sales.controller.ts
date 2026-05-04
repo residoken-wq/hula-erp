@@ -1,7 +1,11 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { SalesService } from './sales.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('sales')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class SalesController {
     constructor(
         private readonly s: SalesService
@@ -12,12 +16,15 @@ export class SalesController {
     // ============================================================
 
     @Post('price-lists')
+    @RequirePermission('SALES', 'can_create')
     createPriceList(@Body() body: any) { return this.s.createPriceList(body); }
 
     @Get('price-lists')
+    @RequirePermission('SALES', 'can_view')
     getAllPriceLists() { return this.s.getAllPriceLists(); }
 
     @Post('price-lists/:id/rules')
+    @RequirePermission('SALES', 'can_create')
     createRule(@Param('id') id: number, @Body() body: any) { return this.s.createPriceListRule(id, body); }
 
     @Get('price-lists/:id/rules')
@@ -71,14 +78,17 @@ export class SalesController {
     }
 
     @Post('promotions')
+    @RequirePermission('SALES', 'can_create')
     createPromotion(@Body() body: any) { return this.s.createPromotion(body); }
 
     @Put('promotions/:id')
+    @RequirePermission('SALES', 'can_update')
     updatePromotion(@Param('id') id: number, @Body() body: any) {
         return this.s.updatePromotion(Number(id), body);
     }
 
     @Delete('promotions/:id')
+    @RequirePermission('SALES', 'can_delete')
     deletePromotion(@Param('id') id: number) {
         return this.s.deletePromotion(Number(id));
     }
@@ -136,9 +146,11 @@ export class SalesController {
     // ============================================================
 
     @Post()
+    @RequirePermission('SALES', 'can_create')
     create(@Body() b: any) { return this.s.createOrder(b); }
 
     @Get()
+    @RequirePermission('SALES', 'can_view')
     findAll() { return this.s.findAll(); }
 
     // --- QUAN TRỌNG: FIX LỖI 500 ---
@@ -151,6 +163,7 @@ export class SalesController {
 
     // --- QUAN TRỌNG: FIX LỖI 404 CANNOT PUT ---
     @Put(':id')
+    @RequirePermission('SALES', 'can_update')
     update(@Param('id') id: number, @Body() b: any) {
         return this.s.update(Number(id), b);
     }
@@ -196,6 +209,7 @@ export class SalesController {
 
     // --- DELETE ORDER (Only SO_PENDING status allowed) ---
     @Delete(':id')
+    @RequirePermission('SALES', 'can_delete')
     deleteOrder(@Param('id') id: number) {
         return this.s.deleteOrder(Number(id));
     }

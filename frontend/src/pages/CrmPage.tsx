@@ -9,6 +9,7 @@ import QuotationTemplate from '../components/QuotationTemplate';
 import SalesOrderDetail from '../components/SalesOrderDetail';
 import QuickTaskModal from '../components/QuickTaskModal';
 import useMobile from '../hooks/useMobile';
+import usePermission from '../hooks/usePermission';
 
 dayjs.extend(isBetween);
 
@@ -18,6 +19,7 @@ const CrmPage: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const isMobile = useMobile();
+    const { canCreate, canUpdate, canDelete } = usePermission('SALES');
     const { RangePicker } = DatePicker;
 
     // --- FILTER STATE ---
@@ -440,8 +442,8 @@ const CrmPage: React.FC = () => {
                 <Space size="small">
                     <Tooltip title="Chăm sóc"><Button size="small" icon={<ClockCircleOutlined />} onClick={() => { setCurrentCustomer(r); setFollowDrawerOpen(true) }} /></Tooltip>
                     <Tooltip title="Tạo Nhắc nhở"><Button size="small" icon={<BellOutlined />} onClick={() => handleCreateTask(r, 'CRM')} /></Tooltip>
-                    <Tooltip title="Sửa"><Button size="small" icon={<EditOutlined />} onClick={() => handleEditLead(r)} /></Tooltip>
-                    <Popconfirm title="Xóa?" onConfirm={() => handleDeleteLead(r.id)}><Button size="small" danger icon={<DeleteOutlined />} /></Popconfirm>
+                    {canUpdate && <Tooltip title="Sửa"><Button size="small" icon={<EditOutlined />} onClick={() => handleEditLead(r)} /></Tooltip>}
+                    {canDelete && <Popconfirm title="Xóa?" onConfirm={() => handleDeleteLead(r.id)}><Button size="small" danger icon={<DeleteOutlined />} /></Popconfirm>}
                 </Space>
             )
         }
@@ -459,10 +461,10 @@ const CrmPage: React.FC = () => {
                 <Space size="small">
                     <Tooltip title="Link"><Button icon={<LinkOutlined />} size="small" onClick={() => handleCopyLink(r.uuid)} /></Tooltip>
                     <Tooltip title="Xem"><Button icon={<PrinterOutlined />} size="small" onClick={() => { openDetailModal(r); setTimeout(() => setIsPreviewOpen(true), 500) }} /></Tooltip>
-                    <Tooltip title="Sửa"><Button icon={<EditOutlined />} size="small" onClick={() => openDetailModal(r, true)} /></Tooltip>
+                    <Tooltip title="Sửa">{canUpdate && <Button icon={<EditOutlined />} size="small" onClick={() => openDetailModal(r, true)} />}</Tooltip>
                     <Tooltip title="Task"><Button size="small" icon={<BellOutlined />} onClick={() => handleCreateTask(r, 'SALES')} /></Tooltip>
-                    <Popconfirm title="Xác nhận chốt đơn?" onConfirm={() => handleConvertQuote(r.id, true)}><Button type="primary" size="small" icon={<CheckOutlined />} /></Popconfirm>
-                    <Popconfirm title="Xóa?" onConfirm={() => handleDeleteQuote(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
+                    {canUpdate && <Popconfirm title="Xác nhận chốt đơn?" onConfirm={() => handleConvertQuote(r.id, true)}><Button type="primary" size="small" icon={<CheckOutlined />} /></Popconfirm>}
+                    {canDelete && <Popconfirm title="Xóa?" onConfirm={() => handleDeleteQuote(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>}
                 </Space>
             ) : <Tag color="default">Đã chốt</Tag>
         }
@@ -578,7 +580,7 @@ const CrmPage: React.FC = () => {
                             children: (
                                 <>
                                     <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                                        <Button type="primary" onClick={openCreateLead} icon={<PlusOutlined />}>{isMobile ? 'Tạo' : 'Tạo Lead Mới'}</Button>
+                                        {canCreate && <Button type="primary" onClick={openCreateLead} icon={<PlusOutlined />}>{isMobile ? 'Tạo' : 'Tạo Lead Mới'}</Button>}
                                     </div>
                                     {isMobile ? (
                                         <List
@@ -617,7 +619,7 @@ const CrmPage: React.FC = () => {
                             children: (
                                 <>
                                     <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                                        <Button type="primary" onClick={() => openDetailModal(null, true)} icon={<PlusOutlined />}>{isMobile ? 'Tạo' : 'Tạo Báo Giá'}</Button>
+                                        {canCreate && <Button type="primary" onClick={() => openDetailModal(null, true)} icon={<PlusOutlined />}>{isMobile ? 'Tạo' : 'Tạo Báo Giá'}</Button>}
                                     </div>
                                     {isMobile ? (
                                         <List

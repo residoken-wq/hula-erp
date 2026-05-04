@@ -1,17 +1,22 @@
-import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateVariantDto } from './dto/create-variant.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('products')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ProductsController {
   constructor(private readonly service: ProductsService) { }
 
-  @Get() findAll() { return this.service.findAll(); }
-  @Get(':id') findOne(@Param('id') id: number) { return this.service.findOne(Number(id)); }
+  @Get() @RequirePermission('PRODUCT', 'can_view') findAll() { return this.service.findAll(); }
+  @Get(':id') @RequirePermission('PRODUCT', 'can_view') findOne(@Param('id') id: number) { return this.service.findOne(Number(id)); }
 
-  @Post() create(@Body() b: any) { return this.service.create(b); }
-  @Put(':id') update(@Param('id') id: number, @Body() b: any) { return this.service.update(id, b); }
-  @Delete(':id') remove(@Param('id') id: number) { return this.service.remove(id); }
+  @Post() @RequirePermission('PRODUCT', 'can_create') create(@Body() b: any) { return this.service.create(b); }
+  @Put(':id') @RequirePermission('PRODUCT', 'can_update') update(@Param('id') id: number, @Body() b: any) { return this.service.update(id, b); }
+  @Delete(':id') @RequirePermission('PRODUCT', 'can_delete') remove(@Param('id') id: number) { return this.service.remove(id); }
+
 
   @Post('create-variant')
   async createVariant(@Body() createVariantDto: CreateVariantDto) {

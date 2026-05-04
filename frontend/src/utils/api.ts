@@ -30,6 +30,11 @@ api.interceptors.response.use(
             localStorage.removeItem('user');
             window.location.href = '/login';
         }
+        if (error.response?.status === 403) {
+            // Permission denied - show server message
+            const msg = error.response?.data?.message || 'Bạn không có quyền thực hiện thao tác này.';
+            import('antd').then(({ message }) => message.error(msg));
+        }
         return Promise.reject(error);
     }
 );

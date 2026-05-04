@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutli
 import axios from 'axios';
 import { API_URL } from '../config';
 import useMobile from '../hooks/useMobile';
+import usePermission from '../hooks/usePermission';
 
 // --- IMPORTS CÁC COMPONENT ĐÃ TÁCH ---
 import ProductBOMTab from '../components/products/ProductBOMTab';
@@ -45,21 +46,7 @@ const ProductsPage: React.FC = () => {
     const [components, setComponents] = useState<any[]>([]);
 
     // Permission State
-    const [canViewCost, setCanViewCost] = useState(false);
-
-    useEffect(() => {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-            const user = JSON.parse(userStr);
-            const perms = user.permissions || [];
-            const prodPerm = perms.find((p: any) => p.module_code === 'PRODUCT');
-            if (user.username === 'admin') {
-                setCanViewCost(true);
-            } else if (prodPerm && (prodPerm.view_cost_price === true || prodPerm.view_cost_price === 1)) {
-                setCanViewCost(true);
-            }
-        }
-    }, []);
+    const { canCreate, canUpdate, canDelete, canViewCost } = usePermission('PRODUCT');
 
     const [form] = Form.useForm();
     const [variantForm] = Form.useForm();
@@ -333,12 +320,16 @@ const ProductsPage: React.FC = () => {
             title: '', key: 'action', width: 160, align: 'center' as const,
             render: (_: any, r: any) => (
                 <Space size="small">
-                    <Tooltip title="Tạo Biến thể mới từ Sản phẩm này">
-                        <Button icon={<ForkOutlined />} size="small" type="default" onClick={() => openCreateVariant(r)} />
-                    </Tooltip>
-                    <Tooltip title="Tính Giá Vốn"><Button icon={<DollarOutlined />} size="small" onClick={() => handleCalculateCost(r.sku)} type="primary" ghost /></Tooltip>
-                    <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)} />
-                    <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
+                    {canCreate && (
+                        <Tooltip title="Tạo Biến thể mới từ Sản phẩm này">
+                            <Button icon={<ForkOutlined />} size="small" type="default" onClick={() => openCreateVariant(r)} />
+                        </Tooltip>
+                    )}
+                    {canViewCost && (
+                        <Tooltip title="Tính Giá Vốn"><Button icon={<DollarOutlined />} size="small" onClick={() => handleCalculateCost(r.sku)} type="primary" ghost /></Tooltip>
+                    )}
+                    {canUpdate && <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)} />}
+                    {canDelete && <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>}
                 </Space>
             )
         }
@@ -396,7 +387,7 @@ const ProductsPage: React.FC = () => {
                         {canViewCost && (
                             <Button icon={<SyncOutlined />} onClick={handleCalculateAllCosts}>Cập nhật tất cả giá</Button>
                         )}
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1') }}>Thêm Mới</Button>
+                        {canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1') }}>Thêm Mới</Button>}
                     </Space>
                 )
             }

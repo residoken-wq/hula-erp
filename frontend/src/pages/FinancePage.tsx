@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import useMobile from '../hooks/useMobile';
+import usePermission from '../hooks/usePermission';
 import {
     Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form,
     Input, Select, DatePicker, Tag, message, Popconfirm,
@@ -34,6 +35,7 @@ const hasPerm = (moduleCode: string) => {
 const FinancePage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const isMobile = useMobile();
+    const { canCreate, canUpdate, canDelete } = usePermission('FINANCE');
     const [transactions, setTransactions] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]); // <--- New State
@@ -249,9 +251,9 @@ const FinancePage: React.FC = () => {
             title: '', key: 'act', width: 50,
             render: (_: any, r: any) => (
                 <Space>
-                    <Button size="small" icon={<EditOutlined style={{ color: 'orange' }} />} onClick={() => handleEditTransaction(r)} />
-                    <Button size="small" icon={<FileTextOutlined />} onClick={() => handleOpenAccounting(r)} />
-                    <Popconfirm title="Xóa?" onConfirm={() => handleDelete('transactions', r.id)}><Button size="small" danger icon={<DeleteOutlined />} type="text" /></Popconfirm>
+                    {canUpdate && <Button size="small" icon={<EditOutlined style={{ color: 'orange' }} />} onClick={() => handleEditTransaction(r)} />}
+                    {canUpdate && <Button size="small" icon={<FileTextOutlined />} onClick={() => handleOpenAccounting(r)} />}
+                    {canDelete && <Popconfirm title="Xóa?" onConfirm={() => handleDelete('transactions', r.id)}><Button size="small" danger icon={<DeleteOutlined />} type="text" /></Popconfirm>}
                 </Space>
             )
         }
@@ -275,11 +277,11 @@ const FinancePage: React.FC = () => {
             render: (_: any, r: any) => (
                 <Space>
                     {/* Nút Edit */}
-                    <Button size="small" icon={<EditOutlined />} onClick={() => handleEditCat(r)} />
+                    {canUpdate && <Button size="small" icon={<EditOutlined />} onClick={() => handleEditCat(r)} />}
                     {/* Nút Delete */}
-                    <Popconfirm title="Xóa?" onConfirm={() => handleDelete('categories', r.id)}>
+                    {canDelete && <Popconfirm title="Xóa?" onConfirm={() => handleDelete('categories', r.id)}>
                         <Button size="small" danger icon={<DeleteOutlined />} />
-                    </Popconfirm>
+                    </Popconfirm>}
                 </Space>
             )
         }
@@ -363,7 +365,7 @@ const FinancePage: React.FC = () => {
                         children: (
                             <>
                                 <div style={{ marginBottom: 16, textAlign: 'right' }}>
-                                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { formTrans.resetFields(); formTrans.setFieldsValue({ type: 'INCOME' }); setIsTransModalOpen(true) }}>Tạo Phiếu Thu</Button>
+                                    {canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={() => { formTrans.resetFields(); formTrans.setFieldsValue({ type: 'INCOME' }); setIsTransModalOpen(true) }}>Tạo Phiếu Thu</Button>}
                                 </div>
                                 <Table
                                     dataSource={filteredTransactions.filter(t => t.type === 'INCOME')}
@@ -380,7 +382,7 @@ const FinancePage: React.FC = () => {
                         children: (
                             <>
                                 <div style={{ marginBottom: 16, textAlign: 'right' }}>
-                                    <Button type="primary" danger icon={<PlusOutlined />} onClick={() => { formTrans.resetFields(); formTrans.setFieldsValue({ type: 'EXPENSE' }); setIsTransModalOpen(true) }}>Tạo Phiếu Chi</Button>
+                                    {canCreate && <Button type="primary" danger icon={<PlusOutlined />} onClick={() => { formTrans.resetFields(); formTrans.setFieldsValue({ type: 'EXPENSE' }); setIsTransModalOpen(true) }}>Tạo Phiếu Chi</Button>}
                                 </div>
                                 <Table
                                     dataSource={filteredTransactions.filter(t => t.type === 'EXPENSE')}

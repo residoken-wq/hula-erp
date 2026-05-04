@@ -98,6 +98,12 @@ export class Customer {
   @Column({ nullable: true })
   address: string;
 
+  @Column({ nullable: true })
+  province: string;
+
+  @Column({ nullable: true })
+  district: string;
+
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   credit_limit: number;
 

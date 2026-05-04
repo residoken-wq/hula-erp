@@ -432,3 +432,76 @@ Khi thêm trường upload ảnh mới, luôn thêm ghi chú kích thước tron
     <Input placeholder="URL hình ảnh" />
 </Form.Item>
 ```
+
+---
+
+## 🔒 Permission & Authorization Convention
+
+### Quy tắc bắt buộc khi tạo Controller mới (Backend)
+
+Mọi Controller có dữ liệu cần bảo mật **PHẢI** sử dụng:
+
+```typescript
+// ✅ ĐÚNG - Luôn có 2 guards + decorator
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
+
+@Controller('example')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+export class ExampleController {
+  @Get() @RequirePermission('MODULE_CODE', 'can_view') findAll() { ... }
+  @Post() @RequirePermission('MODULE_CODE', 'can_create') create() { ... }
+  @Put(':id') @RequirePermission('MODULE_CODE', 'can_update') update() { ... }
+  @Delete(':id') @RequirePermission('MODULE_CODE', 'can_delete') remove() { ... }
+}
+
+// ❌ SAI - Chỉ dùng JwtAuthGuard (không check quyền CRUD)
+@UseGuards(JwtAuthGuard)
+export class ExampleController { ... }
+```
+
+### Danh sách MODULE_CODE hợp lệ
+
+| Module Code | Module | Ghi chú |
+|---|---|---|
+| SALES | Bán hàng + Khách hàng + CRM | Customers controller cũng dùng SALES |
+| PRODUCT | Sản phẩm + BOM | |
+| INVENTORY | Kho + Vật tư | |
+| FINANCE | Tài chính | |
+| PRODUCTION | Sản xuất + Kế hoạch | |
+| HR | Nhân sự | |
+| USERS | Quản lý User/Group | Chỉ admin mới nên access |
+| CASHFLOW | Dòng tiền | Sub-module của Finance |
+
+### Quy tắc bắt buộc khi tạo Page mới (Frontend)
+
+Mọi Page có nút CRUD **PHẢI** sử dụng `usePermission` hook:
+
+```tsx
+// ✅ ĐÚNG
+import usePermission from '../hooks/usePermission';
+
+const ExamplePage = () => {
+  const { canCreate, canUpdate, canDelete } = usePermission('MODULE_CODE');
+
+  return (
+    <>
+      {canCreate && <Button>Thêm mới</Button>}
+      {canUpdate && <Button>Sửa</Button>}
+      {canDelete && <Button>Xóa</Button>}
+    </>
+  );
+};
+
+// ❌ SAI - Hiển thị nút CRUD không check quyền
+<Button>Thêm mới</Button>
+<Button>Xóa</Button>
+```
+
+### Lưu ý quan trọng
+- **Admin user** (username = 'admin') bypass tất cả permission checks
+- Backend guard query trực tiếp DB (`GroupPermission`) mỗi request → quyền cập nhật real-time
+- Frontend hook đọc từ `localStorage.user.permissions` → chỉ cập nhật sau khi login lại
+- Khi thêm module mới, phải thêm module_code vào bảng `UserGroupsPage.tsx` (danh sách ALL_MODULES)

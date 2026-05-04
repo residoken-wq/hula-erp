@@ -4,7 +4,7 @@ import {
     DollarOutlined, FunnelPlotOutlined, TrophyOutlined, TeamOutlined,
     ArrowUpOutlined, ArrowDownOutlined, MinusOutlined, ReloadOutlined,
     RiseOutlined, FallOutlined, FireOutlined, ClockCircleOutlined,
-    CrownOutlined, StarOutlined, BankOutlined, BarChartOutlined, AppstoreOutlined, TagsOutlined
+    CrownOutlined, StarOutlined, BankOutlined, BarChartOutlined, AppstoreOutlined, TagsOutlined, GlobalOutlined
 } from '@ant-design/icons';
 import { Column, Funnel, Area } from '@ant-design/plots';
 import api from '../utils/api';
@@ -539,6 +539,46 @@ const BodDashboard: React.FC = () => {
         );
     };
 
+    // === NEW: REGION STATS ===
+    const RegionStats = () => {
+        const regionData = data?.regionData || [];
+
+        const columns = [
+            { title: '#', key: 'rank', width: 40, render: (_: any, __: any, idx: number) => <span style={{ fontWeight: 700, color: idx < 3 ? '#f59e0b' : '#888' }}>{idx + 1}</span> },
+            {
+                title: 'Tỉnh/Thành phố', dataIndex: 'province', key: 'province',
+                render: (v: string, r: any) => <div><b>{v}</b><div style={{ fontSize: 11, color: '#888' }}>{r.district}</div></div>,
+            },
+            {
+                title: 'Khách hàng', dataIndex: 'customerCount', key: 'customerCount',
+                align: 'center' as const, width: 80,
+                render: (v: number) => <Tag color="blue">{v}</Tag>,
+            },
+            {
+                title: 'Đơn hàng', dataIndex: 'orderCount', key: 'orderCount',
+                align: 'center' as const, width: 80,
+                render: (v: number) => <Tag color="purple">{v}</Tag>,
+            },
+            {
+                title: 'Doanh thu', dataIndex: 'totalRevenue', key: 'totalRevenue',
+                align: 'right' as const,
+                render: (v: number) => <span style={{ fontWeight: 700, color: '#059669' }}>{fmtVND(v)}</span>,
+            },
+        ];
+
+        return (
+            <Card
+                title={<span><GlobalOutlined style={{ color: '#3b82f6' }} /> Thống kê theo Khu vực</span>}
+                bordered={false}
+                style={{ borderRadius: 16, height: '100%' }}
+            >
+                {regionData.length > 0 ? (
+                    <Table dataSource={regionData} columns={columns} rowKey={(r) => `${r.province}-${r.district}`} pagination={{ pageSize: 5 }} size="small" scroll={{ x: isMobile ? 400 : undefined }} />
+                ) : <Empty description="Chưa có dữ liệu khu vực" />}
+            </Card>
+        );
+    };
+
     // === NEW: ACCOUNTS RECEIVABLE AGING ===
     const AccountsReceivable = () => {
         const ar = data?.accountsReceivable || { details: [], summary: {} };
@@ -751,6 +791,13 @@ const BodDashboard: React.FC = () => {
                             <TopProducts />
                             <TopCategories />
                         </Space>
+                    </Col>
+                </Row>
+
+                {/* REGION STATS */}
+                <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+                    <Col xs={24}>
+                        <RegionStats />
                     </Col>
                 </Row>
 

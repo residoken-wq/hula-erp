@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import LeadCarePanel from '../components/crm/LeadCarePanel';
 import useMobile from '../hooks/useMobile';
+import usePermission from '../hooks/usePermission';
 
 const { Option } = Select;
 
@@ -16,6 +17,7 @@ const CustomersPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
     const isMobile = useMobile();
+    const { canCreate, canUpdate, canDelete } = usePermission('SALES');
 
     // State Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -162,7 +164,7 @@ const CustomersPage: React.FC = () => {
             title: '', key: 'action', width: 80, align: 'right' as const,
             render: (_: any, r: any) => (
                 <Space>
-                    <Button icon={<EditOutlined />} size="small" onClick={() => {
+                    {canUpdate && <Button icon={<EditOutlined />} size="small" onClick={() => {
                         setEditingItem(r);
                         setEditingItem(r);
                         form.setFieldsValue({
@@ -171,8 +173,8 @@ const CustomersPage: React.FC = () => {
                         });
                         setIsModalOpen(true);
                         fetchOrders(r.id); // Load lịch sử mua hàng
-                    }} />
-                    <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>
+                    }} />}
+                    {canDelete && <Popconfirm title="Xóa?" onConfirm={() => handleDelete(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>}
                 </Space>
             ),
         },
@@ -194,12 +196,12 @@ const CustomersPage: React.FC = () => {
                 extra={
                     isMobile ? (
                         <Space size={4}>
-                            <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }} />
+                            {canCreate && <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }} />}
                             <Button icon={<ReloadOutlined />} onClick={fetchData} />
                         </Space>
                     ) : (
                         <Space>
-                            <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }}>Thêm Mới</Button>
+                            {canCreate && <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }}>Thêm Mới</Button>}
                             <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
                         </Space>
                     )
@@ -231,6 +233,10 @@ const CustomersPage: React.FC = () => {
                                     </Row>
                                     <Row gutter={16}><Col span={12}><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Col><Col span={12}><Form.Item name="email" label="Email"><Input /></Form.Item></Col></Row>
                                     <Form.Item name="address" label="Địa Chỉ (Trụ sở chính)"><Input /></Form.Item>
+                                    <Row gutter={16}>
+                                        <Col span={12}><Form.Item name="province" label="Tỉnh/Thành phố"><Input placeholder="VD: Hà Nội, TP.HCM..." /></Form.Item></Col>
+                                        <Col span={12}><Form.Item name="district" label="Quận/Huyện"><Input placeholder="VD: Cầu Giấy, Quận 1..." /></Form.Item></Col>
+                                    </Row>
                                     <Row gutter={16}>
                                         <Col span={12}><Form.Item name="parent_id" label="Công ty mẹ"><Select allowClear showSearch optionFilterProp="label" options={customers.filter(c => c.id !== editingItem?.id).map(c => ({ label: c.name, value: c.id }))} /></Form.Item></Col>
                                         <Col span={12}><Form.Item name="credit_limit" label="Hạn Mức Nợ"><InputNumber style={{ width: '100%' }} formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>

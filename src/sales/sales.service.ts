@@ -1090,7 +1090,10 @@ export class SalesService {
         // === 12. TOP CATEGORIES ===
         const topCategories = await this.calculateTopCategoriesData(start, end, filters.assignedToId);
 
-        return { kpi, funnelData, velocityData, scorecardData, forecastData, topProducts, lostReasons, accountsReceivable, monthlyTrend, topCustomers, highValueLeads, topCategories };
+        // === 13. REGION STATS (District & Province) ===
+        const regionData = await this.calculateRegionData(start, end, filters.assignedToId);
+
+        return { kpi, funnelData, velocityData, scorecardData, forecastData, topProducts, lostReasons, accountsReceivable, monthlyTrend, topCustomers, highValueLeads, topCategories, regionData };
     }
 
     private async calculateKPIs(
@@ -1502,22 +1505,59 @@ export class SalesService {
                 .select('COALESCE(p.category, \'Chưa phân loại\')', 'category')
                 .addSelect('SUM(i.quantity)', 'totalQuantity')
                 .addSelect('SUM(i.subtotal)', 'totalRevenue')
+                .addSelect('COUNT(DISTINCT i.order_id)', 'orderCount')
                 .innerJoin('i.order', 'o')
                 .leftJoin('i.product', 'p')
                 .where('o.status NOT IN (:...statuses)', { statuses: ['QUOTATION', 'CANCELLED'] })
                 .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
+            
             if (assignedToId) query.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
+            
             query.groupBy('p.category')
                 .orderBy('"totalRevenue"', 'DESC')
                 .limit(10);
             const results = await query.getRawMany();
             return results.map(r => ({
-                category: r.category,
+                category: r.category || 'N/A',
                 totalQuantity: Number(r.totalQuantity || 0),
                 totalRevenue: Number(r.totalRevenue || 0),
+                orderCount: Number(r.orderCount || 0),
             }));
         } catch (e) {
             console.error('Error calculating top categories:', e);
+            return [];
+        }
+    }
+
+    // ===================== NEW ANALYTICS: REGION STATS =====================
+    private async calculateRegionData(start: Date, end: Date, assignedToId?: number) {
+        try {
+            const query = this.orderRepo.createQueryBuilder('o')
+                .select('COALESCE(c.province, \'Chưa cập nhật\')', 'province')
+                .addSelect('COALESCE(c.district, \'Chưa cập nhật\')', 'district')
+                .addSelect('SUM(o.total_amount)', 'totalRevenue')
+                .addSelect('COUNT(DISTINCT c.id)', 'customerCount')
+                .addSelect('COUNT(o.id)', 'orderCount')
+                .innerJoin('o.customer', 'c')
+                .where('o.status NOT IN (:...statuses)', { statuses: ['QUOTATION', 'CANCELLED'] })
+                .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
+            
+            if (assignedToId) query.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
+            
+            query.groupBy('c.province')
+                .addGroupBy('c.district')
+                .orderBy('"totalRevenue"', 'DESC');
+
+            const results = await query.getRawMany();
+            return results.map(r => ({
+                province: r.province,
+                district: r.district,
+                totalRevenue: Number(r.totalRevenue || 0),
+                customerCount: Number(r.customerCount || 0),
+                orderCount: Number(r.orderCount || 0),
+            }));
+        } catch (e) {
+            console.error('Error calculating region stats:', e);
             return [];
         }
     }

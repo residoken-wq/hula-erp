@@ -9,6 +9,7 @@ import isBetween from 'dayjs/plugin/isBetween';
 import QuickTaskModal from '../components/QuickTaskModal';
 import SalesOrderDetail from '../components/SalesOrderDetail';
 import useMobile from '../hooks/useMobile';
+import usePermission from '../hooks/usePermission';
 
 dayjs.extend(isBetween);
 
@@ -18,6 +19,7 @@ const SalesPage: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const isMobile = useMobile();
+    const { canCreate, canUpdate } = usePermission('SALES');
     const [activeTab, setActiveTab] = useState('ALL');
     const [searchText, setSearchText] = useState('');
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
@@ -439,12 +441,12 @@ const SalesPage: React.FC = () => {
                 }
                 extra={
                     isMobile ? (
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo mới</Button>
+                        canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo mới</Button>
                     ) : (
                         <Space>
-                            <Button type="dashed" icon={<AppstoreAddOutlined />} onClick={() => openDetailModal({ isInternal: true })} style={{ borderColor: '#722ed1', color: '#722ed1' }}>Tạo Đơn Nhập Kho (Nội Bộ)</Button>
+                            {canCreate && <Button type="dashed" icon={<AppstoreAddOutlined />} onClick={() => openDetailModal({ isInternal: true })} style={{ borderColor: '#722ed1', color: '#722ed1' }}>Tạo Đơn Nhập Kho (Nội Bộ)</Button>}
                             <Button type="default" icon={<ShopOutlined />} onClick={() => navigate('/sales/pos')} style={{ borderColor: '#52c41a', color: '#52c41a' }}>Bán Lẻ (POS)</Button>
-                            <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo Đơn Mới</Button>
+                            {canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo Đơn Mới</Button>}
                             <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
                         </Space>
                     )

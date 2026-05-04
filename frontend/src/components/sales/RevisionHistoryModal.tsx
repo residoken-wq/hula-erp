@@ -76,10 +76,21 @@ const RevisionHistoryModal: React.FC<Props> = ({
                             },
                             { title: 'SL', dataIndex: 'quantity', width: 60, align: 'center' as const },
                             { title: 'Đơn giá', dataIndex: 'unit_price', align: 'right' as const, render: (v: any) => Number(v).toLocaleString() },
-                            { title: 'Thành tiền', dataIndex: 'total_price', align: 'right' as const, render: (v: any) => <b>{Number(v).toLocaleString()}</b> }
+                            { 
+                                title: 'Thành tiền', 
+                                key: 'total_price', 
+                                align: 'right' as const, 
+                                render: (_: any, r: any) => {
+                                    const itemTotal = Number(r.subtotal) || Number(r.total_price) || (Number(r.quantity || 0) * Number(r.unit_price || 0));
+                                    return <b>{itemTotal.toLocaleString()}</b>;
+                                } 
+                            }
                         ]}
                         summary={() => {
-                            const subtotal = snapItems.reduce((s: number, i: any) => s + Number(i.total_price || 0), 0);
+                            const subtotal = snapItems.reduce((s: number, i: any) => {
+                                const itemTotal = Number(i.subtotal) || Number(i.total_price) || (Number(i.quantity || 0) * Number(i.unit_price || 0));
+                                return s + itemTotal;
+                            }, 0);
                             return (
                                 <>
                                     <Table.Summary.Row>

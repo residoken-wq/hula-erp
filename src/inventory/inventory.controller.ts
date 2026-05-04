@@ -1,19 +1,26 @@
-import { Controller, Post, Get, Body, Param, Put, Delete, Query, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Put, Delete, Query, UsePipes, ValidationPipe, UseGuards } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './create-inventory.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('inventory')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) { }
 
   @Get('history')
+  @RequirePermission('INVENTORY', 'can_view')
   async getHistory() { return this.inventoryService.getHistory(); }
 
   // API lấy chi tiết tồn kho (để Frontend map vào bảng)
   @Get('stocks')
+  @RequirePermission('INVENTORY', 'can_view')
   async getStocks() { return this.inventoryService.getAllStocks(); }
 
   @Post('adjust')
+  @RequirePermission('INVENTORY', 'can_create')
   @UsePipes(new ValidationPipe())
   async adjust(@Body() dto: CreateInventoryDto) {
     return this.inventoryService.adjustStock(
@@ -29,6 +36,7 @@ export class InventoryController {
 
   // API Reset tồn kho (Dành cho Dev/Admin)
   @Post('reset')
+  @RequirePermission('INVENTORY', 'can_delete')
   async reset() {
     return this.inventoryService.resetAllStocks();
   }
@@ -98,6 +106,7 @@ export class InventoryController {
   // ===========================================
 
   @Post('goods-issue')
+  @RequirePermission('INVENTORY', 'can_create')
   async createGoodsIssue(@Body() body: any) {
     return this.inventoryService.createGoodsIssue(body);
   }
@@ -126,6 +135,7 @@ export class InventoryController {
   }
 
   @Delete('goods-issue/:id')
+  @RequirePermission('INVENTORY', 'can_delete')
   async deleteGoodsIssue(@Param('id') id: string) {
     return this.inventoryService.deleteGoodsIssue(Number(id));
   }
