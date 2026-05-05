@@ -55,6 +55,10 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
     const globalColor = allResolvedOptions.find(o => hasValidColor(o));
     const globalTexture = allResolvedOptions.find(o => o.visualization_overlay);
 
+    const displayLegacyUrl = globalImageSwap?.image_url 
+        ? resolveImageUrl(globalImageSwap.image_url) 
+        : legacyBaseImage ? resolveImageUrl(legacyBaseImage) : '';
+
     return (
         <div className="relative w-full aspect-square bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 p-4">
             {hasBaseImages ? (
@@ -119,6 +123,14 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                                             mixBlendMode: 'multiply',
                                             opacity: 0.6,
                                             zIndex: 2,
+                                            WebkitMaskImage: `url('${displayImageUrl}')`,
+                                            WebkitMaskSize: 'contain',
+                                            WebkitMaskRepeat: 'no-repeat',
+                                            WebkitMaskPosition: 'center',
+                                            maskImage: `url('${displayImageUrl}')`,
+                                            maskSize: 'contain',
+                                            maskRepeat: 'no-repeat',
+                                            maskPosition: 'center',
                                         }}
                                     />
                                 )}
@@ -130,10 +142,10 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                 /* Legacy single base_image view */
                 <div className="relative w-full h-full flex items-center justify-center" style={{ isolation: 'isolate' }}>
                     <img 
-                        src={globalImageSwap?.image_url ? resolveImageUrl(globalImageSwap.image_url) : resolveImageUrl(legacyBaseImage)} 
+                        src={displayLegacyUrl} 
                         alt={subcategory.name}
-                        className="max-w-full max-h-full object-contain relative z-10 transition-all duration-500"
-                        key={globalImageSwap?.image_url || legacyBaseImage}
+                        className="w-full h-full object-contain relative z-10 transition-all duration-500"
+                        key={displayLegacyUrl}
                     />
                     
                     {/* Color Tinting Overlay */}
@@ -144,6 +156,14 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                                 backgroundColor: globalColor.color_code,
                                 mixBlendMode: 'multiply',
                                 opacity: 0.6,
+                                WebkitMaskImage: `url('${displayLegacyUrl}')`,
+                                WebkitMaskSize: 'contain',
+                                WebkitMaskRepeat: 'no-repeat',
+                                WebkitMaskPosition: 'center',
+                                maskImage: `url('${displayLegacyUrl}')`,
+                                maskSize: 'contain',
+                                maskRepeat: 'no-repeat',
+                                maskPosition: 'center',
                             }}
                         />
                     )}
@@ -152,7 +172,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                     {globalTexture && globalTexture.visualization_overlay && (
                         <img 
                             src={resolveImageUrl(globalTexture.visualization_overlay)}
-                            className="absolute max-w-full max-h-full object-contain z-30 transition-opacity duration-500 animate-fade-in"
+                            className="absolute inset-0 w-full h-full object-contain z-30 transition-opacity duration-500 animate-fade-in"
                             alt="Texture overlay"
                         />
                     )}
