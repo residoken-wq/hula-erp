@@ -60,20 +60,30 @@ export class UploadService {
       try {
         const sharp = require('sharp');
 
-        // Compress to JPEG with 80% quality, max 1920px
-        const compressed = await sharp(buffer)
-          .resize(1920, 1920, {
-            fit: 'inside',
-            withoutEnlargement: true
-          })
-          .jpeg({ quality: 80 })
-          .toBuffer();
+        const sharpInstance = sharp(buffer).resize(1920, 1920, {
+          fit: 'inside',
+          withoutEnlargement: true
+        });
+
+        if (ext === '.png') {
+          sharpInstance.png({ compressionLevel: 9 });
+        } else if (ext === '.webp') {
+          sharpInstance.webp({ quality: 80 });
+        } else if (ext === '.gif') {
+          sharpInstance.gif();
+        } else {
+          sharpInstance.jpeg({ quality: 80 });
+          finalExt = '.jpg';
+        }
+
+        const compressed = await sharpInstance.toBuffer();
 
         // Use compressed only if smaller
         if (compressed.length < buffer.length) {
           buffer = compressed;
-          finalExt = '.jpg'; // Convert to jpg after compression
           console.log(`Image compressed: ${file.originalname} ${file.buffer.length} -> ${buffer.length} bytes (${Math.round((1 - buffer.length / file.buffer.length) * 100)}% saved)`);
+        } else {
+          finalExt = ext; // Revert extension if compression didn't help
         }
       } catch (err) {
         console.warn('Image compression failed, using original:', err.message);
