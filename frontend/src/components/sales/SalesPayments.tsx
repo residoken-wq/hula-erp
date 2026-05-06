@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, Statistic, Row, Col, Divider, Modal, Form, InputNumber, Radio, Input, message, DatePicker } from 'antd';
 import { DollarOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../utils/api';
 import dayjs from 'dayjs';
-import { API_URL } from '../../config';
 import AttachmentUpload from '../common/AttachmentUpload';
 import useMobile from '../../hooks/useMobile';
 
@@ -31,7 +30,7 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
 
     const fetchHistory = async () => {
         try {
-            const res = await axios.get(`${API_URL}/sales/${orderCode}/payment-history`);
+            const res = await api.get(`/sales/${orderCode}/payment-history`);
             setHistory(res.data);
         } catch (e) {
             console.error(e);
@@ -63,7 +62,7 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
 
         try {
             // 1. Create payment transaction
-            await axios.post(`${API_URL}/finance/payment`, {
+            await api.post(`/finance/payment`, {
                 type: 'INCOME',
                 amount,
                 refCode: orderCode,
@@ -76,7 +75,7 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
             // 2. If overpayment, handle based on action
             if (isOverpaying && overpaymentAction === 'CREDIT') {
                 // Create customer credit transaction
-                await axios.post(`${API_URL}/finance/payment`, {
+                await api.post(`/finance/payment`, {
                     type: 'INCOME',
                     amount: -overpayment, // Negative to indicate credit (stored balance)
                     refCode: `CREDIT-${customerId || customerName}`,
@@ -87,7 +86,7 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
                 message.success(`Đã tạo Credit ${overpayment.toLocaleString()}đ cho khách hàng!`);
             } else if (isOverpaying && overpaymentAction === 'REFUND') {
                 // Create refund expense transaction
-                await axios.post(`${API_URL}/finance/transaction`, {
+                await api.post(`/finance/transaction`, {
                     type: 'EXPENSE',
                     amount: overpayment,
                     reference_code: orderCode,
@@ -122,7 +121,7 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
 
         try {
             // 2. Call API
-            await axios.put(`${API_URL}/finance/transactions/${transactionId}`, {
+            await api.put(`/finance/transactions/${transactionId}`, {
                 attachments: newAttachments
             });
             message.success('Đã cập nhật chứng từ');
