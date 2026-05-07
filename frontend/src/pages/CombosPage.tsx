@@ -5,8 +5,7 @@ import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent } from '
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import axios from 'axios';
-import { API_URL } from '../config';
+import api from '../utils/api';
 import DraggableRow from '../components/common/DraggableRow';
 
 const CombosPage: React.FC = () => {
@@ -67,7 +66,7 @@ const CombosPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const resProd = await axios.get(`${API_URL}/products`);
+            const resProd = await api.get(`/products`);
             if (Array.isArray(resProd.data)) {
                 setProducts(resProd.data.map((p: any) => ({
                     label: `${p.sku} - ${p.name}`,
@@ -98,7 +97,7 @@ const CombosPage: React.FC = () => {
 
     const fetchComboDetail = async (comboSku: string) => {
         try {
-            const res = await axios.get(`${API_URL}/products/combo/${encodeURIComponent(comboSku)}`);
+            const res = await api.get(`/products/combo/${encodeURIComponent(comboSku)}`);
             return (res.data || []).map((comp: any) => ({
                 sku: comp.child_product?.sku,
                 quantity: comp.quantity,
@@ -174,16 +173,16 @@ const CombosPage: React.FC = () => {
             };
 
             if (!comboProduct) {
-                const res = await axios.post(`${API_URL}/products`, payload);
+                const res = await api.post(`/products`, payload);
                 comboProduct = res.data;
             } else {
-                await axios.put(`${API_URL}/products/${comboProduct.id}`, payload);
+                await api.put(`/products/${comboProduct.id}`, payload);
             }
 
             // Lưu thành phần combo
             if (comboProduct?.id) {
                 const components = items.map((item: any) => ({ sku: item.sku, quantity: item.quantity }));
-                await axios.post(`${API_URL}/products/${comboProduct.id}/components`, components);
+                await api.post(`/products/${comboProduct.id}/components`, components);
             }
 
             message.success('Đã lưu Combo và Cập nhật giá thành công!');
@@ -195,7 +194,7 @@ const CombosPage: React.FC = () => {
 
     const handleDelete = async (id: number) => {
         try {
-            await axios.delete(`${API_URL}/products/${id}`);
+            await api.delete(`/products/${id}`);
             message.success('Đã xóa Combo'); fetchData();
         } catch (e: any) { Modal.warning({ title: 'Không thể xóa', content: 'Combo này có thể đang được sử dụng.' }); }
     };

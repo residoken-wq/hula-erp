@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpException, HttpStatus, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpException, HttpStatus, Headers, Req } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Product } from '../products/product.entity';
@@ -790,5 +790,40 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
     async deleteWebsiteProject(@Param('id') id: number) {
         await this.websiteProjectRepo.delete(id);
         return { success: true };
+    }
+
+    // ========================================
+    // PORTAL QUOTE APIs (Public - No JWT required)
+    // Cho phép khách hàng truy cập báo giá qua UUID link
+    // ========================================
+
+    @Get('portal/quote/:uuid')
+    getPortalQuote(@Param('uuid') uuid: string) {
+        return this.salesService.getQuoteByUuid(uuid);
+    }
+
+    @Post('portal/quote/:uuid/action')
+    portalQuoteAction(@Param('uuid') uuid: string, @Body() body: any, @Req() req: any) {
+        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const userAgent = req.headers['user-agent'];
+        const metadata = { ip, userAgent };
+        return this.salesService.customerAction(uuid, body.action, metadata);
+    }
+
+    @Post('portal/quote/:orderId/comment')
+    portalAddComment(@Param('orderId') orderId: number, @Body() body: any) {
+        return this.salesService.addComment(
+            Number(orderId),
+            body.content,
+            body.sender,
+            body.name,
+            body.comment_type,
+            body.mentioned_user_ids
+        );
+    }
+
+    @Delete('portal/quote/comment/:commentId')
+    portalDeleteComment(@Param('commentId') commentId: number, @Body() body: any) {
+        return this.salesService.softDeleteComment(Number(commentId), body?.deletedBy || 'Khách hàng');
     }
 }

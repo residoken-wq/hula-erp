@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import axios from 'axios';
-import { API_URL } from '../config';
+import api from '../utils/api';
 import useMobile from '../hooks/useMobile';
 import usePermission from '../hooks/usePermission';
 
@@ -59,16 +59,16 @@ const ProductsPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_URL}/products`);
+            const res = await api.get(`/products`);
             setData(Array.isArray(res.data) ? res.data : []);
 
-            const resCat = await axios.get(`${API_URL}/categories`);
+            const resCat = await api.get(`/categories`);
             const sortedCategories = Array.isArray(resCat.data)
                 ? resCat.data.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''))
                 : [];
             setCategories(sortedCategories);
 
-            const resMat = await axios.get(`${API_URL}/materials`);
+            const resMat = await api.get(`/materials`);
             const normalizedMaterials = Array.isArray(resMat.data)
                 ? resMat.data.map(m => ({
                     value: m.id,
@@ -77,10 +77,10 @@ const ProductsPage: React.FC = () => {
                 : [];
             setMaterials(normalizedMaterials);
 
-            const resSup = await axios.get(`${API_URL}/suppliers`);
+            const resSup = await api.get(`/suppliers`);
             setSuppliers(Array.isArray(resSup.data) ? resSup.data : []);
 
-            const resProc = await axios.get(`${API_URL}/processes`);
+            const resProc = await api.get(`/processes`);
             setProcesses(Array.isArray(resProc.data) ? resProc.data : []);
 
         } catch (e) { message.error('Lỗi tải dữ liệu'); }
@@ -93,7 +93,7 @@ const ProductsPage: React.FC = () => {
     const fetchDetailData = async (id: number) => {
         if (!id) return;
         try {
-            const res = await axios.get(`${API_URL}/products/${id}`);
+            const res = await api.get(`/products/${id}`);
             const product = res.data;
 
             // Cập nhật lại form với đầy đủ dữ liệu (vì danh sách chỉ load vắn tắt)
@@ -102,17 +102,17 @@ const ProductsPage: React.FC = () => {
                 form.setFieldsValue(product);
             }
 
-            const resBOM = await axios.get(`${API_URL}/products/${encodeURIComponent(product.sku)}/boms`);
+            const resBOM = await api.get(`/products/${encodeURIComponent(product.sku)}/boms`);
             setBoms(resBOM.data || []);
 
-            const resRouting = await axios.get(`${API_URL}/products/${id}/routings`);
+            const resRouting = await api.get(`/products/${id}/routings`);
             setRoutings(resRouting.data || []);
 
             // Fetch Logistics
-            const resLogistics = await axios.get(`${API_URL}/products/${id}/logistics`);
+            const resLogistics = await api.get(`/products/${id}/logistics`);
             setLogistics(resLogistics.data || []);
 
-            const resComp = await axios.get(`${API_URL}/products/combo/${encodeURIComponent(product.sku)}`);
+            const resComp = await api.get(`/products/combo/${encodeURIComponent(product.sku)}`);
             setComponents(resComp.data || []);
 
         } catch (e) { message.error('Lỗi tải chi tiết'); }
@@ -125,12 +125,12 @@ const ProductsPage: React.FC = () => {
             let savedProduct: any;
 
             if (editingItem) {
-                await axios.put(`${API_URL}/products/${editingItem.id}`, payload);
+                await api.put(`/products/${editingItem.id}`, payload);
                 message.success('Đã lưu thành công');
                 setIsModalOpen(false);
                 fetchData();
             } else {
-                const res = await axios.post(`${API_URL}/products`, payload);
+                const res = await api.post(`/products`, payload);
                 savedProduct = res.data;
                 message.success('Đã tạo sản phẩm mới thành công. Vui lòng thiết lập BOM/Quy trình.');
                 setEditingItem(savedProduct);
@@ -144,7 +144,7 @@ const ProductsPage: React.FC = () => {
     };
 
     const handleDelete = async (id: number) => {
-        try { await axios.delete(`${API_URL}/products/${id}`); message.success('Đã xóa'); fetchData(); }
+        try { await api.delete(`/products/${id}`); message.success('Đã xóa'); fetchData(); }
         catch (e) { message.error('Lỗi xóa'); }
     };
 
@@ -194,7 +194,7 @@ const ProductsPage: React.FC = () => {
         };
 
         try {
-            await axios.post(`${API_URL}/products/create-variant`, payload);
+            await api.post(`/products/create-variant`, payload);
             message.success(`Đã tạo biến thể mới: ${newSku}`);
             setIsVariantModalOpen(false);
             fetchData();
@@ -211,11 +211,11 @@ const ProductsPage: React.FC = () => {
 
     const handleCalculateCost = async (sku: string) => {
         try {
-            const res = await axios.get(`${API_URL}/products/calculate-cost/${encodeURIComponent(sku)}`);
+            const res = await api.get(`/products/calculate-cost/${encodeURIComponent(sku)}`);
             message.success(`Giá vốn mới: ${Number(res.data.new_cost_price).toLocaleString()} ₫`);
             fetchData();
             if (editingItem) {
-                const updatedItem = await axios.get(`${API_URL}/products/${editingItem.id}`);
+                const updatedItem = await api.get(`/products/${editingItem.id}`);
                 setEditingItem(updatedItem.data);
                 form.setFieldsValue(updatedItem.data);
             }
@@ -359,7 +359,7 @@ const ProductsPage: React.FC = () => {
             onOk: async () => {
                 const hide = message.loading('Đang tính toán lại toàn bộ giá...', 0);
                 try {
-                    const res = await axios.post(`${API_URL}/products/calculate-all-costs`);
+                    const res = await api.post(`/products/calculate-all-costs`);
                     hide();
                     message.success(`Cập nhật thành công! Đã xử lý ${res.data.count} sản phẩm.`);
                     fetchData();
@@ -437,7 +437,7 @@ const ProductsPage: React.FC = () => {
                                                 <Input prefix={<LinkOutlined />} placeholder="https://drive.google.com/..." />
                                                 <Button icon={<FolderOpenOutlined />} onClick={async () => {
                                                     try {
-                                                        const res = await axios.get(`${API_URL}/system/config/SALES_SHARED_DRIVE_LINK`);
+                                                        const res = await api.get(`/system/config/SALES_SHARED_DRIVE_LINK`);
                                                         const link = res.data?.value || 'https://drive.google.com/drive/u/0/';
                                                         window.open(link, '_blank');
                                                     } catch {

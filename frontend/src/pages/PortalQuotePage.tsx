@@ -89,7 +89,7 @@ const PortalQuotePage: React.FC = () => {
 
     const fetchQuote = async () => {
         try {
-            const res = await axios.get(`${API_URL}/sales/portal/${uuid}`);
+            const res = await axios.get(`${API_URL}/public/portal/quote/${uuid}`);
             setData(res.data);
         } catch (e) { }
         finally { setLoading(false); }
@@ -110,7 +110,7 @@ const PortalQuotePage: React.FC = () => {
             cancelText: 'Hủy',
             okType: 'danger',
             onOk: async () => {
-                await axios.post(`${API_URL}/sales/portal/${uuid}/action`, { action });
+                await axios.post(`${API_URL}/public/portal/quote/${uuid}/action`, { action });
                 message.success('Thành công!'); window.location.reload();
             }
         });
@@ -142,7 +142,7 @@ const PortalQuotePage: React.FC = () => {
         }
 
         try {
-            await axios.post(`${API_URL}/sales/portal/${uuid}/action`, { action: 'ACCEPT' });
+            await axios.post(`${API_URL}/public/portal/quote/${uuid}/action`, { action: 'ACCEPT' });
             message.success('Xác nhận báo giá thành công!');
             setIsVerifyModalOpen(false);
             window.location.reload();
@@ -154,7 +154,7 @@ const PortalQuotePage: React.FC = () => {
     const handleSendComment = async () => {
         if (!commentText) return;
         try {
-            await axios.post(`${API_URL}/sales/${data.id}/comment`, { content: commentText, sender: 'CUSTOMER', name: data.customer_name || 'Khách hàng' });
+            await axios.post(`${API_URL}/public/portal/quote/${data.id}/comment`, { content: commentText, sender: 'CUSTOMER', name: data.customer_name || 'Khách hàng' });
             setCommentText(''); fetchQuote(); message.success('Đã gửi tin nhắn');
         } catch (e) { }
     };
@@ -554,7 +554,7 @@ const PortalQuotePage: React.FC = () => {
             okButtonProps: { danger: true },
             onOk: async () => {
                 try {
-                    await axios.delete(`${API_URL}/sales/comment/${commentId}`, { data: { deletedBy: data.customer_name || 'Khách hàng' } });
+                    await axios.delete(`${API_URL}/public/portal/quote/comment/${commentId}`, { data: { deletedBy: data.customer_name || 'Khách hàng' } });
                     message.success('Đã thu hồi tin nhắn');
                     fetchQuote();
                 } catch (e) { message.error('Không thể thu hồi tin nhắn'); }

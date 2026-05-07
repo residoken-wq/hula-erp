@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Table, Button, Modal, Form, Input, Select, InputNumber, DatePicker, Switch, Space, Tag, message, Popconfirm, Card, Typography, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, GiftOutlined, ReloadOutlined } from '@ant-design/icons';
-import axios from 'axios';
-import { API_URL } from '../config';
+import api from '../utils/api';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -46,7 +45,7 @@ const PromotionPage: React.FC = () => {
     const fetchPromotions = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_URL}/sales/promotions`);
+            const res = await api.get(`/sales/promotions`);
             setPromotions(res.data || []);
         } catch (e) {
             console.error('Error:', e);
@@ -58,8 +57,8 @@ const PromotionPage: React.FC = () => {
     const fetchMasterData = useCallback(async () => {
         try {
             const [custRes, prodRes] = await Promise.all([
-                axios.get(`${API_URL}/customers`),
-                axios.get(`${API_URL}/products`),
+                api.get(`/customers`),
+                api.get(`/products`),
             ]);
             setCustomers(custRes.data || []);
             setProducts(prodRes.data || []);
@@ -118,10 +117,10 @@ const PromotionPage: React.FC = () => {
             };
 
             if (editItem) {
-                await axios.put(`${API_URL}/sales/promotions/${editItem.id}`, payload);
+                await api.put(`/sales/promotions/${editItem.id}`, payload);
                 message.success('Cập nhật khuyến mãi thành công');
             } else {
-                await axios.post(`${API_URL}/sales/promotions`, payload);
+                await api.post(`/sales/promotions`, payload);
                 message.success('Tạo khuyến mãi thành công');
             }
 
@@ -137,7 +136,7 @@ const PromotionPage: React.FC = () => {
 
     const handleDelete = async (id: number) => {
         try {
-            await axios.delete(`${API_URL}/sales/promotions/${id}`);
+            await api.delete(`/sales/promotions/${id}`);
             message.success('Đã xóa khuyến mãi');
             fetchPromotions();
         } catch (e) {
