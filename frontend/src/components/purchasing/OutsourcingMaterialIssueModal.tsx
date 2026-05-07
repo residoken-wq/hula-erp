@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Table, Tag, Button, Space, InputNumber, Input, Select, DatePicker, Divider, message, Popconfirm, Empty } from 'antd';
 import { CarOutlined, PlusOutlined, CheckCircleOutlined, DeleteOutlined, SendOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../utils/api';
 import dayjs from 'dayjs';
-import { API_URL } from '../../config';
 
 interface OutsourcingMaterialIssueModalProps {
     open: boolean;
@@ -31,14 +30,14 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
 
     const fetchMaterials = async () => {
         try {
-            const res = await axios.get(`${API_URL}/purchasing/${currentPO.id}/outsourcing-materials`);
+            const res = await api.get(`/purchasing/${currentPO.id}/outsourcing-materials`);
             setMaterials(res.data.map((m: any) => ({ ...m, issue_qty: 0 })));
         } catch (e) { message.error('Lỗi tải thông tin NPL'); }
     };
 
     const fetchIssueHistory = async () => {
         try {
-            const res = await axios.get(`${API_URL}/inventory/goods-issue?po_id=${currentPO.id}`);
+            const res = await api.get(`/inventory/goods-issue?po_id=${currentPO.id}`);
             setIssueHistory(Array.isArray(res.data) ? res.data : []);
         } catch (e) { console.error('Error fetching issue history', e); }
     };
@@ -49,7 +48,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
 
         setLoading(true);
         try {
-            await axios.post(`${API_URL}/inventory/goods-issue`, {
+            await api.post(`/inventory/goods-issue`, {
                 type: 'OUTSOURCING',
                 delivery_mode: deliveryMode,
                 po_id: currentPO.id,
@@ -79,7 +78,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
 
     const handleConfirmIssue = async (issueId: number) => {
         try {
-            await axios.post(`${API_URL}/inventory/goods-issue/${issueId}/confirm`);
+            await api.post(`/inventory/goods-issue/${issueId}/confirm`);
             message.success('Đã xác nhận xuất kho — Tồn kho đã cập nhật');
             fetchIssueHistory();
             onRefresh?.();
@@ -88,7 +87,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
 
     const handleMarkDelivered = async (issueId: number) => {
         try {
-            await axios.post(`${API_URL}/inventory/goods-issue/${issueId}/delivered`);
+            await api.post(`/inventory/goods-issue/${issueId}/delivered`);
             message.success('Đã đánh dấu giao xong');
             fetchIssueHistory();
         } catch (e) { message.error('Lỗi cập nhật'); }
@@ -96,7 +95,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
 
     const handleDeleteIssue = async (issueId: number) => {
         try {
-            await axios.delete(`${API_URL}/inventory/goods-issue/${issueId}`);
+            await api.delete(`/inventory/goods-issue/${issueId}`);
             message.success('Đã xóa phiếu xuất kho');
             fetchIssueHistory();
         } catch (e) { message.error('Lỗi xóa phiếu'); }

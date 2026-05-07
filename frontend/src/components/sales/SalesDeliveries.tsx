@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Input, Modal, message, InputNumber, Tooltip, Select, DatePicker, Tag } from 'antd';
 import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined, EditOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../utils/api';
 import dayjs from 'dayjs';
-import { API_URL } from '../../config';
 import AttachmentUpload from '../common/AttachmentUpload';
 
 interface Props {
@@ -46,7 +45,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
     const fetchHistory = async () => {
         try {
-            const res = await axios.get(`${API_URL}/sales/${order.id}/deliveries`);
+            const res = await api.get(`/sales/${order.id}/deliveries`);
             setHistory(Array.isArray(res.data) ? res.data : []);
         } catch (e) { }
     };
@@ -54,7 +53,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const fetchCarriers = async () => {
         try {
             // Lấy danh sách nhà cung cấp vận chuyển (type = LOGISTICS)
-            const res = await axios.get(`${API_URL}/suppliers`);
+            const res = await api.get(`/suppliers`);
             setCarriers(res.data?.filter((c: any) => c.type === 'LOGISTICS') || []);
         } catch (e) { }
     };
@@ -68,7 +67,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             okButtonProps: { danger: true },
             onOk: async () => {
                 try {
-                    await axios.delete(`${API_URL}/sales/delivery/${deliveryId}`);
+                    await api.delete(`/sales/delivery/${deliveryId}`);
                     message.success('Đã xóa phiếu xuất kho');
                     fetchHistory();
                     onSuccess();
@@ -82,7 +81,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     useEffect(() => {
         if (order?.id) fetchHistory();
         fetchCarriers();
-        axios.get(`${API_URL}/system/company`).then(res => setCompanyConfig(res.data)).catch(() => { });
+        api.get(`/system/company`).then(res => setCompanyConfig(res.data)).catch(() => { });
     }, [order?.id]);
 
     // Use order.items for ordered quantities
@@ -177,7 +176,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const handleUploadSave = async () => {
         if (!uploadDeliveryId) return;
         try {
-            await axios.put(`${API_URL}/sales/delivery/${uploadDeliveryId}`, {
+            await api.put(`/sales/delivery/${uploadDeliveryId}`, {
                 attachments: uploadAttachments
             });
             message.success('Đã cập nhật chứng từ');
@@ -205,10 +204,10 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             };
 
             if (editingDeliveryId) {
-                await axios.put(`${API_URL}/sales/delivery/${editingDeliveryId}`, payload);
+                await api.put(`/sales/delivery/${editingDeliveryId}`, payload);
                 message.success('Đã cập nhật phiếu xuất kho');
             } else {
-                await axios.post(`${API_URL}/sales/${order.id}/delivery`, payload);
+                await api.post(`/sales/${order.id}/delivery`, payload);
                 message.success('Đã xuất kho');
             }
 
@@ -454,7 +453,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                                             title: 'Gửi Email thông báo?',
                                             content: 'Hệ thống sẽ gửi email thông báo giao hàng cho khách hàng theo mẫu.',
                                             onOk: async () => {
-                                                await axios.post(`${API_URL}/sales/delivery/${r.id}/email`);
+                                                await api.post(`/sales/delivery/${r.id}/email`);
                                                 message.success('Đã gửi email thành công');
                                                 fetchHistory();
                                             }
