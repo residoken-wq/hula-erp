@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import { Table, Button, message, Card, Form, Select, Input, Popconfirm, Row, Col, Space, Tooltip, Divider, Tag } from 'antd';
 import { PlusOutlined, DeleteOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
-import axios from 'axios';
-import { API_URL } from '../../config';
+import api from '../../utils/api';
 
 interface ProductVariantsTabProps {
     editingItem: any;
@@ -31,7 +30,7 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
             return message.error("Vui lòng chọn hoặc xác định biến thể nguồn.");
         }
         try {
-            await axios.post(`${API_URL}/products/copy-bom`, {
+            await api.post(`/products/copy-bom`, {
                 sourceSku: sourceSku,
                 targetSku: targetSku
             });
