@@ -415,7 +415,26 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                     )
                 },
                 { title: 'Người công trình', render: (r) => (r.contact_name ? <span>{r.contact_name} <br /><small>{r.contact_phone}</small></span> : '-') },
-                { title: 'Chi tiết', width: '30%', render: (r: any) => r.items?.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ') },
+                {
+                    title: 'Chi tiết', width: '35%', render: (r: any) => (
+                        <div>
+                            <div>{r.items?.map((i: any) => `${i.sku} (x${i.quantity})`).join(', ')}</div>
+                            {(r.shipping_carrier || r.tracking_code || Number(r.shipping_cost) > 0) && (
+                                <div style={{ marginTop: 4, fontSize: 12, color: '#1d39c4', background: '#f0f5ff', padding: '3px 6px', borderRadius: 4 }}>
+                                    <CarOutlined style={{ marginRight: 4 }} />
+                                    {r.shipping_carrier && <span>{r.shipping_carrier}</span>}
+                                    {r.tracking_code && <span> • <b>{r.tracking_code}</b></span>}
+                                    {Number(r.shipping_cost) > 0 && <span> • {Number(r.shipping_cost).toLocaleString()}đ</span>}
+                                </div>
+                            )}
+                            {r.note && (
+                                <div style={{ marginTop: 3, fontSize: 12, color: '#595959', fontStyle: 'italic' }}>
+                                    📝 {r.note}
+                                </div>
+                            )}
+                        </div>
+                    )
+                },
                 {
                     title: 'Chứng từ',
                     width: 200,
