@@ -254,14 +254,11 @@ const InventoryPage: React.FC = () => {
         if (!whConfig) return [];
         let data = filteredMasterData.filter(item => whConfig.allowedTypes.includes(item.item_type));
 
-        // Nếu filter âm đang bật, ta cần đảm bảo hiển thị đúng item âm trong kho này
-        // (Vì filteredMasterData chỉ lọc Tổng Âm, có thể item Tổng Dương nhưng kho này Âm -> Logic trên chưa cover hết)
-        // Tuy nhiên để UI đơn giản, ta cứ theo filteredMasterData (Tổng âm) trước.
-        // NẾU MUỐN CHÍNH XÁC TỪNG KHO: Logic filter âm phải nằm ở tầng render table hoặc getDataByWarehouse.
+        // Fix: Đối với Kho Lỗi, Kho Thanh Lý, Kho BTP, chỉ hiển thị những sản phẩm có tồn kho khác 0
+        if (whCode === 'KHO_LOI' || whCode === 'KHO_THANH_LY' || whCode === 'KHO_BTP') {
+            data = data.filter(item => getStockQty(item.item_type, item.id, whCode) !== 0);
+        }
 
-        // Cải tiến: Move logic filter âm xuống đây? 
-        // Nhưng filteredMasterData dùng cho Tab "Toàn bộ".
-        // Thôi cứ để Tổng Âm là tiêu chí chính.
         return data;
     };
 
