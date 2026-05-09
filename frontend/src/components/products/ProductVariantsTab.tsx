@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Table, Button, message, Card, Form, Select, Input, Popconfirm, Row, Col, Space, Tooltip, Divider, Tag } from 'antd';
-import { PlusOutlined, DeleteOutlined, CopyOutlined, SyncOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, CopyOutlined, SyncOutlined, ExperimentOutlined, SendOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 
 interface ProductVariantsTabProps {
@@ -24,20 +24,33 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
     
     const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
-    // Xử lý Copy BOM (Cần API Backend: /products/copy-bom)
-    const handleCopyBOM = async (targetSku: string, sourceSku: string) => {
+    // --- COPY HANDLERS ---
+    const handleCopy = async (type: 'bom' | 'routings' | 'logistics', targetSku: string, sourceSku: string) => {
         if (!sourceSku) {
             return message.error("Vui lòng chọn hoặc xác định biến thể nguồn.");
         }
+
+        const endpoints: Record<string, string> = {
+            bom: '/products/copy-bom',
+            routings: '/products/copy-routings',
+            logistics: '/products/copy-logistics'
+        };
+
+        const labels: Record<string, string> = {
+            bom: 'BOM',
+            routings: 'Quy trình gia công',
+            logistics: 'Logistics'
+        };
+
         try {
-            await api.post(`/products/copy-bom`, {
+            const res = await api.post(endpoints[type], {
                 sourceSku: sourceSku,
                 targetSku: targetSku
             });
-            message.success(`Đã sao chép BOM từ ${sourceSku} sang ${targetSku}`);
+            message.success(res.data?.message || `Đã sao chép ${labels[type]} từ ${sourceSku} sang ${targetSku}`);
             fetchDetailData(editingItem.id); 
-        } catch (error) {
-            message.error("Lỗi khi sao chép BOM. Kiểm tra API Backend.");
+        } catch (error: any) {
+            message.error(error.response?.data?.message || `Lỗi khi sao chép ${labels[type]}.`);
         }
     };
     
@@ -56,20 +69,37 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
         },
         { title: 'Giá bán', dataIndex: 'base_price', align: 'right' as const, render: (v: number) => Number(v).toLocaleString() },
         { 
-            title: 'Hành động', 
+            title: 'Sao chép từ SP này →', 
             key: 'action', 
-            width: 150, 
+            width: 340, 
             render: (v: any) => (
                 <Space size="small">
-                    <Tooltip title={`Sao chép BOM từ ${v.sku} sang Sản phẩm đang sửa`}>
-                        <Popconfirm
-                            title={`Chắc chắn sao chép BOM từ ${v.sku} sang ${editingItem.sku}?`}
-                            onConfirm={() => handleCopyBOM(editingItem.sku, v.sku)}
-                        >
-                            <Button icon={<CopyOutlined />} size="small">Copy BOM</Button>
-                        </Popconfirm>
-                    </Tooltip>
-                    
+                    <Popconfirm
+                        title={`Sao chép BOM từ ${v.sku} sang ${editingItem.sku}?`}
+                        onConfirm={() => handleCopy('bom', editingItem.sku, v.sku)}
+                    >
+                        <Tooltip title={`Copy BOM từ ${v.sku}`}>
+                            <Button icon={<CopyOutlined />} size="small">BOM</Button>
+                        </Tooltip>
+                    </Popconfirm>
+
+                    <Popconfirm
+                        title={`Sao chép Quy trình gia công từ ${v.sku} sang ${editingItem.sku}?`}
+                        onConfirm={() => handleCopy('routings', editingItem.sku, v.sku)}
+                    >
+                        <Tooltip title={`Copy Quy trình từ ${v.sku}`}>
+                            <Button icon={<ExperimentOutlined />} size="small">Gia công</Button>
+                        </Tooltip>
+                    </Popconfirm>
+
+                    <Popconfirm
+                        title={`Sao chép Logistics từ ${v.sku} sang ${editingItem.sku}?`}
+                        onConfirm={() => handleCopy('logistics', editingItem.sku, v.sku)}
+                    >
+                        <Tooltip title={`Copy Logistics từ ${v.sku}`}>
+                            <Button icon={<SendOutlined />} size="small">Logistics</Button>
+                        </Tooltip>
+                    </Popconfirm>
                 </Space>
             )
         },
@@ -91,11 +121,11 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
                 </Card>
             </Col>
             
-            <Col span={24}><Divider orientation="left">Sao chép BOM từ Sản phẩm bất kỳ</Divider></Col>
+            <Col span={24}><Divider orientation="left">Sao chép từ Sản phẩm bất kỳ</Divider></Col>
             <Col span={8}>
-                <Card title="Chọn Nguồn BOM" size="small">
+                <Card title="Chọn Sản phẩm Nguồn" size="small">
                     <Form layout="vertical">
-                        <Form.Item label="Chọn Biến thể Nguồn">
+                        <Form.Item label="Chọn SP Nguồn">
                              <Select 
                                 showSearch
                                 placeholder="Tìm kiếm SKU hoặc Tên"
@@ -104,15 +134,33 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
                                 onChange={setSelectedVariant}
                             />
                         </Form.Item>
-                        <Button 
-                            type="primary" 
-                            onClick={() => selectedVariant && handleCopyBOM(editingItem.sku, selectedVariant)} 
-                            disabled={!selectedVariant || selectedVariant === editingItem.sku}
-                            block
-                            icon={<CopyOutlined />}
-                        >
-                            Copy BOM đến Sản phẩm hiện tại
-                        </Button>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                            <Button 
+                                type="primary" 
+                                onClick={() => selectedVariant && handleCopy('bom', editingItem.sku, selectedVariant)} 
+                                disabled={!selectedVariant || selectedVariant === editingItem.sku}
+                                block
+                                icon={<CopyOutlined />}
+                            >
+                                Copy BOM
+                            </Button>
+                            <Button 
+                                onClick={() => selectedVariant && handleCopy('routings', editingItem.sku, selectedVariant)} 
+                                disabled={!selectedVariant || selectedVariant === editingItem.sku}
+                                block
+                                icon={<ExperimentOutlined />}
+                            >
+                                Copy Quy trình gia công
+                            </Button>
+                            <Button 
+                                onClick={() => selectedVariant && handleCopy('logistics', editingItem.sku, selectedVariant)} 
+                                disabled={!selectedVariant || selectedVariant === editingItem.sku}
+                                block
+                                icon={<SendOutlined />}
+                            >
+                                Copy Logistics & Khác
+                            </Button>
+                        </Space>
                     </Form>
                 </Card>
             </Col>

@@ -57,6 +57,16 @@ export class ProductsController {
     return this.service.copyBom(body.sourceSku, body.targetSku);
   }
 
+  @Post('copy-routings')
+  async copyRoutings(@Body() body: any) {
+    return this.service.copyRoutings(body.sourceSku, body.targetSku);
+  }
+
+  @Post('copy-logistics')
+  async copyLogistics(@Body() body: any) {
+    return this.service.copyLogistics(body.sourceSku, body.targetSku);
+  }
+
   @Get('calculate-cost/:sku') calculateCost(@Param('sku') sku: string) { return this.service.calculateCostPrice(sku); }
 
   @Post('calculate-all-costs')

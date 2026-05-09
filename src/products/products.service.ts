@@ -454,6 +454,56 @@ export class ProductsService {
         return { message: `Đã sao chép ${newBoms.length} dòng BOM từ ${sourceSku} sang ${targetSku}` };
     }
 
+    async copyRoutings(sourceSku: string, targetSku: string) {
+        const source = await this.productRepo.findOne({ where: { sku: sourceSku } });
+        const target = await this.productRepo.findOne({ where: { sku: targetSku } });
+
+        if (!source || !target) throw new NotFoundException('Không tìm thấy sản phẩm nguồn hoặc đích.');
+
+        const sourceRoutings = await this.routingRepo.find({ where: { product_id: source.id } });
+        if (!sourceRoutings.length) throw new BadRequestException(`Sản phẩm nguồn ${sourceSku} chưa có Quy trình gia công.`);
+
+        await this.routingRepo.delete({ product_id: target.id });
+
+        const newItems = sourceRoutings.map(r => this.routingRepo.create({
+            product_id: target.id,
+            process_id: r.process_id,
+            supplier_id: r.supplier_id,
+            step_name: r.step_name,
+            cost: r.cost,
+            is_required: r.is_required
+        }));
+
+        await this.routingRepo.save(newItems as any);
+        await this.calculateCostPrice(target.sku);
+
+        return { message: `Đã sao chép ${newItems.length} bước gia công từ ${sourceSku} sang ${targetSku}` };
+    }
+
+    async copyLogistics(sourceSku: string, targetSku: string) {
+        const source = await this.productRepo.findOne({ where: { sku: sourceSku } });
+        const target = await this.productRepo.findOne({ where: { sku: targetSku } });
+
+        if (!source || !target) throw new NotFoundException('Không tìm thấy sản phẩm nguồn hoặc đích.');
+
+        const sourceLogistics = await this.logisticRepo.find({ where: { product_id: source.id } });
+        if (!sourceLogistics.length) throw new BadRequestException(`Sản phẩm nguồn ${sourceSku} chưa có thông tin Logistics.`);
+
+        await this.logisticRepo.delete({ product_id: target.id });
+
+        const newItems = sourceLogistics.map(l => this.logisticRepo.create({
+            product_id: target.id,
+            name: l.name,
+            cost: l.cost,
+            note: l.note
+        }));
+
+        await this.logisticRepo.save(newItems as any);
+        await this.calculateCostPrice(target.sku);
+
+        return { message: `Đã sao chép ${newItems.length} mục Logistics từ ${sourceSku} sang ${targetSku}` };
+    }
+
     // --- BULK UPDATE PRICE ---
     async calculateAllCosts() {
         const products = await this.productRepo.find();
