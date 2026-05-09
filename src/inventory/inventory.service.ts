@@ -72,7 +72,8 @@ export class InventoryService {
     quantity: number,
     refCode: string,
     note: string,
-    warehouse: string // <--- Tham số mới
+    warehouse: string, // <--- Tham số mới
+    updated_by: string = 'System' // <--- MỚI
   ) {
     if (!warehouse) throw new BadRequestException('Chưa chọn kho');
 
@@ -130,7 +131,8 @@ export class InventoryService {
       balance_after: stockRecord.quantity, // Balance của riêng kho này
       warehouse: warehouse, // Ghi nhận kho
       reference_code: refCode || 'MANUAL',
-      note
+      note,
+      updated_by
     });
 
     return this.historyRepo.save(history);
@@ -158,7 +160,8 @@ export class InventoryService {
     quantity: number,
     fromWh: string,
     toWh: string,
-    note: string
+    note: string,
+    updated_by: string = 'System'
   ) {
     if (!fromWh || !toWh) throw new BadRequestException('Vui lòng chọn đủ 2 kho');
     if (fromWh === toWh) throw new BadRequestException('Kho đi và kho đến phải khác nhau');
@@ -169,10 +172,10 @@ export class InventoryService {
 
     // 2. Thực hiện chuyển (Transaction logic could be better, but reuse adjustStock is safe enough for now)
     // Xuất kho nguồn
-    await this.adjustStock('EXPORT', itemType, itemId, quantity, `TRANSFER_OUT`, `Chuyển tới ${toWh}: ${note}`, fromWh);
+    await this.adjustStock('EXPORT', itemType, itemId, quantity, `TRANSFER_OUT`, `Chuyển tới ${toWh}: ${note}`, fromWh, updated_by);
 
     // Nhập kho đích
-    await this.adjustStock('IMPORT', itemType, itemId, quantity, `TRANSFER_IN`, `Nhận từ ${fromWh}: ${note}`, toWh);
+    await this.adjustStock('IMPORT', itemType, itemId, quantity, `TRANSFER_IN`, `Nhận từ ${fromWh}: ${note}`, toWh, updated_by);
 
     return { message: 'Chuyển kho thành công' };
   }
@@ -213,7 +216,7 @@ export class InventoryService {
     });
   }
 
-  async confirmReceipt(id: number, warehouseCode: string = 'KHO_NPL') {
+  async confirmReceipt(id: number, warehouseCode: string = 'KHO_NPL', updated_by: string = 'System') {
     const receipt = await this.receiptRepo.findOne({
       where: { id },
       relations: ['items', 'purchase_order', 'purchase_order.items']
@@ -233,7 +236,8 @@ export class InventoryService {
           item.quantity,
           receipt.code,
           `Nhập kho từ PO ${receipt.po_id ? '#' + receipt.po_id : ''}`,
-          warehouseCode
+          warehouseCode,
+          updated_by
         );
 
         // Calculate Debt: Find PO Price
@@ -328,7 +332,7 @@ export class InventoryService {
     });
   }
 
-  async confirmStockExport(deliveryId: number, warehouseCode: string = 'KHO_TP') {
+  async confirmStockExport(deliveryId: number, warehouseCode: string = 'KHO_TP', updated_by: string = 'System') {
     const delivery = await this.deliveryRepo.findOne({
       where: { id: deliveryId },
       relations: ['items', 'sales_order']
@@ -358,7 +362,8 @@ export class InventoryService {
                   Number(item.quantity) * Number(comp.quantity),
                   delivery.code,
                   `Xuất Combo ${item.sku} (Đơn ${delivery.sales_order?.order_code})`,
-                  warehouseCode
+                  warehouseCode,
+                  updated_by
                 );
               }
             }
@@ -371,7 +376,8 @@ export class InventoryService {
               Number(item.quantity),
               delivery.code,
               `Giao hàng đơn ${delivery.sales_order?.order_code}`,
-              warehouseCode
+              warehouseCode,
+              updated_by
             );
           }
 
@@ -453,7 +459,7 @@ export class InventoryService {
     return gi;
   }
 
-  async confirmGoodsIssue(id: number) {
+  async confirmGoodsIssue(id: number, updated_by: string = 'System') {
     const gi = await this.goodsIssueRepo.findOne({
       where: { id },
       relations: ['items', 'items.material']
@@ -468,7 +474,8 @@ export class InventoryService {
           'EXPORT', 'MATERIAL', item.material_id,
           Number(item.quantity), gi.code,
           `Xuất cho GC: ${gi.note || gi.code}`,
-          'KHO_NPL'
+          'KHO_NPL',
+          updated_by
         );
       }
     }

@@ -34,6 +34,10 @@ export class StockHistory {
   @Column({ nullable: true })
   note: string;
 
+  // --- MỚI: NGƯỜI CẬP NHẬT ---
+  @Column({ nullable: true })
+  updated_by: string;
+
   @CreateDateColumn()
   created_at: Date;
 }

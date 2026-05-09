@@ -241,7 +241,7 @@ export class PublicController {
             .andWhere('b.is_hidden = :hidden', { hidden: false })
             .orderBy('b.published_at', 'DESC');
 
-        if (limit) {
+        if (limit && !isNaN(Number(limit))) {
             query.take(Number(limit));
         }
 
@@ -438,8 +438,8 @@ export class PublicController {
             .where('p.is_active = :isActive', { isActive: true })
             .andWhere('p.show_on_website = :show', { show: true });
 
-        if (categoryId) {
-            qb.andWhere('p.category_id = :catId', { catId: categoryId });
+        if (categoryId && !isNaN(Number(categoryId))) {
+            qb.andWhere('p.category_id = :catId', { catId: Number(categoryId) });
         }
 
         if (tags) {

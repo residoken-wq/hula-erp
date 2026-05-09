@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Put, Delete, Query, UsePipes, ValidationPipe, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Put, Delete, Query, UsePipes, ValidationPipe, UseGuards, Req } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './create-inventory.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -22,7 +22,7 @@ export class InventoryController {
   @Post('adjust')
   @RequirePermission('INVENTORY', 'can_create')
   @UsePipes(new ValidationPipe())
-  async adjust(@Body() dto: CreateInventoryDto) {
+  async adjust(@Body() dto: CreateInventoryDto, @Req() req: any) {
     return this.inventoryService.adjustStock(
       dto.type,
       dto.itemType,
@@ -30,7 +30,8 @@ export class InventoryController {
       dto.quantity,
       dto.ref,
       dto.note,
-      dto.warehouse
+      dto.warehouse,
+      req.user?.full_name || req.user?.username || 'System'
     );
   }
 
@@ -43,10 +44,11 @@ export class InventoryController {
 
   // API Chuyển kho
   @Post('transfer')
-  async transfer(@Body() body: any) {
+  async transfer(@Body() body: any, @Req() req: any) {
     return this.inventoryService.transferStock(
       body.itemType, body.itemId, body.quantity,
-      body.fromWh, body.toWh, body.note
+      body.fromWh, body.toWh, body.note,
+      req.user?.full_name || req.user?.username || 'System'
     );
   }
 
@@ -62,8 +64,8 @@ export class InventoryController {
   }
 
   @Post('goods-receipt/:id/confirm')
-  async confirm(@Param('id') id: string) {
-    return this.inventoryService.confirmReceipt(Number(id));
+  async confirm(@Param('id') id: string, @Req() req: any) {
+    return this.inventoryService.confirmReceipt(Number(id), undefined, req.user?.full_name || req.user?.username || 'System');
   }
 
   // --- EXPORT CONFIRMATION API ---
@@ -75,9 +77,10 @@ export class InventoryController {
   @Post('deliveries/:id/confirm')
   async confirmDelivery(
     @Param('id') id: string,
-    @Body('warehouse') warehouse: string
+    @Body('warehouse') warehouse: string,
+    @Req() req: any
   ) {
-    return this.inventoryService.confirmStockExport(Number(id), warehouse);
+    return this.inventoryService.confirmStockExport(Number(id), warehouse, req.user?.full_name || req.user?.username || 'System');
   }
 
   // --- SHIPPING CARRIERS API ---
@@ -125,8 +128,8 @@ export class InventoryController {
   }
 
   @Post('goods-issue/:id/confirm')
-  async confirmGoodsIssue(@Param('id') id: string) {
-    return this.inventoryService.confirmGoodsIssue(Number(id));
+  async confirmGoodsIssue(@Param('id') id: string, @Req() req: any) {
+    return this.inventoryService.confirmGoodsIssue(Number(id), req.user?.full_name || req.user?.username || 'System');
   }
 
   @Post('goods-issue/:id/delivered')

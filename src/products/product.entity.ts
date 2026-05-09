@@ -57,6 +57,10 @@ export class Product {
   @Column('text', { nullable: true })
   processing_description: string;
 
+  // --- MỚI: FIELD MÔ TẢ VAT ---
+  @Column('text', { nullable: true })
+  vat_description: string;
+
   @Column('jsonb', { nullable: true, default: [] })
   tags: string[];
 

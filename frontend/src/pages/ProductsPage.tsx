@@ -475,6 +475,7 @@ const ProductsPage: React.FC = () => {
                                         <Divider orientation="left"><FileTextOutlined /> Mô tả & Thông tin chi tiết</Divider>
                                         <Form.Item name="customer_description" label="Mô tả Khách hàng/Bán hàng" tooltip="Hiển thị trên Báo giá, SO, Phiếu giao hàng"><TextArea rows={3} placeholder="Mô tả thương mại, chất liệu cơ bản, v.v." /></Form.Item>
                                         <Form.Item name="processing_description" label="Mô tả Gia công/Sản xuất" tooltip="Hiển thị trên PO Gia công, Lệnh sản xuất"><TextArea rows={3} placeholder="Yêu cầu kỹ thuật, chi tiết may/cắt, v.v." /></Form.Item>
+                                        <Form.Item name="vat_description" label="Mô tả VAT" tooltip="Hiển thị trên đơn hàng để xuất hóa đơn"><TextArea rows={2} placeholder="Mô tả xuất hóa đơn..." /></Form.Item>
 
                                         {/* BIẾN THỂ: Cho phép sửa thuộc tính */}
                                         {editingItem && editingItem.attributes && Object.keys(editingItem.attributes).length > 0 && (

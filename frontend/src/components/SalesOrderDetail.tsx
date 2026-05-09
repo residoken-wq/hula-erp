@@ -243,10 +243,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 item.unit = prod.unit;
                 item._description = prod.description;
                 item._type = prod.type;
-                // Auto-fill Description if empty
-                if (!item.vat_content && prod.description) {
-                    item.vat_content = prod.description;
-                }
+                
+                // Map vat_description to vat_content directly, or fallback to description
+                item.vat_content = prod.vat_description || prod.description || '';
             }
         }
 

@@ -118,6 +118,7 @@ const SalesPage: React.FC = () => {
                     price: Number(p.base_price) || 0,
                     unit: p.unit,
                     description: p.customer_description,
+                    vat_description: p.vat_description,
                     type: p.product_type,
                     quantity_in_stock: p.quantity_in_stock
                 })));

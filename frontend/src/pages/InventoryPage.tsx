@@ -325,6 +325,7 @@ const InventoryPage: React.FC = () => {
         { title: 'SL', dataIndex: 'quantity', align: 'right' as const, width: 80, render: (v: any, r: any) => <b style={{ color: r.type === 'IMPORT' ? 'green' : 'red' }}>{r.type === 'IMPORT' ? '+' : '-'}{Number(v).toLocaleString()}</b> },
         { title: 'Tồn sau', dataIndex: 'balance_after', align: 'right' as const, width: 80, render: (v: any) => Number(v).toLocaleString() },
         { title: 'Ref', dataIndex: 'reference_code', render: (t: any) => <Tag>{t}</Tag> },
+        { title: 'Người Cập Nhật', dataIndex: 'updated_by', width: 130, render: (t: any) => t ? <Tag color="blue">{t}</Tag> : '-' },
         { title: 'Note', dataIndex: 'note' }
     ];
 
