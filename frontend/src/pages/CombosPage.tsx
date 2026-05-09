@@ -116,7 +116,7 @@ const CombosPage: React.FC = () => {
         let refCost = 0;
 
         items.forEach((item: any) => {
-            if (item.sku && item.quantity) {
+            if (item && item.sku && item.quantity) {
                 const info = productMap[item.sku];
                 if (info) {
                     refSell += Number(item.quantity) * info.price;

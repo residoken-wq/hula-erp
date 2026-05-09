@@ -149,6 +149,7 @@ const ProductsPage: React.FC = () => {
     };
 
     const openEdit = (item: any) => {
+        form.resetFields();
         setEditingItem(item);
 
         let initialProfitMargin = 30;

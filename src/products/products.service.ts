@@ -31,7 +31,7 @@ export class ProductsService {
 
     async findAll() {
         const products = await this.productRepo.find({
-            select: ['id', 'sku', 'name', 'category_id', 'product_type', 'cost_price', 'base_price', 'quantity_in_stock', 'profit_margin', 'is_active', 'unit', 'customer_description', 'processing_description', 'image_url', 'show_on_website', 'contact_for_price', 'website_price', 'website_sale_price', 'website_order', 'website_display_name', 'tags'],
+            select: ['id', 'sku', 'name', 'category_id', 'product_type', 'cost_price', 'base_price', 'quantity_in_stock', 'profit_margin', 'is_active', 'unit', 'customer_description', 'processing_description', 'vat_description', 'image_url', 'show_on_website', 'contact_for_price', 'website_price', 'website_sale_price', 'website_order', 'website_display_name', 'tags'],
             order: { id: 'DESC' },
             relations: ['category_link']
         });
@@ -120,10 +120,11 @@ export class ProductsService {
     }
 
     private cleanData(data: any) {
-        const { boms, routings, logistics, components, patterns, color, size, fabric, customer_description, processing_description, tags, ...clean } = data;
+        const { boms, routings, logistics, components, patterns, color, size, fabric, customer_description, processing_description, vat_description, tags, ...clean } = data;
 
         clean.customer_description = customer_description;
         clean.processing_description = processing_description;
+        clean.vat_description = vat_description;
 
         if (tags !== undefined) {
             clean.tags = tags;
@@ -149,11 +150,27 @@ export class ProductsService {
         return clean;
     }
 
-    async create(data: Partial<Product>) { return this.productRepo.save(this.cleanData(data)); }
+    async create(data: Partial<Product>) {
+        try {
+            return await this.productRepo.save(this.cleanData(data));
+        } catch (error: any) {
+            if (error.code === '23505') {
+                throw new ConflictException(`Mã SKU "${data.sku}" đã tồn tại trên hệ thống.`);
+            }
+            throw error;
+        }
+    }
 
     async update(id: number, data: Partial<Product>) {
-        await this.productRepo.update(id, this.cleanData(data));
-        return this.productRepo.findOne({ where: { id } });
+        try {
+            await this.productRepo.update(id, this.cleanData(data));
+            return this.productRepo.findOne({ where: { id } });
+        } catch (error: any) {
+            if (error.code === '23505') {
+                throw new ConflictException(`Mã SKU "${data.sku}" đã tồn tại trên hệ thống.`);
+            }
+            throw error;
+        }
     }
 
     async remove(id: number) { return this.productRepo.delete(id); }
