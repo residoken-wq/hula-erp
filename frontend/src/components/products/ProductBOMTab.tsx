@@ -3,8 +3,7 @@
 import React, { useMemo } from 'react';
 import { Table, Button, message, Card, Form, Select, InputNumber, Popconfirm, Row, Col, Space, Statistic } from 'antd';
 import { PlusOutlined, DeleteOutlined, DollarOutlined } from '@ant-design/icons';
-import axios from 'axios';
-import { API_URL } from '../../config';
+import api from '../../utils/api';
 
 interface ProductBOMTabProps {
     editingItem: any;
@@ -57,7 +56,7 @@ const ProductBOMTab: React.FC<ProductBOMTabProps> = ({ editingItem, boms, materi
                 waste_percent: i.waste_percent 
             }));
 
-            await axios.post(`${API_URL}/products/${editingItem.id}/boms`, payload);
+            await api.post(`/products/${editingItem.id}/boms`, payload);
             message.success('Đã lưu BOM');
             fetchDetailData(editingItem.id);
             bomForm.resetFields();
@@ -74,7 +73,7 @@ const ProductBOMTab: React.FC<ProductBOMTabProps> = ({ editingItem, boms, materi
             waste_percent: i.waste_percent 
         }));
 
-        await axios.post(`${API_URL}/products/${editingItem.id}/boms`, payload);
+        await api.post(`/products/${editingItem.id}/boms`, payload);
         message.success('Đã xóa BOM');
         fetchDetailData(editingItem.id);
     };

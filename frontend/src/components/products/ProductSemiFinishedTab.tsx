@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, message, Card, Form, Input, InputNumber, Select, Row, Col, Space, Drawer, Popconfirm, Divider, Tag, List } from 'antd';
 import { PlusOutlined, DeleteOutlined, SettingOutlined, EyeOutlined, SaveOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../utils/api';
 import { API_URL } from '../../config';
 
 interface ProductSemiFinishedTabProps {
@@ -57,7 +57,7 @@ const ProductSemiFinishedTab: React.FC<ProductSemiFinishedTabProps> = ({ editing
 
             // Check if exist (đơn giản hoá, nếu trùng SKU API sẽ lỗi hoặc trả về existing)
             // Ở đây assume tạo mới hoàn toàn
-            const resProd = await axios.post(`${API_URL}/products`, productPayload);
+            const resProd = await api.post(`/products`, productPayload);
             const newProduct = resProd.data;
 
             // 2. Tạo BOM cho Product ảo này
@@ -66,7 +66,7 @@ const ProductSemiFinishedTab: React.FC<ProductSemiFinishedTabProps> = ({ editing
                 quantity: item.quantity,
                 waste_percent: item.waste_percent
             }));
-            await axios.post(`${API_URL}/products/${newProduct.id}/boms`, bomPayload);
+            await api.post(`/products/${newProduct.id}/boms`, bomPayload);
 
             // 3. Link Product ảo vào Product cha (editingItem)
             // Component payload: [{ sku: childSku, quantity: 1 }]
@@ -90,10 +90,10 @@ const ProductSemiFinishedTab: React.FC<ProductSemiFinishedTabProps> = ({ editing
             }));
             const finalComponents = [...currentComponents, ...componentPayload];
 
-            await axios.post(`${API_URL}/products/${editingItem.id}/components`, finalComponents);
+            await api.post(`/products/${editingItem.id}/components`, finalComponents);
 
             // 4. Tính lại giá vốn cho BTP vừa tạo
-            await axios.get(`${API_URL}/products/calculate-cost/${encodeURIComponent(phantomSku)}`);
+            await api.get(`/products/calculate-cost/${encodeURIComponent(phantomSku)}`);
 
             message.success('Đã tạo Bán thành phẩm thành công');
             setIsDrawOpen(false);
@@ -114,7 +114,7 @@ const ProductSemiFinishedTab: React.FC<ProductSemiFinishedTabProps> = ({ editing
                 .filter(c => c.child_product.sku !== childSku)
                 .map(c => ({ sku: c.child_product.sku, quantity: c.quantity }));
 
-            await axios.post(`${API_URL}/products/${editingItem.id}/components`, newComponents);
+            await api.post(`/products/${editingItem.id}/components`, newComponents);
             message.success('Đã gỡ bỏ liên kết');
             fetchDetailData(editingItem.id);
         } catch (e) { message.error('Lỗi xóa'); }
@@ -270,9 +270,9 @@ const SemiFinishedBOMViewer = ({ productId }: { productId: number }) => {
                 // Hoặc endpoint detail product trả về relations=['boms'] ?
 
                 // Cách 1: Get Detail -> Get BOMs
-                const resProd = await axios.get(`${API_URL}/products/${productId}`);
+                const resProd = await api.get(`/products/${productId}`);
                 const sku = resProd.data.sku;
-                const resBom = await axios.get(`${API_URL}/products/${encodeURIComponent(sku)}/boms`);
+                const resBom = await api.get(`/products/${encodeURIComponent(sku)}/boms`);
                 setBoms(resBom.data);
             } catch (e) { }
             setLoading(false);

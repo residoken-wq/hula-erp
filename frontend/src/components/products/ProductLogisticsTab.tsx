@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { Table, Button, message, Card, Form, Input, InputNumber, Popconfirm, Row, Col, Statistic } from 'antd';
 import { PlusOutlined, DeleteOutlined, DollarOutlined, CarOutlined } from '@ant-design/icons';
-import axios from 'axios';
-import { API_URL } from '../../config';
+import api from '../../utils/api';
 
 interface ProductLogisticsTabProps {
     editingItem: any;
@@ -31,7 +30,7 @@ const ProductLogisticsTab: React.FC<ProductLogisticsTabProps> = ({ editingItem, 
             setLogistics(updatedList);
 
             // Gửi toàn bộ danh sách về Backend (theo logic của products.service.ts)
-            await axios.post(`${API_URL}/products/${editingItem.id}/logistics`, updatedList);
+            await api.post(`/products/${editingItem.id}/logistics`, updatedList);
             
             message.success('Đã lưu chi phí');
             form.resetFields();
@@ -47,7 +46,7 @@ const ProductLogisticsTab: React.FC<ProductLogisticsTabProps> = ({ editingItem, 
             const updatedList = logistics.filter(item => item.id !== idToRemove);
             setLogistics(updatedList);
 
-            await axios.post(`${API_URL}/products/${editingItem.id}/logistics`, updatedList);
+            await api.post(`/products/${editingItem.id}/logistics`, updatedList);
             
             message.success('Đã xóa chi phí');
             fetchDetailData(editingItem.id);

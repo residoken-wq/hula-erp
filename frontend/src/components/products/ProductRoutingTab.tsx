@@ -1,8 +1,7 @@
 import React, { useState } from 'react'; // Bổ sung useState
 import { Table, Button, message, Card, Form, Select, InputNumber, Popconfirm, Row, Col, Tag, Checkbox, Input } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import axios from 'axios';
-import { API_URL } from '../../config';
+import api from '../../utils/api';
 
 interface ProductRoutingTabProps {
     editingItem: any;
@@ -45,7 +44,7 @@ const ProductRoutingTab: React.FC<ProductRoutingTabProps> = ({ editingItem, rout
                 is_required: i.is_required || false,
             }));
 
-            await axios.post(`${API_URL}/products/${editingItem.id}/routings`, payload);
+            await api.post(`/products/${editingItem.id}/routings`, payload);
             message.success('Đã lưu Quy trình');
             fetchDetailData(editingItem.id);
             routingForm.resetFields();
@@ -64,7 +63,7 @@ const ProductRoutingTab: React.FC<ProductRoutingTabProps> = ({ editingItem, rout
             is_required: i.is_required || false,
         }));
 
-        await axios.post(`${API_URL}/products/${editingItem.id}/routings`, payload);
+        await api.post(`/products/${editingItem.id}/routings`, payload);
         message.success('Đã xóa Quy trình');
         fetchDetailData(editingItem.id);
     };

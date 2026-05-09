@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Form, Input, InputNumber, Button, Table, Row, Col, Card, Upload, message, Divider, Space, Typography } from 'antd';
 import { UploadOutlined, PlusOutlined, DeleteOutlined, CalculatorOutlined, SaveOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../utils/api';
 import { API_URL } from '../../config';
 
 const { Text } = Typography;
@@ -23,7 +23,7 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
     const fetchPattern = async () => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_URL}/products/${editingItem.id}/pattern`);
+            const res = await api.get(`/products/${editingItem.id}/pattern`);
             if (res.data) {
                 form.setFieldsValue({
                     fabric_width: res.data.fabric_width,
@@ -70,7 +70,7 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
 
     const handleSave = async (values: any) => {
         try {
-            await axios.post(`${API_URL}/products/${editingItem.id}/pattern`, {
+            await api.post(`/products/${editingItem.id}/pattern`, {
                 ...values,
                 image_url: imageUrl,
                 details: details
