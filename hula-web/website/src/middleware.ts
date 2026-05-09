@@ -67,8 +67,17 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith('/maintenance') ||
         pathname.startsWith('/_next') ||
         pathname.startsWith('/api') ||
+        pathname === '/robots.txt' ||
+        pathname === '/sitemap.xml' ||
         pathname.includes('.') // Static files like .ico, .png, .css, .js
     ) {
+        return NextResponse.next();
+    }
+
+    // Allow social media crawlers/bots to access all pages (for OG meta, link previews)
+    const userAgent = request.headers.get('user-agent') || '';
+    const isCrawler = /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|WhatsApp|Slackbot|TelegramBot|Googlebot|bingbot|Bytespider|PetalBot/i.test(userAgent);
+    if (isCrawler) {
         return NextResponse.next();
     }
 
