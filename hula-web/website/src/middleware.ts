@@ -84,6 +84,13 @@ export async function middleware(request: NextRequest) {
     // beta.nemmamnon.com always shows full website (bypass SITE_MODE)
     const host = request.headers.get('host') || '';
     if (host.startsWith('beta.')) {
+        // Require authentication for beta access
+        if (!pathname.startsWith('/beta-login')) {
+            const betaToken = request.cookies.get('hula_beta_token');
+            if (!betaToken?.value) {
+                return NextResponse.redirect(new URL('/beta-login', request.url));
+            }
+        }
         return NextResponse.next();
     }
 
