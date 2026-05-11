@@ -114,6 +114,12 @@ const PortalDashboardPage: React.FC = () => {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
+    // ===== REORDER MODAL STATE =====
+    const [reorderModalOrder, setReorderModalOrder] = useState<Order | null>(null);
+    const [reorderItems, setReorderItems] = useState<Record<string, number>>({});
+    const [reorderNote, setReorderNote] = useState('');
+    const [allowLessQuantity, setAllowLessQuantity] = useState(false);
+
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
         window.addEventListener('resize', handleResize);
@@ -146,17 +152,50 @@ const PortalDashboardPage: React.FC = () => {
 
     useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
 
-    const handleReorder = async (order: Order) => {
-        if (!token) return;
-        setReorderLoading(order.id);
+    const openReorderModal = (order: Order) => {
+        setReorderModalOrder(order);
+        const initialItems: Record<string, number> = {};
+        order.items.forEach(item => {
+            initialItems[item.sku] = item.quantity;
+        });
+        setReorderItems(initialItems);
+        setReorderNote('');
+        setAllowLessQuantity(false);
+    };
+
+    const submitReorder = async () => {
+        if (!token || !reorderModalOrder) return;
+        setReorderLoading(reorderModalOrder.id);
         setReorderResult(null);
         try {
+            const items = Object.entries(reorderItems)
+                .filter(([, qty]) => qty > 0)
+                .map(([sku, qty]) => {
+                    const item = reorderModalOrder.items.find(x => x.sku === sku);
+                    return { sku, quantity: qty, unit_price: item?.unit_price || 0 };
+                });
+            
+            if (items.length === 0) {
+                setReorderResult({ success: false, message: 'Vui lòng chọn ít nhất 1 sản phẩm' });
+                return;
+            }
+
+            if (allowLessQuantity && reorderNote.trim() === '') {
+                setReorderResult({ success: false, message: 'Vui lòng điền ghi chú khi đặt số lượng ít hơn' });
+                return;
+            }
+
             const res = await axios.post(
                 `${API_URL}/public/portal/reorder/${slug}`,
-                { order_id: order.id },
+                { 
+                    order_id: reorderModalOrder.id,
+                    items,
+                    note: reorderNote 
+                },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             setReorderResult({ success: true, message: res.data.message || 'Đã tạo báo giá mới!' });
+            setReorderModalOrder(null);
             fetchDashboard();
         } catch (err: any) {
             setReorderResult({ success: false, message: err.response?.data?.message || 'Lỗi đặt hàng lại' });
@@ -450,7 +489,7 @@ const PortalDashboardPage: React.FC = () => {
                                                 </a>
                                                 {order.status !== 'CANCELLED' && (
                                                     <button
-                                                        onClick={() => handleReorder(order)}
+                                                        onClick={() => openReorderModal(order)}
                                                         disabled={reorderLoading === order.id}
                                                         style={{
                                                             ...S.reorderBtn,
@@ -620,6 +659,107 @@ const PortalDashboardPage: React.FC = () => {
                                 </p>
                             </>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* ===== REORDER MODAL ===== */}
+            {reorderModalOrder && (
+                <div style={S.modalOverlay} onClick={() => setReorderModalOrder(null)}>
+                    <div style={S.modalContent} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1a1a1a', margin: 0 }}>
+                                🔁 Đặt lại đơn {reorderModalOrder.order_code}
+                            </h2>
+                            <button onClick={() => setReorderModalOrder(null)} style={S.modalClose}>✕</button>
+                        </div>
+                        <p style={{ fontSize: 13, color: '#888', margin: '8px 0 16px', lineHeight: 1.5 }}>Điều chỉnh số lượng sản phẩm bạn muốn đặt lại và thêm ghi chú nếu cần.</p>
+                        
+                        <div style={{ marginBottom: 16 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', fontSize: 13, color: '#333', cursor: 'pointer' }}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={allowLessQuantity}
+                                    onChange={e => {
+                                        setAllowLessQuantity(e.target.checked);
+                                        if (!e.target.checked) {
+                                            const resetItems = { ...reorderItems };
+                                            reorderModalOrder.items.forEach(item => {
+                                                if ((resetItems[item.sku] || 0) < item.quantity) {
+                                                    resetItems[item.sku] = item.quantity;
+                                                }
+                                            });
+                                            setReorderItems(resetItems);
+                                        }
+                                    }}
+                                    style={{ marginRight: 8 }}
+                                />
+                                Cho phép đặt số lượng ít hơn đơn cũ (Bắt buộc điền ghi chú)
+                            </label>
+                        </div>
+
+                        <div style={S.productList}>
+                            {reorderModalOrder.items.map(p => {
+                                const qty = reorderItems[p.sku] || 0;
+                                const minQty = allowLessQuantity ? 0 : p.quantity;
+                                return (
+                                    <div key={p.sku} style={S.productRow}>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: 14, fontWeight: 600, color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.product_name}</div>
+                                            <div style={{ fontSize: 11, color: '#aaa' }}>{p.sku} <span style={{ color: '#888' }}>(Đơn cũ: {p.quantity})</span></div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#23A7D3', marginTop: 2 }}>{fmt(p.unit_price)}đ</div>
+                                        </div>
+                                        <div style={S.qtyControl}>
+                                            <button onClick={() => setReorderItems(prev => ({ ...prev, [p.sku]: Math.max(minQty, qty - 1) }))} style={S.qtyBtn} disabled={qty <= minQty}>−</button>
+                                            <input
+                                                type="number"
+                                                value={qty}
+                                                onChange={e => setReorderItems(prev => ({ ...prev, [p.sku]: Math.max(minQty, parseInt(e.target.value) || 0) }))}
+                                                style={S.qtyInput}
+                                                min={minQty}
+                                            />
+                                            <button onClick={() => setReorderItems(prev => ({ ...prev, [p.sku]: qty + 1 }))} style={S.qtyBtn}>+</button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        
+                        <div style={{ marginTop: 16 }}>
+                            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#333', marginBottom: 8 }}>
+                                Ghi chú cho đơn hàng {allowLessQuantity && <span style={{ color: '#ff4d4f' }}>(*)</span>}
+                            </label>
+                            <textarea 
+                                value={reorderNote}
+                                onChange={e => setReorderNote(e.target.value)}
+                                placeholder="Ví dụ: Đổi màu xám, cần giao gấp..."
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 12px',
+                                    border: '1px solid #ddd',
+                                    borderRadius: 8,
+                                    fontSize: 14,
+                                    fontFamily: 'inherit',
+                                    resize: 'none',
+                                    outline: 'none',
+                                    height: 80,
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                        </div>
+
+                        <button
+                            onClick={submitReorder}
+                            disabled={reorderLoading === reorderModalOrder.id || Object.values(reorderItems).every(q => q === 0)}
+                            style={{
+                                ...S.primaryBtn,
+                                width: '100%',
+                                marginTop: 16,
+                                opacity: (reorderLoading === reorderModalOrder.id || Object.values(reorderItems).every(q => q === 0)) ? 0.5 : 1,
+                            }}
+                        >
+                            {reorderLoading === reorderModalOrder.id ? '⏳ Đang xử lý...' : '🛒 Gửi Yêu Cầu Đặt Lại'}
+                        </button>
                     </div>
                 </div>
             )}

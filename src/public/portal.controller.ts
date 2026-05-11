@@ -324,7 +324,7 @@ export class PortalController {
     async reorder(
         @Param('slug') slug: string,
         @Headers('authorization') authHeader: string,
-        @Body() body: { order_id: number; items?: Array<{ sku: string; quantity: number; unit_price: number }> },
+        @Body() body: { order_id: number; items?: Array<{ sku: string; quantity: number; unit_price: number }>; note?: string },
     ) {
         const session = await this.validateSession(authHeader);
         if (session.slug !== slug) {
@@ -358,7 +358,7 @@ export class PortalController {
                     quantity: i.quantity,
                     unit_price: i.unit_price,
                 })),
-                note: `📦 Đặt lại từ đơn ${originalOrder.order_code} (Portal B2B)`,
+                note: body.note ? `📦 Đặt lại từ đơn ${originalOrder.order_code} (Portal B2B)\nKhách ghi chú: ${body.note}` : `📦 Đặt lại từ đơn ${originalOrder.order_code} (Portal B2B)`,
                 order_source: 'B2B_PORTAL',
             });
 
