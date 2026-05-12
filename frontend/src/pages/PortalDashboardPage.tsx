@@ -26,6 +26,9 @@ interface OrderItem {
     unit_price: number;
     subtotal: number;
     image_url?: string;
+    customer_description?: string;
+    product_type?: string;
+    vat_content?: string;
 }
 
 interface Order {
@@ -50,6 +53,8 @@ interface PromotionInfo {
     discount_value: number;
     start_date: string;
     end_date: string;
+    min_quantity?: number;
+    min_order_value?: number;
 }
 
 interface PromotionProduct {
@@ -60,6 +65,8 @@ interface PromotionProduct {
     base_price: number;
     image_url?: string;
     category: string;
+    customer_description?: string;
+    product_type?: string;
 }
 
 interface DashboardData {
@@ -263,6 +270,24 @@ const PortalDashboardPage: React.FC = () => {
                 return { sku, quantity: qty, unit_price: p?.base_price || 0 };
             });
         if (items.length === 0) return;
+
+        const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
+        const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+
+        if (promoModal.promo.min_quantity && totalQty < promoModal.promo.min_quantity) {
+             setReorderResult({ success: false, message: `Vui lòng chọn ít nhất ${promoModal.promo.min_quantity} sản phẩm để áp dụng ưu đãi này.` });
+             setPromoModal(null); // Optional: close modal or just show error. Let's just scroll up or let user see the error after closing? 
+             // Actually, setReorderResult will show the message on the main screen. Let's close modal so they can see it, or keep it open.
+             // Best to close modal so they see the result banner.
+             setPromoModal(null);
+             return;
+        }
+
+        if (promoModal.promo.min_order_value && totalValue < promoModal.promo.min_order_value) {
+             setReorderResult({ success: false, message: `Giá trị đơn hàng tối thiểu để áp dụng ưu đãi là ${fmt(promoModal.promo.min_order_value)}đ.` });
+             setPromoModal(null);
+             return;
+        }
 
         setPromoOrderLoading(true);
         try {
@@ -606,10 +631,34 @@ const PortalDashboardPage: React.FC = () => {
                                     {promoModal.products.map(p => {
                                         const qty = promoCart[p.sku] || 0;
                                         return (
-                                            <div key={p.sku} style={S.productRow}>
+                                            <div key={p.sku} style={{ ...S.productRow, alignItems: 'flex-start' }}>
+                                                <div style={{ width: 60, height: 60, marginRight: 12, flexShrink: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
+                                                    {p.image_url ? (
+                                                        <img src={p.image_url.includes('drive.google.com') ? p.image_url.replace(/\\/d\\/([a-zA-Z0-9_-]+).*/, '/thumbnail?id=$1&sz=w200') : p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <div style={{ width: '100%', height: '100%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: 10 }}>No Img</div>
+                                                    )}
+                                                </div>
                                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div style={{ fontSize: 14, fontWeight: 600, color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                                                    <div style={{ fontSize: 11, color: '#aaa' }}>{p.sku} • {p.unit || 'Cái'}{p.category ? ` • ${p.category}` : ''}</div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+                                                        <span style={{ fontSize: 14, fontWeight: 600, color: '#333' }}>{p.name}</span>
+                                                        {p.product_type === 'COMBO' && <span style={{ fontSize: 10, background: '#e6f7ff', color: '#1890ff', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>COMBO</span>}
+                                                    </div>
+                                                    {p.customer_description ? (
+                                                        <div style={{ fontSize: 12, color: '#666', marginBottom: 4, whiteSpace: 'pre-line', lineHeight: 1.4 }}>
+                                                            {p.customer_description.split('\\n').map((line, idx) => {
+                                                                const comboMatch = line.match(/^•\\s*(.*?)\\s*\\(x([\\d\\.]+)\\)(?:\\s*-\\s*(.*))?$/);
+                                                                if (comboMatch) {
+                                                                    return <div key={idx}><span style={{fontWeight: 600}}>*** {comboMatch[1]} {Number(comboMatch[2]) > 1 ? `(x${comboMatch[2]})` : ''}</span>{comboMatch[3] ? <span style={{color: '#888', fontStyle: 'italic'}}><br/>. {comboMatch[3]}</span> : ''}</div>
+                                                                }
+                                                                if (!line.trim()) return null;
+                                                                return <div key={idx}>. <span style={{fontStyle: 'italic'}}>{line.replace(/^[•-]\\s*/, '')}</span></div>
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ fontSize: 11, color: '#aaa', fontStyle: 'italic', marginBottom: 4 }}>Chưa có mô tả chi tiết</div>
+                                                    )}
+                                                    <div style={{ fontSize: 11, color: '#aaa' }}><span style={{ background: '#f0f0f0', padding: '1px 4px', borderRadius: 2 }}>{p.sku}</span> • {p.unit || 'Cái'}</div>
                                                     <div style={{ fontSize: 14, fontWeight: 700, color: '#23A7D3', marginTop: 2 }}>{fmt(p.base_price)}đ</div>
                                                 </div>
                                                 <div style={S.qtyControl}>
@@ -707,10 +756,35 @@ const PortalDashboardPage: React.FC = () => {
                                 const qty = reorderItems[p.sku] || 0;
                                 const minQty = allowLessQuantity ? 0 : p.quantity;
                                 return (
-                                    <div key={p.sku} style={S.productRow}>
+                                    <div key={p.sku} style={{ ...S.productRow, alignItems: 'flex-start' }}>
+                                        <div style={{ width: 60, height: 60, marginRight: 12, flexShrink: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
+                                            {p.image_url ? (
+                                                <img src={p.image_url.includes('drive.google.com') ? p.image_url.replace(/\\/d\\/([a-zA-Z0-9_-]+).*/, '/thumbnail?id=$1&sz=w200') : p.image_url} alt={p.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <div style={{ width: '100%', height: '100%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: 10 }}>No Img</div>
+                                            )}
+                                        </div>
                                         <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontSize: 14, fontWeight: 600, color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.product_name}</div>
-                                            <div style={{ fontSize: 11, color: '#aaa' }}>{p.sku} <span style={{ color: '#888' }}>(Đơn cũ: {p.quantity})</span></div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 }}>
+                                                <span style={{ fontSize: 14, fontWeight: 600, color: '#333' }}>{p.product_name}</span>
+                                                {p.product_type === 'COMBO' && <span style={{ fontSize: 10, background: '#e6f7ff', color: '#1890ff', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>COMBO</span>}
+                                            </div>
+                                            {p.vat_content && <div style={{ fontSize: 11, color: '#888', fontStyle: 'italic', marginBottom: 4 }}>VAT: {p.vat_content}</div>}
+                                            {p.customer_description ? (
+                                                <div style={{ fontSize: 12, color: '#666', marginBottom: 4, whiteSpace: 'pre-line', lineHeight: 1.4 }}>
+                                                    {p.customer_description.split('\\n').map((line, idx) => {
+                                                        const comboMatch = line.match(/^•\\s*(.*?)\\s*\\(x([\\d\\.]+)\\)(?:\\s*-\\s*(.*))?$/);
+                                                        if (comboMatch) {
+                                                            return <div key={idx}><span style={{fontWeight: 600}}>*** {comboMatch[1]} {Number(comboMatch[2]) > 1 ? `(x${comboMatch[2]})` : ''}</span>{comboMatch[3] ? <span style={{color: '#888', fontStyle: 'italic'}}><br/>. {comboMatch[3]}</span> : ''}</div>
+                                                        }
+                                                        if (!line.trim()) return null;
+                                                        return <div key={idx}>. <span style={{fontStyle: 'italic'}}>{line.replace(/^[•-]\\s*/, '')}</span></div>
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <div style={{ fontSize: 11, color: '#aaa', fontStyle: 'italic', marginBottom: 4 }}>Chưa có mô tả chi tiết</div>
+                                            )}
+                                            <div style={{ fontSize: 11, color: '#aaa' }}><span style={{ background: '#f0f0f0', padding: '1px 4px', borderRadius: 2 }}>{p.sku}</span> <span style={{ color: '#888' }}>(Đơn cũ: {p.quantity})</span></div>
                                             <div style={{ fontSize: 14, fontWeight: 700, color: '#23A7D3', marginTop: 2 }}>{fmt(p.unit_price)}đ</div>
                                         </div>
                                         <div style={S.qtyControl}>

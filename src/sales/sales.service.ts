@@ -1927,6 +1927,8 @@ export class SalesService {
                 base_price: Number(p.base_price),
                 image_url: p.image_url,
                 category: p.category_link?.name || p.category || '',
+                customer_description: p.customer_description || '',
+                product_type: p.product_type || '',
             }));
 
         return { promotion, products: filtered };
