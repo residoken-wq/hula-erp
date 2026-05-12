@@ -51,32 +51,42 @@ export class UploadController {
     const usageMap: Record<string, Array<{ type: string; id?: number; label: string }>> = {};
 
     const addUsage = (filename: string, type: string, id: number | undefined, label: string) => {
-      // Extract just the filename from /uploads/xxx
-      const name = filename.replace('/uploads/', '').replace(/^\/+/, '');
+      let name = filename;
+      if (name.includes('/uploads/')) name = name.split('/uploads/').pop() || name;
+      else if (name.includes('/api/upload/files/')) name = name.split('/api/upload/files/').pop() || name;
+      else name = name.replace(/^\/+/, ''); // remove leading slash
+      
+      try { name = decodeURIComponent(name); } catch(e) {}
+      name = name.split('?')[0].split('#')[0]; // remove query/hash
+      
       if (!name) return;
       if (!usageMap[name]) usageMap[name] = [];
-      // Avoid duplicate entries
       const exists = usageMap[name].some(u => u.type === type && u.id === id);
       if (!exists) usageMap[name].push({ type, id, label });
     };
 
     const scanText = (text: string | null | undefined, type: string, id: number | undefined, label: string) => {
-      if (!text) return;
-      // Find all /uploads/xxx references in text (HTML content, JSON strings, etc.)
-      const regex = /\/uploads\/([a-zA-Z0-9_.\-]+)/g;
+      if (!text) return false;
+      const regex = /(?:\/uploads\/|\/api\/upload\/files\/)([^"'\s\\><]+)/g;
       let match;
+      let found = false;
       while ((match = regex.exec(text)) !== null) {
         addUsage(match[1], type, id, label);
+        found = true;
       }
+      return found;
     };
 
     try {
       // 1. Products: image_url field
       const products = await this.productRepo.find({ select: ['id', 'sku', 'name', 'image_url', 'customer_description'] });
       for (const p of products) {
-        if (p.image_url?.includes('/uploads/')) addUsage(p.image_url, 'Sản phẩm', p.id, `${p.sku} - ${p.name}`);
-        // Also scan image_url if it's JSON with url field
-        scanText(p.image_url, 'Sản phẩm', p.id, `${p.sku} - ${p.name}`);
+        if (p.image_url) {
+            const found = scanText(p.image_url, 'Sản phẩm', p.id, `${p.sku} - ${p.name}`);
+            if (!found && !p.image_url.startsWith('{') && !p.image_url.startsWith('[')) {
+                addUsage(p.image_url, 'Sản phẩm', p.id, `${p.sku} - ${p.name}`);
+            }
+        }
         scanText(p.customer_description, 'Sản phẩm (mô tả)', p.id, `${p.sku} - ${p.name}`);
       }
 
@@ -87,14 +97,18 @@ export class UploadController {
         if (!cfg) continue;
         const product = products.find(p => p.id === c.product_id);
         const label = product ? `${product.sku} - ${product.name}` : `Product #${c.product_id}`;
-        // Scan entire JSON as string
         scanText(JSON.stringify(cfg), 'Sản phẩm (cấu hình)', c.product_id, label);
       }
 
       // 3. Blog Posts: featured_image + content + content_blocks
       const blogs = await this.blogRepo.find({ select: ['id', 'title', 'featured_image', 'content', 'content_blocks'] });
       for (const b of blogs) {
-        if (b.featured_image?.includes('/uploads/')) addUsage(b.featured_image, 'Bài viết', b.id, b.title);
+        if (b.featured_image) {
+            const found = scanText(b.featured_image, 'Bài viết', b.id, b.title);
+            if (!found && !b.featured_image.startsWith('{') && !b.featured_image.startsWith('[')) {
+                addUsage(b.featured_image, 'Bài viết', b.id, b.title);
+            }
+        }
         scanText(b.content, 'Bài viết (nội dung)', b.id, b.title);
         if (b.content_blocks) scanText(JSON.stringify(b.content_blocks), 'Bài viết (blocks)', b.id, b.title);
       }
@@ -102,7 +116,12 @@ export class UploadController {
       // 4. Web Projects: image_url + content + content_blocks
       const projects = await this.projectRepo.find({ select: ['id', 'title', 'image_url', 'content', 'content_blocks'] });
       for (const p of projects) {
-        if (p.image_url?.includes('/uploads/')) addUsage(p.image_url, 'Dự án', p.id, p.title);
+        if (p.image_url) {
+            const found = scanText(p.image_url, 'Dự án', p.id, p.title);
+            if (!found && !p.image_url.startsWith('{') && !p.image_url.startsWith('[')) {
+                addUsage(p.image_url, 'Dự án', p.id, p.title);
+            }
+        }
         scanText(p.content, 'Dự án (nội dung)', p.id, p.title);
         if (p.content_blocks) scanText(JSON.stringify(p.content_blocks), 'Dự án (blocks)', p.id, p.title);
       }
