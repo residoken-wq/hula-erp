@@ -10,10 +10,15 @@ export async function loginBeta(formData: FormData) {
         return { error: 'Vui lòng nhập tài khoản và mật khẩu.' }
     }
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://erp.nemmamnon.com'
+    // Ưu tiên API_URL (internal Docker network) cho Server Actions thay vì NEXT_PUBLIC_API_URL (public network)
+    let baseUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
+    // Loại bỏ suffix /api nếu có để nối chuỗi chính xác
+    if (baseUrl.endsWith('/api')) {
+        baseUrl = baseUrl.replace(/\/api$/, '');
+    }
 
     try {
-        const res = await fetch(`${apiUrl}/api/auth/login`, {
+        const res = await fetch(`${baseUrl}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
