@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
+import PortalUserGuide from '../components/PortalUserGuide';
 
 // ============================================================
 // B2B PORTAL DASHBOARD
@@ -545,6 +546,9 @@ const PortalDashboardPage: React.FC = () => {
                         </div>
                     )}
                 </section>
+
+                {/* ===== USER GUIDE ===== */}
+                <PortalUserGuide />
 
                 {/* ===== B2B SUPPORT ===== */}
                 <section style={S.section}>

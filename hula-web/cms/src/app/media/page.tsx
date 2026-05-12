@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { Card, Upload, Button, Space, message, Modal, Input, Empty, Spin, Tooltip, Typography, Popconfirm, Tag, Checkbox } from 'antd';
+import { Card, Upload, Button, Space, message, Modal, Input, Empty, Spin, Tooltip, Typography, Popconfirm, Tag, Checkbox, Pagination } from 'antd';
 import {
     UploadOutlined,
     DeleteOutlined,
@@ -55,6 +55,12 @@ export default function MediaPage() {
     const [usageMap, setUsageMap] = useState<Record<string, Array<{ type: string; id?: number; label: string }>>>({});
     const [usageFilter, setUsageFilter] = useState<'all' | 'used' | 'unused'>('all');
     const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(48);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, usageFilter, viewMode]);
 
     const loadFiles = useCallback(async () => {
         try {
@@ -158,6 +164,9 @@ export default function MediaPage() {
 
     const usedCount = files.filter(f => getFileUsage(f.name).length > 0).length;
     const unusedCount = files.length - usedCount;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const paginatedFiles = filteredFiles.slice(startIndex, startIndex + pageSize);
 
     return (
         <AdminLayout>
@@ -277,7 +286,7 @@ export default function MediaPage() {
                         gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
                         gap: 16,
                     }}>
-                        {filteredFiles.map((file) => (
+                        {paginatedFiles.map((file) => (
                             <div
                                 key={file.name}
                                 style={{
@@ -320,6 +329,7 @@ export default function MediaPage() {
                                     <img
                                         src={resolveUrl(file.url)}
                                         alt={file.name}
+                                        loading="lazy"
                                         style={{
                                             maxWidth: '100%',
                                             maxHeight: '100%',
@@ -371,7 +381,7 @@ export default function MediaPage() {
                 ) : (
                     /* List View */
                     <div>
-                        {filteredFiles.map((file) => (
+                        {paginatedFiles.map((file) => (
                             <div
                                 key={file.name}
                                 style={{
@@ -390,7 +400,7 @@ export default function MediaPage() {
                                     onChange={() => toggleSelection(file.name)} 
                                 />
                                 <div style={{ width: 48, height: 48, borderRadius: 8, overflow: 'hidden', background: '#f5f5f5', flexShrink: 0 }}>
-                                    <img src={resolveUrl(file.url)} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={resolveUrl(file.url)} alt={file.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <Text ellipsis style={{ fontSize: 13 }}>{file.name}</Text>
@@ -424,6 +434,24 @@ export default function MediaPage() {
                                 </Space>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {/* Pagination */}
+                {!loading && filteredFiles.length > 0 && (
+                    <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
+                        <Pagination
+                            current={currentPage}
+                            pageSize={pageSize}
+                            total={filteredFiles.length}
+                            onChange={(page, size) => {
+                                setCurrentPage(page);
+                                setPageSize(size);
+                            }}
+                            showSizeChanger
+                            pageSizeOptions={['24', '48', '96', '200']}
+                            showTotal={(total, range) => `${range[0]}-${range[1]} / ${total} hình ảnh`}
+                        />
                     </div>
                 )}
             </Card>
