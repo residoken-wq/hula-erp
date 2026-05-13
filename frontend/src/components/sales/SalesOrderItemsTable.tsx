@@ -54,6 +54,8 @@ interface OrderItem {
     product?: { image_url?: string };
     _description?: string;
     _type?: string;
+    booking_status?: string;
+    booked_quantity?: number;
 }
 
 interface Product {
@@ -202,6 +204,18 @@ const SalesOrderItemsTable: React.FC<Props> = ({
             render: (text: any, _: any, index: number) => (
                 <InputNumber min={1} value={text} onChange={(val) => onItemChange(index, 'quantity', val)} style={{ width: '100%' }} />
             )
+        },
+        {
+            title: 'Booking', width: 100, align: 'center' as const,
+            render: (_: any, record: any) => {
+                const status = record.booking_status;
+                const qty = record.booked_quantity || 0;
+                if (!status || status === 'NONE') return <span style={{ color: '#ccc', fontSize: 11 }}>Chưa book</span>;
+                if (status === 'TEMPORARY') return <div><Tag color="orange" style={{ margin: 0, fontSize: 10 }}>Giữ chỗ</Tag><div style={{ fontSize: 11, marginTop: 2 }}>{qty} SP</div></div>;
+                if (status === 'CONFIRMED') return <div><Tag color="green" style={{ margin: 0, fontSize: 10 }}>Đã duyệt</Tag><div style={{ fontSize: 11, marginTop: 2, color: 'green' }}>{qty} SP</div></div>;
+                if (status === 'EXPIRED') return <div><Tag color="red" style={{ margin: 0, fontSize: 10 }}>Hết hạn</Tag></div>;
+                return <Tag>{status}</Tag>;
+            }
         },
         {
             title: 'Tiền', dataIndex: 'total_price', align: 'right' as const, width: 140,

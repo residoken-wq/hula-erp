@@ -355,16 +355,21 @@ export class InventoryService {
             // Is Combo -> Deduct Components
             for (const comp of components) {
               if (comp.child_product) {
+                const deductQty = Number(item.quantity) * Number(comp.quantity);
                 await this.adjustStock(
                   'EXPORT',
                   'PRODUCT',
                   comp.child_product.id,
-                  Number(item.quantity) * Number(comp.quantity),
+                  deductQty,
                   delivery.code,
                   `Xuất Combo ${item.sku} (Đơn ${delivery.sales_order?.order_code})`,
                   warehouseCode,
                   updated_by
                 );
+
+                // MỚI: Trừ đi booking_stock (vì hàng đã thực xuất)
+                comp.child_product.booking_stock = Math.max(0, Number(comp.child_product.booking_stock || 0) - deductQty);
+                await this.productsService.update(comp.child_product.id, { booking_stock: comp.child_product.booking_stock });
               }
             }
           } else {
@@ -379,6 +384,10 @@ export class InventoryService {
               warehouseCode,
               updated_by
             );
+
+            // MỚI: Trừ đi booking_stock (vì hàng đã thực xuất)
+            product.booking_stock = Math.max(0, Number(product.booking_stock || 0) - Number(item.quantity));
+            await this.productsService.update(product.id, { booking_stock: product.booking_stock });
           }
 
         } catch (e) {

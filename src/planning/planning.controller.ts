@@ -22,6 +22,12 @@ export class PlanningController {
     return this.s.generatePos(id, body.items);
   }
 
+  // --- MỚI: API Xác nhận Bookings ---
+  @Post(':id/confirm-bookings')
+  confirmBookings(@Param('id') id: number) {
+    return this.s.confirmBookings(id);
+  }
+
   // --- MỚI: Plan Status Management ---
   @Put(':id/status')
   updatePlanStatus(@Param('id') id: number, @Body('status') status: string) {

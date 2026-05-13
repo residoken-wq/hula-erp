@@ -62,6 +62,7 @@ export class MrpCalculationService {
 
         const productDemand = new Map<string, number>();
         const productInfoMap = new Map<string, number>();
+        const productStockMap = new Map<string, number>();
 
         // 1. Tổng hợp nhu cầu sản phẩm
         for (const so of plan.sales_orders) {
@@ -69,7 +70,11 @@ export class MrpCalculationService {
                 productDemand.set(item.sku, (productDemand.get(item.sku) || 0) + Number(item.quantity));
                 if (!productInfoMap.has(item.sku)) {
                     const prod = await this.productsService.findOneBySku(item.sku);
-                    if (prod) productInfoMap.set(item.sku, prod.id);
+                    if (prod) {
+                        productInfoMap.set(item.sku, prod.id);
+                        const available = Number(prod.quantity_in_stock || 0) - Number(prod.booking_stock || 0);
+                        productStockMap.set(item.sku, Math.max(0, available));
+                    }
                 }
             }
         }
@@ -97,18 +102,43 @@ export class MrpCalculationService {
             }
 
             const { sku, qty } = processingQueue.shift();
-            totalProductDemand.set(sku, (totalProductDemand.get(sku) || 0) + qty);
 
             if (!productInfoMap.has(sku)) {
                 const prod = await this.productsService.findOneBySku(sku);
-                if (prod) productInfoMap.set(sku, prod.id);
+                if (prod) {
+                    productInfoMap.set(sku, prod.id);
+                    const available = Number(prod.quantity_in_stock || 0) - Number(prod.booking_stock || 0);
+                    productStockMap.set(sku, Math.max(0, available));
+                } else {
+                    productStockMap.set(sku, 0);
+                }
             }
+
+            // Deduct from stock
+            let currentStock = productStockMap.get(sku) || 0;
+            let netQty = qty;
+
+            if (currentStock > 0) {
+                 if (currentStock >= netQty) {
+                      productStockMap.set(sku, currentStock - netQty);
+                      netQty = 0;
+                 } else {
+                      productStockMap.set(sku, 0);
+                      netQty = netQty - currentStock;
+                 }
+            }
+
+            if (netQty <= 0) {
+                continue; // Stock covers it, no need to explode BOM
+            }
+
+            totalProductDemand.set(sku, (totalProductDemand.get(sku) || 0) + netQty);
 
             const components = await this.productsService.getComboComponents(sku);
             if (components && components.length > 0) {
                 for (const comp of components) {
                     if (comp.child_product) {
-                        const childQty = qty * Number(comp.quantity);
+                        const childQty = netQty * Number(comp.quantity);
                         processingQueue.push({ sku: comp.child_product.sku, qty: childQty });
                     }
                 }

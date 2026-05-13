@@ -262,4 +262,28 @@ export class PlanningService {
             console.error('Auto-update plan status failed:', e);
         }
     }
+
+    // --- MỚI: API Xác nhận Bookings ---
+    async confirmBookings(planId: number) {
+        const plan = await this.planRepo.findOne({
+            where: { id: planId },
+            relations: ['sales_orders', 'sales_orders.items']
+        });
+        if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
+
+        let confirmedCount = 0;
+        for (const order of plan.sales_orders) {
+            for (const item of order.items) {
+                if ((item as any).booking_status === 'TEMPORARY') {
+                    await this.orderRepo.manager.update('SalesOrderItem', item.id, {
+                        booking_status: 'CONFIRMED',
+                        booking_expires_at: null
+                    });
+                    confirmedCount++;
+                }
+            }
+        }
+
+        return { message: `Đã xác nhận ${confirmedCount} mục giữ chỗ.` };
+    }
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Button, Tag, Space, Modal, message, DatePicker } from 'antd';
+import { Table, Button, Tag, Space, Modal, message, DatePicker, Input } from 'antd';
 import { AlertOutlined, TruckOutlined, FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -24,6 +24,7 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
     pendingOrders, selectedRowKeys, onSelectedRowKeysChange, onCreatePlan, isMobile, loading, setLoading, onRefresh
 }) => {
     const [deliveryDateRange, setDeliveryDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+    const [customerSearch, setCustomerSearch] = useState('');
 
     const handleFulfillStock = async (order: any) => {
         Modal.confirm({
@@ -111,9 +112,18 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
     );
 
     const filteredOrders = pendingOrders.filter(o => {
-        if (!deliveryDateRange || !deliveryDateRange[0] || !deliveryDateRange[1]) return true;
-        if (!o.delivery_date) return false;
-        return dayjs(o.delivery_date).isBetween(deliveryDateRange[0], deliveryDateRange[1], 'day', '[]');
+        let matchDate = true;
+        if (deliveryDateRange && deliveryDateRange[0] && deliveryDateRange[1]) {
+            if (!o.delivery_date) matchDate = false;
+            else matchDate = dayjs(o.delivery_date).isBetween(deliveryDateRange[0], deliveryDateRange[1], 'day', '[]');
+        }
+        
+        let matchCustomer = true;
+        if (customerSearch) {
+            matchCustomer = o.customer_name?.toLowerCase().includes(customerSearch.toLowerCase()) || o.order_code?.toLowerCase().includes(customerSearch.toLowerCase());
+        }
+
+        return matchDate && matchCustomer;
     });
 
     return (
@@ -121,6 +131,13 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
             <div style={{ marginBottom: 10, background: '#fffbe6', padding: 10, borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                 <span><AlertOutlined /> Chọn đơn hàng để lập kế hoạch.</span>
                 <Space wrap>
+                    <Input.Search 
+                        placeholder="Tìm KH hoặc Mã SO..." 
+                        allowClear
+                        size="small"
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                        style={{ width: isMobile ? '100%' : 200 }}
+                    />
                     <FilterOutlined style={{ color: '#1890ff' }} />
                     <span style={{ fontSize: 13 }}>Lọc ngày giao:</span>
                     <RangePicker

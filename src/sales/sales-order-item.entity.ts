@@ -2,6 +2,13 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 't
 import { SalesOrder } from './sales-order.entity';
 import { Product } from '../products/product.entity'; // Import Product Entity
 
+export enum BookingStatus {
+  NONE = 'NONE',
+  TEMPORARY = 'TEMPORARY',
+  CONFIRMED = 'CONFIRMED',
+  EXPIRED = 'EXPIRED'
+}
+
 @Entity('sales_order_items')
 export class SalesOrderItem {
   @PrimaryGeneratedColumn()
@@ -42,6 +49,17 @@ export class SalesOrderItem {
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   total_price: number;
+
+  // --- BOOKING STOCK FIELDS ---
+  @Column('decimal', { precision: 10, scale: 2, default: 0 })
+  booked_quantity: number;
+
+  @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.NONE })
+  booking_status: BookingStatus;
+
+  @Column({ type: 'timestamp', nullable: true })
+  booking_expires_at: Date;
+  // ----------------------------
 
   @Column({ nullable: true })
   variant_color: string;

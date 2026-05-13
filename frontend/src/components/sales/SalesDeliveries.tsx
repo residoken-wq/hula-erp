@@ -97,7 +97,6 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
         const remaining = ordered - delivered;
 
-
         // Lookup stock from products list
         const productInfo = products.find((p: any) => p.value === item.sku);
         const stock = productInfo ? productInfo.quantity_in_stock : 0;
@@ -110,15 +109,24 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             remaining,
             totalVal: ordered * price,
             deliveredVal: delivered * price,
-            remainingVal: remaining * price
+            remainingVal: remaining * price,
+            bookingStatus: item.booking_status || 'NONE',
+            bookedQuantity: item.booked_quantity || 0
         };
     });
 
     const openCreateModal = () => {
         setEditingDeliveryId(null);
-        setShipItems(summaryData.map((d: any) => ({
-            sku: d.sku, max: d.remaining, quantity: d.remaining > 0 ? d.remaining : 0
-        })));
+        setShipItems(summaryData.map((d: any) => {
+            // Chỉ cho phép xuất nếu đã CONFIRMED Booking
+            const canShip = d.bookingStatus === 'CONFIRMED' && d.remaining > 0;
+            return {
+                sku: d.sku, 
+                max: canShip ? d.remaining : 0, 
+                quantity: canShip ? d.remaining : 0,
+                bookingStatus: d.bookingStatus
+            };
+        }));
         setShipNote('');
 
         // Auto-fill defaults
@@ -160,7 +168,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             return {
                 sku: d.sku,
                 max: max,
-                quantity: currentQtyInDelivery
+                quantity: currentQtyInDelivery,
+                bookingStatus: d.bookingStatus
             };
         });
         setShipItems(mergedItems);
@@ -365,6 +374,11 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 <Table dataSource={summaryData} rowKey="sku" pagination={false} size="small" bordered
                     columns={[
                         { title: 'SKU', dataIndex: 'sku' },
+                        { title: 'Trạng thái', width: 90, align: 'center', render: (r: any) => {
+                            if (r.bookingStatus === 'CONFIRMED') return <Tag color="green" style={{ margin: 0 }}>Sẵn sàng</Tag>;
+                            if (r.bookingStatus === 'TEMPORARY') return <Tag color="orange" style={{ margin: 0 }}>Chưa duyệt</Tag>;
+                            return <Tag style={{ margin: 0 }}>Chưa giữ kho</Tag>;
+                        }},
                         { title: 'Tồn kho', dataIndex: 'stock', align: 'center', width: 80, render: (v: any) => <span style={{ color: '#fa8c16', fontWeight: 'bold' }}>{v}</span> },
                         { title: 'SL Đặt', dataIndex: 'ordered', align: 'center', width: 70 },
                         { title: 'Đã giao', dataIndex: 'delivered', align: 'center', width: 70, render: (v: any) => <b style={{ color: 'green' }}>{v}</b> },
@@ -594,10 +608,16 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 </div>
 
                 <div style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 5 }}>Danh sách xuất:</div>
+                <div style={{ fontSize: 12, color: 'red', marginBottom: 10, fontStyle: 'italic' }}>* Lưu ý: Chỉ được phép xuất kho các sản phẩm đã được duyệt giữ kho (Trạng thái: Sẵn sàng).</div>
                 <Table dataSource={shipItems} rowKey="sku" pagination={false} size="small" columns={[
                     { title: 'SKU', dataIndex: 'sku' },
+                    { title: 'Trạng thái', width: 90, align: 'center', render: (r: any) => {
+                        if (r.bookingStatus === 'CONFIRMED') return <Tag color="green" style={{ margin: 0 }}>Sẵn sàng</Tag>;
+                        if (r.bookingStatus === 'TEMPORARY') return <Tag color="orange" style={{ margin: 0 }}>Chưa duyệt</Tag>;
+                        return <Tag style={{ margin: 0 }}>Chưa giữ kho</Tag>;
+                    }},
                     { title: 'SL Còn', dataIndex: 'max' },
-                    { title: 'Giao lần này', render: (_: any, r: any, idx: number) => (<InputNumber max={r.max} min={0} value={r.quantity} onChange={(v: any) => { const newItems = [...shipItems]; newItems[idx].quantity = v; setShipItems(newItems); }} />) }
+                    { title: 'Giao lần này', render: (_: any, r: any, idx: number) => (<InputNumber max={r.max} min={0} value={r.quantity} disabled={r.bookingStatus !== 'CONFIRMED'} onChange={(v: any) => { const newItems = [...shipItems]; newItems[idx].quantity = v; setShipItems(newItems); }} />) }
                 ]} />
             </Modal>
 

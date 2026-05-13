@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { SalesOrder, SalesOrderStatus } from './sales-order.entity';
-import { SalesOrderItem } from './sales-order-item.entity';
+import { SalesOrderItem, BookingStatus } from './sales-order-item.entity';
 import { ProductSample } from './product-sample.entity';
 import { SalesDelivery } from './sales-delivery.entity';
 import { SalesComment } from './sales-comment.entity';
@@ -701,6 +702,15 @@ export class SalesService {
         const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
         if (!order) throw new NotFoundException('Not found');
 
+        // --- MỚI: Ràng buộc Booking Status ---
+        for (const reqItem of data.items) {
+            const soItem = order.items.find(i => i.sku === reqItem.sku);
+            if (!soItem) continue;
+            if (soItem.booking_status !== BookingStatus.CONFIRMED) {
+                throw new BadRequestException(`Sản phẩm ${reqItem.sku} chưa được duyệt xuất kho (Status: ${soItem.booking_status || 'Chưa book'})`);
+            }
+        }
+
         const delivery = this.deliveryRepo.create({
             code: data.code,
             delivery_date: data.date,
@@ -794,6 +804,135 @@ export class SalesService {
         await this.deliveryRepo.delete(deliveryId);
 
         return { success: true, message: 'Đã xóa phiếu xuất kho' };
+    }
+
+    // --- BOOKING STOCK (TEMPORARY 5-DAY LOCK) ---
+    async bookItems(orderId: number, items: { itemId: number, quantity: number }[]) {
+        const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items', 'items.product'] });
+        if (!order) throw new NotFoundException('Order not found');
+
+        const errors = [];
+        let bookedCount = 0;
+
+        for (const reqItem of items) {
+            const orderItem = order.items.find(i => i.id === reqItem.itemId);
+            if (!orderItem) continue;
+
+            const product = orderItem.product;
+            if (!product) continue;
+
+            const requestedQty = Number(reqItem.quantity);
+            if (requestedQty <= 0) continue;
+
+            // Prevent over-booking
+            const remainingToBook = Number(orderItem.quantity) - Number(orderItem.booked_quantity || 0);
+            const qtyToBook = Math.min(requestedQty, remainingToBook);
+            if (qtyToBook <= 0) continue;
+
+            if (product.product_type === 'COMBO') {
+                const components = await this.productsService.getComboComponents(product.sku);
+                let canBookCombo = true;
+                
+                // 1. Verify
+                for (const comp of components) {
+                    const child = comp.child_product;
+                    const neededQty = qtyToBook * Number(comp.quantity);
+                    const available = Number(child.quantity_in_stock || 0) - Number(child.booking_stock || 0);
+                    if (available < neededQty) {
+                        canBookCombo = false;
+                        errors.push(`Thành phần ${child.sku} của Combo ${product.sku} không đủ tồn kho. (Avail: ${available}, Need: ${neededQty})`);
+                        break;
+                    }
+                }
+
+                if (canBookCombo) {
+                    // 2. Lock stock
+                    for (const comp of components) {
+                        const child = comp.child_product;
+                        const neededQty = qtyToBook * Number(comp.quantity);
+                        child.booking_stock = Number(child.booking_stock || 0) + neededQty;
+                        await this.productsService.update(child.id, { booking_stock: child.booking_stock });
+                    }
+                    
+                    orderItem.booked_quantity = Number(orderItem.booked_quantity || 0) + qtyToBook;
+                    orderItem.booking_status = BookingStatus.TEMPORARY;
+                    const expires = new Date();
+                    expires.setDate(expires.getDate() + 5);
+                    orderItem.booking_expires_at = expires;
+                    await this.itemRepo.save(orderItem);
+                    bookedCount++;
+                }
+            } else {
+                // NORMAL PRODUCT
+                const available = Number(product.quantity_in_stock || 0) - Number(product.booking_stock || 0);
+                if (available < qtyToBook) {
+                    errors.push(`Sản phẩm ${product.sku} không đủ tồn kho. (Avail: ${available}, Need: ${qtyToBook})`);
+                    continue;
+                }
+
+                product.booking_stock = Number(product.booking_stock || 0) + qtyToBook;
+                // Important: we must bypass private property limits if needed, but productsService.productRepo is public in ProductsService. Let's make sure productRepo is public in productsService.
+                // Wait, it is public or we can use productRepo here, but we don't have it injected. 
+                // Wait, `ProductsService` is injected. We can use it, but `productRepo` might be private.
+                // It's better to add an `updateBookingStock` method to ProductsService. Or just `await this.productsService.update(product.id, { booking_stock: product.booking_stock })`.
+                // In products.service.ts, `update` method calls `this.productRepo.update`. Let's use it.
+                await this.productsService.update(product.id, { booking_stock: product.booking_stock });
+
+                orderItem.booked_quantity = Number(orderItem.booked_quantity || 0) + qtyToBook;
+                orderItem.booking_status = BookingStatus.TEMPORARY;
+                const expires = new Date();
+                expires.setDate(expires.getDate() + 5);
+                orderItem.booking_expires_at = expires;
+                await this.itemRepo.save(orderItem);
+                bookedCount++;
+            }
+        }
+
+        if (errors.length > 0 && bookedCount === 0) {
+            return { success: false, errors };
+        }
+
+        return { success: true, message: `Đã book thành công ${bookedCount} sản phẩm.`, errors: errors.length > 0 ? errors : undefined };
+    }
+
+    // --- CRON JOB: AUTO EXPIRE BOOKINGS ---
+    @Cron(CronExpression.EVERY_HOUR)
+    async checkExpiredBookings() {
+        const now = new Date();
+        const expiredItems = await this.itemRepo.find({
+            where: {
+                booking_status: BookingStatus.TEMPORARY,
+                booking_expires_at: LessThan(now)
+            },
+            relations: ['product']
+        });
+
+        if (expiredItems.length === 0) return;
+
+        for (const item of expiredItems) {
+            const product = item.product;
+            if (product) {
+                if (product.product_type === 'COMBO') {
+                    const components = await this.productsService.getComboComponents(product.sku);
+                    for (const comp of components) {
+                        const child = comp.child_product;
+                        const returnQty = Number(item.booked_quantity) * Number(comp.quantity);
+                        child.booking_stock = Math.max(0, Number(child.booking_stock || 0) - returnQty);
+                        await this.productsService.update(child.id, { booking_stock: child.booking_stock });
+                    }
+                } else {
+                    product.booking_stock = Math.max(0, Number(product.booking_stock || 0) - Number(item.booked_quantity));
+                    await this.productsService.update(product.id, { booking_stock: product.booking_stock });
+                }
+            }
+
+            item.booking_status = BookingStatus.EXPIRED;
+            item.booked_quantity = 0;
+            item.booking_expires_at = null;
+            await this.itemRepo.save(item);
+        }
+        
+        this.logger.log(`Expired ${expiredItems.length} temporary bookings.`);
     }
 
     // --- DELIVERY EMAIL ---

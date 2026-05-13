@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table, Switch } from 'antd';
 import { PlusOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined, FileTextOutlined, AppstoreAddOutlined } from '@ant-design/icons';
+import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined, FileTextOutlined, AppstoreAddOutlined, LockOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import SalesPayments from './sales/SalesPayments';
@@ -370,6 +370,20 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     };
 
+    const handleBookItems = async () => {
+        if (!initialData?.id) return;
+        try {
+            setLoading(true);
+            await api.post(`/sales/orders/${initialData.id}/book-items`);
+            message.success('Đã giữ kho (Booking) thành công cho các sản phẩm');
+            onSuccess(); // Nạp lại dữ liệu đơn hàng
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi khi giữ kho (có thể do hết tồn kho khả dụng)');
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
 
 
@@ -419,6 +433,11 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
                         <Button size={isMobile ? 'small' : 'middle'} icon={<AppstoreAddOutlined />} onClick={handleCreateProject}>
                             {isMobile ? 'Tạo Project' : 'Tạo Dự án'}
+                        </Button>
+                    )}
+                    {(!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
+                        <Button size={isMobile ? 'small' : 'middle'} icon={<LockOutlined />} onClick={handleBookItems} style={{ borderColor: '#fa8c16', color: '#fa8c16' }}>
+                            {isMobile ? 'Giữ kho' : 'Giữ Kho (Book)'}
                         </Button>
                     )}
                     {(!isQuotation && initialData && initialData.status === 'SO_PENDING') && (

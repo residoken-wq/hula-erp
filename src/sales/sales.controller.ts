@@ -214,6 +214,12 @@ export class SalesController {
         return this.s.deleteOrder(Number(id));
     }
 
+    // --- BOOK ITEMS ---
+    @Post(':id/book-items')
+    bookItems(@Param('id') id: number, @Body() body: any) {
+        return this.s.bookItems(Number(id), body.items || []);
+    }
+
 
     // ============================================================
     // 4. CHECKLIST APIS

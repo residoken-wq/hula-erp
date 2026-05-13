@@ -156,6 +156,24 @@ const PlanningPage: React.FC = () => {
         });
     };
 
+    const handleConfirmBookings = async (planId: number) => {
+        Modal.confirm({
+            title: 'Xác nhận Booking Kho?',
+            content: 'Thao tác này sẽ khóa tồn kho của các sản phẩm có trong kế hoạch (Chuyển trạng thái TEMPORARY thành CONFIRMED).',
+            onOk: async () => {
+                setLoading(true);
+                try {
+                    await axios.post(`${API_URL}/planning/${planId}/confirm-bookings`);
+                    message.success('Đã duyệt và khóa tồn kho (CONFIRMED) thành công.');
+                    fetchData();
+                } catch (e: any) {
+                    message.error(e.response?.data?.message || 'Lỗi xác nhận Booking');
+                }
+                setLoading(false);
+            }
+        });
+    };
+
     return (
         <div>
             {/* STATS CARDS */}
@@ -192,7 +210,15 @@ const PlanningPage: React.FC = () => {
                                 pendingOrders={pendingOrders}
                                 selectedRowKeys={selectedRowKeys}
                                 onSelectedRowKeysChange={setSelectedRowKeys}
-                                onCreatePlan={() => setIsCreateModalOpen(true)}
+                                onCreatePlan={() => {
+                                    const selectedOrders = pendingOrders.filter(o => selectedRowKeys.includes(o.id));
+                                    const codes = selectedOrders.map(o => o.order_code).join('-');
+                                    form.setFieldsValue({
+                                        code: `PL-${codes}`,
+                                        name: `Kế hoạch SX ${dayjs().format('DD/MM/YYYY')}`
+                                    });
+                                    setIsCreateModalOpen(true);
+                                }}
                                 isMobile={isMobile}
                                 loading={loading}
                                 setLoading={setLoading}
@@ -218,6 +244,7 @@ const PlanningPage: React.FC = () => {
                                 setIsDashboardOpen={setIsDashboardOpen}
                                 onRunMrp={handleRunMrp}
                                 onDeletePlan={handleDeletePlan}
+                                onConfirmBookings={handleConfirmBookings}
                                 onDataChange={handleDataChange}
                                 onToggleStock={handleToggleStock}
                                 onGeneratePOs={handleGeneratePOs}

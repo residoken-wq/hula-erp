@@ -19,6 +19,7 @@ interface PlanDashboardTabProps {
     setIsDashboardOpen: (v: boolean) => void;
     onRunMrp: (planId: number) => void;
     onDeletePlan: (id: number) => void;
+    onConfirmBookings: (id: number) => void;
     onDataChange: (type: 'MATERIAL' | 'OUTSOURCING', index: number, field: string, value: any) => void;
     onToggleStock: (index: number, checked: boolean) => void;
     onGeneratePOs: (type: 'MATERIAL' | 'OUTSOURCING') => void;
@@ -28,7 +29,7 @@ interface PlanDashboardTabProps {
 const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
     plans, mrpData, outsourcingList, logisticsList, suppliers, costBasis, setCostBasis, isMobile, loading,
     isDashboardOpen, setIsDashboardOpen,
-    onRunMrp, onDeletePlan, onDataChange, onToggleStock, onGeneratePOs, onSaveAnalysis
+    onRunMrp, onDeletePlan, onConfirmBookings, onDataChange, onToggleStock, onGeneratePOs, onSaveAnalysis
 }) => {
     const planColumns = [
         { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
@@ -38,6 +39,7 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
         {
             title: 'Hành động', key: 'act', align: 'right' as const, render: (_: any, r: any) => (
                 <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+                    <Button type="default" size="small" icon={<ShoppingCartOutlined />} onClick={() => onConfirmBookings(r.id)}>Duyệt Book</Button>
                     <Button type="primary" size="small" icon={<ExperimentOutlined />} onClick={() => onRunMrp(r.id)}>Phân Tích</Button>
                     <Button danger size="small" icon={<DeleteOutlined />} onClick={() => onDeletePlan(r.id)} />
                 </div>

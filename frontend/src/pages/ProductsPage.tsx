@@ -313,9 +313,21 @@ const ProductsPage: React.FC = () => {
             sorter: (a: any, b: any) => Number(a.base_price) - Number(b.base_price)
         },
         {
-            title: 'Tồn kho', dataIndex: 'quantity_in_stock', width: 80, align: 'right' as const,
-            render: (v: number) => <Badge count={v} showZero overflowCount={999} style={{ backgroundColor: v > 0 ? '#52c41a' : '#faad14' }} />,
+            title: 'Tồn kho thật', dataIndex: 'quantity_in_stock', width: 90, align: 'right' as const,
+            render: (v: number) => <span style={{ color: '#595959' }}>{Number(v || 0).toLocaleString()}</span>,
             sorter: (a: any, b: any) => Number(a.quantity_in_stock) - Number(b.quantity_in_stock)
+        },
+        {
+            title: 'Đã Booking', dataIndex: 'booking_stock', width: 90, align: 'right' as const,
+            render: (v: number) => <span style={{ color: v > 0 ? '#fa8c16' : '#d9d9d9' }}>{Number(v || 0).toLocaleString()}</span>
+        },
+        {
+            title: 'Khả dụng', key: 'available_stock', width: 90, align: 'right' as const,
+            render: (r: any) => {
+                const available = Number(r.quantity_in_stock || 0) - Number(r.booking_stock || 0);
+                return <Badge count={available} showZero overflowCount={999} style={{ backgroundColor: available > 0 ? '#52c41a' : '#faad14' }} />
+            },
+            sorter: (a: any, b: any) => (Number(a.quantity_in_stock || 0) - Number(a.booking_stock || 0)) - (Number(b.quantity_in_stock || 0) - Number(b.booking_stock || 0))
         },
         {
             title: '', key: 'action', width: 160, align: 'center' as const,
