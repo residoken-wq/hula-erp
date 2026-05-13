@@ -102,6 +102,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         const stock = productInfo ? productInfo.quantity_in_stock : 0;
 
         return {
+            id: item.id,
             sku: item.sku,
             stock, // <--- Add stock
             ordered,
@@ -114,6 +115,24 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             bookedQuantity: item.booked_quantity || 0
         };
     });
+
+    const [bookingLoadingId, setBookingLoadingId] = useState<number | null>(null);
+
+    const handleBookSingleItem = async (item: any) => {
+        if (!order?.id) return;
+        try {
+            setBookingLoadingId(item.id);
+            await api.post(`/sales/orders/${order.id}/book-items`, {
+                items: [{ itemId: item.id, quantity: item.remaining }]
+            });
+            message.success('Đã giữ kho thành công');
+            onSuccess();
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi khi giữ kho');
+        } finally {
+            setBookingLoadingId(null);
+        }
+    };
 
     const openCreateModal = () => {
         setEditingDeliveryId(null);
@@ -374,10 +393,27 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 <Table dataSource={summaryData} rowKey="sku" pagination={false} size="small" bordered
                     columns={[
                         { title: 'SKU', dataIndex: 'sku' },
-                        { title: 'Trạng thái', width: 90, align: 'center', render: (r: any) => {
+                        { title: 'Trạng thái', width: 100, align: 'center', render: (r: any) => {
                             if (r.bookingStatus === 'CONFIRMED') return <Tag color="green" style={{ margin: 0 }}>Sẵn sàng</Tag>;
                             if (r.bookingStatus === 'TEMPORARY') return <Tag color="orange" style={{ margin: 0 }}>Chưa duyệt</Tag>;
-                            return <Tag style={{ margin: 0 }}>Chưa giữ kho</Tag>;
+                            
+                            return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+                                    <Tag style={{ margin: 0 }}>Chưa giữ kho</Tag>
+                                    {r.stock > 0 && r.remaining > 0 && (
+                                        <Button 
+                                            size="small" 
+                                            type="primary" 
+                                            ghost 
+                                            loading={bookingLoadingId === r.id}
+                                            onClick={() => handleBookSingleItem(r)}
+                                            style={{ fontSize: 10, padding: '0 8px', height: 22 }}
+                                        >
+                                            Book kho
+                                        </Button>
+                                    )}
+                                </div>
+                            );
                         }},
                         { title: 'Tồn kho', dataIndex: 'stock', align: 'center', width: 80, render: (v: any) => <span style={{ color: '#fa8c16', fontWeight: 'bold' }}>{v}</span> },
                         { title: 'SL Đặt', dataIndex: 'ordered', align: 'center', width: 70 },

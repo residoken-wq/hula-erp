@@ -814,7 +814,10 @@ export class SalesService {
         const errors = [];
         let bookedCount = 0;
 
-        for (const reqItem of items) {
+        // If items not provided or empty, try to book ALL unbooked items
+        const itemsToBook = (items && items.length > 0) ? items : order.items.map(i => ({ itemId: i.id, quantity: Number(i.quantity) - Number(i.booked_quantity || 0) })).filter(i => i.quantity > 0);
+
+        for (const reqItem of itemsToBook) {
             const orderItem = order.items.find(i => i.id === reqItem.itemId);
             if (!orderItem) continue;
 
