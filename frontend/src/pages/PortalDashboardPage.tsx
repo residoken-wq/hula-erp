@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
 import PortalUserGuide from '../components/PortalUserGuide';
+import { getGoogleDriveImageUrl } from '../utils/googleDrive';
 
 // ============================================================
 // B2B PORTAL DASHBOARD
@@ -224,6 +225,7 @@ const PortalDashboardPage: React.FC = () => {
     const [promoLoading, setPromoLoading] = useState(false);
     const [promoCart, setPromoCart] = useState<Record<string, number>>({});
     const [promoOrderLoading, setPromoOrderLoading] = useState(false);
+    const [promoError, setPromoError] = useState('');
 
     const openPromoModal = async (promo: PromotionInfo) => {
         if (!token) return;
@@ -234,6 +236,7 @@ const PortalDashboardPage: React.FC = () => {
             });
             setPromoModal({ promo: res.data.promotion, products: res.data.products });
             setPromoCart({});
+            setPromoError('');
         } catch (err: any) {
             setReorderResult({ success: false, message: err.response?.data?.message || 'Lỗi tải khuyến mãi' });
         } finally {
@@ -275,20 +278,16 @@ const PortalDashboardPage: React.FC = () => {
         const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
 
         if (promoModal.promo.min_quantity && totalQty < promoModal.promo.min_quantity) {
-             setReorderResult({ success: false, message: `Vui lòng chọn ít nhất ${promoModal.promo.min_quantity} sản phẩm để áp dụng ưu đãi này.` });
-             setPromoModal(null); // Optional: close modal or just show error. Let's just scroll up or let user see the error after closing? 
-             // Actually, setReorderResult will show the message on the main screen. Let's close modal so they can see it, or keep it open.
-             // Best to close modal so they see the result banner.
-             setPromoModal(null);
+             setPromoError(`Vui lòng chọn ít nhất ${promoModal.promo.min_quantity} sản phẩm để áp dụng ưu đãi này.`);
              return;
         }
 
         if (promoModal.promo.min_order_value && totalValue < promoModal.promo.min_order_value) {
-             setReorderResult({ success: false, message: `Giá trị đơn hàng tối thiểu để áp dụng ưu đãi là ${fmt(promoModal.promo.min_order_value)}đ.` });
-             setPromoModal(null);
+             setPromoError(`Giá trị đơn hàng tối thiểu để áp dụng ưu đãi là ${fmt(promoModal.promo.min_order_value)}đ.`);
              return;
         }
 
+        setPromoError('');
         setPromoOrderLoading(true);
         try {
             const res = await axios.post(
@@ -634,7 +633,7 @@ const PortalDashboardPage: React.FC = () => {
                                             <div key={p.sku} style={{ ...S.productRow, alignItems: 'flex-start' }}>
                                                 <div style={{ width: 60, height: 60, marginRight: 12, flexShrink: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
                                                     {p.image_url ? (
-                                                        <img src={p.image_url.includes('drive.google.com') ? p.image_url.replace(new RegExp('/d/([a-zA-Z0-9_-]+).*'), '/thumbnail?id=$1&sz=w200') : p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <img src={getGoogleDriveImageUrl(p.image_url) || p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     ) : (
                                                         <div style={{ width: '100%', height: '100%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: 10 }}>No Img</div>
                                                     )}
@@ -692,6 +691,12 @@ const PortalDashboardPage: React.FC = () => {
                                             <span style={{ fontWeight: 700, fontSize: 15 }}>Ước tính:</span>
                                             <span style={{ fontWeight: 800, fontSize: 16, color: '#23A7D3' }}>{fmt(Math.max(0, promoCartTotal - promoDiscount))}đ</span>
                                         </div>
+                                    </div>
+                                )}
+
+                                {promoError && (
+                                    <div style={{ color: '#cf1322', background: '#fff2f0', border: '1px solid #ffccc7', padding: '8px 12px', borderRadius: 6, marginTop: 12, fontSize: 13 }}>
+                                        ❌ {promoError}
                                     </div>
                                 )}
 
@@ -759,7 +764,7 @@ const PortalDashboardPage: React.FC = () => {
                                     <div key={p.sku} style={{ ...S.productRow, alignItems: 'flex-start' }}>
                                         <div style={{ width: 60, height: 60, marginRight: 12, flexShrink: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
                                             {p.image_url ? (
-                                                <img src={p.image_url.includes('drive.google.com') ? p.image_url.replace(new RegExp('/d/([a-zA-Z0-9_-]+).*'), '/thumbnail?id=$1&sz=w200') : p.image_url} alt={p.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <img src={getGoogleDriveImageUrl(p.image_url) || p.image_url} alt={p.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             ) : (
                                                 <div style={{ width: '100%', height: '100%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: 10 }}>No Img</div>
                                             )}
