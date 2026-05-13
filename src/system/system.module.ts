@@ -11,6 +11,7 @@ import { EmailService } from '../common/services/email.service';
 
 import { ActivitySubscriber } from './subscribers/activity.subscriber';
 import { UserContextService } from '../common/services/user-context.service';
+import { AuthModule } from '../auth/auth.module';
 
 import { DashboardController } from './dashboard.controller';
 import { SalesOrder } from '../sales/sales-order.entity';
@@ -40,7 +41,8 @@ import { AgentApiService } from './agent-api.service';
             Customer,
             Product,
             Material
-        ])
+        ]),
+        AuthModule
     ],
     controllers: [SystemController, DashboardController, AgentApiController],
     providers: [SystemService, ActivitySubscriber, UserContextService, EmailService, AgentApiService],
