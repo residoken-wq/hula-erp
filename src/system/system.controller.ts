@@ -1,5 +1,8 @@
-import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { SystemService } from './system.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('system')
 export class SystemController {
@@ -35,22 +38,30 @@ export class SystemController {
         return this.s.getSellerInfo();
     }
 
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermission('USERS', 'can_view')
     @Get('logs')
     getLogs() {
         return this.s.getLogs();
     }
 
     // --- API TOKENS ---
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermission('USERS', 'can_view')
     @Get('api-tokens')
     getApiTokens() {
         return this.s.listApiTokens();
     }
 
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermission('USERS', 'can_create')
     @Post('api-tokens')
     createApiToken(@Body() body: { name: string; permissions: string[] }) {
         return this.s.generateApiToken(body.name, body.permissions);
     }
 
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermission('USERS', 'can_delete')
     @Delete('api-tokens/:id')
     revokeApiToken(@Param('id') id: number) {
         return this.s.revokeApiToken(id);
