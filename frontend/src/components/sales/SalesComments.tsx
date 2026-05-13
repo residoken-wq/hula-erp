@@ -84,7 +84,7 @@ const SalesComments: React.FC<SalesCommentsProps> = ({ orderId, defaultTab, high
     // Fetch comments
     const fetchComments = async () => {
         try {
-            const res = await axios.get(`${API_URL}/sales/${orderId}/comments`);
+            const res = await api.get(`/sales/${orderId}/comments`);
             setComments(res.data);
         } catch (e) {
             console.error('Failed to fetch comments:', e);
@@ -136,14 +136,14 @@ const SalesComments: React.FC<SalesCommentsProps> = ({ orderId, defaultTab, high
 
         try {
             if (editingId) {
-                await axios.put(`${API_URL}/sales/comment/${editingId}`, { content: text });
+                await api.put(`/sales/comment/${editingId}`, { content: text });
                 message.success('Cập nhật tin nhắn thành công');
                 setEditingId(null);
             } else {
                 // Combine mentionIds from content + manually selected
                 const allMentionIds = [...new Set([...mentionIds, ...mentionedUserIds])];
 
-                await axios.post(`${API_URL}/sales/${orderId}/comment`, {
+                await api.post(`/sales/${orderId}/comment`, {
                     content: text,
                     sender: 'STAFF',
                     name: currentUser?.full_name || 'Nhân viên',
@@ -165,7 +165,7 @@ const SalesComments: React.FC<SalesCommentsProps> = ({ orderId, defaultTab, high
 
     // Toggle visibility
     const toggle = async (id: number) => {
-        await axios.post(`${API_URL}/sales/comment/${id}/toggle`);
+        await api.post(`/sales/comment/${id}/toggle`);
         fetchComments();
     };
 
@@ -231,7 +231,7 @@ const SalesComments: React.FC<SalesCommentsProps> = ({ orderId, defaultTab, high
             const formData = new FormData();
             formData.append('file', compressed);
 
-            const res = await axios.post(`${API_URL}/upload/image`, formData, {
+            const res = await api.post(`/upload/image`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             message.success({ content: 'Upload ảnh thành công!', key: 'upload', duration: 2 });
