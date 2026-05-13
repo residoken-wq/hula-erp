@@ -808,6 +808,87 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'booking-stock':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Tính năng mới</Tag>
+                        <Title level={2}>🔒 Quy trình Giữ Kho (Booking Stock)</Title>
+                        <Paragraph>
+                            Tính năng Giữ kho giúp Sales "xí phần" trước các sản phẩm đang có sẵn trong kho để đảm bảo không bị Sales khác bán mất, đồng thời giúp Planning Manager có cái nhìn chính xác về tồn kho thực tế khi lập kế hoạch sản xuất.
+                        </Paragraph>
+
+                        <Divider orientation="left">I. Ý nghĩa các chỉ số tồn kho</Divider>
+                        <Row gutter={[16, 16]}>
+                            <Col span={8}>
+                                <Card size="small" bordered style={{ borderColor: '#d9d9d9' }}>
+                                    <Title level={5} style={{ margin: 0 }}>📦 Tồn kho thật</Title>
+                                    <Paragraph style={{ marginTop: 8 }}>Số lượng thực tế đang nằm trên kệ trong kho.</Paragraph>
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card size="small" bordered style={{ borderColor: '#fa8c16' }}>
+                                    <Title level={5} style={{ color: '#d46b08', margin: 0 }}>🔒 Đã Booking</Title>
+                                    <Paragraph style={{ marginTop: 8 }}>Số lượng đang được giữ chỗ chờ giao hàng.</Paragraph>
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card size="small" bordered style={{ borderColor: '#52c41a' }}>
+                                    <Title level={5} style={{ color: '#389e0d', margin: 0 }}>✅ Khả dụng</Title>
+                                    <Paragraph style={{ marginTop: 8 }}>Tồn kho thật - Đã Booking. Đây là số lượng Sales <b>được phép bán tiếp</b>.</Paragraph>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Divider orientation="left">II. Luồng phối hợp Sales & Planning</Divider>
+                        <Steps
+                            current={-1}
+                            direction="vertical"
+                            items={[
+                                {
+                                    title: 'Bước 1: Sales tạo đơn và "Giữ kho"',
+                                    description: (
+                                        <div>
+                                            <Paragraph>Sau khi tạo đơn hàng thành công, Sales nhấn nút <b>"Giữ kho" <ShoppingCartOutlined /></b> trên chi tiết đơn hàng.</Paragraph>
+                                            <ul>
+                                                <li>Hệ thống sẽ kiểm tra Tồn kho khả dụng. Nếu đủ, trạng thái chuyển thành <Tag color="orange">Giữ chỗ (TEMPORARY)</Tag>.</li>
+                                                <li>Lúc này, tồn kho khả dụng của sản phẩm đó sẽ giảm xuống.</li>
+                                                <li><b>Lưu ý:</b> Trạng thái TEMPORARY chỉ có hiệu lực trong <b>5 ngày</b>. Nếu sau 5 ngày không được Planning duyệt, hệ thống tự động hủy giữ kho.</li>
+                                            </ul>
+                                        </div>
+                                    ),
+                                    icon: <ShoppingCartOutlined />,
+                                },
+                                {
+                                    title: 'Bước 2: Planning Manager duyệt Kế Hoạch',
+                                    description: (
+                                        <div>
+                                            <Paragraph>Khi lập kế hoạch sản xuất (Gom đơn), Planning Manager sẽ thấy các đơn hàng có yêu cầu giữ kho.</Paragraph>
+                                            <ul>
+                                                <li>Nhấn nút <b>"Duyệt Book"</b> trên danh sách Kế hoạch.</li>
+                                                <li>Trạng thái giữ chỗ của toàn bộ sản phẩm trong kế hoạch đó chuyển sang <Tag color="green">Đã duyệt (CONFIRMED)</Tag>.</li>
+                                                <li>Lúc này, lượng hàng tồn kho được khóa vĩnh viễn cho đơn hàng đó.</li>
+                                            </ul>
+                                        </div>
+                                    ),
+                                    icon: <CheckCircleOutlined />,
+                                },
+                                {
+                                    title: 'Bước 3: Kho thực hiện Giao hàng',
+                                    description: (
+                                        <div>
+                                            <Paragraph>Trong giao diện tạo Phiếu Xuất Kho (Deliveries):</Paragraph>
+                                            <ul>
+                                                <li>Hệ thống <b>chỉ cho phép</b> xuất kho những sản phẩm có trạng thái là <Tag color="green">Sẵn sàng (CONFIRMED)</Tag>.</li>
+                                                <li>Khi xuất kho thành công, hệ thống sẽ trừ cả <b>Tồn kho thật</b> và <b>Đã Booking</b>, trả lại trạng thái cân bằng.</li>
+                                            </ul>
+                                        </div>
+                                    ),
+                                    icon: <TruckOutlined />,
+                                }
+                            ]}
+                        />
+                    </div>
+                );
             case 'sales-pos':
                 return (
                     <div>
@@ -2094,6 +2175,7 @@ const HelpPage: React.FC = () => {
                                 { key: 'sales-contract-builder', label: 'Soạn Hợp Đồng' }, // <--- NEW Contract Builder
                                 { key: 'sales-approval', label: 'Duyệt mẫu' },
                                 { key: 'sales-revisions', label: 'Quản lý version (Báo giá)' }, // <--- NEW
+                                { key: 'booking-stock', label: 'Booking Giữ Kho' }, // <--- NEW Booking
                                 { key: 'sales-pos', label: 'Bán Lẻ (POS)' }, // <--- NEW POS
                                 { key: 'sales-portal', label: 'Customer Portal' },
                                 { key: 'sales-payment', label: 'Thanh toán & Tất toán' }, // <--- NEW PAYMENT
