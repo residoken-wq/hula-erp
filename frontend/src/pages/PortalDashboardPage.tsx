@@ -634,7 +634,7 @@ const PortalDashboardPage: React.FC = () => {
                                             <div key={p.sku} style={{ ...S.productRow, alignItems: 'flex-start' }}>
                                                 <div style={{ width: 60, height: 60, marginRight: 12, flexShrink: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
                                                     {p.image_url ? (
-                                                        <img src={p.image_url.includes('drive.google.com') ? p.image_url.replace(/\\/d\\/([a-zA-Z0-9_-]+).*/, '/thumbnail?id=$1&sz=w200') : p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <img src={p.image_url.includes('drive.google.com') ? p.image_url.replace(new RegExp('/d/([a-zA-Z0-9_-]+).*'), '/thumbnail?id=$1&sz=w200') : p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                     ) : (
                                                         <div style={{ width: '100%', height: '100%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: 10 }}>No Img</div>
                                                     )}
@@ -759,7 +759,7 @@ const PortalDashboardPage: React.FC = () => {
                                     <div key={p.sku} style={{ ...S.productRow, alignItems: 'flex-start' }}>
                                         <div style={{ width: 60, height: 60, marginRight: 12, flexShrink: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
                                             {p.image_url ? (
-                                                <img src={p.image_url.includes('drive.google.com') ? p.image_url.replace(/\\/d\\/([a-zA-Z0-9_-]+).*/, '/thumbnail?id=$1&sz=w200') : p.image_url} alt={p.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <img src={p.image_url.includes('drive.google.com') ? p.image_url.replace(new RegExp('/d/([a-zA-Z0-9_-]+).*'), '/thumbnail?id=$1&sz=w200') : p.image_url} alt={p.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             ) : (
                                                 <div style={{ width: '100%', height: '100%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: 10 }}>No Img</div>
                                             )}
