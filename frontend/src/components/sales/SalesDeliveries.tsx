@@ -122,7 +122,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         if (!order?.id) return;
         try {
             setBookingLoadingId(item.id);
-            await api.post(`/sales/orders/${order.id}/book-items`, {
+            await api.post(`/sales/${order.id}/book-items`, {
                 items: [{ itemId: item.id, quantity: item.remaining }]
             });
             message.success('Đã giữ kho thành công');

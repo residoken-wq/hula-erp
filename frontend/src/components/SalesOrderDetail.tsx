@@ -374,7 +374,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         if (!initialData?.id) return;
         try {
             setLoading(true);
-            await api.post(`/sales/orders/${initialData.id}/book-items`);
+            await api.post(`/sales/${initialData.id}/book-items`);
             message.success('Đã giữ kho (Booking) thành công cho các sản phẩm');
             onSuccess(); // Nạp lại dữ liệu đơn hàng
         } catch (e: any) {
