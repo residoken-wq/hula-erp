@@ -34,6 +34,19 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
     const planColumns = [
         { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
         { title: 'Tên Đợt', dataIndex: 'name' },
+        { 
+            title: 'Khách hàng', 
+            render: (r: any) => {
+                if (!r.sales_orders || r.sales_orders.length === 0) return '-';
+                // Get unique customer names from sales orders
+                const customers = Array.from(new Set(r.sales_orders.map((o: any) => o.customer_name || o.customer?.name || `ĐH: ${o.order_code}`).filter(Boolean)));
+                return (
+                    <div style={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={customers.join(', ')}>
+                        {customers.map((c: any, i) => <div key={i} style={{ fontSize: 13, color: '#1890ff' }}>{c}</div>)}
+                    </div>
+                );
+            } 
+        },
         { title: 'Thời Gian', render: (r: any) => <small>{dayjs(r.start_date).format('DD/MM')} - {dayjs(r.end_date).format('DD/MM')}</small> },
         { title: 'Trạng Thái', dataIndex: 'status', align: 'center' as const, render: (t: any) => t === 'COMPLETED' ? <Tag color="green">Hoàn thành</Tag> : t === 'IN_PRODUCTION' ? <Tag color="blue">Đang SX</Tag> : t === 'CALCULATED' ? <Tag color="cyan">Đã tính MRP</Tag> : <Tag>Mới</Tag> },
         {

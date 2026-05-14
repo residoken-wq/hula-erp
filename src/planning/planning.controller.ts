@@ -24,8 +24,8 @@ export class PlanningController {
 
   // --- MỚI: API Xác nhận Bookings ---
   @Post(':id/confirm-bookings')
-  confirmBookings(@Param('id') id: number) {
-    return this.s.confirmBookings(id);
+  confirmBookings(@Param('id') id: number, @Body('itemIds') itemIds?: number[]) {
+    return this.s.confirmBookings(id, itemIds);
   }
 
   // --- MỚI: Plan Status Management ---

@@ -264,7 +264,7 @@ export class PlanningService {
     }
 
     // --- MỚI: API Xác nhận Bookings ---
-    async confirmBookings(planId: number) {
+    async confirmBookings(planId: number, itemIds?: number[]) {
         const plan = await this.planRepo.findOne({
             where: { id: planId },
             relations: ['sales_orders', 'sales_orders.items']
@@ -275,11 +275,14 @@ export class PlanningService {
         for (const order of plan.sales_orders) {
             for (const item of order.items) {
                 if ((item as any).booking_status === 'TEMPORARY') {
-                    await this.orderRepo.manager.update('SalesOrderItem', item.id, {
-                        booking_status: 'CONFIRMED',
-                        booking_expires_at: null
-                    });
-                    confirmedCount++;
+                    // Nếu có truyền itemIds thì kiểm tra xem item.id có trong mảng không
+                    if (!itemIds || itemIds.includes(item.id)) {
+                        await this.orderRepo.manager.update('SalesOrderItem', item.id, {
+                            booking_status: 'CONFIRMED',
+                            booking_expires_at: null
+                        });
+                        confirmedCount++;
+                    }
                 }
             }
         }

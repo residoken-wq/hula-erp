@@ -10,6 +10,7 @@ import useMobile from '../hooks/useMobile';
 import PendingOrdersTab from '../components/planning/PendingOrdersTab';
 import PlanDashboardTab from '../components/planning/PlanDashboardTab';
 import GanttChartTab from '../components/planning/GanttChartTab';
+import BookingApprovalModal from '../components/planning/BookingApprovalModal';
 
 const { RangePicker } = DatePicker;
 
@@ -35,6 +36,11 @@ const PlanningPage: React.FC = () => {
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [form] = Form.useForm();
+
+    // Booking Modal State
+    const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+    const [bookingPlanInfo, setBookingPlanInfo] = useState<{id: number, name: string} | null>(null);
+    const [bookingItems, setBookingItems] = useState<any[]>([]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -157,21 +163,53 @@ const PlanningPage: React.FC = () => {
     };
 
     const handleConfirmBookings = async (planId: number) => {
-        Modal.confirm({
-            title: 'Xác nhận Booking Kho?',
-            content: 'Thao tác này sẽ khóa tồn kho của các sản phẩm có trong kế hoạch (Chuyển trạng thái TEMPORARY thành CONFIRMED).',
-            onOk: async () => {
-                setLoading(true);
-                try {
-                    await axios.post(`${API_URL}/planning/${planId}/confirm-bookings`);
-                    message.success('Đã duyệt và khóa tồn kho (CONFIRMED) thành công.');
-                    fetchData();
-                } catch (e: any) {
-                    message.error(e.response?.data?.message || 'Lỗi xác nhận Booking');
-                }
-                setLoading(false);
+        setLoading(true);
+        try {
+            const res = await axios.get(`${API_URL}/planning/${planId}`);
+            const plan = res.data;
+            
+            // Extract items
+            const extractedItems: any[] = [];
+            if (plan.sales_orders) {
+                plan.sales_orders.forEach((order: any) => {
+                    const orderCustomerName = order.customer_name || order.customer?.name || '';
+                    if (order.items) {
+                        order.items.forEach((item: any) => {
+                            extractedItems.push({
+                                ...item,
+                                order_code: order.order_code,
+                                customer_name: orderCustomerName,
+                                sku: item.product?.sku || item.sku,
+                                product_name: item.product?.name || '',
+                            });
+                        });
+                    }
+                });
             }
-        });
+            
+            setBookingItems(extractedItems);
+            setBookingPlanInfo({ id: plan.id, name: plan.name || plan.code });
+            setIsBookingModalOpen(true);
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi lấy dữ liệu Kế hoạch');
+        }
+        setLoading(false);
+    };
+
+    const submitBookings = async (itemIds?: number[]) => {
+        if (!bookingPlanInfo) return;
+        setLoading(true);
+        try {
+            await axios.post(`${API_URL}/planning/${bookingPlanInfo.id}/confirm-bookings`, {
+                itemIds: itemIds
+            });
+            message.success('Đã duyệt Booking thành công.');
+            setIsBookingModalOpen(false);
+            fetchData();
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi xác nhận Booking');
+        }
+        setLoading(false);
     };
 
     return (
@@ -273,6 +311,16 @@ const PlanningPage: React.FC = () => {
                     <Form.Item name="dateRange" label="Thời Gian" rules={[{ required: true }]}><RangePicker style={{ width: '100%' }} /></Form.Item>
                 </Form>
             </Modal>
+
+            {/* Booking Approval Modal */}
+            <BookingApprovalModal
+                open={isBookingModalOpen}
+                planName={bookingPlanInfo?.name || ''}
+                items={bookingItems}
+                loading={loading}
+                onCancel={() => setIsBookingModalOpen(false)}
+                onConfirm={submitBookings}
+            />
         </div>
     );
 };
