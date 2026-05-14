@@ -835,6 +835,16 @@ export class SalesService {
         const errors = [];
         let bookedCount = 0;
 
+        // Fetch real stock from inventory_stocks table (source of truth)
+        const allStocks = await this.inventoryService.getAllStocks();
+        const stockMap = new Map<number, number>(); // productId -> total stock (excl KHO_MAU)
+        for (const s of allStocks) {
+            if (s.item_type === 'PRODUCT' && s.warehouse_code !== 'KHO_MAU') {
+                const key = Number(s.item_id);
+                stockMap.set(key, (stockMap.get(key) || 0) + Number(s.quantity));
+            }
+        }
+
         // If items not provided or empty, try to book ALL unbooked items
         const itemsToBook = (items && items.length > 0) ? items : order.items.map(i => ({ itemId: i.id, quantity: Number(i.quantity) - Number(i.booked_quantity || 0) })).filter(i => i.quantity > 0);
 
@@ -857,11 +867,12 @@ export class SalesService {
                 const components = await this.productsService.getComboComponents(product.sku);
                 let canBookCombo = true;
                 
-                // 1. Verify
+                // 1. Verify using real stock
                 for (const comp of components) {
                     const child = comp.child_product;
                     const neededQty = qtyToBook * Number(comp.quantity);
-                    const available = Number(child.quantity_in_stock || 0) - Number(child.booking_stock || 0);
+                    const realStock = stockMap.get(child.id) || 0;
+                    const available = realStock - Number(child.booking_stock || 0);
                     if (available < neededQty) {
                         canBookCombo = false;
                         errors.push(`Thành phần ${child.sku} của Combo ${product.sku} không đủ tồn kho. (Avail: ${available}, Need: ${neededQty})`);
@@ -887,19 +898,15 @@ export class SalesService {
                     bookedCount++;
                 }
             } else {
-                // NORMAL PRODUCT
-                const available = Number(product.quantity_in_stock || 0) - Number(product.booking_stock || 0);
+                // NORMAL PRODUCT - Use real stock from inventory
+                const realStock = stockMap.get(product.id) || 0;
+                const available = realStock - Number(product.booking_stock || 0);
                 if (available < qtyToBook) {
                     errors.push(`Sản phẩm ${product.sku} không đủ tồn kho. (Avail: ${available}, Need: ${qtyToBook})`);
                     continue;
                 }
 
                 product.booking_stock = Number(product.booking_stock || 0) + qtyToBook;
-                // Important: we must bypass private property limits if needed, but productsService.productRepo is public in ProductsService. Let's make sure productRepo is public in productsService.
-                // Wait, it is public or we can use productRepo here, but we don't have it injected. 
-                // Wait, `ProductsService` is injected. We can use it, but `productRepo` might be private.
-                // It's better to add an `updateBookingStock` method to ProductsService. Or just `await this.productsService.update(product.id, { booking_stock: product.booking_stock })`.
-                // In products.service.ts, `update` method calls `this.productRepo.update`. Let's use it.
                 await this.productsService.update(product.id, { booking_stock: product.booking_stock });
 
                 orderItem.booked_quantity = Number(orderItem.booked_quantity || 0) + qtyToBook;
