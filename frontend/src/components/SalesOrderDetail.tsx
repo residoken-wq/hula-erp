@@ -374,9 +374,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         if (!initialData?.id) return;
         try {
             setLoading(true);
-            await api.post(`/sales/${initialData.id}/book-items`);
-            message.success('Đã giữ kho (Booking) thành công cho các sản phẩm');
-            onSuccess(); // Nạp lại dữ liệu đơn hàng
+            const res = await api.post(`/sales/${initialData.id}/book-items`);
+            if (res.data?.success === false) {
+                message.error(res.data.errors?.join(', ') || 'Không thể giữ kho');
+            } else {
+                message.success(res.data?.message || 'Đã giữ kho (Booking) thành công cho các sản phẩm');
+                onSuccess(); // Nạp lại dữ liệu đơn hàng
+            }
         } catch (e: any) {
             message.error(e.response?.data?.message || 'Lỗi khi giữ kho (có thể do hết tồn kho khả dụng)');
         } finally {

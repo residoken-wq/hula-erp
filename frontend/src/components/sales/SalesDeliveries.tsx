@@ -99,7 +99,9 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
         // Lookup stock from products list
         const productInfo = products.find((p: any) => p.value === item.sku);
-        const stock = productInfo ? productInfo.quantity_in_stock : 0;
+        const totalStock = productInfo ? Number(productInfo.quantity_in_stock || 0) : 0;
+        const bookingStock = productInfo ? Number(productInfo.booking_stock || 0) : 0;
+        const stock = Math.max(0, totalStock - bookingStock);
 
         return {
             id: item.id,
@@ -122,11 +124,15 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         if (!order?.id) return;
         try {
             setBookingLoadingId(item.id);
-            await api.post(`/sales/${order.id}/book-items`, {
+            const res = await api.post(`/sales/${order.id}/book-items`, {
                 items: [{ itemId: item.id, quantity: item.remaining }]
             });
-            message.success('Đã giữ kho thành công');
-            onSuccess();
+            if (res.data?.success === false) {
+                message.error(res.data.errors?.join(', ') || 'Không thể giữ kho');
+            } else {
+                message.success(res.data?.message || 'Đã giữ kho thành công');
+                onSuccess();
+            }
         } catch (e: any) {
             message.error(e.response?.data?.message || 'Lỗi khi giữ kho');
         } finally {
@@ -415,7 +421,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                                 </div>
                             );
                         }},
-                        { title: 'Tồn kho', dataIndex: 'stock', align: 'center', width: 80, render: (v: any) => <span style={{ color: '#fa8c16', fontWeight: 'bold' }}>{v}</span> },
+                        { title: 'TK khả dụng', dataIndex: 'stock', align: 'center', width: 90, render: (v: any) => <span style={{ color: v > 0 ? '#52c41a' : '#f5222d', fontWeight: 'bold' }}>{v}</span> },
                         { title: 'SL Đặt', dataIndex: 'ordered', align: 'center', width: 70 },
                         { title: 'Đã giao', dataIndex: 'delivered', align: 'center', width: 70, render: (v: any) => <b style={{ color: 'green' }}>{v}</b> },
                         { title: 'Còn lại', dataIndex: 'remaining', align: 'center', width: 70, render: (v: any) => v > 0 ? <b style={{ color: 'red' }}>{v}</b> : <CheckCircleOutlined style={{ color: 'green' }} /> },

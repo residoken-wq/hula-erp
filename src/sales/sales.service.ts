@@ -342,6 +342,20 @@ export class SalesService {
         if (data.items) {
             console.log('--- UPDATING ITEMS ---');                    // DEBUG
             console.log(JSON.stringify(data.items, null, 2));         // DEBUG
+
+            // --- PRESERVE BOOKING DATA FROM OLD ITEMS ---
+            const oldItems = order.items || [];
+            const bookingMap = new Map<string, { booking_status: string, booked_quantity: number, booking_expires_at: Date | null }>();
+            for (const oldItem of oldItems) {
+                if (oldItem.booking_status && oldItem.booking_status !== 'NONE') {
+                    bookingMap.set(oldItem.sku, {
+                        booking_status: oldItem.booking_status,
+                        booked_quantity: Number(oldItem.booked_quantity || 0),
+                        booking_expires_at: oldItem.booking_expires_at
+                    });
+                }
+            }
+
             await this.itemRepo.delete({ order: { id: id } });
             const validItems = data.items.filter((i: any) => i.sku);
             let itemsTotal = 0;
@@ -354,6 +368,9 @@ export class SalesService {
 
                 const product = await this.productsService.findOneBySku(itemData.sku);
 
+                // Restore booking data if exists for this SKU
+                const bookingData = bookingMap.get(itemData.sku);
+
                 return this.itemRepo.create({
                     order,
                     sku: itemData.sku,
@@ -365,7 +382,11 @@ export class SalesService {
                     vat_content: itemData.vat_content,
                     sample_image: itemData.sample_image, // <--- Ensure this is mapped
                     image_url: itemData.image_url || (product ? product.image_url : null), // <--- Prioritize User Input
-                    position: validItems.indexOf(itemData) + 1 // Save Position
+                    position: validItems.indexOf(itemData) + 1, // Save Position
+                    // --- RESTORE BOOKING FIELDS ---
+                    booking_status: bookingData?.booking_status as any || BookingStatus.NONE,
+                    booked_quantity: bookingData?.booked_quantity || 0,
+                    booking_expires_at: bookingData?.booking_expires_at || null,
                 });
             }));
 

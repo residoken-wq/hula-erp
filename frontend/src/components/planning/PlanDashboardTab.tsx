@@ -39,7 +39,7 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
             render: (r: any) => {
                 if (!r.sales_orders || r.sales_orders.length === 0) return '-';
                 // Get unique customer names from sales orders
-                const customers = Array.from(new Set(r.sales_orders.map((o: any) => o.customer_name || o.customer?.name || `ĐH: ${o.order_code}`).filter(Boolean)));
+                const customers = Array.from(new Set(r.sales_orders.map((o: any) => o.customer?.name || o.customer_name || '').filter(Boolean)));
                 return (
                     <div style={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={customers.join(', ')}>
                         {customers.map((c: any, i) => <div key={i} style={{ fontSize: 13, color: '#1890ff' }}>{c}</div>)}

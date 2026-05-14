@@ -171,7 +171,7 @@ export class PlanningService {
         return { message: `Đã tạo ${createdPos.length} Đơn đặt hàng`, pos: createdPos };
     }
 
-    async findAll() { return this.planRepo.find({ order: { id: 'DESC' }, relations: ['sales_orders'] }); }
+    async findAll() { return this.planRepo.find({ order: { id: 'DESC' }, relations: ['sales_orders', 'sales_orders.customer'] }); }
 
     async deletePlan(id: number) {
         const plan = await this.planRepo.findOne({ where: { id }, relations: ['sales_orders'] });
