@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined, EyeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import api from '../utils/api';
 import useMobile from '../hooks/useMobile';
@@ -47,6 +47,23 @@ const ProductsPage: React.FC = () => {
 
     // Permission State
     const { canCreate, canUpdate, canDelete, canViewCost } = usePermission('PRODUCT');
+
+    // Booking Detail State
+    const [bookingDetailModalOpen, setBookingDetailModalOpen] = useState(false);
+    const [bookingDetailSku, setBookingDetailSku] = useState<string>('');
+    const [bookingDetailData, setBookingDetailData] = useState<any[]>([]);
+    const [bookingDetailLoading, setBookingDetailLoading] = useState(false);
+
+    const fetchBookingsBySku = async (sku: string) => {
+        setBookingDetailLoading(true);
+        try {
+            const res = await api.get(`/planning/bookings/${sku}`);
+            setBookingDetailData(Array.isArray(res.data) ? res.data : []);
+        } catch (e) {
+            message.error('Lỗi tải danh sách booking');
+        }
+        setBookingDetailLoading(false);
+    };
 
     const [form] = Form.useForm();
     const [variantForm] = Form.useForm();
@@ -318,16 +335,40 @@ const ProductsPage: React.FC = () => {
             sorter: (a: any, b: any) => Number(a.quantity_in_stock) - Number(b.quantity_in_stock)
         },
         {
-            title: 'Đã Booking', dataIndex: 'booking_stock', width: 90, align: 'right' as const,
-            render: (v: number) => <span style={{ color: v > 0 ? '#fa8c16' : '#d9d9d9' }}>{Number(v || 0).toLocaleString()}</span>
+            title: 'Đã Booking', dataIndex: 'booking_stock', width: 100, align: 'right' as const,
+            render: (v: number, record: any) => {
+                const val = Number(v || 0);
+                return (
+                    <span style={{ color: val > 0 ? '#fa8c16' : '#d9d9d9' }}>
+                        {val.toLocaleString()}
+                        {val > 0 && (
+                            <Tooltip title="Xem danh sách đơn hàng đã book">
+                                <EyeOutlined
+                                    style={{ marginLeft: 6, cursor: 'pointer', color: '#1890ff' }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setBookingDetailSku(record.sku);
+                                        setBookingDetailModalOpen(true);
+                                        fetchBookingsBySku(record.sku);
+                                    }}
+                                />
+                            </Tooltip>
+                        )}
+                    </span>
+                );
+            }
+        },
+        {
+            title: 'Approved', dataIndex: 'approved_booking_stock', width: 90, align: 'right' as const,
+            render: (v: number) => <span style={{ color: Number(v || 0) > 0 ? '#52c41a' : '#d9d9d9', fontWeight: Number(v || 0) > 0 ? 'bold' : 'normal' }}>{Number(v || 0).toLocaleString()}</span>
         },
         {
             title: 'Khả dụng', key: 'available_stock', width: 90, align: 'right' as const,
             render: (r: any) => {
-                const available = Number(r.quantity_in_stock || 0) - Number(r.booking_stock || 0);
+                const available = Number(r.quantity_in_stock || 0) - Number(r.approved_booking_stock || 0);
                 return <Badge count={available} showZero overflowCount={999} style={{ backgroundColor: available > 0 ? '#52c41a' : '#faad14' }} />
             },
-            sorter: (a: any, b: any) => (Number(a.quantity_in_stock || 0) - Number(a.booking_stock || 0)) - (Number(b.quantity_in_stock || 0) - Number(b.booking_stock || 0))
+            sorter: (a: any, b: any) => (Number(a.quantity_in_stock || 0) - Number(a.approved_booking_stock || 0)) - (Number(b.quantity_in_stock || 0) - Number(b.approved_booking_stock || 0))
         },
         {
             title: '', key: 'action', width: 160, align: 'center' as const,
@@ -626,6 +667,39 @@ const ProductsPage: React.FC = () => {
                         <Col span={12}><Form.Item name="design" label="Design (Thiết kế)"><Input placeholder="VD: Mẫu A, Hình in rồng" /></Form.Item></Col>
                     </Row>
                 </Form>
+            </Modal>
+
+            {/* Booking Detail Modal */}
+            <Modal
+                title={`Danh sách đơn hàng đã book - ${bookingDetailSku}`}
+                open={bookingDetailModalOpen}
+                onCancel={() => setBookingDetailModalOpen(false)}
+                footer={null}
+                width={800}
+            >
+                <Table
+                    dataSource={bookingDetailData}
+                    loading={bookingDetailLoading}
+                    rowKey="id"
+                    size="small"
+                    pagination={false}
+                    scroll={{ y: 350 }}
+                    columns={[
+                        { title: 'Mã SO', dataIndex: 'order_code', render: (t: string) => <b>{t}</b> },
+                        { title: 'Khách hàng', dataIndex: 'customer_name' },
+                        { title: 'SL Book', dataIndex: 'booked_quantity', align: 'center' as const, render: (v: number) => Number(v || 0).toLocaleString() },
+                        {
+                            title: 'Trạng thái', dataIndex: 'booking_status', align: 'center' as const,
+                            render: (s: string) => {
+                                if (s === 'CONFIRMED') return <Tag color="green">Đã duyệt</Tag>;
+                                if (s === 'TEMPORARY') return <Tag color="orange">Chờ duyệt</Tag>;
+                                return <Tag>{s}</Tag>;
+                            }
+                        },
+                        { title: 'Mã KH SX', dataIndex: 'plan_code' },
+                        { title: 'NV Sale', dataIndex: 'assigned_to_name' },
+                    ]}
+                />
             </Modal>
         </Card>
     );

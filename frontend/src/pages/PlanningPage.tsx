@@ -11,6 +11,7 @@ import PendingOrdersTab from '../components/planning/PendingOrdersTab';
 import PlanDashboardTab from '../components/planning/PlanDashboardTab';
 import GanttChartTab from '../components/planning/GanttChartTab';
 import BookingApprovalModal from '../components/planning/BookingApprovalModal';
+import BookingListTab from '../components/planning/BookingListTab';
 
 const { RangePicker } = DatePicker;
 
@@ -298,6 +299,13 @@ const PlanningPage: React.FC = () => {
                                 ganttPlans={ganttPlans}
                                 setGanttPlans={setGanttPlans}
                             />
+                        )
+                    },
+                    {
+                        key: 'BOOKINGS',
+                        label: isMobile ? 'Booking' : '4. Quản Lý Booking',
+                        children: (
+                            <BookingListTab isMobile={isMobile} />
                         )
                     }
                 ]} />

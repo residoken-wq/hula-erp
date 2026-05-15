@@ -7,6 +7,12 @@ export class PlanningController {
 
   @Get('suggestion') getSuggestion() { return this.s.getSuggestion(); }
   @Get('gantt') getGantt() { return this.s.getGanttData(); }
+
+  // --- MỚI: Booking Management APIs ---
+  @Get('bookings') getAllBookings() { return this.s.getAllBookings(); }
+  @Get('bookings/:sku') getBookingsBySku(@Param('sku') sku: string) { return this.s.getBookingsBySku(sku); }
+  @Post('bookings/:itemId/revert') revertBooking(@Param('itemId') itemId: number) { return this.s.revertBooking(Number(itemId)); }
+
   @Post('gantt/:id/config') saveGanttConfig(@Param('id') id: number, @Body() b: any) { return this.s.saveGanttConfig(id, b); }
   @Post('create') create(@Body() b: any) { return this.s.createPlan(b); }
   @Get() findAll() { return this.s.findAll(); }

@@ -100,7 +100,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         // Lookup stock from products list
         const productInfo = products.find((p: any) => p.value === item.sku);
         const totalStock = productInfo ? Number(productInfo.quantity_in_stock || 0) : 0;
-        const bookingStock = productInfo ? Number(productInfo.booking_stock || 0) : 0;
+        const bookingStock = productInfo ? Number(productInfo.approved_booking_stock || 0) : 0;
         const stock = Math.max(0, totalStock - bookingStock);
 
         return {

@@ -1,0 +1,5 @@
+url: https://api.easyinvoice.vn/
+mst: 0311874522
+id: API
+pass: fSdqZWCQwPQU
+Pattern: 1C26TAA

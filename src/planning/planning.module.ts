@@ -6,6 +6,7 @@ import { MrpCalculationService } from './mrp-calculation.service';
 import { GanttService } from './gantt.service';
 import { ProductionPlan } from './production-plan.entity';
 import { SalesOrder } from '../sales/sales-order.entity';
+import { SalesOrderItem } from '../sales/sales-order-item.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { WorkOrder } from '../production/work-order.entity';
@@ -16,7 +17,7 @@ import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ProductionPlan, SalesOrder, PurchaseOrder, PurchaseOrderItem, WorkOrder, WorkOrderStep]),
+    TypeOrmModule.forFeature([ProductionPlan, SalesOrder, SalesOrderItem, PurchaseOrder, PurchaseOrderItem, WorkOrder, WorkOrderStep]),
     ProductsModule,
     MaterialsModule,
     InventoryModule

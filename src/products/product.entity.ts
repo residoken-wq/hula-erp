@@ -49,6 +49,9 @@ export class Product {
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   booking_stock: number;
 
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  approved_booking_stock: number;
+
   @Column({ default: true })
   is_active: boolean;
 

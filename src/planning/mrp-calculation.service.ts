@@ -72,7 +72,7 @@ export class MrpCalculationService {
                     const prod = await this.productsService.findOneBySku(item.sku);
                     if (prod) {
                         productInfoMap.set(item.sku, prod.id);
-                        const available = Number(prod.quantity_in_stock || 0) - Number(prod.booking_stock || 0);
+                        const available = Number(prod.quantity_in_stock || 0) - Number(prod.approved_booking_stock || 0);
                         productStockMap.set(item.sku, Math.max(0, available));
                     }
                 }
@@ -107,7 +107,7 @@ export class MrpCalculationService {
                 const prod = await this.productsService.findOneBySku(sku);
                 if (prod) {
                     productInfoMap.set(sku, prod.id);
-                    const available = Number(prod.quantity_in_stock || 0) - Number(prod.booking_stock || 0);
+                    const available = Number(prod.quantity_in_stock || 0) - Number(prod.approved_booking_stock || 0);
                     productStockMap.set(sku, Math.max(0, available));
                 } else {
                     productStockMap.set(sku, 0);

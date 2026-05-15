@@ -370,6 +370,10 @@ export class InventoryService {
                 // MỚI: Trừ đi booking_stock (vì hàng đã thực xuất)
                 comp.child_product.booking_stock = Math.max(0, Number(comp.child_product.booking_stock || 0) - deductQty);
                 await this.productsService.update(comp.child_product.id, { booking_stock: comp.child_product.booking_stock });
+
+                // MỚI: Trừ đi approved_booking_stock
+                comp.child_product.approved_booking_stock = Math.max(0, Number(comp.child_product.approved_booking_stock || 0) - deductQty);
+                await this.productsService.update(comp.child_product.id, { approved_booking_stock: comp.child_product.approved_booking_stock } as any);
               }
             }
           } else {
@@ -388,6 +392,10 @@ export class InventoryService {
             // MỚI: Trừ đi booking_stock (vì hàng đã thực xuất)
             product.booking_stock = Math.max(0, Number(product.booking_stock || 0) - Number(item.quantity));
             await this.productsService.update(product.id, { booking_stock: product.booking_stock });
+
+            // MỚI: Trừ đi approved_booking_stock
+            product.approved_booking_stock = Math.max(0, Number(product.approved_booking_stock || 0) - Number(item.quantity));
+            await this.productsService.update(product.id, { approved_booking_stock: product.approved_booking_stock } as any);
           }
 
         } catch (e) {

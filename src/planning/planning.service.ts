@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, IsNull } from 'typeorm';
 import { ProductionPlan, PlanStatus } from './production-plan.entity';
 import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
+import { SalesOrderItem, BookingStatus } from '../sales/sales-order-item.entity';
 import { ProductsService } from '../products/products.service';
 import { MaterialsService } from '../materials/materials.service';
 import { PurchaseOrder, POType, POStatus } from '../purchasing/entities/purchase-order.entity';
@@ -16,6 +17,7 @@ export class PlanningService {
     constructor(
         @InjectRepository(ProductionPlan) private planRepo: Repository<ProductionPlan>,
         @InjectRepository(SalesOrder) private orderRepo: Repository<SalesOrder>,
+        @InjectRepository(SalesOrderItem) private orderItemRepo: Repository<SalesOrderItem>,
         @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
         @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
         private productsService: ProductsService,
@@ -267,7 +269,7 @@ export class PlanningService {
     async confirmBookings(planId: number, itemIds?: number[]) {
         const plan = await this.planRepo.findOne({
             where: { id: planId },
-            relations: ['sales_orders', 'sales_orders.items']
+            relations: ['sales_orders', 'sales_orders.items', 'sales_orders.items.product']
         });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
 
@@ -281,6 +283,26 @@ export class PlanningService {
                             booking_status: 'CONFIRMED',
                             booking_expires_at: null
                         });
+
+                        // --- MỚI: Cộng vào approved_booking_stock ---
+                        const product = item.product;
+                        if (product) {
+                            const bookedQty = Number(item.booked_quantity || 0);
+                            if (product.product_type === 'COMBO') {
+                                const components = await this.productsService.getComboComponents(product.sku);
+                                for (const comp of components) {
+                                    if (comp.child_product) {
+                                        const approvedQty = bookedQty * Number(comp.quantity);
+                                        comp.child_product.approved_booking_stock = Number(comp.child_product.approved_booking_stock || 0) + approvedQty;
+                                        await this.productsService.update(comp.child_product.id, { approved_booking_stock: comp.child_product.approved_booking_stock } as any);
+                                    }
+                                }
+                            } else {
+                                product.approved_booking_stock = Number(product.approved_booking_stock || 0) + bookedQty;
+                                await this.productsService.update(product.id, { approved_booking_stock: product.approved_booking_stock } as any);
+                            }
+                        }
+
                         confirmedCount++;
                     }
                 }
@@ -288,5 +310,106 @@ export class PlanningService {
         }
 
         return { message: `Đã xác nhận ${confirmedCount} mục giữ chỗ.` };
+    }
+
+    // --- MỚI: Revert Booking (CONFIRMED → TEMPORARY) ---
+    async revertBooking(itemId: number) {
+        const item = await this.orderItemRepo.findOne({
+            where: { id: itemId },
+            relations: ['product', 'order', 'order.deliveries', 'order.deliveries.items']
+        });
+        if (!item) throw new NotFoundException('Booking item không tồn tại');
+        if (item.booking_status !== BookingStatus.CONFIRMED) {
+            throw new BadRequestException('Chỉ có thể revert booking đã duyệt (CONFIRMED)');
+        }
+
+        // Kiểm tra đã xuất kho chưa
+        const deliveries = item.order?.deliveries || [];
+        for (const delivery of deliveries) {
+            if (delivery.status === 'SHIPPED') {
+                const deliveredItem = delivery.items?.find((di: any) => di.sku === item.sku);
+                if (deliveredItem && Number(deliveredItem.quantity) > 0) {
+                    throw new BadRequestException(`Sản phẩm ${item.sku} đã xuất kho, không thể revert booking`);
+                }
+            }
+        }
+
+        // Trừ approved_booking_stock
+        const product = item.product;
+        if (product) {
+            const bookedQty = Number(item.booked_quantity || 0);
+            if (product.product_type === 'COMBO') {
+                const components = await this.productsService.getComboComponents(product.sku);
+                for (const comp of components) {
+                    if (comp.child_product) {
+                        const revertQty = bookedQty * Number(comp.quantity);
+                        comp.child_product.approved_booking_stock = Math.max(0, Number(comp.child_product.approved_booking_stock || 0) - revertQty);
+                        await this.productsService.update(comp.child_product.id, { approved_booking_stock: comp.child_product.approved_booking_stock } as any);
+                    }
+                }
+            } else {
+                product.approved_booking_stock = Math.max(0, Number(product.approved_booking_stock || 0) - bookedQty);
+                await this.productsService.update(product.id, { approved_booking_stock: product.approved_booking_stock } as any);
+            }
+        }
+
+        // Chuyển trạng thái về TEMPORARY với thời hạn 5 ngày mới
+        const expires = new Date();
+        expires.setDate(expires.getDate() + 5);
+        item.booking_status = BookingStatus.TEMPORARY;
+        item.booking_expires_at = expires;
+        await this.orderItemRepo.save(item);
+
+        return { message: `Đã chuyển booking ${item.sku} về trạng thái chờ duyệt` };
+    }
+
+    // --- MỚI: Lấy tất cả bookings ---
+    async getAllBookings() {
+        const items = await this.orderItemRepo.find({
+            where: {
+                booking_status: In([BookingStatus.TEMPORARY, BookingStatus.CONFIRMED])
+            },
+            relations: ['order', 'order.assigned_to', 'order.customer', 'order.production_plan', 'product']
+        });
+
+        return items.map(item => ({
+            id: item.id,
+            sku: item.sku,
+            product_name: item.product?.name || '',
+            quantity: Number(item.quantity),
+            booked_quantity: Number(item.booked_quantity || 0),
+            booking_status: item.booking_status,
+            booking_expires_at: item.booking_expires_at,
+            order_code: item.order?.order_code || '',
+            customer_name: item.order?.customer_name || item.order?.customer?.name || '',
+            delivery_date: item.order?.delivery_date,
+            assigned_to_name: item.order?.assigned_to?.full_name || '',
+            plan_code: item.order?.production_plan?.code || '',
+            order_id: item.order?.id,
+        }));
+    }
+
+    // --- MỚI: Lấy bookings theo SKU ---
+    async getBookingsBySku(sku: string) {
+        const items = await this.orderItemRepo.find({
+            where: {
+                sku,
+                booking_status: In([BookingStatus.TEMPORARY, BookingStatus.CONFIRMED])
+            },
+            relations: ['order', 'order.assigned_to', 'order.customer', 'order.production_plan']
+        });
+
+        return items.map(item => ({
+            id: item.id,
+            sku: item.sku,
+            booked_quantity: Number(item.booked_quantity || 0),
+            booking_status: item.booking_status,
+            booking_expires_at: item.booking_expires_at,
+            order_code: item.order?.order_code || '',
+            customer_name: item.order?.customer_name || item.order?.customer?.name || '',
+            delivery_date: item.order?.delivery_date,
+            assigned_to_name: item.order?.assigned_to?.full_name || '',
+            plan_code: item.order?.production_plan?.code || '',
+        }));
     }
 }
