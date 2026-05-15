@@ -53,12 +53,15 @@ const ProductsPage: React.FC = () => {
     const [bookingDetailSku, setBookingDetailSku] = useState<string>('');
     const [bookingDetailData, setBookingDetailData] = useState<any[]>([]);
     const [bookingDetailLoading, setBookingDetailLoading] = useState(false);
+    const [bookingDetailFilter, setBookingDetailFilter] = useState<'ALL' | 'CONFIRMED'>('ALL');
 
-    const fetchBookingsBySku = async (sku: string) => {
+    const fetchBookingsBySku = async (sku: string, filter: 'ALL' | 'CONFIRMED' = 'ALL') => {
         setBookingDetailLoading(true);
+        setBookingDetailFilter(filter);
         try {
             const res = await api.get(`/planning/bookings/${sku}`);
-            setBookingDetailData(Array.isArray(res.data) ? res.data : []);
+            const all = Array.isArray(res.data) ? res.data : [];
+            setBookingDetailData(filter === 'CONFIRMED' ? all.filter((d: any) => d.booking_status === 'CONFIRMED') : all);
         } catch (e) {
             message.error('Lỗi tải danh sách booking');
         }
@@ -359,8 +362,28 @@ const ProductsPage: React.FC = () => {
             }
         },
         {
-            title: 'Approved', dataIndex: 'approved_booking_stock', width: 90, align: 'right' as const,
-            render: (v: number) => <span style={{ color: Number(v || 0) > 0 ? '#52c41a' : '#d9d9d9', fontWeight: Number(v || 0) > 0 ? 'bold' : 'normal' }}>{Number(v || 0).toLocaleString()}</span>
+            title: 'Approved', dataIndex: 'approved_booking_stock', width: 100, align: 'right' as const,
+            render: (v: number, record: any) => {
+                const val = Number(v || 0);
+                return (
+                    <span style={{ color: val > 0 ? '#52c41a' : '#d9d9d9', fontWeight: val > 0 ? 'bold' : 'normal' }}>
+                        {val.toLocaleString()}
+                        {val > 0 && (
+                            <Tooltip title="Xem danh sách đơn hàng đã duyệt">
+                                <EyeOutlined
+                                    style={{ marginLeft: 6, cursor: 'pointer', color: '#52c41a' }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setBookingDetailSku(record.sku);
+                                        setBookingDetailModalOpen(true);
+                                        fetchBookingsBySku(record.sku, 'CONFIRMED');
+                                    }}
+                                />
+                            </Tooltip>
+                        )}
+                    </span>
+                );
+            }
         },
         {
             title: 'Khả dụng', key: 'available_stock', width: 90, align: 'right' as const,
@@ -671,7 +694,7 @@ const ProductsPage: React.FC = () => {
 
             {/* Booking Detail Modal */}
             <Modal
-                title={`Danh sách đơn hàng đã book - ${bookingDetailSku}`}
+                title={`Danh sách đơn hàng ${bookingDetailFilter === 'CONFIRMED' ? 'đã duyệt (Approved)' : 'đã book'} - ${bookingDetailSku}`}
                 open={bookingDetailModalOpen}
                 onCancel={() => setBookingDetailModalOpen(false)}
                 footer={null}
