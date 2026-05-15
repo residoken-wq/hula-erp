@@ -120,7 +120,9 @@ const SalesPage: React.FC = () => {
                     description: p.customer_description,
                     vat_description: p.vat_description,
                     type: p.product_type,
-                    quantity_in_stock: p.quantity_in_stock
+                    quantity_in_stock: p.quantity_in_stock,
+                    booking_stock: p.booking_stock,
+                    approved_booking_stock: p.approved_booking_stock
                 })));
             }
             setCustomers(Array.isArray(resCust.data) ? resCust.data : []);

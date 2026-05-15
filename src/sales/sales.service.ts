@@ -872,7 +872,7 @@ export class SalesService {
                     const child = comp.child_product;
                     const neededQty = qtyToBook * Number(comp.quantity);
                     const realStock = stockMap.get(child.id) || 0;
-                    const available = realStock - Number(child.booking_stock || 0);
+                    const available = realStock - Number(child.approved_booking_stock || 0);
                     if (available < neededQty) {
                         canBookCombo = false;
                         errors.push(`Thành phần ${child.sku} của Combo ${product.sku} không đủ tồn kho. (Avail: ${available}, Need: ${neededQty})`);
@@ -900,7 +900,7 @@ export class SalesService {
             } else {
                 // NORMAL PRODUCT - Use real stock from inventory
                 const realStock = stockMap.get(product.id) || 0;
-                const available = realStock - Number(product.booking_stock || 0);
+                const available = realStock - Number(product.approved_booking_stock || 0);
                 if (available < qtyToBook) {
                     errors.push(`Sản phẩm ${product.sku} không đủ tồn kho. (Avail: ${available}, Need: ${qtyToBook})`);
                     continue;
