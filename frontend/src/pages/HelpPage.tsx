@@ -1020,7 +1020,7 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
-            case 'mrp-guide':
+            case 'mrp-overview':
                 return (
                     <div>
                         <Tag color="volcano" style={{ marginBottom: 16 }}>Sản Xuất & Kho</Tag>
