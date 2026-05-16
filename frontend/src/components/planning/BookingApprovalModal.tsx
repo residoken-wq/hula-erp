@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Table, Button, Tag } from 'antd';
-import { CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, InfoCircleOutlined, AppstoreOutlined } from '@ant-design/icons';
 
 interface BookingApprovalModalProps {
     open: boolean;
@@ -39,7 +39,11 @@ const BookingApprovalModal: React.FC<BookingApprovalModalProps> = ({
             key: 'sku',
             render: (text: string, record: any) => (
                 <div>
-                    <div><b>{text}</b></div>
+                    <div>
+                        {record.product_type === 'COMBO' && <AppstoreOutlined style={{ color: '#722ed1', marginRight: 4 }} />}
+                        <b>{text}</b>
+                        {record.product_type === 'COMBO' && <Tag color="purple" style={{ margin: '0 0 0 6px', fontSize: 10, lineHeight: '16px', padding: '0 4px' }}>COMBO</Tag>}
+                    </div>
                     <div style={{ fontSize: 12, color: '#666' }}>{record.product_name}</div>
                 </div>
             )
@@ -105,6 +109,24 @@ const BookingApprovalModal: React.FC<BookingApprovalModalProps> = ({
                 size="small"
                 pagination={false}
                 scroll={{ y: 400 }}
+                expandable={{
+                    expandedRowRender: (record: any) => {
+                        if (!record.combo_components?.length) return null;
+                        return (
+                            <div style={{ padding: '4px 0 4px 10px', background: '#fafafa' }}>
+                                <div style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 4, color: '#722ed1' }}>
+                                    <AppstoreOutlined /> Thành phần Combo:
+                                </div>
+                                {record.combo_components.map((c: any, idx: number) => (
+                                    <div key={idx} style={{ fontSize: 12, padding: '2px 0', color: '#555' }}>
+                                        • <b>{c.sku}</b> — {c.name} <span style={{ color: '#888' }}>(x{c.quantity_per_combo})</span> → Cần: <b>{c.total_needed}</b>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    },
+                    rowExpandable: (record: any) => record.product_type === 'COMBO' && record.combo_components?.length > 0,
+                }}
                 rowSelection={{
                     selectedRowKeys,
                     onChange: (keys) => setSelectedRowKeys(keys),

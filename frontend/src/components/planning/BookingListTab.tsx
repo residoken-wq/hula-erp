@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, message, Modal, Tooltip } from 'antd';
-import { ReloadOutlined, UndoOutlined } from '@ant-design/icons';
+import { ReloadOutlined, UndoOutlined, AppstoreOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 
@@ -52,7 +52,16 @@ const BookingListTab: React.FC<BookingListTabProps> = ({ isMobile }) => {
             title: 'Mã SO', dataIndex: 'order_code', width: 130,
             render: (t: string) => <b>{t}</b>
         },
-        { title: 'SKU', dataIndex: 'sku', width: 120 },
+        {
+            title: 'SKU', dataIndex: 'sku', width: 140,
+            render: (t: string, r: any) => (
+                <span>
+                    {r.product_type === 'COMBO' && <AppstoreOutlined style={{ color: '#722ed1', marginRight: 4 }} />}
+                    {t}
+                    {r.product_type === 'COMBO' && <Tag color="purple" style={{ margin: '0 0 0 4px', fontSize: 10, lineHeight: '16px', padding: '0 3px' }}>COMBO</Tag>}
+                </span>
+            )
+        },
         {
             title: 'Sản phẩm', dataIndex: 'product_name', width: 200,
             ellipsis: true
@@ -113,6 +122,7 @@ const BookingListTab: React.FC<BookingListTabProps> = ({ isMobile }) => {
     const totalBookings = data.length;
     const pendingCount = data.filter(d => d.booking_status === 'TEMPORARY').length;
     const confirmedCount = data.filter(d => d.booking_status === 'CONFIRMED').length;
+    const comboCount = data.filter(d => d.product_type === 'COMBO').length;
 
     return (
         <div>
@@ -121,6 +131,7 @@ const BookingListTab: React.FC<BookingListTabProps> = ({ isMobile }) => {
                     <span>Tổng: <b>{totalBookings}</b></span>
                     <span>Chờ duyệt: <Tag color="orange">{pendingCount}</Tag></span>
                     <span>Đã duyệt: <Tag color="green">{confirmedCount}</Tag></span>
+                    {comboCount > 0 && <span>Combo: <Tag color="purple">{comboCount}</Tag></span>}
                 </div>
                 <Button icon={<ReloadOutlined />} onClick={fetchBookings} size="small">Làm mới</Button>
             </div>
@@ -132,6 +143,39 @@ const BookingListTab: React.FC<BookingListTabProps> = ({ isMobile }) => {
                 loading={loading}
                 pagination={{ pageSize: 20 }}
                 scroll={{ x: isMobile ? 900 : 1200 }}
+                expandable={{
+                    expandedRowRender: (record: any) => {
+                        if (!record.combo_components?.length) return null;
+                        return (
+                            <div style={{ padding: '4px 0 4px 10px', background: '#fafafa' }}>
+                                <div style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 4, color: '#722ed1' }}>
+                                    <AppstoreOutlined /> Thành phần Combo ({record.combo_components.length} SP con):
+                                </div>
+                                <table style={{ width: '100%', maxWidth: 500, fontSize: 12, borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f0f0f0' }}>
+                                            <th style={{ padding: '3px 8px', textAlign: 'left', border: '1px solid #e8e8e8' }}>SKU Con</th>
+                                            <th style={{ padding: '3px 8px', textAlign: 'left', border: '1px solid #e8e8e8' }}>Tên SP</th>
+                                            <th style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e8e8e8' }}>SL/Combo</th>
+                                            <th style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e8e8e8' }}>Cần</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {record.combo_components.map((c: any, idx: number) => (
+                                            <tr key={idx}>
+                                                <td style={{ padding: '3px 8px', border: '1px solid #e8e8e8', fontWeight: 500 }}>{c.sku}</td>
+                                                <td style={{ padding: '3px 8px', border: '1px solid #e8e8e8' }}>{c.name}</td>
+                                                <td style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e8e8e8' }}>x{c.quantity_per_combo}</td>
+                                                <td style={{ padding: '3px 8px', textAlign: 'center', border: '1px solid #e8e8e8', fontWeight: 'bold' }}>{c.total_needed}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        );
+                    },
+                    rowExpandable: (record: any) => record.product_type === 'COMBO' && record.combo_components?.length > 0,
+                }}
             />
         </div>
     );

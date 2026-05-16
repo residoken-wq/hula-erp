@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Input, Modal, message, InputNumber, Tooltip, Select, DatePicker, Tag } from 'antd';
-import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined, EditOutlined, UploadOutlined, DeleteOutlined } from '@ant-design/icons';
+import { CarOutlined, CheckCircleOutlined, PrinterOutlined, MailOutlined, EditOutlined, UploadOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 import AttachmentUpload from '../common/AttachmentUpload';
@@ -78,11 +78,35 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         });
     };
 
+    // State: Combo components cache (sku -> components[])
+    const [comboComponentsMap, setComboComponentsMap] = useState<Record<string, any[]>>({});
+
     useEffect(() => {
         if (order?.id) fetchHistory();
         fetchCarriers();
         api.get(`/system/company`).then(res => setCompanyConfig(res.data)).catch(() => { });
     }, [order?.id]);
+
+    // Fetch combo components for COMBO products
+    useEffect(() => {
+        const comboItems = (order.items || []).filter((item: any) => {
+            const productInfo = products.find((p: any) => p.value === item.sku);
+            return productInfo?.type === 'COMBO';
+        });
+        if (comboItems.length === 0) return;
+
+        const fetchComboComponents = async () => {
+            const map: Record<string, any[]> = {};
+            for (const item of comboItems) {
+                try {
+                    const res = await api.get(`/products/combo/${item.sku}`);
+                    map[item.sku] = Array.isArray(res.data) ? res.data : [];
+                } catch { map[item.sku] = []; }
+            }
+            setComboComponentsMap(map);
+        };
+        fetchComboComponents();
+    }, [order?.items, products]);
 
     // Use order.items for ordered quantities
     const summaryData = (order.items || []).map((item: any) => {
@@ -99,9 +123,31 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
         // Lookup stock from products list
         const productInfo = products.find((p: any) => p.value === item.sku);
+        const isCombo = productInfo?.type === 'COMBO';
         const totalStock = productInfo ? Number(productInfo.quantity_in_stock || 0) : 0;
         const bookingStock = productInfo ? Number(productInfo.approved_booking_stock || 0) : 0;
         const stock = Math.max(0, totalStock - bookingStock);
+
+        // Build combo children with individual stock info
+        let comboChildren: any[] = [];
+        if (isCombo && comboComponentsMap[item.sku]) {
+            comboChildren = comboComponentsMap[item.sku].map((comp: any) => {
+                const childProduct = products.find((p: any) => p.value === comp.child_product?.sku);
+                const childTotalStock = childProduct ? Number(childProduct.quantity_in_stock || 0) : 0;
+                const childBookingStock = childProduct ? Number(childProduct.approved_booking_stock || 0) : 0;
+                const childAvailable = Math.max(0, childTotalStock - childBookingStock);
+                const qtyPerCombo = Number(comp.quantity) || 1;
+                const totalNeeded = remaining * qtyPerCombo;
+                return {
+                    sku: comp.child_product?.sku || '',
+                    name: comp.child_product?.name || '',
+                    quantity_per_combo: qtyPerCombo,
+                    total_needed: totalNeeded,
+                    available: childAvailable,
+                    sufficient: childAvailable >= totalNeeded
+                };
+            });
+        }
 
         return {
             id: item.id,
@@ -114,7 +160,9 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             deliveredVal: delivered * price,
             remainingVal: remaining * price,
             bookingStatus: item.booking_status || 'NONE',
-            bookedQuantity: item.booked_quantity || 0
+            bookedQuantity: item.booked_quantity || 0,
+            isCombo,
+            comboChildren
         };
     });
 
@@ -397,8 +445,56 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             <div style={{ marginBottom: 20, background: '#f0f5ff', padding: 10, borderRadius: 6, border: '1px solid #adc6ff' }}>
                 <div style={{ fontWeight: 'bold', marginBottom: 5, color: '#1d39c4' }}>Tiến độ giao hàng:</div>
                 <Table dataSource={summaryData} rowKey="sku" pagination={false} size="small" bordered
+                    expandable={{
+                        expandedRowRender: (record: any) => {
+                            if (!record.isCombo || !record.comboChildren?.length) return null;
+                            return (
+                                <div style={{ padding: '4px 0 4px 20px', background: '#fafafa' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#722ed1' }}>
+                                        <AppstoreOutlined /> Thành phần Combo ({record.comboChildren.length} sản phẩm con):
+                                    </div>
+                                    <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr style={{ background: '#f0f0f0' }}>
+                                                <th style={{ padding: '4px 8px', textAlign: 'left', border: '1px solid #e8e8e8' }}>SKU Con</th>
+                                                <th style={{ padding: '4px 8px', textAlign: 'left', border: '1px solid #e8e8e8' }}>Tên sản phẩm</th>
+                                                <th style={{ padding: '4px 8px', textAlign: 'center', border: '1px solid #e8e8e8' }}>SL/Combo</th>
+                                                <th style={{ padding: '4px 8px', textAlign: 'center', border: '1px solid #e8e8e8' }}>Cần</th>
+                                                <th style={{ padding: '4px 8px', textAlign: 'center', border: '1px solid #e8e8e8' }}>TK khả dụng</th>
+                                                <th style={{ padding: '4px 8px', textAlign: 'center', border: '1px solid #e8e8e8' }}>Trạng thái</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {record.comboChildren.map((child: any, idx: number) => (
+                                                <tr key={idx}>
+                                                    <td style={{ padding: '4px 8px', border: '1px solid #e8e8e8', fontWeight: 500 }}>{child.sku}</td>
+                                                    <td style={{ padding: '4px 8px', border: '1px solid #e8e8e8' }}>{child.name}</td>
+                                                    <td style={{ padding: '4px 8px', textAlign: 'center', border: '1px solid #e8e8e8' }}>x{child.quantity_per_combo}</td>
+                                                    <td style={{ padding: '4px 8px', textAlign: 'center', border: '1px solid #e8e8e8', fontWeight: 'bold' }}>{child.total_needed}</td>
+                                                    <td style={{ padding: '4px 8px', textAlign: 'center', border: '1px solid #e8e8e8', fontWeight: 'bold', color: child.sufficient ? '#52c41a' : '#f5222d' }}>{child.available}</td>
+                                                    <td style={{ padding: '4px 8px', textAlign: 'center', border: '1px solid #e8e8e8' }}>
+                                                        {child.sufficient
+                                                            ? <Tag color="green" style={{ margin: 0, fontSize: 11 }}>Đủ</Tag>
+                                                            : <Tag color="red" style={{ margin: 0, fontSize: 11 }}>Thiếu {child.total_needed - child.available}</Tag>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            );
+                        },
+                        rowExpandable: (record: any) => record.isCombo && record.comboChildren?.length > 0,
+                    }}
                     columns={[
-                        { title: 'SKU', dataIndex: 'sku' },
+                        { title: 'SKU', dataIndex: 'sku', render: (v: string, r: any) => (
+                            <span>
+                                {r.isCombo && <AppstoreOutlined style={{ color: '#722ed1', marginRight: 4 }} />}
+                                {v}
+                                {r.isCombo && <Tag color="purple" style={{ margin: '0 0 0 6px', fontSize: 10, lineHeight: '16px', padding: '0 4px' }}>COMBO</Tag>}
+                            </span>
+                        )},
                         { title: 'Trạng thái', width: 100, align: 'center', render: (r: any) => {
                             if (r.bookingStatus === 'CONFIRMED') return <Tag color="green" style={{ margin: 0 }}>Sẵn sàng</Tag>;
                             if (r.bookingStatus === 'TEMPORARY') return <Tag color="orange" style={{ margin: 0 }}>Chưa duyệt</Tag>;
@@ -406,7 +502,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                             return (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
                                     <Tag style={{ margin: 0 }}>Chưa giữ kho</Tag>
-                                    {r.stock > 0 && r.remaining > 0 && (
+                                    {r.remaining > 0 && (
                                         <Button 
                                             size="small" 
                                             type="primary" 
@@ -421,7 +517,12 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                                 </div>
                             );
                         }},
-                        { title: 'TK khả dụng', dataIndex: 'stock', align: 'center', width: 90, render: (v: any) => <span style={{ color: v > 0 ? '#52c41a' : '#f5222d', fontWeight: 'bold' }}>{v}</span> },
+                        { title: 'TK khả dụng', dataIndex: 'stock', align: 'center', width: 90, render: (v: any, r: any) => (
+                            <span style={{ color: v > 0 ? '#52c41a' : '#f5222d', fontWeight: 'bold' }}>
+                                {v}
+                                {r.isCombo && <Tooltip title="Expand để xem tồn kho từng SP con"><AppstoreOutlined style={{ marginLeft: 4, color: '#722ed1', fontSize: 11 }} /></Tooltip>}
+                            </span>
+                        )},
                         { title: 'SL Đặt', dataIndex: 'ordered', align: 'center', width: 70 },
                         { title: 'Đã giao', dataIndex: 'delivered', align: 'center', width: 70, render: (v: any) => <b style={{ color: 'green' }}>{v}</b> },
                         { title: 'Còn lại', dataIndex: 'remaining', align: 'center', width: 70, render: (v: any) => v > 0 ? <b style={{ color: 'red' }}>{v}</b> : <CheckCircleOutlined style={{ color: 'green' }} /> },
@@ -443,7 +544,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
                         return (
                             <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
-                                <Table.Summary.Cell index={0} colSpan={5} align="right">Tổng cộng:</Table.Summary.Cell>
+                                <Table.Summary.Cell index={0} colSpan={6} align="right">Tổng cộng:</Table.Summary.Cell>
                                 <Table.Summary.Cell index={1} align="right">{totalAmount.toLocaleString()}</Table.Summary.Cell>
                                 <Table.Summary.Cell index={2} align="right"><span style={{ color: 'green' }}>{totalDelivered.toLocaleString()}</span></Table.Summary.Cell>
                                 <Table.Summary.Cell index={3} align="right"><span style={{ color: 'red' }}>{totalRemaining.toLocaleString()}</span></Table.Summary.Cell>

@@ -372,21 +372,39 @@ export class PlanningService {
             relations: ['order', 'order.assigned_to', 'order.customer', 'order.production_plan', 'product']
         });
 
-        return items.map(item => ({
-            id: item.id,
-            sku: item.sku,
-            product_name: item.product?.name || '',
-            quantity: Number(item.quantity),
-            booked_quantity: Number(item.booked_quantity || 0),
-            booking_status: item.booking_status,
-            booking_expires_at: item.booking_expires_at,
-            order_code: item.order?.order_code || '',
-            customer_name: item.order?.customer_name || item.order?.customer?.name || '',
-            delivery_date: item.order?.delivery_date,
-            assigned_to_name: item.order?.assigned_to?.full_name || '',
-            plan_code: item.order?.production_plan?.code || '',
-            order_id: item.order?.id,
-        }));
+        const results = [];
+        for (const item of items) {
+            const product = item.product;
+            let comboComponents: any[] = [];
+            if (product?.product_type === 'COMBO') {
+                const components = await this.productsService.getComboComponents(product.sku);
+                comboComponents = components.map(c => ({
+                    sku: c.child_product?.sku || '',
+                    name: c.child_product?.name || '',
+                    quantity_per_combo: Number(c.quantity),
+                    total_needed: Number(item.booked_quantity || 0) * Number(c.quantity),
+                }));
+            }
+
+            results.push({
+                id: item.id,
+                sku: item.sku,
+                product_name: product?.name || '',
+                product_type: product?.product_type || 'STANDARD',
+                quantity: Number(item.quantity),
+                booked_quantity: Number(item.booked_quantity || 0),
+                booking_status: item.booking_status,
+                booking_expires_at: item.booking_expires_at,
+                order_code: item.order?.order_code || '',
+                customer_name: item.order?.customer_name || item.order?.customer?.name || '',
+                delivery_date: item.order?.delivery_date,
+                assigned_to_name: item.order?.assigned_to?.full_name || '',
+                plan_code: item.order?.production_plan?.code || '',
+                order_id: item.order?.id,
+                combo_components: comboComponents.length > 0 ? comboComponents : undefined,
+            });
+        }
+        return results;
     }
 
     // --- MỚI: Lấy bookings theo SKU ---

@@ -176,12 +176,26 @@ const PlanningPage: React.FC = () => {
                     const orderCustomerName = order.customer_name || order.customer?.name || '';
                     if (order.items) {
                         order.items.forEach((item: any) => {
+                            const product = item.product;
+                            const productType = product?.product_type || 'STANDARD';
+                            // Build combo_components from loaded relations
+                            let comboComponents: any[] = [];
+                            if (productType === 'COMBO' && product?.components?.length > 0) {
+                                comboComponents = product.components.map((c: any) => ({
+                                    sku: c.child_product?.sku || '',
+                                    name: c.child_product?.name || '',
+                                    quantity_per_combo: Number(c.quantity),
+                                    total_needed: Number(item.booked_quantity || item.quantity || 0) * Number(c.quantity),
+                                }));
+                            }
                             extractedItems.push({
                                 ...item,
                                 order_code: order.order_code,
                                 customer_name: orderCustomerName,
-                                sku: item.product?.sku || item.sku,
-                                product_name: item.product?.name || '',
+                                sku: product?.sku || item.sku,
+                                product_name: product?.name || '',
+                                product_type: productType,
+                                combo_components: comboComponents.length > 0 ? comboComponents : undefined,
                             });
                         });
                     }
