@@ -40,10 +40,23 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
         return step.options?.find(o => o.id === selectedOptionId);
     };
 
+    // Check if a yes_no step has selected "Không" (2nd option = hidden)
+    const isYesNoHidden = (stepId: string): boolean => {
+        const step = subcategory.customization_steps?.find(s => s.id === stepId);
+        if (!step || step.type !== 'yes_no') return false;
+        const selectedOptionId = stepSelections[stepId];
+        // Option thứ 2 (index 1) = "Không" → ẩn
+        if (!selectedOptionId) return false;
+        const opts = step.options || [];
+        return opts.length >= 2 && selectedOptionId === opts[1].id;
+    };
+
     // Lấy tất cả resolved options cho 1 nhóm steps (dùng cho frame mapping)
+    // Bỏ qua options từ yes_no steps đã chọn "Không"
     const resolveOptionsForSteps = (steps: typeof subcategory.customization_steps): WizardOption[] => {
         if (!steps) return [];
         return steps
+            .filter(step => !isYesNoHidden(step.id))
             .map(step => resolveStepOption(step.id))
             .filter(Boolean) as WizardOption[];
     };
@@ -87,6 +100,12 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                             s.required_frame_id === frame.id || !s.required_frame_id
                         ) || [];
 
+                        // Kiểm tra nếu có step yes_no gắn trực tiếp frame này và đang chọn "Không" → ẩn frame
+                        const linkedYesNoSteps = subcategory.customization_steps?.filter(s =>
+                            s.type === 'yes_no' && s.required_frame_id === frame.id
+                        ) || [];
+                        const isFrameHidden = linkedYesNoSteps.some(s => isYesNoHidden(s.id));
+
                         // Resolve options CHÍNH XÁC bằng stepSelections
                         const mappedOptions = resolveOptionsForSteps(mappedSteps);
 
@@ -107,7 +126,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                         return (
                             <div
                                 key={frame.id}
-                                className="absolute transition-transform duration-500"
+                                className="absolute transition-all duration-500"
                                 style={{
                                     left: `${(frame.x / 600) * 100}%`,
                                     top: `${(frame.y / 600) * 100}%`,
@@ -115,6 +134,9 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                                     height: `${(frame.height / 600) * 100}%`,
                                     zIndex: frame.sort_order + 10,
                                     isolation: 'isolate',
+                                    opacity: isFrameHidden ? 0 : 1,
+                                    transform: isFrameHidden ? 'scale(0.95)' : 'scale(1)',
+                                    pointerEvents: isFrameHidden ? 'none' : 'auto',
                                 }}
                             >
                                 {/* Ảnh hiển thị: swap nếu option có image_url, fallback về frame gốc */}
