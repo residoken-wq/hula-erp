@@ -23,9 +23,10 @@ interface Props {
     subcategory: WizardCategoryL2;
     selectedOptions: WizardOption[];
     stepSelections?: Record<string, string>; // stepId -> optionId (chính xác, không bị trùng ID)
+    imageSelections?: Record<string, number>; // optionId -> selected image index trong image_urls[]
 }
 
-export default function ProductVisualizer({ subcategory, selectedOptions, stepSelections = {} }: Props) {
+export default function ProductVisualizer({ subcategory, selectedOptions, stepSelections = {}, imageSelections = {} }: Props) {
     const hasBaseImages = subcategory.base_images && subcategory.base_images.length > 0;
     const legacyBaseImage = subcategory.base_image;
 
@@ -51,12 +52,28 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
     const allResolvedOptions = resolveOptionsForSteps(subcategory.customization_steps || []);
 
     // Global lookups cho legacy mode + floating badge
-    const globalImageSwap = allResolvedOptions.find(o => o.image_url);
+    const globalImageSwap = allResolvedOptions.find(o => {
+        // Ưu tiên image_urls (multi-image) nếu có
+        if (o.image_urls && o.image_urls.length > 0) {
+            const idx = imageSelections[o.id] ?? 0;
+            return !!o.image_urls[idx];
+        }
+        return !!o.image_url;
+    });
     const globalColor = allResolvedOptions.find(o => hasValidColor(o));
     const globalTexture = allResolvedOptions.find(o => o.visualization_overlay);
 
-    const displayLegacyUrl = globalImageSwap?.image_url 
-        ? resolveImageUrl(globalImageSwap.image_url) 
+    // Helper: resolve image URL for an option, preferring image_urls[selectedIndex] if available
+    const resolveOptionImage = (opt: WizardOption): string | undefined => {
+        if (opt.image_urls && opt.image_urls.length > 0) {
+            const idx = imageSelections[opt.id] ?? 0;
+            return opt.image_urls[idx] || opt.image_urls[0];
+        }
+        return opt.image_url;
+    };
+
+    const displayLegacyUrl = globalImageSwap
+        ? resolveImageUrl(resolveOptionImage(globalImageSwap))
         : legacyBaseImage ? resolveImageUrl(legacyBaseImage) : '';
 
     return (
@@ -74,13 +91,17 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                         const mappedOptions = resolveOptionsForSteps(mappedSteps);
 
                         // Ưu tiên: image swap > overlay texture > color tint
-                        const swapOption = mappedOptions.find(o => o.image_url);
+                        const swapOption = mappedOptions.find(o => {
+                            if (o.image_urls && o.image_urls.length > 0) return true;
+                            return !!o.image_url;
+                        });
                         const overlayOption = mappedOptions.find(o => o.visualization_overlay);
                         const tintOption = mappedOptions.find(o => hasValidColor(o));
 
-                        // Hình hiển thị: nếu option có image_url thì thay thế ảnh gốc frame
-                        const displayImageUrl = swapOption?.image_url
-                            ? resolveImageUrl(swapOption.image_url)
+                        // Hình hiển thị: nếu option có image_urls hoặc image_url thì thay thế ảnh gốc frame
+                        const swapImageUrl = swapOption ? resolveOptionImage(swapOption) : undefined;
+                        const displayImageUrl = swapImageUrl
+                            ? resolveImageUrl(swapImageUrl)
                             : resolveImageUrl(frame.url);
 
                         return (

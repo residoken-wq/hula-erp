@@ -15,6 +15,7 @@ export interface WizardOption {
     description?: string;
     price_modifier: number;
     image_url?: string;
+    image_urls?: string[];
     visualization_overlay?: string;
     color_code?: string;
     sub_options?: WizardOption[];
@@ -23,7 +24,7 @@ export interface WizardOption {
 export interface WizardCustomizationStep {
     id: string;
     label: string;
-    type: 'toggle' | 'dropdown' | 'color_swatch' | 'branding';
+    type: 'toggle' | 'dropdown' | 'color_swatch' | 'branding' | 'yes_no';
     options: WizardOption[];
     default_option_id?: string;
     is_skippable?: boolean;

@@ -8,6 +8,7 @@ import ConfiguratorAccordion from './ConfiguratorAccordion';
 import ProductVisualizer from './ProductVisualizer';
 import DynamicPriceBar from './DynamicPriceBar';
 import B2BLeadModal from './B2BLeadModal';
+import SelectionSummary from './SelectionSummary';
 
 export default function B2BConfiguratorPage() {
     const [config, setConfig] = useState<WizardConfigData | null>(null);
@@ -21,6 +22,7 @@ export default function B2BConfiguratorPage() {
     const [skippedSteps, setSkippedSteps] = useState<Record<string, boolean>>({});
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [imageSelections, setImageSelections] = useState<Record<string, number>>({}); // optionId -> image index
 
     useEffect(() => {
         const loadData = async () => {
@@ -108,6 +110,13 @@ export default function B2BConfiguratorPage() {
         }));
     };
 
+    const handleImageSelect = (optionId: string, imageIndex: number) => {
+        setImageSelections(prev => ({
+            ...prev,
+            [optionId]: imageIndex
+        }));
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -156,12 +165,14 @@ export default function B2BConfiguratorPage() {
                                 subcategory={currentL2}
                                 selectedOptions={selectedOptionsList}
                                 stepSelections={stepSelections}
+                                imageSelections={imageSelections}
                             />
-                            {currentL2.description && (
-                                <div className="mt-4 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
-                                    <p className="text-sm text-gray-600 leading-relaxed">{currentL2.description}</p>
-                                </div>
-                            )}
+                            <SelectionSummary
+                                subcategory={currentL2}
+                                steps={currentL2.customization_steps || []}
+                                selections={stepSelections}
+                                skippedSteps={skippedSteps}
+                            />
                         </div>
 
                         {/* Cột phải: Accordion Configurator & Dynamic Pricing */}
@@ -173,6 +184,8 @@ export default function B2BConfiguratorPage() {
                                     onChange={handleStepChange}
                                     skippedSteps={skippedSteps}
                                     onSkip={handleSkipStep}
+                                    imageSelections={imageSelections}
+                                    onImageSelect={handleImageSelect}
                                 />
                             ) : (
                                 <div className="p-8 bg-white rounded-xl shadow-sm text-center border border-gray-100">

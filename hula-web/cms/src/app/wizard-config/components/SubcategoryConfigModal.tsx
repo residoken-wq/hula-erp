@@ -194,6 +194,7 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                                                                 { label: 'Dropdown List', value: 'dropdown' },
                                                                 { label: 'Color Swatch (Màu)', value: 'color_swatch' },
                                                                 { label: 'Branding (Logo)', value: 'branding' },
+                                                                { label: 'Ẩn/Hiện (Có/Không)', value: 'yes_no' },
                                                             ]} />
                                                         </Form.Item>
                                                     </Col>
@@ -273,6 +274,14 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                                                                             </Form.Item>
                                                                         </Col>
                                                                     </Row>
+                                                                    <Row style={{ marginTop: 8 }}>
+                                                                        <Col span={24}>
+                                                                            <label style={{ fontSize: 11, color: '#888' }}>Danh sách hình (Multi-image gallery):</label>
+                                                                            <Form.Item {...optField} name={[optField.name, 'image_urls']} noStyle>
+                                                                                <MultiImageField />
+                                                                            </Form.Item>
+                                                                        </Col>
+                                                                    </Row>
                                                                 </div>
                                                             ))}
                                                             <Button type="dashed" onClick={() => addOption()} block icon={<PlusOutlined />}>
@@ -340,6 +349,39 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
 // --- Wrapper component for Ant Design Form.Item compatibility ---
 function ImageUrlField({ value, onChange }: { value?: string; onChange?: (val: string) => void }) {
     return <InlineImagePicker value={value} onChange={(url) => onChange?.(url)} />;
+}
+
+// --- Multi-image picker: manage array of image URLs ---
+function MultiImageField({ value, onChange }: { value?: string[]; onChange?: (val: string[]) => void }) {
+    const images = Array.isArray(value) ? value : [];
+
+    const handleAdd = (url: string) => {
+        if (url) onChange?.([...images, url]);
+    };
+
+    const handleRemove = (index: number) => {
+        const next = images.filter((_, i) => i !== index);
+        onChange?.(next);
+    };
+
+    return (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 }}>
+            {images.map((url, idx) => (
+                <div key={idx} style={{ position: 'relative', border: '1px solid #f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
+                    <img src={resolveImageUrl(url)} alt="" style={{ width: 48, height: 48, objectFit: 'contain', display: 'block' }} />
+                    <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemove(idx)}
+                        style={{ position: 'absolute', top: 0, right: 0, fontSize: 10, padding: 0, width: 16, height: 16, lineHeight: '16px', minWidth: 16 }}
+                    />
+                </div>
+            ))}
+            <InlineImagePicker value="" onChange={handleAdd} />
+        </div>
+    );
 }
 
 // --- Color Picker Field: cho phép nhập HEX, chọn color, và XÓA giá trị (tránh false-positive #000000) ---
