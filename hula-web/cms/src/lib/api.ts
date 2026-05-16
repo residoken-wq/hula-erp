@@ -111,5 +111,21 @@ export const uploadApi = {
     deleteFile: (filename: string) => api.delete(`/upload/files/${filename}`),
 };
 
+// ============================================
+// WATERMARK APIs
+// ============================================
+export const watermarkApi = {
+    getConfig: () => api.get('/upload/watermark/config'),
+    saveConfig: (data: any) => api.post('/upload/watermark/config', data),
+    uploadImage: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post('/upload/watermark/image', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
+    regenerateAll: () => api.post('/upload/watermark/regenerate'),
+};
+
 export default api;
 

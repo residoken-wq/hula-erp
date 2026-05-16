@@ -45,6 +45,11 @@ const menuItems = [
         icon: <PictureOutlined />,
     },
     {
+        path: '/watermark',
+        name: 'Watermark',
+        icon: <FormatPainterOutlined />,
+    },
+    {
         path: '/blogs',
         name: 'Quản lý Blog',
         icon: <FileTextOutlined />,

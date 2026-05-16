@@ -9,6 +9,7 @@ import { Product } from '../products/product.entity';
 import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from '../products/product-component.entity';
 import { Customer, CustomerType } from '../customers/customer.entity';
+import { SystemConfig } from '../system/system-config.entity';
 
 @Injectable()
 export class UploadService {
@@ -20,6 +21,7 @@ export class UploadService {
     @InjectRepository(BOM) private bomRepo: Repository<BOM>,
     @InjectRepository(ProductComponent) private componentRepo: Repository<ProductComponent>,
     @InjectRepository(Customer) private customerRepo: Repository<Customer>,
+    @InjectRepository(SystemConfig) private configRepo: Repository<SystemConfig>,
   ) { }
 
   private normalizeRow(row: any) {
@@ -51,6 +53,7 @@ export class UploadService {
     // Check if file is an image
     const ext = path.extname(file.originalname).toLowerCase();
     const isImage = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
+    const isWatermarkable = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext); // Exclude GIF
 
     let buffer = file.buffer;
     let finalExt = ext;
@@ -95,7 +98,7 @@ export class UploadService {
     const originalName = path.basename(file.originalname, ext);
     const safeName = originalName
       .normalize('NFC')                           // normalize unicode
-      .replace(/[<>:"/\\|?*]/g, '')              // remove filesystem-unsafe chars
+      .replace(/[<>:"\/\\|?*]/g, '')              // remove filesystem-unsafe chars
       .replace(/\s+/g, '_')                      // spaces -> underscores
       .substring(0, 100);                        // limit length
 
@@ -106,6 +109,24 @@ export class UploadService {
     if (fs.existsSync(filePath)) {
       filename = `${safeName}_${Date.now()}${finalExt}`;
       filePath = path.join(uploadDir, filename);
+    }
+
+    // Save original to _originals/ directory (for watermark regeneration)
+    if (isWatermarkable) {
+      const originalsDir = path.join(uploadDir, '_originals');
+      if (!fs.existsSync(originalsDir)) {
+        fs.mkdirSync(originalsDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(originalsDir, filename), buffer);
+    }
+
+    // Apply watermark if enabled and image qualifies
+    if (isWatermarkable) {
+      try {
+        buffer = await this.applyWatermark(buffer);
+      } catch (err) {
+        console.warn('Watermark failed, using original:', err.message);
+      }
     }
 
     fs.writeFileSync(filePath, buffer);
@@ -214,6 +235,188 @@ export class UploadService {
 
     // File not found - still return success (idempotent delete)
     return { success: true, message: 'File not found, already deleted' };
+  }
+
+  // ============================================
+  // WATERMARK METHODS
+  // ============================================
+
+  async getWatermarkConfig(): Promise<{ enabled: boolean; position: string; opacity: number; sizeRatio: number; imageFile: string }> {
+    try {
+      const config = await this.configRepo.findOne({ where: { key: 'watermark_config' } });
+      if (config && config.value) {
+        return JSON.parse(config.value);
+      }
+    } catch (e) {
+      console.warn('Failed to load watermark config:', e.message);
+    }
+    return { enabled: false, position: 'southeast', opacity: 0.4, sizeRatio: 0.25, imageFile: '' };
+  }
+
+  async saveWatermarkConfig(cfg: any): Promise<{ success: boolean }> {
+    const value = JSON.stringify(cfg);
+    const existing = await this.configRepo.findOne({ where: { key: 'watermark_config' } });
+    if (existing) {
+      existing.value = value;
+      await this.configRepo.save(existing);
+    } else {
+      await this.configRepo.save({ key: 'watermark_config', value, description: 'Watermark configuration' });
+    }
+    return { success: true };
+  }
+
+  async setWatermarkImage(file: Express.Multer.File): Promise<{ url: string }> {
+    const fs = require('fs');
+    const path = require('path');
+    const uploadDir = path.join(process.cwd(), 'uploads');
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+    const filename = '_watermark.png';
+    const filePath = path.join(uploadDir, filename);
+    fs.writeFileSync(filePath, file.buffer);
+
+    // Update config with filename
+    const config = await this.getWatermarkConfig();
+    config.imageFile = filename;
+    config.enabled = true;
+    await this.saveWatermarkConfig(config);
+
+    return { url: `/uploads/${filename}` };
+  }
+
+  private async applyWatermark(imageBuffer: Buffer): Promise<Buffer> {
+    const sharp = require('sharp');
+    const fs = require('fs');
+    const path = require('path');
+
+    const config = await this.getWatermarkConfig();
+    if (!config.enabled || !config.imageFile) return imageBuffer;
+
+    const watermarkPath = path.join(process.cwd(), 'uploads', config.imageFile);
+    if (!fs.existsSync(watermarkPath)) return imageBuffer;
+
+    // Get image dimensions — skip small images
+    const metadata = await sharp(imageBuffer).metadata();
+    const imgWidth = metadata.width || 0;
+    const imgHeight = metadata.height || 0;
+    if (imgWidth < 400 || imgHeight < 400) return imageBuffer; // Skip small images
+
+    // Resize watermark proportionally
+    const wmWidth = Math.max(80, Math.round(imgWidth * (config.sizeRatio || 0.25)));
+    const opacity = Math.max(0.05, Math.min(1, config.opacity || 0.4));
+
+    // Create semi-transparent watermark
+    const watermarkResized = await sharp(watermarkPath)
+      .resize(wmWidth, null, { fit: 'inside', withoutEnlargement: true })
+      .toBuffer();
+
+    // Apply opacity using a transparent overlay
+    const wmMeta = await sharp(watermarkResized).metadata();
+    const opacityOverlay = Buffer.from(
+      `<svg width="${wmMeta.width}" height="${wmMeta.height}"><rect width="100%" height="100%" fill-opacity="${opacity}" fill="white"/></svg>`
+    );
+    const watermarkWithOpacity = await sharp(watermarkResized)
+      .composite([{ input: opacityOverlay, blend: 'dest-in' }])
+      .png()
+      .toBuffer();
+
+    // Map position string to sharp gravity
+    const gravityMap: Record<string, string> = {
+      'northwest': 'northwest', 'north': 'north', 'northeast': 'northeast',
+      'west': 'west', 'center': 'centre', 'east': 'east',
+      'southwest': 'southwest', 'south': 'south', 'southeast': 'southeast',
+    };
+    const gravity = gravityMap[config.position] || 'southeast';
+
+    // Composite onto original image
+    const result = await sharp(imageBuffer)
+      .composite([{
+        input: watermarkWithOpacity,
+        gravity: gravity as any,
+      }])
+      .toBuffer();
+
+    console.log(`Watermark applied: ${imgWidth}x${imgHeight}, wm=${wmWidth}px, opacity=${opacity}, pos=${gravity}`);
+    return result;
+  }
+
+  async serveOriginalFile(filename: string, res: any) {
+    const fs = require('fs');
+    const path = require('path');
+    const safeName = path.basename(filename);
+    const originalPath = path.join(process.cwd(), 'uploads', '_originals', safeName);
+
+    if (fs.existsSync(originalPath)) {
+      const stat = fs.statSync(originalPath);
+      const ext = path.extname(safeName).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+        '.gif': 'image/gif', '.webp': 'image/webp',
+      };
+      res.set('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+      res.set('Content-Length', stat.size);
+      res.set('Cache-Control', 'public, max-age=86400');
+      res.set('Access-Control-Allow-Origin', '*');
+      const stream = fs.createReadStream(originalPath);
+      return stream.pipe(res);
+    }
+
+    // Fallback to regular file if no original
+    return this.serveFile(filename, res);
+  }
+
+  async regenerateAllWatermarks(): Promise<{ processed: number; skipped: number; errors: string[] }> {
+    const fs = require('fs');
+    const path = require('path');
+    const sharp = require('sharp');
+
+    const originalsDir = path.join(process.cwd(), 'uploads', '_originals');
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const errors: string[] = [];
+    let processed = 0;
+    let skipped = 0;
+
+    // If no originals dir, copy current files to originals first
+    if (!fs.existsSync(originalsDir)) {
+      fs.mkdirSync(originalsDir, { recursive: true });
+      // Copy existing images to originals
+      const files = fs.readdirSync(uploadsDir).filter((f: string) =>
+        /\.(jpg|jpeg|png|webp)$/i.test(f) && !f.startsWith('_')
+      );
+      for (const f of files) {
+        try {
+          fs.copyFileSync(path.join(uploadsDir, f), path.join(originalsDir, f));
+        } catch (e) {
+          errors.push(`Copy failed: ${f} - ${e.message}`);
+        }
+      }
+    }
+
+    // Process each original
+    const originals = fs.readdirSync(originalsDir).filter((f: string) =>
+      /\.(jpg|jpeg|png|webp)$/i.test(f)
+    );
+
+    for (const filename of originals) {
+      try {
+        const originalBuffer = fs.readFileSync(path.join(originalsDir, filename));
+
+        // Check dimensions — skip small images
+        const meta = await sharp(originalBuffer).metadata();
+        if ((meta.width || 0) < 400 || (meta.height || 0) < 400) {
+          skipped++;
+          continue;
+        }
+
+        const watermarked = await this.applyWatermark(originalBuffer);
+        fs.writeFileSync(path.join(uploadsDir, filename), watermarked);
+        processed++;
+      } catch (e) {
+        errors.push(`${filename}: ${e.message}`);
+      }
+    }
+
+    return { processed, skipped, errors };
   }
 
   // 1. IMPORT NGUYEN LIEU

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Param, Res, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, Res, Body, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 import { Response } from 'express';
@@ -194,9 +194,36 @@ export class UploadController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Chưa chọn file!');
-    // 1MB limit check is better done here or in service, but multer options usually handle it. 
-    // For now, let's delegate to service.
     return this.uploadService.uploadFile(file);
+  }
+
+  // --- WATERMARK MANAGEMENT ---
+  @Post('watermark/image')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadWatermarkImage(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Chưa chọn file watermark!');
+    return this.uploadService.setWatermarkImage(file);
+  }
+
+  @Get('watermark/config')
+  async getWatermarkConfig() {
+    return this.uploadService.getWatermarkConfig();
+  }
+
+  @Post('watermark/config')
+  async saveWatermarkConfig(@Body() body: any) {
+    return this.uploadService.saveWatermarkConfig(body);
+  }
+
+  @Post('watermark/regenerate')
+  async regenerateWatermarks() {
+    return this.uploadService.regenerateAllWatermarks();
+  }
+
+  @Public()
+  @Get('files/original/:filename')
+  async serveOriginalFile(@Param('filename') filename: string, @Res() res: Response) {
+    return this.uploadService.serveOriginalFile(filename, res);
   }
 
   @Get('template/:type')
