@@ -445,10 +445,8 @@ export class PlanningService {
         const result = {};
         statsMap.forEach((value, key) => {
             result[key] = {
-                booking_stock: value.booked + value.approved, // booked_quantity on order item usually means total booked (including confirmed). Wait, let's keep it separate or sum them depending on how ProductsPage expects it.
-                // In products page, `booking_stock` = tổng số lượng đang bị hold (TEMPORARY + CONFIRMED) or just TEMPORARY?
-                // `booking_stock` usually includes all booked.
-                // `approved_booking_stock` is the confirmed ones.
+                // In products page, `booking_stock` usually includes all booked (TEMPORARY + CONFIRMED).
+                // `approved_booking_stock` is only the CONFIRMED ones.
                 booking_stock: value.booked + value.approved,
                 approved_booking_stock: value.approved
             };
