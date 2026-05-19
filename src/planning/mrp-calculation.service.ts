@@ -64,9 +64,12 @@ export class MrpCalculationService {
         const productInfoMap = new Map<string, number>();
         const productStockMap = new Map<string, number>();
 
-        // 1. Tổng hợp nhu cầu sản phẩm
+        // 1. Tổng hợp nhu cầu sản phẩm (chỉ tính các item chưa được duyệt booking)
         for (const so of plan.sales_orders) {
             for (const item of so.items) {
+                // Bỏ qua sản phẩm đã được duyệt booking (CONFIRMED) — kho đã giữ hàng
+                if (item.booking_status === 'CONFIRMED') continue;
+
                 productDemand.set(item.sku, (productDemand.get(item.sku) || 0) + Number(item.quantity));
                 if (!productInfoMap.has(item.sku)) {
                     const prod = await this.productsService.findOneBySku(item.sku);
