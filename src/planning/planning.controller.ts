@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Param, Body, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Body, Delete, Query } from '@nestjs/common';
 import { PlanningService } from './planning.service';
 
 @Controller('planning')
@@ -9,6 +9,11 @@ export class PlanningController {
   @Get('gantt') getGantt() { return this.s.getGanttData(); }
 
   // --- MỚI: Booking Management APIs ---
+  @Get('booking-stats')
+  getBookingStats(@Query('month') month?: string, @Query('year') year?: string) {
+    return this.s.getBookingStats(month, year);
+  }
+
   @Get('bookings') getAllBookings() { return this.s.getAllBookings(); }
   @Get('bookings/:sku') getBookingsBySku(@Param('sku') sku: string) { return this.s.getBookingsBySku(sku); }
   @Post('bookings/:itemId/revert') revertBooking(@Param('itemId') itemId: number) { return this.s.revertBooking(Number(itemId)); }

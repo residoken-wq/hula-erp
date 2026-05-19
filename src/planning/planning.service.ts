@@ -363,6 +363,100 @@ export class PlanningService {
         return { message: `Đã chuyển booking ${item.sku} về trạng thái chờ duyệt` };
     }
 
+    // --- MỚI: Thống kê bookings theo tháng/năm ---
+    async getBookingStats(month?: string, year?: string) {
+        const query = this.orderItemRepo.createQueryBuilder('item')
+            .leftJoin('item.order', 'order')
+            .leftJoin('item.product', 'product')
+            .where('item.booking_status IN (:...statuses)', { statuses: [BookingStatus.TEMPORARY, BookingStatus.CONFIRMED] })
+            .select([
+                'product.sku AS sku',
+                'item.booking_status AS status',
+                'SUM(item.booked_quantity) AS total_quantity'
+            ])
+            .groupBy('product.sku, item.booking_status');
+
+        if (month && year) {
+            // Lọc theo delivery_date của order
+            // MySQL/PostgreSQL support EXTRACT(MONTH FROM date) hoặc YEAR/MONTH function.
+            // Để tương thích cao, truyền param dạng string YYYY-MM
+            const monthStr = month.padStart(2, '0');
+            const startDate = `${year}-${monthStr}-01`;
+            const endDate = `${year}-${monthStr}-31`; // Simplified, PostgreSQL handles it if we use >= and <= 
+            
+            // Cách chuẩn: >= startDate AND < nextMonth
+            const nextMonth = Number(month) === 12 ? 1 : Number(month) + 1;
+            const nextYear = Number(month) === 12 ? Number(year) + 1 : Number(year);
+            const nextMonthStr = String(nextMonth).padStart(2, '0');
+            const nextMonthDate = `${nextYear}-${nextMonthStr}-01`;
+
+            query.andWhere('order.delivery_date >= :startDate', { startDate })
+                 .andWhere('order.delivery_date < :nextMonthDate', { nextMonthDate });
+        } else if (year) {
+            const startDate = `${year}-01-01`;
+            const nextYearDate = `${Number(year) + 1}-01-01`;
+            query.andWhere('order.delivery_date >= :startDate', { startDate })
+                 .andWhere('order.delivery_date < :nextYearDate', { nextYearDate });
+        }
+
+        const rawData = await query.getRawMany();
+        
+        // Cần tính gộp cho Combo components
+        const statsMap = new Map<string, { booked: number, approved: number }>();
+
+        for (const row of rawData) {
+            const sku = row.sku;
+            if (!sku) continue;
+            
+            const qty = Number(row.total_quantity) || 0;
+            const isApproved = row.status === BookingStatus.CONFIRMED;
+
+            // Kiểm tra xem SKU này là STANDARD hay COMBO
+            const product = await this.productsService.findOneBySku(sku);
+            if (!product) continue;
+
+            if (product.product_type === 'COMBO') {
+                const components = await this.productsService.getComboComponents(sku);
+                for (const comp of components) {
+                    if (comp.child_product && comp.child_product.sku) {
+                        const childSku = comp.child_product.sku;
+                        const childQty = qty * Number(comp.quantity);
+                        
+                        const current = statsMap.get(childSku) || { booked: 0, approved: 0 };
+                        if (isApproved) {
+                            current.approved += childQty;
+                        } else {
+                            current.booked += childQty;
+                        }
+                        statsMap.set(childSku, current);
+                    }
+                }
+            } else {
+                const current = statsMap.get(sku) || { booked: 0, approved: 0 };
+                if (isApproved) {
+                    current.approved += qty;
+                } else {
+                    current.booked += qty;
+                }
+                statsMap.set(sku, current);
+            }
+        }
+
+        const result = {};
+        statsMap.forEach((value, key) => {
+            result[key] = {
+                booking_stock: value.booked + value.approved, // booked_quantity on order item usually means total booked (including confirmed). Wait, let's keep it separate or sum them depending on how ProductsPage expects it.
+                // In products page, `booking_stock` = tổng số lượng đang bị hold (TEMPORARY + CONFIRMED) or just TEMPORARY?
+                // `booking_stock` usually includes all booked.
+                // `approved_booking_stock` is the confirmed ones.
+                booking_stock: value.booked + value.approved,
+                approved_booking_stock: value.approved
+            };
+        });
+
+        return result;
+    }
+
     // --- MỚI: Lấy tất cả bookings ---
     async getAllBookings() {
         const items = await this.orderItemRepo.find({

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox } from 'antd';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined, EyeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import api from '../utils/api';
@@ -23,6 +23,13 @@ const ProductsPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
     const isMobile = useMobile();
+
+    // Advanced Filters
+    const [filterCategory, setFilterCategory] = useState<number | null>(null);
+    const [filterType, setFilterType] = useState<string>('ALL'); // 'ALL', 'STANDARD', 'COMBO'
+    const [filterMonth, setFilterMonth] = useState<string | null>(null); // YYYY-MM
+    const [bookingStats, setBookingStats] = useState<any>({});
+    const [statsLoading, setStatsLoading] = useState(false);
 
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -108,6 +115,26 @@ const ProductsPage: React.FC = () => {
     };
 
     useEffect(() => { fetchData(); }, []);
+
+    useEffect(() => {
+        if (filterMonth) {
+            fetchBookingStats(filterMonth);
+        } else {
+            setBookingStats({});
+        }
+    }, [filterMonth]);
+
+    const fetchBookingStats = async (monthStr: string) => {
+        setStatsLoading(true);
+        try {
+            const [year, month] = monthStr.split('-');
+            const res = await api.get(`/planning/booking-stats?month=${month}&year=${year}`);
+            setBookingStats(res.data || {});
+        } catch (e) {
+            message.error('Lỗi tải thống kê booking');
+        }
+        setStatsLoading(false);
+    };
 
     // 2. Detail Data Fetcher
     const fetchDetailData = async (id: number) => {
@@ -256,7 +283,19 @@ const ProductsPage: React.FC = () => {
             list = list.filter(d => d.attributes && Object.keys(d.attributes).length > 0);
         }
 
-        // 2. Filter by Search
+        // 2. Filter by Category
+        if (filterCategory) {
+            list = list.filter(d => d.category_id === filterCategory);
+        }
+
+        // 3. Filter by Type
+        if (filterType === 'STANDARD') {
+            list = list.filter(d => d.product_type !== 'COMBO');
+        } else if (filterType === 'COMBO') {
+            list = list.filter(d => d.product_type === 'COMBO');
+        }
+
+        // 4. Filter by Search
         if (searchText) {
             const lower = searchText.toLowerCase();
             list = list.filter(d =>
@@ -264,8 +303,24 @@ const ProductsPage: React.FC = () => {
                 (d.sku && d.sku.toLowerCase().includes(lower))
             );
         }
+
+        // Map Booking Stats if available
+        if (filterMonth && Object.keys(bookingStats).length > 0) {
+            list = list.map(d => ({
+                ...d,
+                display_booking_stock: bookingStats[d.sku]?.booking_stock || 0,
+                display_approved_booking_stock: bookingStats[d.sku]?.approved_booking_stock || 0
+            }));
+        } else {
+            list = list.map(d => ({
+                ...d,
+                display_booking_stock: d.booking_stock || 0,
+                display_approved_booking_stock: d.approved_booking_stock || 0
+            }));
+        }
+
         return list;
-    }, [data, searchText, viewMode]);
+    }, [data, searchText, viewMode, filterCategory, filterType, filterMonth, bookingStats]);
 
 
     // Helper to extract ID from Drive Link and return thumbnail URL
@@ -335,16 +390,25 @@ const ProductsPage: React.FC = () => {
         {
             title: 'Tồn kho thật', dataIndex: 'quantity_in_stock', width: 90, align: 'right' as const,
             render: (v: number) => <span style={{ color: '#595959' }}>{Number(v || 0).toLocaleString()}</span>,
-            sorter: (a: any, b: any) => Number(a.quantity_in_stock) - Number(b.quantity_in_stock)
+            sorter: (a: any, b: any) => Number(a.quantity_in_stock || 0) - Number(b.quantity_in_stock || 0)
         },
         {
-            title: 'Đã Booking', dataIndex: 'booking_stock', width: 100, align: 'right' as const,
+            title: 'Giá trị tồn', key: 'inventory_value', width: 100, align: 'right' as const,
+            render: (r: any) => {
+                const val = Number(r.quantity_in_stock || 0) * Number(r.cost_price || r.base_price || 0);
+                return <span style={{ color: '#1890ff' }}>{val.toLocaleString()}</span>;
+            },
+            sorter: (a: any, b: any) => (Number(a.quantity_in_stock || 0) * Number(a.cost_price || a.base_price || 0)) - (Number(b.quantity_in_stock || 0) * Number(b.cost_price || b.base_price || 0)),
+            hidden: !canViewCost
+        },
+        {
+            title: filterMonth ? `Đã Book (${filterMonth})` : 'Đã Booking', dataIndex: 'display_booking_stock', width: 100, align: 'right' as const,
             render: (v: number, record: any) => {
                 const val = Number(v || 0);
                 return (
                     <span style={{ color: val > 0 ? '#fa8c16' : '#d9d9d9' }}>
                         {val.toLocaleString()}
-                        {val > 0 && (
+                        {val > 0 && !filterMonth && (
                             <Tooltip title="Xem danh sách đơn hàng đã book">
                                 <EyeOutlined
                                     style={{ marginLeft: 6, cursor: 'pointer', color: '#1890ff' }}
@@ -359,16 +423,17 @@ const ProductsPage: React.FC = () => {
                         )}
                     </span>
                 );
-            }
+            },
+            sorter: (a: any, b: any) => Number(a.display_booking_stock || 0) - Number(b.display_booking_stock || 0)
         },
         {
-            title: 'Approved', dataIndex: 'approved_booking_stock', width: 100, align: 'right' as const,
+            title: filterMonth ? `Approved (${filterMonth})` : 'Approved', dataIndex: 'display_approved_booking_stock', width: 100, align: 'right' as const,
             render: (v: number, record: any) => {
                 const val = Number(v || 0);
                 return (
                     <span style={{ color: val > 0 ? '#52c41a' : '#d9d9d9', fontWeight: val > 0 ? 'bold' : 'normal' }}>
                         {val.toLocaleString()}
-                        {val > 0 && (
+                        {val > 0 && !filterMonth && (
                             <Tooltip title="Xem danh sách đơn hàng đã duyệt">
                                 <EyeOutlined
                                     style={{ marginLeft: 6, cursor: 'pointer', color: '#52c41a' }}
@@ -383,15 +448,16 @@ const ProductsPage: React.FC = () => {
                         )}
                     </span>
                 );
-            }
+            },
+            sorter: (a: any, b: any) => Number(a.display_approved_booking_stock || 0) - Number(b.display_approved_booking_stock || 0)
         },
         {
             title: 'Khả dụng', key: 'available_stock', width: 90, align: 'right' as const,
             render: (r: any) => {
-                const available = Number(r.quantity_in_stock || 0) - Number(r.approved_booking_stock || 0);
+                const available = Number(r.quantity_in_stock || 0) - Number(r.display_approved_booking_stock || 0);
                 return <Badge count={available} showZero overflowCount={999} style={{ backgroundColor: available > 0 ? '#52c41a' : '#faad14' }} />
             },
-            sorter: (a: any, b: any) => (Number(a.quantity_in_stock || 0) - Number(a.approved_booking_stock || 0)) - (Number(b.quantity_in_stock || 0) - Number(b.approved_booking_stock || 0))
+            sorter: (a: any, b: any) => (Number(a.quantity_in_stock || 0) - Number(a.display_approved_booking_stock || 0)) - (Number(b.quantity_in_stock || 0) - Number(b.display_approved_booking_stock || 0))
         },
         {
             title: '', key: 'action', width: 160, align: 'center' as const,
@@ -459,7 +525,34 @@ const ProductsPage: React.FC = () => {
                         <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1') }} />
                     </Space>
                 ) : (
-                    <Space>
+                    <Space wrap style={{ rowGap: 10 }}>
+                        <Select
+                            placeholder="Danh mục"
+                            allowClear
+                            value={filterCategory}
+                            onChange={setFilterCategory}
+                            style={{ width: 160 }}
+                            options={categories.map(c => ({ label: c.name, value: c.id }))}
+                            showSearch
+                            optionFilterProp="label"
+                        />
+                        <Select
+                            value={filterType}
+                            onChange={setFilterType}
+                            style={{ width: 150 }}
+                            options={[
+                                { label: 'Tất cả loại SP', value: 'ALL' },
+                                { label: 'Sản phẩm thường', value: 'STANDARD' },
+                                { label: 'Combo', value: 'COMBO' },
+                            ]}
+                        />
+                        <DatePicker
+                            picker="month"
+                            placeholder="Lọc Booking (Tháng/Năm)"
+                            onChange={(date, dateString) => setFilterMonth(Array.isArray(dateString) ? dateString[0] : dateString)}
+                            allowClear
+                            style={{ width: 220 }}
+                        />
                         <Input placeholder="Tìm kiếm SKU/Tên..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} allowClear />
                         {canViewCost && (
                             <Button icon={<SyncOutlined />} onClick={handleCalculateAllCosts}>Cập nhật tất cả giá</Button>
@@ -480,7 +573,14 @@ const ProductsPage: React.FC = () => {
                 style={{ marginBottom: 16 }}
             />
 
-            <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} size="small" scroll={{ x: isMobile ? 800 : undefined }} />
+            <Table 
+                dataSource={filteredData} 
+                columns={columns.filter(c => !c.hidden)} 
+                rowKey="id" 
+                loading={loading || statsLoading} 
+                size="small" 
+                scroll={{ x: isMobile ? 800 : undefined }} 
+            />
 
             <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"}
                 open={isModalOpen}
