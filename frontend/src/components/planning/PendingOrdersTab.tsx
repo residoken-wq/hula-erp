@@ -3,8 +3,7 @@ import { Table, Button, Tag, Space, Modal, message, DatePicker, Input } from 'an
 import { AlertOutlined, TruckOutlined, FilterOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import axios from 'axios';
-import { API_URL } from '../../config';
+import api from '../../utils/api';
 
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
@@ -52,7 +51,7 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
                         contact_phone: order.receiver_phone,
                         items: deliveryItems
                     };
-                    await axios.post(`${API_URL}/sales/${order.id}/delivery`, payload);
+                    await api.post(`/sales/${order.id}/delivery`, payload);
                     message.success('Đã tạo phiếu xuất kho thành công');
                     onRefresh();
                 } catch (e) {
