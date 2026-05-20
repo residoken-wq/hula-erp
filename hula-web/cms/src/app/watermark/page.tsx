@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Button, Upload, Slider, Select, Switch, message, Spin, Typography, Space, Row, Col, Divider, Modal, Progress } from 'antd';
+import { Card, Button, Upload, Slider, Select, Switch, message, Spin, Typography, Space, Row, Col, Divider, Modal, Tabs } from 'antd';
 import { UploadOutlined, SaveOutlined, ReloadOutlined, EyeOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import AdminLayout from '../../components/AdminLayout';
 import { watermarkApi } from '../../lib/api';
@@ -46,44 +46,60 @@ const defaultConfig: WatermarkConfig = {
 };
 
 export default function WatermarkPage() {
-    const [config, setConfig] = useState<WatermarkConfig>(defaultConfig);
+    const [generalConfig, setGeneralConfig] = useState<WatermarkConfig>(defaultConfig);
+    const [b2bConfig, setB2bConfig] = useState<WatermarkConfig>(defaultConfig);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [regenerating, setRegenerating] = useState(false);
-    const [watermarkPreviewUrl, setWatermarkPreviewUrl] = useState('');
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [generalPreviewUrl, setGeneralPreviewUrl] = useState('');
+    const [b2bPreviewUrl, setB2bPreviewUrl] = useState('');
 
-    // Load config on mount
+    const [activeTab, setActiveTab] = useState('general');
+
+    const generalCanvasRef = useRef<HTMLCanvasElement>(null);
+    const b2bCanvasRef = useRef<HTMLCanvasElement>(null);
+
     useEffect(() => {
-        loadConfig();
+        loadConfigs();
     }, []);
 
-    // Redraw preview when config changes
     useEffect(() => {
-        drawPreview();
-    }, [config, watermarkPreviewUrl]);
+        if (activeTab === 'general') drawPreview(generalCanvasRef, generalConfig, generalPreviewUrl);
+        else drawPreview(b2bCanvasRef, b2bConfig, b2bPreviewUrl);
+    }, [generalConfig, generalPreviewUrl, b2bConfig, b2bPreviewUrl, activeTab]);
 
-    const loadConfig = async () => {
+    const loadConfigs = async () => {
         try {
             setLoading(true);
-            const res = await watermarkApi.getConfig();
-            const data = res.data || defaultConfig;
-            setConfig(data);
-            if (data.imageFile) {
-                setWatermarkPreviewUrl(resolveImageUrl(`/uploads/${data.imageFile}`));
-            }
+            const [genRes, b2bRes] = await Promise.all([
+                watermarkApi.getConfig(),
+                watermarkApi.getB2BConfig()
+            ]);
+            
+            const genData = genRes.data || defaultConfig;
+            setGeneralConfig(genData);
+            if (genData.imageFile) setGeneralPreviewUrl(resolveImageUrl(`/uploads/${genData.imageFile}`));
+
+            const b2bData = b2bRes.data || defaultConfig;
+            setB2bConfig(b2bData);
+            if (b2bData.imageFile) setB2bPreviewUrl(resolveImageUrl(`/uploads/${b2bData.imageFile}`));
+            
         } catch (err) {
-            console.error('Failed to load watermark config:', err);
+            console.error('Failed to load watermark configs:', err);
             message.error('Không thể tải cấu hình watermark');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSaveConfig = async () => {
+    const handleSaveConfig = async (isB2B: boolean) => {
         try {
             setSaving(true);
-            await watermarkApi.saveConfig(config);
+            if (isB2B) {
+                await watermarkApi.saveB2BConfig(b2bConfig);
+            } else {
+                await watermarkApi.saveConfig(generalConfig);
+            }
             message.success('Đã lưu cấu hình watermark');
         } catch (err) {
             message.error('Lưu cấu hình thất bại');
@@ -92,19 +108,27 @@ export default function WatermarkPage() {
         }
     };
 
-    const handleUploadWatermark = async (file: File) => {
+    const handleUploadWatermark = async (file: File, isB2B: boolean) => {
         try {
-            const res = await watermarkApi.uploadImage(file);
-            const url = res.data?.url;
-            if (url) {
-                setConfig(prev => ({ ...prev, imageFile: '_watermark.png', enabled: true }));
-                setWatermarkPreviewUrl(resolveImageUrl(url) + '?t=' + Date.now());
-                message.success('Đã upload hình watermark');
+            if (isB2B) {
+                const res = await watermarkApi.uploadB2BImage(file);
+                if (res.data?.url) {
+                    setB2bConfig(prev => ({ ...prev, imageFile: '_watermark_b2b.png', enabled: true }));
+                    setB2bPreviewUrl(resolveImageUrl(res.data.url) + '?t=' + Date.now());
+                    message.success('Đã upload hình watermark B2B');
+                }
+            } else {
+                const res = await watermarkApi.uploadImage(file);
+                if (res.data?.url) {
+                    setGeneralConfig(prev => ({ ...prev, imageFile: '_watermark.png', enabled: true }));
+                    setGeneralPreviewUrl(resolveImageUrl(res.data.url) + '?t=' + Date.now());
+                    message.success('Đã upload hình watermark chung');
+                }
             }
         } catch (err) {
             message.error('Upload watermark thất bại');
         }
-        return false; // Prevent default upload behavior
+        return false;
     };
 
     const handleRegenerate = () => {
@@ -113,11 +137,11 @@ export default function WatermarkPage() {
             icon: <ExclamationCircleOutlined />,
             content: (
                 <div>
-                    <p>Thao tác này sẽ:</p>
+                    <p>Thao tác này sẽ áp dụng lại CẢ 2 LOẠI watermark cho tất cả hình ảnh:</p>
                     <ul style={{ paddingLeft: 20 }}>
-                        <li>Áp dụng watermark hiện tại cho tất cả hình ảnh đã upload</li>
+                        <li>Tạo hình ảnh watermark chung</li>
+                        <li>Tạo hình ảnh watermark B2B (trong thư mục _b2b)</li>
                         <li>Bỏ qua hình nhỏ hơn 400x400px (icons, logos)</li>
-                        <li>Hình gốc được giữ nguyên trong thư mục _originals</li>
                     </ul>
                     <p><strong>Quá trình có thể mất vài phút tùy số lượng hình.</strong></p>
                 </div>
@@ -131,9 +155,6 @@ export default function WatermarkPage() {
                     const res = await watermarkApi.regenerateAll();
                     const data = res.data;
                     message.success(`Hoàn tất! Đã xử lý ${data.processed} hình, bỏ qua ${data.skipped} hình nhỏ${data.errors?.length ? `, ${data.errors.length} lỗi` : ''}`);
-                    if (data.errors?.length) {
-                        console.warn('Regeneration errors:', data.errors);
-                    }
                 } catch (err) {
                     message.error('Batch regenerate thất bại');
                 } finally {
@@ -143,8 +164,7 @@ export default function WatermarkPage() {
         });
     };
 
-    // Canvas preview drawing
-    const drawPreview = () => {
+    const drawPreview = (canvasRef: React.RefObject<HTMLCanvasElement>, config: WatermarkConfig, previewUrl: string) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -154,11 +174,9 @@ export default function WatermarkPage() {
         canvas.width = W;
         canvas.height = H;
 
-        // Draw sample "product image" background
         ctx.fillStyle = '#f0f2f5';
         ctx.fillRect(0, 0, W, H);
 
-        // Grid pattern to simulate image
         ctx.strokeStyle = '#d9d9d9';
         ctx.lineWidth = 0.5;
         for (let x = 0; x < W; x += 30) {
@@ -168,7 +186,6 @@ export default function WatermarkPage() {
             ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
         }
 
-        // Center placeholder text
         ctx.fillStyle = '#bfbfbf';
         ctx.font = '24px Arial';
         ctx.textAlign = 'center';
@@ -176,8 +193,7 @@ export default function WatermarkPage() {
         ctx.font = '14px Arial';
         ctx.fillText(`${W} × ${H}px`, W / 2, H / 2 + 20);
 
-        // Draw watermark overlay
-        if (config.enabled && watermarkPreviewUrl) {
+        if (config.enabled && previewUrl) {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
@@ -185,7 +201,6 @@ export default function WatermarkPage() {
                 const wmHeight = Math.round((img.height / img.width) * wmWidth);
                 const padding = 16;
 
-                // Calculate position
                 let x = 0, y = 0;
                 const pos = config.position;
                 if (pos.includes('west') || pos === 'west') x = padding;
@@ -200,16 +215,123 @@ export default function WatermarkPage() {
                 ctx.drawImage(img, x, y, wmWidth, wmHeight);
                 ctx.globalAlpha = 1;
             };
-            img.src = watermarkPreviewUrl;
+            img.src = previewUrl;
         }
+    };
+
+    const renderConfigForm = (isB2B: boolean) => {
+        const config = isB2B ? b2bConfig : generalConfig;
+        const setConfig = isB2B ? setB2bConfig : setGeneralConfig;
+        const previewUrl = isB2B ? b2bPreviewUrl : generalPreviewUrl;
+        const canvasRef = isB2B ? b2bCanvasRef : generalCanvasRef;
+
+        return (
+            <Row gutter={24}>
+                <Col xs={24} md={12}>
+                    <Card
+                        title={`Cấu hình Watermark ${isB2B ? 'B2B' : 'Chung'}`}
+                        style={{ marginBottom: 16 }}
+                        extra={
+                            <Switch
+                                checked={config.enabled}
+                                onChange={(checked) => setConfig(prev => ({ ...prev, enabled: checked }))}
+                                checkedChildren="BẬT"
+                                unCheckedChildren="TẮT"
+                            />
+                        }
+                    >
+                        <div style={{ marginBottom: 20 }}>
+                            <Text strong style={{ display: 'block', marginBottom: 8 }}>Hình watermark</Text>
+                            <Space direction="vertical" style={{ width: '100%' }}>
+                                {previewUrl && (
+                                    <div style={{
+                                        background: '#f5f5f5', border: '1px dashed #d9d9d9', borderRadius: 8, padding: 16, textAlign: 'center'
+                                    }}>
+                                        <img src={previewUrl} alt="Watermark" style={{ maxHeight: 80, maxWidth: '100%', objectFit: 'contain' }} />
+                                    </div>
+                                )}
+                                <Upload
+                                    accept=".png"
+                                    showUploadList={false}
+                                    beforeUpload={(file) => handleUploadWatermark(file, isB2B)}
+                                >
+                                    <Button icon={<UploadOutlined />} block>
+                                        {previewUrl ? 'Thay đổi hình watermark' : 'Upload hình watermark (PNG)'}
+                                    </Button>
+                                </Upload>
+                            </Space>
+                        </div>
+
+                        <Divider />
+
+                        <div style={{ marginBottom: 20 }}>
+                            <Text strong style={{ display: 'block', marginBottom: 8 }}>Vị trí</Text>
+                            <Select
+                                value={config.position}
+                                onChange={(value) => setConfig(prev => ({ ...prev, position: value }))}
+                                options={positionOptions}
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: 20 }}>
+                            <Text strong style={{ display: 'block', marginBottom: 8 }}>Kích thước: {Math.round(config.sizeRatio * 100)}% chiều rộng ảnh</Text>
+                            <Slider
+                                min={10} max={50} value={Math.round(config.sizeRatio * 100)}
+                                onChange={(value) => setConfig(prev => ({ ...prev, sizeRatio: value / 100 }))}
+                                marks={{ 10: '10%', 25: '25%', 40: '40%', 50: '50%' }}
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: 20 }}>
+                            <Text strong style={{ display: 'block', marginBottom: 8 }}>Độ mờ: {Math.round(config.opacity * 100)}%</Text>
+                            <Slider
+                                min={5} max={100} value={Math.round(config.opacity * 100)}
+                                onChange={(value) => setConfig(prev => ({ ...prev, opacity: value / 100 }))}
+                                marks={{ 5: '5%', 20: '20%', 40: '40%', 60: '60%', 100: '100%' }}
+                            />
+                        </div>
+
+                        <Divider />
+
+                        <Space style={{ width: '100%' }} direction="vertical">
+                            <Button type="primary" icon={<SaveOutlined />} onClick={() => handleSaveConfig(isB2B)} loading={saving} block size="large">
+                                Lưu cấu hình {isB2B ? 'B2B' : 'Chung'}
+                            </Button>
+                        </Space>
+                    </Card>
+
+                    <Card title="Áp dụng cho hình đã có" style={{ marginBottom: 16 }}>
+                        <Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                            Áp dụng lại CẢ 2 cấu hình watermark (Chung và B2B) cho tất cả hình ảnh trên hệ thống.
+                        </Paragraph>
+                        <Button icon={<ReloadOutlined />} onClick={handleRegenerate} loading={regenerating} block danger>
+                            {regenerating ? 'Đang xử lý...' : 'Áp dụng cho tất cả hình đã có'}
+                        </Button>
+                    </Card>
+                </Col>
+
+                <Col xs={24} md={12}>
+                    <Card title={<Space><EyeOutlined /> Xem trước</Space>} style={{ position: 'sticky', top: 80 }}>
+                        <div style={{ background: '#fafafa', borderRadius: 8, overflow: 'hidden', border: '1px solid #f0f0f0' }}>
+                            <canvas ref={canvasRef} style={{ width: '100%', height: 'auto', display: 'block' }} />
+                        </div>
+                        <div style={{ marginTop: 12, textAlign: 'center' }}>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                                {config.enabled ? '✅ Watermark đang BẬT' : '⚪ Watermark đang TẮT'}
+                                {' • '} Vị trí: {positionOptions.find(p => p.value === config.position)?.label || config.position}
+                            </Text>
+                        </div>
+                    </Card>
+                </Col>
+            </Row>
+        );
     };
 
     if (loading) {
         return (
             <AdminLayout>
-                <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-                    <Spin size="large" />
-                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}><Spin size="large" /></div>
             </AdminLayout>
         );
     }
@@ -219,178 +341,26 @@ export default function WatermarkPage() {
             <div style={{ maxWidth: 1000, margin: '0 auto' }}>
                 <Title level={3} style={{ marginBottom: 8 }}>⚙️ Cài đặt Watermark</Title>
                 <Paragraph type="secondary" style={{ marginBottom: 24 }}>
-                    Tự động thêm watermark cho tất cả hình ảnh khi upload lên hệ thống ERP và Website.
+                    Hệ thống hỗ trợ 2 loại Watermark độc lập: một dùng chung cho Website/ERP và một chuyên dụng cho trang Đặt Hàng Sỉ (B2B).
                 </Paragraph>
 
-                <Row gutter={24}>
-                    {/* Left: Settings */}
-                    <Col xs={24} md={12}>
-                        <Card
-                            title="Cấu hình"
-                            style={{ marginBottom: 16 }}
-                            extra={
-                                <Switch
-                                    checked={config.enabled}
-                                    onChange={(checked) => setConfig(prev => ({ ...prev, enabled: checked }))}
-                                    checkedChildren="BẬT"
-                                    unCheckedChildren="TẮT"
-                                />
-                            }
-                        >
-                            {/* Upload watermark image */}
-                            <div style={{ marginBottom: 20 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 8 }}>Hình watermark</Text>
-                                <Space direction="vertical" style={{ width: '100%' }}>
-                                    {watermarkPreviewUrl && (
-                                        <div style={{
-                                            background: '#f5f5f5',
-                                            border: '1px dashed #d9d9d9',
-                                            borderRadius: 8,
-                                            padding: 16,
-                                            textAlign: 'center'
-                                        }}>
-                                            <img
-                                                src={watermarkPreviewUrl}
-                                                alt="Watermark"
-                                                style={{ maxHeight: 80, maxWidth: '100%', objectFit: 'contain' }}
-                                            />
-                                        </div>
-                                    )}
-                                    <Upload
-                                        accept=".png"
-                                        showUploadList={false}
-                                        beforeUpload={(file) => {
-                                            handleUploadWatermark(file);
-                                            return false;
-                                        }}
-                                    >
-                                        <Button icon={<UploadOutlined />} block>
-                                            {watermarkPreviewUrl ? 'Thay đổi hình watermark' : 'Upload hình watermark (PNG)'}
-                                        </Button>
-                                    </Upload>
-                                    <Text type="secondary" style={{ fontSize: 12 }}>
-                                        Khuyến nghị: file PNG nền trong suốt, logo hoặc text
-                                    </Text>
-                                </Space>
-                            </div>
-
-                            <Divider />
-
-                            {/* Position */}
-                            <div style={{ marginBottom: 20 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 8 }}>Vị trí</Text>
-                                <Select
-                                    value={config.position}
-                                    onChange={(value) => setConfig(prev => ({ ...prev, position: value }))}
-                                    options={positionOptions}
-                                    style={{ width: '100%' }}
-                                />
-                            </div>
-
-                            {/* Size Ratio */}
-                            <div style={{ marginBottom: 20 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                                    Kích thước: {Math.round(config.sizeRatio * 100)}% chiều rộng ảnh
-                                </Text>
-                                <Slider
-                                    min={10}
-                                    max={50}
-                                    value={Math.round(config.sizeRatio * 100)}
-                                    onChange={(value) => setConfig(prev => ({ ...prev, sizeRatio: value / 100 }))}
-                                    marks={{ 10: '10%', 25: '25%', 40: '40%', 50: '50%' }}
-                                />
-                            </div>
-
-                            {/* Opacity */}
-                            <div style={{ marginBottom: 20 }}>
-                                <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                                    Độ mờ: {Math.round(config.opacity * 100)}%
-                                </Text>
-                                <Slider
-                                    min={5}
-                                    max={100}
-                                    value={Math.round(config.opacity * 100)}
-                                    onChange={(value) => setConfig(prev => ({ ...prev, opacity: value / 100 }))}
-                                    marks={{ 5: '5%', 20: '20%', 40: '40%', 60: '60%', 100: '100%' }}
-                                />
-                            </div>
-
-                            <Divider />
-
-                            {/* Save button */}
-                            <Space style={{ width: '100%' }} direction="vertical">
-                                <Button
-                                    type="primary"
-                                    icon={<SaveOutlined />}
-                                    onClick={handleSaveConfig}
-                                    loading={saving}
-                                    block
-                                    size="large"
-                                >
-                                    Lưu cấu hình
-                                </Button>
-                            </Space>
-                        </Card>
-
-                        {/* Batch Regenerate */}
-                        <Card
-                            title="Áp dụng cho hình đã có"
-                            style={{ marginBottom: 16 }}
-                        >
-                            <Paragraph type="secondary" style={{ marginBottom: 16 }}>
-                                Áp dụng watermark hiện tại cho tất cả hình ảnh đã upload trước đó.
-                                Hình nhỏ hơn 400×400px (icons, logos) sẽ được bỏ qua tự động.
-                            </Paragraph>
-                            <Button
-                                icon={<ReloadOutlined />}
-                                onClick={handleRegenerate}
-                                loading={regenerating}
-                                block
-                                danger
-                            >
-                                {regenerating ? 'Đang xử lý...' : 'Áp dụng cho tất cả hình đã có'}
-                            </Button>
-                        </Card>
-                    </Col>
-
-                    {/* Right: Preview */}
-                    <Col xs={24} md={12}>
-                        <Card
-                            title={<Space><EyeOutlined /> Xem trước</Space>}
-                            style={{ position: 'sticky', top: 80 }}
-                        >
-                            <div style={{
-                                background: '#fafafa',
-                                borderRadius: 8,
-                                overflow: 'hidden',
-                                border: '1px solid #f0f0f0'
-                            }}>
-                                <canvas
-                                    ref={canvasRef}
-                                    style={{ width: '100%', height: 'auto', display: 'block' }}
-                                />
-                            </div>
-                            <div style={{ marginTop: 12, textAlign: 'center' }}>
-                                <Text type="secondary" style={{ fontSize: 12 }}>
-                                    {config.enabled ? '✅ Watermark đang BẬT' : '⚪ Watermark đang TẮT'} 
-                                    {' • '} Vị trí: {positionOptions.find(p => p.value === config.position)?.label || config.position}
-                                </Text>
-                            </div>
-
-                            <Divider />
-
-                            <div style={{ padding: '0 8px' }}>
-                                <Text strong style={{ display: 'block', marginBottom: 8 }}>ℹ️ Lưu ý:</Text>
-                                <ul style={{ paddingLeft: 20, color: '#666', fontSize: 13, lineHeight: '22px' }}>
-                                    <li>Watermark áp dụng cho <strong>tất cả hình upload</strong> từ ERP và CMS</li>
-                                    <li>Hình gốc luôn được lưu trong thư mục _originals</li>
-                                    <li>Bỏ qua tự động: hình &lt; 400px, GIF, SVG, icon</li>
-                                    <li>Khi thay đổi watermark, nhấn "Áp dụng cho tất cả" để cập nhật</li>
-                                </ul>
-                            </div>
-                        </Card>
-                    </Col>
-                </Row>
+                <Tabs 
+                    activeKey={activeTab} 
+                    onChange={setActiveTab}
+                    type="card"
+                    items={[
+                        {
+                            key: 'general',
+                            label: '🌍 Watermark Chung (Global)',
+                            children: renderConfigForm(false)
+                        },
+                        {
+                            key: 'b2b',
+                            label: '🏭 Watermark Đặt Hàng Sỉ (B2B)',
+                            children: renderConfigForm(true)
+                        }
+                    ]}
+                />
             </div>
         </AdminLayout>
     );

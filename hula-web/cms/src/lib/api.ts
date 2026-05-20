@@ -124,6 +124,15 @@ export const watermarkApi = {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
     },
+    getB2BConfig: () => api.get('/upload/watermark/b2b/config'),
+    saveB2BConfig: (data: any) => api.post('/upload/watermark/b2b/config', data),
+    uploadB2BImage: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post('/upload/watermark/b2b/image', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+    },
     regenerateAll: () => api.post('/upload/watermark/regenerate'),
 };
 

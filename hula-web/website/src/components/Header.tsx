@@ -57,7 +57,7 @@ export default function Header() {
 
     const isMoreActive = moreLinks.some(l => pathname === l.href || pathname?.startsWith(l.href));
 
-    const logoUrl = resolveImageUrl(settings.logo_url);
+    const logoUrl = resolveImageUrl(settings.logo_url, 'original');
 
     return (
         <>

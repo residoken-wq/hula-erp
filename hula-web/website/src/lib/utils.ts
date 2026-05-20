@@ -3,7 +3,7 @@ const getApiBaseUrl = () => {
     return base.endsWith('/api') ? base.replace(/\/api$/, '') : base;
 };
 
-export const resolveImageUrl = (url?: string): string => {
+export const resolveImageUrl = (url?: string, variant: 'default' | 'original' | 'b2b' = 'default'): string => {
     if (!url) return '';
     
     // Handle cases where the URL was incorrectly saved as a JSON string '{"url":"..."}'
@@ -15,8 +15,11 @@ export const resolveImageUrl = (url?: string): string => {
         } catch { /* skip */ }
     }
 
-    if (actualUrl.startsWith('/uploads/')) {
-        return `${getApiBaseUrl()}/api/upload/files/${actualUrl.replace('/uploads/', '')}`;
+    if (typeof actualUrl === 'string' && actualUrl.startsWith('/uploads/')) {
+        const path = actualUrl.replace('/uploads/', '');
+        if (variant === 'original') return `${getApiBaseUrl()}/api/upload/files/original/${path}`;
+        if (variant === 'b2b') return `${getApiBaseUrl()}/api/upload/files/b2b/${path}`;
+        return `${getApiBaseUrl()}/api/upload/files/${path}`;
     }
     return getGoogleDriveImageUrl(actualUrl);
 };
