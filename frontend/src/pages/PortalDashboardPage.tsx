@@ -76,6 +76,7 @@ interface DashboardData {
     stats: { total_orders: number; total_revenue: number; active_orders: number };
     orders: Order[];
     promotions: PromotionInfo[];
+    watermark_image?: string;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
