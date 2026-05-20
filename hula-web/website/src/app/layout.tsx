@@ -26,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
     const faviconUrl = settings?.favicon_url;
     let iconUrl = '/favicon.ico';
 
-    if (faviconUrl) {
+    if (faviconUrl && typeof faviconUrl === 'string') {
         if (faviconUrl.startsWith('/uploads/')) {
             const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
             const base = API_URL.endsWith('/api') ? API_URL.replace(/\/api$/, '') : API_URL;
@@ -38,12 +38,21 @@ export async function generateMetadata(): Promise<Metadata> {
 
     // Resolve OG image: settings.og_image > hero_image > favicon
     let ogImageUrl = iconUrl;
-    const rawOgImage = settings?.og_image
-        || (homeConfig?.hero_images?.[0])
-        || (homeConfig?.hero_image)
+    
+    // Safely extract image URL if it's an object (e.g. hero_images element)
+    const extractUrl = (img: any): string | null => {
+        if (!img) return null;
+        if (typeof img === 'string') return img;
+        if (img.url && typeof img.url === 'string') return img.url;
+        return null;
+    };
+
+    const rawOgImage = extractUrl(settings?.og_image)
+        || extractUrl(homeConfig?.hero_images?.[0])
+        || extractUrl(homeConfig?.hero_image)
         || null;
 
-    if (rawOgImage) {
+    if (rawOgImage && typeof rawOgImage === 'string') {
         if (rawOgImage.startsWith('/uploads/')) {
             const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
             const base = API_URL.endsWith('/api') ? API_URL.replace(/\/api$/, '') : API_URL;
