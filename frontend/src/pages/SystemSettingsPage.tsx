@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip, Tag, Space, Typography, Checkbox } from 'antd';
-import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SettingOutlined, MinusCircleOutlined, InfoCircleOutlined, KeyOutlined } from '@ant-design/icons';
+import { Card, Form, Input, InputNumber, Button, Switch, message, Spin, Row, Col, Divider, Alert, Tabs, Table, Modal, Popconfirm, Tooltip, Tag, Space, Typography, Checkbox, Upload } from 'antd';
+import { SaveOutlined, MailOutlined, LinkOutlined, ShopOutlined, FileTextOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, SettingOutlined, MinusCircleOutlined, InfoCircleOutlined, KeyOutlined, UploadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
@@ -130,6 +130,8 @@ const GeneralSettingsTab: React.FC = () => {
 
             <Card title="Quản Lý Link Tài Nguyên" bordered={false} size="small">
                 <LinkConfigItem label="Folder Ảnh Sản Phẩm (Google Drive)" configKey="SALES_SHARED_DRIVE_LINK" placeholder="https://drive.google.com/..." />
+                <Divider style={{ margin: '16px 0' }} />
+                <ImageUploadConfigItem label="Watermark Hình Ảnh (Portal Báo Giá/Dashboard)" configKey="PORTAL_WATERMARK_IMAGE" />
             </Card>
 
             <Divider />
@@ -562,6 +564,80 @@ const LinkConfigItem = ({ label, configKey, placeholder }: { label: string, conf
             <div style={{ display: 'flex', gap: 8 }}>
                 <Input value={val} onChange={e => setVal(e.target.value)} placeholder={placeholder} />
                 <Button type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>Lưu</Button>
+            </div>
+        </Form.Item>
+    );
+}
+
+const ImageUploadConfigItem = ({ label, configKey }: { label: string, configKey: string }) => {
+    const [val, setVal] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        axios.get(`${API_URL}/system/config/${configKey}`).then(res => {
+            if (res.data && res.data.value) setVal(res.data.value);
+        });
+    }, [configKey]);
+
+    const handleSave = async (newValue: string) => {
+        setLoading(true);
+        try {
+            await axios.post(`${API_URL}/system/config`, {
+                key: configKey,
+                value: newValue,
+                description: label
+            });
+            message.success('Đã lưu cấu hình hình ảnh');
+            setVal(newValue);
+        } catch (e) { message.error('Lỗi lưu cấu hình hình ảnh'); }
+        setLoading(false);
+    }
+
+    const uploadProps = {
+        name: 'file',
+        action: `${API_URL}/upload/image`,
+        showUploadList: false,
+        onChange(info: any) {
+            if (info.file.status === 'uploading') {
+                setLoading(true);
+                return;
+            }
+            if (info.file.status === 'done') {
+                const url = info.file.response?.url || info.file.response?.data?.url;
+                if (url) {
+                    handleSave(url);
+                } else {
+                    message.error('Upload thất bại, không nhận được URL');
+                    setLoading(false);
+                }
+            } else if (info.file.status === 'error') {
+                message.error(`${info.file.name} upload thất bại.`);
+                setLoading(false);
+            }
+        },
+    };
+
+    return (
+        <Form.Item label={label} style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                <Upload {...uploadProps}>
+                    <Button icon={<UploadOutlined />} loading={loading}>Tải Ảnh Lên</Button>
+                </Upload>
+                {val && (
+                    <div style={{ position: 'relative' }}>
+                        <img 
+                            src={val.startsWith('/uploads/') ? `${API_URL}/upload/files/${val.replace('/uploads/', '')}` : val} 
+                            alt="watermark" 
+                            style={{ height: 60, objectFit: 'contain', border: '1px dashed #ccc', padding: 4 }} 
+                        />
+                        <Button 
+                            danger 
+                            size="small" 
+                            style={{ position: 'absolute', top: -10, right: -10, borderRadius: '50%' }}
+                            onClick={() => handleSave('')}
+                        >×</Button>
+                    </div>
+                )}
             </div>
         </Form.Item>
     );

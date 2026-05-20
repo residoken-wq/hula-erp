@@ -8,6 +8,7 @@ import { PortalSession } from './entities/portal-session.entity';
 import { SalesOrder } from '../sales/sales-order.entity';
 import { EmailService } from '../common/services/email.service';
 import { SalesService } from '../sales/sales.service';
+import { SystemConfig } from '../system/system-config.entity';
 import * as crypto from 'crypto';
 
 @Controller('public/portal')
@@ -23,6 +24,8 @@ export class PortalController {
         private readonly sessionRepo: Repository<PortalSession>,
         @InjectRepository(SalesOrder)
         private readonly salesOrderRepo: Repository<SalesOrder>,
+        @InjectRepository(SystemConfig)
+        private readonly configRepo: Repository<SystemConfig>,
         private readonly emailService: EmailService,
         private readonly salesService: SalesService,
     ) { }
@@ -273,6 +276,8 @@ export class PortalController {
                 ['SO_PENDING', 'DEPOSITED', 'SAMPLE_APPROVED', 'IN_PRODUCTION', 'PLANNED', 'MANUFACTURING_COMPLETED'].includes(o.status)
             ).length;
 
+            const watermarkConfig = await this.configRepo.findOne({ where: { key: 'PORTAL_WATERMARK_IMAGE' } });
+
             return {
                 customer: {
                     id: customer.id,
@@ -312,6 +317,7 @@ export class PortalController {
                     })),
                 })),
                 promotions,
+                watermark_image: watermarkConfig?.value || '',
             };
         } catch (error) {
             if (error instanceof HttpException) throw error;

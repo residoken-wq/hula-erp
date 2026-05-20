@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag, Empty, Dropdown } from 'antd';
+import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag, Empty, Dropdown, Watermark } from 'antd';
 import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined, FilePdfOutlined, LockOutlined } from '@ant-design/icons';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
@@ -85,6 +85,21 @@ const PortalQuotePage: React.FC = () => {
         const cleaned = phone.replace(/\D/g, '');
         if (cleaned.length < 3) return '*****';
         return '*****' + cleaned.slice(-3);
+    };
+
+    const getWatermarkProps = (fontColor: string, fontSize: number) => {
+        if (data?.watermark_image) {
+            return {
+                image: data.watermark_image.startsWith('/uploads/') ? `${API_URL}/upload/files/${data.watermark_image.replace('/uploads/', '')}` : data.watermark_image,
+                width: 140,
+                height: 140,
+                gap: [100, 100] as [number, number]
+            };
+        }
+        return {
+            content: "HULA ERP",
+            font: { color: fontColor, fontSize }
+        };
     };
 
     const fetchQuote = async () => {
@@ -824,16 +839,18 @@ const PortalQuotePage: React.FC = () => {
                 return (
                     <div style={{ textAlign: 'center' }}>
                         {isImage ? (
-                            <img
-                                src={finalSrc}
-                                alt="product"
-                                style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee' }}
-                                onClick={() => handlePreview(finalSrc)}
-                                onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                    (e.target as HTMLImageElement).onerror = null;
-                                }}
-                            />
+                            <Watermark {...getWatermarkProps('rgba(0,0,0,0.15)', 14)}>
+                                <img
+                                    src={finalSrc}
+                                    alt="product"
+                                    style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee', display: 'block' }}
+                                    onClick={() => handlePreview(finalSrc)}
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).onerror = null;
+                                    }}
+                                />
+                            </Watermark>
                         ) : (
                             <a href={finalSrc} target="_blank" rel="noopener noreferrer">
                                 <LinkOutlined style={{ fontSize: 18, color: '#1890ff' }} />
@@ -1050,11 +1067,13 @@ const PortalQuotePage: React.FC = () => {
                                                     {/* Image */}
                                                     <div style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #eee' }}>
                                                         {isImage ? (
-                                                            <img
-                                                                src={finalSrc} alt="prod"
-                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                                onClick={() => handlePreview(finalSrc)}
-                                                            />
+                                                            <Watermark {...getWatermarkProps('rgba(0,0,0,0.15)', 12)}>
+                                                                <img
+                                                                    src={finalSrc} alt="prod"
+                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                                                    onClick={() => handlePreview(finalSrc)}
+                                                                />
+                                                            </Watermark>
                                                         ) : <div style={{ width: '100%', height: '100%', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc' }}><ShopOutlined /></div>}
                                                     </div>
 
@@ -1216,18 +1235,20 @@ const PortalQuotePage: React.FC = () => {
                                                     }}
                                                     onClick={() => handlePreview(imgSrc)}
                                                 >
-                                                    <img
-                                                        src={imgSrc}
-                                                        alt={`Mẫu ${index + 1}`}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                        onError={(e) => {
-                                                            const target = e.target as HTMLImageElement;
-                                                            target.style.display = 'none';
-                                                            if (target.parentElement) {
-                                                                target.parentElement.innerHTML = '<div style="color:#999;text-align:center;padding:20px;font-size:12px;">⚠️ Lỗi tải hình</div>';
-                                                            }
-                                                        }}
-                                                    />
+                                                    <Watermark {...getWatermarkProps('rgba(0,0,0,0.2)', 16)}>
+                                                        <img
+                                                            src={imgSrc}
+                                                            alt={`Mẫu ${index + 1}`}
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.style.display = 'none';
+                                                                if (target.parentElement && target.parentElement.parentElement) {
+                                                                    target.parentElement.parentElement.innerHTML = '<div style="color:#999;text-align:center;padding:20px;font-size:12px;">⚠️ Lỗi tải hình</div>';
+                                                                }
+                                                            }}
+                                                        />
+                                                    </Watermark>
                                                 </div>
                                             );
                                         })}
@@ -1505,11 +1526,13 @@ const PortalQuotePage: React.FC = () => {
                 closeIcon={<span style={{ color: '#fff', fontSize: 20 }}>×</span>}
             >
                 {previewImage && (
-                    <img
-                        alt="preview"
-                        style={{ width: '100%', borderRadius: 8 }}
-                        src={previewImage}
-                    />
+                    <Watermark {...getWatermarkProps('rgba(255,255,255,0.3)', 32)}>
+                        <img
+                            alt="preview"
+                            style={{ width: '100%', borderRadius: 8, display: 'block' }}
+                            src={previewImage}
+                        />
+                    </Watermark>
                 )}
             </Modal>
             <Modal

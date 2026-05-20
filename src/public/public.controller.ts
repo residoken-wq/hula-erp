@@ -798,8 +798,16 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
     // ========================================
 
     @Get('portal/quote/:uuid')
-    getPortalQuote(@Param('uuid') uuid: string) {
-        return this.salesService.getQuoteByUuid(uuid);
+    async getPortalQuote(@Param('uuid') uuid: string) {
+        const quote = await this.salesService.getQuoteByUuid(uuid);
+        if (!quote) return null;
+        
+        const watermarkConfig = await this.configRepo.findOne({ where: { key: 'PORTAL_WATERMARK_IMAGE' } });
+        
+        return {
+            ...quote,
+            watermark_image: watermarkConfig?.value || ''
+        };
     }
 
     @Post('portal/quote/:uuid/action')

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { API_URL } from '../config';
 import PortalUserGuide from '../components/PortalUserGuide';
 import { getGoogleDriveImageUrl } from '../utils/googleDrive';
+import { Watermark } from 'antd';
 
 // ============================================================
 // B2B PORTAL DASHBOARD
@@ -136,6 +137,21 @@ const PortalDashboardPage: React.FC = () => {
     }, []);
 
     const token = sessionStorage.getItem('portal_token');
+
+    const getWatermarkProps = (fontColor: string, fontSize: number) => {
+        if (data?.watermark_image) {
+            return {
+                image: data.watermark_image.startsWith('/uploads/') ? `${API_URL}/upload/files/${data.watermark_image.replace('/uploads/', '')}` : data.watermark_image,
+                width: 140,
+                height: 140,
+                gap: [100, 100] as [number, number]
+            };
+        }
+        return {
+            content: "HULA ERP",
+            font: { color: fontColor, fontSize }
+        };
+    };
 
     const fetchDashboard = useCallback(async () => {
         if (!token) {
@@ -633,7 +649,9 @@ const PortalDashboardPage: React.FC = () => {
                                             <div key={p.sku} style={{ ...S.productRow, alignItems: 'flex-start' }}>
                                                 <div style={{ width: 60, height: 60, marginRight: 12, flexShrink: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
                                                     {p.image_url ? (
-                                                        <img src={getGoogleDriveImageUrl(p.image_url) || p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <Watermark {...getWatermarkProps('rgba(0,0,0,0.15)', 12)}>
+                                                            <img src={getGoogleDriveImageUrl(p.image_url) || p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                                        </Watermark>
                                                     ) : (
                                                         <div style={{ width: '100%', height: '100%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: 10 }}>No Img</div>
                                                     )}
@@ -764,7 +782,9 @@ const PortalDashboardPage: React.FC = () => {
                                     <div key={p.sku} style={{ ...S.productRow, alignItems: 'flex-start' }}>
                                         <div style={{ width: 60, height: 60, marginRight: 12, flexShrink: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid #eee' }}>
                                             {p.image_url ? (
-                                                <img src={getGoogleDriveImageUrl(p.image_url) || p.image_url} alt={p.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <Watermark {...getWatermarkProps('rgba(0,0,0,0.15)', 12)}>
+                                                    <img src={getGoogleDriveImageUrl(p.image_url) || p.image_url} alt={p.product_name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                                </Watermark>
                                             ) : (
                                                 <div style={{ width: '100%', height: '100%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: 10 }}>No Img</div>
                                             )}
