@@ -294,7 +294,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             }
 
             setIsModalOpen(false); fetchHistory(); onSuccess();
-        } catch (e) { message.error('Lỗi lưu phiếu xuất kho'); }
+        } catch (e: any) { message.error(e.response?.data?.message || 'Lỗi lưu phiếu xuất kho'); }
     };
 
     const handlePrint = (delivery: any) => {

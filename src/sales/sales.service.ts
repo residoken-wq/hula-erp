@@ -720,16 +720,49 @@ export class SalesService {
     async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
     async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
     async createDelivery(orderId: number, data: any) {
-        const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
+        const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items', 'items.product'] });
         if (!order) throw new NotFoundException('Not found');
 
-        // --- MỚI: Ràng buộc Booking Status ---
+        // Fetch real stock from inventory
+        const allStocks = await this.inventoryService.getAllStocks();
+        const stockMap = new Map<number, number>();
+        for (const s of allStocks) {
+            if (s.item_type === 'PRODUCT' && s.warehouse_code !== 'KHO_MAU') {
+                const key = Number(s.item_id);
+                stockMap.set(key, (stockMap.get(key) || 0) + Number(s.quantity));
+            }
+        }
+
+        // --- Ràng buộc: CONFIRMED booking HOẶC tồn kho khả dụng đủ ---
+        const errors: string[] = [];
         for (const reqItem of data.items) {
             const soItem = order.items.find(i => i.sku === reqItem.sku);
             if (!soItem) continue;
-            if (soItem.booking_status !== BookingStatus.CONFIRMED) {
-                throw new BadRequestException(`Sản phẩm ${reqItem.sku} chưa được duyệt xuất kho (Status: ${soItem.booking_status || 'Chưa book'})`);
+
+            if (soItem.booking_status === BookingStatus.CONFIRMED) {
+                // Đã duyệt booking → cho phép xuất
+                continue;
             }
+
+            // Chưa có booking CONFIRMED → kiểm tra tồn kho khả dụng
+            const product = soItem.product;
+            if (!product) {
+                errors.push(`Sản phẩm ${reqItem.sku}: không tìm thấy thông tin sản phẩm`);
+                continue;
+            }
+
+            const realStock = stockMap.get(product.id) || 0;
+            const approvedBooking = Number(product.approved_booking_stock || 0);
+            const availableStock = realStock - approvedBooking;
+            const requestedQty = Number(reqItem.quantity);
+
+            if (availableStock < requestedQty) {
+                errors.push(`${reqItem.sku}: TK khả dụng = ${availableStock} (Thực tế: ${realStock}, Đã duyệt booking: ${approvedBooking}), cần ${requestedQty}`);
+            }
+        }
+
+        if (errors.length > 0) {
+            throw new BadRequestException(`Không thể xuất kho:\n${errors.join('\n')}`);
         }
 
         const delivery = this.deliveryRepo.create({
@@ -744,8 +777,6 @@ export class SalesService {
             attachments: data.attachments || [] // <--- Save Attachments
         });
         const savedDelivery = await this.deliveryRepo.save(delivery);
-
-
 
         // NO AUTO DEDUCT STOCK HERE. 
         // Stock will be deducted when Inventory User confirms (PENDING_EXPORT -> SHIPPED).

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Modal, Form, Input, DatePicker, Row, Col, Tabs, Statistic, Button, message } from 'antd';
-import { AlertOutlined, ProjectOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons';
+import { AlertOutlined, ProjectOutlined, ReloadOutlined, SaveOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -166,44 +166,11 @@ const PlanningPage: React.FC = () => {
     const handleConfirmBookings = async (planId: number) => {
         setLoading(true);
         try {
-            const res = await axios.get(`${API_URL}/planning/${planId}`);
-            const plan = res.data;
-            
-            // Extract items
-            const extractedItems: any[] = [];
-            if (plan.sales_orders) {
-                plan.sales_orders.forEach((order: any) => {
-                    const orderCustomerName = order.customer_name || order.customer?.name || '';
-                    if (order.items) {
-                        order.items.forEach((item: any) => {
-                            const product = item.product;
-                            const productType = product?.product_type || 'STANDARD';
-                            // Build combo_components from loaded relations
-                            let comboComponents: any[] = [];
-                            if (productType === 'COMBO' && product?.components?.length > 0) {
-                                comboComponents = product.components.map((c: any) => ({
-                                    sku: c.child_product?.sku || '',
-                                    name: c.child_product?.name || '',
-                                    quantity_per_combo: Number(c.quantity),
-                                    total_needed: Number(item.booked_quantity || item.quantity || 0) * Number(c.quantity),
-                                }));
-                            }
-                            extractedItems.push({
-                                ...item,
-                                order_code: order.order_code,
-                                customer_name: orderCustomerName,
-                                sku: product?.sku || item.sku,
-                                product_name: product?.name || '',
-                                product_type: productType,
-                                combo_components: comboComponents.length > 0 ? comboComponents : undefined,
-                            });
-                        });
-                    }
-                });
-            }
+            const res = await axios.get(`${API_URL}/planning/${planId}/booking-items`);
+            const { items: extractedItems, plan } = res.data;
             
             setBookingItems(extractedItems);
-            setBookingPlanInfo({ id: plan.id, name: plan.name || plan.code });
+            setBookingPlanInfo({ id: plan.id, name: plan.name });
             setIsBookingModalOpen(true);
         } catch (e: any) {
             message.error(e.response?.data?.message || 'Lỗi lấy dữ liệu Kế hoạch');
@@ -231,15 +198,20 @@ const PlanningPage: React.FC = () => {
         <div>
             {/* STATS CARDS */}
             <div style={{ overflowX: isMobile ? 'auto' : 'visible', marginBottom: 16 }}>
-                <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 320 : 'auto' }}>
-                    <Col flex={isMobile ? '150px' : 1}>
-                        <Card bodyStyle={{ padding: isMobile ? 10 : 20 }}>
-                            <Statistic title={<span style={{ fontSize: isMobile ? 12 : 14 }}>Chờ SX</span>} value={pendingOrders.length} prefix={<AlertOutlined />} valueStyle={{ color: '#faad14', fontSize: isMobile ? 18 : 24 }} />
+                <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 600 : 'auto' }}>
+                    <Col flex={isMobile ? '140px' : 1}>
+                        <Card bodyStyle={{ padding: isMobile ? 10 : 16 }} style={{ borderRadius: 10, border: '1px solid #ffd591', background: 'linear-gradient(135deg, #fff7e6 0%, #fffbe6 100%)' }}>
+                            <Statistic title={<span style={{ fontSize: isMobile ? 11 : 13, color: '#d46b08' }}>Chờ Lập KH</span>} value={pendingOrders.length} prefix={<AlertOutlined />} valueStyle={{ color: '#d46b08', fontSize: isMobile ? 20 : 28, fontWeight: 700 }} />
                         </Card>
                     </Col>
-                    <Col flex={isMobile ? '150px' : 1}>
-                        <Card bodyStyle={{ padding: isMobile ? 10 : 20 }}>
-                            <Statistic title={<span style={{ fontSize: isMobile ? 12 : 14 }}>Kế Hoạch</span>} value={plans.length} prefix={<ProjectOutlined />} valueStyle={{ color: '#1890ff', fontSize: isMobile ? 18 : 24 }} />
+                    <Col flex={isMobile ? '140px' : 1}>
+                        <Card bodyStyle={{ padding: isMobile ? 10 : 16 }} style={{ borderRadius: 10, border: '1px solid #91d5ff', background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%)' }}>
+                            <Statistic title={<span style={{ fontSize: isMobile ? 11 : 13, color: '#096dd9' }}>Kế Hoạch</span>} value={plans.length} prefix={<ProjectOutlined />} valueStyle={{ color: '#096dd9', fontSize: isMobile ? 20 : 28, fontWeight: 700 }} />
+                        </Card>
+                    </Col>
+                    <Col flex={isMobile ? '140px' : 1}>
+                        <Card bodyStyle={{ padding: isMobile ? 10 : 16 }} style={{ borderRadius: 10, border: '1px solid #b7eb8f', background: 'linear-gradient(135deg, #f6ffed 0%, #fcffe6 100%)' }}>
+                            <Statistic title={<span style={{ fontSize: isMobile ? 11 : 13, color: '#389e0d' }}>Sẵn sàng xuất</span>} value={pendingOrders.filter((o: any) => o.can_fulfill_stock).length} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#389e0d', fontSize: isMobile ? 20 : 28, fontWeight: 700 }} />
                         </Card>
                     </Col>
                 </Row>
@@ -247,17 +219,22 @@ const PlanningPage: React.FC = () => {
 
             <Card
                 bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
-                title={<span style={{ fontSize: isMobile ? 14 : 16 }}>MRP / Planning</span>}
+                style={{ borderRadius: 10 }}
+                title={
+                    <span style={{ fontSize: isMobile ? 14 : 17, fontWeight: 600, color: '#1d39c4' }}>
+                        📋 MRP / Planning Center
+                    </span>
+                }
                 extra={
                     isMobile
-                        ? <Button icon={<ReloadOutlined />} onClick={fetchData} />
-                        : <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
+                        ? <Button icon={<ReloadOutlined />} onClick={fetchData} style={{ borderRadius: 6 }} />
+                        : <Button icon={<ReloadOutlined />} onClick={fetchData} style={{ borderRadius: 6 }}>Làm mới</Button>
                 }
             >
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                     {
                         key: 'PENDING',
-                        label: isMobile ? 'Gom Đơn' : '1. Gom Đơn Lập Kế Hoạch',
+                        label: isMobile ? '📥 Gom Đơn' : '📥 1. Gom Đơn Lập Kế Hoạch',
                         children: (
                             <PendingOrdersTab
                                 pendingOrders={pendingOrders}
@@ -281,7 +258,7 @@ const PlanningPage: React.FC = () => {
                     },
                     {
                         key: 'PLANS',
-                        label: isMobile ? 'Kế Hoạch' : '2. Danh Sách Kế Hoạch',
+                        label: isMobile ? '📋 Kế Hoạch' : '📋 2. Danh Sách Kế Hoạch',
                         children: (
                             <PlanDashboardTab
                                 plans={plans}
@@ -307,7 +284,7 @@ const PlanningPage: React.FC = () => {
                     },
                     {
                         key: 'GANTT',
-                        label: isMobile ? 'Gantt' : '📊 Gantt Chart',
+                        label: isMobile ? '📊 Gantt' : '📊 3. Gantt Chart',
                         children: (
                             <GanttChartTab
                                 ganttPlans={ganttPlans}
@@ -317,7 +294,7 @@ const PlanningPage: React.FC = () => {
                     },
                     {
                         key: 'BOOKINGS',
-                        label: isMobile ? 'Booking' : '4. Quản Lý Booking',
+                        label: isMobile ? '📦 Booking' : '📦 4. Quản Lý Booking',
                         children: (
                             <BookingListTab isMobile={isMobile} />
                         )

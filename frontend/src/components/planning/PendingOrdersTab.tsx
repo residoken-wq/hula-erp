@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Table, Button, Tag, Space, Modal, message, DatePicker, Input } from 'antd';
-import { AlertOutlined, TruckOutlined, FilterOutlined } from '@ant-design/icons';
+import { Table, Button, Tag, Space, Modal, message, DatePicker, Input, Tooltip, Progress } from 'antd';
+import { AlertOutlined, TruckOutlined, FilterOutlined, SearchOutlined, CheckCircleOutlined, WarningOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import api from '../../utils/api';
@@ -26,18 +26,47 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
     const [customerSearch, setCustomerSearch] = useState('');
 
     const handleFulfillStock = async (order: any) => {
+        // Chỉ gửi items có CONFIRMED booking hoặc có đủ tồn kho khả dụng
+        const eligibleItems = order.items.filter((i: any) => {
+            if (i.booking_status === 'CONFIRMED') return true;
+            const available = Number(i.available_stock || 0);
+            return available >= Number(i.quantity);
+        });
+
+        if (eligibleItems.length === 0) {
+            message.warning('Không có sản phẩm nào đủ điều kiện xuất kho (cần booking đã duyệt hoặc tồn kho khả dụng đủ)');
+            return;
+        }
+
         Modal.confirm({
             title: `Xuất kho cho đơn ${order.order_code}?`,
             content: (
                 <div>
-                    <p>Hệ thống sẽ tạo Phiếu Xuất Kho cho toàn bộ sản phẩm trong đơn hàng.</p>
-                    <p><b>Lưu ý:</b> Đơn hàng sẽ chuyển sang trạng thái "Đang giao" và rời khỏi danh sách chờ Lập Kế Hoạch.</p>
+                    <p>Hệ thống sẽ tạo Phiếu Xuất Kho cho <b>{eligibleItems.length}/{order.items.length}</b> sản phẩm đủ điều kiện.</p>
+                    <div style={{ background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 6, padding: '8px 12px', marginTop: 8 }}>
+                        {eligibleItems.map((i: any, idx: number) => (
+                            <div key={idx} style={{ fontSize: 13 }}>
+                                ✅ <b>{i.sku}</b> — SL: {Number(i.quantity).toLocaleString()}
+                                {i.booking_status === 'CONFIRMED' && <Tag color="green" style={{ margin: '0 0 0 6px', fontSize: 10 }}>Đã book</Tag>}
+                            </div>
+                        ))}
+                    </div>
+                    {eligibleItems.length < order.items.length && (
+                        <div style={{ background: '#fff7e6', border: '1px solid #ffd591', borderRadius: 6, padding: '8px 12px', marginTop: 8 }}>
+                            <b>⚠️ Các SP bị bỏ qua (thiếu kho / chưa book):</b>
+                            {order.items.filter((i: any) => !eligibleItems.includes(i)).map((i: any, idx: number) => (
+                                <div key={idx} style={{ fontSize: 12, color: '#d46b08' }}>• {i.sku} — Cần: {Number(i.quantity).toLocaleString()}, TK khả dụng: {Number(i.available_stock || 0).toLocaleString()}</div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             ),
+            okText: 'Xuất kho',
+            cancelText: 'Hủy',
             onOk: async () => {
                 setLoading(true);
                 try {
-                    const deliveryItems = order.items.map((i: any) => ({
+                    const deliveryItems = eligibleItems.map((i: any) => ({
                         sku: i.sku,
                         quantity: i.quantity,
                         note: 'Xuất kho từ Lập Kế Hoạch'
@@ -45,69 +74,147 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
                     const payload = {
                         code: `PX-${order.order_code}-${dayjs().format('HHmm')}`,
                         date: new Date().toISOString(),
-                        note: 'Xuất nhanh từ Planning Center (Có sẵn tồn kho)',
+                        note: 'Xuất nhanh từ Planning Center',
                         delivery_address: order.shipping_address,
                         contact_name: order.receiver_name,
                         contact_phone: order.receiver_phone,
                         items: deliveryItems
                     };
                     await api.post(`/sales/${order.id}/delivery`, payload);
-                    message.success('Đã tạo phiếu xuất kho thành công');
+                    message.success(`Đã tạo phiếu xuất kho (${eligibleItems.length} SP)`);
                     onRefresh();
-                } catch (e) {
-                    message.error('Lỗi khi xuất kho');
+                } catch (e: any) {
+                    const errMsg = e.response?.data?.message || 'Lỗi khi xuất kho';
+                    message.error(errMsg);
                 }
                 setLoading(false);
             }
         });
     };
 
+    const readyCount = pendingOrders.filter(o => o.can_fulfill_stock).length;
+
     const pendingColumns = [
-        { title: 'Mã Đơn', dataIndex: 'order_code', render: (t: any) => <b>{t}</b> },
-        { title: 'Khách Hàng', dataIndex: 'customer_name' },
         {
-            title: 'Trạng Thái', dataIndex: 'status',
+            title: 'Mã Đơn', dataIndex: 'order_code', width: 140,
+            render: (t: any) => <b style={{ color: '#1d39c4' }}>{t}</b>
+        },
+        {
+            title: 'Khách Hàng', dataIndex: 'customer_name', ellipsis: true,
+            render: (t: any) => <span style={{ fontWeight: 500 }}>{t}</span>
+        },
+        {
+            title: 'Trạng Thái', dataIndex: 'status', width: 160, align: 'center' as const,
             render: (t: any, r: any) => (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
                     <Tag>{t}</Tag>
-                    {r.can_fulfill_stock && <Tag color="green">Sẵn sàng xuất kho</Tag>}
+                    {r.can_fulfill_stock && <Tag color="green" icon={<CheckCircleOutlined />}>Sẵn sàng xuất</Tag>}
                 </div>
             )
         },
-        { title: 'Ngày Giao', dataIndex: 'delivery_date', render: (t: any) => t ? <Tag color="red">{dayjs(t).format('DD/MM/YYYY')}</Tag> : '-' },
-        { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v: any) => Number(v).toLocaleString() },
         {
-            title: 'Hành động',
-            align: 'center' as const,
+            title: 'Ngày Giao', dataIndex: 'delivery_date', width: 120, align: 'center' as const,
+            render: (t: any) => {
+                if (!t) return <span style={{ color: '#bbb' }}>—</span>;
+                const d = dayjs(t);
+                const daysLeft = d.diff(dayjs(), 'day');
+                const color = daysLeft < 0 ? '#f5222d' : daysLeft <= 7 ? '#fa8c16' : '#52c41a';
+                return (
+                    <Tooltip title={`Còn ${daysLeft} ngày`}>
+                        <Tag color={daysLeft < 0 ? 'red' : daysLeft <= 7 ? 'orange' : 'default'}>{d.format('DD/MM/YYYY')}</Tag>
+                    </Tooltip>
+                );
+            }
+        },
+        {
+            title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, width: 130,
+            render: (v: any) => <b>{Number(v || 0).toLocaleString()}</b>
+        },
+        {
+            title: 'Thao tác', width: 130, align: 'center' as const,
             render: (_: any, r: any) => (
                 r.can_fulfill_stock && (
-                    <Button type="primary" size="small" icon={<TruckOutlined />} onClick={() => handleFulfillStock(r)} style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}>Xuất Kho</Button>
+                    <Button
+                        type="primary"
+                        size="small"
+                        icon={<TruckOutlined />}
+                        onClick={() => handleFulfillStock(r)}
+                        style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', border: 'none', borderRadius: 6, fontWeight: 500 }}
+                    >
+                        Xuất Kho
+                    </Button>
                 )
             )
         }
     ];
 
     const expandedRowRender = (record: any) => (
-        <Table
-            dataSource={record.items}
-            rowKey="id"
-            pagination={false}
-            size="small"
-            columns={[
-                { title: 'Sản phẩm', dataIndex: ['product', 'name'], render: (t: any, r: any) => <span><b>{r.sku}</b> - {t || r.sku}</span> },
-                { title: 'Số lượng đặt', dataIndex: 'quantity', align: 'center' as const },
-                {
-                    title: 'Tồn kho khả dụng',
-                    dataIndex: 'available_stock_tp',
-                    align: 'center' as const,
-                    render: (v: any, r: any) => (
-                        <span style={{ color: v >= r.quantity ? 'green' : 'red', fontWeight: 'bold' }}>
-                            {v} {v >= r.quantity ? '(Đủ)' : '(Thiếu)'}
-                        </span>
-                    )
-                }
-            ]}
-        />
+        <div style={{ padding: '8px 0' }}>
+            <Table
+                dataSource={record.items}
+                rowKey="id"
+                pagination={false}
+                size="small"
+                columns={[
+                    {
+                        title: 'Sản phẩm', dataIndex: ['product', 'name'], width: '25%',
+                        render: (t: any, r: any) => (
+                            <span>
+                                <b style={{ color: '#1d39c4' }}>{r.sku}</b>
+                                <span style={{ color: '#666', marginLeft: 6 }}>{t || r.sku}</span>
+                            </span>
+                        )
+                    },
+                    {
+                        title: 'SL Đặt', dataIndex: 'quantity', align: 'center' as const, width: 80,
+                        render: (v: any) => <b>{Number(v || 0).toLocaleString()}</b>
+                    },
+                    {
+                        title: 'TK Thực tế', dataIndex: 'total_stock', align: 'center' as const, width: 100,
+                        render: (v: any) => <span style={{ fontWeight: 500 }}>{Number(v || 0).toLocaleString()}</span>
+                    },
+                    {
+                        title: 'Booking đã duyệt', dataIndex: 'approved_booking_stock', align: 'center' as const, width: 130,
+                        render: (v: any) => v > 0 ? <Tag color="orange">{Number(v || 0).toLocaleString()}</Tag> : <span style={{ color: '#bbb' }}>0</span>
+                    },
+                    {
+                        title: 'TK Khả dụng', align: 'center' as const, width: 120,
+                        render: (_: any, r: any) => {
+                            const available = Number(r.available_stock || 0);
+                            const needed = Number(r.quantity || 0);
+                            const sufficient = available >= needed;
+                            return (
+                                <span style={{ fontWeight: 'bold', color: sufficient ? '#52c41a' : '#f5222d' }}>
+                                    {available.toLocaleString()}
+                                    {sufficient
+                                        ? <CheckCircleOutlined style={{ marginLeft: 4, fontSize: 12 }} />
+                                        : <WarningOutlined style={{ marginLeft: 4, fontSize: 12 }} />
+                                    }
+                                </span>
+                            );
+                        }
+                    },
+                    {
+                        title: 'Booking', dataIndex: 'booking_status', align: 'center' as const, width: 110,
+                        render: (s: any) => {
+                            if (s === 'CONFIRMED') return <Tag color="green">Đã duyệt</Tag>;
+                            if (s === 'TEMPORARY') return <Tag color="orange">Chờ duyệt</Tag>;
+                            return <Tag>Chưa book</Tag>;
+                        }
+                    },
+                    {
+                        title: 'Đánh giá', align: 'center' as const, width: 110,
+                        render: (_: any, r: any) => {
+                            const available = Number(r.available_stock || 0);
+                            const needed = Number(r.quantity || 0);
+                            if (r.booking_status === 'CONFIRMED') return <Tag color="green" icon={<CheckCircleOutlined />}>Sẵn sàng</Tag>;
+                            if (available >= needed) return <Tag color="cyan" icon={<CheckCircleOutlined />}>Đủ kho</Tag>;
+                            return <Tag color="red" icon={<WarningOutlined />}>Thiếu {(needed - available).toLocaleString()}</Tag>;
+                        }
+                    }
+                ]}
+            />
+        </div>
     );
 
     const filteredOrders = pendingOrders.filter(o => {
@@ -127,18 +234,39 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
 
     return (
         <div>
-            <div style={{ marginBottom: 10, background: '#fffbe6', padding: 10, borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                <span><AlertOutlined /> Chọn đơn hàng để lập kế hoạch.</span>
-                <Space wrap>
-                    <Input.Search 
-                        placeholder="Tìm KH hoặc Mã SO..." 
+            {/* Stats bar */}
+            <div style={{
+                marginBottom: 12,
+                background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%)',
+                padding: '12px 16px',
+                borderRadius: 8,
+                border: '1px solid #91d5ff',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 8
+            }}>
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#1d39c4' }}>
+                        <AlertOutlined style={{ marginRight: 6 }} />
+                        Tổng: <b>{filteredOrders.length}</b> đơn chờ
+                    </span>
+                    {readyCount > 0 && (
+                        <Tag color="green" style={{ fontSize: 13, padding: '2px 10px', borderRadius: 12 }}>
+                            <CheckCircleOutlined /> {readyCount} sẵn sàng xuất kho
+                        </Tag>
+                    )}
+                </div>
+                <Space wrap size={8}>
+                    <Input.Search
+                        placeholder="Tìm KH hoặc Mã SO..."
                         allowClear
                         size="small"
+                        prefix={<SearchOutlined style={{ color: '#bbb' }} />}
                         onChange={(e) => setCustomerSearch(e.target.value)}
-                        style={{ width: isMobile ? '100%' : 200 }}
+                        style={{ width: isMobile ? '100%' : 220, borderRadius: 6 }}
                     />
-                    <FilterOutlined style={{ color: '#1890ff' }} />
-                    <span style={{ fontSize: 13 }}>Lọc ngày giao:</span>
                     <RangePicker
                         size="small"
                         format="DD/MM/YYYY"
@@ -146,19 +274,41 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
                         onChange={(dates) => setDeliveryDateRange(dates as [dayjs.Dayjs, dayjs.Dayjs] | null)}
                         allowClear
                         placeholder={['Từ ngày', 'Đến ngày']}
-                        style={{ width: isMobile ? '100%' : 240 }}
+                        style={{ width: isMobile ? '100%' : 240, borderRadius: 6 }}
                     />
                 </Space>
             </div>
+
             <Table
                 rowSelection={{ selectedRowKeys, onChange: (keys) => onSelectedRowKeysChange(keys) }}
                 dataSource={filteredOrders}
                 columns={pendingColumns}
                 rowKey="id"
                 expandable={{ expandedRowRender }}
-                scroll={{ x: isMobile ? 600 : undefined }}
-                footer={() => (<Button type="primary" disabled={selectedRowKeys.length === 0} onClick={onCreatePlan}>Lập Kế Hoạch</Button>)}
+                scroll={{ x: isMobile ? 800 : undefined }}
+                size="middle"
+                rowClassName={(record: any) => record.can_fulfill_stock ? 'row-ready-ship' : ''}
+                footer={() => (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ color: '#666', fontSize: 13 }}>
+                            <InfoCircleOutlined /> Chọn đơn hàng để gom lập kế hoạch sản xuất
+                        </span>
+                        <Button
+                            type="primary"
+                            disabled={selectedRowKeys.length === 0}
+                            onClick={onCreatePlan}
+                            style={{ borderRadius: 6, fontWeight: 500 }}
+                        >
+                            Lập Kế Hoạch ({selectedRowKeys.length})
+                        </Button>
+                    </div>
+                )}
             />
+
+            <style>{`
+                .row-ready-ship td { background: #f6ffed !important; }
+                .row-ready-ship:hover td { background: #d9f7be !important; }
+            `}</style>
         </div>
     );
 };

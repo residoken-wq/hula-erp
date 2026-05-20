@@ -34,6 +34,11 @@ export class PlanningController {
   }
 
   // --- MỚI: API Xác nhận Bookings ---
+  @Get(':id/booking-items')
+  getBookingItemsWithStock(@Param('id') id: number) {
+    return this.s.getBookingItemsWithStock(Number(id));
+  }
+
   @Post(':id/confirm-bookings')
   confirmBookings(@Param('id') id: number, @Body('itemIds') itemIds?: number[]) {
     return this.s.confirmBookings(id, itemIds);

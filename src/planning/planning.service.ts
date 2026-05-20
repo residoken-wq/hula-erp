@@ -39,11 +39,17 @@ export class PlanningService {
 
         const stocks = await this.inventoryService.getAllStocks();
         const stockMap = new Map<string, number>();
+        // Build stock map for ALL warehouses (excluding KHO_MAU)
+        const stockMapAll = new Map<string, number>();
 
         stocks.forEach(s => {
             if (s.item_type === 'PRODUCT' && s.warehouse_code === 'KHO_TP') {
                 const key = String(s.item_id);
                 stockMap.set(key, (stockMap.get(key) || 0) + Number(s.quantity));
+            }
+            if (s.item_type === 'PRODUCT' && s.warehouse_code !== 'KHO_MAU') {
+                const key = String(s.item_id);
+                stockMapAll.set(key, (stockMapAll.get(key) || 0) + Number(s.quantity));
             }
         });
 
@@ -53,12 +59,24 @@ export class PlanningService {
 
             const enrichedItems = o.items.map(item => {
                 let stock = 0;
+                let totalStock = 0;
+                const approvedBooking = Number(item.product?.approved_booking_stock || 0);
+                const bookingStock = Number(item.product?.booking_stock || 0);
                 if (item.product) {
                     stock = stockMap.get(String(item.product.id)) || 0;
+                    totalStock = stockMapAll.get(String(item.product.id)) || 0;
                 }
+                const availableStock = Math.max(0, totalStock - approvedBooking);
                 totalItems++;
-                if (stock < Number(item.quantity)) canFulfill = false;
-                return { ...item, available_stock_tp: stock };
+                if (availableStock < Number(item.quantity)) canFulfill = false;
+                return {
+                    ...item,
+                    available_stock_tp: stock,
+                    total_stock: totalStock,
+                    approved_booking_stock: approvedBooking,
+                    booking_stock: bookingStock,
+                    available_stock: availableStock,
+                };
             });
 
             if (!o.customer_name && o.customer) {
@@ -312,6 +330,74 @@ export class PlanningService {
         return { message: `Đã xác nhận ${confirmedCount} mục giữ chỗ.` };
     }
 
+    // --- Lấy booking items kèm thông tin tồn kho cho BookingApprovalModal ---
+    async getBookingItemsWithStock(planId: number) {
+        const plan = await this.planRepo.findOne({
+            where: { id: planId },
+            relations: [
+                'sales_orders', 'sales_orders.items', 'sales_orders.items.product',
+                'sales_orders.items.product.components', 'sales_orders.items.product.components.child_product',
+                'sales_orders.customer'
+            ]
+        });
+        if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
+
+        // Fetch real stock
+        const allStocks = await this.inventoryService.getAllStocks();
+        const stockMap = new Map<number, number>();
+        for (const s of allStocks) {
+            if (s.item_type === 'PRODUCT' && s.warehouse_code !== 'KHO_MAU') {
+                const key = Number(s.item_id);
+                stockMap.set(key, (stockMap.get(key) || 0) + Number(s.quantity));
+            }
+        }
+
+        const extractedItems: any[] = [];
+        for (const order of plan.sales_orders) {
+            const customerName = order.customer_name || order.customer?.name || '';
+            for (const item of order.items) {
+                const product = item.product;
+                const productType = product?.product_type || 'STANDARD';
+                const realStock = product ? (stockMap.get(product.id) || 0) : 0;
+                const approvedBooking = Number(product?.approved_booking_stock || 0);
+                const bookingStockVal = Number(product?.booking_stock || 0);
+                const availableStock = Math.max(0, realStock - approvedBooking);
+
+                let comboComponents: any[] = [];
+                if (productType === 'COMBO' && product?.components?.length > 0) {
+                    comboComponents = product.components.map((c: any) => {
+                        const childStock = c.child_product ? (stockMap.get(c.child_product.id) || 0) : 0;
+                        const childApproved = Number(c.child_product?.approved_booking_stock || 0);
+                        return {
+                            sku: c.child_product?.sku || '',
+                            name: c.child_product?.name || '',
+                            quantity_per_combo: Number(c.quantity),
+                            total_needed: Number(item.booked_quantity || item.quantity || 0) * Number(c.quantity),
+                            real_stock: childStock,
+                            approved_booking_stock: childApproved,
+                            available_stock: Math.max(0, childStock - childApproved),
+                        };
+                    });
+                }
+
+                extractedItems.push({
+                    ...item,
+                    order_code: order.order_code,
+                    customer_name: customerName,
+                    sku: product?.sku || item.sku,
+                    product_name: product?.name || '',
+                    product_type: productType,
+                    real_stock: realStock,
+                    approved_booking_stock: approvedBooking,
+                    booking_stock: bookingStockVal,
+                    available_stock: availableStock,
+                    combo_components: comboComponents.length > 0 ? comboComponents : undefined,
+                });
+            }
+        }
+        return { items: extractedItems, plan: { id: plan.id, name: plan.name || plan.code } };
+    }
+
     // --- MỚI: Revert Booking (CONFIRMED → TEMPORARY) ---
     async revertBooking(itemId: number) {
         const item = await this.orderItemRepo.findOne({
@@ -464,18 +550,40 @@ export class PlanningService {
             relations: ['order', 'order.assigned_to', 'order.customer', 'order.production_plan', 'product']
         });
 
+        // Fetch real stock
+        const allStocks = await this.inventoryService.getAllStocks();
+        const stockMap = new Map<number, number>();
+        for (const s of allStocks) {
+            if (s.item_type === 'PRODUCT' && s.warehouse_code !== 'KHO_MAU') {
+                const key = Number(s.item_id);
+                stockMap.set(key, (stockMap.get(key) || 0) + Number(s.quantity));
+            }
+        }
+
         const results = [];
         for (const item of items) {
             const product = item.product;
             let comboComponents: any[] = [];
+            const realStock = product ? (stockMap.get(product.id) || 0) : 0;
+            const approvedBooking = Number(product?.approved_booking_stock || 0);
+            const bookingStockTotal = Number(product?.booking_stock || 0);
+            const availableStock = Math.max(0, realStock - approvedBooking);
+
             if (product?.product_type === 'COMBO') {
                 const components = await this.productsService.getComboComponents(product.sku);
-                comboComponents = components.map(c => ({
-                    sku: c.child_product?.sku || '',
-                    name: c.child_product?.name || '',
-                    quantity_per_combo: Number(c.quantity),
-                    total_needed: Number(item.booked_quantity || 0) * Number(c.quantity),
-                }));
+                comboComponents = components.map(c => {
+                    const childStock = c.child_product ? (stockMap.get(c.child_product.id) || 0) : 0;
+                    const childApproved = Number(c.child_product?.approved_booking_stock || 0);
+                    return {
+                        sku: c.child_product?.sku || '',
+                        name: c.child_product?.name || '',
+                        quantity_per_combo: Number(c.quantity),
+                        total_needed: Number(item.booked_quantity || 0) * Number(c.quantity),
+                        real_stock: childStock,
+                        approved_booking_stock: childApproved,
+                        available_stock: Math.max(0, childStock - childApproved),
+                    };
+                });
             }
 
             results.push({
@@ -493,6 +601,10 @@ export class PlanningService {
                 assigned_to_name: item.order?.assigned_to?.full_name || '',
                 plan_code: item.order?.production_plan?.code || '',
                 order_id: item.order?.id,
+                real_stock: realStock,
+                approved_booking_stock: approvedBooking,
+                booking_stock: bookingStockTotal,
+                available_stock: availableStock,
                 combo_components: comboComponents.length > 0 ? comboComponents : undefined,
             });
         }
