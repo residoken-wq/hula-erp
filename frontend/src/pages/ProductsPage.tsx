@@ -565,25 +565,25 @@ const ProductsPage: React.FC = () => {
                             const available = Number(item.quantity_in_stock || 0) - Number(item.display_approved_booking_stock || 0);
                             const inventoryValue = Number(item.quantity_in_stock || 0) * Number(item.cost_price || item.base_price || 0);
                             const src = getGoogleDriveImageUrl(item.image_url);
-                            const imgHtml = src ? \`<img src="\${src}" class="product-img" />\` : '';
+                            const imgHtml = src ? `<img src="${src}" class="product-img" />` : '';
                             
-                            return \`
+                            return `
                             <tr>
-                                <td class="text-center">\${index + 1}</td>
-                                <td class="text-center">\${imgHtml}</td>
-                                <td><b>\${item.sku || ''}</b></td>
-                                <td>\${item.name || ''}</td>
-                                <td>\${getCategoryName(item.category_id) || ''}</td>
-                                \${option === 1 && canViewCost ? \`<td class="text-right">\${Number(item.cost_price || 0).toLocaleString()}</td>\` : ''}
-                                \${option === 1 ? \`<td class="text-right">\${Number(item.base_price || 0).toLocaleString()}</td>\` : ''}
-                                <td class="text-right">\${Number(item.quantity_in_stock || 0).toLocaleString()}</td>
-                                \${option === 1 && canViewCost ? \`<td class="text-right">\${inventoryValue.toLocaleString()}</td>\` : ''}
-                                <td class="text-right">\${Number(item.display_booking_stock || 0).toLocaleString()}</td>
-                                <td class="text-right">\${Number(item.display_approved_booking_stock || 0).toLocaleString()}</td>
-                                <td class="text-right">\${available.toLocaleString()}</td>
+                                <td class="text-center">${index + 1}</td>
+                                <td class="text-center">${imgHtml}</td>
+                                <td><b>${item.sku || ''}</b></td>
+                                <td>${item.name || ''}</td>
+                                <td>${getCategoryName(item.category_id) || ''}</td>
+                                ${option === 1 && canViewCost ? `<td class="text-right">${Number(item.cost_price || 0).toLocaleString()}</td>` : ''}
+                                ${option === 1 ? `<td class="text-right">${Number(item.base_price || 0).toLocaleString()}</td>` : ''}
+                                <td class="text-right">${Number(item.quantity_in_stock || 0).toLocaleString()}</td>
+                                ${option === 1 && canViewCost ? `<td class="text-right">${inventoryValue.toLocaleString()}</td>` : ''}
+                                <td class="text-right">${Number(item.display_booking_stock || 0).toLocaleString()}</td>
+                                <td class="text-right">${Number(item.display_approved_booking_stock || 0).toLocaleString()}</td>
+                                <td class="text-right">${available.toLocaleString()}</td>
                                 <td></td>
                             </tr>
-                            \`;
+                            `;
                         }).join('')}
                     </tbody>
                 </table>
