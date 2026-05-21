@@ -27,7 +27,7 @@ async function bootstrap() {
 
     // Serve Static Assets (Uploads)
     app.useStaticAssets(uploadDir, {
-      prefix: '/uploads/',
+      prefix: '/uploads',
     });
 
     // Increase body size limit (default is ~100kb, increase to 50MB)

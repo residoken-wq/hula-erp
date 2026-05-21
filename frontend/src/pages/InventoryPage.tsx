@@ -103,6 +103,23 @@ const InventoryPage: React.FC = () => {
     };
 
     const getStockQty = (type: string, id: number, whCode: string) => {
+        if (type === 'PRODUCT') {
+            const product = products.find(p => p.id === id);
+            if (product && product.product_type === 'COMBO') {
+                if (!product.combo_components || product.combo_components.length === 0) return 0;
+                let minStock = Infinity;
+                for (const comp of product.combo_components) {
+                    const childStockRecord = stocks.find(s => s.item_type === 'PRODUCT' && Number(s.item_id) === comp.child_id && s.warehouse_code === whCode);
+                    const childQty = childStockRecord ? Number(childStockRecord.quantity) : 0;
+                    const possibleStock = Math.floor(childQty / (Number(comp.quantity) || 1));
+                    if (possibleStock < minStock) {
+                        minStock = possibleStock;
+                    }
+                }
+                return minStock === Infinity ? 0 : minStock;
+            }
+        }
+        
         const record = stocks.find(s => s.item_type === type && Number(s.item_id) === id && s.warehouse_code === whCode);
         return record ? Number(record.quantity) : 0;
     };
@@ -355,7 +372,8 @@ const InventoryPage: React.FC = () => {
             <div style={{ overflowX: isMobile ? 'auto' : 'visible', marginBottom: 16 }}>
                 <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 700 : 'auto' }}>
                     {WAREHOUSES.map(wh => {
-                        const totalInWh = stocks.filter(s => s.warehouse_code === wh.code).reduce((sum, s) => sum + Number(s.quantity), 0);
+                        const whData = getDataByWarehouse(wh.code);
+                        const totalInWh = whData.reduce((sum, item) => sum + getStockQty(item.item_type, item.id, wh.code), 0);
                         return (
                             <Col flex={isMobile ? '140px' : 1} key={wh.code}>
                                 <Card size="small" bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ borderTop: `3px solid ${wh.color}` }}>

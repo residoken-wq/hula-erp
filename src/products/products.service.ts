@@ -65,6 +65,11 @@ export class ProductsService {
 
             // AUTO-CALCULATE COMBO STOCK
             if (product.product_type === 'COMBO') {
+                product.combo_components = components.map(c => ({
+                    child_id: c.child_product?.id,
+                    quantity: c.quantity
+                }));
+                
                 if (components.length === 0) {
                     product.quantity_in_stock = 0;
                 } else {
@@ -96,6 +101,7 @@ export class ProductsService {
     async findOne(id: number) {
         const product = await this.productRepo.findOne({ where: { id }, relations: ['category_link'] });
         if (product) {
+            await this.populateComboDescriptions([product]);
             try {
                 const config = await this.websiteConfigRepo.findOne({ where: { product_id: product.id } });
                 if (config) (product as any).customization_config = config.customization_config;
@@ -109,6 +115,7 @@ export class ProductsService {
     async findOneBySku(sku: string) {
         const product = await this.productRepo.findOne({ where: { sku }, relations: ['category_link'] });
         if (product) {
+            await this.populateComboDescriptions([product]);
             try {
                 const config = await this.websiteConfigRepo.findOne({ where: { product_id: product.id } });
                 if (config) (product as any).customization_config = config.customization_config;
