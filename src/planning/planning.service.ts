@@ -53,37 +53,76 @@ export class PlanningService {
             }
         });
 
-        return orders.map(o => {
+        const enrichedOrders = [];
+        for (const o of orders) {
             let canFulfill = true;
             let totalItems = 0;
 
-            const enrichedItems = o.items.map(item => {
+            const enrichedItems = [];
+            for (const item of o.items) {
                 let stock = 0;
                 let totalStock = 0;
-                const approvedBooking = Number(item.product?.approved_booking_stock || 0);
-                const bookingStock = Number(item.product?.booking_stock || 0);
-                if (item.product) {
-                    stock = stockMap.get(String(item.product.id)) || 0;
-                    totalStock = stockMapAll.get(String(item.product.id)) || 0;
+                let availableStock = 0;
+                const product = item.product;
+                const approvedBooking = Number(product?.approved_booking_stock || 0);
+                const bookingStock = Number(product?.booking_stock || 0);
+                
+                if (product) {
+                    if (product.product_type === 'COMBO') {
+                        const components = await this.productsService.getComboComponents(product.sku);
+                        if (components && components.length > 0) {
+                            let minStockTp = Infinity;
+                            let minStockAll = Infinity;
+                            let minAvailableAll = Infinity;
+                            for (const c of components) {
+                                if (c.child_product) {
+                                    const childId = String(c.child_product.id);
+                                    const childStockTp = stockMap.get(childId) || 0;
+                                    const childStockAll = stockMapAll.get(childId) || 0;
+                                    const childApproved = Number(c.child_product.approved_booking_stock || 0);
+                                    const childAvailable = Math.max(0, childStockAll - childApproved);
+                                    
+                                    const reqQty = Number(c.quantity) || 1;
+                                    
+                                    const possibleTp = Math.floor(childStockTp / reqQty);
+                                    const possibleAll = Math.floor(childStockAll / reqQty);
+                                    const possibleAvailable = Math.floor(childAvailable / reqQty);
+                                    
+                                    if (possibleTp < minStockTp) minStockTp = possibleTp;
+                                    if (possibleAll < minStockAll) minStockAll = possibleAll;
+                                    if (possibleAvailable < minAvailableAll) minAvailableAll = possibleAvailable;
+                                }
+                            }
+                            stock = minStockTp === Infinity ? 0 : minStockTp;
+                            totalStock = minStockAll === Infinity ? 0 : minStockAll;
+                            availableStock = minAvailableAll === Infinity ? 0 : minAvailableAll;
+                        }
+                    } else {
+                        stock = stockMap.get(String(product.id)) || 0;
+                        totalStock = stockMapAll.get(String(product.id)) || 0;
+                        availableStock = Math.max(0, totalStock - approvedBooking);
+                    }
                 }
-                const availableStock = Math.max(0, totalStock - approvedBooking);
                 totalItems++;
                 if (availableStock < Number(item.quantity)) canFulfill = false;
-                return {
+                
+                enrichedItems.push({
                     ...item,
                     available_stock_tp: stock,
                     total_stock: totalStock,
                     approved_booking_stock: approvedBooking,
                     booking_stock: bookingStock,
                     available_stock: availableStock,
-                };
-            });
+                });
+            }
 
             if (!o.customer_name && o.customer) {
                 o.customer_name = o.customer.name;
             }
-            return { ...o, items: enrichedItems, can_fulfill_stock: (totalItems > 0 && canFulfill) };
-        });
+            enrichedOrders.push({ ...o, items: enrichedItems, can_fulfill_stock: (totalItems > 0 && canFulfill) });
+        }
+
+        return enrichedOrders;
     }
 
     async createPlan(data: any) {

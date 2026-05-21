@@ -537,7 +537,7 @@ const ProductsPage: React.FC = () => {
                     .text-right { text-align: right; }
                     .text-center { text-align: center; }
                     .product-img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
-                    .empty-note { min-width: 100px; }
+                    .empty-note { min-width: 130px; }
                 </style>
             </head>
             <body>
@@ -549,7 +549,6 @@ const ProductsPage: React.FC = () => {
                             <th>Ảnh</th>
                             <th>Mã (SKU)</th>
                             <th>Tên Sản Phẩm</th>
-                            <th>Phân loại</th>
                             ${option === 1 && canViewCost ? '<th>Giá vốn</th>' : ''}
                             ${option === 1 ? '<th>Giá bán</th>' : ''}
                             <th>Tồn kho thật</th>
@@ -573,7 +572,6 @@ const ProductsPage: React.FC = () => {
                                 <td class="text-center">${imgHtml}</td>
                                 <td><b>${item.sku || ''}</b></td>
                                 <td>${item.name || ''}</td>
-                                <td>${getCategoryName(item.category_id) || ''}</td>
                                 ${option === 1 && canViewCost ? `<td class="text-right">${Number(item.cost_price || 0).toLocaleString()}</td>` : ''}
                                 ${option === 1 ? `<td class="text-right">${Number(item.base_price || 0).toLocaleString()}</td>` : ''}
                                 <td class="text-right">${Number(item.quantity_in_stock || 0).toLocaleString()}</td>
