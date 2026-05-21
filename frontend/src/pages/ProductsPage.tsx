@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox, DatePicker } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined, EyeOutlined } from '@ant-design/icons';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox, DatePicker, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined, EyeOutlined, PrinterOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import api from '../utils/api';
 import useMobile from '../hooks/useMobile';
@@ -514,6 +515,98 @@ const ProductsPage: React.FC = () => {
         });
     };
 
+    const handlePrint = (option: 1 | 2) => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            message.error('Trình duyệt đã chặn popup. Vui lòng cho phép popup để in.');
+            return;
+        }
+
+        const tableHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>In Danh Sách Sản Phẩm</title>
+                <style>
+                    @page { size: landscape; margin: 10mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 12px; color: #333; }
+                    h2 { text-align: center; margin-bottom: 20px; text-transform: uppercase; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; vertical-align: middle; }
+                    th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
+                    .text-right { text-align: right; }
+                    .text-center { text-align: center; }
+                    .product-img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+                    .empty-note { min-width: 100px; }
+                </style>
+            </head>
+            <body>
+                <h2>Danh Sách Sản Phẩm</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Ảnh</th>
+                            <th>Mã (SKU)</th>
+                            <th>Tên Sản Phẩm</th>
+                            <th>Phân loại</th>
+                            ${option === 1 && canViewCost ? '<th>Giá vốn</th>' : ''}
+                            ${option === 1 ? '<th>Giá bán</th>' : ''}
+                            <th>Tồn kho thật</th>
+                            ${option === 1 && canViewCost ? '<th>Giá trị tồn</th>' : ''}
+                            <th>Đã Booking</th>
+                            <th>Approved</th>
+                            <th>Khả dụng</th>
+                            <th class="empty-note">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredData.map((item, index) => {
+                            const available = Number(item.quantity_in_stock || 0) - Number(item.display_approved_booking_stock || 0);
+                            const inventoryValue = Number(item.quantity_in_stock || 0) * Number(item.cost_price || item.base_price || 0);
+                            const src = getGoogleDriveImageUrl(item.image_url);
+                            const imgHtml = src ? \`<img src="\${src}" class="product-img" />\` : '';
+                            
+                            return \`
+                            <tr>
+                                <td class="text-center">\${index + 1}</td>
+                                <td class="text-center">\${imgHtml}</td>
+                                <td><b>\${item.sku || ''}</b></td>
+                                <td>\${item.name || ''}</td>
+                                <td>\${getCategoryName(item.category_id) || ''}</td>
+                                \${option === 1 && canViewCost ? \`<td class="text-right">\${Number(item.cost_price || 0).toLocaleString()}</td>\` : ''}
+                                \${option === 1 ? \`<td class="text-right">\${Number(item.base_price || 0).toLocaleString()}</td>\` : ''}
+                                <td class="text-right">\${Number(item.quantity_in_stock || 0).toLocaleString()}</td>
+                                \${option === 1 && canViewCost ? \`<td class="text-right">\${inventoryValue.toLocaleString()}</td>\` : ''}
+                                <td class="text-right">\${Number(item.display_booking_stock || 0).toLocaleString()}</td>
+                                <td class="text-right">\${Number(item.display_approved_booking_stock || 0).toLocaleString()}</td>
+                                <td class="text-right">\${available.toLocaleString()}</td>
+                                <td></td>
+                            </tr>
+                            \`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(tableHTML);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        setTimeout(() => {
+            printWindow.print();
+        }, 1000);
+    };
+
+    const printMenuProps: MenuProps = {
+        items: [
+            { key: '1', label: 'In tất cả các cột', onClick: () => handlePrint(1) },
+            { key: '2', label: 'In ẩn giá vốn/giá bán', onClick: () => handlePrint(2) },
+        ],
+    };
+
     return (
         <Card
             bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
@@ -522,6 +615,9 @@ const ProductsPage: React.FC = () => {
                 isMobile ? (
                     <Space size={4}>
                         <Input placeholder="Tìm..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 120 }} allowClear />
+                        <Dropdown menu={printMenuProps} placement="bottomRight" trigger={['click']}>
+                            <Button icon={<PrinterOutlined />} />
+                        </Dropdown>
                         <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1') }} />
                     </Space>
                 ) : (
@@ -557,6 +653,9 @@ const ProductsPage: React.FC = () => {
                         {canViewCost && (
                             <Button icon={<SyncOutlined />} onClick={handleCalculateAllCosts}>Cập nhật tất cả giá</Button>
                         )}
+                        <Dropdown menu={printMenuProps} placement="bottomRight">
+                            <Button icon={<PrinterOutlined />}>In DS</Button>
+                        </Dropdown>
                         {canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setActiveTab('1') }}>Thêm Mới</Button>}
                     </Space>
                 )
