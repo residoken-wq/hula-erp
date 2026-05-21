@@ -97,7 +97,7 @@ export default function Footer() {
                         <Link href="/" className="flex items-center space-x-2 mb-6 inline-block">
                             {settings.logo_url ? (
                                 <img
-                                    src={resolveImageUrl(settings.logo_url)}
+                                    src={resolveImageUrl(settings.logo_url, 'original')}
                                     alt={settings.site_name || 'HULA'}
                                     className="h-20 md:h-24 lg:h-[12rem] w-auto object-contain max-w-[280px] md:max-w-[320px] lg:max-w-[400px]"
                                     style={{ filter: 'brightness(0) invert(1)' }}

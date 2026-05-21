@@ -202,17 +202,35 @@ export class UploadController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadWatermarkImage(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Chưa chọn file watermark!');
-    return this.uploadService.setWatermarkImage(file);
+    return this.uploadService.setWatermarkImage(file, 'watermark_config');
   }
 
   @Get('watermark/config')
   async getWatermarkConfig() {
-    return this.uploadService.getWatermarkConfig();
+    return this.uploadService.getWatermarkConfig('watermark_config');
   }
 
   @Post('watermark/config')
   async saveWatermarkConfig(@Body() body: any) {
-    return this.uploadService.saveWatermarkConfig(body);
+    return this.uploadService.saveWatermarkConfig(body, 'watermark_config');
+  }
+
+  // --- B2B WATERMARK MANAGEMENT ---
+  @Post('watermark/b2b/image')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadWatermarkB2BImage(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Chưa chọn file watermark B2B!');
+    return this.uploadService.setWatermarkImage(file, 'watermark_b2b_config');
+  }
+
+  @Get('watermark/b2b/config')
+  async getWatermarkB2BConfig() {
+    return this.uploadService.getWatermarkConfig('watermark_b2b_config');
+  }
+
+  @Post('watermark/b2b/config')
+  async saveWatermarkB2BConfig(@Body() body: any) {
+    return this.uploadService.saveWatermarkConfig(body, 'watermark_b2b_config');
   }
 
   @Post('watermark/regenerate')
@@ -224,6 +242,12 @@ export class UploadController {
   @Get('files/original/:filename')
   async serveOriginalFile(@Param('filename') filename: string, @Res() res: Response) {
     return this.uploadService.serveOriginalFile(filename, res);
+  }
+
+  @Public()
+  @Get('files/b2b/:filename')
+  async serveB2BFile(@Param('filename') filename: string, @Res() res: Response) {
+    return this.uploadService.serveB2BFile(filename, res);
   }
 
   @Get('template/:type')

@@ -8,8 +8,8 @@ const getApiBaseUrl = () => {
 
 const resolveImageUrl = (url?: string): string => {
     if (!url) return '';
-    if (url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/${url.replace('/uploads/', '')}`;
-    return url;
+    if (typeof url === 'string' && url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/b2b/${url.replace('/uploads/', '')}`;
+    return typeof url === 'string' ? url : '';
 };
 
 // Guard: chỉ coi là có color_code khi giá trị thực sự hợp lệ (loại trừ #000000 do HTML color picker mặc định)

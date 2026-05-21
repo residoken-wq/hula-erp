@@ -122,14 +122,30 @@ export class UploadService {
 
     // Apply watermark if enabled and image qualifies
     if (isWatermarkable) {
+      // 1. General watermark
+      let generalBuffer = buffer;
       try {
-        buffer = await this.applyWatermark(buffer);
+        generalBuffer = await this.applyWatermark(buffer, 'watermark_config');
       } catch (err) {
-        console.warn('Watermark failed, using original:', err.message);
+        console.warn('General watermark failed, using original:', err.message);
       }
-    }
+      fs.writeFileSync(filePath, generalBuffer);
 
-    fs.writeFileSync(filePath, buffer);
+      // 2. B2B watermark
+      let b2bBuffer = buffer;
+      try {
+        b2bBuffer = await this.applyWatermark(buffer, 'watermark_b2b_config');
+      } catch (err) {
+        console.warn('B2B watermark failed, using original:', err.message);
+      }
+      const b2bDir = path.join(uploadDir, '_b2b');
+      if (!fs.existsSync(b2bDir)) {
+        fs.mkdirSync(b2bDir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(b2bDir, filename), b2bBuffer);
+    } else {
+      fs.writeFileSync(filePath, buffer);
+    }
 
     // Return backend API URL for serving
     return { url: `/uploads/${filename}` };
@@ -241,55 +257,55 @@ export class UploadService {
   // WATERMARK METHODS
   // ============================================
 
-  async getWatermarkConfig(): Promise<{ enabled: boolean; position: string; opacity: number; sizeRatio: number; imageFile: string }> {
+  async getWatermarkConfig(configKey: string = 'watermark_config'): Promise<{ enabled: boolean; position: string; opacity: number; sizeRatio: number; imageFile: string }> {
     try {
-      const config = await this.configRepo.findOne({ where: { key: 'watermark_config' } });
+      const config = await this.configRepo.findOne({ where: { key: configKey } });
       if (config && config.value) {
         return JSON.parse(config.value);
       }
     } catch (e) {
-      console.warn('Failed to load watermark config:', e.message);
+      console.warn(`Failed to load ${configKey}:`, e.message);
     }
     return { enabled: false, position: 'southeast', opacity: 0.4, sizeRatio: 0.25, imageFile: '' };
   }
 
-  async saveWatermarkConfig(cfg: any): Promise<{ success: boolean }> {
+  async saveWatermarkConfig(cfg: any, configKey: string = 'watermark_config'): Promise<{ success: boolean }> {
     const value = JSON.stringify(cfg);
-    const existing = await this.configRepo.findOne({ where: { key: 'watermark_config' } });
+    const existing = await this.configRepo.findOne({ where: { key: configKey } });
     if (existing) {
       existing.value = value;
       await this.configRepo.save(existing);
     } else {
-      await this.configRepo.save({ key: 'watermark_config', value, description: 'Watermark configuration' });
+      await this.configRepo.save({ key: configKey, value, description: `${configKey} configuration` });
     }
     return { success: true };
   }
 
-  async setWatermarkImage(file: Express.Multer.File): Promise<{ url: string }> {
+  async setWatermarkImage(file: Express.Multer.File, configKey: string = 'watermark_config'): Promise<{ url: string }> {
     const fs = require('fs');
     const path = require('path');
     const uploadDir = path.join(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-    const filename = '_watermark.png';
+    const filename = configKey === 'watermark_b2b_config' ? '_watermark_b2b.png' : '_watermark.png';
     const filePath = path.join(uploadDir, filename);
     fs.writeFileSync(filePath, file.buffer);
 
     // Update config with filename
-    const config = await this.getWatermarkConfig();
+    const config = await this.getWatermarkConfig(configKey);
     config.imageFile = filename;
     config.enabled = true;
-    await this.saveWatermarkConfig(config);
+    await this.saveWatermarkConfig(config, configKey);
 
     return { url: `/uploads/${filename}` };
   }
 
-  private async applyWatermark(imageBuffer: Buffer): Promise<Buffer> {
+  private async applyWatermark(imageBuffer: Buffer, configKey: string = 'watermark_config'): Promise<Buffer> {
     const sharp = require('sharp');
     const fs = require('fs');
     const path = require('path');
 
-    const config = await this.getWatermarkConfig();
+    const config = await this.getWatermarkConfig(configKey);
     if (!config.enabled || !config.imageFile) return imageBuffer;
 
     const watermarkPath = path.join(process.cwd(), 'uploads', config.imageFile);
@@ -365,6 +381,31 @@ export class UploadService {
     return this.serveFile(filename, res);
   }
 
+  async serveB2BFile(filename: string, res: any) {
+    const fs = require('fs');
+    const path = require('path');
+    const safeName = path.basename(filename);
+    const b2bPath = path.join(process.cwd(), 'uploads', '_b2b', safeName);
+
+    if (fs.existsSync(b2bPath)) {
+      const stat = fs.statSync(b2bPath);
+      const ext = path.extname(safeName).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+        '.gif': 'image/gif', '.webp': 'image/webp',
+      };
+      res.set('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+      res.set('Content-Length', stat.size);
+      res.set('Cache-Control', 'public, max-age=86400');
+      res.set('Access-Control-Allow-Origin', '*');
+      const stream = fs.createReadStream(b2bPath);
+      return stream.pipe(res);
+    }
+
+    // Fallback to regular file if no B2B specific version exists
+    return this.serveFile(filename, res);
+  }
+
   async regenerateAllWatermarks(): Promise<{ processed: number; skipped: number; errors: string[] }> {
     const fs = require('fs');
     const path = require('path');
@@ -408,8 +449,13 @@ export class UploadService {
           continue;
         }
 
-        const watermarked = await this.applyWatermark(originalBuffer);
-        fs.writeFileSync(path.join(uploadsDir, filename), watermarked);
+        const generalWatermarked = await this.applyWatermark(originalBuffer, 'watermark_config');
+        fs.writeFileSync(path.join(uploadsDir, filename), generalWatermarked);
+
+        const b2bWatermarked = await this.applyWatermark(originalBuffer, 'watermark_b2b_config');
+        const b2bDir = path.join(uploadsDir, '_b2b');
+        if (!fs.existsSync(b2bDir)) fs.mkdirSync(b2bDir, { recursive: true });
+        fs.writeFileSync(path.join(b2bDir, filename), b2bWatermarked);
         processed++;
       } catch (e) {
         errors.push(`${filename}: ${e.message}`);
