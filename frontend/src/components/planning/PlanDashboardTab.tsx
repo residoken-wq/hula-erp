@@ -237,6 +237,87 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                                 ))}
                             </div>
                         )
+                    },
+                    {
+                        key: '5', label: '5. Chi Tiết SP & BOM',
+                        children: (
+                            <div>
+                                <div style={{ marginBottom: 10 }}>Danh sách sản phẩm thuộc Kế hoạch và định mức nguyên liệu (BOM).</div>
+                                <Table
+                                    dataSource={(() => {
+                                        const uniqueProducts: any[] = [];
+                                        const productMap = new Set();
+                                        mrpData?.plan_info?.sales_orders?.forEach((o: any) => {
+                                            o.items?.forEach((i: any) => {
+                                                if (i.product && !productMap.has(i.product.id)) {
+                                                    productMap.add(i.product.id);
+                                                    uniqueProducts.push(i.product);
+                                                }
+                                            });
+                                        });
+                                        return uniqueProducts;
+                                    })()}
+                                    rowKey="id"
+                                    pagination={false}
+                                    size="small"
+                                    scroll={{ y: 450 }}
+                                    columns={[
+                                        { title: 'SKU', dataIndex: 'sku', width: 120, render: (t) => <b>{t}</b> },
+                                        { title: 'Tên Sản Phẩm', dataIndex: 'name' },
+                                        { 
+                                            title: 'Loại', dataIndex: 'product_type', width: 120, 
+                                            render: (t) => t === 'COMBO' ? <Tag color="purple">COMBO</Tag> : <Tag color="blue">STANDARD</Tag> 
+                                        }
+                                    ]}
+                                    expandable={{
+                                        expandedRowRender: (record: any) => {
+                                            const renderBOMs = (boms: any[]) => {
+                                                if (!boms || boms.length === 0) return <div style={{ color: '#888', fontStyle: 'italic' }}>Chưa có thông tin định mức nguyên liệu (BOM)</div>;
+                                                return (
+                                                    <Table
+                                                        dataSource={boms}
+                                                        pagination={false}
+                                                        size="small"
+                                                        rowKey="id"
+                                                        columns={[
+                                                            { title: 'Nguyên liệu (Mã)', dataIndex: ['material', 'code'], key: 'code', render: (t) => <b>{t}</b> },
+                                                            { title: 'Tên nguyên liệu', dataIndex: ['material', 'name'], key: 'name' },
+                                                            { title: 'SL (Định mức)', dataIndex: 'quantity', key: 'qty', render: (v) => Number(v).toLocaleString() },
+                                                            { title: '% Hao hụt', dataIndex: 'waste_percent', key: 'waste', render: (v) => `${Number(v)}%` }
+                                                        ]}
+                                                    />
+                                                );
+                                            };
+
+                                            if (record.product_type === 'COMBO') {
+                                                if (!record.components || record.components.length === 0) return <div style={{ color: '#888' }}>Không có thông tin thành phần</div>;
+                                                return (
+                                                    <div style={{ padding: '10px 20px', background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 4 }}>
+                                                        <div style={{ fontWeight: 'bold', marginBottom: 10, color: '#722ed1' }}>Các thành phần của COMBO:</div>
+                                                        {record.components.map((c: any, idx: number) => (
+                                                            <div key={idx} style={{ marginBottom: 15, padding: 12, border: '1px solid #d9d9d9', borderRadius: 6, background: '#fff' }}>
+                                                                <div style={{ marginBottom: 10, fontSize: 13 }}>
+                                                                    <b>{c.child_product?.sku}</b> - {c.child_product?.name} 
+                                                                    <Tag color="purple" style={{ marginLeft: 8 }}>Số lượng: {c.quantity}</Tag>
+                                                                </div>
+                                                                {renderBOMs(c.child_product?.boms)}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div style={{ padding: '10px 20px', background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 4 }}>
+                                                        <div style={{ fontWeight: 'bold', marginBottom: 10, color: '#096dd9' }}>Định mức nguyên liệu (BOM):</div>
+                                                        {renderBOMs(record.boms)}
+                                                    </div>
+                                                );
+                                            }
+                                        }
+                                    }}
+                                />
+                            </div>
+                        )
                     }
                 ]} />
             </div>

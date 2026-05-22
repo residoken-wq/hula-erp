@@ -72,17 +72,29 @@ export class ProductsService {
                 
                 if (components.length === 0) {
                     product.quantity_in_stock = 0;
+                    product.booking_stock = 0;
+                    product.approved_booking_stock = 0;
                 } else {
                     let minStock = Infinity;
+                    let minBooking = Infinity;
+                    let minApproved = Infinity;
                     for (const c of components) {
                         const childStock = Number(c.child_product?.quantity_in_stock) || 0;
+                        const childBooking = Number(c.child_product?.booking_stock) || 0;
+                        const childApproved = Number(c.child_product?.approved_booking_stock) || 0;
                         const reqQty = Number(c.quantity) || 1;
+
                         const possibleStock = Math.floor(childStock / reqQty);
-                        if (possibleStock < minStock) {
-                            minStock = possibleStock;
-                        }
+                        const possibleBooking = Math.floor(childBooking / reqQty);
+                        const possibleApproved = Math.floor(childApproved / reqQty);
+
+                        if (possibleStock < minStock) minStock = possibleStock;
+                        if (possibleBooking < minBooking) minBooking = possibleBooking;
+                        if (possibleApproved < minApproved) minApproved = possibleApproved;
                     }
                     product.quantity_in_stock = minStock === Infinity ? 0 : minStock;
+                    product.booking_stock = minBooking === Infinity ? 0 : minBooking;
+                    product.approved_booking_stock = minApproved === Infinity ? 0 : minApproved;
                 }
             }
         }

@@ -403,10 +403,29 @@ export class PlanningService {
                 const availableStock = Math.max(0, realStock - approvedBooking);
 
                 let comboComponents: any[] = [];
+                let minRealStock = Infinity;
+                let minApprovedBooking = Infinity;
+                let minAvailableStock = Infinity;
+                let minBookingStock = Infinity;
+
                 if (productType === 'COMBO' && product?.components?.length > 0) {
                     comboComponents = product.components.map((c: any) => {
                         const childStock = c.child_product ? (stockMap.get(c.child_product.id) || 0) : 0;
                         const childApproved = Number(c.child_product?.approved_booking_stock || 0);
+                        const childAvailable = Math.max(0, childStock - childApproved);
+                        const childBooking = Number(c.child_product?.booking_stock || 0);
+                        const reqQty = Number(c.quantity) || 1;
+
+                        const possibleStock = Math.floor(childStock / reqQty);
+                        const possibleApproved = Math.floor(childApproved / reqQty);
+                        const possibleAvailable = Math.floor(childAvailable / reqQty);
+                        const possibleBooking = Math.floor(childBooking / reqQty);
+
+                        if (possibleStock < minRealStock) minRealStock = possibleStock;
+                        if (possibleApproved < minApprovedBooking) minApprovedBooking = possibleApproved;
+                        if (possibleAvailable < minAvailableStock) minAvailableStock = possibleAvailable;
+                        if (possibleBooking < minBookingStock) minBookingStock = possibleBooking;
+
                         return {
                             sku: c.child_product?.sku || '',
                             name: c.child_product?.name || '',
@@ -414,10 +433,15 @@ export class PlanningService {
                             total_needed: Number(item.booked_quantity || item.quantity || 0) * Number(c.quantity),
                             real_stock: childStock,
                             approved_booking_stock: childApproved,
-                            available_stock: Math.max(0, childStock - childApproved),
+                            available_stock: childAvailable,
                         };
                     });
                 }
+
+                const finalRealStock = productType === 'COMBO' ? (minRealStock === Infinity ? 0 : minRealStock) : realStock;
+                const finalApprovedBooking = productType === 'COMBO' ? (minApprovedBooking === Infinity ? 0 : minApprovedBooking) : approvedBooking;
+                const finalAvailableStock = productType === 'COMBO' ? (minAvailableStock === Infinity ? 0 : minAvailableStock) : availableStock;
+                const finalBookingStock = productType === 'COMBO' ? (minBookingStock === Infinity ? 0 : minBookingStock) : bookingStockVal;
 
                 extractedItems.push({
                     ...item,
@@ -426,10 +450,10 @@ export class PlanningService {
                     sku: product?.sku || item.sku,
                     product_name: product?.name || '',
                     product_type: productType,
-                    real_stock: realStock,
-                    approved_booking_stock: approvedBooking,
-                    booking_stock: bookingStockVal,
-                    available_stock: availableStock,
+                    real_stock: finalRealStock,
+                    approved_booking_stock: finalApprovedBooking,
+                    booking_stock: finalBookingStock,
+                    available_stock: finalAvailableStock,
                     combo_components: comboComponents.length > 0 ? comboComponents : undefined,
                 });
             }
@@ -603,6 +627,10 @@ export class PlanningService {
         for (const item of items) {
             const product = item.product;
             let comboComponents: any[] = [];
+            let minRealStock = Infinity;
+            let minApprovedBooking = Infinity;
+            let minAvailableStock = Infinity;
+            let minBookingStock = Infinity;
             const realStock = product ? (stockMap.get(product.id) || 0) : 0;
             const approvedBooking = Number(product?.approved_booking_stock || 0);
             const bookingStockTotal = Number(product?.booking_stock || 0);
@@ -613,6 +641,20 @@ export class PlanningService {
                 comboComponents = components.map(c => {
                     const childStock = c.child_product ? (stockMap.get(c.child_product.id) || 0) : 0;
                     const childApproved = Number(c.child_product?.approved_booking_stock || 0);
+                    const childAvailable = Math.max(0, childStock - childApproved);
+                    const childBooking = Number(c.child_product?.booking_stock || 0);
+                    const reqQty = Number(c.quantity) || 1;
+
+                    const possibleStock = Math.floor(childStock / reqQty);
+                    const possibleApproved = Math.floor(childApproved / reqQty);
+                    const possibleAvailable = Math.floor(childAvailable / reqQty);
+                    const possibleBooking = Math.floor(childBooking / reqQty);
+
+                    if (possibleStock < minRealStock) minRealStock = possibleStock;
+                    if (possibleApproved < minApprovedBooking) minApprovedBooking = possibleApproved;
+                    if (possibleAvailable < minAvailableStock) minAvailableStock = possibleAvailable;
+                    if (possibleBooking < minBookingStock) minBookingStock = possibleBooking;
+
                     return {
                         sku: c.child_product?.sku || '',
                         name: c.child_product?.name || '',
@@ -620,10 +662,15 @@ export class PlanningService {
                         total_needed: Number(item.booked_quantity || 0) * Number(c.quantity),
                         real_stock: childStock,
                         approved_booking_stock: childApproved,
-                        available_stock: Math.max(0, childStock - childApproved),
+                        available_stock: childAvailable,
                     };
                 });
             }
+
+            const finalRealStock = product?.product_type === 'COMBO' ? (minRealStock === Infinity ? 0 : minRealStock) : realStock;
+            const finalApprovedBooking = product?.product_type === 'COMBO' ? (minApprovedBooking === Infinity ? 0 : minApprovedBooking) : approvedBooking;
+            const finalAvailableStock = product?.product_type === 'COMBO' ? (minAvailableStock === Infinity ? 0 : minAvailableStock) : availableStock;
+            const finalBookingStock = product?.product_type === 'COMBO' ? (minBookingStock === Infinity ? 0 : minBookingStock) : bookingStockTotal;
 
             results.push({
                 id: item.id,
@@ -640,10 +687,10 @@ export class PlanningService {
                 assigned_to_name: item.order?.assigned_to?.full_name || '',
                 plan_code: item.order?.production_plan?.code || '',
                 order_id: item.order?.id,
-                real_stock: realStock,
-                approved_booking_stock: approvedBooking,
-                booking_stock: bookingStockTotal,
-                available_stock: availableStock,
+                real_stock: finalRealStock,
+                approved_booking_stock: finalApprovedBooking,
+                booking_stock: finalBookingStock,
+                available_stock: finalAvailableStock,
                 combo_components: comboComponents.length > 0 ? comboComponents : undefined,
             });
         }

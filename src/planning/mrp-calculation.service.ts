@@ -19,7 +19,20 @@ export class MrpCalculationService {
 
     // --- LOGIC PHÂN TÍCH KẾ HOẠCH (MRP & GIA CÔNG) ---
     async calculateMaterialNeeds(planId: number) {
-        const plan = await this.planRepo.findOne({ where: { id: planId }, relations: ['sales_orders', 'sales_orders.items'] });
+        const plan = await this.planRepo.findOne({
+            where: { id: planId },
+            relations: [
+                'sales_orders',
+                'sales_orders.items',
+                'sales_orders.items.product',
+                'sales_orders.items.product.components',
+                'sales_orders.items.product.components.child_product',
+                'sales_orders.items.product.components.child_product.boms',
+                'sales_orders.items.product.components.child_product.boms.material',
+                'sales_orders.items.product.boms',
+                'sales_orders.items.product.boms.material'
+            ]
+        });
         if (!plan) throw new NotFoundException();
 
         // 1. Kiểm tra xem đã có kết quả đã lưu chưa
