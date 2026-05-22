@@ -336,7 +336,7 @@ export class InventoryService {
     return this.deliveryRepo.find({
       where: { status: In(['SHIPPED', 'DELIVERING', 'DELIVERED']) },
       relations: ['sales_order', 'sales_order.customer', 'items'],
-      order: { updated_at: 'DESC' }
+      order: { created_at: 'DESC' }
     });
   }
 
