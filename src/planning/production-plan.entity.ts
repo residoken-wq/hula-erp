@@ -4,8 +4,13 @@ import { SalesOrder } from '../sales/sales-order.entity';
 export enum PlanStatus {
   DRAFT = 'DRAFT',                     // Mới tạo
   CALCULATED = 'CALCULATED',           // Đã chạy MRP (Tính toán vật tư)
+  HAS_PO_MATERIAL = 'HAS_PO_MATERIAL', // Đã có PO_NPL
+  HAS_PO_OUTSOURCING = 'HAS_PO_OUTSOURCING', // Đã có PO_CG
   IN_PRODUCTION = 'IN_PRODUCTION',     // Đang sản xuất
-  COMPLETED = 'COMPLETED'              // Đã hoàn thành SX
+  STOCK_RECEIVED = 'STOCK_RECEIVED',   // Đã nhập Kho
+  DELIVERED_TO_CUSTOMER = 'DELIVERED_TO_CUSTOMER', // Đã giao cho khách hàng
+  COMPLETED = 'COMPLETED',             // Đã hoàn thành SX (Legacy)
+  DONE = 'DONE'                        // Done
 }
 
 @Entity('production_plans')

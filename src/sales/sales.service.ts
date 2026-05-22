@@ -735,7 +735,7 @@ export class SalesService {
 
         // --- Ràng buộc: CONFIRMED booking HOẶC tồn kho khả dụng đủ ---
         const errors: string[] = [];
-        for (const reqItem of data.items) {
+        for (const reqItem of data.items || []) {
             const soItem = order.items.find(i => i.sku === reqItem.sku);
             if (!soItem) continue;
 
@@ -765,23 +765,36 @@ export class SalesService {
             throw new BadRequestException(`Không thể xuất kho:\n${errors.join('\n')}`);
         }
 
-        const delivery = this.deliveryRepo.create({
-            code: data.code,
-            delivery_date: data.date,
-            note: data.note,
-            delivery_address: data.delivery_address,
-            contact_name: data.contact_name,
-            contact_phone: data.contact_phone,
-            sales_order: order,
-            items: data.items,
-            attachments: data.attachments || [] // <--- Save Attachments
-        });
-        const savedDelivery = await this.deliveryRepo.save(delivery);
+        let deliveryCode = data.code;
+        const existingCode = await this.deliveryRepo.findOne({ where: { code: deliveryCode } });
+        if (existingCode) {
+            // Fix duplicate code issue if user clicks multiple times in the same minute
+            deliveryCode = `${deliveryCode}-${Math.floor(Math.random() * 1000)}`;
+        }
 
-        // NO AUTO DEDUCT STOCK HERE. 
-        // Stock will be deducted when Inventory User confirms (PENDING_EXPORT -> SHIPPED).
+        try {
+            const delivery = this.deliveryRepo.create({
+                code: deliveryCode,
+                order_id: orderId,
+                delivery_date: data.date,
+                note: data.note,
+                delivery_address: data.delivery_address,
+                contact_name: data.contact_name,
+                contact_phone: data.contact_phone,
+                sales_order: order,
+                items: data.items,
+                attachments: data.attachments || [] // <--- Save Attachments
+            });
+            const savedDelivery = await this.deliveryRepo.save(delivery);
 
-        return this.orderRepo.save(order);
+            // NO AUTO DEDUCT STOCK HERE. 
+            // Stock will be deducted when Inventory User confirms (PENDING_EXPORT -> SHIPPED).
+
+            return await this.orderRepo.save(order);
+        } catch (e) {
+            this.logger.error('Lỗi khi tạo phiếu xuất kho:', e.stack);
+            throw new BadRequestException('Lỗi hệ thống khi tạo phiếu xuất kho: ' + e.message);
+        }
     }
 
     async updateDelivery(deliveryId: number, data: any) {

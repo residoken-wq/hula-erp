@@ -24,8 +24,8 @@ const BookingApprovalModal: React.FC<BookingApprovalModalProps> = ({
     // Summary stats
     const temporaryItems = items.filter(i => i.booking_status === 'TEMPORARY');
     const confirmedItems = items.filter(i => i.booking_status === 'CONFIRMED');
-    const totalNeeded = temporaryItems.reduce((s, i) => s + Number(i.booked_quantity || i.quantity || 0), 0);
-    const sufficientCount = temporaryItems.filter(i => Number(i.available_stock || 0) >= Number(i.booked_quantity || i.quantity || 0)).length;
+    const totalNeeded = temporaryItems.reduce((s, i) => s + Number(i.quantity || 0), 0);
+    const sufficientCount = temporaryItems.filter(i => Number(i.available_stock || 0) >= Number(i.quantity || 0)).length;
 
     const columns = [
         {
@@ -59,11 +59,11 @@ const BookingApprovalModal: React.FC<BookingApprovalModalProps> = ({
             )
         },
         {
-            title: 'SL Book',
+            title: 'SL Đơn Hàng',
             key: 'quantity',
             align: 'center' as const,
-            width: 80,
-            render: (_: any, record: any) => <b>{Number(record.booked_quantity || record.quantity || 0).toLocaleString()}</b>
+            width: 100,
+            render: (_: any, record: any) => <b>{Number(record.quantity || 0).toLocaleString()}</b>
         },
         {
             title: 'TK Thực tế',
@@ -120,14 +120,18 @@ const BookingApprovalModal: React.FC<BookingApprovalModalProps> = ({
             title: 'Đánh giá',
             key: 'assessment',
             align: 'center' as const,
-            width: 120,
+            width: 140,
             render: (_: any, record: any) => {
                 if (record.booking_status === 'CONFIRMED') return <Tag color="green" icon={<CheckCircleOutlined />}>Hoàn tất</Tag>;
                 const available = Number(record.available_stock || 0);
-                const needed = Number(record.booked_quantity || record.quantity || 0);
+                const needed = Number(record.quantity || 0);
                 if (available >= needed) return <Tag color="cyan" icon={<CheckCircleOutlined />}>Đủ kho</Tag>;
-                if (available > 0) return <Tooltip title={`Thiếu ${(needed - available).toLocaleString()}`}><Tag color="orange" icon={<ExclamationCircleOutlined />}>Thiếu kho</Tag></Tooltip>;
-                return <Tag color="red" icon={<WarningOutlined />}>Cần SX</Tag>;
+                if (available > 0) return (
+                    <Tooltip title={`Duyệt book: ${available.toLocaleString()} | Tính MRP: ${(needed - available).toLocaleString()}`}>
+                        <Tag color="orange" icon={<ExclamationCircleOutlined />}>Duyệt 1 phần</Tag>
+                    </Tooltip>
+                );
+                return <Tag color="red" icon={<WarningOutlined />}>Tính MRP 100%</Tag>;
             }
         }
     ];

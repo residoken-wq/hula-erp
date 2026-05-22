@@ -258,10 +258,36 @@ const PlanningPage: React.FC = () => {
                     },
                     {
                         key: 'PLANS',
-                        label: isMobile ? '📋 Kế Hoạch' : '📋 2. Danh Sách Kế Hoạch',
+                        label: isMobile ? '📋 Đang chạy' : '📋 2. KH Đang chạy',
                         children: (
                             <PlanDashboardTab
-                                plans={plans}
+                                plans={plans.filter((p: any) => p.status !== 'DONE')}
+                                mrpData={mrpData}
+                                outsourcingList={outsourcingList}
+                                logisticsList={logisticsList}
+                                suppliers={suppliers}
+                                costBasis={costBasis}
+                                setCostBasis={setCostBasis}
+                                isMobile={isMobile}
+                                loading={loading}
+                                isDashboardOpen={isDashboardOpen}
+                                setIsDashboardOpen={setIsDashboardOpen}
+                                onRunMrp={handleRunMrp}
+                                onDeletePlan={handleDeletePlan}
+                                onConfirmBookings={handleConfirmBookings}
+                                onDataChange={handleDataChange}
+                                onToggleStock={handleToggleStock}
+                                onGeneratePOs={handleGeneratePOs}
+                                onSaveAnalysis={handleSaveAnalysis}
+                            />
+                        )
+                    },
+                    {
+                        key: 'DONE_PLANS',
+                        label: isMobile ? '✅ Đã xong' : '✅ KH Hoàn Thành',
+                        children: (
+                            <PlanDashboardTab
+                                plans={plans.filter((p: any) => p.status === 'DONE')}
                                 mrpData={mrpData}
                                 outsourcingList={outsourcingList}
                                 logisticsList={logisticsList}

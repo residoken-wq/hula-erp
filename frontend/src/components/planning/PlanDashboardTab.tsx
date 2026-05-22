@@ -48,7 +48,40 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
             } 
         },
         { title: 'Thời Gian', render: (r: any) => <small>{dayjs(r.start_date).format('DD/MM')} - {dayjs(r.end_date).format('DD/MM')}</small> },
-        { title: 'Trạng Thái', dataIndex: 'status', align: 'center' as const, render: (t: any) => t === 'COMPLETED' ? <Tag color="green">Hoàn thành</Tag> : t === 'IN_PRODUCTION' ? <Tag color="blue">Đang SX</Tag> : t === 'CALCULATED' ? <Tag color="cyan">Đã tính MRP</Tag> : <Tag>Mới</Tag> },
+        { 
+            title: 'Trạng Thái', 
+            dataIndex: 'status', 
+            align: 'center' as const, 
+            render: (t: any, r: any) => (
+                <Select
+                    value={t}
+                    size="small"
+                    style={{ width: 140, fontSize: 12 }}
+                    onChange={async (newStatus) => {
+                        try {
+                            // Cập nhật trạng thái thông qua API
+                            await import('axios').then(axios => axios.default.patch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/planning/${r.id}/status`, { status: newStatus }));
+                            import('antd').then(({ message }) => message.success('Cập nhật trạng thái thành công'));
+                            // Refresh logic normally passed via props, but here we can just reload or rely on parent
+                            if (typeof (window as any).fetchData === 'function') (window as any).fetchData();
+                        } catch (e) {
+                            import('antd').then(({ message }) => message.error('Lỗi cập nhật trạng thái'));
+                        }
+                    }}
+                    options={[
+                        { value: 'DRAFT', label: <Tag>Mới</Tag> },
+                        { value: 'CALCULATED', label: <Tag color="cyan">Đã tính MRP</Tag> },
+                        { value: 'HAS_PO_MATERIAL', label: <Tag color="purple">Đã có PO_NPL</Tag> },
+                        { value: 'HAS_PO_OUTSOURCING', label: <Tag color="magenta">Đã có PO_CG</Tag> },
+                        { value: 'IN_PRODUCTION', label: <Tag color="blue">Đang SX</Tag> },
+                        { value: 'STOCK_RECEIVED', label: <Tag color="gold">Đã nhập Kho</Tag> },
+                        { value: 'DELIVERED_TO_CUSTOMER', label: <Tag color="volcano">Đã giao hàng</Tag> },
+                        { value: 'COMPLETED', label: <Tag color="green">Hoàn thành SX</Tag> },
+                        { value: 'DONE', label: <Tag color="success">Done</Tag> },
+                    ]}
+                />
+            )
+        },
         {
             title: 'Hành động', key: 'act', align: 'right' as const, render: (_: any, r: any) => (
                 <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
@@ -70,6 +103,26 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
         const estOutsourceCost = outsourcingList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
         const estLogisticsCost = logisticsList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
 
+        // --- Tính giá trị hàng dùng kho ---
+        const stockProductCost = mrpData.plan_info.sales_orders.reduce((s: number, o: any) => {
+            return s + o.items.reduce((sum: number, item: any) => {
+                if (Number(item.booked_quantity) > 0) {
+                    return sum + (Number(item.booked_quantity || 0) * Number(item.product?.cost_price || 0));
+                }
+                return sum;
+            }, 0);
+        }, 0);
+
+        const stockMaterialCost = mrpData.mrp_result.reduce((s: number, i: any) => {
+            if (i.use_stock) {
+                const usedQty = Math.max(0, Number(i.gross_requirement || 0) - Number(i.net_requirement || 0));
+                const price = costBasis === 'REFERENCE' ? Number(i.reference_price || 0) : Number(i.purchase_price || 0);
+                return s + (usedQty * price);
+            }
+            return s;
+        }, 0);
+        const totalStockCost = stockProductCost + stockMaterialCost;
+
         return (
             <div>
                 <div style={{ marginBottom: 20, background: '#f5f7fa', padding: 15, borderRadius: 8 }}>
@@ -81,16 +134,19 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                         </Select>
                     </div>
                     <Row gutter={24} style={{ textAlign: 'center' }}>
-                        <Col span={6}><Statistic title="Doanh Thu" value={totalRevenue} prefix={<DollarOutlined />} suffix="đ" valueStyle={{ fontSize: 16 }} /></Col>
-                        <Col span={6}>
-                            <Statistic title="CP Nguyên Liệu" value={estMaterialCost} prefix={<ShoppingCartOutlined />} suffix="đ" valueStyle={{ color: '#cf1322', fontSize: 16 }} />
-                            <small style={{ color: '#888' }}>({costBasis === 'REFERENCE' ? 'Theo giá NCC' : 'Theo PO'})</small>
+                        <Col span={5}><Statistic title="Doanh Thu" value={totalRevenue} prefix={<DollarOutlined />} suffix="đ" valueStyle={{ fontSize: 15 }} /></Col>
+                        <Col span={5}>
+                            <Statistic title="CP Mua NPL" value={estMaterialCost} prefix={<ShoppingCartOutlined />} suffix="đ" valueStyle={{ color: '#cf1322', fontSize: 15 }} />
+                            <small style={{ color: '#888', fontSize: 11 }}>({costBasis === 'REFERENCE' ? 'Theo giá NCC' : 'Theo PO'})</small>
                         </Col>
-                        <Col span={6}><Statistic title="CP Gia Công" value={estOutsourceCost} prefix={<ScissorOutlined />} suffix="đ" valueStyle={{ color: '#d46b08', fontSize: 16 }} /></Col>
-                        <Col span={6}><Statistic title="CP Logistics" value={estLogisticsCost} prefix={<TruckOutlined />} suffix="đ" valueStyle={{ color: '#096dd9', fontSize: 16 }} /></Col>
+                        <Col span={4}><Statistic title="CP Hàng Có Sẵn" value={totalStockCost} prefix={<AppstoreAddOutlined />} suffix="đ" valueStyle={{ color: '#531dab', fontSize: 15 }} />
+                            <small style={{ color: '#888', fontSize: 11 }}>(Thành phẩm + NPL kho)</small>
+                        </Col>
+                        <Col span={5}><Statistic title="CP Gia Công" value={estOutsourceCost} prefix={<ScissorOutlined />} suffix="đ" valueStyle={{ color: '#d46b08', fontSize: 15 }} /></Col>
+                        <Col span={5}><Statistic title="CP Logistics" value={estLogisticsCost} prefix={<TruckOutlined />} suffix="đ" valueStyle={{ color: '#096dd9', fontSize: 15 }} /></Col>
                     </Row>
-                    <div style={{ marginTop: 10, textAlign: 'center', fontWeight: 'bold', fontSize: 16, color: (totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost) > 0 ? 'green' : 'red' }}>
-                        Lợi Nhuận Gộp (Dự kiến): {(totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost).toLocaleString()} đ
+                    <div style={{ marginTop: 10, textAlign: 'center', fontWeight: 'bold', fontSize: 16, color: (totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost - totalStockCost) > 0 ? 'green' : 'red' }}>
+                        Lợi Nhuận Gộp (Dự kiến): {(totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost - totalStockCost).toLocaleString()} đ
                     </div>
                 </div>
                 <Tabs defaultActiveKey="1" items={[

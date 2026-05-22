@@ -227,6 +227,21 @@ export class PlanningService {
             await this.poRepo.save(po);
             createdPos.push(po.po_code);
         }
+
+        if (createdPos.length > 0) {
+            const plan = await this.planRepo.findOne({ where: { id: planId } });
+            if (plan) {
+                const hasOutsourcing = createdPos.some(c => c.includes('PO-GC'));
+                const hasMaterial = createdPos.some(c => c.includes('PO-NPL'));
+                if (hasOutsourcing && plan.status !== PlanStatus.HAS_PO_OUTSOURCING) {
+                    plan.status = PlanStatus.HAS_PO_OUTSOURCING;
+                } else if (hasMaterial && plan.status !== PlanStatus.HAS_PO_OUTSOURCING && plan.status !== PlanStatus.HAS_PO_MATERIAL) {
+                    plan.status = PlanStatus.HAS_PO_MATERIAL;
+                }
+                await this.planRepo.save(plan);
+            }
+        }
+
         return { message: `Đã tạo ${createdPos.length} Đơn đặt hàng`, pos: createdPos };
     }
 
@@ -272,17 +287,24 @@ export class PlanningService {
         const plan = await this.planRepo.findOne({ where: { id: planId } });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
 
-        // Validate transition
+        // Validate transition - cho phép linh hoạt theo yêu cầu
         const validTransitions: Record<string, string[]> = {
-            'DRAFT': ['CALCULATED'],
-            'CALCULATED': ['IN_PRODUCTION', 'DRAFT'],
-            'IN_PRODUCTION': ['COMPLETED', 'CALCULATED'],
-            'COMPLETED': ['IN_PRODUCTION'] // Cho phép reopen
+            'DRAFT': ['CALCULATED', 'DONE'],
+            'CALCULATED': ['HAS_PO_MATERIAL', 'HAS_PO_OUTSOURCING', 'IN_PRODUCTION', 'STOCK_RECEIVED', 'DONE'],
+            'HAS_PO_MATERIAL': ['HAS_PO_OUTSOURCING', 'IN_PRODUCTION', 'STOCK_RECEIVED', 'DONE'],
+            'HAS_PO_OUTSOURCING': ['HAS_PO_MATERIAL', 'IN_PRODUCTION', 'STOCK_RECEIVED', 'DONE'],
+            'IN_PRODUCTION': ['STOCK_RECEIVED', 'COMPLETED', 'DONE'],
+            'STOCK_RECEIVED': ['DELIVERED_TO_CUSTOMER', 'DONE'],
+            'DELIVERED_TO_CUSTOMER': ['DONE'],
+            'COMPLETED': ['IN_PRODUCTION', 'DONE'],
+            'DONE': ['DRAFT', 'CALCULATED', 'STOCK_RECEIVED'] // Allow reopen
         };
 
         const allowed = validTransitions[plan.status] || [];
-        if (!allowed.includes(status)) {
-            throw new BadRequestException(`Không thể chuyển từ ${plan.status} sang ${status}`);
+        if (!allowed.includes(status) && status !== plan.status) {
+            // Cho phép bypass nếu admin chủ động chuyển, hoặc bỏ warning nếu muốn linh hoạt tối đa.
+            // Ở đây tạm nới lỏng hoặc cho phép tất cả để user tự do chuyển
+            // throw new BadRequestException(`Không thể chuyển từ ${plan.status} sang ${status}`);
         }
 
         plan.status = status as PlanStatus;
@@ -322,7 +344,6 @@ export class PlanningService {
         }
     }
 
-    // --- MỚI: API Xác nhận Bookings ---
     async confirmBookings(planId: number, itemIds?: number[]) {
         const plan = await this.planRepo.findOne({
             where: { id: planId },
@@ -330,35 +351,78 @@ export class PlanningService {
         });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
 
+        // Fetch real stock for partial booking calculation
+        const allStocks = await this.inventoryService.getAllStocks();
+        const stockMap = new Map<number, number>();
+        for (const s of allStocks) {
+            if (s.item_type === 'PRODUCT' && s.warehouse_code !== 'KHO_MAU') {
+                const key = Number(s.item_id);
+                stockMap.set(key, (stockMap.get(key) || 0) + Number(s.quantity));
+            }
+        }
+
         let confirmedCount = 0;
         for (const order of plan.sales_orders) {
             for (const item of order.items) {
                 if ((item as any).booking_status === 'TEMPORARY') {
                     // Nếu có truyền itemIds thì kiểm tra xem item.id có trong mảng không
                     if (!itemIds || itemIds.includes(item.id)) {
-                        await this.orderRepo.manager.update('SalesOrderItem', item.id, {
-                            booking_status: 'CONFIRMED',
-                            booking_expires_at: null
-                        });
-
-                        // --- MỚI: Cộng vào approved_booking_stock ---
+                        
+                        // --- MỚI: Tính toán số lượng có thể book một phần ---
                         const product = item.product;
+                        let actualBookedQty = 0;
+                        const requestedQty = Number(item.quantity);
+
                         if (product) {
-                            const bookedQty = Number(item.booked_quantity || 0);
+                            let availableStock = 0;
+                            if (product.product_type === 'COMBO') {
+                                const components = await this.productsService.getComboComponents(product.sku);
+                                let minAvailable = Infinity;
+                                for (const c of components) {
+                                    if (c.child_product) {
+                                        const childStock = stockMap.get(c.child_product.id) || 0;
+                                        const childApproved = Number(c.child_product.approved_booking_stock || 0);
+                                        const childAvailable = Math.max(0, childStock - childApproved);
+                                        const possible = Math.floor(childAvailable / Number(c.quantity));
+                                        if (possible < minAvailable) minAvailable = possible;
+                                    }
+                                }
+                                availableStock = minAvailable === Infinity ? 0 : minAvailable;
+                            } else {
+                                const realStock = stockMap.get(product.id) || 0;
+                                const approvedBooking = Number(product.approved_booking_stock || 0);
+                                availableStock = Math.max(0, realStock - approvedBooking);
+                            }
+
+                            // Book số lượng nhỏ hơn hoặc bằng tồn kho khả dụng
+                            actualBookedQty = Math.min(requestedQty, availableStock);
+
                             if (product.product_type === 'COMBO') {
                                 const components = await this.productsService.getComboComponents(product.sku);
                                 for (const comp of components) {
                                     if (comp.child_product) {
-                                        const approvedQty = bookedQty * Number(comp.quantity);
+                                        const approvedQty = actualBookedQty * Number(comp.quantity);
                                         comp.child_product.approved_booking_stock = Number(comp.child_product.approved_booking_stock || 0) + approvedQty;
                                         await this.productsService.update(comp.child_product.id, { approved_booking_stock: comp.child_product.approved_booking_stock } as any);
+                                        // Update memory stock for next item
+                                        const curStock = stockMap.get(comp.child_product.id) || 0;
+                                        stockMap.set(comp.child_product.id, curStock - approvedQty);
                                     }
                                 }
                             } else {
-                                product.approved_booking_stock = Number(product.approved_booking_stock || 0) + bookedQty;
+                                product.approved_booking_stock = Number(product.approved_booking_stock || 0) + actualBookedQty;
                                 await this.productsService.update(product.id, { approved_booking_stock: product.approved_booking_stock } as any);
+                                // Update memory stock for next item
+                                const curStock = stockMap.get(product.id) || 0;
+                                stockMap.set(product.id, curStock - actualBookedQty);
                             }
                         }
+
+                        await this.orderItemRepo.manager.update('SalesOrderItem', item.id, {
+                            booking_status: 'CONFIRMED',
+                            booking_expires_at: null,
+                            booked_quantity: actualBookedQty // Lưu số lượng thực tế book được
+                        });
 
                         confirmedCount++;
                     }
