@@ -30,7 +30,8 @@ const InventoryPage: React.FC = () => {
     const [stocks, setStocks] = useState<any[]>([]); // Dữ liệu tồn chi tiết
     const [history, setHistory] = useState<any[]>([]);
     const [pendingReceipts, setPendingReceipts] = useState<any[]>([]);
-    const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]); // <--- New State: Pending Export Requests // <--- New State
+    const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]); // <--- New State: Pending Export Requests
+    const [completedDeliveries, setCompletedDeliveries] = useState<any[]>([]); // <--- New State: Completed Export Deliveries
     const [shippingCarriers, setShippingCarriers] = useState<any[]>([]); // <--- Shipping Carriers
 
     const [searchText, setSearchText] = useState('');
@@ -63,13 +64,14 @@ const InventoryPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [pRes, mRes, sRes, hRes, grRes, dRes, cRes] = await Promise.all([
+            const [pRes, mRes, sRes, hRes, grRes, dRes, cdRes, cRes] = await Promise.all([
                 api.get('/products'),
                 api.get('/materials'),
                 api.get('/inventory/stocks'),
                 api.get('/inventory/history'),
                 api.get('/inventory/goods-receipt/pending'),
                 api.get('/inventory/deliveries/pending'),
+                api.get('/inventory/deliveries/completed'),
                 api.get('/inventory/shipping-carriers')
             ]);
             setProducts(pRes.data);
@@ -77,7 +79,8 @@ const InventoryPage: React.FC = () => {
             setStocks(sRes.data);
             setHistory(hRes.data);
             setPendingReceipts(grRes.data || []);
-            setPendingDeliveries(dRes.data || []); // <--- Set State
+            setPendingDeliveries(dRes.data || []);
+            setCompletedDeliveries(cdRes.data || []);
             setShippingCarriers(cRes.data || []);
         } catch (error) {
             message.error('Đã xảy ra lỗi khi tải dữ liệu');
@@ -487,6 +490,37 @@ const InventoryPage: React.FC = () => {
                                         </Popconfirm>
                                     )
                                 }
+                            ]}
+                        />
+                    </Tabs.TabPane>
+
+                    {/* TAB DANH SÁCH PHIẾU XUẤT KHO ĐÃ HOÀN THÀNH (New) */}
+                    <Tabs.TabPane tab={<span><CheckCircleOutlined /> Phiếu Xuất kho</span>} key="COMPLETED_EXPORTS">
+                        <Table
+                            dataSource={completedDeliveries}
+                            rowKey="id"
+                            size="small"
+                            expandable={{
+                                expandedRowRender: record => (
+                                    <Table
+                                        dataSource={record.items}
+                                        size="small"
+                                        pagination={false}
+                                        columns={[
+                                            { title: 'SKU', dataIndex: 'sku', render: (t: any) => <b>{t}</b> },
+                                            { title: 'Số lượng', dataIndex: 'quantity', render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
+                                            { title: 'Ghi chú', dataIndex: 'note' },
+                                        ]}
+                                    />
+                                )
+                            }}
+                            columns={[
+                                { title: 'Mã PXK', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
+                                { title: 'Đơn hàng', render: (r: any) => <Tag color="blue">{r.sales_order?.order_code}</Tag> },
+                                { title: 'Khách hàng', render: (r: any) => r.sales_order?.customer?.name || r.sales_order?.customer_name },
+                                { title: 'Ngày giao', dataIndex: 'delivery_date', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
+                                { title: 'Trạng thái', dataIndex: 'status', render: () => <Tag color="green">Đã xuất kho</Tag> },
+                                { title: 'Ghi chú', dataIndex: 'note' }
                             ]}
                         />
                     </Tabs.TabPane>

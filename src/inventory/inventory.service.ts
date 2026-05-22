@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { StockHistory } from './stock-history.entity';
 import { InventoryStock } from './inventory-stock.entity';
 import { GoodsReceipt, GoodsReceiptStatus } from './entities/goods-receipt.entity';
@@ -329,6 +329,14 @@ export class InventoryService {
       where: { status: 'PENDING_EXPORT' }, // Or whatever status was set in SalesService
       relations: ['sales_order', 'sales_order.customer', 'items'],
       order: { created_at: 'ASC' }
+    });
+  }
+
+  async getCompletedDeliveries() {
+    return this.deliveryRepo.find({
+      where: { status: In(['SHIPPED', 'DELIVERING', 'DELIVERED']) },
+      relations: ['sales_order', 'sales_order.customer', 'items'],
+      order: { updated_at: 'DESC' }
     });
   }
 

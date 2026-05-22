@@ -74,6 +74,11 @@ export class InventoryController {
     return this.inventoryService.getPendingDeliveries();
   }
 
+  @Get('deliveries/completed')
+  async getCompletedDeliveries() {
+    return this.inventoryService.getCompletedDeliveries();
+  }
+
   @Post('deliveries/:id/confirm')
   async confirmDelivery(
     @Param('id') id: string,
