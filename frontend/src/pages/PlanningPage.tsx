@@ -163,7 +163,7 @@ const PlanningPage: React.FC = () => {
 
     const handleUpdateStatus = async (id: number, status: string) => {
         try {
-            await axios.patch(`${API_URL}/planning/${id}/status`, { status });
+            await axios.put(`${API_URL}/planning/${id}/status`, { status });
             message.success('Cập nhật trạng thái thành công');
             fetchData();
         } catch (error) {
