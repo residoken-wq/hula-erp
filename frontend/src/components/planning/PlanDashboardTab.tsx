@@ -24,12 +24,13 @@ interface PlanDashboardTabProps {
     onToggleStock: (index: number, checked: boolean) => void;
     onGeneratePOs: (type: 'MATERIAL' | 'OUTSOURCING') => void;
     onSaveAnalysis: () => void;
+    onUpdateStatus: (planId: number, status: string) => void;
 }
 
 const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
     plans, mrpData, outsourcingList, logisticsList, suppliers, costBasis, setCostBasis, isMobile, loading,
     isDashboardOpen, setIsDashboardOpen,
-    onRunMrp, onDeletePlan, onConfirmBookings, onDataChange, onToggleStock, onGeneratePOs, onSaveAnalysis
+    onRunMrp, onDeletePlan, onConfirmBookings, onDataChange, onToggleStock, onGeneratePOs, onSaveAnalysis, onUpdateStatus
 }) => {
     const planColumns = [
         { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
@@ -57,17 +58,7 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                     value={t}
                     size="small"
                     style={{ width: 140, fontSize: 12 }}
-                    onChange={async (newStatus) => {
-                        try {
-                            // Cập nhật trạng thái thông qua API
-                            await import('axios').then(axios => axios.default.patch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/planning/${r.id}/status`, { status: newStatus }));
-                            import('antd').then(({ message }) => message.success('Cập nhật trạng thái thành công'));
-                            // Refresh logic normally passed via props, but here we can just reload or rely on parent
-                            if (typeof (window as any).fetchData === 'function') (window as any).fetchData();
-                        } catch (e) {
-                            import('antd').then(({ message }) => message.error('Lỗi cập nhật trạng thái'));
-                        }
-                    }}
+                    onChange={(newStatus) => onUpdateStatus(r.id, newStatus)}
                     options={[
                         { value: 'DRAFT', label: <Tag>Mới</Tag> },
                         { value: 'CALCULATED', label: <Tag color="cyan">Đã tính MRP</Tag> },

@@ -148,19 +148,28 @@ const PlanningPage: React.FC = () => {
         setLoading(false);
     };
 
-    const handleDeletePlan = (id: number) => {
-        Modal.confirm({
-            title: 'Xóa kế hoạch',
-            content: 'Bạn có chắc muốn xóa kế hoạch này?',
-            okText: 'Xóa', okType: 'danger', cancelText: 'Hủy',
-            onOk: async () => {
-                try {
-                    await axios.delete(`${API_URL}/planning/${id}`);
-                    message.success('Đã xóa kế hoạch');
-                    fetchData();
-                } catch (e: any) { message.error(e.response?.data?.message || 'Lỗi xóa kế hoạch'); }
+    const handleDeletePlan = async (id: number) => {
+        if (window.confirm('Bạn có chắc muốn xóa kế hoạch này?')) {
+            try {
+                await axios.delete(`${API_URL}/planning/${id}`);
+                message.success('Đã xóa kế hoạch');
+                fetchData();
+            } catch (error) {
+                console.error(error);
+                message.error('Lỗi khi xóa kế hoạch');
             }
-        });
+        }
+    };
+
+    const handleUpdateStatus = async (id: number, status: string) => {
+        try {
+            await axios.patch(`${API_URL}/planning/${id}/status`, { status });
+            message.success('Cập nhật trạng thái thành công');
+            fetchData();
+        } catch (error) {
+            console.error(error);
+            message.error('Lỗi khi cập nhật trạng thái');
+        }
     };
 
     const handleConfirmBookings = async (planId: number) => {
@@ -279,6 +288,7 @@ const PlanningPage: React.FC = () => {
                                 onToggleStock={handleToggleStock}
                                 onGeneratePOs={handleGeneratePOs}
                                 onSaveAnalysis={handleSaveAnalysis}
+                                onUpdateStatus={handleUpdateStatus}
                             />
                         )
                     },
@@ -305,6 +315,7 @@ const PlanningPage: React.FC = () => {
                                 onToggleStock={handleToggleStock}
                                 onGeneratePOs={handleGeneratePOs}
                                 onSaveAnalysis={handleSaveAnalysis}
+                                onUpdateStatus={handleUpdateStatus}
                             />
                         )
                     },
