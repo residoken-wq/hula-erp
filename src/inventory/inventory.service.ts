@@ -328,7 +328,7 @@ export class InventoryService {
     return this.deliveryRepo.find({
       where: { status: 'PENDING_EXPORT' }, // Or whatever status was set in SalesService
       relations: ['sales_order', 'sales_order.customer', 'items'],
-      order: { created_at: 'ASC' }
+      order: { created_at: 'DESC' }
     });
   }
 
