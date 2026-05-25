@@ -152,9 +152,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
                                         : 'border-transparent hover:scale-105'
                                 }`}
                                 style={{ 
-                                    backgroundColor: opt.color_code || '#ddd',
-                                    backgroundImage: opt.image_url ? `url(${resolveImageUrl(opt.image_url)})` : 'none',
-                                    backgroundSize: 'cover'
+                                    backgroundColor: opt.color_code || '#ddd'
                                 }}
                             >
                                 {selectedId === opt.id && (
