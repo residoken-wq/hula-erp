@@ -1,6 +1,6 @@
 import React from 'react';
 import { Table, Button, Row, Col, Statistic, Tag, Tabs, Select, InputNumber, Checkbox, Input, Progress, Modal } from 'antd';
-import { DollarOutlined, ShoppingCartOutlined, ScissorOutlined, TruckOutlined, AppstoreAddOutlined, ExperimentOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons';
+import { DollarOutlined, ShoppingCartOutlined, ScissorOutlined, TruckOutlined, AppstoreAddOutlined, ExperimentOutlined, DeleteOutlined, SaveOutlined, FallOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -94,6 +94,13 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
         const estOutsourceCost = outsourcingList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
         const estLogisticsCost = logisticsList.reduce((s: number, i: any) => s + (Number(i.total_cost)), 0);
 
+        // --- Tính giá trị hao hụt dự kiến ---
+        const estWastageCost = mrpData.mrp_result.reduce((s: number, i: any) => {
+            const price = costBasis === 'REFERENCE' ? Number(i.reference_price || 0) : Number(i.purchase_price || 0);
+            const wastageQty = Math.max(0, Number(i.gross_requirement || 0) - Number(i.gross_raw || 0));
+            return s + (wastageQty * price);
+        }, 0);
+
         // --- Tính giá trị hàng dùng kho ---
         const stockProductCost = mrpData.plan_info.sales_orders.reduce((s: number, o: any) => {
             return s + o.items.reduce((sum: number, item: any) => {
@@ -125,20 +132,53 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                         </Select>
                     </div>
                     <Row gutter={24} style={{ textAlign: 'center' }}>
-                        <Col span={5}><Statistic title="Doanh Thu" value={totalRevenue} prefix={<DollarOutlined />} suffix="đ" valueStyle={{ fontSize: 15 }} /></Col>
-                        <Col span={5}>
+                        <Col span={4}><Statistic title="Doanh Thu" value={totalRevenue} prefix={<DollarOutlined />} suffix="đ" valueStyle={{ fontSize: 15 }} /></Col>
+                        <Col span={4}>
                             <Statistic title="CP Mua NPL" value={estMaterialCost} prefix={<ShoppingCartOutlined />} suffix="đ" valueStyle={{ color: '#cf1322', fontSize: 15 }} />
                             <small style={{ color: '#888', fontSize: 11 }}>({costBasis === 'REFERENCE' ? 'Theo giá NCC' : 'Theo PO'})</small>
                         </Col>
                         <Col span={4}><Statistic title="CP Hàng Có Sẵn" value={totalStockCost} prefix={<AppstoreAddOutlined />} suffix="đ" valueStyle={{ color: '#531dab', fontSize: 15 }} />
                             <small style={{ color: '#888', fontSize: 11 }}>(Thành phẩm + NPL kho)</small>
                         </Col>
-                        <Col span={5}><Statistic title="CP Gia Công" value={estOutsourceCost} prefix={<ScissorOutlined />} suffix="đ" valueStyle={{ color: '#d46b08', fontSize: 15 }} /></Col>
-                        <Col span={5}><Statistic title="CP Logistics" value={estLogisticsCost} prefix={<TruckOutlined />} suffix="đ" valueStyle={{ color: '#096dd9', fontSize: 15 }} /></Col>
+                        <Col span={4}><Statistic title="CP Gia Công" value={estOutsourceCost} prefix={<ScissorOutlined />} suffix="đ" valueStyle={{ color: '#d46b08', fontSize: 15 }} /></Col>
+                        <Col span={4}><Statistic title="CP Logistics" value={estLogisticsCost} prefix={<TruckOutlined />} suffix="đ" valueStyle={{ color: '#096dd9', fontSize: 15 }} /></Col>
+                        <Col span={4}>
+                            <Statistic title="CP Hao Hụt" value={estWastageCost} prefix={<FallOutlined />} suffix="đ" valueStyle={{ color: '#fa8c16', fontSize: 15 }} />
+                            <small style={{ color: '#888', fontSize: 11 }}>(Đã tính trong NPL)</small>
+                        </Col>
                     </Row>
-                    <div style={{ marginTop: 10, textAlign: 'center', fontWeight: 'bold', fontSize: 16, color: (totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost - totalStockCost) > 0 ? 'green' : 'red' }}>
-                        Lợi Nhuận Gộp (Dự kiến): {(totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost - totalStockCost).toLocaleString()} đ
-                    </div>
+                    {(() => {
+                        const grossProfitAfterVat = totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost - totalStockCost;
+                        const totalVatAmount = mrpData.plan_info.sales_orders.reduce((s: number, o: any) => {
+                            const total = Number(o.total_amount || 0);
+                            const shipping = Number(o.shipping_fee || 0);
+                            const vatRate = Number(o.vat_rate || 0);
+                            if (vatRate === 0) return s;
+                            const taxable = Math.max(0, (total - shipping) / (1 + vatRate / 100));
+                            return s + (taxable * vatRate / 100);
+                        }, 0);
+                        const grossProfitBeforeVat = grossProfitAfterVat - totalVatAmount;
+                        const grossProfitAfterCIT = grossProfitBeforeVat * 0.8;
+
+                        return (
+                            <div style={{ marginTop: 25, display: 'flex', justifyContent: 'space-around', fontWeight: 'bold', fontSize: 14, background: '#fff', padding: '15px 0', borderRadius: 8, border: '1px solid #e8e8e8' }}>
+                                <div style={{ color: grossProfitBeforeVat > 0 ? '#08979c' : 'red', textAlign: 'center' }}>
+                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 'normal', marginBottom: 4 }}>1. Lợi Nhuận Gộp Trước Thuế VAT</div>
+                                    <div style={{ fontSize: 16 }}>{Math.round(grossProfitBeforeVat).toLocaleString()} đ</div>
+                                </div>
+                                <div style={{ width: 1, background: '#f0f0f0' }}></div>
+                                <div style={{ color: grossProfitAfterVat > 0 ? '#d46b08' : 'red', textAlign: 'center' }}>
+                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 'normal', marginBottom: 4 }}>2. Lợi Nhuận Gộp Sau Thuế VAT</div>
+                                    <div style={{ fontSize: 16 }}>{Math.round(grossProfitAfterVat).toLocaleString()} đ</div>
+                                </div>
+                                <div style={{ width: 1, background: '#f0f0f0' }}></div>
+                                <div style={{ color: grossProfitAfterCIT > 0 ? 'green' : 'red', textAlign: 'center' }}>
+                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 'normal', marginBottom: 4 }}>3. Lợi Nhuận Gộp Sau Thuế TNDN (Trừ 20%)</div>
+                                    <div style={{ fontSize: 16 }}>{Math.round(grossProfitAfterCIT).toLocaleString()} đ</div>
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
                 <Tabs defaultActiveKey="1" items={[
                     {

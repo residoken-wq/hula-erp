@@ -277,9 +277,9 @@ export default function WatermarkPage() {
                         <div style={{ marginBottom: 20 }}>
                             <Text strong style={{ display: 'block', marginBottom: 8 }}>Kích thước: {Math.round(config.sizeRatio * 100)}% chiều rộng ảnh</Text>
                             <Slider
-                                min={10} max={50} value={Math.round(config.sizeRatio * 100)}
+                                min={10} max={100} value={Math.round(config.sizeRatio * 100)}
                                 onChange={(value) => setConfig(prev => ({ ...prev, sizeRatio: value / 100 }))}
-                                marks={{ 10: '10%', 25: '25%', 40: '40%', 50: '50%' }}
+                                marks={{ 10: '10%', 25: '25%', 50: '50%', 75: '75%', 100: '100%' }}
                             />
                         </div>
 
