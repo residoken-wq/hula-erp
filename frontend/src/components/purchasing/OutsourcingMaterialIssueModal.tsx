@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Table, Tag, Button, Space, InputNumber, Input, Select, DatePicker, Divider, message, Popconfirm, Empty } from 'antd';
+import { Modal, Table, Tag, Button, Space, InputNumber, Input, Select, DatePicker, Divider, message, Popconfirm, Empty, Progress } from 'antd';
 import { CarOutlined, PlusOutlined, CheckCircleOutlined, DeleteOutlined, SendOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
@@ -160,10 +160,21 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                         render: (v: number) => <b style={{ color: '#1890ff' }}>{Number(v || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}</b>
                     },
                     {
-                        title: 'Đã Xuất', width: 80, align: 'right' as const,
+                        title: 'Đã Xuất', width: 140, align: 'center' as const,
                         render: (_: any, r: any) => {
                             const issued = totalIssued.get(r.material_id) || 0;
-                            return <span style={{ color: issued > 0 ? '#52c41a' : '#999' }}>{Number(issued).toLocaleString('vi-VN')}</span>;
+                            const needed = Number(r.quantity || 0);
+                            const percent = needed > 0 ? Math.round((issued / needed) * 100) : 0;
+                            
+                            return (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <span style={{ color: issued > 0 ? '#52c41a' : '#999', fontWeight: 'bold' }}>
+                                        {Number(issued).toLocaleString('vi-VN')}
+                                    </span>
+                                    <Progress percent={percent > 100 ? 100 : percent} size="small" showInfo={false} status={percent >= 100 ? 'success' : 'active'} style={{ margin: 0, width: 80 }} />
+                                    <span style={{ fontSize: 10, color: '#888' }}>{percent}%</span>
+                                </div>
+                            );
                         }
                     },
                     { title: 'Tồn Kho', dataIndex: 'stock', width: 80, align: 'right' as const, render: (v: number) => <span style={{ color: Number(v) < 0 ? 'red' : 'green' }}>{Number(v || 0).toLocaleString('vi-VN')}</span> },

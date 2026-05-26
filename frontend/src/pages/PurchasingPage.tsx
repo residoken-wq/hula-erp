@@ -33,11 +33,6 @@ const PurchasingPage: React.FC = () => {
 
 
 
-    // Monitor Modal
-    const [isMonitorOpen, setIsMonitorOpen] = useState(false);
-    const [monitorMaterials, setMonitorMaterials] = useState<any[]>([]);
-    const [deliveryInfo, setDeliveryInfo] = useState<any>({});
-
     // --- MỚI: Modal Xuất Kho NPL Gia Công ---
     const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
     const [issueModalPO, setIssueModalPO] = useState<any>(null);
@@ -279,53 +274,11 @@ const PurchasingPage: React.FC = () => {
         } catch (e) { message.error('Lỗi tạo phiếu nhập: ' + e); }
     };
 
-    // --- LOGIC MONITORING ---
-    const openMonitorModal = async (record: any) => {
-        setCurrentPO(record);
-        setDeliveryInfo(record.outsourcing_delivery_info || { status: 'PENDING' });
-        try {
-            const res = await api.get(`/purchasing/${record.id}/outsourcing-materials`);
-            setMonitorMaterials(res.data);
-            setIsMonitorOpen(true);
-        } catch (e) { message.error('Lỗi tải thông tin NPL'); }
-    };
-
-    const handleSaveDeliveryInfo = async () => {
-        try {
-            // Aggregate material deliveries from inputs
-            const existingMaterials = deliveryInfo.materials || [];
-            const updatedMaterials = monitorMaterials.map(m => {
-                const existing = existingMaterials.find((e: any) => e.material_id === m.material_id);
-                const prevDelivered = existing?.delivered || 0;
-                const newInput = Number(m.input_qty || 0);
-                return {
-                    material_id: m.material_id,
-                    code: m.code,
-                    name: m.name,
-                    delivered: prevDelivered + newInput,
-                    last_delivery_date: newInput > 0 ? new Date().toISOString() : existing?.last_delivery_date
-                };
-            });
-
-            const payload = {
-                ...deliveryInfo,
-                materials: updatedMaterials
-            };
-
-            await api.put(`/purchasing/${currentPO.id}`, { outsourcing_delivery_info: payload });
-            message.success('Đã cập nhật thông tin giao NPL');
-            setIsMonitorOpen(false);
-            fetchData();
-        } catch (e) { message.error('Lỗi lưu'); }
-    };
-
-
     // ----------------------------------------
 
     const columns = [
         { title: 'Mã PO', dataIndex: 'po_code', render: (t: any, r: any) => <a onClick={() => viewDetail(r)}><b>{t}</b></a> },
-        { title: 'Mã KH', dataIndex: 'plan', render: (p: any) => p?.code || '-' },
-        { title: 'Tên Plan', dataIndex: 'plan', render: (p: any) => p?.name || '-' },
+        { title: 'Khách hàng', dataIndex: 'plan', render: (p: any) => p?.customer?.name || p?.customer_name || '-' },
         { title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 100, render: (t: string) => t === 'MATERIAL' ? <Tag color="blue">NPL</Tag> : <Tag color="orange">Gia công</Tag> },
         { title: 'Ngày', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
         { title: 'Đối tác', dataIndex: 'supplier', render: (s: any, r: any) => s?.name || (r.note?.split('NCC: ')[1] || '-') },
@@ -1214,105 +1167,7 @@ const PurchasingPage: React.FC = () => {
                 </Space>
             </Modal>
 
-            {/* MODAL THEO DÕI NPL GIA CÔNG */}
-            <Modal
-                title={<span><CarOutlined style={{ color: '#fa8c16', marginRight: 8 }} />Theo dõi NPL Gia Công - {currentPO?.po_code}</span>}
-                open={isMonitorOpen}
-                onCancel={() => setIsMonitorOpen(false)}
-                width={1000}
-                footer={[
-                    <Button key="close" onClick={() => setIsMonitorOpen(false)}>Đóng</Button>,
-                    <Button key="save" type="primary" onClick={handleSaveDeliveryInfo}>Lưu Thông Tin Giao NPL</Button>
-                ]}
-            >
-                <Divider orientation="left" style={{ margin: '0 0 16px 0' }}>Danh sách Nguyên Phụ Liệu cần giao cho Gia Công</Divider>
-                <Table
-                    dataSource={monitorMaterials}
-                    rowKey="material_id"
-                    pagination={false}
-                    size="small"
-                    columns={[
-                        { title: 'Mã NPL', dataIndex: 'code', width: 100, render: (t: any) => <Tag>{t || '-'}</Tag> },
-                        { title: 'Tên Nguyên Liệu', dataIndex: 'name', ellipsis: true },
-                        { title: 'ĐVT', dataIndex: 'unit', width: 60, align: 'center' as const },
-                        { title: 'Định Mức (Cần)', dataIndex: 'quantity', width: 120, align: 'right' as const, render: (v: number) => <b style={{ color: '#1890ff' }}>{Number(v || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}</b> },
-                        { title: 'Tồn Kho', dataIndex: 'stock', width: 100, align: 'right' as const, render: (v: number) => <span style={{ color: Number(v) < 0 ? 'red' : 'green' }}>{Number(v || 0).toLocaleString('vi-VN')}</span> },
-                        {
-                            title: 'SL Đã Giao', width: 100, align: 'right' as const,
-                            render: (_: any, r: any) => {
-                                const delivered = deliveryInfo?.materials?.find((m: any) => m.material_id === r.material_id)?.delivered || 0;
-                                return <span style={{ color: '#52c41a' }}>{Number(delivered).toLocaleString('vi-VN')}</span>;
-                            }
-                        },
-                        {
-                            title: 'Giao Thêm', width: 120, align: 'center' as const,
-                            render: (_: any, r: any, idx: number) => (
-                                <InputNumber
-                                    size="small"
-                                    min={0}
-                                    placeholder="0"
-                                    style={{ width: 90 }}
-                                    value={r.input_qty}
-                                    onChange={(val) => {
-                                        const newList = [...monitorMaterials];
-                                        newList[idx].input_qty = val;
-                                        setMonitorMaterials(newList);
-                                    }}
-                                />
-                            )
-                        }
-                    ]}
-                    summary={() => {
-                        const totalNeeded = monitorMaterials.reduce((s, m) => s + Number(m.quantity || 0), 0);
-                        const totalInput = monitorMaterials.reduce((s, m) => s + Number(m.input_qty || 0), 0);
-                        return (
-                            <Table.Summary.Row>
-                                <Table.Summary.Cell index={0} colSpan={3}><b>Tổng cộng</b></Table.Summary.Cell>
-                                <Table.Summary.Cell index={1} align="right"><b style={{ color: '#1890ff' }}>{totalNeeded.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}</b></Table.Summary.Cell>
-                                <Table.Summary.Cell index={2}></Table.Summary.Cell>
-                                <Table.Summary.Cell index={3}></Table.Summary.Cell>
-                                <Table.Summary.Cell index={4} align="center"><b style={{ color: '#fa8c16' }}>{totalInput.toLocaleString('vi-VN')}</b></Table.Summary.Cell>
-                            </Table.Summary.Row>
-                        );
-                    }}
-                />
-                <Divider style={{ margin: '16px 0' }} />
-                <Row gutter={16}>
-                    <Col span={8}>
-                        <Form.Item label="Trạng thái giao NPL">
-                            <Select
-                                value={deliveryInfo.status || 'PENDING'}
-                                onChange={(v) => setDeliveryInfo({ ...deliveryInfo, status: v })}
-                                style={{ width: '100%' }}
-                                options={[
-                                    { value: 'PENDING', label: 'Chưa giao' },
-                                    { value: 'PARTIAL', label: 'Đã giao một phần' },
-                                    { value: 'COMPLETED', label: 'Đã giao đủ' }
-                                ]}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item label="Ngày giao">
-                            <DatePicker
-                                value={deliveryInfo.delivery_date ? dayjs(deliveryInfo.delivery_date) : null}
-                                onChange={(d) => setDeliveryInfo({ ...deliveryInfo, delivery_date: d?.toISOString() })}
-                                style={{ width: '100%' }}
-                                format="DD/MM/YYYY"
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item label="Ghi chú">
-                            <Input
-                                value={deliveryInfo.note}
-                                onChange={(e) => setDeliveryInfo({ ...deliveryInfo, note: e.target.value })}
-                                placeholder="Ghi chú về việc giao NPL..."
-                            />
-                        </Form.Item>
-                    </Col>
-                </Row>
-            </Modal>
+
 
             {/* MỚI: Modal Xuất Kho NPL Gia Công */}
             <OutsourcingMaterialIssueModal
