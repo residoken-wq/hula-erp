@@ -166,6 +166,7 @@ export default function B2BConfiguratorPage() {
                                 selectedOptions={selectedOptionsList}
                                 stepSelections={stepSelections}
                                 imageSelections={imageSelections}
+                                skippedSteps={skippedSteps}
                             />
                             <SelectionSummary
                                 subcategory={currentL2}

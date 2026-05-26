@@ -24,9 +24,10 @@ interface Props {
     selectedOptions: WizardOption[];
     stepSelections?: Record<string, string>; // stepId -> optionId (chính xác, không bị trùng ID)
     imageSelections?: Record<string, number>; // optionId -> selected image index trong image_urls[]
+    skippedSteps?: Record<string, boolean>;
 }
 
-export default function ProductVisualizer({ subcategory, selectedOptions, stepSelections = {}, imageSelections = {} }: Props) {
+export default function ProductVisualizer({ subcategory, selectedOptions, stepSelections = {}, imageSelections = {}, skippedSteps = {} }: Props) {
     const hasBaseImages = subcategory.base_images && subcategory.base_images.length > 0;
     const legacyBaseImage = subcategory.base_image;
 
@@ -35,6 +36,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
     const resolveStepOption = (stepId: string): WizardOption | undefined => {
         const step = subcategory.customization_steps?.find(s => s.id === stepId);
         if (!step) return undefined;
+        // Bỏ qua nếu step bị skip
+        if (skippedSteps[stepId]) return undefined;
         const selectedOptionId = stepSelections[stepId];
         if (!selectedOptionId) return undefined;
         return step.options?.find(o => o.id === selectedOptionId);
@@ -56,7 +59,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
     const resolveOptionsForSteps = (steps: typeof subcategory.customization_steps): WizardOption[] => {
         if (!steps) return [];
         return steps
-            .filter(step => !isYesNoHidden(step.id))
+            .filter(step => !isYesNoHidden(step.id) && !skippedSteps[step.id])
             .map(step => resolveStepOption(step.id))
             .filter(Boolean) as WizardOption[];
     };
@@ -100,11 +103,15 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                             s.required_frame_id === frame.id || !s.required_frame_id
                         ) || [];
 
-                        // Kiểm tra nếu có step yes_no gắn trực tiếp frame này và đang chọn "Không" → ẩn frame
-                        const linkedYesNoSteps = subcategory.customization_steps?.filter(s =>
-                            s.type === 'yes_no' && s.required_frame_id === frame.id
+                        // Kiểm tra ẩn frame nếu step bị skip HOẶC yes_no chọn "Không"
+                        const linkedSteps = subcategory.customization_steps?.filter(s =>
+                            s.required_frame_id === frame.id
                         ) || [];
-                        const isFrameHidden = linkedYesNoSteps.some(s => isYesNoHidden(s.id));
+                        const isFrameHidden = linkedSteps.some(s => {
+                            if (skippedSteps[s.id]) return true;
+                            if (s.type === 'yes_no' && isYesNoHidden(s.id)) return true;
+                            return false;
+                        });
 
                         // Resolve options CHÍNH XÁC bằng stepSelections
                         const mappedOptions = resolveOptionsForSteps(mappedSteps);
