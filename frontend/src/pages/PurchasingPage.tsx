@@ -155,17 +155,26 @@ const PurchasingPage: React.FC = () => {
                     // Calculate Norms for each aggregated product
                     const finalProducts = Array.from(prods.values()).map((p: any) => {
                         let unitNorm = 0;
+                        let materials: any[] = [];
                         if (p.product && p.product.boms) {
                             p.product.boms.forEach((bom: any) => {
                                 if (bom.material && targetMaterialIds.has(bom.material.id)) {
                                     unitNorm += Number(bom.quantity || 0);
+                                    materials.push({
+                                        key: bom.material.id,
+                                        material_name: bom.material.name,
+                                        material_code: bom.material.code,
+                                        unit_norm: Number(bom.quantity || 0),
+                                        total_norm: Number(bom.quantity || 0) * p.quantity
+                                    });
                                 }
                             });
                         }
                         return {
                             ...p,
                             unit_norm: unitNorm > 0 ? unitNorm : 0,
-                            total_norm: (unitNorm > 0 ? unitNorm : 0) * p.quantity
+                            total_norm: (unitNorm > 0 ? unitNorm : 0) * p.quantity,
+                            materials
                         };
                     });
 
@@ -368,15 +377,19 @@ const PurchasingPage: React.FC = () => {
                 project_id: currentPO.project_id, // Include project
                 task_id: currentPO.task_id, // Include task
                 status: currentPO.status,
-                note: currentPO.note
+                note: currentPO.note,
+                vat_rate: currentPO.vat_rate
             });
             message.success('Đã lưu thay đổi PO');
             fetchData(); // Refresh global list
             // Update local currentPO to reflect changes safely
             const updatedPO = { ...currentPO, items: editingItems, packing_list_details: packingList };
             // Recalc total
-            const newTotal = editingItems.reduce((acc, i) => acc + (i.subtotal || 0), 0);
-            updatedPO.total_amount = newTotal;
+            const newTotal = editingItems.reduce((acc, i) => acc + Number(i.subtotal || 0), 0);
+            const vatRate = Number(currentPO.vat_rate || 0);
+            const finalTotal = newTotal * (1 + vatRate / 100);
+            
+            updatedPO.total_amount = finalTotal;
             setCurrentPO(updatedPO);
         } catch (e) { message.error('Lỗi lưu PO'); }
     };
@@ -731,7 +744,19 @@ const PurchasingPage: React.FC = () => {
                             ]}
                         />
                     </Descriptions.Item>
-                    <Descriptions.Item label="Tổng tiền"><b style={{ fontSize: 16 }}>{Number(currentPO?.total_amount).toLocaleString()} ₫</b></Descriptions.Item>
+                    <Descriptions.Item label="Tổng tiền">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <b style={{ fontSize: 16 }}>{Number(currentPO?.total_amount || 0).toLocaleString()} ₫</b>
+                            <InputNumber 
+                                size="small"
+                                addonBefore="VAT %" 
+                                style={{ width: 120 }} 
+                                min={0} max={100} 
+                                value={currentPO?.vat_rate} 
+                                onChange={v => setCurrentPO({...currentPO, vat_rate: v})} 
+                            />
+                        </div>
+                    </Descriptions.Item>
                     <Descriptions.Item label="Đã trả" contentStyle={{ color: 'green', fontWeight: 'bold' }}>{Number(currentPO?.paid_amount).toLocaleString()} ₫</Descriptions.Item>
                     <Descriptions.Item label="Còn lại" contentStyle={{ color: 'red' }}>{Number((currentPO?.total_amount || 0) - (currentPO?.paid_amount || 0)).toLocaleString()} ₫</Descriptions.Item>
                     <Descriptions.Item label="Dự án & Task" span={1}>
@@ -1006,10 +1031,28 @@ const PurchasingPage: React.FC = () => {
                                     columns={[
                                         { title: 'SKU', dataIndex: 'sku', width: 150 },
                                         { title: 'Tên sản phẩm', dataIndex: 'name' },
-                                        { title: 'ĐM (Cái)', dataIndex: 'unit_norm', width: 100, align: 'right', render: v => v ? Number(v).toLocaleString() : '-' },
-                                        { title: 'Tổng ĐM', dataIndex: 'total_norm', width: 100, align: 'right', render: v => v ? Number(v).toLocaleString() : '-' },
-                                        { title: 'Tổng SL', dataIndex: 'quantity', width: 100, align: 'right', render: v => Number(v).toLocaleString() }
+                                        { title: 'Tổng SL (Sản phẩm)', dataIndex: 'quantity', width: 150, align: 'right', render: v => <b>{Number(v).toLocaleString()}</b> }
                                     ]}
+                                    expandable={{
+                                        expandedRowRender: record => (
+                                            <div style={{ padding: '10px 20px', backgroundColor: '#f9f9f9', borderRadius: 4 }}>
+                                                <div style={{ marginBottom: 5, fontWeight: 'bold', color: '#1890ff' }}>Chi tiết NPL cần thiết:</div>
+                                                <Table
+                                                    dataSource={record.materials}
+                                                    rowKey="key"
+                                                    pagination={false}
+                                                    size="small"
+                                                    columns={[
+                                                        { title: 'Mã NPL', dataIndex: 'material_code', width: 120 },
+                                                        { title: 'Tên NPL', dataIndex: 'material_name' },
+                                                        { title: 'ĐM / 1 SP', dataIndex: 'unit_norm', width: 120, align: 'right', render: v => Number(v).toLocaleString() },
+                                                        { title: 'Tổng Cần', dataIndex: 'total_norm', width: 120, align: 'right', render: v => <b style={{ color: '#fa8c16' }}>{Number(v).toLocaleString()}</b> }
+                                                    ]}
+                                                />
+                                            </div>
+                                        ),
+                                        rowExpandable: record => record.materials && record.materials.length > 0,
+                                    }}
                                 />
                             </div>
                         )
