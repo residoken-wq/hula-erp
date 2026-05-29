@@ -177,6 +177,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         const total = Math.round(taxable * (1 + vatRate / 100) + shipping);
 
         setTotalAmount(total);
+
+        // Auto-recalculate deposit amount based on percentage
+        const depositPercent = Number(form.getFieldValue('deposit_percent')) || 0;
+        if (depositPercent > 0) {
+            const autoDepositAmt = Math.round((total * depositPercent) / 100);
+            form.setFieldsValue({ deposit_amount: autoDepositAmt });
+        }
     };
 
     const handleAddItem = () => {
