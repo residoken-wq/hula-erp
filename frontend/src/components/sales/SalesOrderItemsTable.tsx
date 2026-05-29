@@ -91,7 +91,7 @@ const PriceRangesEditor = ({ ranges, onChange }: { ranges?: { quantity: number; 
             ))}
             <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
                 <InputNumber placeholder="SL" min={1} style={{ width: '40%' }} value={qty} onChange={(v) => setQty(Number(v))} />
-                <InputNumber placeholder="Giá" min={0} style={{ width: '60%' }} value={price} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(v) => v!.replace(/\$\s?|(,*)/g, '')} onChange={(v) => setPrice(Number(v))} />
+                <InputNumber placeholder="Giá" min={0} style={{ width: '60%' }} value={price} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(v) => v!.replace(/\$\s?|(,*)/g, '') as any} onChange={(v) => setPrice(Number(v))} />
             </div>
             <Button type="dashed" block size="small" style={{ marginTop: 8 }} onClick={handleAdd}>Thêm mốc giá</Button>
         </div>
@@ -233,7 +233,7 @@ const SalesOrderItemsTable: React.FC<Props> = ({
                             style={{ width: '100%' }}
                             value={text}
                             formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                            parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '')}
+                            parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '') as any}
                             onChange={(val) => onItemChange(index, 'unit_price', val)}
                         />
                         <div style={{ marginTop: 4, textAlign: 'right' }}>
