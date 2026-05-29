@@ -1,6 +1,6 @@
 import React from 'react';
-import { Table, Select, Input, InputNumber, Tag } from 'antd';
-import { MenuOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
+import { Table, Select, Input, InputNumber, Tag, Popover, Button, Space, Tooltip } from 'antd';
+import { MenuOutlined, DeleteOutlined, GiftOutlined, TagsOutlined } from '@ant-design/icons';
 import { DndContext, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -56,7 +56,47 @@ interface OrderItem {
     _type?: string;
     booking_status?: string;
     booked_quantity?: number;
+    price_ranges?: { quantity: number; unit_price: number }[];
 }
+
+const PriceRangesEditor = ({ ranges, onChange }: { ranges?: { quantity: number; unit_price: number }[], onChange: (r: any[]) => void }) => {
+    const [list, setList] = React.useState<any[]>(ranges || []);
+    const [qty, setQty] = React.useState<number | null>(null);
+    const [price, setPrice] = React.useState<number | null>(null);
+
+    const handleAdd = () => {
+        if (qty && qty > 0 && price !== null && price >= 0) {
+            const newList = [...list, { quantity: qty, unit_price: price }].sort((a, b) => a.quantity - b.quantity);
+            setList(newList);
+            onChange(newList);
+            setQty(null);
+            setPrice(null);
+        }
+    };
+
+    const handleRemove = (idx: number) => {
+        const newList = list.filter((_, i) => i !== idx);
+        setList(newList);
+        onChange(newList);
+    };
+
+    return (
+        <div style={{ width: 250 }}>
+            <div style={{ marginBottom: 8, fontWeight: 600 }}>Tùy chọn giá theo số lượng</div>
+            {list.map((r, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, alignItems: 'center', fontSize: 13 }}>
+                    <span>{r.quantity} cái - {r.unit_price.toLocaleString()}đ/cái</span>
+                    <DeleteOutlined style={{ color: 'red', cursor: 'pointer' }} onClick={() => handleRemove(i)} />
+                </div>
+            ))}
+            <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+                <InputNumber placeholder="SL" min={1} style={{ width: '40%' }} value={qty} onChange={(v) => setQty(Number(v))} />
+                <InputNumber placeholder="Giá" min={0} style={{ width: '60%' }} value={price} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} parser={(v) => v!.replace(/\$\s?|(,*)/g, '')} onChange={(v) => setPrice(Number(v))} />
+            </div>
+            <Button type="dashed" block size="small" style={{ marginTop: 8 }} onClick={handleAdd}>Thêm mốc giá</Button>
+        </div>
+    );
+};
 
 interface Product {
     value: string;
@@ -196,6 +236,18 @@ const SalesOrderItemsTable: React.FC<Props> = ({
                             parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '')}
                             onChange={(val) => onItemChange(index, 'unit_price', val)}
                         />
+                        <div style={{ marginTop: 4, textAlign: 'right' }}>
+                            <Popover 
+                                content={<PriceRangesEditor ranges={record.price_ranges} onChange={(r) => onItemChange(index, 'price_ranges', r)} />} 
+                                title="Báo giá sỉ" 
+                                trigger="click"
+                                placement="bottomRight"
+                            >
+                                <Button size="small" type="dashed" style={{ fontSize: 10, padding: '0 4px', height: 20, borderColor: record.price_ranges && record.price_ranges.length > 0 ? '#1890ff' : '#d9d9d9', color: record.price_ranges && record.price_ranges.length > 0 ? '#1890ff' : '#666' }}>
+                                    <TagsOutlined /> {record.price_ranges && record.price_ranges.length > 0 ? `${record.price_ranges.length} mốc giá` : 'Mốc giá'}
+                                </Button>
+                            </Popover>
+                        </div>
                     </div>
                 );
             }

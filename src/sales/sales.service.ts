@@ -194,7 +194,8 @@ export class SalesService {
                 vat_content: itemData.vat_content,
                 sample_image: itemData.sample_image,
                 image_url: itemData.image_url || (product ? product.image_url : null), // <--- Prioritize User Input
-                position: validItems.indexOf(itemData) + 1 // Save Position
+                position: validItems.indexOf(itemData) + 1, // Save Position
+                price_ranges: itemData.price_ranges
             });
         }));
 
@@ -383,6 +384,7 @@ export class SalesService {
                     sample_image: itemData.sample_image, // <--- Ensure this is mapped
                     image_url: itemData.image_url || (product ? product.image_url : null), // <--- Prioritize User Input
                     position: validItems.indexOf(itemData) + 1, // Save Position
+                    price_ranges: itemData.price_ranges,
                     // --- RESTORE BOOKING FIELDS ---
                     booking_status: bookingData?.booking_status as any || BookingStatus.NONE,
                     booked_quantity: bookingData?.booked_quantity || 0,

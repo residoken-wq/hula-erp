@@ -76,4 +76,7 @@ export class SalesOrderItem {
 
   @Column('text', { nullable: true })
   vat_content: string;
+
+  @Column('json', { nullable: true })
+  price_ranges: any;
 }

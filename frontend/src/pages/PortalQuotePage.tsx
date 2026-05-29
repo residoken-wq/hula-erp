@@ -492,6 +492,12 @@ const PortalQuotePage: React.FC = () => {
                     const imgCell = imgSrc ? '<img src="' + imgSrc + '" style="width:65px;height:65px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display=\'none\'" />' : '<span style="color:#ccc;font-size:10px;">-</span>';
                     const colorLine = item.variant_color ? '<div style="font-size:10px;color:#888;">Màu: ' + item.variant_color + '</div>' : '';
 
+                    let priceRangesHtml = '';
+                    if (item.price_ranges && Array.isArray(item.price_ranges) && item.price_ranges.length > 0) {
+                        const rangeText = item.price_ranges.map((r: any) => r.quantity + ' cái: ' + Number(r.unit_price).toLocaleString() + 'đ/cái').join(' | ');
+                        priceRangesHtml = '<div style="margin-top:6px;padding:4px 6px;background:#fffbe6;border:1px dashed #ffe58f;border-radius:4px;font-size:10px;color:#d46b08;"><span style="font-weight:600;">🏷️ Tùy chọn mua nhiều:</span><br/>' + rangeText + '</div>';
+                    }
+
                     return '<tr>'
                         + '<td style="text-align:center;font-weight:600;">' + (idx + 1) + '</td>'
                         + '<td style="text-align:center;padding:4px;">' + imgCell + '</td>'
@@ -499,9 +505,10 @@ const PortalQuotePage: React.FC = () => {
                         + '<td style="text-align:left;padding:6px 8px;">'
                         +   '<div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-bottom:2px;">' + productName + '</div>'
                         +   colorLine + descLines
+                        +   priceRangesHtml
                         +   '<div style="margin-top:3px;"><span style="font-size:9px;color:#999;background:#f5f5f5;padding:1px 5px;border-radius:3px;">' + item.sku + '</span></div>'
                         + '</td>'
-                        + '<td style="text-align:center;">Cái</td>'
+                        + '<td style="text-align:center;">' + (item.product?.unit || 'Cái') + '</td>'
                         + '<td style="text-align:center;font-weight:700;font-size:13px;">' + Number(item.quantity) + '</td>'
                         + '<td style="text-align:right;padding-right:8px;">' + Number(item.unit_price).toLocaleString() + '</td>'
                         + '<td style="text-align:right;padding-right:8px;font-weight:700;">' + Number(item.subtotal).toLocaleString() + '</td>'
@@ -842,6 +849,17 @@ const PortalQuotePage: React.FC = () => {
                                 </div>
                             )}
 
+                            {r.price_ranges && Array.isArray(r.price_ranges) && r.price_ranges.length > 0 && (
+                                <div style={{ marginTop: 6, padding: '6px 8px', background: '#fffbe6', border: '1px dashed #ffe58f', borderRadius: 4, display: 'inline-block' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: '#d46b08', marginBottom: 4 }}>🏷️ Tùy chọn mua nhiều:</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                        {r.price_ranges.map((pr: any, i: number) => (
+                                            <Tag key={i} color="orange" style={{ margin: 0, fontSize: 12 }}>{pr.quantity} cái: {Number(pr.unit_price).toLocaleString()}đ/cái</Tag>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* --- FOOTER: SKU Tags --- */}
                             <div style={{ marginTop: 2 }}>
                                 <Tag style={{ fontSize: 10, margin: 0, padding: '0 6px', background: '#f5f5f5', border: '1px solid #d9d9d9', color: '#595959' }}>{r.sku}</Tag>
@@ -857,7 +875,7 @@ const PortalQuotePage: React.FC = () => {
             dataIndex: 'unit',
             width: 50,
             align: 'center' as const,
-            render: () => <span style={{ color: '#666' }}>Cái</span>
+            render: (t: any, r: any) => <span style={{ color: '#666' }}>{r.product?.unit || 'Cái'}</span>
         },
         {
             title: 'SL',

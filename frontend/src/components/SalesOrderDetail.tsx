@@ -293,7 +293,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     vat_content: i.vat_content,
                     sample_image: i.sample_image,
                     image_url: i.image_url, // <--- Add this!
-                    total_price: i.total_price // Frontend gửi total_price, Backend sẽ map vào subtotal
+                    total_price: i.total_price, // Frontend gửi total_price, Backend sẽ map vào subtotal
+                    price_ranges: i.price_ranges
                 }))
             };
 
