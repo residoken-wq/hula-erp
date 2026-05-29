@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Requ
 import { HrService } from './hr.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { LeaveStatus } from './entities/leave-request.entity';
+import { Public } from '../auth/public.decorator';
 
 @Controller('hr')
 @UseGuards(JwtAuthGuard)
@@ -374,5 +375,21 @@ export class HrController {
     @Post('employee-reviews/:id/submit')
     submitEmployeeReview(@Param('id') id: string, @Body('answers') answers: any) {
         return this.hrService.submitEmployeeReview(+id, answers);
+    }
+
+    @Public()
+    @Post('review-questions-seed')
+    async seedReviewQuestions() {
+        const fs = require('fs');
+        const path = require('path');
+        const dataPath = path.join(process.cwd(), 'parsed_questions.json');
+        if (fs.existsSync(dataPath)) {
+            const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+            for (const item of data) {
+                await this.hrService.createReviewQuestion(item);
+            }
+            return { message: `Seeded ${data.length} questions` };
+        }
+        return { message: 'File not found' };
     }
 }

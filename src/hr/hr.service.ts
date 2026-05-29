@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Employee } from './entities/employee.entity';
@@ -21,7 +21,7 @@ import { EmailService } from '../common/services/email.service';
 import { randomUUID } from 'crypto';
 
 @Injectable()
-export class HrService {
+export class HrService implements OnModuleInit {
     constructor(
         @InjectRepository(Employee) private employeeRepo: Repository<Employee>,
         @InjectRepository(Attendance) private attendanceRepo: Repository<Attendance>,
@@ -41,6 +41,32 @@ export class HrService {
         private aiService: AiService,
         private emailService: EmailService,
     ) { }
+
+    async onModuleInit() {
+        // Auto-seed 360-degree review questions from parsed_questions.json if table is empty
+        try {
+            const count = await this.reviewQuestionRepo.count();
+            if (count === 0) {
+                const fs = require('fs');
+                const path = require('path');
+                const dataPath = path.join(process.cwd(), 'parsed_questions.json');
+                if (fs.existsSync(dataPath)) {
+                    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+                    for (const item of data) {
+                        const q = this.reviewQuestionRepo.create({
+                            content: item.content,
+                            category: item.category,
+                            type: item.type as any
+                        });
+                        await this.reviewQuestionRepo.save(q);
+                    }
+                    console.log(`[HrModule] Seeded ${data.length} review questions successfully.`);
+                }
+            }
+        } catch (e) {
+            console.error('[HrModule] Error auto-seeding review questions:', e);
+        }
+    }
 
     // ==================== WORK SHIFT ====================
     async findAllShifts() {
@@ -816,16 +842,16 @@ You MUST return ONLY a valid JSON object in this structure:
 
         // Use AI to generate feedback
         const isSelf = review.reviewer_id === review.reviewee_id;
-        const prompt = \`
-        Bạn là một chuyên gia Nhân sự. Dựa vào các câu hỏi và câu trả lời đánh giá 360 độ sau đây của nhân viên \${review.reviewee.full_name} (\${isSelf ? 'Tự đánh giá' : 'Đồng nghiệp đánh giá'}), hãy đưa ra:
+        const prompt = `
+        Bạn là một chuyên gia Nhân sự. Dựa vào các câu hỏi và câu trả lời đánh giá 360 độ sau đây của nhân viên ${review.reviewee.full_name} (${isSelf ? 'Tự đánh giá' : 'Đồng nghiệp đánh giá'}), hãy đưa ra:
         1. Nhận xét tổng quan (Điểm mạnh, điểm yếu).
         2. Gợi ý cải thiện (Actionable feedback).
         
         Câu hỏi và câu trả lời:
-        \${JSON.stringify({ questions: review.questions_json, answers: review.answers_json })}
+        ${JSON.stringify({ questions: review.questions_json, answers: review.answers_json })}
         
         OUTPUT FORMAT: Return ONLY a valid JSON object with the key "feedback_markdown" containing the markdown feedback.
-        \`;
+        `;
 
         try {
             const result = await this.aiService.evaluateAssessment(prompt);
