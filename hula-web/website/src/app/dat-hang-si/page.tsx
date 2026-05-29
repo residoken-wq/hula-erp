@@ -210,29 +210,77 @@ export default function B2BConfiguratorPage() {
             </main>
 
             {/* Quy trình & Trust Section */}
-            <section className="bg-white py-16 mt-12 border-t border-gray-100">
-                <div className="max-w-6xl mx-auto px-4 text-center">
-                    <h2 className="text-2xl font-bold mb-10">Quy Trình Triển Khai B2B Chuyên Nghiệp</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <div>
-                            <div className="w-16 h-16 mx-auto bg-primary/10 text-primary rounded-full flex items-center justify-center text-2xl mb-4">1️⃣</div>
-                            <h3 className="font-bold mb-2">Tư Vấn & Lên Ý Tưởng</h3>
-                            <p className="text-sm text-gray-500">Trao đổi yêu cầu, chọn mẫu, và nhận bảng giá chi tiết.</p>
-                        </div>
-                        <div>
-                            <div className="w-16 h-16 mx-auto bg-primary/10 text-primary rounded-full flex items-center justify-center text-2xl mb-4">2️⃣</div>
-                            <h3 className="font-bold mb-2">Thiết Kế Mockup</h3>
-                            <p className="text-sm text-gray-500">Lên phối cảnh 3D thực tế với màu sắc và logo trường.</p>
-                        </div>
-                        <div>
-                            <div className="w-16 h-16 mx-auto bg-primary/10 text-primary rounded-full flex items-center justify-center text-2xl mb-4">3️⃣</div>
-                            <h3 className="font-bold mb-2">Duyệt Mẫu Thực Tế</h3>
-                            <p className="text-sm text-gray-500">Gửi mẫu thật đến tận nơi để trường kiểm tra chất lượng.</p>
-                        </div>
-                        <div>
-                            <div className="w-16 h-16 mx-auto bg-primary/10 text-primary rounded-full flex items-center justify-center text-2xl mb-4">4️⃣</div>
-                            <h3 className="font-bold mb-2">Sản Xuất & Giao Hàng</h3>
-                            <p className="text-sm text-gray-500">Sản xuất số lượng lớn đúng tiến độ và giao hàng tận nơi.</p>
+            <section className="bg-white py-20 mt-12 relative overflow-hidden border-t border-gray-100">
+                {/* Background decorative elements */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+                
+                <div className="max-w-6xl mx-auto px-4 relative z-10">
+                    <div className="text-center mb-16">
+                        <span className="text-sm font-bold tracking-wider text-primary uppercase mb-2 block">Roadmap</span>
+                        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">Quy Trình Triển Khai B2B Chuyên Nghiệp</h2>
+                        <p className="text-gray-500 max-w-2xl mx-auto text-lg">Đồng hành cùng bạn từ ý tưởng đến sản phẩm hoàn thiện với quy trình khép kín, minh bạch và tối ưu.</p>
+                    </div>
+
+                    <div className="relative">
+                        {/* Connecting Line */}
+                        <div className="hidden md:block absolute top-1/2 left-0 w-full h-1 bg-gradient-to-r from-blue-100 via-primary to-blue-100 -translate-y-1/2 z-0 opacity-50 rounded-full"></div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8 relative z-10">
+                            {/* Step 1 */}
+                            <div className="group relative bg-white/80 backdrop-blur-sm p-8 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300">
+                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-white rounded-full p-1 shadow-sm">
+                                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-primary text-white rounded-full flex items-center justify-center font-bold text-lg shadow-inner">1</div>
+                                </div>
+                                <div className="mt-6 text-center">
+                                    <div className="w-14 h-14 mx-auto bg-blue-50 text-primary rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                                    </div>
+                                    <h3 className="font-bold text-lg mb-3 text-gray-800">Tư Vấn & Lên Ý Tưởng</h3>
+                                    <p className="text-sm text-gray-500 leading-relaxed">Trao đổi yêu cầu, chọn mẫu thiết kế, và nhận bảng giá chi tiết phù hợp với ngân sách.</p>
+                                </div>
+                            </div>
+
+                            {/* Step 2 */}
+                            <div className="group relative bg-white/80 backdrop-blur-sm p-8 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300 md:mt-8">
+                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-white rounded-full p-1 shadow-sm">
+                                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-primary text-white rounded-full flex items-center justify-center font-bold text-lg shadow-inner">2</div>
+                                </div>
+                                <div className="mt-6 text-center">
+                                    <div className="w-14 h-14 mx-auto bg-blue-50 text-primary rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                    <h3 className="font-bold text-lg mb-3 text-gray-800">Thiết Kế Mockup</h3>
+                                    <p className="text-sm text-gray-500 leading-relaxed">Lên phối cảnh 3D thực tế với màu sắc thương hiệu và logo trường một cách trực quan.</p>
+                                </div>
+                            </div>
+
+                            {/* Step 3 */}
+                            <div className="group relative bg-white/80 backdrop-blur-sm p-8 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300">
+                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-white rounded-full p-1 shadow-sm">
+                                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-primary text-white rounded-full flex items-center justify-center font-bold text-lg shadow-inner">3</div>
+                                </div>
+                                <div className="mt-6 text-center">
+                                    <div className="w-14 h-14 mx-auto bg-blue-50 text-primary rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <h3 className="font-bold text-lg mb-3 text-gray-800">Duyệt Mẫu Thực Tế</h3>
+                                    <p className="text-sm text-gray-500 leading-relaxed">Gửi mẫu thật đến tận nơi để nhà trường kiểm tra trực tiếp chất liệu và form dáng.</p>
+                                </div>
+                            </div>
+
+                            {/* Step 4 */}
+                            <div className="group relative bg-white/80 backdrop-blur-sm p-8 rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300 md:mt-8">
+                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-white rounded-full p-1 shadow-sm">
+                                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-primary text-white rounded-full flex items-center justify-center font-bold text-lg shadow-inner">4</div>
+                                </div>
+                                <div className="mt-6 text-center">
+                                    <div className="w-14 h-14 mx-auto bg-blue-50 text-primary rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                                    </div>
+                                    <h3 className="font-bold text-lg mb-3 text-gray-800">Sản Xuất & Giao Hàng</h3>
+                                    <p className="text-sm text-gray-500 leading-relaxed">Tiến hành sản xuất số lượng lớn đúng tiến độ cam kết và giao hàng tận nơi nhanh chóng.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
