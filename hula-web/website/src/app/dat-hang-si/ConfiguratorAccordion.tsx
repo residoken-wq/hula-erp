@@ -27,19 +27,10 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
 
     const handleSelect = (stepId: string, optionId: string) => {
         onChange(stepId, optionId);
-        // Tự động chuyển step tiếp theo
-        const currentIndex = steps.findIndex(s => s.id === stepId);
-        if (currentIndex < steps.length - 1) {
-            setOpenStep(steps[currentIndex + 1].id);
-        }
     };
 
     const handleSkip = (stepId: string) => {
         onSkip?.(stepId);
-        const currentIndex = steps.findIndex(s => s.id === stepId);
-        if (currentIndex < steps.length - 1) {
-            setOpenStep(steps[currentIndex + 1].id);
-        }
     };
 
     // Render multi-image gallery thumbnails for an option
