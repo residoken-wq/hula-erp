@@ -13,6 +13,9 @@ import { JobPost, JobPostStatus } from './entities/job-post.entity';
 import { Candidate, CandidateStatus } from './entities/candidate.entity';
 import { Assessment, AssessmentStatus } from './entities/assessment.entity';
 import { Interview, InterviewStatus } from './entities/interview.entity';
+import { ReviewQuestion } from './entities/review-question.entity';
+import { ReviewCampaign, CampaignStatus } from './entities/review-campaign.entity';
+import { EmployeeReview, ReviewStatus } from './entities/employee-review.entity';
 import { AiService } from '../ai/ai.service';
 import { EmailService } from '../common/services/email.service';
 import { randomUUID } from 'crypto';
@@ -32,6 +35,9 @@ export class HrService {
         @InjectRepository(Candidate) private candidateRepo: Repository<Candidate>,
         @InjectRepository(Assessment) private assessmentRepo: Repository<Assessment>,
         @InjectRepository(Interview) private interviewRepo: Repository<Interview>,
+        @InjectRepository(ReviewQuestion) private reviewQuestionRepo: Repository<ReviewQuestion>,
+        @InjectRepository(ReviewCampaign) private reviewCampaignRepo: Repository<ReviewCampaign>,
+        @InjectRepository(EmployeeReview) private employeeReviewRepo: Repository<EmployeeReview>,
         private aiService: AiService,
         private emailService: EmailService,
     ) { }
@@ -332,15 +338,25 @@ export class HrService {
 
         data.gross_income = data.actual_salary + meal + transport + phone + bonus;
 
-        // Company contributions (based on base_salary)
-        data.bhxh_company = Math.round(base * 0.175);
-        data.bhyt_company = Math.round(base * 0.03);
-        data.bhtn_company = Math.round(base * 0.01);
+        // Insurance calculations
+        if (data.include_insurance !== false) {
+            // Company contributions (based on base_salary)
+            data.bhxh_company = Math.round(base * 0.175);
+            data.bhyt_company = Math.round(base * 0.03);
+            data.bhtn_company = Math.round(base * 0.01);
 
-        // Employee contributions
-        data.bhxh_employee = Math.round(base * 0.08);
-        data.bhyt_employee = Math.round(base * 0.015);
-        data.bhtn_employee = Math.round(base * 0.01);
+            // Employee contributions
+            data.bhxh_employee = Math.round(base * 0.08);
+            data.bhyt_employee = Math.round(base * 0.015);
+            data.bhtn_employee = Math.round(base * 0.01);
+        } else {
+            data.bhxh_company = 0;
+            data.bhyt_company = 0;
+            data.bhtn_company = 0;
+            data.bhxh_employee = 0;
+            data.bhyt_employee = 0;
+            data.bhtn_employee = 0;
+        }
 
         // Net salary
         const totalDeductions =
@@ -666,5 +682,158 @@ You MUST return ONLY a valid JSON object in this structure:
     
     async deleteInterview(id: number) {
         return this.interviewRepo.delete(id);
+    }
+
+    // ==================== 360 REVIEW MODULE ====================
+
+    // --- Review Questions ---
+    async findAllReviewQuestions() {
+        return this.reviewQuestionRepo.find({ order: { created_at: 'DESC' } });
+    }
+
+    async createReviewQuestion(data: Partial<ReviewQuestion>) {
+        const q = this.reviewQuestionRepo.create(data);
+        return this.reviewQuestionRepo.save(q);
+    }
+
+    async updateReviewQuestion(id: number, data: Partial<ReviewQuestion>) {
+        await this.reviewQuestionRepo.update(id, data);
+        return this.reviewQuestionRepo.findOne({ where: { id } });
+    }
+
+    async deleteReviewQuestion(id: number) {
+        return this.reviewQuestionRepo.delete(id);
+    }
+
+    // --- Review Campaigns ---
+    async findAllReviewCampaigns() {
+        return this.reviewCampaignRepo.find({ order: { created_at: 'DESC' } });
+    }
+
+    async createReviewCampaign(data: Partial<ReviewCampaign> & { participant_ids?: number[] }) {
+        const { participant_ids, ...campaignData } = data;
+        const campaign = this.reviewCampaignRepo.create(campaignData);
+        const savedCampaign = await this.reviewCampaignRepo.save(campaign);
+
+        if (savedCampaign.status === CampaignStatus.ACTIVE && participant_ids && participant_ids.length > 0) {
+            await this.generateReviewsForCampaign(savedCampaign, participant_ids);
+        }
+
+        return savedCampaign;
+    }
+
+    async updateReviewCampaign(id: number, data: Partial<ReviewCampaign> & { participant_ids?: number[] }) {
+        const { participant_ids, ...campaignData } = data;
+        
+        const existing = await this.reviewCampaignRepo.findOne({ where: { id } });
+        if (!existing) throw new NotFoundException('Campaign not found');
+
+        await this.reviewCampaignRepo.update(id, campaignData);
+        const updated = await this.reviewCampaignRepo.findOne({ where: { id } });
+
+        // If transitioning to ACTIVE, generate reviews
+        if (existing.status !== CampaignStatus.ACTIVE && updated?.status === CampaignStatus.ACTIVE && participant_ids && participant_ids.length > 0) {
+            await this.generateReviewsForCampaign(updated, participant_ids);
+        }
+
+        return updated;
+    }
+
+    async deleteReviewCampaign(id: number) {
+        // Also delete associated reviews
+        await this.employeeReviewRepo.delete({ campaign_id: id });
+        return this.reviewCampaignRepo.delete(id);
+    }
+
+    private async generateReviewsForCampaign(campaign: ReviewCampaign, participantIds: number[]) {
+        const config = campaign.config_json || []; // e.g., [{ category: 'Kỹ năng', count: 3 }]
+        
+        // Fetch all questions
+        const allQuestions = await this.reviewQuestionRepo.find();
+        
+        // Create reviews
+        for (const empId of participantIds) {
+            // 1. Self Review
+            const selfQuestions = this.pickRandomQuestions(allQuestions, config);
+            const selfReview = this.employeeReviewRepo.create({
+                campaign_id: campaign.id,
+                reviewer_id: empId,
+                reviewee_id: empId,
+                questions_json: selfQuestions,
+                status: ReviewStatus.PENDING,
+            });
+            await this.employeeReviewRepo.save(selfReview);
+
+            // 2. Peer Reviews (Cross-evaluation)
+            // Pick 2 random peers (if available)
+            const peers = participantIds.filter(id => id !== empId);
+            const selectedPeers = peers.sort(() => 0.5 - Math.random()).slice(0, 2);
+            
+            for (const peerId of selectedPeers) {
+                const peerQuestions = this.pickRandomQuestions(allQuestions, config);
+                const peerReview = this.employeeReviewRepo.create({
+                    campaign_id: campaign.id,
+                    reviewer_id: peerId, // Peer evaluates empId
+                    reviewee_id: empId,
+                    questions_json: peerQuestions,
+                    status: ReviewStatus.PENDING,
+                });
+                await this.employeeReviewRepo.save(peerReview);
+            }
+        }
+    }
+
+    private pickRandomQuestions(allQuestions: ReviewQuestion[], config: any[]) {
+        let picked = [];
+        for (const conf of config) {
+            const categoryQuestions = allQuestions.filter(q => q.category === conf.category);
+            const shuffled = categoryQuestions.sort(() => 0.5 - Math.random());
+            picked.push(...shuffled.slice(0, conf.count));
+        }
+        return picked;
+    }
+
+    // --- Employee Reviews ---
+    async findEmployeeReviews(reviewerId?: number, campaignId?: number) {
+        const where: any = {};
+        if (reviewerId) where.reviewer_id = reviewerId;
+        if (campaignId) where.campaign_id = campaignId;
+
+        return this.employeeReviewRepo.find({
+            where,
+            relations: ['campaign', 'reviewer', 'reviewee'],
+            order: { created_at: 'DESC' }
+        });
+    }
+
+    async submitEmployeeReview(id: number, answers: any) {
+        const review = await this.employeeReviewRepo.findOne({ where: { id }, relations: ['reviewee'] });
+        if (!review) throw new NotFoundException('Review not found');
+
+        review.answers_json = answers;
+        review.status = ReviewStatus.SUBMITTED;
+        review.submitted_at = new Date();
+
+        // Use AI to generate feedback
+        const isSelf = review.reviewer_id === review.reviewee_id;
+        const prompt = \`
+        Bạn là một chuyên gia Nhân sự. Dựa vào các câu hỏi và câu trả lời đánh giá 360 độ sau đây của nhân viên \${review.reviewee.full_name} (\${isSelf ? 'Tự đánh giá' : 'Đồng nghiệp đánh giá'}), hãy đưa ra:
+        1. Nhận xét tổng quan (Điểm mạnh, điểm yếu).
+        2. Gợi ý cải thiện (Actionable feedback).
+        
+        Câu hỏi và câu trả lời:
+        \${JSON.stringify({ questions: review.questions_json, answers: review.answers_json })}
+        
+        OUTPUT FORMAT: Return ONLY a valid JSON object with the key "feedback_markdown" containing the markdown feedback.
+        \`;
+
+        try {
+            const result = await this.aiService.evaluateAssessment(prompt);
+            review.ai_feedback = result?.feedback_markdown || "Đã ghi nhận kết quả đánh giá.";
+        } catch (e) {
+            review.ai_feedback = "Đã ghi nhận kết quả đánh giá.";
+        }
+
+        return this.employeeReviewRepo.save(review);
     }
 }

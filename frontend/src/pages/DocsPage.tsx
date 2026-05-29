@@ -13,13 +13,15 @@ const DocsPage: React.FC = () => {
 
     const moduleData = [
         { name: 'Auth', path: 'src/auth/', desc: 'JWT Authentication, RBAC' },
-        { name: 'Sales', path: 'src/sales/', desc: 'Quotations, Orders, Deliveries, Comments, Checklist, Samples' },
+        { name: 'Sales', path: 'src/sales/', desc: 'Quotations, Orders, POS, Deliveries, Comments, Samples' },
+        { name: 'Social', path: 'src/social/', desc: 'Facebook Integration, Social Orders' },
         { name: 'HR', path: 'src/hr/', desc: 'Employees, Attendance, Leave, Payslip' },
         { name: 'Finance', path: 'src/finance/', desc: 'Payments, Revenue, Expenses' },
         { name: 'Inventory', path: 'src/inventory/', desc: 'Stock In/Out, Levels, Alerts' },
-        { name: 'Production', path: 'src/production/', desc: 'Work Orders, Output Tracking' },
+        { name: 'Production', path: 'src/production/', desc: 'Work Orders, Output Tracking, Dashboard' },
         { name: 'Purchasing', path: 'src/purchasing/', desc: 'PO, Receiving, GRN' },
         { name: 'Products', path: 'src/products/', desc: 'Catalog, SKU, Pricing' },
+        { name: 'Website', path: 'src/website/', desc: 'CMS Website Products, SEO' },
         { name: 'Tasks', path: 'src/tasks/', desc: 'Task Management, Reminders (CRON)' },
         { name: 'Notifications', path: 'src/notifications/', desc: 'In-app + Firebase Push' },
         { name: 'Upload', path: 'src/upload/', desc: 'File Upload, Image Compression' },
@@ -49,8 +51,8 @@ const DocsPage: React.FC = () => {
                         </Paragraph>
 
                         <Alert
-                            message="Last Updated: January 2026"
-                            description="Firebase Real-time Notifications, Deep Links, CMS UI Upgrade"
+                            message="Last Updated: May 2026"
+                            description="Added POS Module, Social Channels Integration, Website CMS, and Activity Logs"
                             type="info"
                             showIcon
                             style={{ marginBottom: 20 }}
@@ -134,7 +136,7 @@ COMPLETED ← DELIVERED ← PARTIAL_DELIVERY ← IN_PRODUCTION`}
                 return (
                     <div>
                         <Tag color="green">Modules</Tag>
-                        <Title level={2}>Backend Modules (25 Total)</Title>
+                        <Title level={2}>Backend Modules ({moduleData.length} Total)</Title>
                         <Paragraph>
                             Tất cả modules đều nằm trong thư mục <code>src/</code> và được import vào <code>app.module.ts</code>.
                         </Paragraph>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Tag, message, Divider, Space, Popconfirm } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Tag, message, Divider, Space, Popconfirm, Checkbox } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
@@ -191,6 +191,9 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
                         <Col span={8}><Form.Item name="allowance_transport" label="PC Đi lại"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
                         <Col span={8}><Form.Item name="allowance_phone" label="PC Điện thoại"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
                     </Row>
+                    <Form.Item name="include_insurance" valuePropName="checked" initialValue={true}>
+                        <Checkbox>Tính các loại Bảo Hiểm (BHXH, BHYT, BHTN)</Checkbox>
+                    </Form.Item>
                 </Form>
             </Modal>
 

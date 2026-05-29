@@ -87,6 +87,9 @@ export class Payslip {
     @Column({ type: 'decimal', precision: 15, scale: 0, default: 0 })
     net_salary: number;
 
+    @Column({ default: true })
+    include_insurance: boolean;
+
     @Column({ type: 'text', nullable: true })
     note: string;
 

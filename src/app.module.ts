@@ -134,6 +134,9 @@ import { JobPost } from './hr/entities/job-post.entity';
 import { Candidate } from './hr/entities/candidate.entity';
 import { Assessment } from './hr/entities/assessment.entity';
 import { Interview } from './hr/entities/interview.entity';
+import { ReviewQuestion } from './hr/entities/review-question.entity';
+import { ReviewCampaign } from './hr/entities/review-campaign.entity';
+import { EmployeeReview } from './hr/entities/employee-review.entity';
 
 import { AppController } from './app.controller';
 
@@ -190,6 +193,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           BlogPost,
           Employee, Attendance, LeaveRequest, LeaveEntitlement, AssetAssignment, Payslip, TrainingPlan, WorkShift,
           JobPost, Candidate, Assessment, Interview,
+          ReviewQuestion, ReviewCampaign, EmployeeReview,
           // Website Config & Templates
           ProductWebsiteConfig, ContractTemplate, EmailTemplate, WebsitePolicy, WizardConfig,
           // Social & Marketing

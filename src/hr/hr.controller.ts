@@ -315,4 +315,64 @@ export class HrController {
     deleteInterview(@Param('id') id: string) {
         return this.hrService.deleteInterview(+id);
     }
+    // ==================== 360 REVIEW MODULE ====================
+
+    // --- Review Questions ---
+    @Get('review-questions')
+    findAllReviewQuestions() {
+        return this.hrService.findAllReviewQuestions();
+    }
+
+    @Post('review-questions')
+    createReviewQuestion(@Body() data: any) {
+        return this.hrService.createReviewQuestion(data);
+    }
+
+    @Put('review-questions/:id')
+    updateReviewQuestion(@Param('id') id: string, @Body() data: any) {
+        return this.hrService.updateReviewQuestion(+id, data);
+    }
+
+    @Delete('review-questions/:id')
+    deleteReviewQuestion(@Param('id') id: string) {
+        return this.hrService.deleteReviewQuestion(+id);
+    }
+
+    // --- Review Campaigns ---
+    @Get('review-campaigns')
+    findAllReviewCampaigns() {
+        return this.hrService.findAllReviewCampaigns();
+    }
+
+    @Post('review-campaigns')
+    createReviewCampaign(@Body() data: any) {
+        return this.hrService.createReviewCampaign(data);
+    }
+
+    @Put('review-campaigns/:id')
+    updateReviewCampaign(@Param('id') id: string, @Body() data: any) {
+        return this.hrService.updateReviewCampaign(+id, data);
+    }
+
+    @Delete('review-campaigns/:id')
+    deleteReviewCampaign(@Param('id') id: string) {
+        return this.hrService.deleteReviewCampaign(+id);
+    }
+
+    // --- Employee Reviews ---
+    @Get('employee-reviews')
+    findEmployeeReviews(
+        @Query('reviewer_id') reviewerId?: string,
+        @Query('campaign_id') campaignId?: string,
+    ) {
+        return this.hrService.findEmployeeReviews(
+            reviewerId ? +reviewerId : undefined,
+            campaignId ? +campaignId : undefined,
+        );
+    }
+
+    @Post('employee-reviews/:id/submit')
+    submitEmployeeReview(@Param('id') id: string, @Body('answers') answers: any) {
+        return this.hrService.submitEmployeeReview(+id, answers);
+    }
 }

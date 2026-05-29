@@ -214,7 +214,9 @@ const App: React.FC = () => {
             items.push(getItem(<Link to="/workspace">Công việc chung</Link>, '/workspace', <CalendarOutlined />)); // <--- Unified Menu
             items.push(getItem(<Link to="/projects">Quản lý Dự án</Link>, '/projects', <FolderOutlined />));
             items.push(getItem(<Link to="/help">Hướng dẫn sử dụng</Link>, '/help', <QuestionCircleOutlined />));
-            items.push(getItem(<Link to="/docs">Dev Docs (Technical)</Link>, '/docs', <CodeOutlined />));
+            if (currentUser?.username === 'admin') {
+                items.push(getItem(<Link to="/docs">Dev Docs (Technical)</Link>, '/docs', <CodeOutlined />));
+            }
             items.push(getItem(<Link to="/profile">Hồ sơ cá nhân</Link>, '/profile', <UserOutlined />));
         }
 

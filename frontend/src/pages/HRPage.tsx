@@ -14,7 +14,8 @@ import AssetsTab from '../components/hr/AssetsTab';
 import PayslipTab from '../components/hr/PayslipTab';
 import TrainingTab from '../components/hr/TrainingTab';
 import ShiftsTab from '../components/hr/ShiftsTab';
-import RecruitmentTab from '../components/hr/RecruitmentTab'; // <--- Added
+import RecruitmentTab from '../components/hr/RecruitmentTab';
+import Review360Tab from '../components/hr/Review360Tab';
 
 const { TabPane } = Tabs;
 
@@ -148,6 +149,10 @@ const HRPage: React.FC = () => {
 
                     <TabPane tab={<><UserOutlined /> <span className="hide-mobile">Tuyển Dụng</span></>} key="recruitment">
                         <RecruitmentTab />
+                    </TabPane>
+
+                    <TabPane tab={<><TeamOutlined /> <span className="hide-mobile">Đánh giá 360</span></>} key="review360">
+                        <Review360Tab employees={employees} />
                     </TabPane>
                 </Tabs>
             </Card>

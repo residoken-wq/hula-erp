@@ -14,6 +14,9 @@ import { JobPost } from './entities/job-post.entity';
 import { Candidate } from './entities/candidate.entity';
 import { Assessment } from './entities/assessment.entity';
 import { Interview } from './entities/interview.entity';
+import { ReviewQuestion } from './entities/review-question.entity';
+import { ReviewCampaign } from './entities/review-campaign.entity';
+import { EmployeeReview } from './entities/employee-review.entity';
 import { AiModule } from '../ai/ai.module';
 import { EmailService } from '../common/services/email.service';
 import { AuthModule } from '../auth/auth.module';
@@ -33,6 +36,9 @@ import { AuthModule } from '../auth/auth.module';
             Candidate,
             Assessment,
             Interview,
+            ReviewQuestion,
+            ReviewCampaign,
+            EmployeeReview,
         ]),
         AiModule,
         AuthModule,

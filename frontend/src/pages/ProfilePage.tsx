@@ -8,10 +8,11 @@ import {
     LoginOutlined, LogoutOutlined, CheckCircleOutlined, CloseCircleOutlined,
     ManOutlined, WomanOutlined, BankOutlined, GiftOutlined, CarOutlined,
     CoffeeOutlined, PhoneOutlined, SafetyCertificateOutlined, PrinterOutlined,
-    WalletOutlined, RiseOutlined, FallOutlined
+    WalletOutlined, RiseOutlined, FallOutlined, FormOutlined
 } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
+import EmployeeReviewTab from '../components/hr/EmployeeReviewTab';
 
 const { TabPane } = Tabs;
 const { TextArea } = Input;
@@ -833,9 +834,15 @@ const ProfilePage: React.FC = () => {
                             size="small"
                         />
                     </TabPane>
-                </Tabs >
-            </Card >
-        </div >
+
+                    <TabPane tab={<><FormOutlined /> Đánh giá 360</>} key="review360">
+                        <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+                            <EmployeeReviewTab employee={employee} />
+                        </div>
+                    </TabPane>
+                </Tabs>
+            </Card>
+        </div>
     );
 };
 
