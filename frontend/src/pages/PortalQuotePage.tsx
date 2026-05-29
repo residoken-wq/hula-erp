@@ -468,7 +468,27 @@ const PortalQuotePage: React.FC = () => {
                     const productName = item.product_name_real || item.product?.name || item.sku;
                     const vatContent = item.vat_content || '';
                     const customerDesc = item.product?.customer_description || '';
-                    const descLines = customerDesc ? customerDesc.split('\\n').filter((l: string) => l.trim()).map((l: string) => '<div style="font-size:10px;color:#555;line-height:1.4;">' + l.trim().replace(/^[•-]\s*/, '· ') + '</div>').join('') : '';
+                    let descLines = '';
+                    if (customerDesc) {
+                        descLines = customerDesc.split('\n').map((line: string, idx: number) => {
+                            const cleanLine = line.trim();
+                            if (!cleanLine) return '';
+
+                            const comboMatch = cleanLine.match(/^•\s*(.*?)\s*\(x([\d\.]+)\)(?:\s*-\s*(.*))?$/);
+                            if (comboMatch) {
+                                const [_, name, qty, trailingDesc] = comboMatch;
+                                let res = '<div style="margin-top:' + (idx > 0 ? '6px' : '0') + ';">';
+                                res += '<div style="font-weight:700;color:#333;font-size:11px;">*** ' + name + (Number(qty) > 1 ? ' <span style="font-weight:400;color:#666;font-size:11px;">(x' + qty + ')</span>' : '') + '</div>';
+                                if (trailingDesc) {
+                                    res += '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + trailingDesc + '</div>';
+                                }
+                                res += '</div>';
+                                return res;
+                            }
+
+                            return '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + cleanLine.replace(/^[•-]\s*/, '') + '</div>';
+                        }).join('');
+                    }
                     const imgCell = imgSrc ? '<img src="' + imgSrc + '" style="width:55px;height:55px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display=\'none\'" />' : '<span style="color:#ccc;font-size:10px;">-</span>';
                     const colorLine = item.variant_color ? '<div style="font-size:10px;color:#888;">Màu: ' + item.variant_color + '</div>' : '';
 

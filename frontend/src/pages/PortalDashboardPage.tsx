@@ -664,13 +664,13 @@ const PortalDashboardPage: React.FC = () => {
                                                     </div>
                                                     {p.customer_description ? (
                                                         <div style={{ fontSize: 12, color: '#666', marginBottom: 4, whiteSpace: 'pre-line', lineHeight: 1.4 }}>
-                                                            {p.customer_description.split('\\n').map((line, idx) => {
-                                                                const comboMatch = line.match(/^•\\s*(.*?)\\s*\\(x([\\d\\.]+)\\)(?:\\s*-\\s*(.*))?$/);
+                                                            {p.customer_description.split('\n').map((line, idx) => {
+                                                                const comboMatch = line.match(/^•\s*(.*?)\s*\(x([\d\.]+)\)(?:\s*-\s*(.*))?$/);
                                                                 if (comboMatch) {
                                                                     return <div key={idx}><span style={{fontWeight: 600}}>*** {comboMatch[1]} {Number(comboMatch[2]) > 1 ? `(x${comboMatch[2]})` : ''}</span>{comboMatch[3] ? <span style={{color: '#888', fontStyle: 'italic'}}><br/>. {comboMatch[3]}</span> : ''}</div>
                                                                 }
                                                                 if (!line.trim()) return null;
-                                                                return <div key={idx}>. <span style={{fontStyle: 'italic'}}>{line.replace(/^[•-]\\s*/, '')}</span></div>
+                                                                return <div key={idx}>. <span style={{fontStyle: 'italic'}}>{line.replace(/^[•-]\s*/, '')}</span></div>
                                                             })}
                                                         </div>
                                                     ) : (
@@ -798,13 +798,13 @@ const PortalDashboardPage: React.FC = () => {
                                             {p.vat_content && <div style={{ fontSize: 11, color: '#888', fontStyle: 'italic', marginBottom: 4 }}>VAT: {p.vat_content}</div>}
                                             {p.customer_description ? (
                                                 <div style={{ fontSize: 12, color: '#666', marginBottom: 4, whiteSpace: 'pre-line', lineHeight: 1.4 }}>
-                                                    {p.customer_description.split('\\n').map((line, idx) => {
-                                                        const comboMatch = line.match(/^•\\s*(.*?)\\s*\\(x([\\d\\.]+)\\)(?:\\s*-\\s*(.*))?$/);
+                                                    {p.customer_description.split('\n').map((line, idx) => {
+                                                        const comboMatch = line.match(/^•\s*(.*?)\s*\(x([\d\.]+)\)(?:\s*-\s*(.*))?$/);
                                                         if (comboMatch) {
                                                             return <div key={idx}><span style={{fontWeight: 600}}>*** {comboMatch[1]} {Number(comboMatch[2]) > 1 ? `(x${comboMatch[2]})` : ''}</span>{comboMatch[3] ? <span style={{color: '#888', fontStyle: 'italic'}}><br/>. {comboMatch[3]}</span> : ''}</div>
                                                         }
                                                         if (!line.trim()) return null;
-                                                        return <div key={idx}>. <span style={{fontStyle: 'italic'}}>{line.replace(/^[•-]\\s*/, '')}</span></div>
+                                                        return <div key={idx}>. <span style={{fontStyle: 'italic'}}>{line.replace(/^[•-]\s*/, '')}</span></div>
                                                     })}
                                                 </div>
                                             ) : (
