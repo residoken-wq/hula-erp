@@ -65,6 +65,7 @@ interface Product {
     description?: string;
     type?: string;
     unit?: string;
+    image_url?: string;
 }
 
 interface Props {
@@ -114,7 +115,7 @@ const SalesOrderItemsTable: React.FC<Props> = ({
             render: (_: any, record: any, index: number) => {
                 const prodInfo = products.find(p => p.value === record.sku);
                 const link = record.image_url;
-                const finalLink = link || (record.product ? record.product.image_url : null);
+                const finalLink = link || (record.product ? record.product.image_url : null) || (prodInfo ? prodInfo.image_url : null);
                 const src = getGoogleDriveImageUrl(finalLink);
 
                 return (

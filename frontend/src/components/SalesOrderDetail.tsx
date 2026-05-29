@@ -243,6 +243,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 item.unit = prod.unit;
                 item._description = prod.description;
                 item._type = prod.type;
+                item.image_url = undefined; // Clear custom image to fallback to product default
                 
                 // Map vat_description to vat_content directly, or fallback to description
                 item.vat_content = prod.vat_description || prod.description || '';
