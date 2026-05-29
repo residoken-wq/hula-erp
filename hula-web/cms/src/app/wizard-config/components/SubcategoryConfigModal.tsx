@@ -152,7 +152,7 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                         label: '🖼️ Image Base',
                         forceRender: true,
                         children: (
-                            <Card title="Quản lý Frames (max 5 layers)" size="small">
+                            <Card title="Quản lý Frames (max 10 layers)" size="small">
                                 <div style={{ marginBottom: 12, color: '#888', fontSize: 12 }}>
                                     Kéo thả frame để đặt vị trí, kéo góc để resize. Click frame để chọn và chỉnh sửa thuộc tính.
                                 </div>

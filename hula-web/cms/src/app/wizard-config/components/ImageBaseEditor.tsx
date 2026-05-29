@@ -51,8 +51,8 @@ export default function ImageBaseEditor({ value, onChange }: Props) {
 
     // --- Add frame ---
     const addFrame = (url: string, label?: string) => {
-        if (frames.length >= 5) {
-            message.warning('Tối đa 5 frames!');
+        if (frames.length >= 10) {
+            message.warning('Tối đa 10 frames!');
             return;
         }
         const newFrame: WizardBaseImage = {
@@ -227,15 +227,15 @@ export default function ImageBaseEditor({ value, onChange }: Props) {
                     showUploadList={false}
                     accept="image/*"
                 >
-                    <Button icon={<UploadOutlined />} loading={uploading} disabled={frames.length >= 5}>
+                    <Button icon={<UploadOutlined />} loading={uploading} disabled={frames.length >= 10}>
                         Upload Frame
                     </Button>
                 </Upload>
-                <Button icon={<PictureOutlined />} onClick={() => openLibrary(true)} disabled={frames.length >= 5}>
+                <Button icon={<PictureOutlined />} onClick={() => openLibrary(true)} disabled={frames.length >= 10}>
                     Chọn từ thư viện
                 </Button>
                 <span style={{ color: '#999', fontSize: 12 }}>
-                    {frames.length}/5 frames
+                    {frames.length}/10 frames
                 </span>
                 {selectedFrame && (
                     <>
@@ -250,6 +250,36 @@ export default function ImageBaseEditor({ value, onChange }: Props) {
             </div>
 
             <div style={{ display: 'flex', gap: 16 }}>
+                {/* Frame List */}
+                <div style={{ width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: CANVAS_HEIGHT, overflowY: 'auto', paddingRight: 4 }}>
+                    <div style={{ fontWeight: 500, marginBottom: 4 }}>Danh sách Frames</div>
+                    {frames.length === 0 && <div style={{ fontSize: 12, color: '#999' }}>Chưa có frame</div>}
+                    {[...frames].sort((a, b) => b.sort_order - a.sort_order).map(f => (
+                        <div
+                            key={f.id}
+                            onClick={() => setSelectedFrameId(f.id)}
+                            style={{
+                                padding: 8,
+                                border: selectedFrameId === f.id ? '1px solid #1890ff' : '1px solid #f0f0f0',
+                                borderRadius: 6,
+                                cursor: 'pointer',
+                                background: selectedFrameId === f.id ? '#e6f7ff' : '#fff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8
+                            }}
+                        >
+                            <div style={{ width: 40, height: 40, background: '#f5f5f5', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                {f.url ? <img src={resolveImageUrl(f.url)} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <PictureOutlined style={{ color: '#ccc' }} />}
+                            </div>
+                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                                <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{f.label || f.id}</div>
+                                <div style={{ fontSize: 11, color: '#888' }}>Layer: {f.sort_order}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
                 {/* Canvas area */}
                 <div
                     ref={canvasRef}
