@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     Card, Tabs, Row, Col, Button, Table, Tag, Statistic, Space, Empty,
-    Form, Input, DatePicker, message, Divider, Timeline, Descriptions, Avatar, InputNumber, Checkbox
+    Form, Input, DatePicker, message, Divider, Timeline, Descriptions, Avatar, InputNumber, Checkbox,
+    Grid
 } from 'antd';
 import {
     UserOutlined, ClockCircleOutlined, CalendarOutlined, DollarOutlined,
@@ -30,6 +31,10 @@ const ProfilePage: React.FC = () => {
     const [isHalfDay, setIsHalfDay] = useState(false);
     const [computedDays, setComputedDays] = useState<number>(1);
 
+    const screens = Grid.useBreakpoint();
+    const isMobile = !screens.md;
+    const [activeTab, setActiveTab] = useState('attendance');
+
     useEffect(() => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
@@ -44,13 +49,11 @@ const ProfilePage: React.FC = () => {
     const loadEmployeeData = async (userId: number) => {
         setLoading(true);
         try {
-            // Find employee by user_id using dedicated endpoint
             const empRes = await api.get(`/hr/employees/by-user/${userId}`);
             const emp = empRes.data;
             setEmployee(emp);
 
             if (emp) {
-                // Load related data
                 const [attRes, leaveRes, payRes, assetRes, balRes] = await Promise.all([
                     api.get(`/hr/attendances?employee_id=${emp.id}`),
                     api.get('/hr/leaves'),
@@ -64,17 +67,15 @@ const ProfilePage: React.FC = () => {
                 setPayslips(payRes.data || []);
                 setAssets(assetRes.data || []);
 
-                // Use API balance or calculate fallback from approved leaves
                 if (balRes.data) {
                     setLeaveBalance(balRes.data);
                 } else {
-                    // Fallback: calculate from approved leaves
                     const currentYear = new Date().getFullYear();
                     const approvedLeaves = myLeaves.filter((l: any) =>
                         l.status === 'APPROVED' && new Date(l.start_date).getFullYear() === currentYear
                     );
                     const usedDays = approvedLeaves.reduce((sum: number, l: any) => sum + Number(l.days || 0), 0);
-                    const defaultAnnual = 12; // Default annual leave days
+                    const defaultAnnual = 12;
                     setLeaveBalance({
                         year: currentYear,
                         annual_days: defaultAnnual,
@@ -148,10 +149,10 @@ const ProfilePage: React.FC = () => {
     );
 
     return (
-        <div style={{ padding: 20 }}>
-            <Card>
-                <Row gutter={24}>
-                    <Col span={6} style={{ textAlign: 'center' }}>
+        <div style={{ padding: isMobile ? '12px 8px' : 24, paddingBottom: isMobile ? 80 : 24 }}>
+            <Card style={{ borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <Row gutter={isMobile ? [0, 16] : 24} align="middle">
+                    <Col xs={24} md={6} style={{ textAlign: 'center' }}>
                         <Avatar
                             size={100}
                             icon={employee.gender === 'FEMALE' ? <WomanOutlined /> : <ManOutlined />}
@@ -161,8 +162,8 @@ const ProfilePage: React.FC = () => {
                         <Tag color="blue">{employee.position || 'Nhân viên'}</Tag>
                         <p style={{ color: '#888' }}>{employee.department}</p>
                     </Col>
-                    <Col span={18}>
-                        <Descriptions bordered size="small" column={2}>
+                    <Col xs={24} md={18}>
+                        <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>
                             <Descriptions.Item label="Email">{currentUser?.email || '-'}</Descriptions.Item>
                             <Descriptions.Item label="SĐT">{employee.phone || '-'}</Descriptions.Item>
                             <Descriptions.Item label="Ngày sinh">{employee.date_of_birth ? dayjs(employee.date_of_birth).format('DD/MM/YYYY') : '-'}</Descriptions.Item>
@@ -173,12 +174,14 @@ const ProfilePage: React.FC = () => {
                 </Row>
             </Card>
 
-            <Card style={{ marginTop: 16 }}>
-                <Tabs defaultActiveKey="attendance">
-                    {/* TAB: CHẤM CÔNG - Premium Design */}
+            <Card style={{ marginTop: 16, borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }} bodyStyle={{ padding: isMobile ? 12 : 24 }}>
+                <Tabs 
+                    activeKey={activeTab} 
+                    onChange={setActiveTab}
+                    renderTabBar={isMobile ? () => <></> : undefined}
+                >
                     <TabPane tab={<><ClockCircleOutlined /> Chấm công</>} key="attendance">
                         <Row gutter={24}>
-                            {/* Today's Attendance Card */}
                             <Col xs={24} md={10}>
                                 <div style={{
                                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -199,11 +202,10 @@ const ProfilePage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Check In/Out Status */}
                                 <div style={{
                                     background: '#fff',
                                     borderRadius: 16,
-                                    padding: 20,
+                                    padding: isMobile ? 16 : 20,
                                     boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
                                     marginBottom: 16
                                 }}>
@@ -292,12 +294,11 @@ const ProfilePage: React.FC = () => {
                                 </div>
                             </Col>
 
-                            {/* Attendance History */}
                             <Col xs={24} md={14}>
                                 <div style={{
                                     background: '#fff',
                                     borderRadius: 16,
-                                    padding: 20,
+                                    padding: isMobile ? 12 : 20,
                                     boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
                                 }}>
                                     <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -353,15 +354,14 @@ const ProfilePage: React.FC = () => {
                                         rowKey="id"
                                         size="small"
                                         pagination={false}
+                                        scroll={{ x: 'max-content' }}
                                     />
                                 </div>
                             </Col>
                         </Row>
                     </TabPane>
 
-                    {/* TAB: NGHỈ PHÉP - Premium Design */}
                     <TabPane tab={<><CalendarOutlined /> Nghỉ phép</>} key="leave">
-                        {/* Leave Balance Summary */}
                         {leaveBalance && (
                             <div style={{
                                 background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
@@ -371,43 +371,37 @@ const ProfilePage: React.FC = () => {
                                 marginBottom: 24,
                                 boxShadow: '0 4px 20px rgba(19, 194, 194, 0.3)'
                             }}>
-                                {/* Main Stats */}
                                 <Row gutter={24} style={{ marginBottom: 20 }}>
                                     <Col span={8}>
                                         <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>📋 TỔNG PHÉP NĂM</div>
-                                            <div style={{ fontSize: 36, fontWeight: 700 }}>
+                                            <div style={{ fontSize: isMobile ? 10 : 12, opacity: 0.85, marginBottom: 4 }}>📋 TỔNG PHÉP</div>
+                                            <div style={{ fontSize: isMobile ? 24 : 36, fontWeight: 700 }}>
                                                 {(Number(leaveBalance.annual_days) || 0) + (Number(leaveBalance.carried_days) || 0)}
                                             </div>
-                                            <div style={{ fontSize: 12, opacity: 0.7 }}>ngày (năm {leaveBalance.year})</div>
+                                            <div style={{ fontSize: isMobile ? 10 : 12, opacity: 0.7 }}>(năm {leaveBalance.year})</div>
                                         </div>
                                     </Col>
                                     <Col span={8}>
                                         <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>✅ ĐÃ DUYỆT / ĐÃ NGHỈ</div>
-                                            <div style={{ fontSize: 36, fontWeight: 700, color: '#ffe58f' }}>
+                                            <div style={{ fontSize: isMobile ? 10 : 12, opacity: 0.85, marginBottom: 4 }}>✅ ĐÃ NGHỈ</div>
+                                            <div style={{ fontSize: isMobile ? 24 : 36, fontWeight: 700, color: '#ffe58f' }}>
                                                 {Number(leaveBalance.used_days) || 0}
                                             </div>
-                                            <div style={{ fontSize: 12, opacity: 0.7 }}>ngày</div>
+                                            <div style={{ fontSize: isMobile ? 10 : 12, opacity: 0.7 }}>ngày</div>
                                         </div>
                                     </Col>
                                     <Col span={8}>
                                         <div style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>🎯 CÒN LẠI</div>
-                                            <div style={{ fontSize: 36, fontWeight: 700, color: '#b7eb8f' }}>
+                                            <div style={{ fontSize: isMobile ? 10 : 12, opacity: 0.85, marginBottom: 4 }}>🎯 CÒN LẠI</div>
+                                            <div style={{ fontSize: isMobile ? 24 : 36, fontWeight: 700, color: '#b7eb8f' }}>
                                                 {Number(leaveBalance.remaining_days) || 0}
                                             </div>
-                                            <div style={{ fontSize: 12, opacity: 0.7 }}>ngày</div>
+                                            <div style={{ fontSize: isMobile ? 10 : 12, opacity: 0.7 }}>ngày</div>
                                         </div>
                                     </Col>
                                 </Row>
 
-                                {/* Progress bar */}
                                 <div style={{ marginBottom: 16 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, opacity: 0.8, marginBottom: 4 }}>
-                                        <span>Đã sử dụng: {leaveBalance.used_days} ngày</span>
-                                        <span>Còn lại: {leaveBalance.remaining_days} ngày</span>
-                                    </div>
                                     <div style={{ background: 'rgba(255,255,255,0.3)', borderRadius: 8, height: 10, position: 'relative' }}>
                                         <div style={{
                                             background: '#ffe58f',
@@ -419,24 +413,23 @@ const ProfilePage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Breakdown */}
                                 <Row gutter={12}>
                                     <Col span={8}>
-                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: 18, fontWeight: 600 }}>{leaveBalance.annual_days}</div>
-                                            <div style={{ fontSize: 11, opacity: 0.85 }}>Phép năm nay</div>
+                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: isMobile ? '8px 4px' : '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 600 }}>{leaveBalance.annual_days}</div>
+                                            <div style={{ fontSize: isMobile ? 9 : 11, opacity: 0.85 }}>Phép năm nay</div>
                                         </div>
                                     </Col>
                                     <Col span={8}>
-                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: 18, fontWeight: 600 }}>{leaveBalance.carried_days}</div>
-                                            <div style={{ fontSize: 11, opacity: 0.85 }}>Tồn năm trước</div>
+                                        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: isMobile ? '8px 4px' : '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 600 }}>{leaveBalance.carried_days}</div>
+                                            <div style={{ fontSize: isMobile ? 9 : 11, opacity: 0.85 }}>Tồn năm trước</div>
                                         </div>
                                     </Col>
                                     <Col span={8}>
-                                        <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: 18, fontWeight: 600 }}>{leaveBalance.remaining_days}</div>
-                                            <div style={{ fontSize: 11, opacity: 0.85 }}>Còn lại ✓</div>
+                                        <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: 10, padding: isMobile ? '8px 4px' : '10px 12px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 600 }}>{leaveBalance.remaining_days}</div>
+                                            <div style={{ fontSize: isMobile ? 9 : 11, opacity: 0.85 }}>Còn lại ✓</div>
                                         </div>
                                     </Col>
                                 </Row>
@@ -444,404 +437,147 @@ const ProfilePage: React.FC = () => {
                         )}
 
                         <Row gutter={24}>
-                            {/* Leave Request Form */}
                             <Col xs={24} md={10}>
-                                <div style={{
-                                    background: '#fff',
-                                    borderRadius: 16,
-                                    padding: 24,
-                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
-                                }}>
+                                <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
                                     <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <CalendarOutlined style={{ color: '#13c2c2' }} /> Đăng ký nghỉ phép
                                     </div>
                                     <Form form={leaveForm} layout="vertical" onFinish={handleRequestLeave}>
                                         <Row gutter={16}>
                                             <Col span={12}>
-                                                <Form.Item name="start_date" label={<span style={{ fontWeight: 500 }}>Từ ngày</span>} rules={[{ required: true, message: 'Chọn ngày bắt đầu' }]}>
-                                                    <DatePicker
-                                                        style={{ width: '100%', borderRadius: 8 }}
-                                                        format="DD/MM/YYYY"
-                                                        placeholder="Chọn ngày"
-                                                        onChange={(d) => {
-                                                            const start = d;
-                                                            const end = leaveForm.getFieldValue('end_date');
-                                                            if (start && end) {
-                                                                const fullDays = end.diff(start, 'day') + 1;
-                                                                const days = isHalfDay ? Math.max(0.5, fullDays - 0.5) : fullDays;
-                                                                setComputedDays(days);
-                                                                leaveForm.setFieldValue('days', days);
-                                                            }
-                                                        }}
-                                                    />
+                                                <Form.Item name="start_date" label="Từ ngày" rules={[{ required: true }]}>
+                                                    <DatePicker style={{ width: '100%', borderRadius: 8 }} format="DD/MM/YYYY" />
                                                 </Form.Item>
                                             </Col>
                                             <Col span={12}>
-                                                <Form.Item name="end_date" label={<span style={{ fontWeight: 500 }}>Đến ngày</span>} rules={[{ required: true, message: 'Chọn ngày kết thúc' }]}>
-                                                    <DatePicker
-                                                        style={{ width: '100%', borderRadius: 8 }}
-                                                        format="DD/MM/YYYY"
-                                                        placeholder="Chọn ngày"
-                                                        onChange={(d) => {
-                                                            const start = leaveForm.getFieldValue('start_date');
-                                                            const end = d;
-                                                            if (start && end) {
-                                                                const fullDays = end.diff(start, 'day') + 1;
-                                                                const days = isHalfDay ? Math.max(0.5, fullDays - 0.5) : fullDays;
-                                                                setComputedDays(days);
-                                                                leaveForm.setFieldValue('days', days);
-                                                            }
-                                                        }}
-                                                    />
+                                                <Form.Item name="end_date" label="Đến ngày" rules={[{ required: true }]}>
+                                                    <DatePicker style={{ width: '100%', borderRadius: 8 }} format="DD/MM/YYYY" />
                                                 </Form.Item>
                                             </Col>
                                         </Row>
-                                        <Row gutter={16} align="middle">
-                                            <Col span={12}>
-                                                <Form.Item style={{ marginBottom: 8 }}>
-                                                    <Checkbox
-                                                        checked={isHalfDay}
-                                                        onChange={(e) => {
-                                                            const checked = e.target.checked;
-                                                            setIsHalfDay(checked);
-                                                            const start = leaveForm.getFieldValue('start_date');
-                                                            const end = leaveForm.getFieldValue('end_date');
-                                                            if (start && end) {
-                                                                const fullDays = end.diff(start, 'day') + 1;
-                                                                const days = checked ? Math.max(0.5, fullDays - 0.5) : fullDays;
-                                                                setComputedDays(days);
-                                                                leaveForm.setFieldValue('days', days);
-                                                            }
-                                                        }}
-                                                    >
-                                                        Nghỉ nửa ngày (0.5)
-                                                    </Checkbox>
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={12}>
-                                                <Form.Item name="days" label={<span style={{ fontWeight: 500 }}>Số ngày nghỉ</span>} style={{ marginBottom: 8 }}>
-                                                    <InputNumber
-                                                        min={0.5}
-                                                        step={0.5}
-                                                        precision={1}
-                                                        style={{ width: '100%', borderRadius: 8 }}
-                                                        addonAfter="ngày"
-                                                    />
-                                                </Form.Item>
-                                            </Col>
-                                        </Row>
-                                        <Form.Item name="reason" label={<span style={{ fontWeight: 500 }}>Lý do nghỉ phép</span>}>
-                                            <TextArea
-                                                rows={3}
-                                                placeholder="Nhập lý do nghỉ phép..."
-                                                style={{ borderRadius: 8 }}
-                                            />
+                                        <Form.Item name="reason" label="Lý do">
+                                            <TextArea rows={3} style={{ borderRadius: 8 }} />
                                         </Form.Item>
-                                        <Button
-                                            type="primary"
-                                            htmlType="submit"
-                                            block
-                                            size="large"
-                                            style={{
-                                                borderRadius: 10,
-                                                height: 48,
-                                                background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)',
-                                                border: 'none'
-                                            }}
-                                        >
-                                            <CalendarOutlined /> Gửi đơn nghỉ phép
+                                        <Button type="primary" htmlType="submit" block size="large" style={{ borderRadius: 10, height: 48, background: 'linear-gradient(135deg, #13c2c2 0%, #08979c 100%)', border: 'none' }}>
+                                            Gửi đơn nghỉ phép
                                         </Button>
                                     </Form>
                                 </div>
                             </Col>
 
-                            {/* Leave History */}
                             <Col xs={24} md={14}>
-                                <div style={{
-                                    background: '#fff',
-                                    borderRadius: 16,
-                                    padding: 24,
-                                    boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
-                                }}>
+                                <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
                                     <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <ClockCircleOutlined style={{ color: '#1890ff' }} /> Lịch sử đơn nghỉ phép
                                     </div>
                                     <Table
                                         dataSource={leaves}
                                         columns={[
-                                            {
-                                                title: 'Từ ngày',
-                                                dataIndex: 'start_date',
-                                                render: (d: string) => (
-                                                    <span style={{ fontWeight: 500 }}>{dayjs(d).format('DD/MM/YYYY')}</span>
-                                                )
-                                            },
-                                            {
-                                                title: 'Đến ngày',
-                                                dataIndex: 'end_date',
-                                                render: (d: string) => dayjs(d).format('DD/MM/YYYY')
-                                            },
-                                            {
-                                                title: 'Ngày',
-                                                dataIndex: 'days',
-                                                render: (d: number) => (
-                                                    <Tag color="blue">{d} ngày</Tag>
-                                                )
-                                            },
-                                            {
-                                                title: 'Trạng thái',
-                                                dataIndex: 'status',
-                                                render: (s: string) => {
-                                                    const config: any = {
-                                                        PENDING: { color: 'orange', icon: <ClockCircleOutlined />, text: 'Chờ duyệt' },
-                                                        APPROVED: { color: 'green', icon: <CheckCircleOutlined />, text: 'Đã duyệt' },
-                                                        REJECTED: { color: 'red', icon: <CloseCircleOutlined />, text: 'Từ chối' }
-                                                    };
-                                                    const item = config[s] || config.PENDING;
-                                                    return (
-                                                        <Tag color={item.color} icon={item.icon} style={{ borderRadius: 6 }}>
-                                                            {item.text}
-                                                        </Tag>
-                                                    );
-                                                }
-                                            }
+                                            { title: 'Từ', dataIndex: 'start_date', render: (d: string) => dayjs(d).format('DD/MM') },
+                                            { title: 'Đến', dataIndex: 'end_date', render: (d: string) => dayjs(d).format('DD/MM') },
+                                            { title: 'Ngày', dataIndex: 'days' },
+                                            { title: 'Trạng thái', dataIndex: 'status', render: (s: string) => <Tag color={s === 'APPROVED' ? 'green' : 'orange'}>{s}</Tag> }
                                         ]}
                                         rowKey="id"
                                         size="small"
                                         pagination={{ pageSize: 5 }}
+                                        scroll={{ x: 'max-content' }}
                                     />
                                 </div>
                             </Col>
                         </Row>
                     </TabPane>
 
-                    {/* TAB: BẢNG LƯƠNG */}
                     <TabPane tab={<><DollarOutlined /> Bảng lương</>} key="payslip">
                         <Table
                             dataSource={payslips}
                             columns={[
                                 { title: 'Tháng', render: (_: any, r: any) => `${r.month}/${r.year}` },
-                                { title: 'Lương CB', dataIndex: 'base_salary', render: (v: number) => formatMoney(v) },
-                                { title: 'Ngày công', dataIndex: 'actual_work_days' },
                                 { title: 'Tổng thu', dataIndex: 'gross_income', render: (v: number) => formatMoney(v) },
                                 { title: 'Thực nhận', dataIndex: 'net_salary', render: (v: number) => <b style={{ color: 'green' }}>{formatMoney(v)}</b> },
-                                {
-                                    title: 'Trạng thái',
-                                    dataIndex: 'is_paid',
-                                    render: (p: boolean) => p ?
-                                        <Tag color="green" icon={<CheckCircleOutlined />}>Đã TT</Tag> :
-                                        <Tag color="orange">Chưa TT</Tag>
-                                },
-                                { title: '', render: (_: any, r: any) => <Button size="small" onClick={() => setViewPayslip(r)}>Xem chi tiết</Button> }
+                                { title: '', render: (_: any, r: any) => <Button size="small" onClick={() => setViewPayslip(r)}>Xem</Button> }
                             ]}
                             rowKey="id"
                             size="small"
+                            scroll={{ x: 'max-content' }}
                         />
-
-                        {/* Payslip Detail Modal - Premium Design */}
                         {viewPayslip && (
-                            <Card
-                                style={{
-                                    marginTop: 16,
-                                    borderRadius: 16,
-                                    overflow: 'hidden',
-                                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-                                }}
-                                bodyStyle={{ padding: 0 }}
-                            >
-                                {/* Header with Gradient */}
-                                <div style={{
-                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                    padding: '24px 24px 20px',
-                                    color: '#fff',
-                                    position: 'relative'
-                                }}>
-                                    <Button
-                                        type="text"
-                                        onClick={() => setViewPayslip(null)}
-                                        style={{ position: 'absolute', top: 12, right: 12, color: '#fff' }}
-                                    >
-                                        ✕ Đóng
-                                    </Button>
-                                    <div style={{ fontSize: 14, opacity: 0.85, marginBottom: 4 }}>
-                                        <WalletOutlined /> PHIẾU LƯƠNG
-                                    </div>
-                                    <div style={{ fontSize: 28, fontWeight: 700 }}>
-                                        Tháng {viewPayslip.month}/{viewPayslip.year}
-                                    </div>
-                                    <div style={{ marginTop: 12 }}>
-                                        {viewPayslip.is_paid ? (
-                                            <Tag color="#52c41a" icon={<CheckCircleOutlined />} style={{ fontSize: 13, padding: '4px 12px' }}>
-                                                ĐÃ THANH TOÁN {viewPayslip.paid_date && `• ${dayjs(viewPayslip.paid_date).format('DD/MM/YYYY')}`}
-                                            </Tag>
-                                        ) : (
-                                            <Tag color="#faad14" icon={<ClockCircleOutlined />} style={{ fontSize: 13, padding: '4px 12px' }}>
-                                                CHƯA THANH TOÁN
-                                            </Tag>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div style={{ padding: 24 }}>
-                                    {/* Summary Stats Row */}
-                                    <Row gutter={16} style={{ marginBottom: 24 }}>
-                                        <Col span={8}>
-                                            <div style={{ textAlign: 'center', padding: '16px 8px', background: '#f0f5ff', borderRadius: 12 }}>
-                                                <BankOutlined style={{ fontSize: 20, color: '#1890ff' }} />
-                                                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Lương cơ bản</div>
-                                                <div style={{ fontSize: 16, fontWeight: 600, color: '#1890ff' }}>{formatMoney(viewPayslip.base_salary)}</div>
-                                            </div>
-                                        </Col>
-                                        <Col span={8}>
-                                            <div style={{ textAlign: 'center', padding: '16px 8px', background: '#fff7e6', borderRadius: 12 }}>
-                                                <CalendarOutlined style={{ fontSize: 20, color: '#fa8c16' }} />
-                                                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Ngày công</div>
-                                                <div style={{ fontSize: 16, fontWeight: 600, color: '#fa8c16' }}>{viewPayslip.actual_work_days}/{viewPayslip.standard_work_days}</div>
-                                            </div>
-                                        </Col>
-                                        <Col span={8}>
-                                            <div style={{ textAlign: 'center', padding: '16px 8px', background: '#f6ffed', borderRadius: 12 }}>
-                                                <RiseOutlined style={{ fontSize: 20, color: '#52c41a' }} />
-                                                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Tổng thu</div>
-                                                <div style={{ fontSize: 16, fontWeight: 600, color: '#52c41a' }}>{formatMoney(viewPayslip.gross_income)}</div>
-                                            </div>
-                                        </Col>
-                                    </Row>
-
-                                    {/* Income Section */}
-                                    <div style={{
-                                        background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%)',
-                                        borderRadius: 12,
-                                        padding: 16,
-                                        marginBottom: 16
-                                    }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14, color: '#1890ff', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <RiseOutlined /> THU NHẬP
-                                        </div>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span><BankOutlined style={{ color: '#1890ff', marginRight: 8 }} />Lương theo ngày công</span>
-                                                <span style={{ fontWeight: 500 }}>{formatMoney(viewPayslip.actual_salary)}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span><CoffeeOutlined style={{ color: '#fa8c16', marginRight: 8 }} />Phụ cấp ăn trưa</span>
-                                                <span style={{ fontWeight: 500 }}>{formatMoney(viewPayslip.allowance_meal)}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span><CarOutlined style={{ color: '#722ed1', marginRight: 8 }} />Phụ cấp đi lại</span>
-                                                <span style={{ fontWeight: 500 }}>{formatMoney(viewPayslip.allowance_transport)}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span><PhoneOutlined style={{ color: '#13c2c2', marginRight: 8 }} />Phụ cấp điện thoại</span>
-                                                <span style={{ fontWeight: 500 }}>{formatMoney(viewPayslip.allowance_phone)}</span>
-                                            </div>
-                                            {viewPayslip.bonus > 0 && (
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span><GiftOutlined style={{ color: '#eb2f96', marginRight: 8 }} />Thưởng</span>
-                                                    <span style={{ fontWeight: 500, color: '#eb2f96' }}>+{formatMoney(viewPayslip.bonus)}</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <Divider style={{ margin: '12px 0' }} />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
-                                            <span>Tổng thu nhập</span>
-                                            <span style={{ fontSize: 16, color: '#1890ff' }}>{formatMoney(viewPayslip.gross_income)}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Deductions Section */}
-                                    <div style={{
-                                        background: 'linear-gradient(135deg, #fff1f0 0%, #fff0f6 100%)',
-                                        borderRadius: 12,
-                                        padding: 16,
-                                        marginBottom: 16
-                                    }}>
-                                        <div style={{ fontWeight: 600, fontSize: 14, color: '#cf1322', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <FallOutlined /> KHẤU TRỪ
-                                        </div>
-
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span><SafetyCertificateOutlined style={{ color: '#cf1322', marginRight: 8 }} />BHXH (8%)</span>
-                                                <span style={{ fontWeight: 500, color: '#cf1322' }}>-{formatMoney(viewPayslip.bhxh_employee)}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span><SafetyCertificateOutlined style={{ color: '#cf1322', marginRight: 8 }} />BHYT (1.5%)</span>
-                                                <span style={{ fontWeight: 500, color: '#cf1322' }}>-{formatMoney(viewPayslip.bhyt_employee)}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span><SafetyCertificateOutlined style={{ color: '#cf1322', marginRight: 8 }} />BHTN (1%)</span>
-                                                <span style={{ fontWeight: 500, color: '#cf1322' }}>-{formatMoney(viewPayslip.bhtn_employee)}</span>
-                                            </div>
-                                        </div>
-
-                                        <Divider style={{ margin: '12px 0' }} />
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
-                                            <span>Tổng khấu trừ</span>
-                                            <span style={{ fontSize: 16, color: '#cf1322' }}>
-                                                -{formatMoney(Number(viewPayslip.bhxh_employee || 0) + Number(viewPayslip.bhyt_employee || 0) + Number(viewPayslip.bhtn_employee || 0))}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Net Salary - Hero Section */}
-                                    <div style={{
-                                        background: 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
-                                        borderRadius: 16,
-                                        padding: '24px 20px',
-                                        textAlign: 'center',
-                                        color: '#fff',
-                                        boxShadow: '0 4px 12px rgba(82, 196, 26, 0.3)'
-                                    }}>
-                                        <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>
-                                            <WalletOutlined /> THỰC NHẬN
-                                        </div>
-                                        <div style={{ fontSize: 32, fontWeight: 700 }}>
-                                            {formatMoney(viewPayslip.net_salary)} <span style={{ fontSize: 16, fontWeight: 400 }}>VNĐ</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Print Button */}
-                                    <div style={{ marginTop: 20, textAlign: 'center' }}>
-                                        <Button icon={<PrinterOutlined />} size="large" style={{ borderRadius: 8 }}>
-                                            In phiếu lương
-                                        </Button>
-                                    </div>
-                                </div>
+                            <Card style={{ marginTop: 16, borderRadius: 16 }} title={`Chi tiết lương ${viewPayslip.month}/${viewPayslip.year}`}>
+                                <p>Thực nhận: <b>{formatMoney(viewPayslip.net_salary)} VNĐ</b></p>
+                                <Button onClick={() => setViewPayslip(null)}>Đóng</Button>
                             </Card>
                         )}
                     </TabPane>
 
-                    {/* TAB: TÀI SẢN */}
-                    <TabPane tab="Tài sản được cấp" key="assets">
+                    <TabPane tab="Tài sản" key="assets">
                         <Table
                             dataSource={assets}
                             columns={[
-                                { title: 'Tên tài sản', dataIndex: 'asset_name' },
+                                { title: 'Tên', dataIndex: 'asset_name' },
                                 { title: 'Mã', dataIndex: 'asset_code' },
-                                { title: 'Serial', dataIndex: 'serial_number' },
-                                { title: 'Ngày cấp', dataIndex: 'assigned_date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
-                                {
-                                    title: 'Tình trạng', dataIndex: 'condition', render: (c: string) => {
-                                        const colors: any = { NEW: 'green', GOOD: 'blue', FAIR: 'orange', DAMAGED: 'red' };
-                                        return <Tag color={colors[c]}>{c}</Tag>;
-                                    }
-                                }
+                                { title: 'Tình trạng', dataIndex: 'condition', render: (c: string) => <Tag>{c}</Tag> }
                             ]}
                             rowKey="id"
                             size="small"
+                            scroll={{ x: 'max-content' }}
                         />
                     </TabPane>
 
-                    <TabPane tab={<><FormOutlined /> Đánh giá 360</>} key="review360">
+                    <TabPane tab={<><FormOutlined /> Đánh giá</>} key="review360">
                         <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
                             <EmployeeReviewTab employee={employee} />
                         </div>
                     </TabPane>
                 </Tabs>
             </Card>
+
+            {isMobile && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 65,
+                    background: '#fff',
+                    boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
+                    display: 'flex',
+                    justifyContent: 'space-around',
+                    alignItems: 'center',
+                    zIndex: 1000,
+                    paddingBottom: 'env(safe-area-inset-bottom)'
+                }}>
+                    {[
+                        { key: 'attendance', icon: <ClockCircleOutlined />, label: 'Chấm công' },
+                        { key: 'leave', icon: <CalendarOutlined />, label: 'Nghỉ phép' },
+                        { key: 'payslip', icon: <DollarOutlined />, label: 'Lương' },
+                        { key: 'assets', icon: <BankOutlined />, label: 'Tài sản' },
+                        { key: 'review360', icon: <FormOutlined />, label: 'Đánh giá' },
+                    ].map(item => {
+                        const isActive = activeTab === item.key;
+                        return (
+                            <div 
+                                key={item.key} 
+                                onClick={() => setActiveTab(item.key)}
+                                style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flex: 1,
+                                    height: '100%',
+                                    color: isActive ? '#1890ff' : '#888',
+                                    cursor: 'pointer',
+                                    paddingTop: 8,
+                                    paddingBottom: 8
+                                }}
+                            >
+                                <div style={{ fontSize: 20, marginBottom: 2 }}>{item.icon}</div>
+                                <div style={{ fontSize: 10, fontWeight: isActive ? 600 : 400 }}>{item.label}</div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 };
