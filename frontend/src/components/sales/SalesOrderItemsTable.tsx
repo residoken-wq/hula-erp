@@ -156,7 +156,7 @@ const SalesOrderItemsTable: React.FC<Props> = ({
                 const prodInfo = products.find(p => p.value === record.sku);
                 const link = record.image_url;
                 const finalLink = link || (record.product ? record.product.image_url : null) || (prodInfo ? prodInfo.image_url : null);
-                const src = getGoogleDriveImageUrl(finalLink);
+                const src = getGoogleDriveImageUrl(finalLink || '');
 
                 return (
                     <div>
@@ -195,7 +195,7 @@ const SalesOrderItemsTable: React.FC<Props> = ({
                                 </div>
                             )}
                             <ImageLinkCell
-                                value={finalLink}
+                                value={finalLink || ''}
                                 onChange={(newVal) => onItemChange(index, 'image_url', newVal)}
                             />
                         </div>
@@ -286,7 +286,7 @@ const SalesOrderItemsTable: React.FC<Props> = ({
                 {items.map((record, index) => {
                     const prodInfo = products.find(p => p.value === record.sku);
                     const finalLink = record.image_url || (record.product ? record.product.image_url : null) || (prodInfo ? prodInfo.image_url : null);
-                    const src = getGoogleDriveImageUrl(finalLink);
+                    const src = getGoogleDriveImageUrl(finalLink || '');
                     const basePrice = prodInfo ? prodInfo.price : 0;
                     
                     return (
@@ -363,7 +363,7 @@ const SalesOrderItemsTable: React.FC<Props> = ({
                                         <TagsOutlined /> {record.price_ranges && record.price_ranges.length > 0 ? `${record.price_ranges.length} mốc giá` : 'Mốc giá'}
                                     </Button>
                                 </Popover>
-                                <ImageLinkCell value={finalLink} onChange={(newVal) => onItemChange(index, 'image_url', newVal)} />
+                                <ImageLinkCell value={finalLink || ''} onChange={(newVal) => onItemChange(index, 'image_url', newVal)} />
                             </div>
                         </div>
                     );
