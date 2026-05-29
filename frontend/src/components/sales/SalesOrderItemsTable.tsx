@@ -280,10 +280,102 @@ const SalesOrderItemsTable: React.FC<Props> = ({
         }
     ];
 
+    if (isMobile) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {items.map((record, index) => {
+                    const prodInfo = products.find(p => p.value === record.sku);
+                    const finalLink = record.image_url || (record.product ? record.product.image_url : null) || (prodInfo ? prodInfo.image_url : null);
+                    const src = getGoogleDriveImageUrl(finalLink);
+                    const basePrice = prodInfo ? prodInfo.price : 0;
+                    
+                    return (
+                        <div key={record.key} style={{ border: '1px solid #e8e8e8', borderRadius: 8, padding: 12, background: '#fff' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'flex-start' }}>
+                                <div style={{ flex: 1, marginRight: 8 }}>
+                                    <Select
+                                        showSearch
+                                        placeholder="Chọn SP"
+                                        optionFilterProp="label"
+                                        style={{ width: '100%' }}
+                                        value={record.sku}
+                                        onChange={(val) => onItemChange(index, 'sku', val)}
+                                        options={products}
+                                    />
+                                    {prodInfo && (
+                                        <div style={{ fontSize: 11, color: '#666', fontStyle: 'italic', marginTop: 4, whiteSpace: 'pre-wrap' }}>
+                                            {prodInfo.description}
+                                        </div>
+                                    )}
+                                </div>
+                                <Button danger type="text" icon={<DeleteOutlined />} onClick={() => onRemoveItem(index)} />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
+                                {finalLink && (
+                                    <img
+                                        src={src || ''}
+                                        alt="img"
+                                        style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd' }}
+                                        onClick={() => window.open(finalLink, '_blank')}
+                                    />
+                                )}
+                                <div style={{ flex: 1 }}>
+                                    <Input.TextArea
+                                        rows={2}
+                                        placeholder="Mô tả / VAT..."
+                                        value={record.vat_content}
+                                        onChange={(e) => onItemChange(index, 'vat_content', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                                <div style={{ flex: 2 }}>
+                                    <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>Đơn giá {basePrice ? `(Gốc: ${(basePrice/1000).toFixed(0)}k)` : ''}</div>
+                                    <InputNumber
+                                        min={0}
+                                        style={{ width: '100%' }}
+                                        value={record.unit_price}
+                                        formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                        parser={(displayVal) => displayVal!.replace(/\$\s?|(,*)/g, '') as any}
+                                        onChange={(val) => onItemChange(index, 'unit_price', val)}
+                                    />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>SL</div>
+                                    <InputNumber min={1} value={record.quantity} onChange={(val) => onItemChange(index, 'quantity', val)} style={{ width: '100%' }} />
+                                </div>
+                                <div style={{ flex: 2, textAlign: 'right' }}>
+                                    <div style={{ fontSize: 11, color: '#666', marginBottom: 2 }}>Thành tiền</div>
+                                    <div style={{ fontWeight: 600, fontSize: 14, color: '#1890ff', lineHeight: '32px' }}>
+                                        {Number(record.total_price).toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Popover 
+                                    content={<PriceRangesEditor ranges={record.price_ranges} onChange={(r) => onItemChange(index, 'price_ranges', r)} />} 
+                                    title="Báo giá sỉ" 
+                                    trigger="click"
+                                >
+                                    <Button size="small" type="dashed" style={{ fontSize: 11, borderColor: record.price_ranges && record.price_ranges.length > 0 ? '#1890ff' : '#d9d9d9', color: record.price_ranges && record.price_ranges.length > 0 ? '#1890ff' : '#666' }}>
+                                        <TagsOutlined /> {record.price_ranges && record.price_ranges.length > 0 ? `${record.price_ranges.length} mốc giá` : 'Mốc giá'}
+                                    </Button>
+                                </Popover>
+                                <ImageLinkCell value={finalLink} onChange={(newVal) => onItemChange(index, 'image_url', newVal)} />
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
     return (
         <DndContext sensors={sensors} modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
             <SortableContext items={items.map((i) => i.key)} strategy={verticalListSortingStrategy}>
-                <div style={{ overflowX: isMobile ? 'auto' : 'visible' }}>
+                <div style={{ overflowX: 'visible' }}>
                     <Table
                         components={{
                             body: {
@@ -296,7 +388,6 @@ const SalesOrderItemsTable: React.FC<Props> = ({
                         rowKey="key"
                         size="small"
                         bordered
-                        scroll={isMobile ? { x: 800 } : undefined}
                     />
                 </div>
             </SortableContext>

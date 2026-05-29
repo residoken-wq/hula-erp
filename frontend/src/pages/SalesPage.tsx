@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Tag, Button, message, Card, Input, Space, Row, Col, Tabs, Progress, Tooltip, Statistic, DatePicker, Select, List } from 'antd';
+import { Table, Tag, Button, message, Card, Input, Space, Row, Col, Tabs, Progress, Tooltip, Statistic, DatePicker, Select, List, Dropdown, MenuProps, FloatButton } from 'antd';
 // --- FIX: Thêm PlusOutlined đã bị thiếu trước đó ---
-import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, FileTextOutlined, CalendarOutlined, WalletOutlined, AuditOutlined, AppstoreAddOutlined, ShopOutlined, RightOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, DollarOutlined, SearchOutlined, BellOutlined, EditOutlined, LinkOutlined, ShoppingCartOutlined, FileTextOutlined, CalendarOutlined, WalletOutlined, AuditOutlined, AppstoreAddOutlined, ShopOutlined, RightOutlined, MoreOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import dayjs from 'dayjs';
@@ -422,16 +422,20 @@ const SalesPage: React.FC = () => {
                                 <Statistic title="Công Nợ" value={metrics.totalRemaining} precision={0} suffix="₫" prefix={<AuditOutlined style={{ color: '#fa541c' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18, fontWeight: 'bold', color: '#cf1322' }} />
                             </Card>
                         </Col>
-                        <Col flex={isMobile ? '100px' : 1}>
-                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#e6f7ff', border: '1px solid #91d5ff' }}>
-                                <Statistic title="Số Đơn" value={metrics.count} prefix={<ShoppingCartOutlined style={{ color: '#1890ff' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18 }} />
-                            </Card>
-                        </Col>
-                        <Col flex={isMobile ? '100px' : 1}>
-                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
-                                <Statistic title="Đang XL" value={metrics.processingCount} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18 }} />
-                            </Card>
-                        </Col>
+                        {!isMobile && (
+                            <Col flex={isMobile ? '100px' : 1}>
+                                <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#e6f7ff', border: '1px solid #91d5ff' }}>
+                                    <Statistic title="Số Đơn" value={metrics.count} prefix={<ShoppingCartOutlined style={{ color: '#1890ff' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18 }} />
+                                </Card>
+                            </Col>
+                        )}
+                        {!isMobile && (
+                            <Col flex={isMobile ? '100px' : 1}>
+                                <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
+                                    <Statistic title="Đang XL" value={metrics.processingCount} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18 }} />
+                                </Card>
+                            </Col>
+                        )}
                     </Row>
                 </div>
             </div>
@@ -445,7 +449,21 @@ const SalesPage: React.FC = () => {
                 }
                 extra={
                     isMobile ? (
-                        canCreate && <Button type="primary" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo mới</Button>
+                        <Space>
+                            {canCreate && <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => openDetailModal(null)}>Tạo</Button>}
+                            <Dropdown
+                                menu={{
+                                    items: [
+                                        ...(canCreate ? [{ key: 'internal', label: 'Tạo Nhập Kho (NB)', icon: <AppstoreAddOutlined />, onClick: () => openDetailModal({ isInternal: true }) }] : []),
+                                        { key: 'refresh', label: 'Làm mới', icon: <ReloadOutlined />, onClick: fetchData }
+                                    ]
+                                }}
+                                trigger={['click']}
+                                placement="bottomRight"
+                            >
+                                <Button size="small" icon={<MoreOutlined />} />
+                            </Dropdown>
+                        </Space>
                     ) : (
                         <Space>
                             {canCreate && <Button type="dashed" icon={<AppstoreAddOutlined />} onClick={() => openDetailModal({ isInternal: true })} style={{ borderColor: '#722ed1', color: '#722ed1' }}>Tạo Đơn Nhập Kho (Nội Bộ)</Button>}
@@ -502,30 +520,43 @@ const SalesPage: React.FC = () => {
                                 <List.Item style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0' }}>
                                     <div style={{ width: '100%' }} onClick={() => openDetailModal(r)}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                                            <div>
+                                            <div onClick={() => openDetailModal(r)} style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: 600, fontSize: 14, color: '#1890ff' }}>{r.order_code}</div>
                                                 <div style={{ fontSize: 13, color: '#333' }}>{r.customer?.name || r.customer_name || '-'}</div>
                                             </div>
                                             <Tag color={color}>{label}</Tag>
                                         </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
-                                            <div>
-                                                <span style={{ color: '#666' }}>Tổng: </span>
-                                                <span style={{ fontWeight: 600, color: '#262626' }}>{total.toLocaleString()}đ</span>
+                                        <div onClick={() => openDetailModal(r)}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                                                <div>
+                                                    <span style={{ color: '#666' }}>Tổng: </span>
+                                                    <span style={{ fontWeight: 600, color: '#262626' }}>{total.toLocaleString()}đ</span>
+                                                </div>
+                                                <div>
+                                                    <span style={{ color: '#666' }}>Còn lại: </span>
+                                                    <span style={{ fontWeight: 500, color: remain > 0 ? '#fa541c' : '#52c41a' }}>{remain.toLocaleString()}đ</span>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <span style={{ color: '#666' }}>Còn lại: </span>
-                                                <span style={{ fontWeight: 500, color: remain > 0 ? '#fa541c' : '#52c41a' }}>{remain.toLocaleString()}đ</span>
+                                            <div style={{ marginTop: 8 }}>
+                                                <Progress percent={pct} size="small" strokeColor={pct >= 100 ? '#52c41a' : '#1890ff'} showInfo={false} />
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 11, color: '#999' }}>
+                                                <span>{r.order_date ? dayjs(r.order_date).format('DD/MM/YYYY') : '-'}</span>
+                                                <span>{r.assigned_to?.full_name || '-'}</span>
+                                                {r.require_invoice && <Tag color="blue" style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px', margin: 0 }}>Lấy hóa đơn</Tag>}
                                             </div>
                                         </div>
-                                        <div style={{ marginTop: 8 }}>
-                                            <Progress percent={pct} size="small" strokeColor={pct >= 100 ? '#52c41a' : '#1890ff'} showInfo={false} />
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, fontSize: 11, color: '#999' }}>
-                                            <span>{r.order_date ? dayjs(r.order_date).format('DD/MM/YYYY') : '-'}</span>
-                                            <span>{r.assigned_to?.full_name || '-'}</span>
-                                            {r.require_invoice && <Tag color="blue" style={{ fontSize: 10, padding: '0 4px', lineHeight: '16px', margin: 0 }}>Lấy hóa đơn</Tag>}
-                                            <RightOutlined style={{ color: '#bfbfbf' }} />
+                                        {/* Action buttons on mobile list item */}
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10, paddingTop: 10, borderTop: '1px dashed #f0f0f0', gap: 12 }}>
+                                            <div style={{ color: '#fa8c16', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => { e.stopPropagation(); handleCreateTask(r); }}>
+                                                <BellOutlined /> <span>Nhắc nhở</span>
+                                            </div>
+                                            <div style={{ color: '#52c41a', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => { e.stopPropagation(); handleCopyLink(r.uuid); }}>
+                                                <LinkOutlined /> <span>Link KH</span>
+                                            </div>
+                                            <div style={{ color: '#1890ff', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }} onClick={(e) => { e.stopPropagation(); openDetailModal(r); }}>
+                                                <EditOutlined /> <span>Chi tiết</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </List.Item>
@@ -562,6 +593,16 @@ const SalesPage: React.FC = () => {
                     defaultCommentTab={deepLinkTab || undefined}
                     highlightCommentId={deepLinkHighlight || undefined}
                 />
+                
+                {isMobile && (
+                    <FloatButton
+                        icon={<ShopOutlined />}
+                        type="primary"
+                        style={{ right: 24, bottom: 80, backgroundColor: '#52c41a' }}
+                        tooltip={<div>Bán Lẻ (POS)</div>}
+                        onClick={() => navigate('/sales/pos')}
+                    />
+                )}
             </Card>
         </div >
     );

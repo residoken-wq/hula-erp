@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table, Switch } from 'antd';
-import { PlusOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined, FileTextOutlined, AppstoreAddOutlined, LockOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table, Switch, Dropdown, MenuProps } from 'antd';
+import { PlusOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined, MoreOutlined } from '@ant-design/icons';
+import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined, FileTextOutlined, AppstoreAddOutlined, LockOutlined, MenuOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import SalesPayments from './sales/SalesPayments';
@@ -420,63 +420,86 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     <Button size={isMobile ? 'small' : 'middle'} type="primary" icon={<SaveOutlined />} loading={loading} onClick={handleSave}>
                         {isMobile ? 'Lưu' : 'Lưu Thông Tin'}
                     </Button>
-                    {isQuotation && initialData && (
-                        <Button size={isMobile ? 'small' : 'middle'} icon={<CopyOutlined />} onClick={handleCreateRevision}>
-                            {isMobile ? 'Tạo Ver' : 'Tạo Version Mới'}
-                        </Button>
-                    )}
-                    {isQuotation && initialData && (
-                        <Popconfirm title="Xóa báo giá?" onConfirm={async () => {
-                            try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); }
-                        }}>
-                            <Button size={isMobile ? 'small' : 'middle'} danger icon={<DeleteOutlined />}>{isMobile ? 'Xóa' : 'Xóa Báo Giá'}</Button>
-                        </Popconfirm>
-                    )}
-                    {isQuotation && initialData && (
-                        <Button size={isMobile ? 'small' : 'middle'} icon={<HistoryOutlined />} onClick={() => setRevisionModalOpen(true)}>
-                            {isMobile ? 'LS' : 'Lịch sử'}
-                        </Button>
-                    )}
+                    {isMobile ? (
+                        initialData && (
+                            <Dropdown
+                                menu={{
+                                    items: [
+                                        ...(isQuotation ? [
+                                            { key: 'rev', label: 'Tạo Version Mới', icon: <CopyOutlined />, onClick: handleCreateRevision },
+                                            { key: 'hist', label: 'Lịch sử', icon: <HistoryOutlined />, onClick: () => setRevisionModalOpen(true) },
+                                            { key: 'del_q', label: <span style={{color: 'red'}}>Xóa Báo Giá</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: async () => { try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); } } }
+                                        ] : []),
+                                        ...(!isQuotation && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED' ? [
+                                            { key: 'cancel', label: <span style={{color: 'red'}}>Hủy Đơn</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: () => setCancelModalOpen(true) }
+                                        ] : []),
+                                        ...(!isQuotation && initialData.status !== 'CANCELLED' ? [
+                                            { key: 'proj', label: 'Tạo Dự án', icon: <AppstoreAddOutlined />, onClick: handleCreateProject }
+                                        ] : []),
+                                        ...(!isQuotation && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED' ? [
+                                            { key: 'book', label: 'Giữ Kho (Book)', icon: <LockOutlined />, onClick: handleBookItems }
+                                        ] : []),
+                                        ...(!isQuotation && initialData.status === 'SO_PENDING' ? [
+                                            { key: 'del_o', label: <span style={{color: 'red'}}>Xóa đơn hàng</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: async () => { try { await api.delete(`/sales/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); } } }
+                                        ] : []),
+                                        ...(!isQuotation && initialData.status !== 'CANCELLED' ? [
+                                            { key: 'comp', label: <span style={{color: '#52c41a'}}>Hoàn tất</span>, icon: <CheckCircleOutlined style={{color: '#52c41a'}}/>, onClick: handleCompleteOrder }
+                                        ] : [])
+                                    ]
+                                }}
+                                trigger={['click']}
+                                placement="bottomRight"
+                            >
+                                <Button size="small" icon={<MoreOutlined />}>Thêm</Button>
+                            </Dropdown>
+                        )
+                    ) : (
+                        <>
+                            {isQuotation && initialData && (
+                                <Button size="middle" icon={<CopyOutlined />} onClick={handleCreateRevision}>Tạo Version Mới</Button>
+                            )}
+                            {isQuotation && initialData && (
+                                <Popconfirm title="Xóa báo giá?" onConfirm={async () => {
+                                    try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); }
+                                }}>
+                                    <Button size="middle" danger icon={<DeleteOutlined />}>Xóa Báo Giá</Button>
+                                </Popconfirm>
+                            )}
+                            {isQuotation && initialData && (
+                                <Button size="middle" icon={<HistoryOutlined />} onClick={() => setRevisionModalOpen(true)}>Lịch sử</Button>
+                            )}
 
-                    {(!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
-                        <Button size={isMobile ? 'small' : 'middle'} danger icon={<DeleteOutlined />} onClick={() => setCancelModalOpen(true)}>
-                            {isMobile ? 'Hủy' : 'Hủy Đơn'}
-                        </Button>
-                    )}
-                    {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
-                        <Button size={isMobile ? 'small' : 'middle'} icon={<AppstoreAddOutlined />} onClick={handleCreateProject}>
-                            {isMobile ? 'Tạo Project' : 'Tạo Dự án'}
-                        </Button>
-                    )}
-                    {(!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
-                        <Button size={isMobile ? 'small' : 'middle'} icon={<LockOutlined />} onClick={handleBookItems} style={{ borderColor: '#fa8c16', color: '#fa8c16' }}>
-                            {isMobile ? 'Giữ kho' : 'Giữ Kho (Book)'}
-                        </Button>
-                    )}
-                    {(!isQuotation && initialData && initialData.status === 'SO_PENDING') && (
-                        <Popconfirm
-                            title="Xóa đơn hàng?"
-                            description="Đơn hàng sẽ bị xóa hoàn toàn khỏi hệ thống."
-                            onConfirm={async () => {
-                                try {
-                                    await api.delete(`/sales/${initialData.id}`);
-                                    message.success('Đã xóa đơn hàng');
-                                    onSuccess();
-                                    onClose();
-                                } catch (e: any) {
-                                    message.error(e.response?.data?.message || 'Lỗi xóa đơn hàng');
-                                }
-                            }}
-                        >
-                            <Button size={isMobile ? 'small' : 'middle'} danger type="dashed" icon={<DeleteOutlined />}>
-                                {isMobile ? 'Xóa' : 'Xóa đơn hàng'}
-                            </Button>
-                        </Popconfirm>
-                    )}
-                    {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
-                        <Button size={isMobile ? 'small' : 'middle'} type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>
-                            {isMobile ? 'Hoàn tất' : 'Hoàn tất đơn hàng'}
-                        </Button>
+                            {(!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
+                                <Button size="middle" danger icon={<DeleteOutlined />} onClick={() => setCancelModalOpen(true)}>Hủy Đơn</Button>
+                            )}
+                            {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
+                                <Button size="middle" icon={<AppstoreAddOutlined />} onClick={handleCreateProject}>Tạo Dự án</Button>
+                            )}
+                            {(!isQuotation && initialData && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED') && (
+                                <Button size="middle" icon={<LockOutlined />} onClick={handleBookItems} style={{ borderColor: '#fa8c16', color: '#fa8c16' }}>Giữ Kho (Book)</Button>
+                            )}
+                            {(!isQuotation && initialData && initialData.status === 'SO_PENDING') && (
+                                <Popconfirm
+                                    title="Xóa đơn hàng?"
+                                    description="Đơn hàng sẽ bị xóa hoàn toàn khỏi hệ thống."
+                                    onConfirm={async () => {
+                                        try {
+                                            await api.delete(`/sales/${initialData.id}`);
+                                            message.success('Đã xóa đơn hàng');
+                                            onSuccess();
+                                            onClose();
+                                        } catch (e: any) {
+                                            message.error(e.response?.data?.message || 'Lỗi xóa đơn hàng');
+                                        }
+                                    }}
+                                >
+                                    <Button size="middle" danger type="dashed" icon={<DeleteOutlined />}>Xóa đơn hàng</Button>
+                                </Popconfirm>
+                            )}
+                            {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
+                                <Button size="middle" type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>Hoàn tất đơn hàng</Button>
+                            )}
+                        </>
                     )}
                 </div>
             }
@@ -593,7 +616,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
                         {/* NEW TOTALS SECTION */}
                         <Row justify="end" style={{ marginTop: 24 }}>
-                            <Col span={10}>
+                            <Col xs={24} md={10}>
                                 <div style={{ background: '#fafafa', padding: 16, borderRadius: 8 }}>
                                     <Form.Item shouldUpdate noStyle>
                                         {({ getFieldValue }) => {
