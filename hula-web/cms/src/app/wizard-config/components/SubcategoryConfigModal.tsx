@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, Tabs, Space, InputNumber, Select, Card, Row, Col, Typography, Divider, Switch, Upload, message } from 'antd';
+import { Modal, Form, Input, Button, Tabs, Space, InputNumber, Select, Card, Row, Col, Typography, Divider, Switch, Upload, message, Collapse } from 'antd';
 import { PlusOutlined, MinusCircleOutlined, DeleteOutlined, UploadOutlined, PictureOutlined } from '@ant-design/icons';
 import { WizardCategoryL2, WizardCustomizationStep, WizardPriceTier, WizardBaseImage } from '@/types/wizard';
 import ImageBaseEditor from './ImageBaseEditor';
@@ -167,16 +167,17 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                         children: (
                             <Form.List name="customization_steps">
                                 {(stepFields, { add: addStep, remove: removeStep }) => (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                                        {stepFields.map((stepField, stepIndex) => (
-                                            <Card 
-                                                key={stepField.key} 
-                                                size="small" 
-                                                title={`Bước ${stepIndex + 1}`}
-                                                extra={<Button danger type="text" icon={<DeleteOutlined />} onClick={() => removeStep(stepField.name)} />}
-                                                style={{ border: '1px solid #d9d9d9' }}
-                                            >
-                                                <Row gutter={16}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        {stepFields.length > 0 && (
+                                            <Collapse
+                                                defaultActiveKey={stepFields.length > 0 ? [String(stepFields[0].key)] : []}
+                                                items={stepFields.map((stepField, stepIndex) => ({
+                                                    key: String(stepField.key),
+                                                    label: <Text strong>{`Bước ${stepIndex + 1}`}</Text>,
+                                                    extra: <Button danger type="text" size="small" icon={<DeleteOutlined />} onClick={(e) => { e.stopPropagation(); removeStep(stepField.name); }} />,
+                                                    children: (
+                                                        <div>
+                                                            <Row gutter={16}>
                                                     <Col span={6}>
                                                         <Form.Item {...stepField} name={[stepField.name, 'id']} label="ID Bước (VD: step_size)" rules={[{ required: true }]}>
                                                             <Input />
@@ -290,8 +291,11 @@ export default function SubcategoryConfigModal({ visible, onClose, onSave, data 
                                                         </div>
                                                     )}
                                                 </Form.List>
-                                            </Card>
-                                        ))}
+                                                        </div>
+                                                    )
+                                                }))}
+                                            />
+                                        )}
                                         <Button type="dashed" onClick={() => addStep()} block icon={<PlusOutlined />}>
                                             Thêm Bước Tùy Biến
                                         </Button>
