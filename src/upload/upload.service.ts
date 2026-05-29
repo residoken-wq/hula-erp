@@ -315,7 +315,7 @@ export class UploadService {
     const metadata = await sharp(imageBuffer).metadata();
     const imgWidth = metadata.width || 0;
     const imgHeight = metadata.height || 0;
-    if (imgWidth < 400 || imgHeight < 400) return imageBuffer; // Skip small images
+    if (imgWidth < 150 || imgHeight < 150) return imageBuffer; // Skip small images
 
     // Resize watermark proportionally
     const wmWidth = Math.max(80, Math.round(imgWidth * (config.sizeRatio || 0.25)));
@@ -444,7 +444,7 @@ export class UploadService {
 
         // Check dimensions — skip small images
         const meta = await sharp(originalBuffer).metadata();
-        if ((meta.width || 0) < 400 || (meta.height || 0) < 400) {
+        if ((meta.width || 0) < 150 || (meta.height || 0) < 150) {
           skipped++;
           continue;
         }
