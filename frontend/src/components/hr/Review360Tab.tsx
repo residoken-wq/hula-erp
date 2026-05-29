@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Table, Button, Modal, Form, Input, Select, DatePicker, Tag, message, Space, Popconfirm, InputNumber } from 'antd';
+import { Tabs, Table, Button, Modal, Form, Input, Select, DatePicker, Tag, message, Space, Popconfirm, InputNumber, AutoComplete } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SendOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
@@ -27,9 +27,14 @@ const Review360Tab: React.FC<Props> = ({ employees }) => {
     const [editingC, setEditingC] = useState<any>(null);
 
     useEffect(() => {
-        if (activeTab === 'questions') loadQuestions();
-        if (activeTab === 'campaigns') loadCampaigns();
-    }, [activeTab]);
+        loadQuestions();
+        loadCampaigns();
+    }, []);
+
+    // Derived dynamic categories from question bank
+    const dynamicCategories = Array.from(new Set([
+        'Kỹ năng', 'Thái độ', 'Hiệu suất', ...questions.map(q => q.category)
+    ])).filter(Boolean);
 
     // --- Questions Logic ---
     const loadQuestions = async () => {
@@ -73,13 +78,14 @@ const Review360Tab: React.FC<Props> = ({ employees }) => {
 
     const handleSaveC = async (values: any) => {
         try {
+            const config_json = dynamicCategories.map(cat => ({
+                category: cat,
+                count: values[`count_${cat}`] || 0
+            })).filter(c => c.count > 0);
+
             const payload = {
-                ...values,
-                config_json: [
-                    { category: 'Kỹ năng', count: values.skill_count || 0 },
-                    { category: 'Thái độ', count: values.attitude_count || 0 },
-                    { category: 'Hiệu suất', count: values.performance_count || 0 }
-                ].filter(c => c.count > 0)
+                title: values.title,
+                config_json
             };
 
             if (editingC) {
@@ -149,11 +155,13 @@ const Review360Tab: React.FC<Props> = ({ employees }) => {
                             <Input.TextArea rows={3} />
                         </Form.Item>
                         <Form.Item name="category" label="Phân loại (Category)" rules={[{ required: true }]}>
-                            <Select>
-                                <Option value="Kỹ năng">Kỹ năng</Option>
-                                <Option value="Thái độ">Thái độ</Option>
-                                <Option value="Hiệu suất">Hiệu suất</Option>
-                            </Select>
+                            <AutoComplete 
+                                options={dynamicCategories.map(cat => ({ value: cat }))} 
+                                placeholder="Nhập hoặc chọn phân loại"
+                                filterOption={(inputValue, option) =>
+                                    option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                }
+                            />
                         </Form.Item>
                         <Form.Item name="type" label="Loại câu trả lời" rules={[{ required: true }]} initialValue="RATING">
                             <Select>
@@ -190,9 +198,9 @@ const Review360Tab: React.FC<Props> = ({ employees }) => {
                                         setEditingC(r); 
                                         const vals = { ...r };
                                         if (r.config_json) {
-                                            vals.skill_count = r.config_json.find((c: any) => c.category === 'Kỹ năng')?.count || 0;
-                                            vals.attitude_count = r.config_json.find((c: any) => c.category === 'Thái độ')?.count || 0;
-                                            vals.performance_count = r.config_json.find((c: any) => c.category === 'Hiệu suất')?.count || 0;
+                                            dynamicCategories.forEach(cat => {
+                                                vals[`count_${cat}`] = r.config_json.find((c: any) => c.category === cat)?.count || 0;
+                                            });
                                         }
                                         cForm.setFieldsValue(vals); 
                                         setCModal(true); 
@@ -212,16 +220,12 @@ const Review360Tab: React.FC<Props> = ({ employees }) => {
                             <Input placeholder="VD: Đánh giá nhân sự Quý 1/2026" />
                         </Form.Item>
                         <p style={{ fontWeight: 'bold' }}>Cấu hình sinh câu hỏi ngẫu nhiên:</p>
-                        <Space>
-                            <Form.Item name="skill_count" label="Số câu Kỹ năng" initialValue={0}>
-                                <InputNumber min={0} />
-                            </Form.Item>
-                            <Form.Item name="attitude_count" label="Số câu Thái độ" initialValue={0}>
-                                <InputNumber min={0} />
-                            </Form.Item>
-                            <Form.Item name="performance_count" label="Số câu Hiệu suất" initialValue={0}>
-                                <InputNumber min={0} />
-                            </Form.Item>
+                        <Space wrap>
+                            {dynamicCategories.map(cat => (
+                                <Form.Item key={cat} name={`count_${cat}`} label={`Số câu ${cat}`} initialValue={0}>
+                                    <InputNumber min={0} />
+                                </Form.Item>
+                            ))}
                         </Space>
                     </Form>
                 </Modal>
