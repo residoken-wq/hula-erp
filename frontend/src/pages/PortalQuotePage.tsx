@@ -441,12 +441,12 @@ const PortalQuotePage: React.FC = () => {
             <thead>
                 <tr>
                     <th style="width:30px;">STT</th>
-                    <th style="width:60px;">Hình</th>
-                    <th style="width:130px;">Tên SP (VAT)</th>
+                    <th style="width:70px;">Hình</th>
+                    <th style="width:120px;">Tên Sản Phẩm</th>
                     <th>Mô tả Sản Phẩm</th>
                     <th style="width:40px;">ĐVT</th>
                     <th style="width:35px;">SL</th>
-                    <th style="width:85px;">Đơn Giá</th>
+                    <th style="width:75px;">Đơn Giá</th>
                     <th style="width:95px;">Thành Tiền</th>
                 </tr>
             </thead>
@@ -489,7 +489,7 @@ const PortalQuotePage: React.FC = () => {
                             return '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + cleanLine.replace(/^[•-]\s*/, '') + '</div>';
                         }).join('');
                     }
-                    const imgCell = imgSrc ? '<img src="' + imgSrc + '" style="width:55px;height:55px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display=\'none\'" />' : '<span style="color:#ccc;font-size:10px;">-</span>';
+                    const imgCell = imgSrc ? '<img src="' + imgSrc + '" style="width:65px;height:65px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display=\'none\'" />' : '<span style="color:#ccc;font-size:10px;">-</span>';
                     const colorLine = item.variant_color ? '<div style="font-size:10px;color:#888;">Màu: ' + item.variant_color + '</div>' : '';
 
                     return '<tr>'
@@ -662,10 +662,82 @@ const PortalQuotePage: React.FC = () => {
             render: (_: any, __: any, index: number) => <span style={{ color: '#999' }}>{index + 1}</span>
         },
         {
-            title: 'Tên Sản Phẩm (VAT)',
+            title: 'Hình',
+            key: 'image',
+            width: 70,
+            align: 'center' as const,
+            render: (_: any, r: any) => {
+                const rawUrl = r.image_url || r.sample_image || r.product?.image_url;
+                if (!rawUrl) return <div style={{ color: '#ccc', fontSize: 10, textAlign: 'center' }}>No Img</div>;
+
+                let finalSrc = rawUrl;
+                let isImage = false;
+
+                // 1. Handle Google Drive
+                if (rawUrl.includes('drive.google.com')) {
+                    let id = '';
+                    try {
+                        const urlObj = new URL(rawUrl);
+                        if (urlObj.pathname.includes('/d/')) {
+                            const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                            if (match && match[1]) id = match[1];
+                        } else if (urlObj.searchParams.has('id')) {
+                            id = urlObj.searchParams.get('id') || '';
+                        }
+                    } catch (e) {
+                        // Fallback regex if URL parsing fails
+                        const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                        if (match && match[1]) id = match[1];
+                    }
+
+                    if (id) {
+                        // Use thumbnail endpoint for reliable image rendering
+                        finalSrc = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+                        isImage = true;
+                    }
+                }
+                // 2. Handle Google User Content (already direct)
+                else if (rawUrl.includes('googleusercontent.com')) {
+                    isImage = true;
+                }
+                // 3. Handle Normal Images
+                else {
+                    if (!rawUrl.startsWith('http') && !rawUrl.startsWith('data:')) finalSrc = `${API_URL}${rawUrl}`;
+                    isImage = !!(rawUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || rawUrl.startsWith('data:image'));
+                }
+
+                // Force isImage true if we detected Drive link
+                if (rawUrl.includes('drive.google.com')) isImage = true;
+
+                return (
+                    <div style={{ textAlign: 'center' }}>
+                        {isImage ? (
+                            <Watermark {...getWatermarkProps('rgba(0,0,0,0.15)', 14)}>
+                                <img
+                                    src={finalSrc}
+                                    alt="product"
+                                    style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee', display: 'block' }}
+                                    onClick={() => handlePreview(finalSrc)}
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).onerror = null;
+                                    }}
+                                />
+                            </Watermark>
+                        ) : (
+                            <a href={finalSrc} target="_blank" rel="noopener noreferrer">
+                                <LinkOutlined style={{ fontSize: 18, color: '#1890ff' }} />
+                            </a>
+                        )}
+                    </div>
+                );
+            }
+        },
+        {
+            title: 'Tên Sản Phẩm',
             dataIndex: 'vat_content',
             key: 'vat_content',
-            width: 180,
+            width: 170,
             render: (text: string) => {
                 return (
                     <div style={{
@@ -797,7 +869,7 @@ const PortalQuotePage: React.FC = () => {
         {
             title: 'Đơn Giá',
             dataIndex: 'unit_price',
-            width: 100,
+            width: 90,
             align: 'right' as const,
             render: (v: any) => <span style={{ color: '#555' }}>{Number(v).toLocaleString()}</span>
         },
@@ -807,78 +879,6 @@ const PortalQuotePage: React.FC = () => {
             width: 110,
             align: 'right' as const,
             render: (v: any) => <b style={{ fontSize: 14, color: '#1f1f1f' }}>{Number(v).toLocaleString()}</b>
-        },
-        {
-            title: 'Hình',
-            key: 'image',
-            width: 60,
-            align: 'center' as const,
-            render: (_: any, r: any) => {
-                const rawUrl = r.image_url || r.sample_image || r.product?.image_url;
-                if (!rawUrl) return <div style={{ color: '#ccc', fontSize: 10, textAlign: 'center' }}>No Img</div>;
-
-                let finalSrc = rawUrl;
-                let isImage = false;
-
-                // 1. Handle Google Drive
-                if (rawUrl.includes('drive.google.com')) {
-                    let id = '';
-                    try {
-                        const urlObj = new URL(rawUrl);
-                        if (urlObj.pathname.includes('/d/')) {
-                            const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                            if (match && match[1]) id = match[1];
-                        } else if (urlObj.searchParams.has('id')) {
-                            id = urlObj.searchParams.get('id') || '';
-                        }
-                    } catch (e) {
-                        // Fallback regex if URL parsing fails
-                        const match = rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                        if (match && match[1]) id = match[1];
-                    }
-
-                    if (id) {
-                        // Use thumbnail endpoint for reliable image rendering
-                        finalSrc = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
-                        isImage = true;
-                    }
-                }
-                // 2. Handle Google User Content (already direct)
-                else if (rawUrl.includes('googleusercontent.com')) {
-                    isImage = true;
-                }
-                // 3. Handle Normal Images
-                else {
-                    if (!rawUrl.startsWith('http') && !rawUrl.startsWith('data:')) finalSrc = `${API_URL}${rawUrl}`;
-                    isImage = !!(rawUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(?:\?.*)?$/i) || rawUrl.startsWith('data:image'));
-                }
-
-                // Force isImage true if we detected Drive link
-                if (rawUrl.includes('drive.google.com')) isImage = true;
-
-                return (
-                    <div style={{ textAlign: 'center' }}>
-                        {isImage ? (
-                            <Watermark {...getWatermarkProps('rgba(0,0,0,0.15)', 14)}>
-                                <img
-                                    src={finalSrc}
-                                    alt="product"
-                                    style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 4, cursor: 'pointer', border: '1px solid #eee', display: 'block' }}
-                                    onClick={() => handlePreview(finalSrc)}
-                                    onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        (e.target as HTMLImageElement).onerror = null;
-                                    }}
-                                />
-                            </Watermark>
-                        ) : (
-                            <a href={finalSrc} target="_blank" rel="noopener noreferrer">
-                                <LinkOutlined style={{ fontSize: 18, color: '#1890ff' }} />
-                            </a>
-                        )}
-                    </div>
-                );
-            }
         }
     ];
 
