@@ -808,7 +808,10 @@ export class SalesService {
                 contact_name: data.contact_name,
                 contact_phone: data.contact_phone,
                 sales_order: order,
-                items: data.items,
+                items: data.items?.map((i: any) => ({
+                    ...i,
+                    quantity: Math.round(Number(i.quantity))
+                })),
                 attachments: data.attachments || [] // <--- Save Attachments
             });
             const savedDelivery = await this.deliveryRepo.save(delivery);
@@ -845,7 +848,7 @@ export class SalesService {
             // Ideally, we should diff old vs new and adjustStock.
             delivery.items = data.items.map((i: any) => ({
                 sku: i.sku,
-                quantity: i.quantity,
+                quantity: Math.round(Number(i.quantity)),
                 note: i.note
             }));
         }
