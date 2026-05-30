@@ -113,13 +113,18 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                             s.required_frame_id === frame.id || !s.required_frame_id
                         ) || [];
 
-                        // Kiểm tra ẩn frame nếu step bị skip HOẶC yes_no chọn "Không"
+                        // Kiểm tra ẩn frame:
+                        // 1. Step bị skip
+                        // 2. yes_no chọn "Không"
+                        // 3. Step is_skippable + chưa có selection → ẩn mặc định cho đến khi chọn
                         const linkedSteps = subcategory.customization_steps?.filter(s =>
                             s.required_frame_id === frame.id
                         ) || [];
                         const isFrameHidden = linkedSteps.some(s => {
                             if (skippedSteps[s.id]) return true;
                             if (s.type === 'yes_no' && isYesNoHidden(s.id)) return true;
+                            // Skippable step chưa chọn → ẩn frame cho đến khi khách chọn
+                            if (s.is_skippable && !stepSelections[s.id]) return true;
                             return false;
                         });
 
