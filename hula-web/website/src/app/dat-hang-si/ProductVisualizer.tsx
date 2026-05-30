@@ -12,12 +12,22 @@ const resolveImageUrl = (url?: string): string => {
     return typeof url === 'string' ? url : '';
 };
 
+// Dùng hình gốc (không watermark) cho các frame layer
+const resolveOriginalImageUrl = (url?: string): string => {
+    if (!url) return '';
+    if (typeof url === 'string' && url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/original/${url.replace('/uploads/', '')}`;
+    return typeof url === 'string' ? url : '';
+};
+
 // Guard: chỉ coi là có color_code khi giá trị thực sự hợp lệ (loại trừ #000000 do HTML color picker mặc định)
 const hasValidColor = (opt?: WizardOption): boolean => {
     if (!opt?.color_code) return false;
     const c = opt.color_code.trim().toLowerCase();
     return c !== '' && c !== '#000000';
 };
+
+// B2B watermark URL — loaded once
+const B2B_WATERMARK_URL = `${getApiBaseUrl()}/api/upload/files/_watermark_b2b.png`;
 
 interface Props {
     subcategory: WizardCategoryL2;
@@ -89,8 +99,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
     };
 
     const displayLegacyUrl = globalImageSwap
-        ? resolveImageUrl(resolveOptionImage(globalImageSwap))
-        : legacyBaseImage ? resolveImageUrl(legacyBaseImage) : '';
+        ? resolveOriginalImageUrl(resolveOptionImage(globalImageSwap))
+        : legacyBaseImage ? resolveOriginalImageUrl(legacyBaseImage) : '';
 
     return (
         <div className="relative w-full aspect-square bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 p-4">
@@ -126,9 +136,10 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
 
                         // Hình hiển thị: nếu option có image_urls hoặc image_url thì thay thế ảnh gốc frame
                         const swapImageUrl = swapOption ? resolveOptionImage(swapOption) : undefined;
+                        // Dùng hình gốc (original) cho frame layers — watermark sẽ phủ lên toàn bộ
                         const displayImageUrl = swapImageUrl
-                            ? resolveImageUrl(swapImageUrl)
-                            : resolveImageUrl(frame.url);
+                            ? resolveOriginalImageUrl(swapImageUrl)
+                            : resolveOriginalImageUrl(frame.url);
 
                         return (
                             <div
@@ -262,6 +273,18 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                     ))}
                 </div>
             )}
+
+            {/* Single B2B Watermark overlay — phủ lên toàn bộ visualizer thay vì từng frame */}
+            <div
+                className="absolute inset-0 z-50 pointer-events-none"
+                style={{
+                    backgroundImage: `url('${B2B_WATERMARK_URL}')`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'center',
+                    backgroundSize: '35%',
+                    opacity: 0.25,
+                }}
+            />
         </div>
     );
 }
