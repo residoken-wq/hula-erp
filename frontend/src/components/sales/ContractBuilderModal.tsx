@@ -293,6 +293,52 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
 
         // Product List
         if (values.include_product_list) {
+            let subtotal = 0;
+            initialData.items?.forEach((item: any) => {
+                 subtotal += Number(item.quantity || 0) * Number(item.unit_price || 0);
+            });
+            const discountValue = Number(initialData.discount_amount || 0) || (subtotal * Number(initialData.discount_rate || 0) / 100);
+            const subtotalAfterDiscount = subtotal - discountValue;
+            const vat = (subtotalAfterDiscount * Number(initialData.vat_rate || 0)) / 100;
+            const shippingFee = Number(initialData.shipping_fee || 0);
+
+            let tfootHtml = `
+                             <tr>
+                                <td colspan="5" style="text-align:right; padding: 8px;">Cộng tiền hàng:</td>
+                                <td style="text-align:right; padding: 8px;">${subtotal.toLocaleString('vi-VN')}</td>
+                            </tr>
+            `;
+            if (discountValue > 0) {
+                tfootHtml += `
+                             <tr>
+                                <td colspan="5" style="text-align:right; padding: 8px;">Chiết khấu:</td>
+                                <td style="text-align:right; padding: 8px;">-${discountValue.toLocaleString('vi-VN')}</td>
+                            </tr>
+                `;
+            }
+            if (vat > 0) {
+                tfootHtml += `
+                             <tr>
+                                <td colspan="5" style="text-align:right; padding: 8px;">Thuế GTGT (${initialData.vat_rate || 0}%):</td>
+                                <td style="text-align:right; padding: 8px;">${vat.toLocaleString('vi-VN')}</td>
+                            </tr>
+                `;
+            }
+            if (shippingFee > 0) {
+                tfootHtml += `
+                             <tr>
+                                <td colspan="5" style="text-align:right; padding: 8px;">Phí vận chuyển:</td>
+                                <td style="text-align:right; padding: 8px;">${shippingFee.toLocaleString('vi-VN')}</td>
+                            </tr>
+                `;
+            }
+            tfootHtml += `
+                             <tr>
+                                <td colspan="5" style="text-align:right; padding: 8px; font-weight:bold">Tổng cộng:</td>
+                                <td style="text-align:right; padding: 8px; font-weight:bold">${Number(initialData.total_amount || 0).toLocaleString('vi-VN')}</td>
+                            </tr>
+            `;
+
             appendixHtml += `
                 <div style="page-break-before: always;">
                     <h3 style="text-align: center; text-transform: uppercase; margin-top: 30px;">Phụ Lục 01: Danh Sách Sản Phẩm</h3>
@@ -325,10 +371,7 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                             `).join('')}
                         </tbody>
                         <tfoot>
-                             <tr>
-                                <td colspan="5" style="text-align:right; padding: 8px; font-weight:bold">Tổng cộng:</td>
-                                <td style="text-align:right; padding: 8px; font-weight:bold">${Number(initialData.total_amount || 0).toLocaleString('vi-VN')}</td>
-                            </tr>
+                            ${tfootHtml}
                         </tfoot>
                     </table>
                 </div>

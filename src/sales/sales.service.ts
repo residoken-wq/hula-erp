@@ -722,7 +722,10 @@ export class SalesService {
     async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
     async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
     async createDelivery(orderId: number, data: any) {
-        const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items', 'items.product'] });
+        const order = await this.orderRepo.findOne({ 
+            where: { id: orderId }, 
+            relations: ['items', 'items.product', 'items.product.components', 'items.product.components.child_product'] 
+        });
         if (!order) throw new NotFoundException('Not found');
 
         // Fetch real stock from inventory
@@ -753,9 +756,30 @@ export class SalesService {
                 continue;
             }
 
-            const realStock = stockMap.get(product.id) || 0;
-            const approvedBooking = Number(product.approved_booking_stock || 0);
-            const availableStock = realStock - approvedBooking;
+            let realStock = stockMap.get(product.id) || 0;
+            let approvedBooking = Number(product.approved_booking_stock || 0);
+            let availableStock = Math.max(0, realStock - approvedBooking);
+
+            if (product.product_type === 'COMBO' && product.components && product.components.length > 0) {
+                let minAvailableStock = Infinity;
+                let minRealStock = Infinity;
+                let minApprovedBooking = Infinity;
+                for (const c of product.components) {
+                    const childStock = c.child_product ? (stockMap.get(c.child_product.id) || 0) : 0;
+                    const childApproved = Number(c.child_product?.approved_booking_stock || 0);
+                    const childAvailable = Math.max(0, childStock - childApproved);
+                    const possibleAvailable = Math.floor(childAvailable / Number(c.quantity));
+                    const possibleReal = Math.floor(childStock / Number(c.quantity));
+                    const possibleApproved = Math.floor(childApproved / Number(c.quantity));
+                    if (possibleAvailable < minAvailableStock) minAvailableStock = possibleAvailable;
+                    if (possibleReal < minRealStock) minRealStock = possibleReal;
+                    if (possibleApproved < minApprovedBooking) minApprovedBooking = possibleApproved;
+                }
+                realStock = minRealStock === Infinity ? 0 : minRealStock;
+                approvedBooking = minApprovedBooking === Infinity ? 0 : minApprovedBooking;
+                availableStock = minAvailableStock === Infinity ? 0 : minAvailableStock;
+            }
+
             const requestedQty = Number(reqItem.quantity);
 
             if (availableStock < requestedQty) {
