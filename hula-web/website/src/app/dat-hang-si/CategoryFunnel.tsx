@@ -1,5 +1,6 @@
 import React from 'react';
 import { WizardCategoryL1, WizardCategoryL2 } from './types';
+import { resolveGoogleDriveUrl } from './utils';
 
 interface Props {
     categories: WizardCategoryL1[];
@@ -27,9 +28,9 @@ export default function CategoryFunnel({ categories, selectedL1, selectedL2, onS
                         }`}
                     >
                         {c.image_url ? (
-                            <img src={c.image_url} alt={c.name} className="w-20 h-20 object-contain mb-2" />
+                            <img src={resolveGoogleDriveUrl(c.image_url)} alt={c.name} className="w-20 h-20 object-contain mb-2" />
                         ) : c.icon_url ? (
-                            <img src={c.icon_url} alt={c.name} className="w-16 h-16 object-contain mb-2" />
+                            <img src={resolveGoogleDriveUrl(c.icon_url)} alt={c.name} className="w-16 h-16 object-contain mb-2" />
                         ) : (
                             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-2 text-2xl">📦</div>
                         )}

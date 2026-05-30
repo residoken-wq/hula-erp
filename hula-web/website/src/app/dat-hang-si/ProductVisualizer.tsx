@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { WizardCategoryL2, WizardOption } from './types';
+import { resolveGoogleDriveUrl } from './utils';
 
 const getApiBaseUrl = () => {
     const base = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
@@ -9,14 +10,14 @@ const getApiBaseUrl = () => {
 const resolveImageUrl = (url?: string): string => {
     if (!url) return '';
     if (typeof url === 'string' && url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/b2b/${url.replace('/uploads/', '')}`;
-    return typeof url === 'string' ? url : '';
+    return resolveGoogleDriveUrl(url);
 };
 
 // Dùng hình gốc (không watermark) cho các frame layer
 const resolveOriginalImageUrl = (url?: string): string => {
     if (!url) return '';
     if (typeof url === 'string' && url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/original/${url.replace('/uploads/', '')}`;
-    return typeof url === 'string' ? url : '';
+    return resolveGoogleDriveUrl(url);
 };
 
 // Guard: chỉ coi là có color_code khi giá trị thực sự hợp lệ (loại trừ #000000 do HTML color picker mặc định)

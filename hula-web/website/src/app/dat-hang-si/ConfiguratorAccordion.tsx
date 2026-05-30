@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { WizardCustomizationStep, WizardOption } from './types';
+import { resolveGoogleDriveUrl } from './utils';
 
 const getApiBaseUrl = () => {
     const base = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
@@ -9,7 +10,7 @@ const getApiBaseUrl = () => {
 const resolveImageUrl = (url?: string): string => {
     if (!url) return '';
     if (url.startsWith('/uploads/')) return `${getApiBaseUrl()}/api/upload/files/${url.replace('/uploads/', '')}`;
-    return url;
+    return resolveGoogleDriveUrl(url);
 };
 
 interface Props {
