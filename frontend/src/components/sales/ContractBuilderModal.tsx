@@ -59,6 +59,10 @@ const TEXT_CONTENT_KEYS = ['text_content_1', 'text_content_2', 'text_content_3',
 
 const BUILT_IN_VARS = [
     'customer_name', 'customer_address', 'customer_tax_code', 'customer_representative', 'customer_position',
+    'customer_legal_name', 'legal_name',
+    'customer_legal_address', 'legal_address',
+    'customer_legal_representative', 'legal_representative',
+    'customer_einvoice_email', 'einvoice_email',
     'order_code', 'contract_code', 'order_date', 'total_amount_text', 'sign_date', 'items_table',
     ...SELLER_KEYS,
     ...TEXT_CONTENT_KEYS
@@ -228,6 +232,16 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
             customer_representative: initialData.customer?.representative_name || initialData.customer?.legal_representative || '...',
             customer_position: initialData.customer?.representative_position || 'Giám Đốc',
 
+            // Customer Legal Entity Info
+            customer_legal_name: initialData.customer?.legal_name || '...',
+            legal_name: initialData.customer?.legal_name || '...',
+            customer_legal_address: initialData.customer?.legal_address || '...',
+            legal_address: initialData.customer?.legal_address || '...',
+            customer_legal_representative: initialData.customer?.legal_representative || '...',
+            legal_representative: initialData.customer?.legal_representative || '...',
+            customer_einvoice_email: initialData.customer?.einvoice_email || '...',
+            einvoice_email: initialData.customer?.einvoice_email || '...',
+
             order_code: initialData.order_code || '...',
             contract_code: `TLG/${dayjs().format('YYYY')}-${initialData.id || ''}`,
             order_date: dayjs(initialData.order_date).format('DD/MM/YYYY'),
@@ -368,6 +382,17 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                 customer_tax_code: initialData.customer?.tax_code || '',
                 customer_representative: initialData.customer?.representative_name || initialData.customer?.legal_representative || '',
                 customer_position: initialData.customer?.representative_position || '',
+
+                // Customer Legal Entity Info
+                customer_legal_name: initialData.customer?.legal_name || '',
+                legal_name: initialData.customer?.legal_name || '',
+                customer_legal_address: initialData.customer?.legal_address || '',
+                legal_address: initialData.customer?.legal_address || '',
+                customer_legal_representative: initialData.customer?.legal_representative || '',
+                legal_representative: initialData.customer?.legal_representative || '',
+                customer_einvoice_email: initialData.customer?.einvoice_email || '',
+                einvoice_email: initialData.customer?.einvoice_email || '',
+
                 order_code: initialData.order_code || '',
                 order_date: dayjs(initialData.order_date).format('DD/MM/YYYY'),
                 total_amount_text: (initialData.total_amount || 0).toLocaleString() + ' đ',
