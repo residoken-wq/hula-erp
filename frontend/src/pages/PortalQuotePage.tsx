@@ -325,8 +325,8 @@ const PortalQuotePage: React.FC = () => {
         .page { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0; }
         
         /* HEADER */
-        .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 3px solid #0050b3; margin-bottom: 15px; }
-        .header-left { flex: 1; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 3px solid #0050b3; margin-bottom: 15px; gap: 15px; }
+        .header-left { width: calc(50% - 7.5px); }
         .header-right { text-align: right; min-width: 200px; }
         .doc-title { font-size: 22px; font-weight: 800; color: #0050b3; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
         .doc-subtitle { font-size: 11px; color: #666; font-style: italic; text-transform: uppercase; letter-spacing: 2px; }
@@ -402,7 +402,7 @@ const PortalQuotePage: React.FC = () => {
         <!-- HEADER -->
         <div class="header">
             <div class="header-left">
-                <img src="${window.location.origin}/company_header.png" alt="Company" style="max-height:70px;max-width:280px;" onerror="this.parentElement.innerHTML='<div style=font-size:20px;font-weight:800;color:#0050b3>HULA</div><div style=font-size:10px;color:#888>CTY TNHH TM DV TƯỜNG LINH</div>'" />
+                <img src="${window.location.origin}/b2b_header_banner.png" alt="Company" style="width: 100%; object-fit: contain;" onerror="this.src='${window.location.origin}/company_header.png'; this.style.maxHeight='70px'; this.style.width='auto';" />
             </div>
             <div class="header-right">
                 <div class="doc-title">${docTitle}</div>
@@ -508,9 +508,9 @@ const PortalQuotePage: React.FC = () => {
                         +   priceRangesHtml
                         +   '<div style="margin-top:3px;"><span style="font-size:9px;color:#999;background:#f5f5f5;padding:1px 5px;border-radius:3px;">' + item.sku + '</span></div>'
                         + '</td>'
-                        + '<td style="text-align:center;">' + (item.product?.unit || 'Cái') + '</td>'
+                        + '<td style="text-align:center;font-weight:bold;">' + (item.product?.unit || 'Cái') + '</td>'
                         + '<td style="text-align:center;font-weight:700;font-size:13px;">' + Number(item.quantity) + '</td>'
-                        + '<td style="text-align:right;padding-right:8px;">' + Number(item.unit_price).toLocaleString() + '</td>'
+                        + '<td style="text-align:right;padding-right:8px;font-weight:bold;">' + Number(item.unit_price).toLocaleString() + '</td>'
                         + '<td style="text-align:right;padding-right:8px;font-weight:700;">' + Number(item.subtotal).toLocaleString() + '</td>'
                         + '</tr>';
                 }).join('')}
@@ -1312,7 +1312,7 @@ const PortalQuotePage: React.FC = () => {
                 </Row>
 
                 {/* --- CONTRACT SECTION --- */}
-                {data.contract_html && (
+                {data.contract_html && data.contract_status !== 'DRAFT' && (
                     <Row gutter={24} style={{ marginBottom: 24 }}>
                         <Col span={24}>
                             <Card 

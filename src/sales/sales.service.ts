@@ -339,6 +339,7 @@ export class SalesService {
         if (data.contract_html !== undefined) order.contract_html = data.contract_html;
         if (data.contract_variables !== undefined) order.contract_variables = data.contract_variables;
         if (data.contract_template_id !== undefined) order.contract_template_id = data.contract_template_id;
+        if (data.contract_status !== undefined) order.contract_status = data.contract_status;
 
         if (data.items) {
             console.log('--- UPDATING ITEMS ---');                    // DEBUG

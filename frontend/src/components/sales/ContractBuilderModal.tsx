@@ -468,7 +468,8 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
             await api.put(`/sales/${initialData.id}`, {
                 contract_template_id: values.template_id,
                 contract_html: finalHtmlToSave,
-                contract_variables: { ...values, appendixImages }
+                contract_variables: { ...values, appendixImages },
+                contract_status: createVersion ? 'OFFICIAL' : 'DRAFT'
             });
             
             if (createVersion) {

@@ -112,6 +112,7 @@ export class SalesOrder {
   @Column('text', { nullable: true }) contract_html: string;
   @Column('jsonb', { nullable: true }) contract_variables: any;
   @Column({ nullable: true }) contract_template_id: number;
+  @Column({ nullable: true }) contract_status: string;
 
   @ManyToOne(() => ProductionPlan, (plan) => plan.sales_orders, { nullable: true })
   @JoinColumn({ name: 'plan_id' })

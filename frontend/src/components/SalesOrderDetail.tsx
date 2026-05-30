@@ -773,7 +773,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                     <i>Soạn thảo hợp đồng, tự động điền biến và thêm phụ lục hình ảnh.</i>
                                     {initialData?.contract_html && (
                                         <div style={{ color: '#52c41a', marginTop: 5, fontSize: 13 }}>
-                                            <CheckCircleOutlined /> Đã có bản nháp hợp đồng lưu trên hệ thống
+                                            <CheckCircleOutlined /> Đã có {initialData.contract_status !== 'DRAFT' ? 'hợp đồng chính thức' : 'bản nháp hợp đồng'} lưu trên hệ thống
                                         </div>
                                     )}
                                 </Col>
