@@ -808,12 +808,19 @@ export class SalesService {
                 contact_name: data.contact_name,
                 contact_phone: data.contact_phone,
                 sales_order: order,
-                items: data.items?.map((i: any) => ({
-                    ...i,
-                    quantity: Math.round(Number(i.quantity))
-                })),
-                attachments: data.attachments || [] // <--- Save Attachments
+                attachments: data.attachments || []
             });
+
+            // Ensure proper instantiation of SalesDeliveryItem to guarantee cascade insert
+            if (data.items && Array.isArray(data.items)) {
+                delivery.items = data.items.map((i: any) => {
+                    return {
+                        sku: i.sku,
+                        quantity: Math.round(Number(i.quantity))
+                    } as any;
+                });
+            }
+
             const savedDelivery = await this.deliveryRepo.save(delivery);
 
             // NO AUTO DEDUCT STOCK HERE. 
