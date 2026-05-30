@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { WizardCategoryL2, WizardOption } from './types';
 
 const getApiBaseUrl = () => {
@@ -26,8 +26,21 @@ const hasValidColor = (opt?: WizardOption): boolean => {
     return c !== '' && c !== '#000000';
 };
 
-// B2B watermark URL — loaded once
-const B2B_WATERMARK_URL = `${getApiBaseUrl()}/api/upload/files/_watermark_b2b.png`;
+// B2B watermark config type
+interface WatermarkConfig {
+    enabled: boolean;
+    position: string;
+    opacity: number;
+    sizeRatio: number;
+    imageFile: string;
+}
+
+// Map position string to CSS background-position
+const positionToCss: Record<string, string> = {
+    'northwest': 'left top', 'north': 'center top', 'northeast': 'right top',
+    'west': 'left center', 'center': 'center center', 'east': 'right center',
+    'southwest': 'left bottom', 'south': 'center bottom', 'southeast': 'right bottom',
+};
 
 interface Props {
     subcategory: WizardCategoryL2;
@@ -40,6 +53,20 @@ interface Props {
 export default function ProductVisualizer({ subcategory, selectedOptions, stepSelections = {}, imageSelections = {}, skippedSteps = {} }: Props) {
     const hasBaseImages = subcategory.base_images && subcategory.base_images.length > 0;
     const legacyBaseImage = subcategory.base_image;
+
+    // Fetch B2B watermark config
+    const [wmConfig, setWmConfig] = useState<WatermarkConfig | null>(null);
+    useEffect(() => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com/api';
+        fetch(`${apiUrl}/upload/watermark/b2b/config`)
+            .then(res => res.json())
+            .then(data => setWmConfig(data))
+            .catch(() => setWmConfig(null));
+    }, []);
+
+    const wmImageUrl = wmConfig?.imageFile
+        ? `${getApiBaseUrl()}/api/upload/files/${wmConfig.imageFile}`
+        : '';
 
     // Resolve selected option cho mỗi step CHÍNH XÁC bằng stepSelections map
     // Tránh bug: nhiều steps cùng có option id "1", "2"
@@ -279,17 +306,19 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                 </div>
             )}
 
-            {/* Single B2B Watermark overlay — phủ lên toàn bộ visualizer thay vì từng frame */}
-            <div
-                className="absolute inset-0 z-50 pointer-events-none"
-                style={{
-                    backgroundImage: `url('${B2B_WATERMARK_URL}')`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'center',
-                    backgroundSize: '35%',
-                    opacity: 0.25,
-                }}
-            />
+            {/* Single B2B Watermark overlay — phủ lên toàn bộ visualizer, dùng config từ CMS */}
+            {wmConfig?.enabled && wmImageUrl && (
+                <div
+                    className="absolute inset-0 z-50 pointer-events-none"
+                    style={{
+                        backgroundImage: `url('${wmImageUrl}')`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: positionToCss[wmConfig.position] || 'center center',
+                        backgroundSize: `${Math.round((wmConfig.sizeRatio || 0.25) * 100)}%`,
+                        opacity: wmConfig.opacity || 0.25,
+                    }}
+                />
+            )}
         </div>
     );
 }

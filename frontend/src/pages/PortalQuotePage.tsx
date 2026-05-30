@@ -1152,38 +1152,36 @@ const PortalQuotePage: React.FC = () => {
                                     scroll={{ x: '100%' }}
                                     className="quote-table"
                                     summary={() => {
-                                        // Summary handled below for both views actually, but Antd Table Summary is properly placed inside Table.
-                                        // For mobile, we might need a separate summary block or use specific mobile summary logic. 
-                                        // Let's keep the Desktop summary here and add a visual summary for mobile below the list.
+                                        // Summary handled below for B2B portal desktop view.
                                         const vatRate = data.vat_rate || 0;
                                         const subTotal = data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0);
                                         const discountAmount = Number(data.discount_amount || 0);
                                         const taxable = Math.max(0, subTotal - discountAmount);
-                                        const vatAmount = taxable * (vatRate / 100);
+                                        const vatAmount = Math.round(taxable * (vatRate / 100));
                                         const total = taxable + vatAmount + Number(data.shipping_fee || 0);
 
                                         return (
                                             <Table.Summary fixed>
                                                 <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Tổng tiền hàng</span></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={0} colSpan={7} align="right"><span style={{ color: '#888' }}>Tổng tiền hàng</span></Table.Summary.Cell>
                                                     <Table.Summary.Cell index={1} align="right"><b>{subTotal.toLocaleString()}</b></Table.Summary.Cell>
                                                 </Table.Summary.Row>
                                                 {discountAmount > 0 && (
                                                     <Table.Summary.Row>
-                                                        <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Giảm giá ({data.discount_rate}%)</span></Table.Summary.Cell>
+                                                        <Table.Summary.Cell index={0} colSpan={7} align="right"><span style={{ color: '#888' }}>Giảm giá ({data.discount_rate}%)</span></Table.Summary.Cell>
                                                         <Table.Summary.Cell index={1} align="right"><span style={{ color: '#52c41a' }}>-{discountAmount.toLocaleString()}</span></Table.Summary.Cell>
                                                     </Table.Summary.Row>
                                                 )}
                                                 <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={0} colSpan={7} align="right"><span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span></Table.Summary.Cell>
                                                     <Table.Summary.Cell index={1} align="right">{vatAmount.toLocaleString()}</Table.Summary.Cell>
                                                 </Table.Summary.Row>
                                                 <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><span style={{ color: '#888' }}>Phí vận chuyển</span></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={0} colSpan={7} align="right"><span style={{ color: '#888' }}>Phí vận chuyển</span></Table.Summary.Cell>
                                                     <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee || 0).toLocaleString()}</Table.Summary.Cell>
                                                 </Table.Summary.Row>
                                                 <Table.Summary.Row style={{ background: '#fafafa' }}>
-                                                    <Table.Summary.Cell index={0} colSpan={5} align="right"><b style={{ fontSize: 18, color: '#1890ff' }}>TỔNG CỘNG</b></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={0} colSpan={7} align="right"><b style={{ fontSize: 18, color: '#1890ff' }}>TỔNG CỘNG</b></Table.Summary.Cell>
                                                     <Table.Summary.Cell index={1} align="right"><b style={{ fontSize: 20, color: '#cf1322' }}>{total.toLocaleString()} ₫</b></Table.Summary.Cell>
                                                 </Table.Summary.Row>
                                             </Table.Summary>
@@ -1193,33 +1191,46 @@ const PortalQuotePage: React.FC = () => {
                             )}
 
                             {/* MOBILE SUMMARY BLOCK (Since Table Summary won't show in List) */}
-                            {isMobile && (
-                                <div style={{ background: '#fafafa', padding: 12, borderRadius: 8, marginTop: 12 }}>
-                                    {[
-                                        { label: 'Tổng tiền hàng', value: data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0).toLocaleString() },
-                                        { log: data.discount_amount > 0, label: `Giảm giá (${data.discount_rate}%)`, value: `-${Number(data.discount_amount).toLocaleString()}`, color: 'green' },
-                                        { label: `Thuế VAT (${data.vat_rate || 0}%)`, value: ((Math.max(0, data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0) - Number(data.discount_amount || 0))) * ((data.vat_rate || 0) / 100)).toLocaleString() },
-                                        { label: 'Phí vận chuyển', value: Number(data.shipping_fee || 0).toLocaleString() }
-                                    ].map((row, idx) => {
-                                        if (row.log === false) return null;
-                                        return (
-                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                                                <span style={{ color: '#888' }}>{row.label}</span>
-                                                <span style={{ fontWeight: 600, color: row.color || '#333' }}>{row.value}</span>
+                            {isMobile && (() => {
+                                const subTotal = data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0);
+                                const discountAmount = Number(data.discount_amount || 0);
+                                const vatRate = data.vat_rate || 0;
+                                const taxable = Math.max(0, subTotal - discountAmount);
+                                const vatAmount = Math.round(taxable * (vatRate / 100));
+                                const total = taxable + vatAmount + Number(data.shipping_fee || 0);
+
+                                return (
+                                    <div style={{ background: '#fafafa', padding: 12, borderRadius: 8, marginTop: 12 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                                            <span style={{ color: '#888' }}>Tổng tiền hàng</span>
+                                            <span style={{ fontWeight: 600, color: '#333' }}>{subTotal.toLocaleString()}</span>
+                                        </div>
+                                        {discountAmount > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                                                <span style={{ color: '#888' }}>Giảm giá ({data.discount_rate}%)</span>
+                                                <span style={{ fontWeight: 600, color: 'green' }}>-{discountAmount.toLocaleString()}</span>
                                             </div>
-                                        )
-                                    })}
-                                    <Divider style={{ margin: '8px 0' }} />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontWeight: 700, fontSize: 15 }}>TỔNG CỘNG</span>
-                                        <span style={{ fontWeight: 700, fontSize: 18, color: '#ff4d4f' }}>
-                                            {(
-                                                (Math.max(0, data.items.reduce((sum: number, item: any) => sum + Number(item.subtotal), 0) - Number(data.discount_amount || 0))) * (1 + (data.vat_rate || 0) / 100) + Number(data.shipping_fee || 0)
-                                            ).toLocaleString()} ₫
-                                        </span>
+                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                                            <span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span>
+                                            <span style={{ fontWeight: 600, color: '#333' }}>{vatAmount.toLocaleString()}</span>
+                                        </div>
+                                        {Number(data.shipping_fee || 0) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
+                                                <span style={{ color: '#888' }}>Phí vận chuyển</span>
+                                                <span style={{ fontWeight: 600, color: '#333' }}>{Number(data.shipping_fee).toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        <Divider style={{ margin: '8px 0' }} />
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: 700, fontSize: 15 }}>TỔNG CỘNG</span>
+                                            <span style={{ fontWeight: 700, fontSize: 18, color: '#ff4d4f' }}>
+                                                {total.toLocaleString()} ₫
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })()}
 
                             {/* Note - below items table */}
                             {data.note && (
