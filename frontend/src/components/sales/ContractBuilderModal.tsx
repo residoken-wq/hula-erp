@@ -384,11 +384,36 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                 <div style="page-break-before: always;">
                     <h3 style="text-align: center; text-transform: uppercase; margin-top: 30px;">Phụ Lục 02: Hình Ảnh Tham Khảo</h3>
                     <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px;">
-                        ${appendixImages.map(img => `
-                            <div style="text-align: center; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
-                                <img src="${formatImgUrl(img)}" style="max-width: 300px; max-height: 300px; object-fit: contain;" />
-                            </div>
-                        `).join('')}
+                        ${appendixImages.map(img => {
+                            const matchingItems = initialData.items?.filter((i: any) => (i.image_url || i.product?.image_url) === img) || [];
+                            let captionHtml = '';
+                            if (matchingItems.length > 0) {
+                                // Find first item that has vat_content or name to avoid duplication if same image is used
+                                const item = matchingItems[0];
+                                const vatContent = item.vat_content || item.product?.vat_content || '';
+                                const productName = item.product?.name || item.sku || '';
+                                
+                                let captionText = '';
+                                if (vatContent && productName) {
+                                    captionText = `${vatContent} - ${productName}`;
+                                } else if (vatContent) {
+                                    captionText = vatContent;
+                                } else if (productName) {
+                                    captionText = productName;
+                                }
+                                
+                                if (captionText) {
+                                    captionHtml = `<div style="margin-top: 8px; font-size: 14px; font-weight: 500; color: #333;">${captionText}</div>`;
+                                }
+                            }
+                            
+                            return `
+                                <div style="text-align: center; border: 1px solid #ddd; padding: 10px; border-radius: 8px; max-width: 320px;">
+                                    <img src="${formatImgUrl(img)}" style="max-width: 300px; max-height: 300px; object-fit: contain;" />
+                                    ${captionHtml}
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
