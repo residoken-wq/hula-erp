@@ -860,10 +860,6 @@ const PortalQuotePage: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* --- FOOTER: SKU Tags --- */}
-                            <div style={{ marginTop: 2 }}>
-                                <Tag style={{ fontSize: 10, margin: 0, padding: '0 6px', background: '#f5f5f5', border: '1px solid #d9d9d9', color: '#595959' }}>{r.sku}</Tag>
-                            </div>
                         </div>
                     </div>
 
