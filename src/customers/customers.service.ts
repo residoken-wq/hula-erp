@@ -8,6 +8,8 @@ import { CustomerComment } from './customer-comment.entity';
 import { Transaction } from '../finance/transaction.entity';
 import { SalesComment } from '../sales/sales-comment.entity';
 import { SalesOrder } from '../sales/sales-order.entity';
+import { PortalSession } from '../public/entities/portal-session.entity';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class CustomersService {
@@ -20,6 +22,8 @@ export class CustomersService {
         private commentRepo: Repository<CustomerComment>,
         @InjectRepository(Transaction)
         private transRepo: Repository<Transaction>,
+        @InjectRepository(PortalSession)
+        private sessionRepo: Repository<PortalSession>,
     ) { }
 
     async create(data: any) {
@@ -257,5 +261,38 @@ export class CustomersService {
             mentioned_user_ids: mentionedUserIds || null
         });
         return this.commentRepo.save(comment);
+    }
+
+    // --- IMPERSONATE ---
+    private generateSlug(name: string, id: number): string {
+        const slug = name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd').replace(/Đ/g, 'd')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .trim();
+        return `${slug}-${id}`;
+    }
+
+    async impersonate(id: number) {
+        const customer = await this.customerRepo.findOne({ where: { id } });
+        if (!customer) throw new NotFoundException('Khách hàng không tồn tại');
+
+        const token = crypto.randomUUID() + '-' + crypto.randomBytes(16).toString('hex');
+        const slug = this.generateSlug(customer.name, customer.id);
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour for impersonation
+
+        const session = this.sessionRepo.create({
+            customer_id: customer.id,
+            token,
+            slug,
+            expires_at: expiresAt,
+        });
+        await this.sessionRepo.save(session);
+
+        return { token, slug };
     }
 }

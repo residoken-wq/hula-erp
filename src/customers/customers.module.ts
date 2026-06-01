@@ -8,10 +8,11 @@ import { CustomersService } from './customers.service';
 
 import { Transaction } from '../finance/transaction.entity';
 import { AuthModule } from '../auth/auth.module';
+import { PortalSession } from '../public/entities/portal-session.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Customer, CustomerContact, CustomerComment, Transaction]),
+    TypeOrmModule.forFeature([Customer, CustomerContact, CustomerComment, Transaction, PortalSession]),
     AuthModule
   ],
   controllers: [CustomersController],

@@ -102,6 +102,17 @@ const CustomersPage: React.FC = () => {
         catch (e) { message.error('Không thể xóa (KH đã có dữ liệu ràng buộc)'); }
     };
 
+    const handleImpersonate = async (id: number) => {
+        try {
+            const res = await api.post(`/customers/${id}/impersonate`);
+            const { token, slug } = res.data;
+            sessionStorage.setItem('portal_token', token);
+            window.open(`/portal/dashboard/${slug}`, '_blank');
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Không thể xem portal khách hàng này');
+        }
+    };
+
     // Helper to mask phone
     const renderMaskedPhone = (phone: string) => {
         if (!phone) return '';
@@ -161,9 +172,12 @@ const CustomersPage: React.FC = () => {
             render: (u: any) => u ? <Tag color="blue">{u.full_name || u.username}</Tag> : '-'
         },
         {
-            title: '', key: 'action', width: 80, align: 'right' as const,
+            title: '', key: 'action', width: 120, align: 'right' as const,
             render: (_: any, r: any) => (
                 <Space>
+                    <Tooltip title="View Portal (Impersonate)">
+                        <Button icon={<UserOutlined />} size="small" onClick={() => handleImpersonate(r.id)} />
+                    </Tooltip>
                     {canUpdate && <Button icon={<EditOutlined />} size="small" onClick={() => {
                         setEditingItem(r);
                         setEditingItem(r);

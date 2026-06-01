@@ -15,6 +15,12 @@ export class CustomersController {
   @Put(':id') @RequirePermission('SALES', 'can_update') update(@Param('id') id: number, @Body() b: any) { return this.s.update(id, b); }
   @Delete(':id') @RequirePermission('SALES', 'can_delete') remove(@Param('id') id: number) { return this.s.remove(id); }
 
+  @Post(':id/impersonate')
+  @RequirePermission('SALES', 'can_view')
+  async impersonate(@Param('id') id: number) {
+    return this.s.impersonate(id);
+  }
+
 
   @Post(':id/follow')
   addHistory(@Param('id') id: number, @Body('note') note: string) {

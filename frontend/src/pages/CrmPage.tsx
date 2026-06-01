@@ -464,7 +464,7 @@ const CrmPage: React.FC = () => {
         { title: 'Khách Hàng', dataIndex: 'customer', render: (c: any) => <b>{c?.name}</b> },
         { title: 'Giá Trị', dataIndex: 'total_amount', align: 'right' as const, render: (v: any) => <b style={{ color: '#cf1322' }}>{Number(v).toLocaleString()}</b> },
         { title: 'Phụ trách', dataIndex: 'assigned_to', render: (u: any) => u ? <Tag color="blue">{u.full_name || u.username}</Tag> : '-' },
-        { title: 'Ngày tạo', dataIndex: 'created_at', render: (t: any) => <small>{dayjs(t).format('DD/MM/YYYY')}</small> },
+        { title: 'Ngày tạo', dataIndex: 'order_date', render: (t: any) => <small>{t ? dayjs(t).format('DD/MM/YYYY') : '-'}</small> },
         {
             title: 'Thao tác', key: 'act', align: 'center' as const, width: 220,
             render: (_: any, r: any) => r.status === 'QUOTATION' ? (
