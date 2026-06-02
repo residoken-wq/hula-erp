@@ -720,6 +720,10 @@ export class SalesService {
             return this.convertQuoteToSo(q.id, action === 'ACCEPT');
         }
     }
+
+    async updateViewLogs(id: number, logs: any) {
+        await this.orderRepo.update(id, { portal_view_logs: logs });
+    }
     async getDeliveryHistory(orderId: number) { return this.deliveryRepo.find({ where: { order_id: orderId }, relations: ['items'], order: { created_at: 'DESC' } }); }
     async getPaymentHistory(orderCode: string) { return this.transRepo.find({ where: { reference_code: orderCode }, order: { created_at: 'DESC' } }); }
     async createDelivery(orderId: number, data: any) {

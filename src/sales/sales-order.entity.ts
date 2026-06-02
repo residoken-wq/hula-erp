@@ -139,4 +139,7 @@ export class SalesOrder {
 
   @CreateDateColumn() order_date: Date;
   @UpdateDateColumn() updated_at: Date;
+
+  // --- PORTAL VIEW LOGS ---
+  @Column('jsonb', { nullable: true }) portal_view_logs: any;
 }

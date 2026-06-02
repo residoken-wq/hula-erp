@@ -1436,6 +1436,10 @@ const PortalQuotePage: React.FC = () => {
                                                     )
                                                 })}
                                             </div>
+                                            <div style={{ marginTop: 8, fontSize: 12, color: '#555' }}>
+                                                <div><UserOutlined /> {r.contact_name || '-'} {r.contact_phone ? `- ${r.contact_phone}` : ''}</div>
+                                                <div style={{ color: '#888', marginTop: 2 }}>📍 {r.delivery_address || '-'}</div>
+                                            </div>
                                         </div>
                                     )} />
                                 ) : (
@@ -1453,6 +1457,15 @@ const PortalQuotePage: React.FC = () => {
                                                     <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>
                                                         {r.status === 'SHIPPED' ? 'Đã Giao' : 'Đang Giao'}
                                                     </Tag>
+                                                )
+                                            },
+                                            {
+                                                title: 'Giao hàng', width: 220,
+                                                render: (r: any) => (
+                                                    <div style={{ fontSize: 12, color: '#555' }}>
+                                                        <div><UserOutlined /> {r.contact_name || '-'} {r.contact_phone ? `- ${r.contact_phone}` : ''}</div>
+                                                        <div style={{ color: '#888', marginTop: 2 }}>📍 {r.delivery_address || '-'}</div>
+                                                    </div>
                                                 )
                                             },
                                             {
@@ -1555,6 +1568,30 @@ const PortalQuotePage: React.FC = () => {
                         </Card>
                     </Col>
                 </Row>
+
+                {/* --- VIEW LOGS --- */}
+                {data.portal_view_logs && data.portal_view_logs.length > 0 && (
+                    <Row gutter={24} style={{ marginTop: 20 }}>
+                        <Col span={24}>
+                            <Card title={<span><EyeOutlined /> Thống Kê Lượt Xem Portal</span>} size="small" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                                <Table
+                                    dataSource={data.portal_view_logs.slice().reverse()}
+                                    rowKey={(r: any) => r.viewed_at + r.ip}
+                                    pagination={{ pageSize: 5, hideOnSinglePage: true }}
+                                    size="small"
+                                    columns={[
+                                        { title: 'Thời gian', dataIndex: 'viewed_at', width: 130, render: (t) => <span style={{ color: '#888' }}>{dayjs(t).format('HH:mm DD/MM/YYYY')}</span> },
+                                        { title: 'IP', dataIndex: 'ip', width: 140, render: (ip) => <Tag color="default">{ip}</Tag> },
+                                        { title: 'Thiết bị', dataIndex: 'device', width: 100, render: (d) => <Tag color={d === 'Mobile' ? 'blue' : 'green'}>{d}</Tag> },
+                                        { title: 'Trình duyệt', dataIndex: 'browser', width: 120 },
+                                        { title: 'User Agent', dataIndex: 'user_agent', render: (ua) => <div style={{ fontSize: 11, color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }} title={ua}>{ua}</div> }
+                                    ]}
+                                />
+                            </Card>
+                        </Col>
+                    </Row>
+                )}
+
             </div>
 
             <div style={{ textAlign: 'center', padding: '20px 0', color: '#ccc', fontSize: 12 }}>

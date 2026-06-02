@@ -566,7 +566,7 @@ export class PortalController {
 
             const orders = await qb.getMany();
 
-            const productStats: Record<string, { sku: string, name: string, unit: string, total_quantity: number, total_value: number }> = {};
+            const productStats: Record<string, { sku: string, name: string, unit: string, image_url: string, total_quantity: number, total_value: number }> = {};
 
             orders.forEach(order => {
                 if (order.items) {
@@ -577,6 +577,7 @@ export class PortalController {
                                 sku: sku,
                                 name: item.product?.name || sku,
                                 unit: item.product?.unit || 'Cái',
+                                image_url: item.image_url || item.product?.image_url || '',
                                 total_quantity: 0,
                                 total_value: 0,
                             };

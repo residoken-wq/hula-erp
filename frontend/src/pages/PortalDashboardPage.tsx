@@ -526,7 +526,7 @@ const PortalDashboardPage: React.FC = () => {
                         <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
                             <thead>
                                 <tr style={{ background: '#fafafa', borderBottom: '1px solid #eee' }}>
-                                    <th style={{ padding: '12px 16px', color: '#888', fontWeight: 600 }}>Mã SP</th>
+                                    <th style={{ padding: '12px 16px', color: '#888', fontWeight: 600 }}>Sản phẩm</th>
                                     <th style={{ padding: '12px 16px', color: '#888', fontWeight: 600 }}>Tên Sản Phẩm</th>
                                     <th style={{ padding: '12px 16px', color: '#888', fontWeight: 600, textAlign: 'right' }}>Số lượng</th>
                                     <th style={{ padding: '12px 16px', color: '#888', fontWeight: 600, textAlign: 'right' }}>Tổng tiền</th>
@@ -542,8 +542,17 @@ const PortalDashboardPage: React.FC = () => {
                                 ) : (
                                     productStats.map(stat => (
                                         <tr key={stat.sku} style={{ borderBottom: '1px solid #eee' }}>
-                                            <td style={{ padding: '12px 16px', fontWeight: 600, color: '#555' }}>{stat.sku}</td>
-                                            <td style={{ padding: '12px 16px', color: '#333' }}>{stat.name}</td>
+                                            <td style={{ padding: '12px 16px', fontWeight: 600, color: '#555' }}>
+                                                {stat.image_url ? (
+                                                    <img src={getGoogleDriveImageUrl(stat.image_url)} alt={stat.name} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }} />
+                                                ) : (
+                                                    <div style={{ width: 48, height: 48, background: '#f5f5f5', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: '#ccc' }}>📦</div>
+                                                )}
+                                            </td>
+                                            <td style={{ padding: '12px 16px', color: '#333' }}>
+                                                <div style={{ fontWeight: 600 }}>{stat.name}</div>
+                                                <div style={{ fontSize: 12, color: '#888' }}>SKU: {stat.sku}</div>
+                                            </td>
                                             <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: '#23A7D3' }}>
                                                 {fmt(stat.total_quantity)} <span style={{ fontSize: 12, color: '#999', fontWeight: 400 }}>{stat.unit}</span>
                                             </td>
@@ -592,14 +601,30 @@ const PortalDashboardPage: React.FC = () => {
                                         </div>
 
                                         {/* Order Items Full List */}
-                                        <div style={S.orderItems}>
-                                            {order.items.map((item, idx) => (
-                                                <div key={idx} style={S.orderItem}>
-                                                    <span style={S.itemName}>{item.product_name}</span>
-                                                    <span style={S.itemQty}>x{item.quantity}</span>
-                                                    <span style={S.itemPrice}>{fmt(item.subtotal)}đ</span>
-                                                </div>
-                                            ))}
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <table style={{ width: '100%', minWidth: 500, borderCollapse: 'collapse', fontSize: 13, textAlign: 'left', marginBottom: 16 }}>
+                                                <thead>
+                                                    <tr style={{ borderBottom: '1px solid #eee', color: '#888' }}>
+                                                        <th style={{ padding: '8px 16px', fontWeight: 600 }}>Sản phẩm</th>
+                                                        <th style={{ padding: '8px 16px', fontWeight: 600, textAlign: 'right' }}>Đơn giá</th>
+                                                        <th style={{ padding: '8px 16px', fontWeight: 600, textAlign: 'right' }}>SL</th>
+                                                        <th style={{ padding: '8px 16px', fontWeight: 600, textAlign: 'right' }}>Thành tiền</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {order.items.map((item, idx) => (
+                                                        <tr key={idx} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                                                            <td style={{ padding: '8px 16px', color: '#333', fontWeight: 500 }}>
+                                                                <div>{item.product_name}</div>
+                                                                <div style={{ fontSize: 11, color: '#888' }}>SKU: {item.sku}</div>
+                                                            </td>
+                                                            <td style={{ padding: '8px 16px', textAlign: 'right', color: '#666' }}>{fmt(item.unit_price)}đ</td>
+                                                            <td style={{ padding: '8px 16px', textAlign: 'right', color: '#23A7D3', fontWeight: 600 }}>x{item.quantity}</td>
+                                                            <td style={{ padding: '8px 16px', textAlign: 'right', fontWeight: 600, color: '#333' }}>{fmt(item.subtotal)}đ</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </div>
 
                                         {/* Delivery & Payment Info */}

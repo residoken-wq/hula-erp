@@ -798,9 +798,34 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
     // ========================================
 
     @Get('portal/quote/:uuid')
-    async getPortalQuote(@Param('uuid') uuid: string) {
+    async getPortalQuote(@Param('uuid') uuid: string, @Req() req: any) {
         const quote = await this.salesService.getQuoteByUuid(uuid);
         if (!quote) return null;
+        
+        // --- LOG VIEW PORTAL ---
+        const ip = req.headers['x-forwarded-for'] || req.connection?.remoteAddress || '';
+        const ua = req.headers['user-agent'] || '';
+        let device = 'Desktop';
+        if (/mobile/i.test(ua)) device = 'Mobile';
+        if (/tablet/i.test(ua)) device = 'Tablet';
+        
+        let browser = 'Unknown';
+        if (/chrome|crios|crmo/i.test(ua)) browser = 'Chrome';
+        else if (/firefox|iceweasel|fxios/i.test(ua)) browser = 'Firefox';
+        else if (/safari/i.test(ua)) browser = 'Safari';
+        else if (/msie|trident/i.test(ua)) browser = 'IE';
+        else if (/edg/i.test(ua)) browser = 'Edge';
+
+        const newLog = { ip, device, browser, user_agent: ua, viewed_at: new Date() };
+        const currentLogs = quote.portal_view_logs || [];
+        const lastLog = currentLogs[currentLogs.length - 1];
+        const isRecentDuplicate = lastLog && lastLog.ip === ip && (new Date().getTime() - new Date(lastLog.viewed_at).getTime() < 5 * 60 * 1000);
+        
+        if (!isRecentDuplicate) {
+            const updatedLogs = [...currentLogs, newLog].slice(-50); // Keep last 50 views
+            await this.salesService.updateViewLogs(quote.id, updatedLogs);
+            quote.portal_view_logs = updatedLogs; // return updated logs to frontend
+        }
         
         const watermarkConfig = await this.configRepo.findOne({ where: { key: 'PORTAL_WATERMARK_IMAGE' } });
         
