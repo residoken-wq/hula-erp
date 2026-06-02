@@ -23,3 +23,12 @@ body {
         background-color: #e6f7ff;
     }
 }
+
+/* Nâng cấp chiều rộng các modal chức năng lên 80% trên Desktop (trừ các modal confirm/alert nhỏ) */
+@media (min-width: 992px) {
+    .ant-modal-wrap:not(:has(.ant-modal-confirm)) .ant-modal,
+    .ant-modal-root .ant-modal:not(.ant-modal-confirm) {
+        width: 80% !important;
+        max-width: 1600px !important;
+    }
+}
