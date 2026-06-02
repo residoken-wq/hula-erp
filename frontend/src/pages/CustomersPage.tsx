@@ -107,7 +107,7 @@ const CustomersPage: React.FC = () => {
             const res = await api.post(`/customers/${id}/impersonate`);
             const { token, slug } = res.data;
             sessionStorage.setItem('portal_token', token);
-            window.open(`/portal/dashboard/${slug}`, '_blank');
+            window.open(`/portal/${slug}`, '_blank');
         } catch (e: any) {
             message.error(e.response?.data?.message || 'Không thể xem portal khách hàng này');
         }

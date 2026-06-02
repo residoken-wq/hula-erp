@@ -39,8 +39,8 @@ export default function LivePreviewModal({ open, onClose, blocks, title = "Xem t
             <div style={{ width: '100%', height: '100%', background: '#fff' }}>
                 <iframe
                     ref={iframeRef}
-                    // The main website runs on port 3000 locally
-                    src="http://localhost:3000/preview" 
+                    // The main website runs on port 3001 locally as configured in package.json
+                    src={process.env.NEXT_PUBLIC_WEBSITE_URL ? `${process.env.NEXT_PUBLIC_WEBSITE_URL}/preview` : "http://localhost:3001/preview"} 
                     style={{ width: '100%', height: '100%', border: 'none' }}
                     title="Live Preview"
                 />

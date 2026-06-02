@@ -43,6 +43,14 @@ interface Order {
     payment_status: string;
     order_date: string;
     delivery_date: string;
+    payment_note?: string;
+    discount_amount?: number;
+    shipping_address?: string;
+    receiver_name?: string;
+    receiver_phone?: string;
+    shipping_carrier?: string;
+    tracking_code?: string;
+    shipping_fee?: number;
     assigned_to: { full_name: string } | null;
     items: OrderItem[];
 }
@@ -138,6 +146,40 @@ const PortalDashboardPage: React.FC = () => {
     }, []);
 
     const token = sessionStorage.getItem('portal_token');
+
+    // ===== PRODUCT STATS STATE =====
+    const [productStats, setProductStats] = useState<any[]>([]);
+    const [statsLoading, setStatsLoading] = useState(false);
+    const [statsFromDate, setStatsFromDate] = useState<string>('');
+    const [statsToDate, setStatsToDate] = useState<string>('');
+
+    const fetchProductStats = useCallback(async () => {
+        if (!token) return;
+        setStatsLoading(true);
+        try {
+            let url = `${API_URL}/public/portal/product-stats/${slug}`;
+            const params = new URLSearchParams();
+            if (statsFromDate) params.append('fromDate', statsFromDate);
+            if (statsToDate) params.append('toDate', statsToDate);
+            if (params.toString()) url += `?${params.toString()}`;
+            
+            const res = await axios.get(url, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setProductStats(res.data.data || []);
+        } catch (err: any) {
+            console.error('Error fetching product stats:', err);
+        } finally {
+            setStatsLoading(false);
+        }
+    }, [slug, token, statsFromDate, statsToDate]);
+
+    useEffect(() => {
+        if (slug && token) {
+            fetchProductStats();
+        }
+    }, [fetchProductStats, slug, token]);
+
 
     const getWatermarkProps = (fontColor: string, fontSize: number) => {
         if (data?.watermark_image) {
@@ -454,6 +496,66 @@ const PortalDashboardPage: React.FC = () => {
                     </div>
                 )}
 
+                {/* ===== PRODUCT STATS (KHO HÀNG) ===== */}
+                <section style={S.section}>
+                    <h2 style={S.sectionTitle}>📦 Sản Phẩm Đã Mua (Thống kê)</h2>
+                    <div style={{ marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <input
+                            type="date"
+                            value={statsFromDate}
+                            onChange={(e) => setStatsFromDate(e.target.value)}
+                            style={{ padding: '8px 12px', border: '1px solid #d9d9d9', borderRadius: 6, fontSize: 14 }}
+                        />
+                        <span style={{ alignSelf: 'center' }}>-</span>
+                        <input
+                            type="date"
+                            value={statsToDate}
+                            onChange={(e) => setStatsToDate(e.target.value)}
+                            style={{ padding: '8px 12px', border: '1px solid #d9d9d9', borderRadius: 6, fontSize: 14 }}
+                        />
+                        <button
+                            onClick={fetchProductStats}
+                            disabled={statsLoading}
+                            style={{ ...S.primaryBtn, padding: '8px 16px', height: 'auto', minHeight: 38 }}
+                        >
+                            {statsLoading ? '⏳...' : '🔍 Tra cứu'}
+                        </button>
+                    </div>
+
+                    <div style={{ overflowX: 'auto', background: '#fff', borderRadius: 8, border: '1px solid #eee' }}>
+                        <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
+                            <thead>
+                                <tr style={{ background: '#fafafa', borderBottom: '1px solid #eee' }}>
+                                    <th style={{ padding: '12px 16px', color: '#888', fontWeight: 600 }}>Mã SP</th>
+                                    <th style={{ padding: '12px 16px', color: '#888', fontWeight: 600 }}>Tên Sản Phẩm</th>
+                                    <th style={{ padding: '12px 16px', color: '#888', fontWeight: 600, textAlign: 'right' }}>Số lượng</th>
+                                    <th style={{ padding: '12px 16px', color: '#888', fontWeight: 600, textAlign: 'right' }}>Tổng tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {productStats.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} style={{ padding: '32px 16px', textAlign: 'center', color: '#aaa' }}>
+                                            Không có dữ liệu trong thời gian này
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    productStats.map(stat => (
+                                        <tr key={stat.sku} style={{ borderBottom: '1px solid #eee' }}>
+                                            <td style={{ padding: '12px 16px', fontWeight: 600, color: '#555' }}>{stat.sku}</td>
+                                            <td style={{ padding: '12px 16px', color: '#333' }}>{stat.name}</td>
+                                            <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: '#23A7D3' }}>
+                                                {fmt(stat.total_quantity)} <span style={{ fontSize: 12, color: '#999', fontWeight: 400 }}>{stat.unit}</span>
+                                            </td>
+                                            <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>{fmt(stat.total_value)}đ</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 {/* ===== ORDER HISTORY ===== */}
                 <section style={S.section}>
                     <h2 style={S.sectionTitle}>📋 Lịch Sử Đơn Hàng</h2>
@@ -489,20 +591,39 @@ const PortalDashboardPage: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        {/* Order Items Preview */}
+                                        {/* Order Items Full List */}
                                         <div style={S.orderItems}>
-                                            {order.items.slice(0, 3).map((item, idx) => (
+                                            {order.items.map((item, idx) => (
                                                 <div key={idx} style={S.orderItem}>
                                                     <span style={S.itemName}>{item.product_name}</span>
                                                     <span style={S.itemQty}>x{item.quantity}</span>
                                                     <span style={S.itemPrice}>{fmt(item.subtotal)}đ</span>
                                                 </div>
                                             ))}
-                                            {order.items.length > 3 && (
-                                                <div style={{ fontSize: 12, color: '#999', paddingLeft: 4 }}>
-                                                    +{order.items.length - 3} sản phẩm khác
-                                                </div>
-                                            )}
+                                        </div>
+
+                                        {/* Delivery & Payment Info */}
+                                        <div style={{ padding: '12px 16px', background: '#fafafa', borderTop: '1px solid #eee', fontSize: 13, color: '#555', display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                                            <div style={{ flex: '1 1 200px' }}>
+                                                <div style={{ fontWeight: 600, color: '#333', marginBottom: 4 }}>🚚 Giao hàng</div>
+                                                {order.receiver_name ? (
+                                                    <>
+                                                        <div>Người nhận: {order.receiver_name} {order.receiver_phone ? `- ${order.receiver_phone}` : ''}</div>
+                                                        <div>Địa chỉ: {order.shipping_address || 'Chưa cập nhật'}</div>
+                                                        {order.shipping_carrier && <div>Đơn vị: {order.shipping_carrier} {order.tracking_code ? `(Mã VĐ: ${order.tracking_code})` : ''}</div>}
+                                                    </>
+                                                ) : (
+                                                    <div style={{ color: '#999', fontStyle: 'italic' }}>Chưa có thông tin giao hàng</div>
+                                                )}
+                                            </div>
+                                            <div style={{ flex: '1 1 200px' }}>
+                                                <div style={{ fontWeight: 600, color: '#333', marginBottom: 4 }}>💳 Thanh toán</div>
+                                                <div>Trạng thái: <span style={{ color: order.payment_status === 'PAID' ? 'green' : order.payment_status === 'PARTIAL_PAID' ? '#fa8c16' : 'red' }}>
+                                                    {order.payment_status === 'PAID' ? 'Đã thanh toán' : order.payment_status === 'PARTIAL_PAID' ? 'Thanh toán một phần' : 'Chưa thanh toán'}
+                                                </span></div>
+                                                {order.payment_note && <div>Ghi chú: {order.payment_note}</div>}
+                                                {(order.discount_amount || 0) > 0 && <div>Giảm giá: -{fmt(order.discount_amount || 0)}đ</div>}
+                                            </div>
                                         </div>
 
                                         {/* Order Footer */}

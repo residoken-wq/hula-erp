@@ -67,7 +67,7 @@ const ProductsPage: React.FC = () => {
         setBookingDetailLoading(true);
         setBookingDetailFilter(filter);
         try {
-            const res = await api.get(`/planning/bookings/${sku}`);
+            const res = await api.get(`/planning/bookings/${encodeURIComponent(sku)}`);
             const all = Array.isArray(res.data) ? res.data : [];
             setBookingDetailData(filter === 'CONFIRMED' ? all.filter((d: any) => d.booking_status === 'CONFIRMED') : all);
         } catch (e) {

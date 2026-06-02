@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, HttpException, HttpStatus, Headers } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, HttpException, HttpStatus, Headers, Query } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { Customer } from '../customers/customer.entity';
@@ -301,8 +301,16 @@ export class PortalController {
                     total_amount: Number(o.total_amount || 0),
                     paid_amount: Number(o.paid_amount || 0),
                     payment_status: o.payment_status,
+                    payment_note: o.payment_note,
+                    discount_amount: Number(o.discount_amount || 0),
                     order_date: o.order_date,
                     delivery_date: o.delivery_date,
+                    shipping_address: o.shipping_address,
+                    receiver_name: o.receiver_name,
+                    receiver_phone: o.receiver_phone,
+                    shipping_carrier: o.shipping_carrier,
+                    tracking_code: o.tracking_code,
+                    shipping_fee: Number(o.shipping_fee || 0),
                     assigned_to: o.assigned_to ? { full_name: o.assigned_to.full_name } : null,
                     items: (o.items || []).map(i => ({
                         sku: i.sku,
@@ -525,6 +533,68 @@ export class PortalController {
             if (error instanceof HttpException) throw error;
             console.error('Error creating promotion order:', error);
             throw new HttpException('Lỗi khi tạo đơn hàng từ khuyến mãi', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    // ============================================================
+    // 8. PRODUCT STATS (For customer to check their inventory/purchases)
+    // ============================================================
+    @Get('product-stats/:slug')
+    async getProductStats(
+        @Param('slug') slug: string,
+        @Headers('authorization') authHeader: string,
+        @Query('fromDate') fromDate?: string,
+        @Query('toDate') toDate?: string,
+    ) {
+        const session = await this.validateSession(authHeader);
+        if (session.slug !== slug) {
+            throw new HttpException('Slug không khớp', HttpStatus.FORBIDDEN);
+        }
+
+        try {
+            const qb = this.salesOrderRepo.createQueryBuilder('order')
+                .leftJoinAndSelect('order.items', 'item')
+                .leftJoinAndSelect('item.product', 'product')
+                .where('order.customer_id = :customerId', { customerId: session.customer_id })
+                .andWhere('order.status != :status', { status: 'CANCELLED' });
+
+            if (fromDate) {
+                qb.andWhere('order.order_date >= :fromDate', { fromDate });
+            }
+            if (toDate) {
+                qb.andWhere('order.order_date <= :toDate', { toDate: toDate + ' 23:59:59' });
+            }
+
+            const orders = await qb.getMany();
+
+            const productStats: Record<string, { sku: string, name: string, unit: string, total_quantity: number, total_value: number }> = {};
+
+            orders.forEach(order => {
+                if (order.items) {
+                    order.items.forEach(item => {
+                        const sku = item.sku;
+                        if (!productStats[sku]) {
+                            productStats[sku] = {
+                                sku: sku,
+                                name: item.product?.name || sku,
+                                unit: item.product?.unit || 'Cái',
+                                total_quantity: 0,
+                                total_value: 0,
+                            };
+                        }
+                        productStats[sku].total_quantity += Number(item.quantity) || 0;
+                        productStats[sku].total_value += Number(item.subtotal) || 0;
+                    });
+                }
+            });
+
+            return {
+                success: true,
+                data: Object.values(productStats).sort((a, b) => b.total_quantity - a.total_quantity)
+            };
+        } catch (error) {
+            if (error instanceof HttpException) throw error;
+            console.error('Error fetching product stats:', error);
+            throw new HttpException('Lỗi server khi tải thống kê sản phẩm', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
