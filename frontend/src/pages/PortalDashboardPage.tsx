@@ -544,7 +544,7 @@ const PortalDashboardPage: React.FC = () => {
                                         <tr key={stat.sku} style={{ borderBottom: '1px solid #eee' }}>
                                             <td style={{ padding: '12px 16px', fontWeight: 600, color: '#555' }}>
                                                 {stat.image_url ? (
-                                                    <img src={getGoogleDriveImageUrl(stat.image_url)} alt={stat.name} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }} />
+                                                    <img src={getGoogleDriveImageUrl(stat.image_url || '')} alt={stat.name} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }} />
                                                 ) : (
                                                     <div style={{ width: 48, height: 48, background: '#f5f5f5', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: '#ccc' }}>📦</div>
                                                 )}
