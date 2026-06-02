@@ -349,13 +349,33 @@ export class HrService implements OnModuleInit {
     }
 
     async createPayslip(data: Partial<Payslip>) {
+        // Fetch employee to check work shift type
+        let calcType = AttendanceCalcType.DAILY;
+        if (data.employee_id) {
+            const employee = await this.employeeRepo.findOne({
+                where: { id: data.employee_id },
+                relations: ['work_shift']
+            });
+            if (employee && employee.work_shift) {
+                calcType = employee.work_shift.calc_type;
+            }
+        }
+
         // Calculate derived values
         const actual = Number(data.actual_work_days) || 0;
         const standard = Number(data.standard_work_days) || 26;
         const base = Number(data.base_salary) || 0;
 
-        // Formula: ROUND(base_salary / 25 * actual_work_days, -3) = rounds to nearest 1000
-        data.actual_salary = Math.round((base / 25 * actual) / 1000) * 1000;
+        if (calcType === AttendanceCalcType.HOURLY) {
+            // For hourly employees, actual_work_days represents total hours worked
+            // Formula: base_salary (hourly rate) * actual hours
+            data.actual_salary = Math.round((base * actual) / 1000) * 1000;
+        } else {
+            // For daily employees, actual_work_days represents days worked
+            // Formula: ROUND(base_salary / standard_work_days * actual_work_days, -3) = rounds to nearest 1000
+            // Using standard_work_days instead of fixed 25 for better accuracy
+            data.actual_salary = Math.round((base / standard * actual) / 1000) * 1000;
+        }
 
         const meal = Number(data.allowance_meal) || 0;
         const transport = Number(data.allowance_transport) || 0;

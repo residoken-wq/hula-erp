@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Tag, message, Divider, Space, Popconfirm, Checkbox } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, DatePicker, InputNumber, Row, Col, Tag, message, Divider, Space, Popconfirm, Checkbox, Grid } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
@@ -17,6 +17,7 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
     const [form] = Form.useForm();
     const [viewPayslip, setViewPayslip] = useState<any>(null);
     const [editing, setEditing] = useState<any>(null);
+    const screens = Grid.useBreakpoint();
 
     const formatMoney = (v: any) => {
         const num = Number(v) || 0;
@@ -198,7 +199,7 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
             </Modal>
 
             {/* View Payslip Modal */}
-            <Modal title="Phiếu Lương" open={!!viewPayslip} onCancel={() => setViewPayslip(null)} footer={null} width={420}>
+            <Modal title="Phiếu Lương" open={!!viewPayslip} onCancel={() => setViewPayslip(null)} footer={null} width={screens.md ? '50vw' : '80vw'}>
                 {viewPayslip && (
                     <div style={{ fontFamily: 'Arial, sans-serif', fontSize: 13 }}>
                         {/* Header với Logo */}
