@@ -4,7 +4,7 @@ import axios from 'axios';
 import { API_URL } from '../config';
 import PortalUserGuide from '../components/PortalUserGuide';
 import { getGoogleDriveImageUrl } from '../utils/googleDrive';
-import { Watermark } from 'antd';
+import { Watermark, Modal } from 'antd';
 
 // ============================================================
 // B2B PORTAL DASHBOARD
@@ -132,6 +132,8 @@ const PortalDashboardPage: React.FC = () => {
     const [reorderResult, setReorderResult] = useState<{ success: boolean; message: string } | null>(null);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [previewVisible, setPreviewVisible] = useState(false);
+    const [previewImage, setPreviewImage] = useState('');
 
     // ===== REORDER MODAL STATE =====
     const [reorderModalOrder, setReorderModalOrder] = useState<Order | null>(null);
@@ -544,7 +546,17 @@ const PortalDashboardPage: React.FC = () => {
                                         <tr key={stat.sku} style={{ borderBottom: '1px solid #eee' }}>
                                             <td style={{ padding: '12px 16px', fontWeight: 600, color: '#555' }}>
                                                 {stat.image_url ? (
-                                                    <img src={getGoogleDriveImageUrl(stat.image_url || '') || undefined} alt={stat.name || ''} style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }} />
+                                                    <Watermark {...getWatermarkProps('rgba(0,0,0,0.15)', 10)}>
+                                                        <img 
+                                                            src={getGoogleDriveImageUrl(stat.image_url || '') || undefined} 
+                                                            alt={stat.name || ''} 
+                                                            style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, cursor: 'zoom-in', display: 'block' }} 
+                                                            onClick={() => {
+                                                                setPreviewImage(getGoogleDriveImageUrl(stat.image_url || '', 'w1000') || stat.image_url || '');
+                                                                setPreviewVisible(true);
+                                                            }}
+                                                        />
+                                                    </Watermark>
                                                 ) : (
                                                     <div style={{ width: 48, height: 48, background: '#f5f5f5', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: '#ccc' }}>📦</div>
                                                 )}
@@ -1022,6 +1034,39 @@ const PortalDashboardPage: React.FC = () => {
                     {' '} | erp.nemmamnon.com
                 </p>
             </footer>
+
+            {/* Image Preview Modal */}
+            <Modal
+                open={previewVisible}
+                footer={null}
+                onCancel={() => setPreviewVisible(false)}
+                centered
+                closable={false}
+                width="auto"
+                styles={{
+                    body: { padding: 0, textAlign: 'center', background: 'transparent' },
+                    content: { background: 'transparent', boxShadow: 'none' }
+                }}
+            >
+                {previewImage && (
+                    <Watermark {...getWatermarkProps('rgba(0,0,0,0.15)', 24)}>
+                        <img 
+                            src={previewImage} 
+                            alt="Zoomed Product" 
+                            style={{ 
+                                maxWidth: '100%', 
+                                maxHeight: '70vh', 
+                                objectFit: 'contain', 
+                                borderRadius: 8,
+                                cursor: 'zoom-out',
+                                display: 'block',
+                                margin: '0 auto'
+                            }} 
+                            onClick={() => setPreviewVisible(false)}
+                        />
+                    </Watermark>
+                )}
+            </Modal>
         </div>
     );
 };
