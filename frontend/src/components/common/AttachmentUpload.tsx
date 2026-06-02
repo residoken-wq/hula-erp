@@ -71,7 +71,7 @@ const AttachmentUpload: React.FC<Props> = ({
             const filename = fileUrl.split('/').pop();
             if (filename) {
                 try {
-                    await axios.delete(`${API_URL}/upload/files/${filename}`);
+                    await axios.delete(`${API_URL}/upload/files/${encodeURIComponent(filename)}`);
                 } catch (e) {
                     // Silently fail - file might already be deleted
                     console.warn('Could not delete physical file:', e);
@@ -87,8 +87,10 @@ const AttachmentUpload: React.FC<Props> = ({
     const getDownloadUrl = (path: string) => {
         if (!path) return '';
 
-        // If already a full URL, return as-is
-        if (path.startsWith('http://') || path.startsWith('https://')) return path;
+        // If already a full URL, ensure hash is encoded if it exists
+        if (path.startsWith('http://') || path.startsWith('https://')) {
+            return path.replace(/#/g, '%23');
+        }
 
         // Extract just the filename from any path format (handles /uploads/filename or just filename)
         const filename = path.split('/').pop();
@@ -98,7 +100,7 @@ const AttachmentUpload: React.FC<Props> = ({
         // NestJS useStaticAssets serves files at /uploads/ WITHOUT the /api prefix
         // API_URL = 'https://erp.nemmamnon.com/api' -> Base URL = 'https://erp.nemmamnon.com'
         const baseUrl = API_URL.replace('/api', '');
-        return `${baseUrl}/uploads/${filename}`;
+        return `${baseUrl}/uploads/${encodeURIComponent(filename)}`;
     };
 
     const openFile = (url: string) => {
