@@ -493,7 +493,7 @@ const PortalQuotePage: React.FC = () => {
                     const colorLine = item.variant_color ? '<div style="font-size:10px;color:#888;">Màu: ' + item.variant_color + '</div>' : '';
 
                     let priceRangesHtml = '';
-                    if (item.price_ranges && Array.isArray(item.price_ranges) && item.price_ranges.length > 0) {
+                    if (data.status === 'QUOTATION' && item.price_ranges && Array.isArray(item.price_ranges) && item.price_ranges.length > 0) {
                         const rangeText = item.price_ranges.map((r: any) => r.quantity + ' cái: ' + Number(r.unit_price).toLocaleString() + 'đ/cái').join(' | ');
                         priceRangesHtml = '<div style="margin-top:6px;padding:4px 6px;background:#fffbe6;border:1px dashed #ffe58f;border-radius:4px;font-size:10px;color:#d46b08;"><span style="font-weight:600;">🏷️ Tùy chọn mua nhiều:</span><br/>' + rangeText + '</div>';
                     }
@@ -849,7 +849,7 @@ const PortalQuotePage: React.FC = () => {
                                 </div>
                             )}
 
-                            {r.price_ranges && Array.isArray(r.price_ranges) && r.price_ranges.length > 0 && (
+                            {data.status === 'QUOTATION' && r.price_ranges && Array.isArray(r.price_ranges) && r.price_ranges.length > 0 && (
                                 <div style={{ marginTop: 6, padding: '6px 8px', background: '#fffbe6', border: '1px dashed #ffe58f', borderRadius: 4, display: 'inline-block' }}>
                                     <div style={{ fontSize: 12, fontWeight: 600, color: '#d46b08', marginBottom: 4 }}>🏷️ Tùy chọn mua nhiều:</div>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
