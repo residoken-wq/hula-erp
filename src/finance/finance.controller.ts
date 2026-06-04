@@ -25,6 +25,12 @@ export class FinanceController {
   getReport(@Query('month') month: string, @Query('year') year: string) {
     return this.s.getFinancialReport(month, year);
   }
+  
+  @Get('so-profit')
+  @RequirePermission('FINANCE', 'can_view')
+  getSOProfit() {
+    return this.s.getSOProfitList();
+  }
   // -----------------------------
 
   // --- MỚI: API LỊCH SỬ THANH TOÁN CỦA 1 ĐƠN HÀNG ---

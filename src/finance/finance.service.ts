@@ -1,16 +1,18 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, In, Not } from 'typeorm';
 import { Transaction } from './transaction.entity';
 import { TransactionCategory } from './transaction-category.entity';
 import { PurchasingService } from '../purchasing/purchasing.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
+import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
 
 @Injectable()
 export class FinanceService {
     constructor(
         @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
         @InjectRepository(TransactionCategory) private catRepo: Repository<TransactionCategory>,
+        @InjectRepository(SalesOrder) private orderRepo: Repository<SalesOrder>,
         @Inject(forwardRef(() => PurchasingService)) private purchasingService: PurchasingService,
         @Inject(forwardRef(() => SuppliersService)) private suppliersService: SuppliersService,
     ) { }
@@ -57,7 +59,8 @@ export class FinanceService {
             reference_type: 'SALES',
             description: data.note,
             partner_name: data.customerName || data.partnerName, // Support both keys
-            attachments: data.attachments || [] // <--- Save Attachments
+            attachments: data.attachments || [], // <--- Save Attachments
+            allocations: data.allocations || null, // Lưu JSON phân bổ
         });
         return this.transRepo.save(trans);
     }
@@ -100,7 +103,8 @@ export class FinanceService {
             partner_name: data.partnerName,
             supplier_id: data.supplier_id, // <--- SAVE SUPPLIER ID
             vat_invoice_code: data.vatCode,
-            vat_invoice_url: data.vatUrl
+            vat_invoice_url: data.vatUrl,
+            allocations: data.allocations || null, // Lưu JSON phân bổ
         });
         const savedTrans = await this.transRepo.save(trans);
 
@@ -166,6 +170,65 @@ export class FinanceService {
         const expense = all.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + Number(t.amount), 0);
         return { income, expense, balance: income - expense };
     }
+
+    // --- MỚI: PHÂN TÍCH LỢI NHUẬN SO ---
+    async getSOProfitList() {
+        // Lấy danh sách SO (bỏ QUOTATION, CANCELLED)
+        const sos = await this.orderRepo.find({
+            where: { status: Not(In([SalesOrderStatus.QUOTATION, SalesOrderStatus.CANCELLED])) },
+            order: { order_date: 'DESC' }
+        });
+
+        // Lấy tất cả transaction
+        const transactions = await this.transRepo.find();
+
+        const results = sos.map(so => {
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            for (const t of transactions) {
+                // Tính thu/chi cho SO này
+                let allocatedAmount = 0;
+
+                // 1. Kiểm tra allocations
+                if (t.allocations && Array.isArray(t.allocations)) {
+                    const alloc = t.allocations.find((a: any) => a.refCode === so.order_code);
+                    if (alloc) {
+                        allocatedAmount = Number(alloc.amount);
+                    }
+                } 
+                // 2. Kiểm tra reference_code nếu chứa mã SO
+                else if (t.reference_code && t.reference_code.includes(so.order_code)) {
+                    // Nếu reference_code chứa nhiều SO (ví dụ: SO-001, SO-002) mà không có allocations
+                    // chia đều theo số lượng SO (mang tính tương đối)
+                    const refs = t.reference_code.split(',').map(r => r.trim());
+                    if (refs.includes(so.order_code)) {
+                        allocatedAmount = Number(t.amount) / refs.length;
+                    }
+                }
+
+                if (allocatedAmount > 0) {
+                    if (t.type === 'INCOME') totalIncome += allocatedAmount;
+                    if (t.type === 'EXPENSE') totalExpense += allocatedAmount;
+                }
+            }
+
+            return {
+                id: so.id,
+                order_code: so.order_code,
+                customer_name: so.customer_name,
+                status: so.status,
+                total_amount: Number(so.total_amount),
+                real_income: totalIncome,
+                real_expense: totalExpense,
+                profit: totalIncome - totalExpense,
+                margin: so.total_amount > 0 ? ((totalIncome - totalExpense) / so.total_amount) * 100 : 0
+            };
+        });
+
+        return results;
+    }
+    // ------------------------------------
 
     // --- MỚI: HÀM MAPPING TRANSACTION CŨ VÀO SUPPLIER ---
     async mapOldTransactions() {

@@ -763,25 +763,24 @@ export class PlanningService {
 
     // --- MỚI: Lấy bookings theo SKU ---
     async getBookingsBySku(sku: string) {
-        const items = await this.orderItemRepo.find({
-            where: {
-                sku,
-                booking_status: In([BookingStatus.TEMPORARY, BookingStatus.CONFIRMED])
-            },
-            relations: ['order', 'order.assigned_to', 'order.customer', 'order.production_plan']
-        });
+        const allBookings = await this.getAllBookings();
+        const filtered = [];
 
-        return items.map(item => ({
-            id: item.id,
-            sku: item.sku,
-            booked_quantity: Number(item.booked_quantity || 0),
-            booking_status: item.booking_status,
-            booking_expires_at: item.booking_expires_at,
-            order_code: item.order?.order_code || '',
-            customer_name: item.order?.customer_name || item.order?.customer?.name || '',
-            delivery_date: item.order?.delivery_date,
-            assigned_to_name: item.order?.assigned_to?.full_name || '',
-            plan_code: item.order?.production_plan?.code || '',
-        }));
+        for (const item of allBookings) {
+            if (item.sku === sku) {
+                filtered.push(item);
+            } else if (item.combo_components && item.combo_components.length > 0) {
+                const comp = item.combo_components.find((c: any) => c.sku === sku);
+                if (comp) {
+                    filtered.push({
+                        ...item,
+                        sku: comp.sku, // Override SKU to show the child SKU
+                        booked_quantity: (item.booked_quantity || 0) * comp.quantity_per_combo,
+                        quantity: (item.quantity || 0) * comp.quantity_per_combo,
+                    });
+                }
+            }
+        }
+        return filtered;
     }
 }

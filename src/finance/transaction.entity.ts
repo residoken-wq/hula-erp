@@ -72,6 +72,12 @@ export class Transaction {
   accounting_note: string; // Ghi chú hạch toán
   // ----------------------------------------
 
+  // --- MỚI: LƯU TRỮ PHÂN BỔ (CHO NHIỀU SO/PO) ---
+  @Column('jsonb', { nullable: true })
+  allocations: any; 
+  // Ví dụ: [{ refCode: 'SO-001', amount: 5000 }, { refCode: 'SO-002', amount: 3000 }]
+  // ----------------------------------------------
+
   @CreateDateColumn()
   created_at: Date;
 }

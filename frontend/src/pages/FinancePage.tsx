@@ -38,6 +38,7 @@ const FinancePage: React.FC = () => {
     const [customers, setCustomers] = useState<any[]>([]); // <--- New State
     const [suppliers, setSuppliers] = useState<any[]>([]); // <--- New State
     const [projects, setProjects] = useState<any[]>([]); 
+    const [salesOrders, setSalesOrders] = useState<any[]>([]); 
     const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
 
     // UI State
@@ -65,6 +66,7 @@ const FinancePage: React.FC = () => {
     const [isAccountingModalOpen, setIsAccountingModalOpen] = useState(false);
     const [accountingTrans, setAccountingTrans] = useState<any>(null);
     const [formAccounting] = Form.useForm();
+    const [soProfitData, setSoProfitData] = useState<any[]>([]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -76,7 +78,8 @@ const FinancePage: React.FC = () => {
                 api.get(`/finance/summary`),
                 api.get(`/customers`), // <--- Fetch Customers
                 api.get(`/suppliers`),  // <--- Fetch Suppliers
-                api.get(`/projects`)
+                api.get(`/projects`),
+                api.get(`/sales`)
             ]);
             setTransactions(Array.isArray(resTrans.data) ? resTrans.data : []);
             setCategories(Array.isArray(resCat.data) ? resCat.data : []);
@@ -84,6 +87,7 @@ const FinancePage: React.FC = () => {
             setCustomers(Array.isArray(resCust.data) ? resCust.data : []);
             setSuppliers(Array.isArray(resSup.data) ? resSup.data : []);
             setProjects(Array.isArray(resProj.data) ? resProj.data : []);
+            setSalesOrders(Array.isArray(resSO.data) ? resSO.data : []);
         } catch (e) { message.error('Lỗi tải dữ liệu'); }
         setLoading(false);
     };
@@ -99,8 +103,18 @@ const FinancePage: React.FC = () => {
         } catch (e) { message.error('Lỗi tải báo cáo'); }
     }
 
+    const fetchSOProfit = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get('/finance/so-profit');
+            setSoProfitData(Array.isArray(res.data) ? res.data : []);
+        } catch(e) { message.error('Lỗi tải lợi nhuận SO'); }
+        setLoading(false);
+    }
+
     useEffect(() => { fetchData(); }, [filterMonth]);
     useEffect(() => { if (activeTab === 'REPORT') fetchReport(); }, [activeTab, reportType, reportFilter]);
+    useEffect(() => { if (activeTab === 'SO_PROFIT') fetchSOProfit(); }, [activeTab]);
 
     // --- ACTIONS ---
     const handleSaveTrans = async (values: any) => {
@@ -125,6 +139,7 @@ const FinancePage: React.FC = () => {
 
             const payload = {
                 ...restValues,
+                reference_code: Array.isArray(values.reference_code) ? values.reference_code.join(', ') : values.reference_code,
                 date: values.date.format('YYYY-MM-DD'),
                 type: values.type,
                 partner_name: finalPartnerName, // Override partner_name
@@ -263,6 +278,17 @@ const FinancePage: React.FC = () => {
         { title: 'Diễn giải', dataIndex: 'description' },
         { title: 'Ghi chú', dataIndex: 'accounting_note' },
         { title: 'Số tiền', dataIndex: 'amount', align: 'right' as const, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
+    ];
+
+    const columnsSOProfit = [
+        { title: 'Mã SO', dataIndex: 'order_code', render: (t: any) => <b>{t}</b> },
+        { title: 'Khách hàng', dataIndex: 'customer_name' },
+        { title: 'Trạng thái', dataIndex: 'status', render: (t: any) => <Tag>{t}</Tag> },
+        { title: 'Tổng giá trị', dataIndex: 'total_amount', align: 'right' as const, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
+        { title: 'Thực thu', dataIndex: 'real_income', align: 'right' as const, render: (v: any) => <b style={{color:'green'}}>{Number(v).toLocaleString()}</b> },
+        { title: 'Thực chi', dataIndex: 'real_expense', align: 'right' as const, render: (v: any) => <b style={{color:'red'}}>{Number(v).toLocaleString()}</b> },
+        { title: 'Lợi nhuận', dataIndex: 'profit', align: 'right' as const, render: (v: any) => <b style={{color: v >= 0 ? 'green' : 'red'}}>{Number(v).toLocaleString()}</b> },
+        { title: 'Biên LN (%)', dataIndex: 'margin', align: 'right' as const, render: (v: any) => <b>{Number(v).toFixed(2)}%</b> },
     ];
 
     const columnsCat = [
@@ -583,6 +609,24 @@ const FinancePage: React.FC = () => {
                             </Row>
                         )
                     },
+                    {
+                        key: 'SO_PROFIT',
+                        label: <span><LineChartOutlined /> Lợi Nhuận SO</span>,
+                        children: (
+                            <div style={{ padding: 10 }}>
+                                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                                    <Button type="primary" onClick={fetchSOProfit} icon={<ReloadOutlined />}>Tải lại dữ liệu</Button>
+                                </div>
+                                <Table 
+                                    dataSource={soProfitData} 
+                                    columns={columnsSOProfit} 
+                                    rowKey="id" 
+                                    loading={loading}
+                                    pagination={pageSize >= 999999 ? false : { pageSize: pageSize, showSizeChanger: false }} 
+                                />
+                            </div>
+                        )
+                    },
                     // --- TAB DÒNG TIỀN (với phân quyền CASHFLOW) ---
                     ...(hasPerm('CASHFLOW') ? [{
                         key: 'CASHFLOW',
@@ -734,7 +778,73 @@ const FinancePage: React.FC = () => {
                     </Form.Item>
 
                     <Form.Item name="description" label="Diễn giải / Lý do"><Input.TextArea rows={3} /></Form.Item>
-                    <Form.Item name="reference_code" label="Mã tham chiếu (Optional)"><Input placeholder="VD: SO-1234, PO-5678" /></Form.Item>
+                    
+                    <div style={{ background: '#f5f5f5', padding: 12, borderRadius: 6, marginBottom: 16 }}>
+                        <Form.Item name="reference_code" label="Mã tham chiếu SO / Hợp đồng">
+                            <Select
+                                mode="tags"
+                                style={{ width: '100%' }}
+                                placeholder="Chọn hoặc nhập mã SO..."
+                                options={salesOrders.map(so => ({ value: so.order_code, label: `${so.order_code} - ${so.customer_name} (${Number(so.total_amount).toLocaleString()})` }))}
+                                onChange={(val: string[]) => {
+                                    // Tự động chia đều allocations nếu đã nhập số tiền
+                                    const amount = formTrans.getFieldValue('amount') || 0;
+                                    if (val && val.length > 0 && amount > 0) {
+                                        const totalSOValue = val.reduce((sum, code) => {
+                                            const so = salesOrders.find(s => s.order_code === code);
+                                            return sum + (so ? Number(so.total_amount) : 0);
+                                        }, 0);
+                                        
+                                        const allocs = val.map(code => {
+                                            const so = salesOrders.find(s => s.order_code === code);
+                                            let allocAmt = amount / val.length; // Default chia đều
+                                            if (totalSOValue > 0 && so) {
+                                                allocAmt = (Number(so.total_amount) / totalSOValue) * amount; // Chia theo tỷ lệ
+                                            }
+                                            return { refCode: code, amount: allocAmt };
+                                        });
+                                        formTrans.setFieldsValue({ allocations: allocs });
+                                    } else {
+                                        formTrans.setFieldsValue({ allocations: [] });
+                                    }
+                                }}
+                            />
+                        </Form.Item>
+                        
+                        <Form.List name="allocations">
+                            {(fields, { add, remove }) => (
+                                <>
+                                    {fields.length > 0 && (
+                                        <div style={{ marginBottom: 16 }}>
+                                            <div style={{ fontWeight: 500, marginBottom: 8 }}>Phân bổ số tiền (Nhập tay nếu cần chỉnh sửa)</div>
+                                            {fields.map(({ key, name, ...restField }) => (
+                                                <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                                                    <Form.Item
+                                                        {...restField}
+                                                        name={[name, 'refCode']}
+                                                        rules={[{ required: true, message: 'Thiếu mã' }]}
+                                                    >
+                                                        <Input placeholder="Mã SO" readOnly />
+                                                    </Form.Item>
+                                                    <Form.Item
+                                                        {...restField}
+                                                        name={[name, 'amount']}
+                                                        rules={[{ required: true, message: 'Thiếu số tiền' }]}
+                                                    >
+                                                        <InputNumber
+                                                            placeholder="Số tiền"
+                                                            formatter={(v: any) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                                            style={{ width: 150 }}
+                                                        />
+                                                    </Form.Item>
+                                                </Space>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </Form.List>
+                    </div>
 
                     <Button type="primary" htmlType="submit" block size="large">Lưu Phiếu</Button>
                 </Form>
