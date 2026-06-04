@@ -57,7 +57,7 @@ export class PurchasingService {
     }
 
     async getAllPOs() {
-        return this.poRepo.find({ relations: ['supplier', 'items', 'items.material', 'plan', 'plan.customer'], order: { created_at: 'DESC' } });
+        return this.poRepo.find({ relations: ['supplier', 'items', 'items.material', 'plan', 'plan.sales_orders', 'plan.sales_orders.customer'], order: { created_at: 'DESC' } });
     }
 
     async getPOByCode(code: string) {
