@@ -72,7 +72,7 @@ const FinancePage: React.FC = () => {
         setLoading(true);
         try {
             const monthStr = filterMonth.format('YYYY-MM');
-            const [resTrans, resCat, resSum, resCust, resSup, resProj] = await Promise.all([
+            const [resTrans, resCat, resSum, resCust, resSup, resProj, resSO] = await Promise.all([
                 api.get(`/finance/transactions?month=${monthStr}`),
                 api.get(`/finance/categories`),
                 api.get(`/finance/summary`),
