@@ -74,6 +74,9 @@ const PortalQuotePage: React.FC = () => {
     const [passwordInput, setPasswordInput] = useState('');
     const isMobile = useMobile(); // <--- Detect Mobile
 
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const isAdmin = currentUser.username === 'admin' || currentUser.role === 'ADMIN';
+
     const handlePreview = (imageUrl: string) => {
         setPreviewImage(imageUrl);
         setPreviewVisible(true);
@@ -1570,7 +1573,7 @@ const PortalQuotePage: React.FC = () => {
                 </Row>
 
                 {/* --- VIEW LOGS --- */}
-                {data.portal_view_logs && data.portal_view_logs.length > 0 && (
+                {isAdmin && data.portal_view_logs && data.portal_view_logs.length > 0 && (
                     <Row gutter={24} style={{ marginTop: 20 }}>
                         <Col span={24}>
                             <Card title={<span><EyeOutlined /> Thống Kê Lượt Xem Portal</span>} size="small" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
