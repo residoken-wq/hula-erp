@@ -86,9 +86,12 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                     // --- MỚI: CỘT MÔ TẢ SẢN PHẨM ---
                     {
                         title: 'Mô tả chi tiết',
-                        dataIndex: 'product_desc',
+                        dataIndex: 'vat_content',
                         width: '30%',
-                        render: (t: string) => <div style={{ whiteSpace: 'pre-line', fontSize: 12, color: '#555' }}>{t || ''}</div>
+                        render: (t: string, r: any) => {
+                            const desc = t || r.product?.customer_description || r.product_desc || '';
+                            return <div style={{ whiteSpace: 'pre-line', fontSize: 12, color: '#555' }}>{desc}</div>;
+                        }
                     },
                     // -------------------------------
                     { title: 'SL', dataIndex: 'quantity', align: 'center', width: 60, render: (v: any) => Number(v).toLocaleString() },

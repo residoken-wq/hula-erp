@@ -202,10 +202,17 @@ const PortalQuotePage: React.FC = () => {
         const shippingFee = Number(data.shipping_fee || 0);
         const total = taxable + vatAmount + shippingFee;
         const paidAmount = Number(data.paid_amount || 0);
+        const depositAmount = Number(data.deposit_amount || 0);
         const remaining = total - paidAmount;
 
         // QR Code
-        const qrAmount = Math.floor(remaining > 0 ? remaining : total);
+        let qrAmount = total;
+        if (depositAmount > 0 && paidAmount === 0) {
+            qrAmount = depositAmount;
+        } else if (paidAmount > 0) {
+            qrAmount = remaining > 0 ? remaining : 0;
+        }
+        qrAmount = Math.floor(qrAmount);
         const qrLink = `https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${qrAmount}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`;
 
         if (mode === 'pos') {
@@ -1499,7 +1506,22 @@ const PortalQuotePage: React.FC = () => {
                         <Card title={<span><DollarOutlined /> Thanh Toán & Lịch Sử</span>} size="small" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
                             <div style={{ textAlign: 'center', marginBottom: 20, padding: 10, background: '#fcfcfc', borderRadius: 8 }}>
                                 <div style={{ fontSize: 12, color: '#999', marginBottom: 8 }}>Quét mã để thanh toán</div>
-                                <img src={`https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(Number(data.total_amount) - Number(data.paid_amount))}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`} alt="VietQR" style={{ width: 160 }} />
+                                {(() => {
+                                    const totalAmount = Number(data.total_amount) || 0;
+                                    const depositAmount = Number(data.deposit_amount) || 0;
+                                    const paidAmount = Number(data.paid_amount) || 0;
+                                    const remaining = totalAmount - paidAmount;
+                                    
+                                    let qrAmount = totalAmount;
+                                    if (depositAmount > 0 && paidAmount === 0) {
+                                        qrAmount = depositAmount;
+                                    } else if (paidAmount > 0) {
+                                        qrAmount = remaining > 0 ? remaining : 0;
+                                    }
+                                    return (
+                                        <img src={`https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(qrAmount)}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`} alt="VietQR" style={{ width: 160 }} />
+                                    );
+                                })()}
                             </div>
 
                             <Divider orientation="left" style={{ fontSize: 12, color: '#bbb' }}>Chi tiết giao dịch</Divider>
