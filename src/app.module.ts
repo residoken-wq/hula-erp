@@ -141,7 +141,7 @@ import { EmployeeReview } from './hr/entities/employee-review.entity';
 import { AppController } from './app.controller';
 
 import { AiModule } from './ai/ai.module';
-
+import { AiMessage } from './ai/ai-message.entity';
 // Social & Marketing Entities
 import { SocialChannel } from './social/entities/social-channel.entity';
 import { SocialOrder } from './social/entities/social-order.entity';
@@ -207,7 +207,8 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           PortalOtp, PortalSession,
           // Promotions
           Promotion,
-          AnalyticsVisitor
+          AnalyticsVisitor,
+          AiMessage
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         subscribers: [],

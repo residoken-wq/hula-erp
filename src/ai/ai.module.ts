@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
+import { AiMessage } from './ai-message.entity';
 import { ProductsModule } from '../products/products.module';
 import { FinanceModule } from '../finance/finance.module';
 import { SalesModule } from '../sales/sales.module';
@@ -12,6 +14,7 @@ import { UsersModule } from '../users/users.module';
 
 @Module({
     imports: [
+        TypeOrmModule.forFeature([AiMessage]),
         ProductsModule,
         FinanceModule,
         SalesModule,

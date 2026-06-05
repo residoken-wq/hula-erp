@@ -1,5 +1,8 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AiMessage } from './ai-message.entity';
 import { ProductsService } from '../products/products.service';
 import { FinanceService } from '../finance/finance.service';
 import { SalesService } from '../sales/sales.service';
@@ -8,13 +11,11 @@ import { InventoryService } from '../inventory/inventory.service';
 import { PlanningService } from '../planning/planning.service';
 import { TasksService } from '../tasks/tasks.service';
 import { UsersService } from '../users/users.service';
-// import { GenerativeModel } from '@google/generative-ai'; // Removed to avoid dependency issues
 
 @Injectable()
 export class AiService {
-    // private model: GenerativeModel;
-
     constructor(
+        @InjectRepository(AiMessage) private aiMessageRepo: Repository<AiMessage>,
         private configService: ConfigService,
         private productsService: ProductsService,
         private financeService: FinanceService,
@@ -24,10 +25,7 @@ export class AiService {
         private planningService: PlanningService,
         private tasksService: TasksService,
         private usersService: UsersService,
-        // @Inject('GEMINI_MODEL') private geminiModel: GenerativeModel
-    ) {
-        // this.model = this.geminiModel;
-    }
+    ) {}
 
     private selectedModel: string | null = null;
 
@@ -687,6 +685,265 @@ You MUST return ONLY a valid JSON object in this structure:
         } catch (e) {
             console.error('AI Parse JD Error:', e);
             return { skills: [], experience: [], attitude: [] };
+        }
+    }
+
+    // --- NEW STREAMING & FUNCTION CALLING IMPLEMENTATION ---
+    async handleAiToolCall(functionName: string, args: any): Promise<any> {
+        try {
+            if (functionName === 'check_stock') {
+                const products = await this.productsService.searchProducts(args.query);
+                return products.map(p => ({ name: p.name, sku: p.sku, stock: p.quantity_in_stock, unit: p.unit }));
+            }
+            if (functionName === 'check_finance') {
+                const m = args.month || new Date().getMonth() + 1;
+                const y = args.year || new Date().getFullYear();
+                if (m === 0) {
+                    let totalIncome = 0; let totalExpense = 0; let totalProfit = 0;
+                    for (let month = 1; month <= 12; month++) {
+                        const dateStr = `${y}-${String(month).padStart(2, '0')}`;
+                        try {
+                            const rep = await this.financeService.getFinancialReport(dateStr);
+                            totalIncome += rep.summary.income || 0;
+                            totalExpense += rep.summary.expense || 0;
+                            totalProfit += rep.summary.profit || 0;
+                        } catch (e) {}
+                    }
+                    return { year: y, totalIncome, totalExpense, totalProfit };
+                } else {
+                    const dateStr = `${y}-${String(m).padStart(2, '0')}`;
+                    try {
+                        const rep = await this.financeService.getFinancialReport(dateStr);
+                        return { month: m, year: y, income: rep.summary.income, profit: rep.summary.profit };
+                    } catch (e) {
+                        return { error: "Không có dữ liệu tháng này" };
+                    }
+                }
+            }
+            if (functionName === 'check_order') {
+                const allOrders = await this.salesService.findAll();
+                const orders = allOrders.filter((o: any) =>
+                    o.code?.toLowerCase().includes(args.query.toLowerCase()) ||
+                    o.customer?.name?.toLowerCase().includes(args.query.toLowerCase())
+                ).slice(0, 5);
+                return orders.map(o => ({ code: o.code, customer: o.customer?.name, total: o.total_price, status: o.status }));
+            }
+            if (functionName === 'get_product_info') {
+                const p = await this.productsService.findOneBySku(args.sku);
+                if (!p) return { error: "Not found" };
+                return { name: p.name, type: p.product_type, price: p.base_price, stock: p.quantity_in_stock };
+            }
+            if (functionName === 'search_customer') {
+                const all = await this.customersService.findAll();
+                return all.filter((c: any) =>
+                    c.name?.toLowerCase().includes(args.query.toLowerCase()) ||
+                    c.phone?.toLowerCase().includes(args.query.toLowerCase())
+                ).slice(0, 5).map(c => ({ name: c.name, phone: c.phone, email: c.email }));
+            }
+            if (functionName === 'check_mrp') {
+                try {
+                    const sugg = await this.planningService.getSuggestion();
+                    return sugg.slice(0, 5).map(o => ({ order: o.order_code, customer: o.customer?.name, delivery_date: o.delivery_date }));
+                } catch(e) {
+                    return { error: e.message };
+                }
+            }
+            if (functionName === 'check_tasks') {
+                const all = await this.tasksService.findAll();
+                return all.filter((t: any) =>
+                    t.title?.toLowerCase().includes(args.query.toLowerCase()) ||
+                    t.assignee?.full_name?.toLowerCase().includes(args.query.toLowerCase())
+                ).slice(0, 5).map(t => ({ title: t.title, assignee: t.assignee?.full_name, status: t.status, due: t.due_date }));
+            }
+            return { error: "Tool not found" };
+        } catch (e) {
+            return { error: e.message };
+        }
+    }
+
+    async handleChatStream(userId: string, message: string, onChunk: (text: string) => void) {
+        let apiKey = this.configService.get<string>('GEMINI_API_KEY');
+        if (!apiKey) {
+            onChunk("AI Service is not configured (Missing GEMINI_API_KEY).");
+            return;
+        }
+        apiKey = apiKey.trim();
+
+        // 1. Save user message to DB
+        const userMsg = this.aiMessageRepo.create({ user_id: userId, role: 'user', content: message });
+        await this.aiMessageRepo.save(userMsg);
+
+        // 2. Load history (last 10 messages)
+        const history = await this.aiMessageRepo.find({ where: { user_id: userId }, order: { id: 'ASC' }, take: 10 });
+        
+        // Format contents for Gemini
+        const contents = history.map(h => ({
+            role: h.role,
+            parts: [{ text: h.content }]
+        }));
+
+        const now = new Date();
+        const systemInstruction = {
+            parts: [{ text: `You are HulaBot, an intelligent, helpful, and natural-sounding assistant for the Hula ERP system in Vietnam.
+Current date: ${now.toISOString().split('T')[0]}
+CRITICAL RULES:
+- Always respond in Vietnamese naturally and politely.
+- Use markdown for formatting (bold, lists, etc) to make the response easy to read.
+- You can ONLY read data using the provided tools. You CANNOT create or update data.
+- If you use tools to fetch data, summarize the data nicely for the user in a conversational tone. Do not just spit out raw JSON.` }]
+        };
+
+        const tools = [{
+            functionDeclarations: [
+                {
+                    name: "check_stock",
+                    description: "Tìm kiếm sản phẩm và kiểm tra tồn kho",
+                    parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
+                },
+                {
+                    name: "check_finance",
+                    description: "Kiểm tra doanh thu/tài chính. Nếu hỏi cả năm, truyền month=0.",
+                    parameters: { type: "OBJECT", properties: { month: { type: "INTEGER" }, year: { type: "INTEGER" } }, required: ["year"] }
+                },
+                {
+                    name: "check_order",
+                    description: "Tìm kiếm đơn hàng theo tên khách hoặc mã",
+                    parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
+                },
+                {
+                    name: "get_product_info",
+                    description: "Lấy thông tin chi tiết 1 sản phẩm theo SKU",
+                    parameters: { type: "OBJECT", properties: { sku: { type: "STRING" } }, required: ["sku"] }
+                },
+                {
+                    name: "search_customer",
+                    description: "Tìm khách hàng theo tên/sđt",
+                    parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
+                },
+                {
+                    name: "check_mrp",
+                    description: "Kiểm tra kế hoạch sản xuất MRP",
+                    parameters: { type: "OBJECT", properties: {} }
+                },
+                {
+                    name: "check_tasks",
+                    description: "Kiểm tra danh sách công việc",
+                    parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
+                }
+            ]
+        }];
+
+        let modelName = 'models/gemini-1.5-flash';
+        try {
+            modelName = await this.getBestModel(apiKey);
+        } catch (e) {}
+
+        // Step 1: Call non-streaming to check for tool calls
+        let generateRes;
+        try {
+            generateRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ systemInstruction, contents, tools })
+            });
+        } catch (e) {
+            onChunk("Lỗi kết nối AI (Network).");
+            return;
+        }
+
+        const data = await generateRes.json();
+        if (data.error) {
+            onChunk(`Lỗi AI API: ${data.error.message}`);
+            return;
+        }
+
+        const candidate = data.candidates?.[0];
+        if (!candidate) {
+            onChunk("AI không trả về kết quả.");
+            return;
+        }
+
+        let finalContents = [...contents];
+        const functionCall = candidate.content?.parts?.find((p: any) => p.functionCall)?.functionCall;
+
+        if (functionCall) {
+            const funcName = functionCall.name;
+            const args = functionCall.args;
+            
+            // Execute tool
+            const result = await this.handleAiToolCall(funcName, args);
+            
+            // Append the function call message from model
+            finalContents.push({ role: 'model', parts: [{ functionCall }] });
+            
+            // Append the function response
+            finalContents.push({
+                role: 'function',
+                parts: [{ functionResponse: { name: funcName, response: { result } } }]
+            });
+        } else {
+            // No function call, just return the text
+            const text = candidate.content?.parts?.[0]?.text;
+            if (text) {
+                onChunk(text);
+                const aiMsg = this.aiMessageRepo.create({ user_id: userId, role: 'model', content: text });
+                await this.aiMessageRepo.save(aiMsg);
+            }
+            return;
+        }
+
+        // Step 2: Stream final response if function was called
+        let finalResponseText = "";
+        try {
+            const streamRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:streamGenerateContent?alt=sse&key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ systemInstruction, contents: finalContents })
+            });
+
+            if (!streamRes.ok) {
+                const err = await streamRes.text();
+                onChunk(`Lỗi kết nối Stream: ${err}`);
+                return;
+            }
+
+            const reader = streamRes.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ""; // Keep the incomplete line in buffer
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.replace('data: ', '').trim();
+                        if (dataStr === '[DONE]') continue;
+                        try {
+                            const parsed = JSON.parse(dataStr);
+                            const textChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                            if (textChunk) {
+                                finalResponseText += textChunk;
+                                onChunk(textChunk);
+                            }
+                        } catch (e) {
+                            // ignore parse error for incomplete JSON in SSE
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            onChunk(`\n(Lỗi Stream: ${e.message})`);
+        }
+
+        // Save AI response to DB
+        if (finalResponseText) {
+            const aiMsg = this.aiMessageRepo.create({ user_id: userId, role: 'model', content: finalResponseText });
+            await this.aiMessageRepo.save(aiMsg);
         }
     }
 }
