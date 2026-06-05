@@ -35,19 +35,63 @@ const AiChatWidget: React.FC = () => {
         setInput('');
         setLoading(true);
 
+        const botMsgId = (Date.now() + 1).toString();
+        setMessages(prev => [...prev, { id: botMsgId, sender: 'BOT', text: '', timestamp: new Date() }]);
+
         try {
-            const res = await api.post('/ai/chat', { message: userMsg.text });
-            const botMsg: Message = {
-                id: (Date.now() + 1).toString(),
-                sender: 'BOT',
-                text: res.data.text || 'Xin lỗi, tôi không hiểu.',
-                timestamp: new Date()
-            };
-            setMessages(prev => [...prev, botMsg]);
+            const token = localStorage.getItem('token');
+            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+            const response = await fetch(`${apiUrl}/ai/chat-stream`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ message: userMsg.text })
+            });
+
+            if (!response.ok) {
+                throw new Error("Lỗi kết nối API");
+            }
+
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder('utf-8');
+
+            if (reader) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.replace('data: ', '').trim();
+                            if (dataStr === '[DONE]') continue;
+                            try {
+                                const parsed = JSON.parse(dataStr);
+                                if (parsed.text) {
+                                    setMessages(prev => prev.map(m => 
+                                        m.id === botMsgId ? { ...m, text: m.text + parsed.text } : m
+                                    ));
+                                } else if (parsed.error) {
+                                    setMessages(prev => prev.map(m => 
+                                        m.id === botMsgId ? { ...m, text: m.text + '\n[Lỗi: ' + parsed.error + ']' } : m
+                                    ));
+                                }
+                            } catch (e) {
+                                // ignore JSON parse error for incomplete chunks
+                            }
+                        }
+                    }
+                }
+            }
         } catch (error) {
             console.error(error);
-            const errorMsg: Message = { id: (Date.now() + 1).toString(), sender: 'BOT', text: 'Có lỗi xảy ra khi kết nối máy chủ.', timestamp: new Date() };
-            setMessages(prev => [...prev, errorMsg]);
+            setMessages(prev => prev.map(m => 
+                m.id === botMsgId ? { ...m, text: m.text + '\n[Có lỗi xảy ra khi kết nối máy chủ]' } : m
+            ));
         } finally {
             setLoading(false);
         }
@@ -100,8 +144,12 @@ const AiChatWidget: React.FC = () => {
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                                         whiteSpace: 'pre-wrap',
                                         fontSize: 13
+                                    }} dangerouslySetInnerHTML={{
+                                        __html: item.text
+                                            .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
                                     }}>
-                                        {item.text}
                                     </div>
                                 </div>
                             </List.Item>
