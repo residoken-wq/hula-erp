@@ -151,16 +151,49 @@ const CrmPage: React.FC = () => {
 
     useEffect(() => {
         const customerId = searchParams.get('customer');
+        const orderId = searchParams.get('order');
+
+        let shouldUpdateParams = false;
+
         if (customerId && allCustomers.length > 0) {
             const customer = allCustomers.find(c => c.id === parseInt(customerId, 10));
             if (customer) {
                 setCurrentCustomer(customer);
                 setFollowDrawerOpen(true);
             }
-            // Clear param
-            setSearchParams({});
+            searchParams.delete('customer');
+            shouldUpdateParams = true;
         }
-    }, [searchParams, allCustomers]);
+
+        if (orderId && quotes.length > 0) {
+            const openOrderById = async () => {
+                try {
+                    const res = await api.get(`/sales/${orderId}`);
+                    if (res.data) {
+                        setEditingOrder(res.data);
+                        setIsQuotationMode(res.data.status === 'QUOTATION');
+                        setDetailModalOpen(true);
+                    }
+                } catch (e) {
+                    const found = quotes.find(q => q.id === parseInt(orderId, 10));
+                    if (found) {
+                        setEditingOrder(found);
+                        setIsQuotationMode(true);
+                        setDetailModalOpen(true);
+                    }
+                }
+            };
+            openOrderById();
+            searchParams.delete('order');
+            searchParams.delete('highlight');
+            searchParams.delete('tab');
+            shouldUpdateParams = true;
+        }
+
+        if (shouldUpdateParams) {
+            setSearchParams(searchParams);
+        }
+    }, [searchParams, allCustomers, quotes]);
 
     // --- FILTERING ---
     const filterByDate = (list: any[]) => {

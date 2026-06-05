@@ -222,7 +222,7 @@ export class SalesService {
                     title: '📦 Bạn được giao đơn hàng mới',
                     message: `Bạn được giao phụ trách đơn hàng ${saved.order_code}`,
                     type: 'INFO',
-                    link: `/sales?order=${saved.id}&highlight=order-${saved.id}`,
+                    link: saved.status === 'QUOTATION' ? `/sales?order=${saved.id}&highlight=order-${saved.id}` : `/orders?order=${saved.id}&highlight=order-${saved.id}`,
                     is_read: false
                 });
             }
@@ -459,7 +459,7 @@ export class SalesService {
                     title: '📦 Bạn được giao đơn hàng',
                     message: `Đơn hàng ${saved.order_code} đã được chuyển giao cho bạn.`,
                     type: 'INFO',
-                    link: `/sales?order=${saved.id}&highlight=order-${saved.id}`,
+                    link: saved.status === 'QUOTATION' ? `/sales?order=${saved.id}&highlight=order-${saved.id}` : `/orders?order=${saved.id}&highlight=order-${saved.id}`,
                     is_read: false
                 });
             }
@@ -474,7 +474,7 @@ export class SalesService {
                     title: '🔄 Cập nhật trạng thái đơn hàng',
                     message: `Đơn hàng ${saved.order_code} đã chuyển sang: ${saved.status}`,
                     type: 'INFO',
-                    link: `/sales?order=${saved.id}&highlight=order-${saved.id}`,
+                    link: saved.status === 'QUOTATION' ? `/sales?order=${saved.id}&highlight=order-${saved.id}` : `/orders?order=${saved.id}&highlight=order-${saved.id}`,
                     is_read: false
                 });
             }
@@ -547,7 +547,7 @@ export class SalesService {
                     title: `${name || 'Nhân viên'} đã nhắc đến bạn`,
                     message: `Trong đơn hàng ${order.order_code}: ${content.replace(/<[^>]*>/g, '').substring(0, 100)}...`,
                     type: 'INFO',
-                    link: `/sales?order=${order.id}&tab=INTERNAL&highlight=comment-${savedComment.id}`,
+                    link: order.status === 'QUOTATION' ? `/sales?order=${order.id}&tab=INTERNAL&highlight=comment-${savedComment.id}` : `/orders?order=${order.id}&tab=INTERNAL&highlight=comment-${savedComment.id}`,
                     is_read: false
                 });
             }
