@@ -333,7 +333,7 @@ export class AiService {
             if (action.tool === 'CHECK_ORDER') {
                 const allOrders = await this.salesService.findAll();
                 const orders = allOrders.filter((o: any) =>
-                    o.code?.toLowerCase().includes(action.query.toLowerCase()) ||
+                    o.order_code?.toLowerCase().includes(action.query.toLowerCase()) ||
                     o.customer?.name?.toLowerCase().includes(action.query.toLowerCase())
                 );
 
@@ -346,8 +346,8 @@ export class AiService {
 
                 const details = orders.slice(0, 5).map((o: any) => {
                     const customerName = o.customer?.name || 'N/A';
-                    const total = this.formatMoney(o.total_price || 0);
-                    return `- ${o.code}: ${customerName} - ${total} đ (${o.status})`;
+                    const total = this.formatMoney(o.total_amount || 0);
+                    return `- ${o.order_code}: ${customerName} - ${total} đ (${o.status})`;
                 }).join('\n');
                 const reply = `Tìm thấy ${orders.length} đơn hàng:\n${details}`;
                 this.addToHistory(userId, 'user', message);
@@ -723,10 +723,10 @@ You MUST return ONLY a valid JSON object in this structure:
             if (functionName === 'check_order') {
                 const allOrders = await this.salesService.findAll();
                 const orders = allOrders.filter((o: any) =>
-                    o.code?.toLowerCase().includes(args.query.toLowerCase()) ||
+                    o.order_code?.toLowerCase().includes(args.query.toLowerCase()) ||
                     o.customer?.name?.toLowerCase().includes(args.query.toLowerCase())
                 ).slice(0, 5);
-                return orders.map(o => ({ code: o.code, customer: o.customer?.name, total: o.total_price, status: o.status }));
+                return orders.map(o => ({ code: o.order_code, customer: o.customer?.name, total: o.total_amount, status: o.status }));
             }
             if (functionName === 'get_product_info') {
                 const p = await this.productsService.findOneBySku(args.sku);
@@ -777,7 +777,7 @@ You MUST return ONLY a valid JSON object in this structure:
         const history = await this.aiMessageRepo.find({ where: { user_id: userId }, order: { id: 'ASC' }, take: 10 });
         
         // Format contents for Gemini
-        const contents = history.map(h => ({
+        const contents: any[] = history.map(h => ({
             role: h.role,
             parts: [{ text: h.content }]
         }));
