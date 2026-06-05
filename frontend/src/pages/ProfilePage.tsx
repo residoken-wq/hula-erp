@@ -502,9 +502,44 @@ const ProfilePage: React.FC = () => {
                             scroll={{ x: 'max-content' }}
                         />
                         {viewPayslip && (
-                            <Card style={{ marginTop: 16, borderRadius: 16 }} title={`Chi tiết lương ${viewPayslip.month}/${viewPayslip.year}`}>
-                                <p>Thực nhận: <b>{formatMoney(viewPayslip.net_salary)} VNĐ</b></p>
-                                <Button onClick={() => setViewPayslip(null)}>Đóng</Button>
+                            <Card 
+                                style={{ marginTop: 16, borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }} 
+                                title={`Chi tiết lương ${viewPayslip.month}/${viewPayslip.year}`}
+                                extra={<Button type="text" danger icon={<CloseCircleOutlined />} onClick={() => setViewPayslip(null)}>Đóng</Button>}
+                            >
+                                <Descriptions bordered size="small" column={{ xs: 1, sm: 2, md: 2 }}>
+                                    <Descriptions.Item label="Lương cơ bản">{formatMoney(viewPayslip.base_salary)}</Descriptions.Item>
+                                    <Descriptions.Item label="Lương thực tế">{formatMoney(viewPayslip.actual_salary)}</Descriptions.Item>
+                                    
+                                    <Descriptions.Item label="Ngày công chuẩn">{viewPayslip.standard_work_days}</Descriptions.Item>
+                                    <Descriptions.Item label="Ngày công thực tế">{viewPayslip.actual_work_days}</Descriptions.Item>
+                                    
+                                    <Descriptions.Item label="Phụ cấp ăn trưa">{formatMoney(viewPayslip.allowance_meal)}</Descriptions.Item>
+                                    <Descriptions.Item label="Phụ cấp đi lại">{formatMoney(viewPayslip.allowance_transport)}</Descriptions.Item>
+                                    
+                                    <Descriptions.Item label="Phụ cấp điện thoại">{formatMoney(viewPayslip.allowance_phone)}</Descriptions.Item>
+                                    <Descriptions.Item label="Thưởng">{formatMoney(viewPayslip.bonus)}</Descriptions.Item>
+                                    
+                                    <Descriptions.Item label={<span style={{ fontWeight: 600 }}>Tổng thu nhập</span>}>
+                                        <span style={{ fontWeight: 600, color: '#1890ff' }}>{formatMoney(viewPayslip.gross_income)}</span>
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Ghi chú">{viewPayslip.note || '-'}</Descriptions.Item>
+                                    
+                                    <Descriptions.Item label="BHXH (8%)" style={{ color: '#cf1322' }}>-{formatMoney(viewPayslip.bhxh_employee)}</Descriptions.Item>
+                                    <Descriptions.Item label="BHYT (1.5%)" style={{ color: '#cf1322' }}>-{formatMoney(viewPayslip.bhyt_employee)}</Descriptions.Item>
+                                    
+                                    <Descriptions.Item label="BHTN (1%)" style={{ color: '#cf1322' }}>-{formatMoney(viewPayslip.bhtn_employee)}</Descriptions.Item>
+                                    <Descriptions.Item label="Công đoàn" style={{ color: '#cf1322' }}>-{formatMoney(viewPayslip.union_fee)}</Descriptions.Item>
+                                    
+                                    <Descriptions.Item label="Thuế TNCN" style={{ color: '#cf1322' }}>-{formatMoney(viewPayslip.tax_income)}</Descriptions.Item>
+                                    <Descriptions.Item label="Khấu trừ khác" style={{ color: '#cf1322' }}>-{formatMoney(viewPayslip.other_deductions)}</Descriptions.Item>
+
+                                    <Descriptions.Item label={<span style={{ fontWeight: 'bold', fontSize: 16 }}>THỰC NHẬN</span>} span={{ xs: 1, sm: 2, md: 2 }}>
+                                        <span style={{ fontWeight: 'bold', fontSize: 18, color: '#52c41a' }}>
+                                            {formatMoney(viewPayslip.net_salary)} VNĐ
+                                        </span>
+                                    </Descriptions.Item>
+                                </Descriptions>
                             </Card>
                         )}
                     </TabPane>
