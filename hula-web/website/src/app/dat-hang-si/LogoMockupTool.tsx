@@ -14,8 +14,57 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [blendMode, setBlendMode] = useState<'normal' | 'multiply' | 'overlay'>('multiply');
     const [opacity, setOpacity] = useState(0.85);
+    const [removeTolerance, setRemoveTolerance] = useState(240); // Tolerance for white background removal
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+
+    // Process image with Canvas to remove white background
+    const processImage = (imgUrl: string, tolerance: number) => {
+        setIsProcessing(true);
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                // If pixel is brighter than tolerance (close to white), make it transparent
+                if (r >= tolerance && g >= tolerance && b >= tolerance) {
+                    data[i + 3] = 0;
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    setProcessedLogoUrl(URL.createObjectURL(blob));
+                }
+                setIsProcessing(false);
+            }, 'image/png');
+        };
+        img.onerror = () => {
+            console.error("Failed to load image into canvas");
+            setIsProcessing(false);
+        };
+        img.src = imgUrl;
+    };
+
+    // Re-process when tolerance changes
+    useEffect(() => {
+        if (logoUrl) {
+            processImage(logoUrl, removeTolerance);
+        }
+    }, [removeTolerance]);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -23,30 +72,10 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
 
         const objectUrl = URL.createObjectURL(file);
         setLogoUrl(objectUrl);
-        setProcessedLogoUrl(null);
-        setIsProcessing(true);
+        processImage(objectUrl, removeTolerance);
+    };
 
-        try {
-            // Dynamically import to avoid Webpack/SSR issues with WebAssembly and Node modules
-            const imgly = await import('@imgly/background-removal');
-            const removeBg: any = (imgly as any).default || (imgly as any).removeBackground || (imgly as any);
-            
-            // Use default config to let the library resolve its own CDN paths correctly
-            const config = {
-                debug: true
-            };
 
-            // Run background removal on the objectUrl (string) because the library internally calls .replace() on the input
-            const imageBlob = await removeBg(objectUrl, config);
-            const processedUrl = URL.createObjectURL(imageBlob);
-            setProcessedLogoUrl(processedUrl);
-        } catch (error: any) {
-            console.error("Error removing background:", error);
-            alert(`Lỗi AI xóa nền: ${error?.message || JSON.stringify(error)}. Vui lòng xem Console để biết chi tiết.`);
-            setProcessedLogoUrl(objectUrl);
-        } finally {
-            setIsProcessing(false);
-        }
     };
 
     const handleExport = async () => {
@@ -132,7 +161,7 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
                                 </div>
                                 <div>
                                     <label className="text-xs text-gray-500 font-medium mb-1 flex justify-between">
-                                        <span>Độ đậm nhạt</span>
+                                        <span>Độ đục mờ</span>
                                         <span>{Math.round(opacity * 100)}%</span>
                                     </label>
                                     <input 
@@ -142,6 +171,20 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
                                         onChange={(e) => setOpacity(Number(e.target.value))}
                                         className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                                     />
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 font-medium mb-1 flex justify-between">
+                                        <span>Xóa nền trắng (Tolerance)</span>
+                                        <span>{255 - removeTolerance}</span>
+                                    </label>
+                                    <input 
+                                        type="range" 
+                                        min="200" max="255" step="1" 
+                                        value={removeTolerance} 
+                                        onChange={(e) => setRemoveTolerance(Number(e.target.value))}
+                                        className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1">Kéo sang trái nếu logo bị sót viền trắng.</p>
                                 </div>
                                 <div className="flex gap-2 mt-2">
                                     <button 
