@@ -31,9 +31,8 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
             const imgly = await import('@imgly/background-removal');
             const removeBg: any = (imgly as any).default || (imgly as any).removeBackground || (imgly as any);
             
-            // EXPLICIT publicPath to reliable JSDelivr CDN (static.remove-bg.io is dead/blocked)
+            // Use default config to let the library resolve its own CDN paths correctly
             const config = {
-                publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.3/dist/',
                 debug: true
             };
 
