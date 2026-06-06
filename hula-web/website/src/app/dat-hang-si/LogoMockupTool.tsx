@@ -76,8 +76,6 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
     };
 
 
-    };
-
     const handleExport = async () => {
         if (!visualizerRef.current) return;
         setIsExporting(true);
