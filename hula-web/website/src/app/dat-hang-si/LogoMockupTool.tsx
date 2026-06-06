@@ -15,11 +15,12 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
     const [blendMode, setBlendMode] = useState<'normal' | 'multiply' | 'overlay'>('multiply');
     const [opacity, setOpacity] = useState(0.85);
     const [removeTolerance, setRemoveTolerance] = useState(240); // Tolerance for white background removal
+    const [logoColor, setLogoColor] = useState<'original' | 'white' | 'black'>('original');
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
 
-    // Process image with Canvas to remove white background
-    const processImage = (imgUrl: string, tolerance: number) => {
+    // Process image with Canvas to remove white background and apply color overlays
+    const processImage = (imgUrl: string, tolerance: number, colorMode: 'original' | 'white' | 'black') => {
         setIsProcessing(true);
         const img = new Image();
         img.crossOrigin = "anonymous";
@@ -41,6 +42,17 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
                 // If pixel is brighter than tolerance (close to white), make it transparent
                 if (r >= tolerance && g >= tolerance && b >= tolerance) {
                     data[i + 3] = 0;
+                } else if (data[i + 3] > 0) {
+                    // Apply color overlay for non-transparent pixels
+                    if (colorMode === 'white') {
+                        data[i] = 255;     // R
+                        data[i + 1] = 255; // G
+                        data[i + 2] = 255; // B
+                    } else if (colorMode === 'black') {
+                        data[i] = 0;       // R
+                        data[i + 1] = 0;   // G
+                        data[i + 2] = 0;   // B
+                    }
                 }
             }
             
@@ -59,12 +71,12 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
         img.src = imgUrl;
     };
 
-    // Re-process when tolerance changes
+    // Re-process when tolerance or color changes
     useEffect(() => {
         if (logoUrl) {
-            processImage(logoUrl, removeTolerance);
+            processImage(logoUrl, removeTolerance, logoColor);
         }
-    }, [removeTolerance]);
+    }, [removeTolerance, logoColor]);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -72,7 +84,7 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
 
         const objectUrl = URL.createObjectURL(file);
         setLogoUrl(objectUrl);
-        processImage(objectUrl, removeTolerance);
+        processImage(objectUrl, removeTolerance, logoColor);
     };
 
 
@@ -146,6 +158,18 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
                         {(logoUrl || processedLogoUrl) && (
                             <div className="flex flex-col gap-3">
                                 <div>
+                                    <label className="text-xs text-gray-500 font-medium mb-1 block">Màu Logo</label>
+                                    <select 
+                                        value={logoColor}
+                                        onChange={(e) => setLogoColor(e.target.value as any)}
+                                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm bg-gray-50 outline-none focus:border-blue-400"
+                                    >
+                                        <option value="original">Màu gốc (Giữ nguyên)</option>
+                                        <option value="white">Đổi thành màu Trắng</option>
+                                        <option value="black">Đổi thành màu Đen</option>
+                                    </select>
+                                </div>
+                                <div>
                                     <label className="text-xs text-gray-500 font-medium mb-1 block">Chế độ hòa trộn</label>
                                     <select 
                                         value={blendMode}
@@ -194,7 +218,7 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
                                     <button 
                                         onClick={handleExport}
                                         disabled={isExporting}
-                                        className="flex-[2] bg-primary text-white py-1.5 rounded text-sm font-medium hover:bg-primary/90 flex justify-center items-center gap-1"
+                                        className="flex-[2] bg-blue-600 text-white py-1.5 rounded text-sm font-medium hover:bg-blue-700 flex justify-center items-center gap-1"
                                     >
                                         {isExporting ? (
                                             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
