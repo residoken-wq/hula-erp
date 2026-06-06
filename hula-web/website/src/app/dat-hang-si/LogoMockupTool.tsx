@@ -36,17 +36,8 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
                 debug: true
             };
 
-            // Pre-load image into HTMLImageElement to ensure cross-browser AI compatibility
-            const imgElement = new Image();
-            imgElement.crossOrigin = "anonymous";
-            imgElement.src = objectUrl;
-            await new Promise((resolve, reject) => {
-                imgElement.onload = resolve;
-                imgElement.onerror = reject;
-            });
-
-            // Run background removal on the loaded Image Element
-            const imageBlob = await removeBg(imgElement, config);
+            // Run background removal on the objectUrl (string) because the library internally calls .replace() on the input
+            const imageBlob = await removeBg(objectUrl, config);
             const processedUrl = URL.createObjectURL(imageBlob);
             setProcessedLogoUrl(processedUrl);
         } catch (error: any) {
