@@ -31,7 +31,7 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
         try {
             // Dynamically import to avoid Webpack/SSR issues with WebAssembly and Node modules
             const imgly = await import('@imgly/background-removal');
-            const removeBg = imgly.default || (imgly as any).removeBackground || imgly;
+            const removeBg: any = (imgly as any).default || (imgly as any).removeBackground || (imgly as any);
             
             const config = {
                 publicPath: "https://static.remove-bg.io/web-sdk/1.1.0/assets/"

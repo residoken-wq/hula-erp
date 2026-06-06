@@ -34,6 +34,12 @@ const nextConfig = {
         // Ignore node-specific imports on client
         config.externals = [...(config.externals || []), 'onnxruntime-node'];
 
+        // Silence warnings from onnxruntime-web
+        config.ignoreWarnings = [
+            ...(config.ignoreWarnings || []),
+            { module: /node_modules\/onnxruntime-web/ }
+        ];
+
         return config;
     },
 };
