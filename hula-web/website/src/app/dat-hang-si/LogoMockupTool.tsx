@@ -34,7 +34,7 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
             const removeBg: any = (imgly as any).default || (imgly as any).removeBackground || (imgly as any);
             
             const config = {
-                publicPath: "https://static.remove-bg.io/web-sdk/1.1.0/assets/"
+                // Let the library automatically use its default unpkg.com CDN path which guarantees version match
             };
 
             // Run background removal
