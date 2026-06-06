@@ -13,6 +13,29 @@ const nextConfig = {
             },
         ],
     },
+    webpack: (config, { isServer }) => {
+        if (!isServer) {
+            config.resolve.fallback = {
+                ...config.resolve.fallback,
+                fs: false,
+                path: false,
+                crypto: false,
+                module: false,
+                os: false,
+            };
+        }
+        
+        config.module.rules.push({
+            test: /\.mjs$/,
+            include: /node_modules/,
+            type: "javascript/auto",
+        });
+
+        // Ignore node-specific imports on client
+        config.externals = [...(config.externals || []), 'onnxruntime-node'];
+
+        return config;
+    },
 };
 
 module.exports = nextConfig;
