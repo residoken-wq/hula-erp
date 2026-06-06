@@ -14,27 +14,26 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [blendMode, setBlendMode] = useState<'normal' | 'multiply' | 'overlay'>('multiply');
     const [opacity, setOpacity] = useState(0.85);
-    const [isOpen, setIsOpen] = useState(false);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Preview raw logo
         const objectUrl = URL.createObjectURL(file);
         setLogoUrl(objectUrl);
         setProcessedLogoUrl(null);
         setIsProcessing(true);
-        setIsOpen(true);
 
         try {
             // Dynamically import to avoid Webpack/SSR issues with WebAssembly and Node modules
             const imgly = await import('@imgly/background-removal');
             const removeBg: any = (imgly as any).default || (imgly as any).removeBackground || (imgly as any);
             
+            // EXPLICIT publicPath to unpkg so Next.js doesn't try to fetch it from /_next/static (which causes 404)
             const config = {
-                // Let the library automatically use its default unpkg.com CDN path which guarantees version match
+                publicPath: 'https://unpkg.com/@imgly/background-removal@1.4.3/dist/'
             };
 
             // Run background removal
@@ -53,8 +52,13 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
     const handleExport = async () => {
         if (!visualizerRef.current) return;
         setIsExporting(true);
+        const originalPanelState = isPanelOpen;
+        setIsPanelOpen(false); // Hide panel before capturing
+
         try {
-            // Temporarily hide UI controls if any were rendered inside visualizer
+            // Wait for panel to disappear from DOM
+            await new Promise(r => setTimeout(r, 100));
+
             const canvas = await html2canvas(visualizerRef.current, {
                 useCORS: true,
                 allowTaint: true,
@@ -70,63 +74,99 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
             console.error('Export failed:', error);
             alert('Không thể xuất ảnh, vui lòng thử lại.');
         } finally {
+            setIsPanelOpen(originalPanelState);
             setIsExporting(false);
         }
     };
 
-    // Render the draggable logo inside a Portal or directly inside the Visualizer if it's placed inside it.
-    // Assuming this component is mounted INSIDE the Visualizer's relative container.
+    const clearLogo = () => {
+        setLogoUrl(null);
+        setProcessedLogoUrl(null);
+    };
+
     return (
         <>
             {/* Toolbar */}
             <div className="absolute top-4 right-4 z-50 flex flex-col gap-2 items-end">
-                <label className="bg-white/90 backdrop-blur border border-blue-200 shadow-sm text-blue-600 px-3 py-2 rounded-lg cursor-pointer hover:bg-blue-50 transition text-sm font-medium flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    {isProcessing ? 'Đang xử lý...' : 'Demo Logo (Nội bộ)'}
-                    <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-                </label>
+                {!isPanelOpen ? (
+                    <button 
+                        onClick={() => setIsPanelOpen(true)}
+                        className="bg-white/90 backdrop-blur border border-blue-200 shadow-sm text-blue-600 px-3 py-2 rounded-lg cursor-pointer hover:bg-blue-50 transition text-sm font-medium flex items-center gap-2"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Demo Logo
+                    </button>
+                ) : (
+                    <div className="bg-white/95 backdrop-blur p-4 rounded-xl shadow-xl border border-blue-100 w-56 text-sm animate-fade-in flex flex-col gap-4">
+                        <div className="flex justify-between items-center border-b pb-2">
+                            <span className="font-bold text-gray-700 flex items-center gap-1.5">
+                                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                Demo Logo
+                            </span>
+                            <button onClick={() => setIsPanelOpen(false)} className="text-gray-400 hover:text-red-500 p-1 rounded-md hover:bg-red-50 transition">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
 
-                {isOpen && (processedLogoUrl || logoUrl) && (
-                    <div className="bg-white/95 backdrop-blur p-3 rounded-lg shadow-lg border border-gray-100 w-48 text-sm animate-fade-in flex flex-col gap-3">
-                        <div>
-                            <label className="text-xs text-gray-500 font-medium mb-1 block">Chế độ hòa trộn</label>
-                            <select 
-                                value={blendMode}
-                                onChange={(e) => setBlendMode(e.target.value as any)}
-                                className="w-full border rounded px-2 py-1 text-sm bg-gray-50 outline-none"
-                            >
-                                <option value="normal">Bình thường (Normal)</option>
-                                <option value="multiply">In lên vải (Multiply)</option>
-                                <option value="overlay">Phủ màu (Overlay)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500 font-medium mb-1 flex justify-between">
-                                <span>Độ đậm nhạt</span>
-                                <span>{Math.round(opacity * 100)}%</span>
-                            </label>
-                            <input 
-                                type="range" 
-                                min="0" max="1" step="0.05" 
-                                value={opacity} 
-                                onChange={(e) => setOpacity(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </div>
-                        <button 
-                            onClick={handleExport}
-                            disabled={isExporting}
-                            className="w-full bg-primary text-white py-1.5 rounded text-sm font-medium hover:bg-primary/90 flex justify-center items-center gap-1 mt-1"
-                        >
-                            {isExporting ? (
-                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                            ) : (
-                                <>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                    Tải ảnh Demo
-                                </>
-                            )}
-                        </button>
+                        {/* Upload Button */}
+                        <label className="flex items-center justify-center gap-2 w-full bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 transition py-2 rounded cursor-pointer font-medium">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                            {isProcessing ? 'Đang xử lý...' : (logoUrl ? 'Đổi Logo khác' : 'Tải Logo lên')}
+                            <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+                        </label>
+
+                        {/* Controls (Only show if logo exists) */}
+                        {(logoUrl || processedLogoUrl) && (
+                            <div className="flex flex-col gap-3">
+                                <div>
+                                    <label className="text-xs text-gray-500 font-medium mb-1 block">Chế độ hòa trộn</label>
+                                    <select 
+                                        value={blendMode}
+                                        onChange={(e) => setBlendMode(e.target.value as any)}
+                                        className="w-full border border-gray-200 rounded px-2 py-1.5 text-sm bg-gray-50 outline-none focus:border-blue-400"
+                                    >
+                                        <option value="normal">Bình thường (Normal)</option>
+                                        <option value="multiply">In lên vải (Multiply)</option>
+                                        <option value="overlay">Phủ màu (Overlay)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs text-gray-500 font-medium mb-1 flex justify-between">
+                                        <span>Độ đậm nhạt</span>
+                                        <span>{Math.round(opacity * 100)}%</span>
+                                    </label>
+                                    <input 
+                                        type="range" 
+                                        min="0" max="1" step="0.05" 
+                                        value={opacity} 
+                                        onChange={(e) => setOpacity(Number(e.target.value))}
+                                        className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                    />
+                                </div>
+                                <div className="flex gap-2 mt-2">
+                                    <button 
+                                        onClick={clearLogo}
+                                        className="flex-1 bg-gray-100 text-gray-600 py-1.5 rounded text-sm font-medium hover:bg-gray-200"
+                                    >
+                                        Xóa
+                                    </button>
+                                    <button 
+                                        onClick={handleExport}
+                                        disabled={isExporting}
+                                        className="flex-[2] bg-primary text-white py-1.5 rounded text-sm font-medium hover:bg-primary/90 flex justify-center items-center gap-1"
+                                    >
+                                        {isExporting ? (
+                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                        ) : (
+                                            <>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                                Tải Demo
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -135,15 +175,15 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
             {(processedLogoUrl || logoUrl) && (
                 <Rnd
                     default={{
-                        x: 100,
-                        y: 100,
+                        x: 150,
+                        y: 150,
                         width: 150,
                         height: 150,
                     }}
                     minWidth={50}
                     minHeight={50}
                     bounds="parent"
-                    className="z-50 border border-transparent hover:border-blue-400 hover:border-dashed group"
+                    className="z-40 border border-transparent hover:border-blue-400 hover:border-dashed group"
                 >
                     <div className="w-full h-full relative">
                         {/* Drag handle overlay to catch pointer events easily */}
@@ -163,18 +203,10 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
 
                         {/* Processing Indicator */}
                         {isProcessing && (
-                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/30 rounded">
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 rounded backdrop-blur-[1px]">
                                 <span className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></span>
                             </div>
                         )}
-                        
-                        {/* Delete button (only visible on hover) */}
-                        <button 
-                            onClick={() => { setLogoUrl(null); setProcessedLogoUrl(null); setIsOpen(false); }}
-                            className="absolute -top-3 -right-3 z-30 bg-red-500 text-white w-6 h-6 rounded-full hidden group-hover:flex items-center justify-center text-xs shadow-md"
-                        >
-                            ×
-                        </button>
                     </div>
                 </Rnd>
             )}
