@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
-import imglyRemoveBackground, { Config } from '@imgly/background-removal';
 import html2canvas from 'html2canvas';
 
 interface Props {
@@ -18,14 +17,6 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
 
-    // Initialize Imgly config
-    const config: Config = {
-        publicPath: "https://static.remove-bg.io/web-sdk/1.1.0/assets/", // Optional: CDN to load wasm files faster, or use default
-        progress: (key, current, total) => {
-            // Optional progress logging
-        }
-    };
-
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -38,8 +29,16 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
         setIsOpen(true);
 
         try {
+            // Dynamically import to avoid Webpack/SSR issues with WebAssembly and Node modules
+            const imgly = await import('@imgly/background-removal');
+            const removeBg = imgly.default || (imgly as any).removeBackground || imgly;
+            
+            const config = {
+                publicPath: "https://static.remove-bg.io/web-sdk/1.1.0/assets/"
+            };
+
             // Run background removal
-            const imageBlob = await imglyRemoveBackground(file, config);
+            const imageBlob = await removeBg(file, config);
             const processedUrl = URL.createObjectURL(imageBlob);
             setProcessedLogoUrl(processedUrl);
         } catch (error) {
