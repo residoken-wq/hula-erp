@@ -31,14 +31,23 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
             const imgly = await import('@imgly/background-removal');
             const removeBg: any = (imgly as any).default || (imgly as any).removeBackground || (imgly as any);
             
-            // EXPLICIT publicPath to reliable CDN
+            // EXPLICIT publicPath to reliable JSDelivr CDN (static.remove-bg.io is dead/blocked)
             const config = {
-                publicPath: 'https://static.remove-bg.io/web-sdk/latest/assets/',
+                publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.3/dist/',
                 debug: true
             };
 
-            // Run background removal on objectUrl instead of File directly, sometimes safer
-            const imageBlob = await removeBg(objectUrl, config);
+            // Pre-load image into HTMLImageElement to ensure cross-browser AI compatibility
+            const imgElement = new Image();
+            imgElement.crossOrigin = "anonymous";
+            imgElement.src = objectUrl;
+            await new Promise((resolve, reject) => {
+                imgElement.onload = resolve;
+                imgElement.onerror = reject;
+            });
+
+            // Run background removal on the loaded Image Element
+            const imageBlob = await removeBg(imgElement, config);
             const processedUrl = URL.createObjectURL(imageBlob);
             setProcessedLogoUrl(processedUrl);
         } catch (error: any) {
