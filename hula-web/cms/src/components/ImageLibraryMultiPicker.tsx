@@ -77,27 +77,30 @@ export default function ImageLibraryMultiPicker({ open, onCancel, onConfirm, max
         <Modal
             open={open}
             onCancel={onCancel}
-            width={950}
+            width="80vw"
+            centered
+            style={{ top: '10vh', paddingBottom: '10vh' }}
             title={
                 <Space>
-                    <PictureOutlined />
-                    <span>Chọn nhiều ảnh từ thư viện</span>
+                    <PictureOutlined style={{ color: '#1677ff' }} />
+                    <span style={{ fontSize: 18, fontWeight: 600, color: '#1f2937' }}>Chọn nhiều ảnh từ thư viện</span>
                     {selected.length > 0 && (
-                        <Tag color="blue">{selected.length} đã chọn</Tag>
+                        <Tag color="blue" style={{ borderRadius: 12 }}>{selected.length} đã chọn</Tag>
                     )}
                 </Space>
             }
             footer={
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#999', fontSize: 13 }}>
+                    <span style={{ color: '#6b7280', fontSize: 13 }}>
                         {selected.length > 0
                             ? `Đã chọn ${selected.length} / ${max} hình`
                             : 'Click vào hình để chọn, click lần nữa để bỏ chọn'}
                     </span>
                     <Space>
-                        <Button onClick={onCancel}>Hủy</Button>
+                        <Button onClick={onCancel} size="large">Hủy</Button>
                         <Button
                             type="primary"
+                            size="large"
                             onClick={handleConfirm}
                             disabled={selected.length === 0}
                         >
@@ -108,39 +111,43 @@ export default function ImageLibraryMultiPicker({ open, onCancel, onConfirm, max
             }
             destroyOnClose
         >
-            <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                <Input
-                    placeholder="Tìm theo tên file..."
+            <div style={{ display: 'flex', gap: 12, marginBottom: 16, marginTop: 8 }}>
+                <Input.Search
+                    placeholder="Tìm kiếm hình ảnh theo tên..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    onSearch={loadFiles}
                     allowClear
+                    size="large"
                     style={{ flex: 1 }}
                 />
-                <Button onClick={loadFiles} loading={loading}>
+                <Button type="primary" size="large" onClick={loadFiles} loading={loading}>
                     Tải lại
                 </Button>
                 {selected.length > 0 && (
-                    <Button onClick={() => setSelected([])}>
+                    <Button size="large" onClick={() => setSelected([])}>
                         Bỏ chọn tất cả
                     </Button>
                 )}
             </div>
 
             {loading ? (
-                <div style={{ padding: 40, textAlign: 'center' }}>
-                    <Spin />
+                <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+                    <Spin size="large" />
                 </div>
             ) : filteredFiles.length === 0 ? (
-                <Empty description={files.length === 0 ? 'Chưa có hình ảnh trong thư viện' : 'Không tìm thấy'} />
+                <div style={{ padding: '60px 20px' }}>
+                    <Empty description={files.length === 0 ? 'Chưa có hình ảnh trong thư viện' : 'Không tìm thấy hình ảnh phù hợp'} />
+                </div>
             ) : (
                 <div
                     style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                        gap: 12,
-                        maxHeight: '60vh',
-                        overflow: 'auto',
-                        paddingRight: 4,
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                        gap: 16,
+                        maxHeight: 'calc(80vh - 160px)',
+                        overflowY: 'auto',
+                        padding: '4px 8px 8px 4px',
                     }}
                 >
                     {filteredFiles.map((f) => {
@@ -150,59 +157,69 @@ export default function ImageLibraryMultiPicker({ open, onCancel, onConfirm, max
                                 key={f.name}
                                 onClick={() => toggleSelect(f.url)}
                                 style={{
-                                    border: isSelected ? '2px solid #1677ff' : '1px solid #f0f0f0',
-                                    borderRadius: 10,
+                                    border: isSelected ? '2px solid #1677ff' : '1px solid #e5e7eb',
+                                    borderRadius: 12,
                                     overflow: 'hidden',
                                     cursor: 'pointer',
-                                    background: isSelected ? '#e6f4ff' : '#fafafa',
-                                    transition: 'all 0.15s',
+                                    background: isSelected ? '#eff6ff' : '#ffffff',
+                                    transition: 'all 0.2s ease-in-out',
                                     position: 'relative',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    transform: isSelected ? 'translateY(-2px)' : 'none',
+                                    boxShadow: isSelected ? '0 10px 25px -5px rgba(22, 119, 255, 0.15)' : 'none',
                                 }}
                                 onMouseEnter={(e) => {
                                     if (!isSelected) {
-                                        (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(0,0,0,0.10)';
-                                        (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                                        (e.currentTarget as HTMLElement).style.borderColor = '#93c5fd';
+                                        (e.currentTarget as HTMLElement).style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
+                                        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
                                     }
                                 }}
                                 onMouseLeave={(e) => {
-                                    (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-                                    (e.currentTarget as HTMLElement).style.transform = 'none';
+                                    if (!isSelected) {
+                                        (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb';
+                                        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                                        (e.currentTarget as HTMLElement).style.transform = 'none';
+                                    }
                                 }}
                                 title={f.name}
                             >
                                 {isSelected && (
                                     <div style={{
                                         position: 'absolute',
-                                        top: 6,
-                                        right: 6,
+                                        top: 8,
+                                        right: 8,
                                         zIndex: 10,
                                         background: '#fff',
                                         borderRadius: '50%',
                                         lineHeight: 0,
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                                     }}>
-                                        <CheckCircleFilled style={{ fontSize: 22, color: '#1677ff' }} />
+                                        <CheckCircleFilled style={{ fontSize: 24, color: '#1677ff' }} />
                                     </div>
                                 )}
                                 <div style={{
                                     width: '100%',
                                     aspectRatio: '1',
-                                    background: '#fff',
+                                    background: isSelected ? '#eff6ff' : '#f3f4f6',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    opacity: isSelected ? 0.85 : 1,
+                                    opacity: isSelected ? 0.9 : 1,
+                                    padding: 8,
                                 }}>
                                     <img
                                         src={resolveImageUrl(f.url)}
                                         alt={f.name}
-                                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+                                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', borderRadius: 6 }}
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23ccc" font-size="40">🖼️</text></svg>';
                                         }}
                                     />
                                 </div>
-                                <div style={{ padding: '6px 10px', fontSize: 12, color: '#555' }}>
-                                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
+                                <div style={{ padding: '8px 12px', fontSize: 13, color: isSelected ? '#1d4ed8' : '#374151', borderTop: isSelected ? '1px solid #bfdbfe' : '1px solid #f3f4f6', background: isSelected ? '#eff6ff' : '#fff' }}>
+                                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>{f.name}</div>
                                 </div>
                             </div>
                         );

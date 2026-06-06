@@ -349,37 +349,44 @@ export default function ImageUploader({ value, onChange, simple = false, hint }:
                 open={libraryOpen}
                 onCancel={() => setLibraryOpen(false)}
                 footer={null}
-                width={900}
-                title="Chọn ảnh từ thư viện"
+                width="80vw"
+                centered
+                style={{ top: '10vh', paddingBottom: '10vh' }}
+                title={<div style={{ fontSize: 18, fontWeight: 600, color: '#1f2937' }}>Chọn ảnh từ thư viện</div>}
                 destroyOnClose
             >
-                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                    <Input
-                        placeholder="Tìm theo tên file..."
+                <div style={{ display: 'flex', gap: 12, marginBottom: 16, marginTop: 8 }}>
+                    <Input.Search
+                        placeholder="Tìm kiếm hình ảnh theo tên..."
                         value={librarySearch}
                         onChange={(e) => setLibrarySearch(e.target.value)}
+                        onSearch={openLibrary}
                         allowClear
+                        size="large"
+                        style={{ flex: 1 }}
                     />
-                    <Button onClick={openLibrary} loading={libraryLoading}>
+                    <Button type="primary" size="large" onClick={openLibrary} loading={libraryLoading}>
                         Tải lại
                     </Button>
                 </div>
 
                 {libraryLoading ? (
-                    <div style={{ padding: 40, textAlign: 'center' }}>
-                        <Spin />
+                    <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+                        <Spin size="large" />
                     </div>
                 ) : filteredLibraryFiles.length === 0 ? (
-                    <Empty description={libraryFiles.length === 0 ? 'Chưa có hình ảnh trong thư viện' : 'Không tìm thấy'} />
+                    <div style={{ padding: '60px 20px' }}>
+                        <Empty description={libraryFiles.length === 0 ? 'Chưa có hình ảnh trong thư viện' : 'Không tìm thấy hình ảnh phù hợp'} />
+                    </div>
                 ) : (
                     <div
                         style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                            gap: 12,
-                            maxHeight: '60vh',
-                            overflow: 'auto',
-                            paddingRight: 4,
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+                            gap: 16,
+                            maxHeight: 'calc(80vh - 160px)',
+                            overflowY: 'auto',
+                            padding: '4px 8px 8px 4px',
                         }}
                     >
                         {filteredLibraryFiles.map((f) => (
@@ -387,35 +394,48 @@ export default function ImageUploader({ value, onChange, simple = false, hint }:
                                 key={f.name}
                                 onClick={() => handlePickFromLibrary(f.url)}
                                 style={{
-                                    border: '1px solid #f0f0f0',
-                                    borderRadius: 10,
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: 12,
                                     overflow: 'hidden',
                                     cursor: 'pointer',
-                                    background: '#fafafa',
-                                    transition: 'transform 0.15s, box-shadow 0.15s',
+                                    background: '#ffffff',
+                                    transition: 'all 0.2s ease-in-out',
+                                    display: 'flex',
+                                    flexDirection: 'column',
                                 }}
                                 onMouseEnter={(e) => {
-                                    (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(0,0,0,0.10)';
-                                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                                    (e.currentTarget as HTMLElement).style.borderColor = '#1677ff';
+                                    (e.currentTarget as HTMLElement).style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)';
+                                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
                                 }}
                                 onMouseLeave={(e) => {
+                                    (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb';
                                     (e.currentTarget as HTMLElement).style.boxShadow = 'none';
                                     (e.currentTarget as HTMLElement).style.transform = 'none';
                                 }}
                                 title={f.name}
                             >
-                                <div style={{ width: '100%', aspectRatio: '1', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <div style={{ 
+                                    width: '100%', 
+                                    aspectRatio: '1', 
+                                    background: '#f3f4f6', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    padding: 8,
+                                    position: 'relative'
+                                }}>
                                     <img
                                         src={resolveImageUrl(f.url)}
                                         alt={f.name}
-                                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+                                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block', borderRadius: 6 }}
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23ccc" font-size="40">🖼️</text></svg>';
                                         }}
                                     />
                                 </div>
-                                <div style={{ padding: '6px 10px', fontSize: 12, color: '#555' }}>
-                                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
+                                <div style={{ padding: '8px 12px', fontSize: 13, color: '#374151', borderTop: '1px solid #f3f4f6', background: '#fff' }}>
+                                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>{f.name}</div>
                                 </div>
                             </div>
                         ))}
