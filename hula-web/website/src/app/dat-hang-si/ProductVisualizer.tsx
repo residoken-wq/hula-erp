@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WizardCategoryL2, WizardOption } from './types';
 import { resolveGoogleDriveUrl } from './utils';
+import LogoMockupTool from './LogoMockupTool';
 
 const getApiBaseUrl = () => {
     const base = process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com';
@@ -52,6 +53,7 @@ interface Props {
 }
 
 export default function ProductVisualizer({ subcategory, selectedOptions, stepSelections = {}, imageSelections = {}, skippedSteps = {} }: Props) {
+    const visualizerRef = useRef<HTMLDivElement>(null);
     const hasBaseImages = subcategory.base_images && subcategory.base_images.length > 0;
     const legacyBaseImage = subcategory.base_image;
 
@@ -131,7 +133,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
         : legacyBaseImage ? resolveOriginalImageUrl(legacyBaseImage) : '';
 
     return (
-        <div className="relative w-full aspect-square bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 p-4">
+        <div ref={visualizerRef} className="relative w-full aspect-square bg-gray-50 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-100 p-4">
+            <LogoMockupTool visualizerRef={visualizerRef} />
             {hasBaseImages ? (
                 /* Multi-frame layered view */
                 <div className="relative w-full h-full flex items-center justify-center">
