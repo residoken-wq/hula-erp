@@ -31,18 +31,19 @@ export default function LogoMockupTool({ visualizerRef }: Props) {
             const imgly = await import('@imgly/background-removal');
             const removeBg: any = (imgly as any).default || (imgly as any).removeBackground || (imgly as any);
             
-            // EXPLICIT publicPath to unpkg so Next.js doesn't try to fetch it from /_next/static (which causes 404)
+            // EXPLICIT publicPath to reliable CDN
             const config = {
-                publicPath: 'https://unpkg.com/@imgly/background-removal@1.4.3/dist/'
+                publicPath: 'https://static.remove-bg.io/web-sdk/latest/assets/',
+                debug: true
             };
 
-            // Run background removal
-            const imageBlob = await removeBg(file, config);
+            // Run background removal on objectUrl instead of File directly, sometimes safer
+            const imageBlob = await removeBg(objectUrl, config);
             const processedUrl = URL.createObjectURL(imageBlob);
             setProcessedLogoUrl(processedUrl);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error removing background:", error);
-            alert("Lỗi khi xóa phông nền. Sẽ sử dụng ảnh gốc.");
+            alert(`Lỗi AI xóa nền: ${error?.message || JSON.stringify(error)}. Vui lòng xem Console để biết chi tiết.`);
             setProcessedLogoUrl(objectUrl);
         } finally {
             setIsProcessing(false);
