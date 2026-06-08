@@ -108,7 +108,7 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                             </Table.Summary.Cell>
                         </Table.Summary.Row>
                         <Table.Summary.Row>
-                            <Table.Summary.Cell index={0} colSpan={6} align="right">Thuế VAT ({data.vat_rate || 0}%):</Table.Summary.Cell>
+                            <Table.Summary.Cell index={0} colSpan={6} align="right">Thuế GTGT ({data.vat_rate || 0}%):</Table.Summary.Cell>
                             <Table.Summary.Cell index={1} align="right">
                                 {(Number(data.total_amount) - Number(data.shipping_fee || 0) - data.items.reduce((s: number, i: any) => s + Number(i.subtotal), 0)).toLocaleString()}
                             </Table.Summary.Cell>

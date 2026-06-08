@@ -364,7 +364,7 @@ const HelpPage: React.FC = () => {
                                 },
                                 {
                                     title: 'Bước 4: Cấu hình Thanh toán & VAT',
-                                    description: 'Nhập % Thuế VAT (8% hoặc 10%) và chọn phương thức thanh toán. Hệ thống tự động tính Tổng tiền.',
+                                    description: 'Nhập % Thuế GTGT (8% hoặc 10%) và chọn phương thức thanh toán. Hệ thống tự động tính Tổng tiền.',
                                 },
                                 {
                                     title: 'Bước 5: Lưu & Gửi',

@@ -163,12 +163,12 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                         return (
                             <div style={{ marginTop: 25, display: 'flex', justifyContent: 'space-around', fontWeight: 'bold', fontSize: 14, background: '#fff', padding: '15px 0', borderRadius: 8, border: '1px solid #e8e8e8' }}>
                                 <div style={{ color: grossProfitBeforeVat > 0 ? '#08979c' : 'red', textAlign: 'center' }}>
-                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 'normal', marginBottom: 4 }}>1. Lợi Nhuận Gộp Trước Thuế VAT</div>
+                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 'normal', marginBottom: 4 }}>1. Lợi Nhuận Gộp Trước Thuế GTGT</div>
                                     <div style={{ fontSize: 16 }}>{Math.round(grossProfitBeforeVat).toLocaleString()} đ</div>
                                 </div>
                                 <div style={{ width: 1, background: '#f0f0f0' }}></div>
                                 <div style={{ color: grossProfitAfterVat > 0 ? '#d46b08' : 'red', textAlign: 'center' }}>
-                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 'normal', marginBottom: 4 }}>2. Lợi Nhuận Gộp Sau Thuế VAT</div>
+                                    <div style={{ fontSize: 12, color: '#888', fontWeight: 'normal', marginBottom: 4 }}>2. Lợi Nhuận Gộp Sau Thuế GTGT</div>
                                     <div style={{ fontSize: 16 }}>{Math.round(grossProfitAfterVat).toLocaleString()} đ</div>
                                 </div>
                                 <div style={{ width: 1, background: '#f0f0f0' }}></div>

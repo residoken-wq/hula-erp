@@ -534,7 +534,7 @@ const PortalQuotePage: React.FC = () => {
             </tr>
             ${discountAmount > 0 ? '<tr><td class="summary-label">Giảm giá (' + (data.discount_rate || 0) + '%):</td><td class="summary-value" style="color:#52c41a;">-' + discountAmount.toLocaleString() + '</td></tr>' : ''}
             <tr>
-                <td class="summary-label">Thuế VAT (${vatRate}%):</td>
+                <td class="summary-label">Thuế GTGT (${vatRate}%):</td>
                 <td class="summary-value">${vatAmount.toLocaleString()}</td>
             </tr>
             ${shippingFee > 0 ? '<tr><td class="summary-label">Phí vận chuyển:</td><td class="summary-value">' + shippingFee.toLocaleString() + '</td></tr>' : ''}
@@ -1178,7 +1178,7 @@ const PortalQuotePage: React.FC = () => {
                                                     </Table.Summary.Row>
                                                 )}
                                                 <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={7} align="right"><span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={0} colSpan={7} align="right"><span style={{ color: '#888' }}>Thuế GTGT ({vatRate}%)</span></Table.Summary.Cell>
                                                     <Table.Summary.Cell index={1} align="right">{vatAmount.toLocaleString()}</Table.Summary.Cell>
                                                 </Table.Summary.Row>
                                                 <Table.Summary.Row>
@@ -1217,7 +1217,7 @@ const PortalQuotePage: React.FC = () => {
                                             </div>
                                         )}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                                            <span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span>
+                                            <span style={{ color: '#888' }}>Thuế GTGT ({vatRate}%)</span>
                                             <span style={{ fontWeight: 600, color: '#333' }}>{vatAmount.toLocaleString()}</span>
                                         </div>
                                         {Number(data.shipping_fee || 0) > 0 && (
