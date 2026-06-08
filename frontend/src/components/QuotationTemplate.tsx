@@ -77,7 +77,7 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                         title: 'Tên Sản phẩm',
                         render: (r: any) => (
                             <div>
-                                <div style={{ fontWeight: 600 }}>{r.product_name_real || r.sku}</div>
+                                <div style={{ fontWeight: 600 }}>{r.product_name_real || r.product?.name || r.sku}</div>
                                 {r.variant_color && <div style={{ fontSize: 12, color: '#666' }}>Màu: {r.variant_color}</div>}
                                 {r.is_sample_approved && <div style={{ marginTop: 5, fontSize: 12 }}><Tag color="success" icon={<CheckCircleFilled />}>Mẫu đã duyệt</Tag></div>}
                             </div>

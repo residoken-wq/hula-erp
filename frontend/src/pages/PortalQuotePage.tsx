@@ -516,7 +516,6 @@ const PortalQuotePage: React.FC = () => {
                         +   '<div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-bottom:2px;">' + productName + '</div>'
                         +   colorLine + descLines
                         +   priceRangesHtml
-                        +   '<div style="margin-top:3px;"><span style="font-size:9px;color:#999;background:#f5f5f5;padding:1px 5px;border-radius:3px;">' + item.sku + '</span></div>'
                         + '</td>'
                         + '<td style="text-align:center;font-weight:bold;">' + (item.product?.unit || 'Cái') + '</td>'
                         + '<td style="text-align:center;font-weight:700;font-size:13px;">' + Number(item.quantity) + '</td>'

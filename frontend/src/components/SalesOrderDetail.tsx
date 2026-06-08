@@ -220,23 +220,33 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     };
 
-    const handleCopyQuotation = (quotation: any) => {
-        const items = (quotation.items || []).map((i: any, idx: number) => ({
-            key: Date.now() + idx,
-            sku: i.product?.sku || i.sku,
-            quantity: Number(i.quantity) || 1,
-            unit_price: Number(i.unit_price) || 0,
-            total_price: (Number(i.quantity) || 1) * (Number(i.unit_price) || 0),
-            note: i.note || ''
-        }));
-        setOrderItems(items);
-        calculateTotal(items);
-        form.setFieldsValue({
-            delivery_date: quotation.delivery_date ? dayjs(quotation.delivery_date) : null,
-            note: quotation.note || ''
-        });
-        setCopyQuotationModalOpen(false);
-        message.success(`Đã copy ${items.length} sản phẩm từ ${quotation.order_code}`);
+    const handleCopyQuotation = async (quotation: any) => {
+        try {
+            const res = await api.get(`/sales/${quotation.id}`);
+            const fullQuotation = res.data;
+            const items = (fullQuotation.items || []).map((i: any, idx: number) => ({
+                key: Date.now() + idx,
+                sku: i.product?.sku || i.sku,
+                quantity: Number(i.quantity) || 1,
+                unit_price: Number(i.unit_price) || 0,
+                total_price: (Number(i.quantity) || 1) * (Number(i.unit_price) || 0),
+                note: i.note || '',
+                vat_content: i.vat_content || '',
+                sample_image: i.sample_image,
+                image_url: i.image_url,
+                price_ranges: i.price_ranges
+            }));
+            setOrderItems(items);
+            calculateTotal(items);
+            form.setFieldsValue({
+                delivery_date: fullQuotation.delivery_date ? dayjs(fullQuotation.delivery_date) : null,
+                note: fullQuotation.note || ''
+            });
+            setCopyQuotationModalOpen(false);
+            message.success(`Đã copy ${items.length} sản phẩm từ ${fullQuotation.order_code}`);
+        } catch (e) {
+            message.error('Lỗi khi tải chi tiết báo giá để copy');
+        }
     };
 
     const handleItemChange = (index: number, field: string, value: any) => {
