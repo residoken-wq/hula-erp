@@ -614,7 +614,7 @@ const PortalQuotePage: React.FC = () => {
         });
     };
 
-    const isOrder = data?.status !== 'QUOTATION';
+
 
     if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" tip="Đang tải dữ liệu..." /></div>;
     if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy dữ liệu hoặc đường dẫn không hợp lệ." />;
