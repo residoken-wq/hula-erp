@@ -122,8 +122,8 @@ const PortalQuotePage: React.FC = () => {
         }
 
         Modal.confirm({
-            title: 'Từ chối báo giá?',
-            content: 'Bạn muốn từ chối báo giá này?',
+            title: 'Từ chối đơn hàng?',
+            content: 'Bạn muốn từ chối đơn hàng này?',
             okText: 'Từ Chối',
             cancelText: 'Hủy',
             okType: 'danger',
@@ -161,7 +161,7 @@ const PortalQuotePage: React.FC = () => {
 
         try {
             await axios.post(`${API_URL}/public/portal/quote/${uuid}/action`, { action: 'ACCEPT' });
-            message.success('Xác nhận báo giá thành công!');
+            message.success('Xác nhận đơn hàng thành công!');
             setIsVerifyModalOpen(false);
             window.location.reload();
         } catch (e) {
@@ -183,7 +183,7 @@ const PortalQuotePage: React.FC = () => {
         if (!printWindow) return;
 
         const isOrder = ['DEPOSITED', 'PLANNED', 'PARTIAL_DELIVERY', 'DELIVERED', 'COMPLETED', 'IN_PRODUCTION', 'SAMPLE_APPROVED', 'MANUFACTURING_COMPLETED'].includes(data.status) || Number(data.paid_amount) > 0;
-        const docTitle = isOrder ? 'XÁC NHẬN ĐƠN ĐẶT HÀNG' : 'BẢNG BÁO GIÁ';
+        const docTitle = isOrder ? 'XÁC NHẬN ĐƠN ĐẶT HÀNG' : 'BẢNG đơn hàng';
         const docSubTitle = isOrder ? 'ORDER CONFIRMATION' : 'QUOTATION';
 
         const customerName = data.customer?.name || data.customer_name || data.receiver_name || 'Khách lẻ';
@@ -614,7 +614,7 @@ const PortalQuotePage: React.FC = () => {
     };
 
     if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" tip="Đang tải dữ liệu..." /></div>;
-    if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy báo giá hoặc đường dẫn không hợp lệ." />;
+    if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy đơn hàng hoặc đường dẫn không hợp lệ." />;
 
     if (!isPasswordCorrect) {
         return (
@@ -637,7 +637,7 @@ const PortalQuotePage: React.FC = () => {
                     ]}
                 >
                     <div style={{ marginBottom: 16 }}>
-                        Để bảo mật thông tin, vui lòng nhập mật khẩu để xem báo giá.
+                        Để bảo mật thông tin, vui lòng nhập mật khẩu để xem đơn hàng.
                     </div>
                     <Input.Password
                         placeholder="Nhập mật khẩu (hula)..."
@@ -947,7 +947,7 @@ const PortalQuotePage: React.FC = () => {
                         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <InfoCircleOutlined style={{ color: '#faad14', fontSize: 18 }} />
-                                <span style={{ fontSize: 14 }}>Vui lòng kiểm tra kỹ thông tin và phản hồi báo giá này.</span>
+                                <span style={{ fontSize: 14 }}>Vui lòng kiểm tra kỹ thông tin và phản hồi đơn hàng này.</span>
                             </div>
                             <Space>
                                 <Button danger size="large" onClick={() => handleAction('REJECT')}>Từ Chối</Button>
@@ -981,7 +981,7 @@ const PortalQuotePage: React.FC = () => {
                         size={isMobile ? "small" : "small"}
                         direction={isMobile ? "vertical" : "horizontal"} // <--- Vertical on Mobile
                         items={[
-                            { title: 'Báo Giá', icon: <SolutionOutlined /> },
+                            { title: 'đơn hàng', icon: <SolutionOutlined /> },
                             { title: 'Xác Nhận & Cọc', icon: <DollarOutlined /> },
                             { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> },
                             { title: 'Sản Xuất', icon: <AppstoreAddOutlined /> },
