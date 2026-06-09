@@ -138,12 +138,36 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                 <div style={{ flex: 1 }}>
                     <b style={{ textDecoration: 'underline' }}>GHI CHÚ & ĐIỀU KHOẢN:</b>
                     <div style={{ fontSize: 13, marginTop: 5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{data.terms_content || "Chưa có điều khoản."}</div>
-                    <div style={{ marginTop: 15 }}><b>Thông tin chuyển khoản:</b><ul style={{ fontSize: 13, paddingLeft: 20, marginTop: 5 }}><li>Ngân hàng: <b>ACB</b> - CN TP.HCM</li><li>Số TK: <b>141847859</b></li><li>Chủ TK: <b>CTY TNHH TM DV TUONG LINH</b></li></ul></div>
                 </div>
-                <div style={{ width: 200, textAlign: 'center', border: '1px solid #ddd', padding: 10, borderRadius: 8 }}>
-                    <div style={{ marginBottom: 5, fontSize: 12, color: '#666' }}>Quét mã để thanh toán</div>
+                <div style={{ width: 300, textAlign: 'center', border: '1px solid #ddd', padding: 10, borderRadius: 8 }}>
+                    {Number(data.deposit_amount) > 0 && (
+                        <div style={{ background: '#f9f0ff', padding: 10, borderRadius: 8, border: '1px solid #d3adf7', textAlign: 'center', marginBottom: 10 }}>
+                            <div style={{ color: '#722ed1', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>💰 Cần đặt cọc ({data.deposit_percent || 0}%)</div>
+                            <div style={{ fontSize: 16, fontWeight: '700', color: '#531dab' }}>{Number(data.deposit_amount).toLocaleString()} ₫</div>
+                        </div>
+                    )}
+
+                    {paidAmount > 0 && (
+                        <div style={{ background: '#f0f5ff', padding: 8, borderRadius: 8, border: '1px solid #adc6ff', textAlign: 'center', marginBottom: 8 }}>
+                            <div style={{ color: '#2f54eb', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Đã thanh toán</div>
+                            <div style={{ fontSize: 16, fontWeight: '700', color: '#1d39c4' }}>{paidAmount.toLocaleString()} ₫</div>
+                        </div>
+                    )}
+
+                    <div style={{ background: '#f6ffed', padding: 10, borderRadius: 8, border: '1px solid #b7eb8f', textAlign: 'center', marginBottom: 10 }}>
+                        <div style={{ color: '#52c41a', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Cần thanh toán</div>
+                        <div style={{ fontSize: 18, fontWeight: '800', color: '#389e0d' }}>{(Number(data.total_amount) - paidAmount).toLocaleString()} ₫</div>
+                    </div>
+                    <div style={{ fontSize: 11, lineHeight: 1.6, textAlign: 'left', marginBottom: 15 }}>
+                        <div><b>ACB - TP.HCM</b></div>
+                        <div>STK: <span style={{ fontFamily: 'monospace', background: '#f0f0f0', padding: '0 4px' }}>141847859</span></div>
+                        <div>Chủ TK: CTY TNHH TM DV TƯỜNG LINH</div>
+                        <div>Nội dung: <b>{data.order_code}</b></div>
+                    </div>
+                    
+                    <div style={{ marginBottom: 5, fontSize: 11, color: '#666' }}>Quét mã để thanh toán</div>
                     <Image src={qrLink} width={150} preview={false} />
-                    <div style={{ marginTop: 5, fontWeight: 'bold', color: '#1890ff' }}>HULA PAYMENT</div>
+                    <div style={{ marginTop: 5, fontWeight: 'bold', color: '#1890ff', fontSize: 12 }}>HULA PAYMENT</div>
                 </div>
             </div>
 
