@@ -13,7 +13,7 @@ interface QuotationProps {
 const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
     if (!data) return null;
 
-    const isOrder = ['DEPOSITED', 'PLANNED', 'PARTIAL_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(data.status) || Number(data.paid_amount) > 0;
+    const isOrder = data.status !== 'QUOTATION';
     const docTitle = isOrder ? "ĐƠN ĐẶT HÀNG" : "BẢNG BÁO GIÁ";
 
     const paidAmount = Number(data.paid_amount) || 0;

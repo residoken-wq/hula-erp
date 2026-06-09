@@ -115,6 +115,8 @@ const PortalQuotePage: React.FC = () => {
 
     useEffect(() => { fetchQuote(); }, [uuid]);
 
+    const isOrder = data?.status && data.status !== 'QUOTATION';
+
     const handleAction = async (action: 'ACCEPT' | 'REJECT') => {
         if (action === 'ACCEPT') {
             setIsVerifyModalOpen(true);
@@ -122,8 +124,8 @@ const PortalQuotePage: React.FC = () => {
         }
 
         Modal.confirm({
-            title: 'Từ chối đơn hàng?',
-            content: 'Bạn muốn từ chối đơn hàng này?',
+            title: isOrder ? 'Từ chối đơn hàng?' : 'Từ chối báo giá?',
+            content: isOrder ? 'Bạn muốn từ chối đơn hàng này?' : 'Bạn muốn từ chối báo giá này?',
             okText: 'Từ Chối',
             cancelText: 'Hủy',
             okType: 'danger',
@@ -161,7 +163,7 @@ const PortalQuotePage: React.FC = () => {
 
         try {
             await axios.post(`${API_URL}/public/portal/quote/${uuid}/action`, { action: 'ACCEPT' });
-            message.success('Xác nhận đơn hàng thành công!');
+            message.success(isOrder ? 'Xác nhận đơn hàng thành công!' : 'Xác nhận báo giá thành công!');
             setIsVerifyModalOpen(false);
             window.location.reload();
         } catch (e) {
@@ -182,8 +184,7 @@ const PortalQuotePage: React.FC = () => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
 
-        const isOrder = ['DEPOSITED', 'PLANNED', 'PARTIAL_DELIVERY', 'DELIVERED', 'COMPLETED', 'IN_PRODUCTION', 'SAMPLE_APPROVED', 'MANUFACTURING_COMPLETED'].includes(data.status) || Number(data.paid_amount) > 0;
-        const docTitle = isOrder ? 'XÁC NHẬN ĐƠN ĐẶT HÀNG' : 'BẢNG đơn hàng';
+        const docTitle = isOrder ? 'XÁC NHẬN ĐƠN ĐẶT HÀNG' : 'BẢNG BÁO GIÁ';
         const docSubTitle = isOrder ? 'ORDER CONFIRMATION' : 'QUOTATION';
 
         const customerName = data.customer?.name || data.customer_name || data.receiver_name || 'Khách lẻ';
@@ -613,8 +614,10 @@ const PortalQuotePage: React.FC = () => {
         });
     };
 
+    const isOrder = data?.status !== 'QUOTATION';
+
     if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" tip="Đang tải dữ liệu..." /></div>;
-    if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy đơn hàng hoặc đường dẫn không hợp lệ." />;
+    if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy dữ liệu hoặc đường dẫn không hợp lệ." />;
 
     if (!isPasswordCorrect) {
         return (
@@ -637,7 +640,7 @@ const PortalQuotePage: React.FC = () => {
                     ]}
                 >
                     <div style={{ marginBottom: 16 }}>
-                        Để bảo mật thông tin, vui lòng nhập mật khẩu để xem đơn hàng.
+                        Để bảo mật thông tin, vui lòng nhập mật khẩu để xem {isOrder ? 'đơn hàng' : 'báo giá'}.
                     </div>
                     <Input.Password
                         placeholder="Nhập mật khẩu (hula)..."
@@ -920,7 +923,7 @@ const PortalQuotePage: React.FC = () => {
                                 </div>
                                 <Divider type="vertical" style={{ height: 30 }} />
                                 <div>
-                                    <div style={{ fontSize: 12, color: '#888' }}>Mã đơn hàng</div>
+                                    <div style={{ fontSize: 12, color: '#888' }}>{isOrder ? 'Mã đơn hàng' : 'Mã báo giá'}</div>
                                     <div style={{ fontWeight: 700, fontSize: 16 }}>#{data.order_code}</div>
                                 </div>
                             </Space>
@@ -935,7 +938,7 @@ const PortalQuotePage: React.FC = () => {
                                         { key: 'pos', label: 'Mẫu POS (Hóa đơn dọc)', onClick: () => handlePrintOrder('pos') }
                                     ]
                                 }}>
-                                    <Button icon={<PrinterOutlined />}>In Đơn Hàng (A4)</Button>
+                                    <Button icon={<PrinterOutlined />}>{isOrder ? 'In Đơn Hàng (A4)' : 'In Báo Giá (A4)'}</Button>
                                 </Dropdown>
                             </Space>
                         </Col>
@@ -947,7 +950,7 @@ const PortalQuotePage: React.FC = () => {
                         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <InfoCircleOutlined style={{ color: '#faad14', fontSize: 18 }} />
-                                <span style={{ fontSize: 14 }}>Vui lòng kiểm tra kỹ thông tin và phản hồi đơn hàng này.</span>
+                                <span style={{ fontSize: 14 }}>Vui lòng kiểm tra kỹ thông tin và phản hồi {isOrder ? 'đơn hàng' : 'báo giá'} này.</span>
                             </div>
                             <Space>
                                 <Button danger size="large" onClick={() => handleAction('REJECT')}>Từ Chối</Button>
@@ -981,7 +984,7 @@ const PortalQuotePage: React.FC = () => {
                         size={isMobile ? "small" : "small"}
                         direction={isMobile ? "vertical" : "horizontal"} // <--- Vertical on Mobile
                         items={[
-                            { title: 'đơn hàng', icon: <SolutionOutlined /> },
+                            { title: 'Báo Giá', icon: <SolutionOutlined /> },
                             { title: 'Xác Nhận & Cọc', icon: <DollarOutlined /> },
                             { title: 'Duyệt Mẫu', icon: <FileDoneOutlined /> },
                             { title: 'Sản Xuất', icon: <AppstoreAddOutlined /> },
@@ -1061,7 +1064,7 @@ const PortalQuotePage: React.FC = () => {
                 {/* --- DETAILS ROW: TABLE --- */}
                 <Row gutter={24}>
                     <Col span={24}>
-                        <Card title={<span style={{ fontWeight: 700, fontSize: 16 }}>📋 Chi Tiết Đơn Hàng</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                        <Card title={<span style={{ fontWeight: 700, fontSize: 16 }}>{isOrder ? '📋 Chi Tiết Đơn Hàng' : '📋 Chi Tiết Báo Giá'}</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
 
                             {isMobile ? (
                                 // MOBILE LIST VIEW
@@ -1650,7 +1653,7 @@ const PortalQuotePage: React.FC = () => {
                 cancelText="Hủy"
             >
                 <div>
-                    <p>Vui lòng nhập <b>Số điện thoại</b> hoặc <b>Email</b> của bạn để xác nhận đơn hàng này.</p>
+                    <p>Vui lòng nhập <b>Số điện thoại</b> hoặc <b>Email</b> của bạn để xác nhận {isOrder ? 'đơn hàng' : 'báo giá'} này.</p>
                     <Input
                         placeholder="Nhập SĐT hoặc Email..."
                         value={verifyInput}
