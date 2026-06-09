@@ -18,8 +18,8 @@ export class ProjectsController {
     }
 
     @Post()
-    create(@Body() body: any) {
-        return this.service.create(body);
+    create(@Body() body: any, @Req() req: any) {
+        return this.service.create(body, req.user);
     }
 
     @Put(':id')

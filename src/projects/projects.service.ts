@@ -114,16 +114,18 @@ export class ProjectsService {
 
         return allProjects.filter(p => {
             // Admin bypass
-            if (user?.groupId === 1) return true;
+            if (Number(user?.groupId) === 1) return true;
             
+            // Creator always sees the project
+            if (p.created_by_id === Number(user.id)) return true;
             // Manager always sees the project
-            if (p.manager_id === user.id) return true;
+            if (p.manager_id === Number(user.id)) return true;
             // Members see the project
-            if (p.members?.some(m => m.id === user.id)) return true;
+            if (p.members?.some(m => m.id === Number(user.id))) return true;
             // For SO_PROJECT: users assigned to any task see the project
-            if (p.tasks?.some(t => t.assignee_id === user.id)) return true;
+            if (p.tasks?.some(t => t.assignee_id === Number(user.id))) return true;
             // For SO_PROJECT: owner of the SO should always see it
-            if (p.sales_order?.assigned_to_id === user.id) return true;
+            if (p.sales_order?.assigned_to_id === Number(user.id)) return true;
             
             return false;
         });
@@ -139,13 +141,14 @@ export class ProjectsService {
         if (!project) throw new NotFoundException('Project not found');
 
         // Access check: manager, member, or task assignee
-        if (user && user.groupId !== 1) { // Admin bypass
-            const isMember = project.members?.some(m => m.id === user.id);
-            const isManager = project.manager_id === user.id;
-            const isTaskAssignee = project.tasks?.some(t => t.assignee_id === user.id);
-            const isSOOwner = project.sales_order?.assigned_to_id === user.id;
+        if (user && Number(user.groupId) !== 1) { // Admin bypass
+            const isCreator = project.created_by_id === Number(user.id);
+            const isMember = project.members?.some(m => m.id === Number(user.id));
+            const isManager = project.manager_id === Number(user.id);
+            const isTaskAssignee = project.tasks?.some(t => t.assignee_id === Number(user.id));
+            const isSOOwner = project.sales_order?.assigned_to_id === Number(user.id);
 
-            if (!isMember && !isManager && !isTaskAssignee && !isSOOwner) {
+            if (!isCreator && !isMember && !isManager && !isTaskAssignee && !isSOOwner) {
                 throw new NotFoundException('Project not found or access denied');
             }
         }
@@ -158,9 +161,14 @@ export class ProjectsService {
         return project;
     }
 
-    async create(data: any) {
+    async create(data: any, user?: any) {
         const { member_ids, ...rest } = data;
         const projectData: Partial<Project> = rest;
+        
+        if (user && user.id) {
+            projectData.created_by_id = Number(user.id);
+        }
+        
         const project = this.repo.create(projectData);
 
         if (member_ids && member_ids.length > 0) {
