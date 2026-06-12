@@ -1,13 +1,9 @@
-# Stage 1: Dependencies
-FROM node:18-alpine AS deps
+# Stage 1: Builder
+FROM node:18-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 
-# Stage 2: Builder
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1

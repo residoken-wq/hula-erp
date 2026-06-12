@@ -1,13 +1,9 @@
-# Stage 1: Dependencies
-FROM node:18-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install
-
-# Stage 2: Builder
+# Stage 1: Builder
 FROM node:18-alpine AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json* ./
+RUN --mount=type=cache,target=/root/.npm npm ci
+
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
@@ -20,7 +16,7 @@ ENV API_URL=${API_URL}
 ARG NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN npm run build
+RUN --mount=type=cache,target=/app/.next/cache npm run build
 
 # Stage 3: Runner
 FROM node:18-alpine AS runner

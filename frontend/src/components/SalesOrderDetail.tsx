@@ -232,12 +232,12 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 vat_email: customer.einvoice_email || customer.email || ''
             });
         }
-        // Fetch customer's old quotations
+        // Fetch customer's old quotations/orders
         if (isQuotation && customerId && customerId !== -1) {
             try {
                 const res = await api.get('/sales');
                 const quotes = (res.data || []).filter((o: any) =>
-                    o.customer?.id === customerId && o.status === 'QUOTATION' && o.id !== initialData?.id
+                    o.customer?.id === customerId && o.id !== initialData?.id
                 );
                 setCustomerQuotations(quotes);
             } catch (e) { setCustomerQuotations([]); }
@@ -565,7 +565,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         onClick={() => setCopyQuotationModalOpen(true)}
                                         style={{ marginTop: -10, marginBottom: 10 }}
                                     >
-                                        Copy từ {customerQuotations.length} BG cũ
+                                        Copy từ {customerQuotations.length} đơn/BG cũ
                                     </Button>
                                 )}
                             </Col>
@@ -971,7 +971,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     columns={[
                         { title: 'Mã BG', dataIndex: 'order_code', render: (v: string) => <Tag color="blue">{v}</Tag> },
                         { title: 'Ngày', dataIndex: 'order_date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
-                        { title: 'Sản phẩm', render: (_: any, r: any) => `${r.items?.length || 0} SP` },
+                        { title: 'Trạng thái', dataIndex: 'status', render: (v: string) => <Tag color={v === 'QUOTATION' ? 'orange' : 'green'}>{v}</Tag> },
                         { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b style={{ color: 'red' }}>{Number(v || 0).toLocaleString()} ₫</b> }
                     ]}
                 />

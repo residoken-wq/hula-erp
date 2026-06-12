@@ -1,8 +1,8 @@
 # Stage 1: Base
 FROM node:22-alpine as base
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # Stage 2: Development (Fast Vite Dev Server)
 FROM base AS development
@@ -15,7 +15,7 @@ CMD ["npm", "run", "dev", "--", "--host"]
 FROM base AS build
 COPY . .
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN npm run build
+RUN --mount=type=cache,target=/app/node_modules/.vite npm run build
 
 # Stage 4: Production Nginx
 FROM nginx:alpine AS production
