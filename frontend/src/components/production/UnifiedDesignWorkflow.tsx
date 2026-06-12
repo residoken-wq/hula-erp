@@ -106,7 +106,7 @@ const UnifiedDesignWorkflow: React.FC = () => {
             const res = await api.get('/purchasing');
             const data = Array.isArray(res.data) ? res.data : [];
             const filtered = data.filter((po: any) => 
-                po.po_type === 'OUTSOURCING' && 
+                po.type === 'OUTSOURCING' && 
                 ['DRAFT', 'ORDERED', 'SENT', 'CONFIRMED'].includes(po.status)
             );
             setPoList(filtered);
