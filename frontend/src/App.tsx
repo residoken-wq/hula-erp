@@ -71,6 +71,7 @@ const BodDashboard = React.lazy(() => import('./pages/BodDashboard'));
 const DiscussionDetailPage = React.lazy(() => import('./pages/DiscussionDetailPage'));
 const QCPage = React.lazy(() => import('./pages/QCPage'));
 const ProductionDashboardPage = React.lazy(() => import('./pages/ProductionDashboardPage'));
+const ProcessesPage = React.lazy(() => import('./pages/ProcessesPage'));
 
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
