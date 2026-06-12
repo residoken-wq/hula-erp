@@ -4,7 +4,7 @@ import type { MenuProps } from 'antd';
 import {
     DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
     SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined, MenuOutlined, IdcardOutlined,
-    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined, FolderOutlined, MessageOutlined, GlobalOutlined
+    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined, FolderOutlined, MessageOutlined, GlobalOutlined, PrinterOutlined, ExperimentOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Drawer } from 'antd'; // <--- Import Drawer
@@ -72,6 +72,7 @@ const DiscussionDetailPage = React.lazy(() => import('./pages/DiscussionDetailPa
 const QCPage = React.lazy(() => import('./pages/QCPage'));
 const ProductionDashboardPage = React.lazy(() => import('./pages/ProductionDashboardPage'));
 const ProcessesPage = React.lazy(() => import('./pages/ProcessesPage'));
+const PrintReportDashboard = React.lazy(() => import('./pages/PrintReportDashboard'));
 
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
@@ -197,6 +198,7 @@ const App: React.FC = () => {
             items.push(getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
                 getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
                 getItem(<Link to="/purchasing">Đơn Mua Hàng & GC</Link>, 'po_page'),
+                getItem(<Link to="/print-production">Báo cáo Gia công In</Link>, 'print-production', <PrinterOutlined />),
                 getItem(<Link to="/designs">Thiết kế In ấn & Thêu</Link>, 'designs_page'),
                 getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
                 getItem(<Link to="/processes">DM Công Đoạn</Link>, 'proc_list'),
@@ -331,7 +333,6 @@ const App: React.FC = () => {
                                                         <Route path="/products" element={<ProductsPage />} />
                                                         <Route path="/combos" element={<CombosPage />} />
                                                         <Route path="/categories" element={<CategoriesPage />} />
-                                                        <Route path="/designs" element={<DesignManagementPage />} />
                                                         <Route path="/website-products" element={<WebsiteProductsPage />} />
                                                     </>
                                                 )}
@@ -368,6 +369,8 @@ const App: React.FC = () => {
                                                         <Route path="/purchasing" element={<PurchasingPage />} />
                                                         <Route path="/qc" element={<QCPage />} />
                                                         <Route path="/production-dashboard" element={<ProductionDashboardPage />} />
+                                                        <Route path="/designs" element={<DesignManagementPage />} />
+                                                        <Route path="/print-production" element={<PrintReportDashboard />} />
                                                     </>
                                                 )}
 

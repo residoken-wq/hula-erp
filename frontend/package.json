@@ -31,7 +31,8 @@
     "react-router-dom": "^6.20.0",
     "konva": "^9.2.3",
     "react-konva": "^18.2.10",
-    "jspdf": "^2.5.1"
+    "jspdf": "^2.5.1",
+    "use-image": "^1.1.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",

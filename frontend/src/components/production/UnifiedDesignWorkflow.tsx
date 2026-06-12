@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Spin, Divider, Switch } from 'antd';
-import { UploadOutlined, DownloadOutlined, PlusOutlined, DeleteOutlined, FilePdfOutlined, FileImageOutlined } from '@ant-design/icons';
+import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Divider, Switch, Tabs } from 'antd';
+import { UploadOutlined, FilePdfOutlined, FileImageOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Stage, Layer, Rect as KonvaRect, Image as KonvaImage, Transformer, Group, Text as KonvaText } from 'react-konva';
 import useImage from 'use-image';
 import jsPDF from 'jspdf';
@@ -80,20 +80,21 @@ const UnifiedDesignWorkflow: React.FC = () => {
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [loadingPo, setLoadingPo] = useState(false);
 
-    // --- Step 2 Data ---
-    const [pieceSize, setPieceSize] = useState({ w: 50, h: 40 });
-    const [bgColor, setBgColor] = useState('#e6f7ff');
-    const [logoUrl, setLogoUrl] = useState<string | null>(null);
-    const [logoConfig, setLogoConfig] = useState({ x: 10, y: 10, width: 20, height: 20 });
-    const [selectedId, selectShape] = useState<string | null>(null);
+    // --- Step 2 Data: Multi-Face Support ---
+    const [faces, setFaces] = useState<any[]>([
+        { id: 'face-1', name: 'Mặt trước', pieceSize: { w: 50, h: 40 }, bgColor: '#e6f7ff', logoUrl: null, logoConfig: { x: 10, y: 10, width: 20, height: 20 }, selectedId: null }
+    ]);
+    const [activeFaceKey, setActiveFaceKey] = useState('face-1');
 
-    // --- Step 3 Data ---
-    const [bins, setBins] = useState<Bin[]>([{ w: 400, h: 120 }]);
+    // --- Step 3 Data: Multi-Bin per Face ---
+    const [binsByFace, setBinsByFace] = useState<Record<string, Bin[]>>({
+        'face-1': [{ w: 400, h: 120 }]
+    });
+    const [resultsByFace, setResultsByFace] = useState<Record<string, { binResults: BinResult[], unpacked: Rect[] }>>({});
+    
     const [padding, setPadding] = useState(2);
     const [allowRotation, setAllowRotation] = useState(true);
-    const [binResults, setBinResults] = useState<BinResult[]>([]);
-    const [unpacked, setUnpacked] = useState<Rect[]>([]);
-    const stageRefs = useRef<(any)[]>([]); // Refs for multiple canvases
+    const stageRefs = useRef<Record<string, any[]>>({}); // Refs for multiple canvases mapped by faceId
 
     useEffect(() => {
         fetchPOs();
@@ -104,7 +105,6 @@ const UnifiedDesignWorkflow: React.FC = () => {
         try {
             const res = await api.get('/purchasing');
             const data = Array.isArray(res.data) ? res.data : [];
-            // Filter PO_GC (OUTSOURCING) and status DRAFT or ORDERED
             const filtered = data.filter((po: any) => 
                 po.po_type === 'OUTSOURCING' && 
                 ['DRAFT', 'ORDERED', 'SENT', 'CONFIRMED'].includes(po.status)
@@ -116,13 +116,13 @@ const UnifiedDesignWorkflow: React.FC = () => {
         setLoadingPo(false);
     };
 
-    const handleUpload = async (options: any) => {
+    const handleUpload = async (options: any, faceId: string) => {
         const { file, onSuccess, onError } = options;
         const formData = new FormData();
         formData.append('file', file);
         try {
             const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-            setLogoUrl(res.data.url);
+            updateFace(faceId, { logoUrl: res.data.url });
             onSuccess(res.data.url);
             message.success('Tải logo thành công');
         } catch (e) {
@@ -131,14 +131,28 @@ const UnifiedDesignWorkflow: React.FC = () => {
         }
     };
 
+    const updateFace = (id: string, updates: any) => {
+        setFaces(faces.map(f => f.id === id ? { ...f, ...updates } : f));
+    };
+
+    const handleAddFace = () => {
+        const newId = `face-${Date.now()}`;
+        setFaces([...faces, { id: newId, name: `Mặt vải ${faces.length + 1}`, pieceSize: { w: 50, h: 40 }, bgColor: '#fff7e6', logoUrl: null, logoConfig: { x: 10, y: 10, width: 20, height: 20 }, selectedId: null }]);
+        setBinsByFace({ ...binsByFace, [newId]: [{ w: 400, h: 120 }] });
+        setActiveFaceKey(newId);
+    };
+
+    const handleRemoveFace = (id: string) => {
+        if (faces.length === 1) return;
+        const newFaces = faces.filter(f => f.id !== id);
+        setFaces(newFaces);
+        setActiveFaceKey(newFaces[0].id);
+    };
+
     const handleNext = () => {
         if (currentStep === 0 && !selectedItem) {
             message.warning('Vui lòng chọn 1 sản phẩm trong đơn gia công!');
             return;
-        }
-        if (currentStep === 1 && !logoUrl) {
-            message.warning('Vui lòng tải lên Logo khách hàng để căn chỉnh!');
-            // Cho phép đi tiếp nếu ko có logo? Tùy nghiệp vụ, nhưng tốt nhất nên cảnh báo
         }
         setCurrentStep(currentStep + 1);
     };
@@ -147,89 +161,104 @@ const UnifiedDesignWorkflow: React.FC = () => {
         setCurrentStep(currentStep - 1);
     };
 
-    const handleAddBin = () => {
-        setBins([...bins, { w: 400, h: 120 }]);
+    const handleAddBin = (faceId: string) => {
+        const currentBins = binsByFace[faceId] || [];
+        setBinsByFace({ ...binsByFace, [faceId]: [...currentBins, { w: 400, h: 120 }] });
     };
 
-    const handleRemoveBin = (index: number) => {
-        const newBins = [...bins];
-        newBins.splice(index, 1);
-        setBins(newBins);
+    const handleRemoveBin = (faceId: string, index: number) => {
+        const currentBins = [...(binsByFace[faceId] || [])];
+        currentBins.splice(index, 1);
+        setBinsByFace({ ...binsByFace, [faceId]: currentBins });
     };
 
-    const handleBinChange = (index: number, field: string, value: number) => {
-        const newBins = [...bins];
-        newBins[index] = { ...newBins[index], [field]: value };
-        setBins(newBins);
+    const handleBinChange = (faceId: string, index: number, field: string, value: number) => {
+        const currentBins = [...(binsByFace[faceId] || [])];
+        currentBins[index] = { ...currentBins[index], [field]: value };
+        setBinsByFace({ ...binsByFace, [faceId]: currentBins });
     };
 
     const handleAutoPack = () => {
         if (!selectedItem) return;
         const quantity = selectedItem.quantity || 1;
-        const rects: Rect[] = [];
+        const newResults: Record<string, any> = {};
+        let hasUnpacked = false;
 
-        // Generate N rects based on quantity and piece size
-        for (let i = 0; i < quantity; i++) {
-            rects.push({
-                id: `P-${i}`,
-                w: pieceSize.w,
-                h: pieceSize.h,
-                data: { color: bgColor, logoUrl, logoConfig }
-            });
-        }
+        faces.forEach(face => {
+            const rects: Rect[] = [];
+            for (let i = 0; i < quantity; i++) {
+                rects.push({
+                    id: `P-${face.id}-${i}`,
+                    w: face.pieceSize.w,
+                    h: face.pieceSize.h,
+                    data: { color: face.bgColor, logoUrl: face.logoUrl, logoConfig: face.logoConfig }
+                });
+            }
 
-        const result = packMultipleBins(bins, rects, padding, allowRotation);
-        setBinResults(result.binResults);
-        setUnpacked(result.unpacked);
+            const bins = binsByFace[face.id] || [];
+            const result = packMultipleBins(bins, rects, padding, allowRotation);
+            newResults[face.id] = result;
+            if (result.unpacked.length > 0) hasUnpacked = true;
+        });
 
-        if (result.unpacked.length > 0) {
-            message.warning(`Cảnh báo: Có ${result.unpacked.length} mảnh không xếp được vào các tấm vải đã cho. Hãy thêm vải!`);
+        setResultsByFace(newResults);
+
+        if (hasUnpacked) {
+            message.warning(`Cảnh báo: Có mảnh chưa xếp được do thiếu diện tích vải. Vui lòng kiểm tra các mặt!`);
         } else {
-            message.success('Xếp sơ đồ hoàn tất!');
+            message.success('Xếp sơ đồ cho tất cả các mặt hoàn tất!');
         }
     };
 
     const exportToPNG = () => {
-        stageRefs.current.forEach((stage, idx) => {
-            if (stage) {
-                const uri = stage.toDataURL({ pixelRatio: 2 });
-                const link = document.createElement('a');
-                link.download = `sodo-vai-${idx + 1}-${Date.now()}.png`;
-                link.href = uri;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
+        Object.keys(stageRefs.current).forEach(faceId => {
+            const faceName = faces.find(f => f.id === faceId)?.name || faceId;
+            const stages = stageRefs.current[faceId] || [];
+            stages.forEach((stage, idx) => {
+                if (stage) {
+                    const uri = stage.toDataURL({ pixelRatio: 2 });
+                    const link = document.createElement('a');
+                    link.download = `Sodo_${faceName}_Tam_${idx + 1}.png`;
+                    link.href = uri;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            });
         });
     };
 
     const exportToPDF = () => {
-        // PDF default A4 is 210x297mm.
-        // We will create a landscape PDF to fit long fabric rolls better
         const pdf = new jsPDF('l', 'px', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
+        let isFirstPage = true;
 
-        stageRefs.current.forEach((stage, idx) => {
-            if (stage) {
-                if (idx > 0) pdf.addPage();
-                
-                const canvas = stage.toCanvas();
-                const imgData = canvas.toDataURL('image/png');
-                
-                // Scale canvas to fit inside A4 landscape
-                const canvasW = canvas.width;
-                const canvasH = canvas.height;
-                const ratio = Math.min(pdfWidth / canvasW, pdfHeight / canvasH);
-                
-                const w = canvasW * ratio;
-                const h = canvasH * ratio;
-                const x = (pdfWidth - w) / 2;
-                const y = (pdfHeight - h) / 2;
+        Object.keys(stageRefs.current).forEach(faceId => {
+            const faceName = faces.find(f => f.id === faceId)?.name || faceId;
+            const stages = stageRefs.current[faceId] || [];
+            
+            stages.forEach((stage, idx) => {
+                if (stage) {
+                    if (!isFirstPage) pdf.addPage();
+                    isFirstPage = false;
+                    
+                    const canvas = stage.toCanvas();
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    const canvasW = canvas.width;
+                    const canvasH = canvas.height;
+                    const ratio = Math.min(pdfWidth / canvasW, pdfHeight / canvasH);
+                    
+                    const w = canvasW * ratio;
+                    const h = canvasH * ratio;
+                    const x = (pdfWidth - w) / 2;
+                    const y = (pdfHeight - h) / 2;
 
-                pdf.addImage(imgData, 'PNG', x, y, w, h);
-                pdf.text(`Sơ đồ Vải số ${idx + 1}`, 20, 20);
-            }
+                    pdf.addImage(imgData, 'PNG', x, y, w, h);
+                    pdf.text(`Sơ đồ: ${faceName} - Tấm ${idx + 1}`, 20, 20);
+                }
+            });
         });
 
         pdf.save(`SoDo_PO_${selectedPo?.po_code || 'Export'}.pdf`);
@@ -277,166 +306,199 @@ const UnifiedDesignWorkflow: React.FC = () => {
     );
 
     const renderStep2 = () => {
-        const SCALE = 5; // Scale up the 50x40cm to 250x200px for easy viewing
+        const SCALE = 5;
+
         return (
-            <Row gutter={24}>
-                <Col span={8}>
-                    <Card title="Thông số Sản phẩm (1 mảnh)">
-                        <Space direction="vertical" style={{ width: '100%' }}>
-                            <div>
-                                <label>Kích thước Dài (cm):</label>
-                                <InputNumber style={{ width: '100%' }} value={pieceSize.w} onChange={v => setPieceSize({ ...pieceSize, w: v || 50 })} />
-                            </div>
-                            <div>
-                                <label>Kích thước Rộng/Cao (cm):</label>
-                                <InputNumber style={{ width: '100%' }} value={pieceSize.h} onChange={v => setPieceSize({ ...pieceSize, h: v || 40 })} />
-                            </div>
-                            <div>
-                                <label>Màu nền (Branding):</label>
-                                <input type="color" style={{ width: '100%', height: 32, cursor: 'pointer' }} value={bgColor} onChange={e => setBgColor(e.target.value)} />
-                            </div>
-                            <Divider style={{ margin: '12px 0' }} />
-                            <div>
-                                <label>Tải Logo / Hình In lên:</label>
-                                <Upload customRequest={handleUpload} listType="picture" maxCount={1} showUploadList={false}>
-                                    <Button icon={<UploadOutlined />} style={{ width: '100%', marginTop: 8 }}>Chọn ảnh Logo</Button>
-                                </Upload>
-                            </div>
-                        </Space>
-                    </Card>
-                </Col>
-                <Col span={16}>
-                    <Card title="Căn chỉnh Logo trên Sản phẩm">
-                        <div style={{ background: '#f0f2f5', padding: 20, display: 'flex', justifyContent: 'center' }}>
-                            <div style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)', background: 'white' }}>
-                                <Stage width={pieceSize.w * SCALE} height={pieceSize.h * SCALE} onMouseDown={(e) => {
-                                    if (e.target === e.target.getStage()) selectShape(null);
-                                }}>
-                                    <Layer>
-                                        <KonvaRect width={pieceSize.w * SCALE} height={pieceSize.h * SCALE} fill={bgColor} />
-                                        {logoUrl && (
-                                            <URLImage
-                                                image={logoUrl}
-                                                x={logoConfig.x * SCALE}
-                                                y={logoConfig.y * SCALE}
-                                                width={logoConfig.width * SCALE}
-                                                height={logoConfig.height * SCALE}
-                                                isSelected={selectedId === 'logo'}
-                                                onSelect={() => selectShape('logo')}
-                                                onChange={(newAttrs: any) => {
-                                                    setLogoConfig({
-                                                        x: newAttrs.x / SCALE,
-                                                        y: newAttrs.y / SCALE,
-                                                        width: newAttrs.width / SCALE,
-                                                        height: newAttrs.height / SCALE,
-                                                    });
-                                                }}
-                                            />
-                                        )}
-                                    </Layer>
-                                </Stage>
-                            </div>
-                        </div>
-                        <div style={{ textAlign: 'center', marginTop: 10, color: '#888' }}>
-                            <i>Click vào logo để thay đổi kích thước và di chuyển</i>
-                        </div>
-                    </Card>
-                </Col>
-            </Row>
+            <div>
+                <div style={{ marginBottom: 16 }}>
+                    <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddFace}>Thêm Mặt Vải / Chi tiết</Button>
+                </div>
+                <Tabs type="card" activeKey={activeFaceKey} onChange={setActiveFaceKey}>
+                    {faces.map(face => (
+                        <Tabs.TabPane tab={face.name} key={face.id}>
+                            <Row gutter={24}>
+                                <Col span={8}>
+                                    <Card title="Thông số (1 mảnh)" extra={faces.length > 1 && <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleRemoveFace(face.id)} />}>
+                                        <Space direction="vertical" style={{ width: '100%' }}>
+                                            <div>
+                                                <label>Tên Mặt/Vải:</label>
+                                                <input className="ant-input" value={face.name} onChange={e => updateFace(face.id, { name: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label>Kích thước Dài (cm):</label>
+                                                <InputNumber style={{ width: '100%' }} value={face.pieceSize.w} onChange={v => updateFace(face.id, { pieceSize: { ...face.pieceSize, w: v || 50 } })} />
+                                            </div>
+                                            <div>
+                                                <label>Kích thước Rộng/Cao (cm):</label>
+                                                <InputNumber style={{ width: '100%' }} value={face.pieceSize.h} onChange={v => updateFace(face.id, { pieceSize: { ...face.pieceSize, h: v || 40 } })} />
+                                            </div>
+                                            <div>
+                                                <label>Màu nền (Branding):</label>
+                                                <input type="color" style={{ width: '100%', height: 32, cursor: 'pointer' }} value={face.bgColor} onChange={e => updateFace(face.id, { bgColor: e.target.value })} />
+                                            </div>
+                                            <Divider style={{ margin: '12px 0' }} />
+                                            <div>
+                                                <label>Tải Logo / Hình In lên:</label>
+                                                <Upload customRequest={(opts) => handleUpload(opts, face.id)} listType="picture" maxCount={1} showUploadList={false}>
+                                                    <Button icon={<UploadOutlined />} style={{ width: '100%', marginTop: 8 }}>Chọn ảnh Logo</Button>
+                                                </Upload>
+                                            </div>
+                                        </Space>
+                                    </Card>
+                                </Col>
+                                <Col span={16}>
+                                    <Card title="Căn chỉnh Logo trên mảnh">
+                                        <div style={{ background: '#f0f2f5', padding: 20, display: 'flex', justifyContent: 'center' }}>
+                                            <div style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)', background: 'white' }}>
+                                                <Stage width={face.pieceSize.w * SCALE} height={face.pieceSize.h * SCALE} onMouseDown={(e) => {
+                                                    if (e.target === e.target.getStage()) updateFace(face.id, { selectedId: null });
+                                                }}>
+                                                    <Layer>
+                                                        <KonvaRect width={face.pieceSize.w * SCALE} height={face.pieceSize.h * SCALE} fill={face.bgColor} />
+                                                        {face.logoUrl && (
+                                                            <URLImage
+                                                                image={face.logoUrl}
+                                                                x={face.logoConfig.x * SCALE}
+                                                                y={face.logoConfig.y * SCALE}
+                                                                width={face.logoConfig.width * SCALE}
+                                                                height={face.logoConfig.height * SCALE}
+                                                                isSelected={face.selectedId === 'logo'}
+                                                                onSelect={() => updateFace(face.id, { selectedId: 'logo' })}
+                                                                onChange={(newAttrs: any) => {
+                                                                    updateFace(face.id, {
+                                                                        logoConfig: {
+                                                                            x: newAttrs.x / SCALE,
+                                                                            y: newAttrs.y / SCALE,
+                                                                            width: newAttrs.width / SCALE,
+                                                                            height: newAttrs.height / SCALE,
+                                                                        }
+                                                                    });
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </Layer>
+                                                </Stage>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                </Col>
+                            </Row>
+                        </Tabs.TabPane>
+                    ))}
+                </Tabs>
+            </div>
         );
     }
 
     const renderStep3 = () => {
-        // Multi-bin rendering
         const CANVAS_DISPLAY_WIDTH = 800;
 
         return (
             <Row gutter={16}>
                 <Col span={6}>
                     <Card title="Cấu hình Khổ Vải (Bins)" size="small">
-                        <Space direction="vertical" style={{ width: '100%' }}>
-                            {bins.map((bin, index) => (
-                                <Card size="small" key={index} title={`Tấm vải ${index + 1}`} extra={bins.length > 1 && <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleRemoveBin(index)} />}>
-                                    <div>Dài (cm): <InputNumber size="small" value={bin.w} onChange={v => handleBinChange(index, 'w', v || 400)} /></div>
-                                    <div style={{ marginTop: 4 }}>Rộng (cm): <InputNumber size="small" value={bin.h} onChange={v => handleBinChange(index, 'h', v || 120)} /></div>
-                                </Card>
-                            ))}
-                            <Button type="dashed" block icon={<PlusOutlined />} onClick={handleAddBin}>Thêm tấm vải mới</Button>
-                        </Space>
+                        <Tabs type="card" size="small" style={{ marginBottom: 16 }}>
+                            {faces.map(face => {
+                                const bins = binsByFace[face.id] || [];
+                                return (
+                                    <Tabs.TabPane tab={face.name} key={face.id}>
+                                        <Space direction="vertical" style={{ width: '100%' }}>
+                                            {bins.map((bin, index) => (
+                                                <Card size="small" key={index} title={`Tấm vải ${index + 1}`} extra={bins.length > 1 && <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleRemoveBin(face.id, index)} />}>
+                                                    <div>Dài (cm): <InputNumber size="small" value={bin.w} onChange={v => handleBinChange(face.id, index, 'w', v || 400)} /></div>
+                                                    <div style={{ marginTop: 4 }}>Rộng (cm): <InputNumber size="small" value={bin.h} onChange={v => handleBinChange(face.id, index, 'h', v || 120)} /></div>
+                                                </Card>
+                                            ))}
+                                            <Button type="dashed" block icon={<PlusOutlined />} onClick={() => handleAddBin(face.id)}>Thêm tấm vải mới</Button>
+                                        </Space>
+                                    </Tabs.TabPane>
+                                );
+                            })}
+                        </Tabs>
+
                         <Divider />
                         <Space direction="vertical" style={{ width: '100%' }}>
                             <div>Padding (cm): <InputNumber size="small" value={padding} onChange={v => setPadding(v || 0)} /></div>
                             <div>Tự động xoay: <Switch checked={allowRotation} onChange={setAllowRotation} size="small" /></div>
-                            <Button type="primary" block style={{ background: '#52c41a' }} onClick={handleAutoPack}>Chạy Tự Động Xếp</Button>
+                            <Button type="primary" block style={{ background: '#52c41a' }} onClick={handleAutoPack}>Chạy Tự Động Xếp Tất Cả</Button>
                         </Space>
                     </Card>
                     
-                    {binResults.length > 0 && (
+                    {Object.keys(resultsByFace).length > 0 && (
                         <Card title="Xuất File" size="small" style={{ marginTop: 16 }}>
                             <Space direction="vertical" style={{ width: '100%' }}>
-                                <Button block icon={<FilePdfOutlined />} onClick={exportToPDF} style={{ color: '#cf1322', borderColor: '#cf1322' }}>Xuất PDF (Mỗi tấm 1 trang)</Button>
-                                <Button block icon={<FileImageOutlined />} onClick={exportToPNG}>Xuất PNG (Nhiều ảnh)</Button>
+                                <Button block icon={<FilePdfOutlined />} onClick={exportToPDF} style={{ color: '#cf1322', borderColor: '#cf1322' }}>Xuất PDF Gộp</Button>
+                                <Button block icon={<FileImageOutlined />} onClick={exportToPNG}>Xuất PNG Rời</Button>
                             </Space>
                         </Card>
                     )}
                 </Col>
                 <Col span={18}>
-                    {unpacked.length > 0 && (
-                        <div style={{ marginBottom: 16, padding: 12, background: '#fff2f0', border: '1px solid #ffccc7', color: '#cf1322', borderRadius: 4 }}>
-                            <b>Thiếu diện tích!</b> Có {unpacked.length} mảnh chưa thể xếp vào vải. Vui lòng thêm tấm vải mới ở cột trái và Chạy lại.
-                        </div>
-                    )}
-                    
-                    {binResults.map((result, idx) => {
-                        const scale = CANVAS_DISPLAY_WIDTH / result.w;
-                        const displayHeight = result.h * scale;
-
+                    {faces.map(face => {
+                        const resultObj = resultsByFace[face.id];
+                        if (!resultObj) return null;
+                        
                         return (
-                            <Card title={`Sơ đồ: Tấm vải ${idx + 1} (${result.w}x${result.h} cm) - Đã xếp: ${result.packed.length} mảnh`} size="small" style={{ marginBottom: 16 }} key={idx}>
-                                <div style={{ overflowX: 'auto', background: '#f0f2f5', padding: 10 }}>
-                                    <div style={{ width: CANVAS_DISPLAY_WIDTH, height: displayHeight, background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                                        <Stage width={CANVAS_DISPLAY_WIDTH} height={displayHeight} ref={(node) => { stageRefs.current[idx] = node; }}>
-                                            <Layer>
-                                                {result.packed.map((rect, i) => (
-                                                    <Group
-                                                        key={rect.id}
-                                                        x={(rect.x || 0) * scale}
-                                                        y={(rect.y || 0) * scale}
-                                                        rotation={rect.rotated ? -90 : 0} // Handling rotation display
-                                                        offsetX={rect.rotated ? 0 : 0}
-                                                        offsetY={rect.rotated ? rect.w * scale : 0} // Adjust offset for rotation
-                                                    >
-                                                        {/* Product Background */}
-                                                        <KonvaRect
-                                                            width={(rect.rotated ? rect.h : rect.w) * scale}
-                                                            height={(rect.rotated ? rect.w : rect.h) * scale}
-                                                            fill={rect.data?.color || '#e6f7ff'}
-                                                            stroke="#000"
-                                                            strokeWidth={1}
-                                                        />
-                                                        {/* Scaled Mini Logo inside the piece */}
-                                                        {/* We need to apply the same percentage relative to w/h */}
-                                                        <Group
-                                                            x={rect.data?.logoConfig?.x / pieceSize.w * (rect.rotated ? rect.h : rect.w) * scale || 0}
-                                                            y={rect.data?.logoConfig?.y / pieceSize.h * (rect.rotated ? rect.w : rect.h) * scale || 0}
-                                                        >
-                                                            {/* Just show a placeholder rect for Logo in final marker for performance, or text */}
-                                                            <KonvaRect 
-                                                                width={rect.data?.logoConfig?.width / pieceSize.w * (rect.rotated ? rect.h : rect.w) * scale || 0}
-                                                                height={rect.data?.logoConfig?.height / pieceSize.h * (rect.rotated ? rect.w : rect.h) * scale || 0}
-                                                                fill="rgba(255,0,0,0.3)"
-                                                                stroke="red"
-                                                                strokeWidth={1}
-                                                            />
-                                                            <KonvaText text="LOGO" fontSize={10} fill="red" />
-                                                        </Group>
-                                                    </Group>
-                                                ))}
-                                            </Layer>
-                                        </Stage>
+                            <div key={face.id} style={{ marginBottom: 24 }}>
+                                <Divider orientation="left">{face.name}</Divider>
+                                
+                                {resultObj.unpacked.length > 0 && (
+                                    <div style={{ marginBottom: 16, padding: 12, background: '#fff2f0', border: '1px solid #ffccc7', color: '#cf1322', borderRadius: 4 }}>
+                                        <b>{face.name} - Thiếu diện tích!</b> Có {resultObj.unpacked.length} mảnh chưa thể xếp vào vải. Vui lòng thêm tấm vải.
                                     </div>
-                                </div>
-                            </Card>
+                                )}
+
+                                {resultObj.binResults.map((result, idx) => {
+                                    const scale = CANVAS_DISPLAY_WIDTH / result.w;
+                                    const displayHeight = result.h * scale;
+                                    
+                                    if (!stageRefs.current[face.id]) stageRefs.current[face.id] = [];
+
+                                    return (
+                                        <Card title={`Sơ đồ: ${face.name} - Tấm ${idx + 1} (${result.w}x${result.h} cm) - Đã xếp: ${result.packed.length} mảnh`} size="small" style={{ marginBottom: 16 }} key={idx}>
+                                            <div style={{ overflowX: 'auto', background: '#f0f2f5', padding: 10 }}>
+                                                <div style={{ width: CANVAS_DISPLAY_WIDTH, height: displayHeight, background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                                                    <Stage width={CANVAS_DISPLAY_WIDTH} height={displayHeight} ref={(node) => { stageRefs.current[face.id][idx] = node; }}>
+                                                        <Layer>
+                                                            {result.packed.map((rect) => (
+                                                                <Group
+                                                                    key={rect.id}
+                                                                    x={(rect.x || 0) * scale}
+                                                                    y={(rect.y || 0) * scale}
+                                                                    rotation={rect.rotated ? -90 : 0}
+                                                                    offsetX={rect.rotated ? 0 : 0}
+                                                                    offsetY={rect.rotated ? rect.w * scale : 0}
+                                                                >
+                                                                    <KonvaRect
+                                                                        width={(rect.rotated ? rect.h : rect.w) * scale}
+                                                                        height={(rect.rotated ? rect.w : rect.h) * scale}
+                                                                        fill={rect.data?.color || '#e6f7ff'}
+                                                                        stroke="#000"
+                                                                        strokeWidth={1}
+                                                                    />
+                                                                    <Group
+                                                                        x={rect.data?.logoConfig?.x / face.pieceSize.w * (rect.rotated ? rect.h : rect.w) * scale || 0}
+                                                                        y={rect.data?.logoConfig?.y / face.pieceSize.h * (rect.rotated ? rect.w : rect.h) * scale || 0}
+                                                                    >
+                                                                        <KonvaRect 
+                                                                            width={rect.data?.logoConfig?.width / face.pieceSize.w * (rect.rotated ? rect.h : rect.w) * scale || 0}
+                                                                            height={rect.data?.logoConfig?.height / face.pieceSize.h * (rect.rotated ? rect.w : rect.h) * scale || 0}
+                                                                            fill="rgba(255,0,0,0.3)"
+                                                                            stroke="red"
+                                                                            strokeWidth={1}
+                                                                        />
+                                                                        <KonvaText text="LOGO" fontSize={10} fill="red" />
+                                                                    </Group>
+                                                                </Group>
+                                                            ))}
+                                                        </Layer>
+                                                    </Stage>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    );
+                                })}
+                            </div>
                         );
                     })}
                 </Col>
@@ -446,8 +508,8 @@ const UnifiedDesignWorkflow: React.FC = () => {
 
     const steps = [
         { title: 'Chọn Đơn Hàng (PO_GC)', content: renderStep1() },
-        { title: 'Thiết Kế Sản Phẩm', content: renderStep2() },
-        { title: 'Xếp Sơ Đồ (Multi-Bin)', content: renderStep3() },
+        { title: 'Thiết Kế Sản Phẩm (Đa Mặt)', content: renderStep2() },
+        { title: 'Xếp Sơ Đồ Đa Mặt', content: renderStep3() },
     ];
 
     return (
