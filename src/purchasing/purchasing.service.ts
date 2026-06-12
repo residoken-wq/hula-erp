@@ -314,7 +314,7 @@ export class PurchasingService {
     async getByUuid(uuid: string) {
         const po = await this.poRepo.findOne({
             where: { uuid },
-            relations: ['supplier', 'items', 'items.product', 'items.material']
+            relations: ['supplier', 'items', 'items.product', 'items.material', 'items.print_design']
         });
         if (!po) throw new NotFoundException('Đơn hàng không tồn tại hoặc link đã hết hạn');
         return po;

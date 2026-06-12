@@ -31,8 +31,8 @@ const CustomersPage = React.lazy(() => import('./pages/CustomersPage'));
 const PlanningPage = React.lazy(() => import('./pages/PlanningPage'));
 const ManufacturersPage = React.lazy(() => import('./pages/ManufacturersPage'));
 const ProductionRoutePage = React.lazy(() => import('./pages/ProductionRoutePage'));
-const ProcessesPage = React.lazy(() => import('./pages/ProcessesPage'));
 const CategoriesPage = React.lazy(() => import('./pages/CategoriesPage'));
+const DesignManagementPage = React.lazy(() => import('./pages/DesignManagementPage')); // <--- MỚI
 const PortalQuotePage = React.lazy(() => import('./pages/PortalQuotePage'));
 const PortalPurchasePage = React.lazy(() => import('./pages/PortalPurchasePage'));
 const PortalRecruitmentPage = React.lazy(() => import('./pages/PortalRecruitmentPage'));
@@ -151,6 +151,7 @@ const App: React.FC = () => {
                 getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'),
                 getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
                 getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page'),
+                getItem(<Link to="/designs">Thiết kế In ấn & Thêu</Link>, 'designs_page'),
             ]));
         }
 
@@ -329,6 +330,7 @@ const App: React.FC = () => {
                                                         <Route path="/products" element={<ProductsPage />} />
                                                         <Route path="/combos" element={<CombosPage />} />
                                                         <Route path="/categories" element={<CategoriesPage />} />
+                                                        <Route path="/designs" element={<DesignManagementPage />} />
                                                         <Route path="/website-products" element={<WebsiteProductsPage />} />
                                                     </>
                                                 )}

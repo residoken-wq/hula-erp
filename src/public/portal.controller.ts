@@ -598,4 +598,73 @@ export class PortalController {
             throw new HttpException('Lỗi server khi tải thống kê sản phẩm', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    // ============================================================
+    // 9. CUSTOM ORDER FROM PORTAL B2B
+    // ============================================================
+    @Post('custom-order/:slug')
+    async createCustomOrder(
+        @Param('slug') slug: string,
+        @Headers('authorization') authHeader: string,
+        @Body() body: { 
+            category: string; 
+            subcategory: string; 
+            quantity: number; 
+            total_price: number;
+            selections: Array<{ step_label: string; option_name: string; modifier: number }>;
+            notes: string;
+        },
+    ) {
+        const session = await this.validateSession(authHeader);
+        if (session.slug !== slug) {
+            throw new HttpException('Slug không khớp', HttpStatus.FORBIDDEN);
+        }
+
+        try {
+            const customer = await this.customerRepo.findOne({ where: { id: session.customer_id } });
+            
+            // Build description from selections
+            const descLines = body.selections.map(s => `- ${s.step_label}: ${s.option_name}`);
+            const fullNote = `🎨 ĐẶT HÀNG TỰ THIẾT KẾ (B2B PORTAL)\nDanh mục: ${body.category} > ${body.subcategory}\nCấu hình:\n${descLines.join('\n')}\n\nGhi chú khách: ${body.notes || 'Không có'}`;
+
+            // Create quotation
+            const newOrder = await this.salesService.createOrder({
+                customer_id: session.customer_id,
+                customer_name: customer?.name || '',
+                items: [{
+                    sku: 'CUSTOM-B2B',
+                    quantity: body.quantity,
+                    unit_price: body.total_price / body.quantity, // unit_price = total/quantity
+                }],
+                is_quotation: true,
+                note: fullNote,
+                order_source: 'B2B_PORTAL_CUSTOM',
+            });
+
+            // Log to customer history
+            if (customer) {
+                const history = customer.history || [];
+                history.push({
+                    action: 'CUSTOM_ORDER_FROM_PORTAL',
+                    timestamp: new Date(),
+                    data: {
+                        product: body.subcategory,
+                        order_code: newOrder.order_code,
+                    },
+                });
+                customer.history = history;
+                await this.customerRepo.save(customer);
+            }
+
+            return {
+                success: true,
+                message: `Yêu cầu báo giá tự thiết kế (${newOrder.order_code}) đã được tạo thành công. Đội ngũ Sales sẽ liên hệ xác nhận.`,
+                order_code: newOrder.order_code,
+            };
+        } catch (error) {
+            if (error instanceof HttpException) throw error;
+            console.error('Error creating custom order:', error);
+            throw new HttpException('Lỗi khi tạo báo giá tự thiết kế', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

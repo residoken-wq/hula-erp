@@ -5,6 +5,7 @@ import { API_URL } from '../config';
 import PortalUserGuide from '../components/PortalUserGuide';
 import { getGoogleDriveImageUrl } from '../utils/googleDrive';
 import { Watermark, Modal } from 'antd';
+import PortalB2BCustomizer from '../components/b2b/PortalB2BCustomizer';
 
 // ============================================================
 // B2B PORTAL DASHBOARD
@@ -134,6 +135,7 @@ const PortalDashboardPage: React.FC = () => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [previewVisible, setPreviewVisible] = useState(false);
     const [previewImage, setPreviewImage] = useState('');
+    const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
 
     // ===== REORDER MODAL STATE =====
     const [reorderModalOrder, setReorderModalOrder] = useState<Order | null>(null);
@@ -390,6 +392,17 @@ const PortalDashboardPage: React.FC = () => {
 
     const { customer, stats, orders, promotions } = data;
 
+    if (isCustomizerOpen && slug && token) {
+        return (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#fff', overflowY: 'auto' }}>
+                <PortalB2BCustomizer slug={slug} token={token} onClose={() => {
+                    setIsCustomizerOpen(false);
+                    fetchDashboard();
+                }} />
+            </div>
+        );
+    }
+
     return (
         <div style={S.wrapper}>
             {/* ===== HEADER ===== */}
@@ -417,6 +430,12 @@ const PortalDashboardPage: React.FC = () => {
                         <p style={S.heroDesc}>
                             Chào mừng <strong>{customer.name}</strong> — Quản lý đơn hàng, đặt hàng nhanh và nhận ưu đãi đối tác.
                         </p>
+                        <button
+                            onClick={() => setIsCustomizerOpen(true)}
+                            style={{ padding: '12px 24px', background: '#fff', color: '#23A7D3', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginBottom: '16px', display: 'inline-block' }}
+                        >
+                            🎨 Tự Thiết Kế Sản Phẩm
+                        </button>
                         {promotions.length > 0 && (
                             <div style={S.heroBadge}>
                                 🎁 {promotions.length} chương trình khuyến mãi đang áp dụng cho bạn

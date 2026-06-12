@@ -27,6 +27,9 @@ const PurchasingPage: React.FC = () => {
     const [projects, setProjects] = useState<any[]>([]);
     const [companyConfig, setCompanyConfig] = useState<any>(null);
 
+    // --- MỚI: Print Designs ---
+    const [printDesigns, setPrintDesigns] = useState<any[]>([]);
+
     // Delivery Matrix State
     const [deliveryMatrix, setDeliveryMatrix] = useState<any[]>([]);
     const [isDeliveryLoading, setIsDeliveryLoading] = useState(false);
@@ -52,6 +55,7 @@ const PurchasingPage: React.FC = () => {
         api.get(`/suppliers`).then(res => setSuppliers(res.data)).catch(console.error);
         api.get(`/projects`).then(res => setProjects(res.data)).catch(console.error);
         api.get(`/system/company`).then(res => setCompanyConfig(res.data)).catch(console.error);
+        api.get(`/designs/print-designs`).then(res => setPrintDesigns(res.data)).catch(console.error);
     }, []);
 
     const handleStatusChange = async (id: number, status: string) => {
@@ -287,7 +291,7 @@ const PurchasingPage: React.FC = () => {
 
     const columns = [
         { title: 'Mã PO', dataIndex: 'po_code', render: (t: any, r: any) => <a onClick={() => viewDetail(r)}><b>{t}</b></a> },
-        { title: 'Khách hàng', dataIndex: 'plan', render: (p: any) => p?.customer?.name || p?.customer_name || '-' },
+        { title: 'Khách hàng', dataIndex: 'plan', render: (p: any) => p?.sales_orders?.length > 0 ? Array.from(new Set(p.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ') || '-' : '-' },
         { title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 100, render: (t: string) => t === 'MATERIAL' ? <Tag color="blue">NPL</Tag> : <Tag color="orange">Gia công</Tag> },
         { title: 'Ngày', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
         { title: 'Đối tác', dataIndex: 'supplier', render: (s: any, r: any) => s?.name || (r.note?.split('NCC: ')[1] || '-') },
@@ -1188,6 +1192,56 @@ const PurchasingPage: React.FC = () => {
                                                     }} />
                                                 }
                                             ]
+                                        }
+                                    ]}
+                                />
+                            </div>
+                        )
+                    }] : []),
+                    // --- MỚI: Tab Thiết kế & In ấn cho Gia công ---
+                    ...(currentPO?.po_type === 'OUTSOURCING' ? [{
+                        key: '5', label: 'Thiết kế & In ấn', children: (
+                            <div>
+                                <div style={{ marginBottom: 16 }}>
+                                    <b>Cập nhật Thiết kế cho Sản phẩm Gia công:</b>
+                                    <p style={{ color: '#888' }}>Liên kết mẫu in ấn/thêu để xưởng gia công biết cần in mẫu nào lên sản phẩm (dành riêng cho PO Gia công có công đoạn In/Thêu).</p>
+                                </div>
+                                <Table
+                                    dataSource={editingItems}
+                                    rowKey="id"
+                                    pagination={false}
+                                    size="small"
+                                    columns={[
+                                        { title: 'Sản phẩm / NPL', render: (r: any) => r.product?.name || r.material?.name || r.description },
+                                        {
+                                            title: 'Chọn Sơ đồ Thiết kế',
+                                            render: (r: any, _: any, index: number) => (
+                                                <Select
+                                                    showSearch
+                                                    allowClear
+                                                    placeholder="Chọn sơ đồ In/Thêu..."
+                                                    style={{ width: 300 }}
+                                                    value={r.print_design_id || r.print_design?.id}
+                                                    onChange={(val) => {
+                                                        const newItems = [...editingItems];
+                                                        newItems[index].print_design_id = val;
+                                                        setEditingItems(newItems);
+                                                    }}
+                                                    options={printDesigns.map(pd => ({
+                                                        label: `[${pd.code}] ${pd.name} (${pd.type})`,
+                                                        value: pd.id
+                                                    }))}
+                                                    optionFilterProp="label"
+                                                />
+                                            )
+                                        },
+                                        {
+                                            title: 'Trạng thái Mẫu (Demo)',
+                                            render: (r: any) => {
+                                                if (!r.print_design_id && !r.print_design) return '-';
+                                                return <Tag color="default">Chưa có mẫu</Tag>;
+                                                // TODO: Fetch and link samples correctly in the future
+                                            }
                                         }
                                     ]}
                                 />

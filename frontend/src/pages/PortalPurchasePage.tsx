@@ -190,6 +190,38 @@ const PortalPurchasePage: React.FC = () => {
                 />
             </div>
 
+            {/* PRINT DESIGNS (Outsourcing) */}
+            {data.type === 'OUTSOURCING' && data.items?.some((i: any) => i.print_design) && (
+                <div style={{ background: '#fff', borderRadius: 12, padding: '24px 32px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', marginBottom: 24 }}>
+                    <Divider orientation="left" style={{ fontSize: 14, marginTop: 0 }}>🎨 Thiết kế In ấn & Thêu</Divider>
+                    <Table
+                        dataSource={data.items.filter((i: any) => i.print_design)}
+                        rowKey="id"
+                        pagination={false}
+                        bordered
+                        size="small"
+                        columns={[
+                            {
+                                title: 'Sản phẩm',
+                                render: (r: any) => <b>{r.material?.name || r.product?.name || r.description || '-'}</b>
+                            },
+                            {
+                                title: 'Tên Sơ đồ',
+                                render: (r: any) => r.print_design?.name
+                            },
+                            {
+                                title: 'Sơ đồ Bố cục',
+                                render: (r: any) => r.print_design?.layout_image_url ? <a href={r.print_design.layout_image_url} target="_blank" rel="noreferrer"><img src={r.print_design.layout_image_url} style={{height: 50, objectFit: 'contain'}} alt="layout" /></a> : 'Chưa có'
+                            },
+                            {
+                                title: 'Loại',
+                                render: (r: any) => <Tag color={r.print_design?.type === 'PRINT' ? 'blue' : 'purple'}>{r.print_design?.type}</Tag>
+                            }
+                        ]}
+                    />
+                </div>
+            )}
+
             {/* PROGRESS TRACKING (Outsourcing) */}
             {data.type === 'OUTSOURCING' && (
                 <div style={{ background: '#fff', borderRadius: 12, padding: '24px 32px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', marginBottom: 24 }}>
