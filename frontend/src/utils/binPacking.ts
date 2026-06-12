@@ -97,3 +97,42 @@ function splitFreeRect(freeRect: any, usedNode: any, freeRects: any[]) {
         });
     }
 }
+
+export interface BinResult {
+    binId: string;
+    w: number;
+    h: number;
+    packed: Rect[];
+}
+
+export function packMultipleBins(bins: Bin[], rects: Rect[], padding: number = 0, allowRotation: boolean = true): { binResults: BinResult[], unpacked: Rect[] } {
+    let currentUnpacked = [...rects];
+    const binResults: BinResult[] = [];
+
+    for (let i = 0; i < bins.length; i++) {
+        if (currentUnpacked.length === 0) {
+            // We still want to add the empty bin to results if user specified it, but it will have empty packed array
+            binResults.push({
+                binId: `Bin-${i + 1}`,
+                w: bins[i].w,
+                h: bins[i].h,
+                packed: []
+            });
+            continue;
+        }
+        
+        const bin = bins[i];
+        const result = packRectangles(bin, currentUnpacked, padding, allowRotation);
+        
+        binResults.push({
+            binId: `Bin-${i + 1}`,
+            w: bin.w,
+            h: bin.h,
+            packed: result.packed
+        });
+        
+        currentUnpacked = result.unpacked;
+    }
+
+    return { binResults, unpacked: currentUnpacked };
+}
