@@ -3,7 +3,7 @@ FROM node:18-alpine AS base
 WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --legacy-peer-deps
+RUN --mount=type=cache,target=/root/.npm npm install --legacy-peer-deps
 
 # Stage 2: Development (Fast Start)
 FROM base AS development

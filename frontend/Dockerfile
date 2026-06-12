@@ -2,7 +2,7 @@
 FROM node:22-alpine as base
 WORKDIR /app
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN --mount=type=cache,target=/root/.npm npm install
 
 # Stage 2: Development (Fast Vite Dev Server)
 FROM base AS development
