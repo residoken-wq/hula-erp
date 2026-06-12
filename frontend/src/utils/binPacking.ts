@@ -1,0 +1,99 @@
+// frontend/src/utils/binPacking.ts
+
+export interface Rect {
+    id: string | number;
+    w: number;
+    h: number;
+    x?: number;
+    y?: number;
+    rotated?: boolean;
+    data?: any; // Additional data like color, image URL
+}
+
+export interface Bin {
+    w: number;
+    h: number;
+}
+
+// A simple 2D Bin Packing Algorithm using a naive approach for demonstration
+// For a production system, a more robust MaxRects or Skyline algorithm is recommended.
+export function packRectangles(bin: Bin, rects: Rect[], padding: number = 0, allowRotation: boolean = true): { packed: Rect[], unpacked: Rect[] } {
+    // Sort rectangles by area descending (heuristic)
+    const sortedRects = [...rects].sort((a, b) => (b.w * b.h) - (a.w * a.h));
+    const packed: Rect[] = [];
+    const unpacked: Rect[] = [];
+
+    // Keep track of free rectangles (MaxRects approach simplified)
+    let freeRects = [{ x: 0, y: 0, w: bin.w, h: bin.h }];
+
+    for (const rect of sortedRects) {
+        let placed = false;
+
+        // Try to find a free rectangle that fits
+        for (let i = 0; i < freeRects.length; i++) {
+            const freeRect = freeRects[i];
+            const neededW = rect.w + padding;
+            const neededH = rect.h + padding;
+
+            if (neededW <= freeRect.w && neededH <= freeRect.h) {
+                // Place it here
+                rect.x = freeRect.x;
+                rect.y = freeRect.y;
+                rect.rotated = false;
+                placed = true;
+                packed.push(rect);
+                splitFreeRect(freeRect, { x: rect.x, y: rect.y, w: neededW, h: neededH }, freeRects);
+                break;
+            } else if (allowRotation && neededH <= freeRect.w && neededW <= freeRect.h) {
+                // Try rotated
+                rect.x = freeRect.x;
+                rect.y = freeRect.y;
+                rect.rotated = true;
+                placed = true;
+                // Swap W and H for the output
+                const temp = rect.w;
+                rect.w = rect.h;
+                rect.h = temp;
+                packed.push(rect);
+                splitFreeRect(freeRect, { x: rect.x, y: rect.y, w: neededH, h: neededW }, freeRects);
+                break;
+            }
+        }
+
+        if (!placed) {
+            unpacked.push(rect);
+        }
+    }
+
+    return { packed, unpacked };
+}
+
+function splitFreeRect(freeRect: any, usedNode: any, freeRects: any[]) {
+    // Split the free rectangle into two new free rectangles (Guillotine split heuristic - split along shortest axis)
+    const wDiff = freeRect.w - usedNode.w;
+    const hDiff = freeRect.h - usedNode.h;
+
+    // Remove the original freeRect
+    const index = freeRects.indexOf(freeRect);
+    if (index > -1) {
+        freeRects.splice(index, 1);
+    }
+
+    if (wDiff > 0) {
+        freeRects.push({
+            x: freeRect.x + usedNode.w,
+            y: freeRect.y,
+            w: wDiff,
+            h: freeRect.h
+        });
+    }
+
+    if (hDiff > 0) {
+        freeRects.push({
+            x: freeRect.x,
+            y: freeRect.y + usedNode.h,
+            w: usedNode.w,
+            h: hDiff
+        });
+    }
+}

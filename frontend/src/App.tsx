@@ -151,8 +151,7 @@ const App: React.FC = () => {
             items.push(getItem('Quản lý sản phẩm', 'sub_prod', <ShopOutlined />, [
                 getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'),
                 getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
-                getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page'),
-                getItem(<Link to="/designs">Thiết kế In ấn & Thêu</Link>, 'designs_page'),
+                getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page')
             ]));
         }
 
@@ -198,6 +197,7 @@ const App: React.FC = () => {
             items.push(getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
                 getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
                 getItem(<Link to="/purchasing">Đơn Mua Hàng & GC</Link>, 'po_page'),
+                getItem(<Link to="/designs">Thiết kế In ấn & Thêu</Link>, 'designs_page'),
                 getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
                 getItem(<Link to="/processes">DM Công Đoạn</Link>, 'proc_list'),
                 getItem(<Link to="/qc">🔬 Kiểm Tra Chất Lượng</Link>, 'qc_page'),

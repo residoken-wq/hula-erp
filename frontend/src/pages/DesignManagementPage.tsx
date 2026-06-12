@@ -4,11 +4,12 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined } from '@ant
 import api from '../utils/api';
 import usePermission from '../hooks/usePermission';
 import dayjs from 'dayjs';
+import NestingMarkerTool from '../components/production/NestingMarkerTool';
 
 const { TabPane } = Tabs;
 
 const DesignManagementPage: React.FC = () => {
-    const { canView, canCreate, canUpdate, canDelete } = usePermission('PRODUCT');
+    const { canView, canCreate, canUpdate, canDelete } = usePermission('PRODUCTION');
 
     const [activeTab, setActiveTab] = useState('LOGOS');
     
@@ -224,6 +225,11 @@ const DesignManagementPage: React.FC = () => {
                                 ]}
                             />
                         </>
+                    )
+                },
+                {
+                    key: 'MARKER_TOOL', label: 'Công cụ Xếp Sơ đồ (Marker)', forceRender: true, children: (
+                        <NestingMarkerTool />
                     )
                 }
             ]} />
