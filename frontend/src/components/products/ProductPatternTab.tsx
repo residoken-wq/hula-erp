@@ -86,6 +86,7 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
     const uploadProps = {
         name: 'file',
         action: `${API_URL}/upload/image`, // Correct API Endpoint
+        data: { source: 'erp' },
         showUploadList: false,
         onChange(info: any) {
             if (info.file.status === 'done') {

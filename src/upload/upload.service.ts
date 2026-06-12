@@ -31,8 +31,9 @@ export class UploadService {
   }
 
   // 0. UPLOAD IMAGE
-  async uploadImage(file: Express.Multer.File) {
-    return this.saveFile(file, 'img', true); // compress images
+  async uploadImage(file: Express.Multer.File, source?: string) {
+    const prefix = source === 'erp' ? 'erp' : 'img';
+    return this.saveFile(file, prefix, true); // compress images
   }
 
   async uploadFile(file: Express.Multer.File) {
@@ -96,11 +97,16 @@ export class UploadService {
 
     // Preserve original filename (sanitize special chars, keep readable)
     const originalName = path.basename(file.originalname, ext);
-    const safeName = originalName
+    let safeName = originalName
       .normalize('NFC')                           // normalize unicode
       .replace(/[<>:"\/\\|?*]/g, '')              // remove filesystem-unsafe chars
       .replace(/\s+/g, '_')                      // spaces -> underscores
       .substring(0, 100);                        // limit length
+
+    // Add prefix for ERP uploads
+    if (prefix === 'erp') {
+      safeName = `erp_${safeName}`;
+    }
 
     let filename = `${safeName}${finalExt}`;
     let filePath = path.join(uploadDir, filename);

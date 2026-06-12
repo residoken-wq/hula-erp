@@ -2141,6 +2141,56 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'mrp-nesting':
+                return (
+                    <div>
+                        <Tag color="purple" style={{ marginBottom: 16 }}>Công cụ Sản Xuất</Tag>
+                        <Title level={2}>✂️ Công cụ Xếp Sơ đồ (2D Nesting / Marker Making)</Title>
+                        <Paragraph>
+                            Công cụ <b>Xếp sơ đồ 2D</b> giúp tối ưu hóa việc sắp xếp các chi tiết (ví dụ: hình in, hình thêu, rập cắt) lên khổ vải (hoặc khổ in/thêu) sao cho tiết kiệm diện tích nhất. Hệ thống hỗ trợ cả thuật toán tự động (Bin Packing) và thao tác kéo thả thủ công mượt mà trên Canvas.
+                        </Paragraph>
+                        <Divider orientation="left">Tính năng chính</Divider>
+                        <Row gutter={[16, 16]}>
+                            <Col span={12}>
+                                <Card size="small" title={<><ThunderboltOutlined /> Tự động xếp thông minh</>} bordered={false} style={{ background: '#e6f7ff' }}>
+                                    Hệ thống sử dụng thuật toán tự động (Bin Packing) để phân bổ các chi tiết vào khung vải khổng lồ mà không bị chồng lấp, giúp giảm hao phí vải tối đa. Hỗ trợ tự động xoay mảnh (Rotation).
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card size="small" title={<><AppstoreAddOutlined /> Kéo thả Thủ công (Drag & Drop)</>} bordered={false} style={{ background: '#f6ffed' }}>
+                                    Giao diện Canvas linh hoạt cho phép người dùng click và kéo thả để di chuyển từng mảnh, xoay các góc độ thủ công một cách chính xác.
+                                </Card>
+                            </Col>
+                        </Row>
+                        <Divider orientation="left">Các bước thực hiện</Divider>
+                        <Steps
+                            current={-1}
+                            direction="vertical"
+                            items={[
+                                {
+                                    title: 'Bước 1: Khai báo Khổ Vải (Bin)',
+                                    description: 'Nhập thông số Chiều dài và Chiều rộng của cuộn vải (hoặc bàn in) vào khung cấu hình. Ví dụ: Dài 400cm, Rộng 120cm.'
+                                },
+                                {
+                                    title: 'Bước 2: Thêm các mảnh chi tiết',
+                                    description: 'Nhập kích thước (rộng x cao), số lượng, và tên cho từng loại chi tiết cần in/thêu. Các mảnh này sẽ được đưa vào "Danh sách chờ".'
+                                },
+                                {
+                                    title: 'Bước 3: Tự động xếp sơ đồ (Auto Nest)',
+                                    description: 'Bấm nút "Tự động Xếp sơ đồ", phần mềm sẽ tính toán tọa độ tốt nhất cho từng mảnh để khít vào khổ vải.'
+                                },
+                                {
+                                    title: 'Bước 4: Tinh chỉnh thủ công',
+                                    description: 'Nhấp chọn (click) vào từng phần tử trên sơ đồ (Canvas) ở khu vực bên phải. Bạn có thể dùng chuột kéo thả nó sang một vị trí mới hoặc nắm các góc để xoay hình (Rotate).'
+                                },
+                                {
+                                    title: 'Bước 5: Xuất ảnh Sơ đồ',
+                                    description: 'Sau khi có được sơ đồ ưng ý nhất, hãy nhấn nút "Xuất Ảnh". Hình ảnh sơ đồ với độ phân giải cao sẽ được lưu về máy (PNG) để đính kèm vào Lệnh Sản Xuất (PO).'
+                                }
+                            ]}
+                        />
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -2205,6 +2255,7 @@ const HelpPage: React.FC = () => {
                             icon: <ExperimentOutlined />,
                             children: [
                                 { key: 'mrp-guide', label: 'SOP: Lập Kế Hoạch (MRP)' },
+                                { key: 'mrp-nesting', label: 'Công cụ Xếp Sơ đồ (2D Nesting)' },
                                 { key: 'po-npl', label: 'PO Nguyên Phụ Liệu' },
                                 { key: 'po-gc', label: 'PO Gia Công' },
                                 { key: 'product-guide', label: 'Cấu trúc Sản phẩm' },

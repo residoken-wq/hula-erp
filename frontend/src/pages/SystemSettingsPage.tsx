@@ -600,6 +600,7 @@ const ImageUploadConfigItem = ({ label, configKey }: { label: string, configKey:
     const uploadProps = {
         name: 'file',
         action: `${API_URL}/upload/image`,
+        data: { source: 'erp' },
         showUploadList: false,
         onChange(info: any) {
             if (info.file.status === 'uploading') {
