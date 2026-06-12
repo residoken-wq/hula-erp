@@ -46,7 +46,7 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                     <div style={{ background: '#f9f9f9', padding: 15, borderRadius: 8, height: '100%', border: '1px solid #eee' }}>
                         <h4 style={{ marginTop: 0, color: '#1890ff', borderBottom: '1px solid #ddd', paddingBottom: 5, textTransform: 'uppercase' }}>BÊN BÁN (PARTY A)</h4>
                         <p style={{ marginBottom: 5 }}><b>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</b></p>
-                        <p style={{ marginBottom: 5 }}>📍 74/21/2A Nguyễn Khuyến, P. 12, Q. Bình Thạnh, TP. HCM</p>
+                        <p style={{ marginBottom: 5 }}>📍 74/21/2A Nguyễn Khuyến, Phường Bình Thạnh, TP. HCM</p>
                         <p style={{ marginBottom: 5 }}>📞 0983.882210 - 0983.796654</p>
                         <p style={{ marginBottom: 0 }}><b>MST:</b> 0311.874.522</p>
                     </div>

@@ -55,6 +55,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const [contractTemplates, setContractTemplates] = useState<any[]>([]);
     const [contractBuilderOpen, setContractBuilderOpen] = useState(false);
 
+    // Quote Terms State
+    const [quoteTermsList, setQuoteTermsList] = useState<any[]>([]);
+
     const fetchContractTemplates = async () => {
         try {
             const res = await api.get('/system/templates');
@@ -144,13 +147,36 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 // Load default terms & note from system config
                 if (isQuotation && !isInternal) {
                     Promise.all([
+                        api.get('/system/config/QUOTE_TERMS_LIST').catch(() => ({ data: null })),
                         api.get('/system/config/QUOTE_DEFAULT_TERMS').catch(() => ({ data: null })),
                         api.get('/system/config/QUOTE_DEFAULT_NOTE').catch(() => ({ data: null })),
-                    ]).then(([termsRes, noteRes]) => {
+                    ]).then(([listRes, termsRes, noteRes]) => {
                         const updates: any = {};
-                        if (termsRes.data?.value) updates.terms_content = termsRes.data.value;
+                        let list: any[] = [];
+                        if (listRes.data?.value) {
+                            try { list = JSON.parse(listRes.data.value); } catch(e) {}
+                        }
+                        if (list.length === 0 && termsRes.data?.value) {
+                            list = [{ id: 'default', name: 'Điều khoản mặc định', content: termsRes.data.value, isDefault: true }];
+                        }
+                        setQuoteTermsList(list);
+
+                        const defaultTerm = list.find(t => t.isDefault);
+                        if (defaultTerm) {
+                            updates.terms_content = defaultTerm.content;
+                        } else if (termsRes.data?.value) {
+                            updates.terms_content = termsRes.data.value;
+                        }
+
                         if (noteRes.data?.value) updates.note = noteRes.data.value;
                         if (Object.keys(updates).length > 0) form.setFieldsValue(updates);
+                    });
+                } else {
+                    // For editing or SO, we still want to load terms list so users can change it
+                    api.get('/system/config/QUOTE_TERMS_LIST').catch(() => ({ data: null })).then((listRes) => {
+                         if (listRes.data?.value) {
+                            try { setQuoteTermsList(JSON.parse(listRes.data.value)); } catch(e) {}
+                         }
                     });
                 }
 
@@ -599,7 +625,25 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         </Row>
                         <Row>
                             <Col span={24}>
-                                <Form.Item name="terms_content" label="Điều khoản & Quy định (Hiển thị trên Portal & Bản in)">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
+                                    <span style={{ fontWeight: 500 }}>Điều khoản & Quy định (Hiển thị trên Portal & Bản in)</span>
+                                    {quoteTermsList.length > 0 && (
+                                        <Select 
+                                            size="small" 
+                                            placeholder="Chọn mẫu điều khoản..." 
+                                            style={{ width: 250 }}
+                                            onChange={(val) => {
+                                                const term = quoteTermsList.find(t => t.id === val);
+                                                if (term) {
+                                                    form.setFieldsValue({ terms_content: term.content });
+                                                }
+                                            }}
+                                        >
+                                            {quoteTermsList.map(t => <Option key={t.id} value={t.id}>{t.name} {t.isDefault ? '(Mặc định)' : ''}</Option>)}
+                                        </Select>
+                                    )}
+                                </div>
+                                <Form.Item name="terms_content" style={{ marginBottom: 16 }}>
                                     <Input.TextArea rows={4} placeholder="VD: 1. Thời gian giao hàng: 15-20 ngày..." />
                                 </Form.Item>
                             </Col>
