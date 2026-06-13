@@ -123,6 +123,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
                 // Fetch Revisions
                 fetchRevisions(initialData.id);
+
+                const termPrefix = isQuotation ? 'QUOTE' : 'ORDER';
+                api.get(`/system/config/${termPrefix}_TERMS_LIST`).catch(() => ({ data: null })).then((listRes) => {
+                     if (listRes.data?.value) {
+                        try { setQuoteTermsList(JSON.parse(listRes.data.value)); } catch(e) {}
+                     }
+                });
             } else {
                 // --- CREATE MODE ---
                 form.resetFields();
@@ -145,11 +152,12 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 });
 
                 // Load default terms & note from system config
-                if (isQuotation && !isInternal) {
+                const termPrefix = isQuotation ? 'QUOTE' : 'ORDER';
+                if (!isInternal) {
                     Promise.all([
-                        api.get('/system/config/QUOTE_TERMS_LIST').catch(() => ({ data: null })),
-                        api.get('/system/config/QUOTE_DEFAULT_TERMS').catch(() => ({ data: null })),
-                        api.get('/system/config/QUOTE_DEFAULT_NOTE').catch(() => ({ data: null })),
+                        api.get(`/system/config/${termPrefix}_TERMS_LIST`).catch(() => ({ data: null })),
+                        api.get(`/system/config/${termPrefix}_DEFAULT_TERMS`).catch(() => ({ data: null })),
+                        api.get(`/system/config/${termPrefix}_DEFAULT_NOTE`).catch(() => ({ data: null })),
                     ]).then(([listRes, termsRes, noteRes]) => {
                         const updates: any = {};
                         let list: any[] = [];
@@ -172,8 +180,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         if (Object.keys(updates).length > 0) form.setFieldsValue(updates);
                     });
                 } else {
-                    // For editing or SO, we still want to load terms list so users can change it
-                    api.get('/system/config/QUOTE_TERMS_LIST').catch(() => ({ data: null })).then((listRes) => {
+                    // For internal orders, we still want to load terms list so users can change it
+                    api.get(`/system/config/${termPrefix}_TERMS_LIST`).catch(() => ({ data: null })).then((listRes) => {
                          if (listRes.data?.value) {
                             try { setQuoteTermsList(JSON.parse(listRes.data.value)); } catch(e) {}
                          }
