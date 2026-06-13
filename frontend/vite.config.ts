@@ -7,5 +7,9 @@ export default defineConfig({
     host: true, // Cho phep Docker map port
     port: 5173,
     allowedHosts: ['erp.nemmamnon.com']
+  },
+  build: {
+    minify: false, // Tắt minify để tránh treo RAM trên VPS yếu
+    sourcemap: false
   }
 })

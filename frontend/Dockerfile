@@ -15,7 +15,7 @@ CMD ["npm", "run", "dev", "--", "--host"]
 FROM base AS build
 COPY . .
 ENV NODE_OPTIONS="--max-old-space-size=4096"
-RUN --mount=type=cache,target=/app/node_modules/.vite npm run build
+RUN npm run build
 
 # Stage 4: Production Nginx
 FROM nginx:alpine AS production
