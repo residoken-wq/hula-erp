@@ -11,16 +11,27 @@ const { Step } = Steps;
 
 // A custom component to handle image loading in Konva
 const URLImage = ({ image, x, y, width, height, isSelected, onSelect, onChange }: any) => {
-    const [img] = useImage(image, 'anonymous');
+    const [img, setImg] = useState<HTMLImageElement | undefined>(undefined);
     const shapeRef = useRef<any>();
     const trRef = useRef<any>();
 
     useEffect(() => {
-        if (isSelected && trRef.current) {
+        const imageObj = new Image();
+        imageObj.crossOrigin = 'anonymous';
+        imageObj.src = image;
+        imageObj.onload = () => {
+            setImg(imageObj);
+        };
+    }, [image]);
+
+    useEffect(() => {
+        if (isSelected && trRef.current && shapeRef.current) {
             trRef.current.nodes([shapeRef.current]);
             trRef.current.getLayer().batchDraw();
         }
-    }, [isSelected]);
+    }, [isSelected, img]);
+
+    if (!img) return null;
 
     return (
         <React.Fragment>
@@ -71,6 +82,108 @@ const URLImage = ({ image, x, y, width, height, isSelected, onSelect, onChange }
     );
 };
 
+// --- Step 3 Interactive Rect Component ---
+const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: any) => {
+    const shapeRef = useRef<any>();
+    const trRef = useRef<any>();
+
+    useEffect(() => {
+        if (isSelected && trRef.current && shapeRef.current) {
+            trRef.current.nodes([shapeRef.current]);
+            trRef.current.getLayer().batchDraw();
+        }
+    }, [isSelected]);
+
+    return (
+        <React.Fragment>
+            <Group
+                ref={shapeRef}
+                x={(rect.x || 0) * scale}
+                y={(rect.y || 0) * scale}
+                rotation={rect.rotation !== undefined ? rect.rotation : (rect.rotated ? -90 : 0)}
+                offsetX={0}
+                offsetY={rect.rotated ? rect.w * scale : 0}
+                draggable
+                onClick={onSelect}
+                onTap={onSelect}
+                onDragEnd={(e) => {
+                    onChange({
+                        ...rect,
+                        x: e.target.x() / scale,
+                        y: e.target.y() / scale
+                    });
+                }}
+                onTransformEnd={(e) => {
+                    const node = shapeRef.current;
+                    onChange({
+                        ...rect,
+                        x: node.x() / scale,
+                        y: node.y() / scale,
+                        rotation: node.rotation()
+                    });
+                }}
+            >
+                <KonvaRect
+                    width={(rect.rotated ? rect.h : rect.w) * scale}
+                    height={(rect.rotated ? rect.w : rect.h) * scale}
+                    fill={rect.data?.color || '#e6f7ff'}
+                    stroke="#000"
+                    strokeWidth={1}
+                />
+                <KonvaText 
+                    text={rect.data?.name || `${rect.w}x${rect.h}`} 
+                    fontSize={12} 
+                    fill="#333" 
+                    x={4} y={4} 
+                />
+                {rect.data?.logoConfig?.width > 0 && (
+                    <Group
+                        x={rect.data.logoConfig.x / face.pieceSize.w * (rect.rotated ? rect.h : rect.w) * scale || 0}
+                        y={rect.data.logoConfig.y / face.pieceSize.h * (rect.rotated ? rect.w : rect.h) * scale || 0}
+                    >
+                        <KonvaRect 
+                            width={rect.data.logoConfig.width / face.pieceSize.w * (rect.rotated ? rect.h : rect.w) * scale || 0}
+                            height={rect.data.logoConfig.height / face.pieceSize.h * (rect.rotated ? rect.w : rect.h) * scale || 0}
+                            fill="rgba(255,0,0,0.3)"
+                            stroke="red"
+                            strokeWidth={1}
+                        />
+                        <KonvaText text="LOGO" fontSize={10} fill="red" />
+                    </Group>
+                )}
+            </Group>
+            {isSelected && (
+                <Transformer
+                    ref={trRef}
+                    rotateEnabled={true}
+                    resizeEnabled={false} // Chỉ cho phép xoay
+                />
+            )}
+        </React.Fragment>
+    );
+};
+
+const RulerLayer = ({ width, height, scale }: { width: number, height: number, scale: number }) => {
+    const ticksX = [];
+    for(let i=0; i<=width; i+=50) {
+        ticksX.push(<KonvaRect key={`x${i}`} x={i * scale} y={0} width={1} height={10} fill="red" />);
+        ticksX.push(<KonvaText key={`xt${i}`} x={i * scale + 2} y={12} text={`${i}cm`} fontSize={12} fill="red" />);
+    }
+    const ticksY = [];
+    for(let i=0; i<=height; i+=50) {
+        if (i === 0) continue;
+        ticksY.push(<KonvaRect key={`y${i}`} x={0} y={i * scale} width={10} height={1} fill="red" />);
+        ticksY.push(<KonvaText key={`yt${i}`} x={12} y={i * scale + 2} text={`${i}cm`} fontSize={12} fill="red" />);
+    }
+
+    return (
+        <Layer>
+            {ticksX}
+            {ticksY}
+        </Layer>
+    );
+};
+
 const UnifiedDesignWorkflow: React.FC = () => {
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -105,6 +218,9 @@ const UnifiedDesignWorkflow: React.FC = () => {
             setBinsByFace(design.tech_pack.binsByFace || { 'face-1': [{ w: 400, h: 120 }] });
             setPadding(design.tech_pack.padding ?? 2);
             setAllowRotation(design.tech_pack.allowRotation ?? true);
+            if (design.tech_pack.resultsByFace) {
+                setResultsByFace(design.tech_pack.resultsByFace);
+            }
             message.success(`Đã sao chép cấu hình từ: ${design.name}`);
             setIsCopyModalVisible(false);
         } else {
@@ -129,7 +245,8 @@ const UnifiedDesignWorkflow: React.FC = () => {
                     faces,
                     binsByFace,
                     padding,
-                    allowRotation
+                    allowRotation,
+                    resultsByFace
                 }
             };
             await api.post('/designs/print-designs', dataToSave);
@@ -155,6 +272,29 @@ const UnifiedDesignWorkflow: React.FC = () => {
     const [padding, setPadding] = useState(2);
     const [allowRotation, setAllowRotation] = useState(true);
     const stageRefs = useRef<Record<string, any[]>>({}); // Refs for multiple canvases mapped by faceId
+
+    const [selectedPiece, setSelectedPiece] = useState<{faceId: string, binIdx: number, rectId: string} | null>(null);
+    const [customPiece, setCustomPiece] = useState({ name: 'Túi hông', w: 10, h: 10, color: '#ffec3d' });
+
+    const handleAddCustomPiece = (faceId: string, binIdx: number) => {
+        const newResults = {...resultsByFace};
+        const packed = newResults[faceId].binResults[binIdx].packed;
+        packed.push({
+            id: `custom-${Date.now()}`,
+            x: 0,
+            y: 0,
+            w: customPiece.w,
+            h: customPiece.h,
+            rotated: false,
+            data: {
+                color: customPiece.color,
+                name: customPiece.name,
+                logoConfig: { width: 0, height: 0, x:0, y:0 }
+            }
+        });
+        setResultsByFace(newResults);
+        message.success('Đã thêm chi tiết phụ vào Sơ đồ');
+    };
 
     useEffect(() => {
         fetchPOs();
@@ -545,6 +685,8 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                                 }}>
                                                     <Layer>
                                                         <KonvaRect width={face.pieceSize.w * SCALE} height={face.pieceSize.h * SCALE} fill={face.bgColor} />
+                                                    </Layer>
+                                                    <Layer>
                                                         {(face.processedLogoUrl || face.logoUrl) && (
                                                             <URLImage
                                                                 image={face.processedLogoUrl || face.logoUrl}
@@ -623,6 +765,18 @@ const UnifiedDesignWorkflow: React.FC = () => {
                             </Space>
                         </Card>
                     )}
+
+                    {Object.keys(resultsByFace).length > 0 && (
+                        <Card title="Thêm Chi Tiết Phụ" size="small" style={{ marginTop: 16 }}>
+                            <Space direction="vertical" style={{ width: '100%' }}>
+                                <div><label>Tên chi tiết:</label> <Input size="small" value={customPiece.name} onChange={e => setCustomPiece({...customPiece, name: e.target.value})} /></div>
+                                <div><label>Dài (cm):</label> <InputNumber size="small" style={{width: '100%'}} value={customPiece.w} onChange={v => setCustomPiece({...customPiece, w: v || 10})} /></div>
+                                <div><label>Rộng (cm):</label> <InputNumber size="small" style={{width: '100%'}} value={customPiece.h} onChange={v => setCustomPiece({...customPiece, h: v || 10})} /></div>
+                                <div><label>Màu:</label> <input type="color" value={customPiece.color} onChange={e => setCustomPiece({...customPiece, color: e.target.value})} style={{width: '100%'}} /></div>
+                            </Space>
+                            <div style={{fontSize: 11, color: '#888', marginTop: 8}}>* Thêm chi tiết phụ vào các tấm vải bên phải bằng nút [Thêm chi tiết phụ] tương ứng.</div>
+                        </Card>
+                    )}
                 </Col>
                 <Col span={18}>
                     {faces.map(face => {
@@ -646,42 +800,40 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                     if (!stageRefs.current[face.id]) stageRefs.current[face.id] = [];
 
                                     return (
-                                        <Card title={`Sơ đồ: ${face.name} - Tấm ${idx + 1} (${result.w}x${result.h} cm) - Đã xếp: ${result.packed.length} mảnh`} size="small" style={{ marginBottom: 16 }} key={idx}>
+                                        <Card 
+                                            title={`Sơ đồ: ${face.name} - Tấm ${idx + 1} (${result.w}x${result.h} cm) - Đã xếp: ${result.packed.length} mảnh`} 
+                                            size="small" style={{ marginBottom: 16 }} key={idx}
+                                            extra={<Button size="small" type="dashed" icon={<PlusOutlined />} onClick={() => handleAddCustomPiece(face.id, idx)}>Thêm chi tiết phụ</Button>}
+                                        >
                                             <div style={{ overflowX: 'auto', background: '#f0f2f5', padding: 10 }}>
-                                                <div style={{ width: CANVAS_DISPLAY_WIDTH, height: displayHeight, background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                                                    <Stage width={CANVAS_DISPLAY_WIDTH} height={displayHeight} ref={(node) => { stageRefs.current[face.id][idx] = node; }}>
+                                                <div style={{ width: CANVAS_DISPLAY_WIDTH, height: displayHeight, background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', backgroundImage: 'linear-gradient(#f0f0f0 1px, transparent 1px), linear-gradient(90deg, #f0f0f0 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+                                                    <Stage width={CANVAS_DISPLAY_WIDTH} height={displayHeight} ref={(node) => { stageRefs.current[face.id][idx] = node; }} onMouseDown={(e) => {
+                                                        if (e.target === e.target.getStage()) setSelectedPiece(null);
+                                                    }}>
+                                                        <RulerLayer width={result.w} height={result.h} scale={scale} />
                                                         <Layer>
-                                                            {result.packed.map((rect) => (
-                                                                <Group
-                                                                    key={rect.id}
-                                                                    x={(rect.x || 0) * scale}
-                                                                    y={(rect.y || 0) * scale}
-                                                                    rotation={rect.rotated ? -90 : 0}
-                                                                    offsetX={rect.rotated ? 0 : 0}
-                                                                    offsetY={rect.rotated ? rect.w * scale : 0}
-                                                                >
-                                                                    <KonvaRect
-                                                                        width={(rect.rotated ? rect.h : rect.w) * scale}
-                                                                        height={(rect.rotated ? rect.w : rect.h) * scale}
-                                                                        fill={rect.data?.color || '#e6f7ff'}
-                                                                        stroke="#000"
-                                                                        strokeWidth={1}
+                                                            {result.packed.map((rect) => {
+                                                                const isSelected = selectedPiece?.faceId === face.id && selectedPiece?.binIdx === idx && selectedPiece?.rectId === rect.id;
+                                                                return (
+                                                                    <DraggableRect
+                                                                        key={rect.id}
+                                                                        rect={rect}
+                                                                        scale={scale}
+                                                                        face={face}
+                                                                        isSelected={isSelected}
+                                                                        onSelect={() => setSelectedPiece({ faceId: face.id, binIdx: idx, rectId: rect.id })}
+                                                                        onChange={(newAttrs: any) => {
+                                                                            const newResults = {...resultsByFace};
+                                                                            const packed = newResults[face.id].binResults[idx].packed;
+                                                                            const rectIdx = packed.findIndex(r => r.id === rect.id);
+                                                                            if (rectIdx !== -1) {
+                                                                                packed[rectIdx] = { ...packed[rectIdx], ...newAttrs };
+                                                                                setResultsByFace(newResults);
+                                                                            }
+                                                                        }}
                                                                     />
-                                                                    <Group
-                                                                        x={rect.data?.logoConfig?.x / face.pieceSize.w * (rect.rotated ? rect.h : rect.w) * scale || 0}
-                                                                        y={rect.data?.logoConfig?.y / face.pieceSize.h * (rect.rotated ? rect.w : rect.h) * scale || 0}
-                                                                    >
-                                                                        <KonvaRect 
-                                                                            width={rect.data?.logoConfig?.width / face.pieceSize.w * (rect.rotated ? rect.h : rect.w) * scale || 0}
-                                                                            height={rect.data?.logoConfig?.height / face.pieceSize.h * (rect.rotated ? rect.w : rect.h) * scale || 0}
-                                                                            fill="rgba(255,0,0,0.3)"
-                                                                            stroke="red"
-                                                                            strokeWidth={1}
-                                                                        />
-                                                                        <KonvaText text="LOGO" fontSize={10} fill="red" />
-                                                                    </Group>
-                                                                </Group>
-                                                            ))}
+                                                                );
+                                                            })}
                                                         </Layer>
                                                     </Stage>
                                                 </div>
