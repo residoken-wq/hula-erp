@@ -138,7 +138,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
             {hasBaseImages ? (
                 /* Multi-frame layered view */
                 <div className="relative w-full h-full flex items-center justify-center">
-                    {[...subcategory.base_images!].sort((a, b) => a.sort_order - b.sort_order).map((frame) => {
+                    {[...(subcategory.base_images || [])].filter(Boolean).sort((a, b) => a.sort_order - b.sort_order).map((frame) => {
                         // Steps gắn frame cụ thể + steps KHÔNG gắn frame (global)
                         const mappedSteps = subcategory.customization_steps?.filter(s =>
                             s.required_frame_id === frame.id || !s.required_frame_id
@@ -302,7 +302,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
             {/* Frame labels (bottom) */}
             {hasBaseImages && (
                 <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1 z-40">
-                    {subcategory.base_images!.map(frame => (
+                    {(subcategory.base_images || []).filter(Boolean).map(frame => (
                         <div key={frame.id} className="bg-black/40 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm">
                             {frame.label || frame.id}
                         </div>

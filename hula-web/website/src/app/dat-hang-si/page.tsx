@@ -62,8 +62,8 @@ export default function B2BConfiguratorPage() {
     }, []);
 
     // Helper: get current L1 and L2
-    const currentL1: WizardCategoryL1 | undefined = config?.categories?.find(c => c.id === selectedL1);
-    const currentL2: WizardCategoryL2 | undefined = currentL1?.subcategories?.find(c => c.id === selectedL2);
+    const currentL1: WizardCategoryL1 | undefined = (config?.categories || []).find(c => c && c.id === selectedL1);
+    const currentL2: WizardCategoryL2 | undefined = (currentL1?.subcategories || []).find(c => c && c.id === selectedL2);
 
     // Initialize default selections when switching L2
     useEffect(() => {
@@ -74,7 +74,10 @@ export default function B2BConfiguratorPage() {
                 if (step.default_option_id) {
                     initialSelections[step.id] = step.default_option_id;
                 } else if (step.options && step.options.length > 0) {
-                    initialSelections[step.id] = step.options[0].id;
+                    const firstValidOpt = step.options.find(Boolean);
+                    if (firstValidOpt) {
+                        initialSelections[step.id] = firstValidOpt.id;
+                    }
                 }
             });
             setStepSelections(initialSelections);
@@ -83,9 +86,14 @@ export default function B2BConfiguratorPage() {
 
     const handleSelectL1 = (id: string) => {
         setSelectedL1(id);
-        const l1 = config?.categories?.find(c => c.id === id);
+        const l1 = (config?.categories || []).find(c => c && c.id === id);
         if (l1 && l1.subcategories && l1.subcategories.length > 0) {
-            setSelectedL2(l1.subcategories[0].id);
+            const firstValidSub = l1.subcategories.find(Boolean);
+            if (firstValidSub) {
+                setSelectedL2(firstValidSub.id);
+            } else {
+                setSelectedL2('');
+            }
         } else {
             setSelectedL2('');
         }
