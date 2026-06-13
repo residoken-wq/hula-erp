@@ -230,6 +230,7 @@ const SalesComments: React.FC<SalesCommentsProps> = ({ orderId, defaultTab, high
             const compressed = await compressImage(file);
             const formData = new FormData();
             formData.append('file', compressed);
+            formData.append('source', 'erp');
 
             const res = await api.post(`/upload/image`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }

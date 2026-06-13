@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { resolveImageUrl } from '@/lib/utils';
@@ -12,6 +12,7 @@ export default function Header() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
+    const dropdownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const pathname = usePathname();
     const { itemCount, setIsCartOpen } = useCart();
     const { settings } = useSettings();
@@ -104,8 +105,18 @@ export default function Header() {
                             {moreLinks.length > 0 && (
                                 <div
                                     className="relative"
-                                    onMouseEnter={() => setIsDropdownOpen(true)}
-                                    onMouseLeave={() => setIsDropdownOpen(false)}
+                                    onMouseEnter={() => {
+                                        if (dropdownTimeoutRef.current) {
+                                            clearTimeout(dropdownTimeoutRef.current);
+                                            dropdownTimeoutRef.current = null;
+                                        }
+                                        setIsDropdownOpen(true);
+                                    }}
+                                    onMouseLeave={() => {
+                                        dropdownTimeoutRef.current = setTimeout(() => {
+                                            setIsDropdownOpen(false);
+                                        }, 3000);
+                                    }}
                                 >
                                     <button
                                         className={`px-3 xl:px-4 py-2 text-sm xl:text-base font-medium rounded-[12px] hover:bg-transparent transition-all flex items-center gap-1 ${isMoreActive ? 'text-[#E5A82F] font-bold' : 'text-[#23a7d3] hover:text-[#E5A82F]'}`}

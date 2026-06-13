@@ -59,9 +59,10 @@ export class InventoryController {
   }
 
   @Get('goods-receipt/pending')
-  async getPending() {
-    return this.inventoryService.getPendingReceipts();
-  }
+  getPendingGoodsReceipts() { return this.inventoryService.getPendingReceipts(); }
+
+  @Get('goods-receipt/po/:poId')
+  getReceiptsByPo(@Param('poId') poId: number) { return this.inventoryService.getReceiptsByPo(poId); }
 
   @Post('goods-receipt/:id/confirm')
   async confirm(@Param('id') id: string, @Req() req: any) {

@@ -600,6 +600,7 @@ const ImageUploadConfigItem = ({ label, configKey }: { label: string, configKey:
     const uploadProps = {
         name: 'file',
         action: `${API_URL}/upload/image`,
+        data: { source: 'erp' },
         showUploadList: false,
         onChange(info: any) {
             if (info.file.status === 'uploading') {
@@ -732,30 +733,44 @@ const CompanyConfigForm = () => {
 };
 
 const QuoteTermsTab: React.FC = () => {
-    const [termsContent, setTermsContent] = useState('');
+    const [termsList, setTermsList] = useState<{id: string, name: string, content: string, isDefault: boolean}[]>([]);
     const [defaultNote, setDefaultNote] = useState('');
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editingTerm, setEditingTerm] = useState<any>(null);
+    const [form] = Form.useForm();
 
     useEffect(() => {
         setLoading(true);
         Promise.all([
+            axios.get(`${API_URL}/system/config/QUOTE_TERMS_LIST`).catch(() => ({ data: null })),
             axios.get(`${API_URL}/system/config/QUOTE_DEFAULT_TERMS`).catch(() => ({ data: null })),
             axios.get(`${API_URL}/system/config/QUOTE_DEFAULT_NOTE`).catch(() => ({ data: null })),
-        ]).then(([termsRes, noteRes]) => {
-            if (termsRes.data?.value) setTermsContent(termsRes.data.value);
+        ]).then(([listRes, termsRes, noteRes]) => {
+            let list = [];
+            if (listRes.data?.value) {
+                try {
+                    list = JSON.parse(listRes.data.value);
+                } catch(e) {}
+            }
+            if (list.length === 0 && termsRes.data?.value) {
+                list = [{ id: 'default', name: 'Điều khoản mặc định', content: termsRes.data.value, isDefault: true }];
+            }
+            setTermsList(list);
             if (noteRes.data?.value) setDefaultNote(noteRes.data.value);
         }).finally(() => setLoading(false));
     }, []);
 
-    const handleSave = async () => {
+    const handleSaveConfig = async () => {
         setSaving(true);
         try {
             await Promise.all([
                 axios.post(`${API_URL}/system/config`, {
-                    key: 'QUOTE_DEFAULT_TERMS',
-                    value: termsContent,
-                    description: 'Nội dung Điều khoản & Quy định mặc định cho Báo giá'
+                    key: 'QUOTE_TERMS_LIST',
+                    value: JSON.stringify(termsList),
+                    description: 'Danh sách Điều khoản & Quy định cho Báo giá'
                 }),
                 axios.post(`${API_URL}/system/config`, {
                     key: 'QUOTE_DEFAULT_NOTE',
@@ -770,13 +785,50 @@ const QuoteTermsTab: React.FC = () => {
         setSaving(false);
     };
 
+    const handleSaveTerm = (values: any) => {
+        let newList = [...termsList];
+        if (values.isDefault) {
+            newList = newList.map(t => ({ ...t, isDefault: false }));
+        }
+        if (editingTerm) {
+            newList = newList.map(t => t.id === editingTerm.id ? { ...t, ...values } : t);
+        } else {
+            newList.push({ id: Date.now().toString(), ...values });
+        }
+        // Nếu chỉ có 1 cái thì tự động set default
+        if (newList.length === 1) {
+            newList[0].isDefault = true;
+        }
+        setTermsList(newList);
+        setModalOpen(false);
+    };
+
+    const handleDeleteTerm = (id: string) => {
+        setTermsList(termsList.filter(t => t.id !== id));
+    };
+
     if (loading) return <Spin />;
+
+    const columns = [
+        { title: 'Tên Mẫu Điều Khoản', dataIndex: 'name', key: 'name', render: (t: string, r: any) => <b>{t} {r.isDefault && <Tag color="blue" style={{ marginLeft: 8 }}>Mặc định</Tag>}</b> },
+        { title: 'Nội dung', dataIndex: 'content', key: 'content', render: (t: string) => <div style={{ whiteSpace: 'pre-line', fontSize: 13, maxHeight: 100, overflow: 'hidden', textOverflow: 'ellipsis' }}>{t}</div> },
+        {
+            title: 'Hành động', key: 'action', width: 120, render: (_: any, r: any) => (
+                <Space>
+                    <Button icon={<EditOutlined />} size="small" onClick={() => { setEditingTerm(r); form.setFieldsValue(r); setModalOpen(true); }} />
+                    <Popconfirm title="Xóa mẫu này?" onConfirm={() => handleDeleteTerm(r.id)}>
+                        <Button icon={<DeleteOutlined />} danger size="small" />
+                    </Popconfirm>
+                </Space>
+            )
+        }
+    ];
 
     return (
         <>
             <Alert
                 message="Cấu hình nội dung mặc định cho Báo giá B2B"
-                description="Nội dung dưới đây sẽ được tự động điền khi tạo báo giá mới. Nhân viên Sales có thể chỉnh sửa cho từng đơn cụ thể."
+                description="Nội dung dưới đây sẽ được tự động điền khi tạo báo giá mới. Nhân viên Sales có thể chọn mẫu Điều khoản và chỉnh sửa cho từng đơn cụ thể."
                 type="info"
                 showIcon
                 style={{ marginBottom: 24 }}
@@ -795,43 +847,43 @@ const QuoteTermsTab: React.FC = () => {
                 />
             </Card>
 
-            <Card title="📋 Điều khoản & Quy định mặc định (Terms)" bordered={false} size="small" style={{ marginBottom: 20 }}>
-                <div style={{ marginBottom: 8, fontSize: 12, color: '#888' }}>
-                    Nội dung hiển thị ở phần "Điều khoản & Quy định" cuối trang Portal và bản in. Hỗ trợ nhiều dòng.
+            <Card 
+                title="📋 Danh sách Điều khoản & Quy định (Terms)" 
+                bordered={false} 
+                size="small" 
+                style={{ marginBottom: 20 }}
+                extra={<Button type="primary" icon={<PlusOutlined />} size="small" onClick={() => { setEditingTerm(null); form.resetFields(); form.setFieldsValue({ isDefault: termsList.length === 0 }); setModalOpen(true); }}>Thêm Mẫu</Button>}
+            >
+                <div style={{ marginBottom: 16, fontSize: 12, color: '#888' }}>
+                    Nhân viên có thể chọn các mẫu này khi tạo Báo giá. Mẫu "Mặc định" sẽ tự động được điền.
                 </div>
-                <Input.TextArea
-                    rows={10}
-                    value={termsContent}
-                    onChange={e => setTermsContent(e.target.value)}
-                    placeholder={`VD:\n1. Thời gian giao hàng: 15-20 ngày làm việc kể từ ngày xác nhận đơn và đặt cọc.\n2. Thanh toán: Đặt cọc 50% khi xác nhận, 50% còn lại khi giao hàng.\n3. Bảo hành: 12 tháng cho lỗi sản xuất.\n4. Đổi/trả: Trong 3 ngày kể từ ngày nhận hàng nếu có lỗi từ nhà sản xuất.`}
-                    style={{ fontSize: 13 }}
-                />
+                <Table dataSource={termsList} columns={columns} rowKey="id" pagination={false} size="small" />
             </Card>
 
-            {/* Preview */}
-            {(termsContent || defaultNote) && (
-                <Card title="👁 Xem trước trên Portal" bordered={false} size="small" style={{ marginBottom: 20, background: '#fafafa' }}>
-                    {defaultNote && (
-                        <div style={{ display: 'flex', gap: 10, marginBottom: 16, background: '#fff7e6', padding: 15, borderRadius: 8, border: '1px solid #ffec3d' }}>
-                            <InfoCircleOutlined style={{ color: '#faad14', marginTop: 4 }} />
-                            <div>
-                                <div style={{ fontWeight: 700, color: '#d48806', marginBottom: 5 }}>Ghi chú từ người bán:</div>
-                                <div style={{ color: '#595959', whiteSpace: 'pre-line' }}>{defaultNote}</div>
-                            </div>
-                        </div>
-                    )}
-                    {termsContent && (
-                        <div style={{ background: '#f9f9f9', padding: 20, borderRadius: 8, border: '1px solid #f0f0f0' }}>
-                            <div style={{ fontWeight: 700, marginBottom: 10, textTransform: 'uppercase', fontSize: 12, color: '#999' }}>Điều khoản & Quy định</div>
-                            <div style={{ whiteSpace: 'pre-line', fontSize: 13, color: '#555', lineHeight: 1.6 }}>{termsContent}</div>
-                        </div>
-                    )}
-                </Card>
-            )}
-
-            <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave} size="large">
-                Lưu Cấu Hình Terms
+            <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSaveConfig} size="large">
+                Lưu Toàn Bộ Cấu Hình Terms
             </Button>
+
+            <Modal
+                title={editingTerm ? "Chỉnh sửa Mẫu Điều Khoản" : "Thêm Mẫu Điều Khoản"}
+                open={modalOpen}
+                onCancel={() => setModalOpen(false)}
+                onOk={form.submit}
+                width={800}
+                destroyOnClose
+            >
+                <Form form={form} layout="vertical" onFinish={handleSaveTerm}>
+                    <Form.Item name="name" label="Tên Mẫu" rules={[{ required: true }]}>
+                        <Input placeholder="VD: Điều khoản Standard" />
+                    </Form.Item>
+                    <Form.Item name="content" label="Nội dung Điều khoản & Quy định" rules={[{ required: true }]}>
+                        <Input.TextArea rows={8} placeholder={`VD:\n1. Thời gian giao hàng: 15-20 ngày...\n2. Thanh toán: Đặt cọc 50%...`} />
+                    </Form.Item>
+                    <Form.Item name="isDefault" valuePropName="checked">
+                        <Checkbox>Đặt làm Mẫu Mặc định</Checkbox>
+                    </Form.Item>
+                </Form>
+            </Modal>
         </>
     );
 };

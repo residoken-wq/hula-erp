@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Param, Res, Body, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, Res, Body, UseInterceptors, UploadedFile, BadRequestException, Query } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 import { Response } from 'express';
@@ -27,11 +27,16 @@ export class UploadController {
   ) { }
 
   @Get('list')
-  async listFiles() {
+  async listFiles(@Query('source') source?: string) {
     const uploadDir = path.join(process.cwd(), 'uploads');
     if (!fs.existsSync(uploadDir)) return [];
     const files = fs.readdirSync(uploadDir)
-      .filter(f => /\.(jpg|jpeg|png|gif|webp|svg|ico)$/i.test(f))
+      .filter(f => {
+        if (!/\.(jpg|jpeg|png|gif|webp|svg|ico)$/i.test(f)) return false;
+        // CMS only sees its own files (which have no prefix) and not ERP files (which have 'erp_' prefix)
+        if (source === 'cms' && f.startsWith('erp_')) return false;
+        return true;
+      })
       .map(f => {
         const stat = fs.statSync(path.join(uploadDir, f));
         return {
@@ -147,9 +152,9 @@ export class UploadController {
 
   @Post('image')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+  async uploadImage(@UploadedFile() file: Express.Multer.File, @Body('source') source?: string) {
     if (!file) throw new BadRequestException('Chua chon file!');
-    return this.uploadService.uploadImage(file);
+    return this.uploadService.uploadImage(file, source);
   }
 
   @Post('products')

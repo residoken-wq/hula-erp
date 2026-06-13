@@ -55,6 +55,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     const [contractTemplates, setContractTemplates] = useState<any[]>([]);
     const [contractBuilderOpen, setContractBuilderOpen] = useState(false);
 
+    // Quote Terms State
+    const [quoteTermsList, setQuoteTermsList] = useState<any[]>([]);
+
     const fetchContractTemplates = async () => {
         try {
             const res = await api.get('/system/templates');
@@ -144,13 +147,36 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 // Load default terms & note from system config
                 if (isQuotation && !isInternal) {
                     Promise.all([
+                        api.get('/system/config/QUOTE_TERMS_LIST').catch(() => ({ data: null })),
                         api.get('/system/config/QUOTE_DEFAULT_TERMS').catch(() => ({ data: null })),
                         api.get('/system/config/QUOTE_DEFAULT_NOTE').catch(() => ({ data: null })),
-                    ]).then(([termsRes, noteRes]) => {
+                    ]).then(([listRes, termsRes, noteRes]) => {
                         const updates: any = {};
-                        if (termsRes.data?.value) updates.terms_content = termsRes.data.value;
+                        let list: any[] = [];
+                        if (listRes.data?.value) {
+                            try { list = JSON.parse(listRes.data.value); } catch(e) {}
+                        }
+                        if (list.length === 0 && termsRes.data?.value) {
+                            list = [{ id: 'default', name: 'Điều khoản mặc định', content: termsRes.data.value, isDefault: true }];
+                        }
+                        setQuoteTermsList(list);
+
+                        const defaultTerm = list.find(t => t.isDefault);
+                        if (defaultTerm) {
+                            updates.terms_content = defaultTerm.content;
+                        } else if (termsRes.data?.value) {
+                            updates.terms_content = termsRes.data.value;
+                        }
+
                         if (noteRes.data?.value) updates.note = noteRes.data.value;
                         if (Object.keys(updates).length > 0) form.setFieldsValue(updates);
+                    });
+                } else {
+                    // For editing or SO, we still want to load terms list so users can change it
+                    api.get('/system/config/QUOTE_TERMS_LIST').catch(() => ({ data: null })).then((listRes) => {
+                         if (listRes.data?.value) {
+                            try { setQuoteTermsList(JSON.parse(listRes.data.value)); } catch(e) {}
+                         }
                     });
                 }
 
@@ -206,12 +232,12 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 vat_email: customer.einvoice_email || customer.email || ''
             });
         }
-        // Fetch customer's old quotations
+        // Fetch customer's old quotations/orders
         if (isQuotation && customerId && customerId !== -1) {
             try {
                 const res = await api.get('/sales');
                 const quotes = (res.data || []).filter((o: any) =>
-                    o.customer?.id === customerId && o.status === 'QUOTATION' && o.id !== initialData?.id
+                    o.customer?.id === customerId && o.id !== initialData?.id
                 );
                 setCustomerQuotations(quotes);
             } catch (e) { setCustomerQuotations([]); }
@@ -220,23 +246,33 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     };
 
-    const handleCopyQuotation = (quotation: any) => {
-        const items = (quotation.items || []).map((i: any, idx: number) => ({
-            key: Date.now() + idx,
-            sku: i.product?.sku || i.sku,
-            quantity: Number(i.quantity) || 1,
-            unit_price: Number(i.unit_price) || 0,
-            total_price: (Number(i.quantity) || 1) * (Number(i.unit_price) || 0),
-            note: i.note || ''
-        }));
-        setOrderItems(items);
-        calculateTotal(items);
-        form.setFieldsValue({
-            delivery_date: quotation.delivery_date ? dayjs(quotation.delivery_date) : null,
-            note: quotation.note || ''
-        });
-        setCopyQuotationModalOpen(false);
-        message.success(`Đã copy ${items.length} sản phẩm từ ${quotation.order_code}`);
+    const handleCopyQuotation = async (quotation: any) => {
+        try {
+            const res = await api.get(`/sales/${quotation.id}`);
+            const fullQuotation = res.data;
+            const items = (fullQuotation.items || []).map((i: any, idx: number) => ({
+                key: Date.now() + idx,
+                sku: i.product?.sku || i.sku,
+                quantity: Number(i.quantity) || 1,
+                unit_price: Number(i.unit_price) || 0,
+                total_price: (Number(i.quantity) || 1) * (Number(i.unit_price) || 0),
+                note: i.note || '',
+                vat_content: i.vat_content || '',
+                sample_image: i.sample_image,
+                image_url: i.image_url,
+                price_ranges: i.price_ranges
+            }));
+            setOrderItems(items);
+            calculateTotal(items);
+            form.setFieldsValue({
+                delivery_date: fullQuotation.delivery_date ? dayjs(fullQuotation.delivery_date) : null,
+                note: fullQuotation.note || ''
+            });
+            setCopyQuotationModalOpen(false);
+            message.success(`Đã copy ${items.length} sản phẩm từ ${fullQuotation.order_code}`);
+        } catch (e) {
+            message.error('Lỗi khi tải chi tiết báo giá để copy');
+        }
     };
 
     const handleItemChange = (index: number, field: string, value: any) => {
@@ -529,7 +565,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         onClick={() => setCopyQuotationModalOpen(true)}
                                         style={{ marginTop: -10, marginBottom: 10 }}
                                     >
-                                        Copy từ {customerQuotations.length} BG cũ
+                                        Copy từ {customerQuotations.length} đơn/BG cũ
                                     </Button>
                                 )}
                             </Col>
@@ -589,7 +625,25 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         </Row>
                         <Row>
                             <Col span={24}>
-                                <Form.Item name="terms_content" label="Điều khoản & Quy định (Hiển thị trên Portal & Bản in)">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
+                                    <span style={{ fontWeight: 500 }}>Điều khoản & Quy định (Hiển thị trên Portal & Bản in)</span>
+                                    {quoteTermsList.length > 0 && (
+                                        <Select 
+                                            size="small" 
+                                            placeholder="Chọn mẫu điều khoản..." 
+                                            style={{ width: 250 }}
+                                            onChange={(val) => {
+                                                const term = quoteTermsList.find(t => t.id === val);
+                                                if (term) {
+                                                    form.setFieldsValue({ terms_content: term.content });
+                                                }
+                                            }}
+                                        >
+                                            {quoteTermsList.map(t => <Option key={t.id} value={t.id}>{t.name} {t.isDefault ? '(Mặc định)' : ''}</Option>)}
+                                        </Select>
+                                    )}
+                                </div>
+                                <Form.Item name="terms_content" style={{ marginBottom: 16 }}>
                                     <Input.TextArea rows={4} placeholder="VD: 1. Thời gian giao hàng: 15-20 ngày..." />
                                 </Form.Item>
                             </Col>
@@ -917,7 +971,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     columns={[
                         { title: 'Mã BG', dataIndex: 'order_code', render: (v: string) => <Tag color="blue">{v}</Tag> },
                         { title: 'Ngày', dataIndex: 'order_date', render: (d: string) => dayjs(d).format('DD/MM/YYYY') },
-                        { title: 'Sản phẩm', render: (_: any, r: any) => `${r.items?.length || 0} SP` },
+                        { title: 'Trạng thái', dataIndex: 'status', render: (v: string) => <Tag color={v === 'QUOTATION' ? 'orange' : 'green'}>{v}</Tag> },
                         { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b style={{ color: 'red' }}>{Number(v || 0).toLocaleString()} ₫</b> }
                     ]}
                 />

@@ -36,6 +36,7 @@ class HulaUploadAdapter {
         return this.loader.file.then((file: File) => new Promise<{ default: string }>((resolve, reject) => {
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('source', 'erp');
 
             const token = localStorage.getItem('token');
 
@@ -277,7 +278,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         setLibrarySearch('');
         try {
             setLibraryLoading(true);
-            const res = await api.get('/upload/list');
+            const res = await api.get('/upload/list?source=erp');
             setLibraryFiles(Array.isArray(res.data) ? res.data : []);
         } catch {
             message.error('Không thể tải thư viện hình ảnh');

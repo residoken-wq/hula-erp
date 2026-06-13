@@ -139,31 +139,28 @@ export class HrService implements OnModuleInit {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Check if already checked in today
-        let attendance = await this.attendanceRepo.findOne({
-            where: { employee_id: employeeId, date: today }
+        // Find the latest attendance record for today
+        const attendance = await this.attendanceRepo.findOne({
+            where: { employee_id: employeeId, date: today },
+            order: { check_in: 'DESC' }
         });
 
-        if (attendance && attendance.check_in) {
+        // If the latest record has no check_out, then employee is currently checked in
+        if (attendance && !attendance.check_out) {
             return { message: 'Already checked in today', attendance };
         }
 
         const now = new Date();
         const isLate = now.getHours() >= 9; // Late if after 9 AM
 
-        if (!attendance) {
-            attendance = this.attendanceRepo.create({
-                employee_id: employeeId,
-                date: today,
-                check_in: now,
-                status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT
-            });
-        } else {
-            attendance.check_in = now;
-            attendance.status = isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT;
-        }
+        const newAttendance = this.attendanceRepo.create({
+            employee_id: employeeId,
+            date: today,
+            check_in: now,
+            status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT
+        });
 
-        return this.attendanceRepo.save(attendance);
+        return this.attendanceRepo.save(newAttendance);
     }
 
     async checkOut(employeeId: number) {
@@ -171,7 +168,8 @@ export class HrService implements OnModuleInit {
         today.setHours(0, 0, 0, 0);
 
         const attendance = await this.attendanceRepo.findOne({
-            where: { employee_id: employeeId, date: today }
+            where: { employee_id: employeeId, date: today },
+            order: { check_in: 'DESC' }
         });
 
         if (!attendance) {

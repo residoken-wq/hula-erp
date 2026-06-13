@@ -61,6 +61,13 @@ export class Project {
     @Column({ nullable: true })
     manager_id: number;
 
+    @ManyToOne(() => User)
+    @JoinColumn({ name: 'created_by_id' })
+    created_by: User;
+
+    @Column({ nullable: true })
+    created_by_id: number;
+
     @ManyToMany(() => User)
     @JoinTable({ name: 'project_members' })
     members: User[];

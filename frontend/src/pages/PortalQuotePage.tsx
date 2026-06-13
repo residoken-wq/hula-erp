@@ -115,6 +115,8 @@ const PortalQuotePage: React.FC = () => {
 
     useEffect(() => { fetchQuote(); }, [uuid]);
 
+    const isOrder = data?.status && data.status !== 'QUOTATION';
+
     const handleAction = async (action: 'ACCEPT' | 'REJECT') => {
         if (action === 'ACCEPT') {
             setIsVerifyModalOpen(true);
@@ -122,8 +124,8 @@ const PortalQuotePage: React.FC = () => {
         }
 
         Modal.confirm({
-            title: 'Từ chối báo giá?',
-            content: 'Bạn muốn từ chối báo giá này?',
+            title: isOrder ? 'Từ chối đơn hàng?' : 'Từ chối báo giá?',
+            content: isOrder ? 'Bạn muốn từ chối đơn hàng này?' : 'Bạn muốn từ chối báo giá này?',
             okText: 'Từ Chối',
             cancelText: 'Hủy',
             okType: 'danger',
@@ -161,7 +163,7 @@ const PortalQuotePage: React.FC = () => {
 
         try {
             await axios.post(`${API_URL}/public/portal/quote/${uuid}/action`, { action: 'ACCEPT' });
-            message.success('Xác nhận báo giá thành công!');
+            message.success(isOrder ? 'Xác nhận đơn hàng thành công!' : 'Xác nhận báo giá thành công!');
             setIsVerifyModalOpen(false);
             window.location.reload();
         } catch (e) {
@@ -182,7 +184,6 @@ const PortalQuotePage: React.FC = () => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
 
-        const isOrder = ['DEPOSITED', 'PLANNED', 'PARTIAL_DELIVERY', 'DELIVERED', 'COMPLETED', 'IN_PRODUCTION', 'SAMPLE_APPROVED', 'MANUFACTURING_COMPLETED'].includes(data.status) || Number(data.paid_amount) > 0;
         const docTitle = isOrder ? 'XÁC NHẬN ĐƠN ĐẶT HÀNG' : 'BẢNG BÁO GIÁ';
         const docSubTitle = isOrder ? 'ORDER CONFIRMATION' : 'QUOTATION';
 
@@ -388,7 +389,7 @@ const PortalQuotePage: React.FC = () => {
         .terms-box { flex: 1; font-size: 11px; line-height: 1.5; }
         .terms-title { font-weight: 700; text-transform: uppercase; font-size: 11px; color: #0050b3; margin-bottom: 6px; border-bottom: 1px solid #0050b3; padding-bottom: 3px; }
         .bank-info { background: #f9f9f9; padding: 8px 10px; border-radius: 6px; border: 1px solid #e8e8e8; margin-top: 8px; font-size: 11px; }
-        .qr-box { width: 145px; text-align: center; border: 1px solid #d9d9d9; border-radius: 8px; padding: 8px; flex-shrink: 0; }
+        .qr-box { width: 220px; text-align: center; border: 1px solid #d9d9d9; border-radius: 8px; padding: 8px; flex-shrink: 0; }
         .qr-box img { width: 120px; }
         .qr-label { font-size: 9px; color: #888; margin-bottom: 4px; }
         
@@ -516,7 +517,6 @@ const PortalQuotePage: React.FC = () => {
                         +   '<div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-bottom:2px;">' + productName + '</div>'
                         +   colorLine + descLines
                         +   priceRangesHtml
-                        +   '<div style="margin-top:3px;"><span style="font-size:9px;color:#999;background:#f5f5f5;padding:1px 5px;border-radius:3px;">' + item.sku + '</span></div>'
                         + '</td>'
                         + '<td style="text-align:center;font-weight:bold;">' + (item.product?.unit || 'Cái') + '</td>'
                         + '<td style="text-align:center;font-weight:700;font-size:13px;">' + Number(item.quantity) + '</td>'
@@ -535,7 +535,7 @@ const PortalQuotePage: React.FC = () => {
             </tr>
             ${discountAmount > 0 ? '<tr><td class="summary-label">Giảm giá (' + (data.discount_rate || 0) + '%):</td><td class="summary-value" style="color:#52c41a;">-' + discountAmount.toLocaleString() + '</td></tr>' : ''}
             <tr>
-                <td class="summary-label">Thuế VAT (${vatRate}%):</td>
+                <td class="summary-label">Thuế GTGT (${vatRate}%):</td>
                 <td class="summary-value">${vatAmount.toLocaleString()}</td>
             </tr>
             ${shippingFee > 0 ? '<tr><td class="summary-label">Phí vận chuyển:</td><td class="summary-value">' + shippingFee.toLocaleString() + '</td></tr>' : ''}
@@ -552,16 +552,32 @@ const PortalQuotePage: React.FC = () => {
         <div class="bottom-section">
             <div class="terms-box">
                 ${termsHtml ? '<div class="terms-title">Điều khoản & Quy định</div><div style="white-space:pre-line;color:#555;">' + data.terms_content + '</div>' : ''}
-                
-                <div class="bank-info">
-                    <div style="font-weight:700;margin-bottom:4px;">💳 Thông tin chuyển khoản:</div>
-                    <div>Ngân hàng: <b>ACB</b> - CN TP.HCM</div>
-                    <div>Số TK: <b style="font-family:monospace;background:#f0f0f0;padding:0 4px;">141847859</b></div>
-                    <div>Chủ TK: <b>CTY TNHH TM DV TƯỜNG LINH</b></div>
-                    <div>Nội dung CK: <b style="color:#0050b3;">${data.order_code}</b></div>
-                </div>
             </div>
             <div class="qr-box">
+                ${depositAmount > 0 ? `
+                <div style="background:#f9f0ff;padding:8px;border-radius:6px;border:1px solid #d3adf7;text-align:center;margin-bottom:8px;">
+                    <div style="color:#722ed1;font-size:9px;text-transform:uppercase;font-weight:600;">💰 Cần đặt cọc (${data.deposit_percent || 0}%)</div>
+                    <div style="font-size:13px;font-weight:700;color:#531dab;">${depositAmount.toLocaleString('vi-VN')} ₫</div>
+                </div>` : ''}
+
+                ${paidAmount > 0 ? `
+                <div style="background:#f0f5ff;padding:8px;border-radius:6px;border:1px solid #adc6ff;text-align:center;margin-bottom:8px;">
+                    <div style="color:#2f54eb;font-size:9px;text-transform:uppercase;font-weight:600;">Đã thanh toán</div>
+                    <div style="font-size:13px;font-weight:700;color:#1d39c4;">${paidAmount.toLocaleString('vi-VN')} ₫</div>
+                </div>` : ''}
+
+                <div style="background:#f6ffed;padding:8px;border-radius:6px;border:1px solid #b7eb8f;text-align:center;margin-bottom:8px;">
+                    <div style="color:#52c41a;font-size:9px;text-transform:uppercase;font-weight:600;">Cần thanh toán</div>
+                    <div style="font-size:14px;font-weight:800;color:#389e0d;">${remaining.toLocaleString('vi-VN')} ₫</div>
+                </div>
+
+                <div style="font-size:9px;line-height:1.5;text-align:left;margin-bottom:10px;">
+                    <div><b>ACB - TP.HCM</b></div>
+                    <div>STK: <span style="font-family:monospace;background:#f0f0f0;padding:0 3px;">141847859</span></div>
+                    <div>Chủ TK: CTY TNHH TM DV TƯỜNG LINH</div>
+                    <div>Nội dung CK: <b style="color:#0050b3;">${data.order_code}</b></div>
+                </div>
+
                 <div class="qr-label">Quét mã thanh toán</div>
                 <img src="${qrLink}" alt="QR" />
                 <div style="font-size:10px;font-weight:700;color:#0050b3;margin-top:4px;">HULA PAYMENT</div>
@@ -614,8 +630,10 @@ const PortalQuotePage: React.FC = () => {
         });
     };
 
+
+
     if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" tip="Đang tải dữ liệu..." /></div>;
-    if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy báo giá hoặc đường dẫn không hợp lệ." />;
+    if (!data) return <Result status="404" title="404" subTitle="Không tìm thấy dữ liệu hoặc đường dẫn không hợp lệ." />;
 
     if (!isPasswordCorrect) {
         return (
@@ -638,7 +656,7 @@ const PortalQuotePage: React.FC = () => {
                     ]}
                 >
                     <div style={{ marginBottom: 16 }}>
-                        Để bảo mật thông tin, vui lòng nhập mật khẩu để xem báo giá.
+                        Để bảo mật thông tin, vui lòng nhập mật khẩu để xem {isOrder ? 'đơn hàng' : 'báo giá'}.
                     </div>
                     <Input.Password
                         placeholder="Nhập mật khẩu (hula)..."
@@ -921,7 +939,7 @@ const PortalQuotePage: React.FC = () => {
                                 </div>
                                 <Divider type="vertical" style={{ height: 30 }} />
                                 <div>
-                                    <div style={{ fontSize: 12, color: '#888' }}>Mã đơn hàng</div>
+                                    <div style={{ fontSize: 12, color: '#888' }}>{isOrder ? 'Mã đơn hàng' : 'Mã báo giá'}</div>
                                     <div style={{ fontWeight: 700, fontSize: 16 }}>#{data.order_code}</div>
                                 </div>
                             </Space>
@@ -936,7 +954,7 @@ const PortalQuotePage: React.FC = () => {
                                         { key: 'pos', label: 'Mẫu POS (Hóa đơn dọc)', onClick: () => handlePrintOrder('pos') }
                                     ]
                                 }}>
-                                    <Button icon={<PrinterOutlined />}>In Đơn Hàng (A4)</Button>
+                                    <Button icon={<PrinterOutlined />}>{isOrder ? 'In Đơn Hàng (A4)' : 'In Báo Giá (A4)'}</Button>
                                 </Dropdown>
                             </Space>
                         </Col>
@@ -948,7 +966,7 @@ const PortalQuotePage: React.FC = () => {
                         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <InfoCircleOutlined style={{ color: '#faad14', fontSize: 18 }} />
-                                <span style={{ fontSize: 14 }}>Vui lòng kiểm tra kỹ thông tin và phản hồi báo giá này.</span>
+                                <span style={{ fontSize: 14 }}>Vui lòng kiểm tra kỹ thông tin và phản hồi {isOrder ? 'đơn hàng' : 'báo giá'} này.</span>
                             </div>
                             <Space>
                                 <Button danger size="large" onClick={() => handleAction('REJECT')}>Từ Chối</Button>
@@ -1062,7 +1080,7 @@ const PortalQuotePage: React.FC = () => {
                 {/* --- DETAILS ROW: TABLE --- */}
                 <Row gutter={24}>
                     <Col span={24}>
-                        <Card title={<span style={{ fontWeight: 700, fontSize: 16 }}>📋 Chi Tiết Đơn Hàng</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
+                        <Card title={<span style={{ fontWeight: 700, fontSize: 16 }}>{isOrder ? '📋 Chi Tiết Đơn Hàng' : '📋 Chi Tiết Báo Giá'}</span>} bordered={false} style={{ marginBottom: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}>
 
                             {isMobile ? (
                                 // MOBILE LIST VIEW
@@ -1179,7 +1197,7 @@ const PortalQuotePage: React.FC = () => {
                                                     </Table.Summary.Row>
                                                 )}
                                                 <Table.Summary.Row>
-                                                    <Table.Summary.Cell index={0} colSpan={7} align="right"><span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span></Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={0} colSpan={7} align="right"><span style={{ color: '#888' }}>Thuế GTGT ({vatRate}%)</span></Table.Summary.Cell>
                                                     <Table.Summary.Cell index={1} align="right">{vatAmount.toLocaleString()}</Table.Summary.Cell>
                                                 </Table.Summary.Row>
                                                 <Table.Summary.Row>
@@ -1218,7 +1236,7 @@ const PortalQuotePage: React.FC = () => {
                                             </div>
                                         )}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                                            <span style={{ color: '#888' }}>Thuế VAT ({vatRate}%)</span>
+                                            <span style={{ color: '#888' }}>Thuế GTGT ({vatRate}%)</span>
                                             <span style={{ fontWeight: 600, color: '#333' }}>{vatAmount.toLocaleString()}</span>
                                         </div>
                                         {Number(data.shipping_fee || 0) > 0 && (
@@ -1651,7 +1669,7 @@ const PortalQuotePage: React.FC = () => {
                 cancelText="Hủy"
             >
                 <div>
-                    <p>Vui lòng nhập <b>Số điện thoại</b> hoặc <b>Email</b> của bạn để xác nhận đơn hàng này.</p>
+                    <p>Vui lòng nhập <b>Số điện thoại</b> hoặc <b>Email</b> của bạn để xác nhận {isOrder ? 'đơn hàng' : 'báo giá'} này.</p>
                     <Input
                         placeholder="Nhập SĐT hoặc Email..."
                         value={verifyInput}

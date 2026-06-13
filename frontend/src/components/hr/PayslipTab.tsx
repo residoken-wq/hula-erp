@@ -42,15 +42,29 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
     };
 
     // Auto calculate when month/year/employee changes
-    const autoCalcDays = () => {
+    const autoCalcDays = async () => {
         const empId = form.getFieldValue('employee_id');
         const month = form.getFieldValue('month');
         const year = form.getFieldValue('year');
         if (empId && month && year) {
             const emp = employees.find(e => e.id === empId);
             const daysPerWeek = emp?.work_shift?.work_days_per_week || 6;
+            const calcType = emp?.work_shift?.calc_type;
             const stdDays = calcStandardWorkDays(year, month, daysPerWeek);
-            form.setFieldsValue({ standard_work_days: stdDays, actual_work_days: stdDays });
+            form.setFieldsValue({ standard_work_days: stdDays });
+
+            if (calcType === 'HOURLY') {
+                try {
+                    const res = await api.get('/hr/attendances', { params: { employee_id: empId, month, year } });
+                    const attendances = res.data || [];
+                    const totalHours = attendances.reduce((sum: number, a: any) => sum + (Number(a.work_hours) || 0), 0);
+                    form.setFieldsValue({ actual_work_days: totalHours });
+                } catch (e) {
+                    form.setFieldsValue({ actual_work_days: 0 });
+                }
+            } else {
+                form.setFieldsValue({ actual_work_days: stdDays });
+            }
         }
     };
 
@@ -110,7 +124,7 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
         { title: 'Nhân viên', dataIndex: ['employee', 'full_name'] },
         { title: 'Tháng', render: (_: any, r: any) => `${r.month}/${r.year}` },
         { title: 'Lương CB', dataIndex: 'base_salary', render: (v: number) => formatMoney(v) },
-        { title: 'Ngày công', dataIndex: 'actual_work_days' },
+        { title: 'Công', dataIndex: 'actual_work_days', render: (v: any, r: any) => r.employee?.work_shift?.calc_type === 'HOURLY' ? `${v} giờ` : `${v} ngày` },
         { title: 'Tổng thu', dataIndex: 'gross_income', render: (v: number) => formatMoney(v) },
         { title: 'Thực nhận', dataIndex: 'net_salary', render: (v: number) => <b style={{ color: 'green' }}>{formatMoney(v)}</b> },
         {
@@ -155,7 +169,7 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
             <Modal title="Tạo phiếu lương" open={modal} onCancel={() => setModal(false)} onOk={() => form.submit()} width={650}>
                 <Form form={form} layout="vertical" onFinish={handleSave}>
                     <Form.Item name="employee_id" label="Nhân viên" rules={[{ required: true }]}>
-                        <Select onChange={(id) => {
+                        <Select onChange={async (id) => {
                             const emp = employees.find(e => e.id === id);
                             if (emp) {
                                 form.setFieldsValue({ base_salary: emp.base_salary });
@@ -163,8 +177,7 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
                                 const month = form.getFieldValue('month');
                                 const year = form.getFieldValue('year');
                                 if (month && year) {
-                                    const stdDays = calcStandardWorkDays(year, month, emp.work_shift?.work_days_per_week || 6);
-                                    form.setFieldsValue({ standard_work_days: stdDays, actual_work_days: stdDays });
+                                    await autoCalcDays();
                                 }
                             }
                         }}>
@@ -180,8 +193,8 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
                             </Form.Item>
                         </Col>
                         <Col span={6}><Form.Item name="year" label="Năm" rules={[{ required: true }]}><InputNumber min={2020} style={{ width: '100%' }} onChange={() => autoCalcDays()} /></Form.Item></Col>
-                        <Col span={6}><Form.Item name="standard_work_days" label="Ngày chuẩn"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
-                        <Col span={6}><Form.Item name="actual_work_days" label="Ngày công" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} step={0.5} /></Form.Item></Col>
+                        <Col span={6}><Form.Item name="standard_work_days" label="Chuẩn"><InputNumber style={{ width: '100%' }} /></Form.Item></Col>
+                        <Col span={6}><Form.Item name="actual_work_days" label="Thực tế" rules={[{ required: true }]}><InputNumber style={{ width: '100%' }} step={0.5} /></Form.Item></Col>
                     </Row>
                     <Row gutter={16}>
                         <Col span={12}><Form.Item name="base_salary" label="Lương cơ bản"><InputNumber style={{ width: '100%' }} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} /></Form.Item></Col>
@@ -216,7 +229,7 @@ const PayslipTab: React.FC<Props> = ({ employees, payslips, onRefresh }) => {
 
                         <div style={{ background: '#f5f5f5', padding: 8, marginBottom: 8, fontWeight: 'bold' }}>THU NHẬP</div>
                         <Row><Col span={14}>Lương cơ bản</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.base_salary)}</Col></Row>
-                        <Row><Col span={14}>Ngày công: {viewPayslip.actual_work_days}/{viewPayslip.standard_work_days || 26}</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.actual_salary)}</Col></Row>
+                        <Row><Col span={14}>{viewPayslip.employee?.work_shift?.calc_type === 'HOURLY' ? `Giờ công: ${viewPayslip.actual_work_days}` : `Ngày công: ${viewPayslip.actual_work_days}/${viewPayslip.standard_work_days || 26}`}</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.actual_salary)}</Col></Row>
                         <Row><Col span={14}>PC Ăn trưa</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_meal)}</Col></Row>
                         <Row><Col span={14}>PC Đi lại</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_transport)}</Col></Row>
                         <Row><Col span={14}>PC Điện thoại</Col><Col span={10} style={{ textAlign: 'right' }}>{formatMoney(viewPayslip.allowance_phone)}</Col></Row>

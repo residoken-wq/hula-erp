@@ -94,6 +94,11 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
+    // Block access to /dat-hang-si on non-beta domains
+    if (pathname === '/dat-hang-si' || pathname.startsWith('/dat-hang-si/')) {
+        return NextResponse.redirect(new URL('/', request.url));
+    }
+
     // Check for force refresh query param (used after changing mode in CMS)
     const forceRefresh = request.nextUrl.searchParams.has('refresh_mode');
 

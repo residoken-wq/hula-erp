@@ -629,7 +629,30 @@ export class SalesService {
         await this.syncChecklistWithStatus(saved.id, saved.status);
         return saved;
     }
-    async deleteQuote(id: number) { return this.orderRepo.delete(id); }
+    async deleteQuote(id: number) {
+        const order = await this.orderRepo.findOne({ where: { id } });
+        if (!order) throw new NotFoundException('Quote not found');
+
+        // Xóa các items liên quan
+        await this.itemRepo.delete({ order: { id } });
+
+        // Xóa checklist nếu có
+        const checklist = await this.checklistRepo.findOne({ where: { order_id: id } });
+        if (checklist) {
+            await this.checklistItemRepo.delete({ checklist: { id: checklist.id } });
+            await this.checklistRepo.delete(checklist.id);
+        }
+
+        // Xóa comments nếu có
+        await this.commentRepo.delete({ order: { id } });
+
+        // Xóa Versions/Revisions nếu có
+        await this.versionRepo.delete({ order: { id } });
+
+        // Xóa đơn hàng
+        await this.systemService.logAction('SALES', 'DELETE_QUOTE', `Deleted Quote ${order.order_code}`, null, null, order.order_code);
+        return this.orderRepo.delete(id);
+    }
 
     // --- BOD FOLLOW UP ---
     async updateBodFollowUp(id: number, bodFollowUpData: any) {

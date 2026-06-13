@@ -4,7 +4,7 @@ import type { MenuProps } from 'antd';
 import {
     DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
     SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined, MenuOutlined, IdcardOutlined,
-    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined, FolderOutlined, MessageOutlined, GlobalOutlined
+    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined, FolderOutlined, MessageOutlined, GlobalOutlined, PrinterOutlined, ExperimentOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Drawer } from 'antd'; // <--- Import Drawer
@@ -31,8 +31,8 @@ const CustomersPage = React.lazy(() => import('./pages/CustomersPage'));
 const PlanningPage = React.lazy(() => import('./pages/PlanningPage'));
 const ManufacturersPage = React.lazy(() => import('./pages/ManufacturersPage'));
 const ProductionRoutePage = React.lazy(() => import('./pages/ProductionRoutePage'));
-const ProcessesPage = React.lazy(() => import('./pages/ProcessesPage'));
 const CategoriesPage = React.lazy(() => import('./pages/CategoriesPage'));
+const DesignManagementPage = React.lazy(() => import('./pages/DesignManagementPage')); // <--- MỚI
 const PortalQuotePage = React.lazy(() => import('./pages/PortalQuotePage'));
 const PortalPurchasePage = React.lazy(() => import('./pages/PortalPurchasePage'));
 const PortalRecruitmentPage = React.lazy(() => import('./pages/PortalRecruitmentPage'));
@@ -71,6 +71,8 @@ const BodDashboard = React.lazy(() => import('./pages/BodDashboard'));
 const DiscussionDetailPage = React.lazy(() => import('./pages/DiscussionDetailPage'));
 const QCPage = React.lazy(() => import('./pages/QCPage'));
 const ProductionDashboardPage = React.lazy(() => import('./pages/ProductionDashboardPage'));
+const ProcessesPage = React.lazy(() => import('./pages/ProcessesPage'));
+const PrintReportDashboard = React.lazy(() => import('./pages/PrintReportDashboard'));
 
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
@@ -150,7 +152,7 @@ const App: React.FC = () => {
             items.push(getItem('Quản lý sản phẩm', 'sub_prod', <ShopOutlined />, [
                 getItem(<Link to="/categories">Danh mục & Định giá</Link>, 'cat_page'),
                 getItem(<Link to="/products">Sản phẩm (Lẻ)</Link>, '2'),
-                getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page'),
+                getItem(<Link to="/combos">Combo sản phẩm</Link>, 'combo_page')
             ]));
         }
 
@@ -196,6 +198,8 @@ const App: React.FC = () => {
             items.push(getItem('Sản xuất (MRP)', '9', <DesktopOutlined />, [
                 getItem(<Link to="/planning">Lập Kế Hoạch SX</Link>, 'plan'),
                 getItem(<Link to="/purchasing">Đơn Mua Hàng & GC</Link>, 'po_page'),
+                getItem(<Link to="/print-production">Báo cáo Gia công In</Link>, 'print-production', <PrinterOutlined />),
+                getItem(<Link to="/designs">Thiết kế In ấn & Thêu</Link>, 'designs_page'),
                 getItem(<Link to="/routes">Định nghĩa Quy trình</Link>, 'route'),
                 getItem(<Link to="/processes">DM Công Đoạn</Link>, 'proc_list'),
                 getItem(<Link to="/qc">🔬 Kiểm Tra Chất Lượng</Link>, 'qc_page'),
@@ -365,6 +369,8 @@ const App: React.FC = () => {
                                                         <Route path="/purchasing" element={<PurchasingPage />} />
                                                         <Route path="/qc" element={<QCPage />} />
                                                         <Route path="/production-dashboard" element={<ProductionDashboardPage />} />
+                                                        <Route path="/designs" element={<DesignManagementPage />} />
+                                                        <Route path="/print-production" element={<PrintReportDashboard />} />
                                                     </>
                                                 )}
 

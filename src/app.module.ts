@@ -33,6 +33,7 @@ import { MarketingModule } from './marketing/marketing.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { WebsiteProjectsModule } from './website-projects/website-projects.module';
 import { QCModule } from './qc/qc.module';
+import { DesignsModule } from './designs/designs.module';
 
 import { AnalyticsModule } from './analytics/analytics.module';
 
@@ -142,6 +143,10 @@ import { AppController } from './app.controller';
 
 import { AiModule } from './ai/ai.module';
 import { AiMessage } from './ai/ai-message.entity';
+import { CustomerLogo } from './designs/entities/customer-logo.entity';
+import { PrintDesign } from './designs/entities/print-design.entity';
+import { PrintSample } from './designs/entities/print-sample.entity';
+
 // Social & Marketing Entities
 import { SocialChannel } from './social/entities/social-channel.entity';
 import { SocialOrder } from './social/entities/social-order.entity';
@@ -208,7 +213,8 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           // Promotions
           Promotion,
           AnalyticsVisitor,
-          AiMessage
+          AiMessage,
+          CustomerLogo, PrintDesign, PrintSample
         ],
         synchronize: configService.get<string>('NODE_ENV') !== 'production',
         subscribers: [],
@@ -228,6 +234,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
     WebsiteProjectsModule,
     AnalyticsModule, // Website Analytics tracking
     QCModule, // Quality Control module
+    DesignsModule, // Printing & Embroidery Design Module
     TypeOrmModule.forFeature([User]), // Needed for ActivityInterceptor
   ],
   providers: [

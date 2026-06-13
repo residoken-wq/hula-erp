@@ -180,6 +180,13 @@ export class InventoryService {
     return { message: 'Chuyển kho thành công' };
   }
 
+    async getReceiptsByPo(poId: number) {
+        return this.receiptRepo.find({
+            where: { po_id: poId },
+            relations: ['items']
+        });
+    }
+
   // --- GOODS RECEIPT FLOW ---
 
   async createDraftReceipt(data: { po_id: number; items: any[]; note?: string }) {
