@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function CategoryFunnel({ categories, selectedL1, selectedL2, onSelectL1, onSelectL2 }: Props) {
-    const currentL1 = categories?.find(c => c.id === selectedL1);
+    const currentL1 = (categories || []).find(c => c && c.id === selectedL1);
 
     return (
         <div className="mb-8">

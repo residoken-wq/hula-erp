@@ -243,7 +243,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
         <div className="border border-primary/20 rounded-xl overflow-hidden bg-white shadow-sm">
             {(steps || []).filter(Boolean).map((step, index) => {
                 const isOpen = openStep === step.id;
-                const selectedOption = step.options?.find(o => o.id === selections[step.id]);
+                const selectedOption = (step.options || []).find(o => o && o.id === selections[step.id]);
                 const isSkipped = skippedSteps[step.id];
 
                 return (

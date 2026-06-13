@@ -27,9 +27,9 @@ export default function B2BLeadModal({ isOpen, onClose, category, subcategory, s
         let modifier = 0;
         const options: Array<{ step_label: string; option_name: string; modifier: number }> = [];
 
-        for (const step of steps) {
+        for (const step of (steps || []).filter(Boolean)) {
             const optId = selections[step.id];
-            const opt = step.options?.find(o => o.id === optId);
+            const opt = (step.options || []).find(o => o && o.id === optId);
             if (opt) {
                 modifier += opt.price_modifier;
                 options.push({
