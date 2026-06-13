@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Divider, Switch, Tabs } from 'antd';
+import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Divider, Switch, Tabs, Input, Tag } from 'antd';
 import { UploadOutlined, FilePdfOutlined, FileImageOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Stage, Layer, Rect as KonvaRect, Image as KonvaImage, Transformer, Group, Text as KonvaText } from 'react-konva';
 import useImage from 'use-image';
@@ -105,9 +105,15 @@ const UnifiedDesignWorkflow: React.FC = () => {
         try {
             const res = await api.get('/purchasing');
             const data = Array.isArray(res.data) ? res.data : [];
+            const isRelevantItem = (item: any) => {
+                const name = (item.description || item.product?.name || item.material?.name || '').toLowerCase();
+                return name.includes('gia công in') || name.includes('gia công may') || name.includes('gia công thêu') || name.includes('gia công cắt');
+            };
+
             const filtered = data.filter((po: any) => 
                 po.type === 'OUTSOURCING' && 
-                ['DRAFT', 'ORDERED', 'SENT', 'CONFIRMED'].includes(po.status)
+                ['DRAFT', 'ORDERED', 'SENT', 'CONFIRMED'].includes(po.status) &&
+                po.items && po.items.some(isRelevantItem)
             );
             setPoList(filtered);
         } catch (e) {
@@ -121,7 +127,7 @@ const UnifiedDesignWorkflow: React.FC = () => {
         const formData = new FormData();
         formData.append('file', file);
         try {
-            const res = await api.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            const res = await api.post('/upload/image', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             updateFace(faceId, { logoUrl: res.data.url });
             onSuccess(res.data.url);
             message.success('Tải logo thành công');
@@ -265,45 +271,83 @@ const UnifiedDesignWorkflow: React.FC = () => {
     };
 
     // --- RENDER STEPS ---
-    const renderStep1 = () => (
-        <div>
-            <Select
-                showSearch
-                placeholder="Chọn Lệnh Sản Xuất / PO Gia Công..."
-                style={{ width: 400, marginBottom: 16 }}
-                loading={loadingPo}
-                options={poList.map(po => ({ label: `[${po.status}] ${po.po_code} - ${po.supplier?.name || ''}`, value: po.id }))}
-                onChange={(val) => {
-                    const po = poList.find(p => p.id === val);
-                    setSelectedPo(po);
-                    setSelectedItem(null);
-                }}
-                filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
-            />
-            {selectedPo && (
-                <Table
-                    dataSource={selectedPo.items}
-                    rowKey="id"
-                    pagination={false}
-                    columns={[
-                        { title: 'Tên Sản phẩm / Mã hàng', dataIndex: 'description', render: (t, r: any) => r.product?.name || r.material?.name || t },
-                        { title: 'Số lượng yêu cầu', dataIndex: 'quantity', render: (v) => <b>{v}</b> },
-                        { title: 'Ghi chú', dataIndex: 'note' },
-                        {
-                            title: 'Thao tác', render: (r) => (
-                                <Button
-                                    type={selectedItem?.id === r.id ? 'primary' : 'default'}
-                                    onClick={() => setSelectedItem(r)}
-                                >
-                                    Chọn để làm Sơ đồ
-                                </Button>
-                            )
-                        }
-                    ]}
+    const renderStep1 = () => {
+        const expandedRowRender = (po: any) => {
+            const items = po.items.filter((item: any) => {
+                const name = (item.description || item.product?.name || item.material?.name || '').toLowerCase();
+                return name.includes('gia công in') || name.includes('gia công may') || name.includes('gia công thêu') || name.includes('gia công cắt');
+            });
+            
+            const columns = [
+                { title: 'Tên Sản phẩm / Mã hàng', dataIndex: 'description', render: (t: any, r: any) => r.product?.name || r.material?.name || t },
+                { title: 'Số lượng yêu cầu', dataIndex: 'quantity', render: (v: any) => <b>{v}</b> },
+                { title: 'Trạng thái', render: (r: any) => {
+                     const name = (r.description || r.product?.name || r.material?.name || '').toLowerCase();
+                     if (name.includes('gia công may')) return <Tag color="default">Không cần Sơ đồ</Tag>;
+                     return r.print_design ? <Tag color="success">Đã làm Sơ đồ</Tag> : <Tag color="warning">Chưa làm</Tag>;
+                }},
+                { title: 'Ghi chú', dataIndex: 'note' },
+                {
+                    title: 'Thao tác', render: (r: any) => {
+                        const name = (r.description || r.product?.name || r.material?.name || '').toLowerCase();
+                        const isMay = name.includes('gia công may');
+                        return (
+                            <Button
+                                type={selectedItem?.id === r.id ? 'primary' : 'default'}
+                                onClick={() => {
+                                    setSelectedPo(po);
+                                    setSelectedItem(r);
+                                }}
+                                disabled={isMay}
+                            >
+                                Chọn để làm Sơ đồ
+                            </Button>
+                        )
+                    }
+                }
+            ];
+            return <Table columns={columns} dataSource={items} pagination={false} rowKey="id" size="small" />;
+        };
+
+        const poColumns = [
+            { title: 'Mã PO', dataIndex: 'po_code', render: (t: any, r: any) => <b>{t}</b> },
+            { title: 'Khách hàng', render: (r: any) => {
+                const customerName = r.plan?.sales_orders?.length > 0 
+                    ? Array.from(new Set(r.plan.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ') 
+                    : '';
+                return customerName || '-';
+            }},
+            { title: 'Nhà GC', dataIndex: ['supplier', 'name'] },
+            { title: 'Trạng thái', dataIndex: 'status', render: (t: string) => <Tag color="blue">{t}</Tag> },
+            { title: 'Tiến độ Sơ đồ', render: (r: any) => {
+                const items = r.items || [];
+                let total = 0;
+                let done = 0;
+                items.forEach((item: any) => {
+                     const name = (item.description || item.product?.name || item.material?.name || '').toLowerCase();
+                     if (name.includes('gia công in') || name.includes('gia công thêu') || name.includes('gia công cắt')) {
+                         total++;
+                         if (item.print_design) done++;
+                     }
+                });
+                if (total === 0) return <span style={{ color: '#aaa' }}>-</span>;
+                return <span style={{ fontWeight: 'bold', color: done === total ? '#52c41a' : '#fa8c16' }}>{done}/{total}</span>;
+            }}
+        ];
+
+        return (
+            <div>
+                <Table 
+                    columns={poColumns} 
+                    dataSource={poList} 
+                    rowKey="id" 
+                    expandable={{ expandedRowRender, defaultExpandAllRows: false }}
+                    loading={loadingPo}
+                    pagination={{ pageSize: 10 }}
                 />
-            )}
-        </div>
-    );
+            </div>
+        );
+    };
 
     const renderStep2 = () => {
         const SCALE = 5;
@@ -333,8 +377,11 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                                 <InputNumber style={{ width: '100%' }} value={face.pieceSize.h} onChange={v => updateFace(face.id, { pieceSize: { ...face.pieceSize, h: v || 40 } })} />
                                             </div>
                                             <div>
-                                                <label>Màu nền (Branding):</label>
-                                                <input type="color" style={{ width: '100%', height: 32, cursor: 'pointer' }} value={face.bgColor} onChange={e => updateFace(face.id, { bgColor: e.target.value })} />
+                                                <label>Màu nền (Branding/Hex):</label>
+                                                <Space.Compact style={{ width: '100%', marginTop: 4 }}>
+                                                    <input type="color" style={{ width: 40, height: 32, cursor: 'pointer', border: '1px solid #d9d9d9', borderRight: 0, borderTopLeftRadius: 6, borderBottomLeftRadius: 6, padding: 0 }} value={face.bgColor} onChange={e => updateFace(face.id, { bgColor: e.target.value })} />
+                                                    <Input placeholder="#FFFFFF" value={face.bgColor} onChange={e => updateFace(face.id, { bgColor: e.target.value })} style={{ width: 'calc(100% - 40px)' }} />
+                                                </Space.Compact>
                                             </div>
                                             <Divider style={{ margin: '12px 0' }} />
                                             <div>
