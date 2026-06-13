@@ -250,6 +250,9 @@ const UnifiedDesignWorkflow: React.FC = () => {
     
     // --- Step 3 Data ---
     const [lockedFaces, setLockedFaces] = useState<Record<string, boolean>>({});
+    const [isAutoPackModalVisible, setIsAutoPackModalVisible] = useState(false);
+    const [autoPackOrientation, setAutoPackOrientation] = useState<'width' | 'height'>('width');
+    const [autoPackForce, setAutoPackForce] = useState<boolean>(true);
 
     useEffect(() => {
         if (isCopyModalVisible) {
@@ -510,10 +513,12 @@ const UnifiedDesignWorkflow: React.FC = () => {
         setBinsByFace({ ...binsByFace, [faceId]: currentBins });
     };
 
-    const handleAutoPack = () => {
+    const executeAutoPack = (options?: { orientation: 'width' | 'height', force: boolean }) => {
         if (!selectedItem) return;
         const newResults: Record<string, any> = {};
+        const newConfigs = { ...continuousConfigs };
         let hasUnpacked = false;
+        let hasError = false;
 
         faces.forEach(face => {
             if (lockedFaces[face.id] && resultsByFace[face.id]) {
@@ -523,17 +528,52 @@ const UnifiedDesignWorkflow: React.FC = () => {
             const rects: Rect[] = [];
             
             if (packingMode === 'CONTINUOUS') {
-                const config = continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100 };
-                const qtyToPack = config.qtyPerFile || 10;
+                const config = newConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100 };
+                let qtyToPack = config.qtyPerFile || 10;
+                let finalAllowRotation = allowRotation;
+
+                if (options) {
+                    const fw = config.width;
+                    const pw = face.pieceSize.w;
+                    const ph = face.pieceSize.h;
+                    
+                    const sizeAlongWidth = options.orientation === 'width' ? pw : ph;
+                    const maxQty = Math.floor(fw / (sizeAlongWidth + padding));
+                    
+                    if (maxQty < 1) {
+                        message.error(`Khổ vải (${fw}cm) quá nhỏ để xếp sản phẩm này (${sizeAlongWidth}cm)! Vui lòng tăng khổ vải.`);
+                        hasError = true;
+                        return;
+                    }
+                    
+                    qtyToPack = maxQty;
+                    newConfigs[face.id] = { ...config, qtyPerFile: maxQty };
+                    
+                    if (options.force) {
+                        finalAllowRotation = false;
+                    }
+                }
+
+                if (hasError) return;
+
                 for (let i = 0; i < qtyToPack; i++) {
-                    rects.push({
+                    const rect: Rect = {
                         id: `P-${face.id}-${i}`,
                         w: face.pieceSize.w,
                         h: face.pieceSize.h,
                         data: { name: face.name, color: face.bgColor, logoUrl: face.logoUrl, logoConfig: face.logoConfig }
-                    });
+                    };
+                    
+                    if (options && options.force) {
+                        if (options.orientation === 'width') {
+                            rect.rotated = false;
+                        } else {
+                            rect.rotated = true;
+                        }
+                    }
+                    rects.push(rect);
                 }
-                const result = packContinuous(config.width, rects, padding, allowRotation);
+                const result = packContinuous(config.width, rects, padding, finalAllowRotation);
                 const runs = Math.ceil((config.totalQty || selectedItem.quantity || 100) / qtyToPack);
                 
                 newResults[face.id] = {
@@ -573,12 +613,19 @@ const UnifiedDesignWorkflow: React.FC = () => {
             }
         });
 
-        setResultsByFace(newResults);
+        if (!hasError) {
+            setContinuousConfigs(newConfigs);
+            setResultsByFace(newResults);
+            if (hasUnpacked) message.warning('Có mảnh chưa được xếp, vui lòng kiểm tra lại diện tích!');
+            else message.success('Đã xếp xong sơ đồ!');
+        }
+    };
 
-        if (hasUnpacked) {
-            message.warning(`Cảnh báo: Có mảnh chưa xếp được do thiếu diện tích vải. Vui lòng kiểm tra các mặt!`);
+    const handleAutoPack = () => {
+        if (packingMode === 'CONTINUOUS') {
+            setIsAutoPackModalVisible(true);
         } else {
-            message.success('Xếp sơ đồ cho tất cả các mặt hoàn tất!');
+            executeAutoPack();
         }
     };
 
@@ -864,9 +911,18 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                     <Tabs.TabPane tab={face.name} key={face.id}>
                                         {packingMode === 'CONTINUOUS' ? (
                                             <Space direction="vertical" style={{ width: '100%' }}>
-                                                <div><label>Khổ vải (cm):</label> <InputNumber size="small" value={continuousConfigs[face.id]?.width || 150} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), width: v || 150 }})} style={{ width: '100%' }} /></div>
-                                                <div><label>Tổng số lượng:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.totalQty || selectedItem?.quantity || 100} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), totalQty: v || 1 }})} style={{ width: '100%' }} /></div>
-                                                <div><label>Số con / file:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.qtyPerFile || 10} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), qtyPerFile: v || 1 }})} style={{ width: '100%' }} /></div>
+                                                <div><label>Khổ vải (cm):</label> <InputNumber size="small" value={continuousConfigs[face.id]?.width || 150} onChange={v => {
+                                                    const newConf = {...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), width: v || 150 }};
+                                                    setContinuousConfigs(newConf);
+                                                }} onBlur={() => executeAutoPack()} onPressEnter={() => executeAutoPack()} style={{ width: '100%' }} /></div>
+                                                <div><label>Tổng số lượng:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.totalQty || selectedItem?.quantity || 100} onChange={v => {
+                                                    const newConf = {...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), totalQty: v || 1 }};
+                                                    setContinuousConfigs(newConf);
+                                                }} onBlur={() => executeAutoPack()} onPressEnter={() => executeAutoPack()} style={{ width: '100%' }} /></div>
+                                                <div><label>Số con / file:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.qtyPerFile || 10} onChange={v => {
+                                                    const newConf = {...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), qtyPerFile: v || 1 }};
+                                                    setContinuousConfigs(newConf);
+                                                }} onBlur={() => executeAutoPack()} onPressEnter={() => executeAutoPack()} style={{ width: '100%' }} /></div>
                                                 <div style={{color: '#1890ff', fontSize: 12}}>Số lần in (Runs): <b>{Math.ceil((continuousConfigs[face.id]?.totalQty || selectedItem?.quantity || 100) / (continuousConfigs[face.id]?.qtyPerFile || 10))}</b></div>
                                             </Space>
                                         ) : (
@@ -1091,6 +1147,37 @@ const UnifiedDesignWorkflow: React.FC = () => {
                             />
                         </List.Item>
                     )}
+                />
+            </Modal>
+
+            <Modal 
+                title="Cấu hình Tự Động Xếp Sơ Đồ" 
+                open={isAutoPackModalVisible} 
+                onCancel={() => setIsAutoPackModalVisible(false)}
+                onOk={() => {
+                    setIsAutoPackModalVisible(false);
+                    executeAutoPack({ orientation: autoPackOrientation, force: autoPackForce });
+                }}
+                okText="Tính toán & Chạy"
+                cancelText="Huỷ"
+            >
+                <div style={{ marginBottom: 16 }}>
+                    <p><b>Bạn muốn ưu tiên xếp các mảnh rập theo chiều nào dọc theo Khổ vải?</b></p>
+                    <Select value={autoPackOrientation} onChange={setAutoPackOrientation} style={{ width: '100%' }}>
+                        <Select.Option value="width">Theo Chiều Rộng của sản phẩm</Select.Option>
+                        <Select.Option value="height">Theo Chiều Dài của sản phẩm</Select.Option>
+                    </Select>
+                </div>
+                <div>
+                    <p><b>Tuỳ chọn ép hướng (Force Orientation):</b></p>
+                    <Switch checked={autoPackForce} onChange={setAutoPackForce} /> 
+                    <span style={{ marginLeft: 8 }}>Tắt xoay tự do, ép xoay đúng theo chiều đã chọn để hàng cắt ngay ngắn.</span>
+                </div>
+                <Alert 
+                    type="info" 
+                    showIcon 
+                    message="Hệ thống sẽ tự động tính toán Số con tối đa trên 1 hàng dựa vào lựa chọn của bạn và Khổ vải hiện tại." 
+                    style={{ marginTop: 16 }}
                 />
             </Modal>
         </Card>
