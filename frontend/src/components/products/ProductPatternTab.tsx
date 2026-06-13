@@ -16,9 +16,23 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
     const [details, setDetails] = useState<any[]>([]); // Danh sách chi tiết rập
     const [form] = Form.useForm();
 
+    const [printDesigns, setPrintDesigns] = useState<any[]>([]);
+
     useEffect(() => {
-        if (editingItem?.id) fetchPattern();
+        if (editingItem?.id) {
+            fetchPattern();
+            fetchPrintDesigns();
+        }
     }, [editingItem]);
+
+    const fetchPrintDesigns = async () => {
+        try {
+            const res = await api.get(`/designs/print-designs?product_id=${editingItem.id}`);
+            setPrintDesigns(res.data);
+        } catch (e) {
+            console.error('Error fetching print designs', e);
+        }
+    };
 
     const fetchPattern = async () => {
         setLoading(true);
@@ -117,8 +131,9 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
     };
 
     return (
-        <Row gutter={24}>
-            {/* Cột Trái: Hình ảnh & Thông số chung */}
+        <>
+            <Row gutter={24}>
+                {/* Cột Trái: Hình ảnh & Thông số chung */}
             <Col span={10}>
                 <Card title="Sơ đồ Rập (Marker)" size="small">
                     <div style={{ textAlign: 'center', marginBottom: 20 }}>
@@ -187,6 +202,25 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
                 </Card>
             </Col>
         </Row>
+
+        <Divider />
+        <Card title="Các Sơ đồ In/Thêu (Markers) đã lưu cho sản phẩm này" size="small">
+            <Table
+                dataSource={printDesigns}
+                rowKey="id"
+                pagination={false}
+                size="small"
+                columns={[
+                    { title: 'Mã Sơ đồ', dataIndex: 'code', render: (t) => <b>{t}</b> },
+                    { title: 'Tên Sơ đồ', dataIndex: 'name' },
+                    { title: 'Ngày tạo', dataIndex: 'created_at', render: (t) => new Date(t).toLocaleString() },
+                    { title: 'Khách hàng', render: (r: any) => r.customer?.name || '-' },
+                    { title: 'Loại', dataIndex: 'type' },
+                    { title: 'SL Mặt vải', render: (r: any) => r.tech_pack?.faces?.length || 0 }
+                ]}
+            />
+        </Card>
+        </>
     );
 };
 

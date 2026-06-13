@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Divider, Switch, Tabs, Input, Tag, Alert } from 'antd';
-import { UploadOutlined, FilePdfOutlined, FileImageOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Divider, Switch, Tabs, Input, Tag, Alert, Modal, List } from 'antd';
+import { UploadOutlined, FilePdfOutlined, FileImageOutlined, PlusOutlined, DeleteOutlined, SaveOutlined, CopyOutlined } from '@ant-design/icons';
 import { Stage, Layer, Rect as KonvaRect, Image as KonvaImage, Transformer, Group, Text as KonvaText } from 'react-konva';
 import useImage from 'use-image';
 import jsPDF from 'jspdf';
@@ -79,6 +79,66 @@ const UnifiedDesignWorkflow: React.FC = () => {
     const [selectedPo, setSelectedPo] = useState<any>(null);
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [loadingPo, setLoadingPo] = useState(false);
+
+    // --- Copy Design Modal Data ---
+    const [isCopyModalVisible, setIsCopyModalVisible] = useState(false);
+    const [savedDesigns, setSavedDesigns] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (isCopyModalVisible) {
+            fetchSavedDesigns();
+        }
+    }, [isCopyModalVisible]);
+
+    const fetchSavedDesigns = async () => {
+        try {
+            const res = await api.get('/designs/print-designs');
+            setSavedDesigns(res.data);
+        } catch (e) {
+            message.error('Lỗi lấy danh sách sơ đồ');
+        }
+    };
+
+    const handleCopyDesign = (design: any) => {
+        if (design.tech_pack && design.tech_pack.faces) {
+            setFaces(design.tech_pack.faces);
+            setBinsByFace(design.tech_pack.binsByFace || { 'face-1': [{ w: 400, h: 120 }] });
+            setPadding(design.tech_pack.padding ?? 2);
+            setAllowRotation(design.tech_pack.allowRotation ?? true);
+            message.success(`Đã sao chép cấu hình từ: ${design.name}`);
+            setIsCopyModalVisible(false);
+        } else {
+            message.warning('Sơ đồ này không có dữ liệu cấu hình hợp lệ');
+        }
+    };
+
+    const handleSaveDesign = async () => {
+        if (!selectedItem) {
+            message.warning('Chưa chọn sản phẩm!');
+            return;
+        }
+        
+        try {
+            const dataToSave = {
+                code: `SD-${Date.now()}`,
+                name: `Sơ đồ ${selectedItem.product?.name || selectedItem.material?.name || 'Sản phẩm'}`,
+                type: 'PRINT',
+                product_id: selectedItem.product?.id,
+                customer_id: selectedPo?.plan?.sales_orders?.[0]?.customer_id || selectedPo?.customer_id || null,
+                tech_pack: {
+                    faces,
+                    binsByFace,
+                    padding,
+                    allowRotation
+                }
+            };
+            await api.post('/designs/print-designs', dataToSave);
+            message.success('Đã lưu sơ đồ vào hệ thống!');
+        } catch (e) {
+            console.error(e);
+            message.error('Lỗi khi lưu sơ đồ');
+        }
+    };
 
     // --- Step 2 Data: Multi-Face Support ---
     const [faces, setFaces] = useState<any[]>([
@@ -414,7 +474,10 @@ const UnifiedDesignWorkflow: React.FC = () => {
                     />
                 )}
                 <div style={{ marginBottom: 16 }}>
-                    <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddFace}>Thêm Mặt Vải / Chi tiết</Button>
+                    <Space>
+                        <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddFace}>Thêm Mặt Vải / Chi tiết</Button>
+                        <Button type="primary" ghost icon={<CopyOutlined />} onClick={() => setIsCopyModalVisible(true)}>Sao chép từ Sơ đồ mẫu</Button>
+                    </Space>
                 </div>
                 <Tabs type="card" activeKey={activeFaceKey} onChange={setActiveFaceKey}>
                     {faces.map(face => (
@@ -552,8 +615,9 @@ const UnifiedDesignWorkflow: React.FC = () => {
                     </Card>
                     
                     {Object.keys(resultsByFace).length > 0 && (
-                        <Card title="Xuất File" size="small" style={{ marginTop: 16 }}>
+                        <Card title="Xuất File & Lưu Sơ Đồ" size="small" style={{ marginTop: 16 }}>
                             <Space direction="vertical" style={{ width: '100%' }}>
+                                <Button block icon={<SaveOutlined />} type="primary" onClick={handleSaveDesign}>Lưu Sơ Đồ</Button>
                                 <Button block icon={<FilePdfOutlined />} onClick={exportToPDF} style={{ color: '#cf1322', borderColor: '#cf1322' }}>Xuất PDF Gộp</Button>
                                 <Button block icon={<FileImageOutlined />} onClick={exportToPNG}>Xuất PNG Rời</Button>
                             </Space>
@@ -652,6 +716,22 @@ const UnifiedDesignWorkflow: React.FC = () => {
                 {currentStep < steps.length - 1 && <Button type="primary" onClick={handleNext}>Tiếp Tục</Button>}
                 {currentStep === steps.length - 1 && <Button type="primary" style={{ background: '#52c41a' }} onClick={() => message.success('Hoàn thành!')}>Hoàn Thành</Button>}
             </div>
+
+            <Modal title="Chọn Sơ đồ mẫu để Sao chép" open={isCopyModalVisible} onCancel={() => setIsCopyModalVisible(false)} footer={null} width={600}>
+                <List
+                    dataSource={savedDesigns}
+                    renderItem={(item: any) => (
+                        <List.Item
+                            actions={[<Button type="primary" size="small" onClick={() => handleCopyDesign(item)}>Sao chép</Button>]}
+                        >
+                            <List.Item.Meta
+                                title={<b>{item.name}</b>}
+                                description={`Mã: ${item.code} | Khách hàng: ${item.customer?.name || '-'} | Sản phẩm: ${item.product?.name || '-'}`}
+                            />
+                        </List.Item>
+                    )}
+                />
+            </Modal>
         </Card>
     );
 };
