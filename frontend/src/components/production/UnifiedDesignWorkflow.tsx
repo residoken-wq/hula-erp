@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Divider, Switch, Tabs, Input, Tag } from 'antd';
+import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Divider, Switch, Tabs, Input, Tag, Alert } from 'antd';
 import { UploadOutlined, FilePdfOutlined, FileImageOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Stage, Layer, Rect as KonvaRect, Image as KonvaImage, Transformer, Group, Text as KonvaText } from 'react-konva';
 import useImage from 'use-image';
@@ -11,7 +11,7 @@ const { Step } = Steps;
 
 // A custom component to handle image loading in Konva
 const URLImage = ({ image, x, y, width, height, isSelected, onSelect, onChange }: any) => {
-    const [img] = useImage(image);
+    const [img] = useImage(image, 'anonymous');
     const shapeRef = useRef<any>();
     const trRef = useRef<any>();
 
@@ -82,7 +82,7 @@ const UnifiedDesignWorkflow: React.FC = () => {
 
     // --- Step 2 Data: Multi-Face Support ---
     const [faces, setFaces] = useState<any[]>([
-        { id: 'face-1', name: 'Mặt trước', pieceSize: { w: 50, h: 40 }, bgColor: '#e6f7ff', logoUrl: null, logoConfig: { x: 10, y: 10, width: 20, height: 20 }, selectedId: null }
+        { id: 'face-1', name: 'Mặt trước', pieceSize: { w: 50, h: 40 }, bgColor: '#e6f7ff', logoUrl: null, processedLogoUrl: null, removeTolerance: 240, logoColor: 'original', logoConfig: { x: 10, y: 10, width: 20, height: 20 }, selectedId: null }
     ]);
     const [activeFaceKey, setActiveFaceKey] = useState('face-1');
 
@@ -138,12 +138,62 @@ const UnifiedDesignWorkflow: React.FC = () => {
     };
 
     const updateFace = (id: string, updates: any) => {
-        setFaces(faces.map(f => f.id === id ? { ...f, ...updates } : f));
+        setFaces(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
     };
+
+    // Background removal logic
+    const processImage = (imgUrl: string, tolerance: number, colorMode: string, faceId: string) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                if (r >= tolerance && g >= tolerance && b >= tolerance) {
+                    data[i + 3] = 0;
+                } else if (data[i + 3] > 0) {
+                    if (colorMode === 'white') {
+                        data[i] = 255; data[i + 1] = 255; data[i + 2] = 255;
+                    } else if (colorMode === 'black') {
+                        data[i] = 0; data[i + 1] = 0; data[i + 2] = 0;
+                    }
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    const processedUrl = URL.createObjectURL(blob);
+                    updateFace(faceId, { processedLogoUrl: processedUrl });
+                }
+            }, 'image/png');
+        };
+        img.src = imgUrl;
+    };
+
+    useEffect(() => {
+        faces.forEach(face => {
+            if (face.logoUrl) {
+                // We re-run processImage if tolerance/color changes.
+                // In a real app we'd debounce or check if it actually changed, but it's okay for now.
+                processImage(face.logoUrl, face.removeTolerance || 240, face.logoColor || 'original', face.id);
+            }
+        });
+    }, [faces.map(f => f.logoUrl).join(','), faces.map(f => f.removeTolerance).join(','), faces.map(f => f.logoColor).join(',')]);
 
     const handleAddFace = () => {
         const newId = `face-${Date.now()}`;
-        setFaces([...faces, { id: newId, name: `Mặt vải ${faces.length + 1}`, pieceSize: { w: 50, h: 40 }, bgColor: '#fff7e6', logoUrl: null, logoConfig: { x: 10, y: 10, width: 20, height: 20 }, selectedId: null }]);
+        setFaces([...faces, { id: newId, name: `Mặt vải ${faces.length + 1}`, pieceSize: { w: 50, h: 40 }, bgColor: '#fff7e6', logoUrl: null, processedLogoUrl: null, removeTolerance: 240, logoColor: 'original', logoConfig: { x: 10, y: 10, width: 20, height: 20 }, selectedId: null }]);
         setBinsByFace({ ...binsByFace, [newId]: [{ w: 400, h: 120 }] });
         setActiveFaceKey(newId);
     };
@@ -354,6 +404,15 @@ const UnifiedDesignWorkflow: React.FC = () => {
 
         return (
             <div>
+                {selectedItem && (
+                    <Alert 
+                        message={<b>Sản phẩm: {selectedItem.product?.name || selectedItem.material?.name || selectedItem.description}</b>} 
+                        description={<span>Mã SKU / Mã hàng: <b>{selectedItem.product?.sku || selectedItem.material?.code || '-'}</b></span>} 
+                        type="info" 
+                        showIcon 
+                        style={{ marginBottom: 16 }} 
+                    />
+                )}
                 <div style={{ marginBottom: 16 }}>
                     <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddFace}>Thêm Mặt Vải / Chi tiết</Button>
                 </div>
@@ -383,13 +442,34 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                                     <Input placeholder="#FFFFFF" value={face.bgColor} onChange={e => updateFace(face.id, { bgColor: e.target.value })} style={{ width: 'calc(100% - 40px)' }} />
                                                 </Space.Compact>
                                             </div>
-                                            <Divider style={{ margin: '12px 0' }} />
-                                            <div>
-                                                <label>Tải Logo / Hình In lên:</label>
-                                                <Upload customRequest={(opts) => handleUpload(opts, face.id)} listType="picture" maxCount={1} showUploadList={false}>
-                                                    <Button icon={<UploadOutlined />} style={{ width: '100%', marginTop: 8 }}>Chọn ảnh Logo</Button>
-                                                </Upload>
-                                            </div>
+                                            <Upload
+                                                customRequest={(options) => handleUpload(options, face.id)}
+                                                showUploadList={false}
+                                                accept="image/*"
+                                            >
+                                                <Button icon={<UploadOutlined />} type={face.logoUrl ? 'default' : 'primary'}>
+                                                    {face.logoUrl ? 'Đổi Logo' : 'Tải Logo Lên'}
+                                                </Button>
+                                            </Upload>
+                                            {face.logoUrl && (
+                                                <>
+                                                    <Divider style={{ margin: '12px 0' }} />
+                                                    <div>
+                                                        <label>Tách nền trắng (Tolerance):</label>
+                                                        <Space.Compact style={{ width: '100%', marginTop: 4 }}>
+                                                            <InputNumber min={0} max={255} value={face.removeTolerance || 240} onChange={v => updateFace(face.id, { removeTolerance: v })} style={{ width: '100%' }} />
+                                                        </Space.Compact>
+                                                    </div>
+                                                    <div style={{ marginTop: 12 }}>
+                                                        <label>Màu Logo:</label>
+                                                        <Select value={face.logoColor || 'original'} onChange={v => updateFace(face.id, { logoColor: v })} style={{ width: '100%', marginTop: 4 }}>
+                                                            <Select.Option value="original">Giữ Nguyên Bản</Select.Option>
+                                                            <Select.Option value="white">Chuyển sang Trắng</Select.Option>
+                                                            <Select.Option value="black">Chuyển sang Đen</Select.Option>
+                                                        </Select>
+                                                    </div>
+                                                </>
+                                            )}
                                         </Space>
                                     </Card>
                                 </Col>
@@ -402,9 +482,9 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                                 }}>
                                                     <Layer>
                                                         <KonvaRect width={face.pieceSize.w * SCALE} height={face.pieceSize.h * SCALE} fill={face.bgColor} />
-                                                        {face.logoUrl && (
+                                                        {(face.processedLogoUrl || face.logoUrl) && (
                                                             <URLImage
-                                                                image={face.logoUrl}
+                                                                image={face.processedLogoUrl || face.logoUrl}
                                                                 x={face.logoConfig.x * SCALE}
                                                                 y={face.logoConfig.y * SCALE}
                                                                 width={face.logoConfig.width * SCALE}
