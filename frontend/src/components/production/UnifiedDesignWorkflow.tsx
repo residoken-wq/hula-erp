@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Divider, Switch, Tabs, Input, Tag, Alert, Modal, List } from 'antd';
-import { UploadOutlined, FilePdfOutlined, FileImageOutlined, PlusOutlined, DeleteOutlined, SaveOutlined, CopyOutlined } from '@ant-design/icons';
+import { UploadOutlined, FilePdfOutlined, FileImageOutlined, PlusOutlined, DeleteOutlined, SaveOutlined, CopyOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
 import { Stage, Layer, Rect as KonvaRect, Image as KonvaImage, Transformer, Group, Text as KonvaText, Arrow as KonvaArrow } from 'react-konva';
 import useImage from 'use-image';
 import jsPDF from 'jspdf';
@@ -106,6 +106,22 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
                 draggable
                 onClick={onSelect}
                 onTap={onSelect}
+                onDblClick={(e) => {
+                    e.cancelBubble = true;
+                    const currentRotation = rect.rotation !== undefined ? rect.rotation : (rect.rotated ? -90 : 0);
+                    onChange({
+                        ...rect,
+                        rotation: currentRotation + 90
+                    });
+                }}
+                onDblTap={(e) => {
+                    e.cancelBubble = true;
+                    const currentRotation = rect.rotation !== undefined ? rect.rotation : (rect.rotated ? -90 : 0);
+                    onChange({
+                        ...rect,
+                        rotation: currentRotation + 90
+                    });
+                }}
                 onDragEnd={(e) => {
                     onChange({
                         ...rect,
@@ -231,6 +247,9 @@ const UnifiedDesignWorkflow: React.FC = () => {
     // --- Copy Design Modal Data ---
     const [isCopyModalVisible, setIsCopyModalVisible] = useState(false);
     const [savedDesigns, setSavedDesigns] = useState<any[]>([]);
+    
+    // --- Step 3 Data ---
+    const [lockedFaces, setLockedFaces] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         if (isCopyModalVisible) {
@@ -497,6 +516,10 @@ const UnifiedDesignWorkflow: React.FC = () => {
         let hasUnpacked = false;
 
         faces.forEach(face => {
+            if (lockedFaces[face.id] && resultsByFace[face.id]) {
+                newResults[face.id] = resultsByFace[face.id];
+                return;
+            }
             const rects: Rect[] = [];
             
             if (packingMode === 'CONTINUOUS') {
@@ -868,6 +891,11 @@ const UnifiedDesignWorkflow: React.FC = () => {
                             <div>Tự động xoay: <Switch checked={allowRotation} onChange={setAllowRotation} size="small" /></div>
                             <Button type="primary" block style={{ background: '#52c41a' }} onClick={handleAutoPack}>Chạy Tự Động Xếp Tất Cả</Button>
                         </Space>
+                        <div style={{fontSize: 11, color: '#888', marginTop: 12}}>
+                            <b>Mẹo:</b> 
+                            <br/>- Dùng chuột kéo các chấm tròn để <b>xoay tự do</b>.
+                            <br/>- <b>Click đúp (Double-click)</b> vào 1 mảnh để xoay nhanh góc 90 độ (đảo chiều ngang/dọc).
+                        </div>
                     </Card>
                     
                     {Object.keys(resultsByFace).length > 0 && (
@@ -899,7 +927,19 @@ const UnifiedDesignWorkflow: React.FC = () => {
                         
                         return (
                             <div key={face.id} style={{ marginBottom: 24 }}>
-                                <Divider orientation="left">{face.name}</Divider>
+                                <Divider orientation="left">
+                                    <Space>
+                                        {face.name}
+                                        <Button 
+                                            type="text" 
+                                            size="small" 
+                                            icon={lockedFaces[face.id] ? <LockOutlined style={{color: '#cf1322'}}/> : <UnlockOutlined style={{color: '#52c41a'}}/>}
+                                            onClick={() => setLockedFaces({...lockedFaces, [face.id]: !lockedFaces[face.id]})}
+                                            title={lockedFaces[face.id] ? "Mở khóa sơ đồ" : "Khóa sơ đồ (Giữ cố định khi Chạy Tự Động xếp)"}
+                                        />
+                                        {lockedFaces[face.id] && <Tag color="error">Đã khóa</Tag>}
+                                    </Space>
+                                </Divider>
                                 
                                 {resultObj.unpacked.length > 0 && (
                                     <div style={{ marginBottom: 16, padding: 12, background: '#fff2f0', border: '1px solid #ffccc7', color: '#cf1322', borderRadius: 4 }}>
@@ -1047,7 +1087,7 @@ const UnifiedDesignWorkflow: React.FC = () => {
                         >
                             <List.Item.Meta
                                 title={<b>{item.name}</b>}
-                                description={`Mã: ${item.code} | Khách hàng: ${item.customer?.name || '-'} | Sản phẩm: ${item.product?.name || '-'}`}
+                                description={`Mã: ${item.code} | Khách hàng: ${item.customer?.name || '-'} | SKU: ${item.product?.sku || '-'} - SP: ${item.product?.name || '-'}`}
                             />
                         </List.Item>
                     )}
