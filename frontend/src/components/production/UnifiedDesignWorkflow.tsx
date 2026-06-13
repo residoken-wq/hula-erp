@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Divider, Switch, Tabs, Input, Tag, Alert, Modal, List } from 'antd';
 import { UploadOutlined, FilePdfOutlined, FileImageOutlined, PlusOutlined, DeleteOutlined, SaveOutlined, CopyOutlined } from '@ant-design/icons';
-import { Stage, Layer, Rect as KonvaRect, Image as KonvaImage, Transformer, Group, Text as KonvaText } from 'react-konva';
+import { Stage, Layer, Rect as KonvaRect, Image as KonvaImage, Transformer, Group, Text as KonvaText, Arrow as KonvaArrow } from 'react-konva';
 import useImage from 'use-image';
 import jsPDF from 'jspdf';
 import api from '../../utils/api';
@@ -151,6 +151,41 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
                         <KonvaText text="LOGO" fontSize={10} fill="red" />
                     </Group>
                 )}
+                
+                {/* Dimension Lines */}
+                <KonvaArrow
+                    points={[5, (rect.rotated ? rect.w : rect.h) * scale - 10, (rect.rotated ? rect.h : rect.w) * scale - 5, (rect.rotated ? rect.w : rect.h) * scale - 10]}
+                    pointerLength={5}
+                    pointerWidth={5}
+                    fill="red"
+                    stroke="red"
+                    strokeWidth={1}
+                    pointerAtBothEnds={true}
+                />
+                <KonvaText
+                    text={`${rect.rotated ? rect.h : rect.w} cm`}
+                    fontSize={12}
+                    fill="red"
+                    x={(rect.rotated ? rect.h : rect.w) * scale / 2 - 15}
+                    y={(rect.rotated ? rect.w : rect.h) * scale - 25}
+                />
+                <KonvaArrow
+                    points={[(rect.rotated ? rect.h : rect.w) * scale - 10, 5, (rect.rotated ? rect.h : rect.w) * scale - 10, (rect.rotated ? rect.w : rect.h) * scale - 5]}
+                    pointerLength={5}
+                    pointerWidth={5}
+                    fill="red"
+                    stroke="red"
+                    strokeWidth={1}
+                    pointerAtBothEnds={true}
+                />
+                <KonvaText
+                    text={`${rect.rotated ? rect.w : rect.h} cm`}
+                    fontSize={12}
+                    fill="red"
+                    x={(rect.rotated ? rect.h : rect.w) * scale - 25}
+                    y={(rect.rotated ? rect.w : rect.h) * scale / 2 + 15}
+                    rotation={-90}
+                />
             </Group>
             {isSelected && (
                 <Transformer
