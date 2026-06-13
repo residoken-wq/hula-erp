@@ -11,3 +11,6 @@ scripts
 Dockerfile
 docker-compose.yml
 .git
+uploads
+postgres_data
+.env*
