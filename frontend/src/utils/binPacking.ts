@@ -146,13 +146,11 @@ export interface ContinuousResult {
 }
 
 export function packContinuous(fabricWidth: number, rects: Rect[], padding: number = 0, allowRotation: boolean = true): ContinuousResult {
-    // We treat fabricWidth as the height of the bin, and let the width (length) be infinite (999999).
-    // Wait, the user wants "hiển thị vải xoay ngang theo chiều rộng khổ vải"
-    // So the Canvas Height (Y) = Khổ vải (Fabric Width).
-    // Canvas Width (X) = Chiều dài (Length, infinite).
-    // So bin.h = fabricWidth, bin.w = 999999.
+    // Canvas Width (X) = Khổ vải (Fabric Width).
+    // Canvas Height (Y) = Chiều dài (Length, infinite).
+    // So bin.w = fabricWidth, bin.h = 999999.
     const MAX_LENGTH = 999999;
-    const result = packRectangles({ w: MAX_LENGTH, h: fabricWidth }, rects, padding, allowRotation);
+    const result = packRectangles({ w: fabricWidth, h: MAX_LENGTH }, rects, padding, allowRotation);
     
     let totalLength = 0;
     let totalRectArea = 0;
@@ -160,9 +158,9 @@ export function packContinuous(fabricWidth: number, rects: Rect[], padding: numb
     for (const rect of result.packed) {
         const rW = rect.rotated ? rect.h : rect.w;
         const rH = rect.rotated ? rect.w : rect.h;
-        const rightEdge = (rect.x || 0) + rW;
-        if (rightEdge > totalLength) {
-            totalLength = rightEdge;
+        const bottomEdge = (rect.y || 0) + rH;
+        if (bottomEdge > totalLength) {
+            totalLength = bottomEdge;
         }
         totalRectArea += (rect.w * rect.h);
     }

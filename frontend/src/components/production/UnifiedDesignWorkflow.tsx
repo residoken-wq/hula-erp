@@ -338,15 +338,15 @@ const UnifiedDesignWorkflow: React.FC = () => {
             packed.forEach((r: any) => {
                 const rW = r.rotated || r.rotation === -90 || r.rotation === 90 || r.rotation === 270 ? r.h : r.w;
                 const rH = r.rotated || r.rotation === -90 || r.rotation === 90 || r.rotation === 270 ? r.w : r.h;
-                const rightEdge = (r.x || 0) + rW;
-                if (rightEdge > maxLength) maxLength = rightEdge;
+                const bottomEdge = (r.y || 0) + rH;
+                if (bottomEdge > maxLength) maxLength = bottomEdge;
                 totalArea += (r.w * r.h);
             });
             const stats = newResults[faceId].stats;
             stats.length = maxLength;
             stats.expectedTotalLength = stats.runs * maxLength;
             stats.wasteArea = Math.max(0, (maxLength * stats.width) - totalArea);
-            newResults[faceId].binResults[binIdx].w = maxLength;
+            newResults[faceId].binResults[binIdx].h = maxLength;
         }
 
         setResultsByFace(newResults);
@@ -516,8 +516,8 @@ const UnifiedDesignWorkflow: React.FC = () => {
                 newResults[face.id] = {
                     binResults: [{
                         binId: 'Continuous',
-                        w: result.totalLength,
-                        h: result.width,
+                        w: result.width, // Khổ vải
+                        h: result.totalLength, // Chiều dài
                         packed: result.packed
                     }],
                     unpacked: result.unpacked,
@@ -924,7 +924,6 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                                     <Stage width={CANVAS_DISPLAY_WIDTH} height={displayHeight} ref={(node) => { stageRefs.current[face.id][idx] = node; }} onMouseDown={(e) => {
                                                         if (e.target === e.target.getStage()) setSelectedPiece(null);
                                                     }}>
-                                                        <RulerLayer width={result.w} height={result.h} scale={scale} />
                                                         <Layer>
                                                             {result.packed.map((rect) => {
                                                                 const isSelected = selectedPiece?.faceId === face.id && selectedPiece?.binIdx === idx && selectedPiece?.rectId === rect.id;
@@ -950,8 +949,8 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                                                                     packed.forEach((r: any) => {
                                                                                         const rW = r.rotated || r.rotation === -90 || r.rotation === 90 || r.rotation === 270 ? r.h : r.w;
                                                                                         const rH = r.rotated || r.rotation === -90 || r.rotation === 90 || r.rotation === 270 ? r.w : r.h;
-                                                                                        const rightEdge = (r.x || 0) + rW;
-                                                                                        if (rightEdge > maxLength) maxLength = rightEdge;
+                                                                                        const bottomEdge = (r.y || 0) + rH;
+                                                                                        if (bottomEdge > maxLength) maxLength = bottomEdge;
                                                                                         totalArea += (r.w * r.h);
                                                                                     });
                                                                                     // Prevent zero length if everything is dragged to 0
@@ -960,7 +959,7 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                                                                     stats.length = maxLength;
                                                                                     stats.expectedTotalLength = stats.runs * maxLength;
                                                                                     stats.wasteArea = Math.max(0, (maxLength * stats.width) - totalArea);
-                                                                                    newResults[face.id].binResults[idx].w = maxLength;
+                                                                                    newResults[face.id].binResults[idx].h = maxLength;
                                                                                 }
 
                                                                                 setResultsByFace(newResults);
@@ -970,6 +969,7 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                                                 );
                                                             })}
                                                         </Layer>
+                                                        <RulerLayer width={result.w} height={result.h} scale={scale} />
                                                     </Stage>
                                                 </div>
                                             </div>
