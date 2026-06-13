@@ -84,7 +84,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
         if (step.type === 'yes_no') {
             return (
                 <div className="flex gap-3">
-                    {(step.options || []).map(opt => {
+                    {(step.options || []).filter(Boolean).map(opt => {
                         const isYes = opt.id === (step.options?.[0]?.id);
                         return (
                             <button
@@ -111,7 +111,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
         if (step.type === 'toggle') {
             return (
                 <div className="flex flex-wrap gap-2">
-                    {(step.options || []).map(opt => (
+                    {(step.options || []).filter(Boolean).map(opt => (
                         <div key={opt.id}>
                             <button
                                 onClick={() => handleSelect(step.id, opt.id)}
@@ -133,7 +133,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
         if (step.type === 'color_swatch') {
             return (
                 <div className="flex flex-wrap gap-3">
-                    {(step.options || []).map(opt => (
+                    {(step.options || []).filter(Boolean).map(opt => (
                         <div key={opt.id}>
                             <button
                                 onClick={() => handleSelect(step.id, opt.id)}
@@ -163,7 +163,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
         if (step.type === 'branding') {
             return (
                 <div className="flex flex-col gap-2">
-                    {(step.options || []).map(opt => (
+                    {(step.options || []).filter(Boolean).map(opt => (
                         <div key={opt.id}>
                             <label
                                 className={`flex items-center justify-between p-3 border-2 rounded-lg cursor-pointer transition-colors ${
@@ -205,7 +205,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
         // Default: dropdown
         return (
             <div className="flex flex-col gap-2">
-                {(step.options || []).map(opt => (
+                {(step.options || []).filter(Boolean).map(opt => (
                     <div key={opt.id}>
                         <label
                             className={`flex items-center justify-between p-3 border-2 rounded-lg cursor-pointer transition-colors ${
@@ -241,7 +241,7 @@ export default function ConfiguratorAccordion({ steps, selections, onChange, ski
 
     return (
         <div className="border border-primary/20 rounded-xl overflow-hidden bg-white shadow-sm">
-            {steps.map((step, index) => {
+            {(steps || []).filter(Boolean).map((step, index) => {
                 const isOpen = openStep === step.id;
                 const selectedOption = step.options?.find(o => o.id === selections[step.id]);
                 const isSkipped = skippedSteps[step.id];

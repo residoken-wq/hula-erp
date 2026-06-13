@@ -10,10 +10,10 @@ interface Props {
 
 export default function SelectionSummary({ subcategory, steps, selections, skippedSteps = {} }: Props) {
     // Collect selected options for display
-    const summaryItems = steps.map((step, index) => {
+    const summaryItems = (steps || []).filter(Boolean).map((step, index) => {
         const isSkipped = skippedSteps[step.id];
         const selectedOptionId = selections[step.id];
-        const selectedOption = step.options?.find(o => o.id === selectedOptionId);
+        const selectedOption = (step.options || []).find(o => o && o.id === selectedOptionId);
 
         return {
             stepIndex: index + 1,

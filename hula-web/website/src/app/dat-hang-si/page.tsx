@@ -70,6 +70,7 @@ export default function B2BConfiguratorPage() {
         if (currentL2 && currentL2.customization_steps) {
             const initialSelections: Record<string, string> = {};
             currentL2.customization_steps.forEach(step => {
+                if (!step) return;
                 if (step.default_option_id) {
                     initialSelections[step.id] = step.default_option_id;
                 } else if (step.options && step.options.length > 0) {
@@ -134,10 +135,13 @@ export default function B2BConfiguratorPage() {
         );
     }
 
-    const selectedOptionsList = currentL2?.customization_steps?.map(step => {
-        const optionId = stepSelections[step.id];
-        return step.options?.find(o => o.id === optionId);
-    }).filter(Boolean) as any[] || [];
+    const selectedOptionsList = (currentL2?.customization_steps || [])
+        .filter(Boolean)
+        .map(step => {
+            const optionId = stepSelections[step.id];
+            return (step.options || []).find(o => o && o.id === optionId);
+        })
+        .filter(Boolean) as any[];
 
     return (
         <div className="min-h-screen bg-gray-50 pb-20">

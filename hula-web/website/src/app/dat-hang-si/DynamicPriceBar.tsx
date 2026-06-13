@@ -12,9 +12,10 @@ export default function DynamicPriceBar({ subcategory, steps, selections, onShow
 
     // Calculate total modifier from selections
     let totalModifier = 0;
-    for (const step of steps) {
+    for (const step of (steps || [])) {
+        if (!step) continue;
         const optionId = selections[step.id];
-        const option = step.options?.find(o => o.id === optionId);
+        const option = (step.options || []).find(o => o && o.id === optionId);
         if (option) {
             totalModifier += option.price_modifier;
         }

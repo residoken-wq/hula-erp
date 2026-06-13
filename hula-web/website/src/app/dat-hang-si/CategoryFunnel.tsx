@@ -17,7 +17,7 @@ export default function CategoryFunnel({ categories, selectedL1, selectedL2, onS
         <div className="mb-8">
             {/* L1 Categories */}
             <div className="flex flex-wrap justify-center gap-4 mb-6">
-                {categories.map(c => (
+                {(categories || []).filter(Boolean).map(c => (
                     <div
                         key={c.id}
                         onClick={() => onSelectL1(c.id)}
@@ -42,10 +42,10 @@ export default function CategoryFunnel({ categories, selectedL1, selectedL2, onS
             </div>
 
             {/* L2 Categories (Tabs) */}
-            {currentL1 && currentL1.subcategories.length > 0 && (
+            {currentL1 && currentL1.subcategories && currentL1.subcategories.length > 0 && (
                 <div className="flex justify-center border-b border-gray-200">
                     <div className="flex overflow-x-auto gap-1 px-4 scrollbar-hide">
-                        {currentL1.subcategories.map(sub => (
+                        {currentL1.subcategories.filter(Boolean).map(sub => (
                             <button
                                 key={sub.id}
                                 onClick={() => onSelectL2(sub.id)}

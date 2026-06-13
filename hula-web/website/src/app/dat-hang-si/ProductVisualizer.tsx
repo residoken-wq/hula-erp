@@ -74,7 +74,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
     // Resolve selected option cho mỗi step CHÍNH XÁC bằng stepSelections map
     // Tránh bug: nhiều steps cùng có option id "1", "2"
     const resolveStepOption = (stepId: string): WizardOption | undefined => {
-        const step = subcategory.customization_steps?.find(s => s.id === stepId);
+        const step = (subcategory.customization_steps || []).find(s => s && s.id === stepId);
         if (!step) return undefined;
         // Bỏ qua nếu step bị skip
         if (skippedSteps[stepId]) return undefined;
@@ -85,7 +85,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
 
     // Check if a yes_no step has selected "Không" (2nd option = hidden)
     const isYesNoHidden = (stepId: string): boolean => {
-        const step = subcategory.customization_steps?.find(s => s.id === stepId);
+        const step = (subcategory.customization_steps || []).find(s => s && s.id === stepId);
         if (!step || step.type !== 'yes_no') return false;
         const selectedOptionId = stepSelections[stepId];
         // Option thứ 2 (index 1) = "Không" → ẩn
@@ -99,8 +99,8 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
     const resolveOptionsForSteps = (steps: typeof subcategory.customization_steps): WizardOption[] => {
         if (!steps) return [];
         return steps
-            .filter(step => !isYesNoHidden(step.id) && !skippedSteps[step.id])
-            .map(step => resolveStepOption(step.id))
+            .filter(step => step && !isYesNoHidden(step.id) && !skippedSteps[step.id])
+            .map(step => resolveStepOption(step!.id))
             .filter(Boolean) as WizardOption[];
     };
 
