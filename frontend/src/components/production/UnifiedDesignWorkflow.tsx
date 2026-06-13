@@ -295,6 +295,25 @@ const UnifiedDesignWorkflow: React.FC = () => {
                 logoConfig: { width: 0, height: 0, x:0, y:0 }
             }
         });
+
+        // Recalculate stats for continuous mode
+        if (packingMode === 'CONTINUOUS' && newResults[faceId].stats) {
+            let maxLength = 0;
+            let totalArea = 0;
+            packed.forEach((r: any) => {
+                const rW = r.rotated || r.rotation === -90 || r.rotation === 90 || r.rotation === 270 ? r.h : r.w;
+                const rH = r.rotated || r.rotation === -90 || r.rotation === 90 || r.rotation === 270 ? r.w : r.h;
+                const rightEdge = (r.x || 0) + rW;
+                if (rightEdge > maxLength) maxLength = rightEdge;
+                totalArea += (r.w * r.h);
+            });
+            const stats = newResults[faceId].stats;
+            stats.length = maxLength;
+            stats.expectedTotalLength = stats.runs * maxLength;
+            stats.wasteArea = Math.max(0, (maxLength * stats.width) - totalArea);
+            newResults[faceId].binResults[binIdx].w = maxLength;
+        }
+
         setResultsByFace(newResults);
         message.success('Đã thêm chi tiết phụ vào Sơ đồ');
     };
@@ -787,10 +806,10 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                     <Tabs.TabPane tab={face.name} key={face.id}>
                                         {packingMode === 'CONTINUOUS' ? (
                                             <Space direction="vertical" style={{ width: '100%' }}>
-                                                <div><label>Khổ vải (cm):</label> <InputNumber size="small" value={continuousConfigs[face.id]?.width || 150} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100 }), width: v || 150 }})} style={{ width: '100%' }} /></div>
-                                                <div><label>Tổng số lượng:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.totalQty || selectedItem.quantity || 100} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100 }), totalQty: v || 1 }})} style={{ width: '100%' }} /></div>
-                                                <div><label>Số con / file:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.qtyPerFile || 10} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100 }), qtyPerFile: v || 1 }})} style={{ width: '100%' }} /></div>
-                                                <div style={{color: '#1890ff', fontSize: 12}}>Số lần in (Runs): <b>{Math.ceil((continuousConfigs[face.id]?.totalQty || selectedItem.quantity || 100) / (continuousConfigs[face.id]?.qtyPerFile || 10))}</b></div>
+                                                <div><label>Khổ vải (cm):</label> <InputNumber size="small" value={continuousConfigs[face.id]?.width || 150} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), width: v || 150 }})} style={{ width: '100%' }} /></div>
+                                                <div><label>Tổng số lượng:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.totalQty || selectedItem?.quantity || 100} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), totalQty: v || 1 }})} style={{ width: '100%' }} /></div>
+                                                <div><label>Số con / file:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.qtyPerFile || 10} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), qtyPerFile: v || 1 }})} style={{ width: '100%' }} /></div>
+                                                <div style={{color: '#1890ff', fontSize: 12}}>Số lần in (Runs): <b>{Math.ceil((continuousConfigs[face.id]?.totalQty || selectedItem?.quantity || 100) / (continuousConfigs[face.id]?.qtyPerFile || 10))}</b></div>
                                             </Space>
                                         ) : (
                                             <Space direction="vertical" style={{ width: '100%' }}>
@@ -888,6 +907,27 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                                                             const rectIdx = packed.findIndex(r => r.id === rect.id);
                                                                             if (rectIdx !== -1) {
                                                                                 packed[rectIdx] = { ...packed[rectIdx], ...newAttrs };
+                                                                                
+                                                                                // Recalculate stats for continuous mode
+                                                                                if (packingMode === 'CONTINUOUS' && newResults[face.id].stats) {
+                                                                                    let maxLength = 0;
+                                                                                    let totalArea = 0;
+                                                                                    packed.forEach((r: any) => {
+                                                                                        const rW = r.rotated || r.rotation === -90 || r.rotation === 90 || r.rotation === 270 ? r.h : r.w;
+                                                                                        const rH = r.rotated || r.rotation === -90 || r.rotation === 90 || r.rotation === 270 ? r.w : r.h;
+                                                                                        const rightEdge = (r.x || 0) + rW;
+                                                                                        if (rightEdge > maxLength) maxLength = rightEdge;
+                                                                                        totalArea += (r.w * r.h);
+                                                                                    });
+                                                                                    // Prevent zero length if everything is dragged to 0
+                                                                                    if (maxLength === 0) maxLength = 10;
+                                                                                    const stats = newResults[face.id].stats;
+                                                                                    stats.length = maxLength;
+                                                                                    stats.expectedTotalLength = stats.runs * maxLength;
+                                                                                    stats.wasteArea = Math.max(0, (maxLength * stats.width) - totalArea);
+                                                                                    newResults[face.id].binResults[idx].w = maxLength;
+                                                                                }
+
                                                                                 setResultsByFace(newResults);
                                                                             }
                                                                         }}
