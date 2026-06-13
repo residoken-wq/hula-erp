@@ -136,3 +136,45 @@ export function packMultipleBins(bins: Bin[], rects: Rect[], padding: number = 0
 
     return { binResults, unpacked: currentUnpacked };
 }
+
+export interface ContinuousResult {
+    width: number;
+    totalLength: number; // Max length used (calculated from max Y or max X depending on orientation)
+    packed: Rect[];
+    unpacked: Rect[];
+    wasteArea: number; // Area at the end row that is empty
+}
+
+export function packContinuous(fabricWidth: number, rects: Rect[], padding: number = 0, allowRotation: boolean = true): ContinuousResult {
+    // We treat fabricWidth as the height of the bin, and let the width (length) be infinite (999999).
+    // Wait, the user wants "hiển thị vải xoay ngang theo chiều rộng khổ vải"
+    // So the Canvas Height (Y) = Khổ vải (Fabric Width).
+    // Canvas Width (X) = Chiều dài (Length, infinite).
+    // So bin.h = fabricWidth, bin.w = 999999.
+    const MAX_LENGTH = 999999;
+    const result = packRectangles({ w: MAX_LENGTH, h: fabricWidth }, rects, padding, allowRotation);
+    
+    let totalLength = 0;
+    let totalRectArea = 0;
+
+    for (const rect of result.packed) {
+        const rW = rect.rotated ? rect.h : rect.w;
+        const rH = rect.rotated ? rect.w : rect.h;
+        const rightEdge = (rect.x || 0) + rW;
+        if (rightEdge > totalLength) {
+            totalLength = rightEdge;
+        }
+        totalRectArea += (rect.w * rect.h);
+    }
+
+    const totalUsedArea = totalLength * fabricWidth;
+    const wasteArea = totalUsedArea - totalRectArea;
+
+    return {
+        width: fabricWidth,
+        totalLength,
+        packed: result.packed,
+        unpacked: result.unpacked,
+        wasteArea: Math.max(0, wasteArea)
+    };
+}

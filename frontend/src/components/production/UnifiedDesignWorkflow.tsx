@@ -5,7 +5,7 @@ import { Stage, Layer, Rect as KonvaRect, Image as KonvaImage, Transformer, Grou
 import useImage from 'use-image';
 import jsPDF from 'jspdf';
 import api from '../../utils/api';
-import { packMultipleBins, Bin, Rect, BinResult } from '../../utils/binPacking';
+import { packMultipleBins, Bin, Rect, BinResult, packContinuous } from '../../utils/binPacking';
 
 const { Step } = Steps;
 
@@ -47,9 +47,10 @@ const URLImage = ({ image, x, y, width, height, isSelected, onSelect, onChange }
                 onTap={onSelect}
                 onDragEnd={(e) => {
                     onChange({
-                        ...image,
                         x: e.target.x(),
-                        y: e.target.y()
+                        y: e.target.y(),
+                        width: width,
+                        height: height
                     });
                 }}
                 onTransformEnd={(e) => {
@@ -59,7 +60,6 @@ const URLImage = ({ image, x, y, width, height, isSelected, onSelect, onChange }
                     node.scaleX(1);
                     node.scaleY(1);
                     onChange({
-                        ...image,
                         x: node.x(),
                         y: node.y(),
                         width: Math.max(5, node.width() * scaleX),
@@ -273,6 +273,9 @@ const UnifiedDesignWorkflow: React.FC = () => {
     const [allowRotation, setAllowRotation] = useState(true);
     const stageRefs = useRef<Record<string, any[]>>({}); // Refs for multiple canvases mapped by faceId
 
+    const [packingMode, setPackingMode] = useState<'CONTINUOUS' | 'FIXED_BINS'>('CONTINUOUS');
+    const [continuousConfigs, setContinuousConfigs] = useState<Record<string, { width: number, qtyPerFile: number, totalQty: number }>>({});
+
     const [selectedPiece, setSelectedPiece] = useState<{faceId: string, binIdx: number, rectId: string} | null>(null);
     const [customPiece, setCustomPiece] = useState({ name: 'Túi hông', w: 10, h: 10, color: '#ffec3d' });
 
@@ -436,25 +439,61 @@ const UnifiedDesignWorkflow: React.FC = () => {
 
     const handleAutoPack = () => {
         if (!selectedItem) return;
-        const quantity = selectedItem.quantity || 1;
         const newResults: Record<string, any> = {};
         let hasUnpacked = false;
 
         faces.forEach(face => {
             const rects: Rect[] = [];
-            for (let i = 0; i < quantity; i++) {
-                rects.push({
-                    id: `P-${face.id}-${i}`,
-                    w: face.pieceSize.w,
-                    h: face.pieceSize.h,
-                    data: { color: face.bgColor, logoUrl: face.logoUrl, logoConfig: face.logoConfig }
-                });
-            }
+            
+            if (packingMode === 'CONTINUOUS') {
+                const config = continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100 };
+                const qtyToPack = config.qtyPerFile || 10;
+                for (let i = 0; i < qtyToPack; i++) {
+                    rects.push({
+                        id: `P-${face.id}-${i}`,
+                        w: face.pieceSize.w,
+                        h: face.pieceSize.h,
+                        data: { name: face.name, color: face.bgColor, logoUrl: face.logoUrl, logoConfig: face.logoConfig }
+                    });
+                }
+                const result = packContinuous(config.width, rects, padding, allowRotation);
+                const runs = Math.ceil((config.totalQty || selectedItem.quantity || 100) / qtyToPack);
+                
+                newResults[face.id] = {
+                    binResults: [{
+                        binId: 'Continuous',
+                        w: result.totalLength,
+                        h: result.width,
+                        packed: result.packed
+                    }],
+                    unpacked: result.unpacked,
+                    stats: {
+                        runs: runs,
+                        qtyPerFile: qtyToPack,
+                        totalQty: config.totalQty || selectedItem.quantity || 100,
+                        width: config.width,
+                        length: result.totalLength,
+                        expectedTotalLength: runs * result.totalLength,
+                        wasteArea: result.wasteArea
+                    }
+                };
+                if (result.unpacked.length > 0) hasUnpacked = true;
+            } else {
+                const quantity = selectedItem.quantity || 1;
+                for (let i = 0; i < quantity; i++) {
+                    rects.push({
+                        id: `P-${face.id}-${i}`,
+                        w: face.pieceSize.w,
+                        h: face.pieceSize.h,
+                        data: { name: face.name, color: face.bgColor, logoUrl: face.logoUrl, logoConfig: face.logoConfig }
+                    });
+                }
 
-            const bins = binsByFace[face.id] || [];
-            const result = packMultipleBins(bins, rects, padding, allowRotation);
-            newResults[face.id] = result;
-            if (result.unpacked.length > 0) hasUnpacked = true;
+                const bins = binsByFace[face.id] || [];
+                const result = packMultipleBins(bins, rects, padding, allowRotation);
+                newResults[face.id] = result;
+                if (result.unpacked.length > 0) hasUnpacked = true;
+            }
         });
 
         setResultsByFace(newResults);
@@ -728,21 +767,42 @@ const UnifiedDesignWorkflow: React.FC = () => {
         return (
             <Row gutter={16}>
                 <Col span={6}>
-                    <Card title="Cấu hình Khổ Vải (Bins)" size="small">
+                    <Card title="Cấu hình Khổ Vải" size="small">
+                        <div style={{ marginBottom: 16 }}>
+                            <label><b>Chế độ xếp:</b></label>
+                            <Select 
+                                value={packingMode} 
+                                onChange={setPackingMode} 
+                                style={{ width: '100%', marginTop: 8 }}
+                                options={[
+                                    { label: 'Xếp liên tục theo Khổ vải', value: 'CONTINUOUS' },
+                                    { label: 'Xếp theo Tấm rời', value: 'FIXED_BINS' }
+                                ]}
+                            />
+                        </div>
                         <Tabs type="card" size="small" style={{ marginBottom: 16 }}>
                             {faces.map(face => {
                                 const bins = binsByFace[face.id] || [];
                                 return (
                                     <Tabs.TabPane tab={face.name} key={face.id}>
-                                        <Space direction="vertical" style={{ width: '100%' }}>
-                                            {bins.map((bin, index) => (
-                                                <Card size="small" key={index} title={`Tấm vải ${index + 1}`} extra={bins.length > 1 && <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleRemoveBin(face.id, index)} />}>
-                                                    <div>Dài (cm): <InputNumber size="small" value={bin.w} onChange={v => handleBinChange(face.id, index, 'w', v || 400)} /></div>
-                                                    <div style={{ marginTop: 4 }}>Rộng (cm): <InputNumber size="small" value={bin.h} onChange={v => handleBinChange(face.id, index, 'h', v || 120)} /></div>
-                                                </Card>
-                                            ))}
-                                            <Button type="dashed" block icon={<PlusOutlined />} onClick={() => handleAddBin(face.id)}>Thêm tấm vải mới</Button>
-                                        </Space>
+                                        {packingMode === 'CONTINUOUS' ? (
+                                            <Space direction="vertical" style={{ width: '100%' }}>
+                                                <div><label>Khổ vải (cm):</label> <InputNumber size="small" value={continuousConfigs[face.id]?.width || 150} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100 }), width: v || 150 }})} style={{ width: '100%' }} /></div>
+                                                <div><label>Tổng số lượng:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.totalQty || selectedItem.quantity || 100} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100 }), totalQty: v || 1 }})} style={{ width: '100%' }} /></div>
+                                                <div><label>Số con / file:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.qtyPerFile || 10} onChange={v => setContinuousConfigs({...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100 }), qtyPerFile: v || 1 }})} style={{ width: '100%' }} /></div>
+                                                <div style={{color: '#1890ff', fontSize: 12}}>Số lần in (Runs): <b>{Math.ceil((continuousConfigs[face.id]?.totalQty || selectedItem.quantity || 100) / (continuousConfigs[face.id]?.qtyPerFile || 10))}</b></div>
+                                            </Space>
+                                        ) : (
+                                            <Space direction="vertical" style={{ width: '100%' }}>
+                                                {bins.map((bin, index) => (
+                                                    <Card size="small" key={index} title={`Tấm vải ${index + 1}`} extra={bins.length > 1 && <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleRemoveBin(face.id, index)} />}>
+                                                        <div>Dài (cm): <InputNumber size="small" value={bin.w} onChange={v => handleBinChange(face.id, index, 'w', v || 400)} /></div>
+                                                        <div style={{ marginTop: 4 }}>Rộng (cm): <InputNumber size="small" value={bin.h} onChange={v => handleBinChange(face.id, index, 'h', v || 120)} /></div>
+                                                    </Card>
+                                                ))}
+                                                <Button type="dashed" block icon={<PlusOutlined />} onClick={() => handleAddBin(face.id)}>Thêm tấm vải mới</Button>
+                                            </Space>
+                                        )}
                                     </Tabs.TabPane>
                                 );
                             })}
@@ -844,6 +904,40 @@ const UnifiedDesignWorkflow: React.FC = () => {
                             </div>
                         );
                     })}
+
+                    {packingMode === 'CONTINUOUS' && Object.keys(resultsByFace).length > 0 && (
+                        <Card title="Bảng Thống Kê (Dự kiến thực tế)" size="small" style={{ marginTop: 24, borderColor: '#52c41a' }}>
+                            <Table
+                                size="small"
+                                pagination={false}
+                                dataSource={faces.map(face => {
+                                    const stats = resultsByFace[face.id]?.stats;
+                                    if (!stats) return null;
+                                    return {
+                                        key: face.id,
+                                        name: face.name,
+                                        runs: stats.runs,
+                                        qtyPerFile: stats.qtyPerFile,
+                                        totalQty: stats.totalQty,
+                                        width: stats.width,
+                                        length: stats.length.toFixed(2),
+                                        expectedTotalLength: stats.expectedTotalLength.toFixed(2),
+                                        wasteArea: stats.wasteArea.toFixed(2)
+                                    };
+                                }).filter(Boolean)}
+                                columns={[
+                                    { title: 'Nội dung in', dataIndex: 'name', render: t => <b>{t}</b> },
+                                    { title: 'Số lần in', dataIndex: 'runs' },
+                                    { title: 'Số con/file', dataIndex: 'qtyPerFile' },
+                                    { title: 'Tổng số con', dataIndex: 'totalQty' },
+                                    { title: 'Khổ (cm)', dataIndex: 'width' },
+                                    { title: 'Kích thước / file (cm)', dataIndex: 'length', render: v => <span style={{ color: '#cf1322' }}>{v}</span> },
+                                    { title: 'Dự kiến cần (cm)', dataIndex: 'expectedTotalLength', render: v => <b style={{ color: '#1890ff' }}>{v}</b> },
+                                    { title: 'Diện tích dư cuối (cm²)', dataIndex: 'wasteArea' },
+                                ]}
+                            />
+                        </Card>
+                    )}
                 </Col>
             </Row>
         );
