@@ -1306,7 +1306,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                 cancelText="Huỷ"
             >
                 <div style={{ marginBottom: 16 }}>
-                    <p><b>Bạn muốn ưu tiên xếp các mảnh rập theo chiều nào dọc theo Khổ vải?</b></p>
+                    <p><b>Bạn muốn ưu tiên xếp các mảnh rập theo chiều nào ngang theo Khổ vải?</b></p>
                     <Select value={autoPackOrientation} onChange={setAutoPackOrientation} style={{ width: '100%' }}>
                         <Select.Option value="width">Theo Chiều Rộng của sản phẩm</Select.Option>
                         <Select.Option value="height">Theo Chiều Dài của sản phẩm</Select.Option>

@@ -28,32 +28,36 @@ export function packRectangles(bin: Bin, rects: Rect[], padding: number = 0, all
 
     for (const rect of sortedRects) {
         let placed = false;
+        const initialRotated = rect.rotated === true;
 
         // Try to find a free rectangle that fits
         for (let i = 0; i < freeRects.length; i++) {
             const freeRect = freeRects[i];
-            const neededW = rect.w + padding;
-            const neededH = rect.h + padding;
+            const neededW = (initialRotated ? rect.h : rect.w) + padding;
+            const neededH = (initialRotated ? rect.w : rect.h) + padding;
 
             if (neededW <= freeRect.w && neededH <= freeRect.h) {
                 // Place it here
                 rect.x = freeRect.x;
                 rect.y = freeRect.y;
-                rect.rotated = false;
+                rect.rotated = initialRotated;
                 placed = true;
                 packed.push(rect);
                 splitFreeRect(freeRect, { x: rect.x, y: rect.y, w: neededW, h: neededH }, freeRects);
                 break;
-            } else if (allowRotation && neededH <= freeRect.w && neededW <= freeRect.h) {
+            } else if (allowRotation && !initialRotated) {
                 // Try rotated
-                rect.x = freeRect.x;
-                rect.y = freeRect.y;
-                rect.rotated = true;
-                placed = true;
-                // No longer mutating w and h here. We rely on the rotated flag.
-                packed.push(rect);
-                splitFreeRect(freeRect, { x: rect.x, y: rect.y, w: neededH, h: neededW }, freeRects);
-                break;
+                const rotatedNeededW = rect.h + padding;
+                const rotatedNeededH = rect.w + padding;
+                if (rotatedNeededW <= freeRect.w && rotatedNeededH <= freeRect.h) {
+                    rect.x = freeRect.x;
+                    rect.y = freeRect.y;
+                    rect.rotated = true;
+                    placed = true;
+                    packed.push(rect);
+                    splitFreeRect(freeRect, { x: rect.x, y: rect.y, w: rotatedNeededW, h: rotatedNeededH }, freeRects);
+                    break;
+                }
             }
         }
 
