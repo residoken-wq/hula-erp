@@ -100,15 +100,15 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
                 ref={shapeRef}
                 x={(rect.x || 0) * scale}
                 y={(rect.y || 0) * scale}
-                rotation={rect.rotation !== undefined ? rect.rotation : (rect.rotated ? -90 : 0)}
+                rotation={rect.rotation !== undefined ? rect.rotation : (rect.rotated ? 90 : 0)}
                 offsetX={0}
-                offsetY={rect.rotated ? rect.w * scale : 0}
+                offsetY={rect.rotated ? rect.h * scale : 0}
                 draggable
                 onClick={onSelect}
                 onTap={onSelect}
                 onDblClick={(e) => {
                     e.cancelBubble = true;
-                    const currentRotation = rect.rotation !== undefined ? rect.rotation : (rect.rotated ? -90 : 0);
+                    const currentRotation = rect.rotation !== undefined ? rect.rotation : (rect.rotated ? 90 : 0);
                     onChange({
                         ...rect,
                         rotation: currentRotation + 90
@@ -116,7 +116,7 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
                 }}
                 onDblTap={(e) => {
                     e.cancelBubble = true;
-                    const currentRotation = rect.rotation !== undefined ? rect.rotation : (rect.rotated ? -90 : 0);
+                    const currentRotation = rect.rotation !== undefined ? rect.rotation : (rect.rotated ? 90 : 0);
                     onChange({
                         ...rect,
                         rotation: currentRotation + 90
@@ -140,68 +140,90 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
                 }}
             >
                 <KonvaRect
-                    width={(rect.rotated ? rect.h : rect.w) * scale}
-                    height={(rect.rotated ? rect.w : rect.h) * scale}
+                    width={rect.w * scale}
+                    height={rect.h * scale}
                     fill={rect.data?.color || '#e6f7ff'}
-                    stroke="#000"
-                    strokeWidth={1}
+                    stroke={isSelected ? '#1890ff' : '#91d5ff'}
+                    strokeWidth={isSelected ? 2 : 1}
                 />
-                <KonvaText 
-                    text={rect.data?.name || `${rect.w}x${rect.h}`} 
-                    fontSize={12} 
-                    fill="#333" 
-                    x={4} y={4} 
-                />
-                {rect.data?.logoConfig?.width > 0 && (
-                    <Group
-                        x={rect.data.logoConfig.x / face.pieceSize.w * (rect.rotated ? rect.h : rect.w) * scale || 0}
-                        y={rect.data.logoConfig.y / face.pieceSize.h * (rect.rotated ? rect.w : rect.h) * scale || 0}
-                    >
-                        <KonvaRect 
-                            width={rect.data.logoConfig.width / face.pieceSize.w * (rect.rotated ? rect.h : rect.w) * scale || 0}
-                            height={rect.data.logoConfig.height / face.pieceSize.h * (rect.rotated ? rect.w : rect.h) * scale || 0}
-                            fill="rgba(255,0,0,0.3)"
-                            stroke="red"
-                            strokeWidth={1}
-                        />
-                        <KonvaText text="LOGO" fontSize={10} fill="red" />
-                    </Group>
-                )}
                 
-                {/* Dimension Lines */}
-                <KonvaArrow
-                    points={[5, (rect.rotated ? rect.w : rect.h) * scale - 10, (rect.rotated ? rect.h : rect.w) * scale - 5, (rect.rotated ? rect.w : rect.h) * scale - 10]}
-                    pointerLength={5}
-                    pointerWidth={5}
-                    fill="red"
-                    stroke="red"
-                    strokeWidth={1}
-                    pointerAtBothEnds={true}
-                />
-                <KonvaText
-                    text={`${rect.rotated ? rect.h : rect.w} cm`}
-                    fontSize={12}
-                    fill="red"
-                    x={(rect.rotated ? rect.h : rect.w) * scale / 2 - 15}
-                    y={(rect.rotated ? rect.w : rect.h) * scale - 25}
-                />
-                <KonvaArrow
-                    points={[(rect.rotated ? rect.h : rect.w) * scale - 10, 5, (rect.rotated ? rect.h : rect.w) * scale - 10, (rect.rotated ? rect.w : rect.h) * scale - 5]}
-                    pointerLength={5}
-                    pointerWidth={5}
-                    fill="red"
-                    stroke="red"
-                    strokeWidth={1}
-                    pointerAtBothEnds={true}
-                />
-                <KonvaText
-                    text={`${rect.rotated ? rect.w : rect.h} cm`}
-                    fontSize={12}
-                    fill="red"
-                    x={(rect.rotated ? rect.h : rect.w) * scale - 25}
-                    y={(rect.rotated ? rect.w : rect.h) * scale / 2 + 15}
-                    rotation={-90}
-                />
+                {rect.data?.name && (
+                    <Text
+                        text={rect.data.name}
+                        width={rect.w * scale}
+                        height={rect.h * scale}
+                        align="center"
+                        verticalAlign="middle"
+                        fontSize={12}
+                        fill="#000"
+                        listening={false}
+                    />
+                )}
+
+                {rect.data?.logoUrl && rect.data?.logoConfig && (
+                    <Image
+                        image={logoImage || undefined}
+                        x={(rect.data.logoConfig.x / face.pieceSize.w) * rect.w * scale || 0}
+                        y={(rect.data.logoConfig.y / face.pieceSize.h) * rect.h * scale || 0}
+                        width={(rect.data.logoConfig.width / face.pieceSize.w) * rect.w * scale || 0}
+                        height={(rect.data.logoConfig.height / face.pieceSize.h) * rect.h * scale || 0}
+                        listening={false}
+                    />
+                )}
+
+                {/* Kích thước (Dimensions) */}
+                <Group listening={false}>
+                    {/* Đường dọc */}
+                    <Line
+                        points={[5, rect.h * scale - 10, rect.w * scale - 5, rect.h * scale - 10]}
+                        stroke="red"
+                        strokeWidth={1}
+                        dash={[2, 2]}
+                    />
+                    <Line
+                        points={[5, rect.h * scale - 15, 5, rect.h * scale - 5]}
+                        stroke="red"
+                        strokeWidth={1}
+                    />
+                    <Line
+                        points={[rect.w * scale - 5, rect.h * scale - 15, rect.w * scale - 5, rect.h * scale - 5]}
+                        stroke="red"
+                        strokeWidth={1}
+                    />
+                    <Text
+                        text={`${rect.w} cm`}
+                        fontSize={10}
+                        fill="red"
+                        x={rect.w * scale / 2 - 15}
+                        y={rect.h * scale - 25}
+                    />
+
+                    {/* Đường ngang */}
+                    <Line
+                        points={[rect.w * scale - 10, 5, rect.w * scale - 10, rect.h * scale - 5]}
+                        stroke="red"
+                        strokeWidth={1}
+                        dash={[2, 2]}
+                    />
+                    <Line
+                        points={[rect.w * scale - 15, 5, rect.w * scale - 5, 5]}
+                        stroke="red"
+                        strokeWidth={1}
+                    />
+                    <Line
+                        points={[rect.w * scale - 15, rect.h * scale - 5, rect.w * scale - 5, rect.h * scale - 5]}
+                        stroke="red"
+                        strokeWidth={1}
+                    />
+                    <Text
+                        text={`${rect.h} cm`}
+                        fontSize={10}
+                        fill="red"
+                        x={rect.w * scale - 25}
+                        y={rect.h * scale / 2 + 15}
+                        rotation={-90}
+                    />
+                </Group>
             </Group>
             {isSelected && (
                 <Transformer
@@ -686,25 +708,56 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                     }
                     rects.push(rect);
                 }
+                const totalQty = config.totalQty || selectedItem.quantity || 100;
+                const fullRuns = Math.floor(totalQty / qtyToPack);
+                const remainderQty = totalQty % qtyToPack;
                 const result = packContinuous(config.width, rects, padding, finalAllowRotation);
-                const runs = Math.ceil((config.totalQty || selectedItem.quantity || 100) / qtyToPack);
                 
+                const binResults = [{
+                    binId: 'Continuous',
+                    w: result.width, // Khổ vải
+                    h: result.totalLength, // Chiều dài
+                    packed: result.packed
+                }];
+
+                let expectedTotalLength = fullRuns * result.totalLength;
+                let totalWasteArea = fullRuns * result.wasteArea;
+                let remainderLength = 0;
+
+                if (remainderQty > 0) {
+                    const remainderRects: Rect[] = [];
+                    for (let i = 0; i < remainderQty; i++) {
+                        const r = { ...rects[i] };
+                        r.id = `P-REM-${face.id}-${i}`;
+                        remainderRects.push(r);
+                    }
+                    const remainderResult = packContinuous(config.width, remainderRects, padding, finalAllowRotation);
+                    
+                    binResults.push({
+                        binId: 'Continuous-Remainder',
+                        w: remainderResult.width,
+                        h: remainderResult.totalLength,
+                        packed: remainderResult.packed
+                    });
+
+                    expectedTotalLength += remainderResult.totalLength;
+                    totalWasteArea += remainderResult.wasteArea;
+                    remainderLength = remainderResult.totalLength;
+                }
+
                 newResults[face.id] = {
-                    binResults: [{
-                        binId: 'Continuous',
-                        w: result.width, // Khổ vải
-                        h: result.totalLength, // Chiều dài
-                        packed: result.packed
-                    }],
+                    binResults: binResults,
                     unpacked: result.unpacked,
                     stats: {
-                        runs: runs,
+                        runs: fullRuns, // Only main runs
                         qtyPerFile: qtyToPack,
-                        totalQty: config.totalQty || selectedItem.quantity || 100,
+                        totalQty: totalQty,
                         width: config.width,
                         length: result.totalLength,
-                        expectedTotalLength: runs * result.totalLength,
-                        wasteArea: result.wasteArea
+                        remainderQty: remainderQty,
+                        remainderLength: remainderLength,
+                        expectedTotalLength: expectedTotalLength,
+                        wasteArea: totalWasteArea
                     }
                 };
                 if (result.unpacked.length > 0) hasUnpacked = true;
@@ -1199,18 +1252,20 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                         qtyPerFile: stats.qtyPerFile,
                                         totalQty: stats.totalQty,
                                         width: stats.width,
-                                        length: stats.length.toFixed(2),
+                                        length: stats.length,
+                                        remainderQty: stats.remainderQty,
+                                        remainderLength: stats.remainderLength,
                                         expectedTotalLength: stats.expectedTotalLength.toFixed(2),
                                         wasteArea: stats.wasteArea.toFixed(2)
                                     };
                                 }).filter(Boolean)}
                                 columns={[
                                     { title: 'Nội dung in', dataIndex: 'name', render: t => <b>{t}</b> },
-                                    { title: 'Số lần in', dataIndex: 'runs' },
-                                    { title: 'Số con/file', dataIndex: 'qtyPerFile' },
+                                    { title: 'Số lần in', dataIndex: 'runs', render: (v, r) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+1 (lượt cuối)</small></span> : v },
+                                    { title: 'Số con/file', dataIndex: 'qtyPerFile', render: (v, r) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+ {r.remainderQty} (lượt cuối)</small></span> : v },
                                     { title: 'Tổng số con', dataIndex: 'totalQty' },
                                     { title: 'Khổ (cm)', dataIndex: 'width' },
-                                    { title: 'Kích thước / file (cm)', dataIndex: 'length', render: v => <span style={{ color: '#cf1322' }}>{v}</span> },
+                                    { title: 'Kích thước / file (cm)', dataIndex: 'length', render: (v, r) => r.remainderQty > 0 ? <span><span style={{ color: '#cf1322' }}>{v.toFixed(2)}</span> <br/><small style={{color: '#cf1322'}}>+ {r.remainderLength.toFixed(2)} (lượt cuối)</small></span> : <span style={{ color: '#cf1322' }}>{v.toFixed(2)}</span> },
                                     { title: 'Dự kiến cần (cm)', dataIndex: 'expectedTotalLength', render: v => <b style={{ color: '#1890ff' }}>{v}</b> },
                                     { title: 'Diện tích dư cuối (cm²)', dataIndex: 'wasteArea' },
                                 ]}
