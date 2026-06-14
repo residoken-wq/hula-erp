@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Form, Input, InputNumber, Button, Table, Row, Col, Card, Upload, message, Divider, Space, Typography } from 'antd';
-import { UploadOutlined, PlusOutlined, DeleteOutlined, CalculatorOutlined, SaveOutlined } from '@ant-design/icons';
+import { UploadOutlined, PlusOutlined, DeleteOutlined, CalculatorOutlined, SaveOutlined, CopyOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import { API_URL } from '../../config';
+import UnifiedDesignWorkflow from '../production/UnifiedDesignWorkflow';
 
 const { Text } = Typography;
 
@@ -17,6 +18,11 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
     const [form] = Form.useForm();
 
     const [printDesigns, setPrintDesigns] = useState<any[]>([]);
+    
+    const [isStandaloneModalVisible, setIsStandaloneModalVisible] = useState(false);
+    const [isCopyModalVisible, setIsCopyModalVisible] = useState(false);
+    const [categoryDesigns, setCategoryDesigns] = useState<any[]>([]);
+    const [searchCopyText, setSearchCopyText] = useState('');
 
     useEffect(() => {
         if (editingItem?.id) {
@@ -24,6 +30,41 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
             fetchPrintDesigns();
         }
     }, [editingItem]);
+
+    const fetchDesignsByCategory = async () => {
+        if (!editingItem?.category_id) {
+            message.warning('Sản phẩm chưa có Danh mục!');
+            return;
+        }
+        try {
+            const res = await api.get(`/designs/print-designs?category_id=${editingItem.category_id}`);
+            // Filter out current product's designs
+            const filtered = res.data.filter((d: any) => d.product_id !== editingItem.id);
+            setCategoryDesigns(filtered);
+            setIsCopyModalVisible(true);
+        } catch (e) {
+            message.error('Lỗi tải danh sách sơ đồ cùng danh mục');
+        }
+    };
+
+    const handleCopyDesign = async (design: any) => {
+        try {
+            const dataToSave = {
+                code: `SD-${Date.now()}`,
+                name: `Copy từ: ${design.name}`,
+                type: design.type,
+                product_id: editingItem.id, // assign to current product
+                customer_id: design.customer_id,
+                tech_pack: design.tech_pack
+            };
+            await api.post('/designs/print-designs', dataToSave);
+            message.success('Sao chép sơ đồ thành công!');
+            setIsCopyModalVisible(false);
+            fetchPrintDesigns();
+        } catch (e) {
+            message.error('Lỗi khi sao chép sơ đồ');
+        }
+    };
 
     const fetchPrintDesigns = async () => {
         try {
@@ -204,7 +245,16 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
         </Row>
 
         <Divider />
-        <Card title="Các Sơ đồ In/Thêu (Markers) đã lưu cho sản phẩm này" size="small">
+        <Card 
+            title="Các Sơ đồ In/Thêu (Markers) đã lưu cho sản phẩm này" 
+            size="small"
+            extra={
+                <Space>
+                    <Button type="default" icon={<CopyOutlined />} onClick={fetchDesignsByCategory}>Copy Sơ đồ từ SP cùng loại</Button>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsStandaloneModalVisible(true)}>Tạo Sơ đồ Marker</Button>
+                </Space>
+            }
+        >
             <Table
                 dataSource={printDesigns}
                 rowKey="id"
@@ -220,6 +270,55 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
                 ]}
             />
         </Card>
+
+        <Modal 
+            title="Tạo Sơ đồ Marker" 
+            open={isStandaloneModalVisible} 
+            onCancel={() => setIsStandaloneModalVisible(false)} 
+            footer={null} 
+            width="95%"
+            destroyOnClose
+            style={{ top: 20 }}
+        >
+            <UnifiedDesignWorkflow 
+                standaloneProduct={editingItem} 
+                onStandaloneComplete={() => { 
+                    setIsStandaloneModalVisible(false); 
+                    fetchPrintDesigns(); 
+                }} 
+            />
+        </Modal>
+
+        <Modal 
+            title="Sao chép Sơ đồ từ Sản phẩm cùng Danh mục" 
+            open={isCopyModalVisible} 
+            onCancel={() => setIsCopyModalVisible(false)} 
+            footer={null} 
+            width={700}
+        >
+            <Input.Search 
+                placeholder="Tìm kiếm sơ đồ, mã hàng, tên sản phẩm..." 
+                value={searchCopyText}
+                onChange={e => setSearchCopyText(e.target.value)}
+                style={{ marginBottom: 16 }}
+            />
+            <Table
+                dataSource={categoryDesigns.filter(d => 
+                    d.name?.toLowerCase().includes(searchCopyText.toLowerCase()) || 
+                    d.code?.toLowerCase().includes(searchCopyText.toLowerCase()) ||
+                    d.product?.name?.toLowerCase().includes(searchCopyText.toLowerCase()) ||
+                    d.product?.sku?.toLowerCase().includes(searchCopyText.toLowerCase())
+                )}
+                rowKey="id"
+                pagination={{ pageSize: 5 }}
+                size="small"
+                columns={[
+                    { title: 'Sản phẩm', render: (r: any) => `${r.product?.sku || ''} - ${r.product?.name || ''}` },
+                    { title: 'Tên Sơ đồ', dataIndex: 'name' },
+                    { title: 'Thao tác', render: (r: any) => <Button type="primary" size="small" onClick={() => handleCopyDesign(r)}>Sao chép</Button> }
+                ]}
+            />
+        </Modal>
         </>
     );
 };

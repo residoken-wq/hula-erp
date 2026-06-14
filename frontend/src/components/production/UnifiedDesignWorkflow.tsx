@@ -235,18 +235,32 @@ const RulerLayer = ({ width, height, scale }: { width: number, height: number, s
     );
 };
 
-const UnifiedDesignWorkflow: React.FC = () => {
+interface UnifiedDesignWorkflowProps {
+    standaloneProduct?: any;
+    onStandaloneComplete?: () => void;
+}
+
+const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standaloneProduct, onStandaloneComplete }) => {
+    // --- Global State ---
     const [currentStep, setCurrentStep] = useState(0);
 
     // --- Step 1 Data ---
     const [poList, setPoList] = useState<any[]>([]);
     const [selectedPo, setSelectedPo] = useState<any>(null);
-    const [selectedItem, setSelectedItem] = useState<any>(null);
+    const [selectedItem, setSelectedItem] = useState<any>(
+        standaloneProduct 
+            ? { id: 'standalone', product: standaloneProduct, product_id: standaloneProduct.id, quantity: 100 }
+            : null
+    );
     const [loadingPo, setLoadingPo] = useState(false);
 
     // --- Copy Design Modal Data ---
     const [isCopyModalVisible, setIsCopyModalVisible] = useState(false);
     const [savedDesigns, setSavedDesigns] = useState<any[]>([]);
+    
+    // --- Auto-Load Marker Modal Data ---
+    const [isLoadSavedMarkerModalVisible, setIsLoadSavedMarkerModalVisible] = useState(false);
+    const [savedProductMarkers, setSavedProductMarkers] = useState<any[]>([]);
     
     // --- Step 3 Data ---
     const [lockedFaces, setLockedFaces] = useState<Record<string, boolean>>({});
@@ -306,8 +320,32 @@ const UnifiedDesignWorkflow: React.FC = () => {
                     resultsByFace
                 }
             };
-            await api.post('/designs/print-designs', dataToSave);
+            const res = await api.post('/designs/print-designs', dataToSave);
+            const savedDesign = res.data;
+            
+            if (!standaloneProduct && selectedPo && selectedItem.id !== 'standalone') {
+                await api.put(`/purchasing/${selectedPo.id}`, {
+                    items: [{ id: selectedItem.id, print_design_id: savedDesign.id }]
+                });
+                
+                setSelectedItem({ ...selectedItem, print_design: savedDesign });
+                
+                setPoList(prev => prev.map(po => {
+                    if (po.id === selectedPo.id) {
+                        return {
+                            ...po,
+                            items: po.items.map((i: any) => i.id === selectedItem.id ? { ...i, print_design: savedDesign } : i)
+                        };
+                    }
+                    return po;
+                }));
+            }
+            
             message.success('Đã lưu sơ đồ vào hệ thống!');
+            
+            if (standaloneProduct && onStandaloneComplete) {
+                onStandaloneComplete();
+            }
         } catch (e) {
             console.error(e);
             message.error('Lỗi khi lưu sơ đồ');
@@ -316,7 +354,7 @@ const UnifiedDesignWorkflow: React.FC = () => {
 
     // --- Step 2 Data: Multi-Face Support ---
     const [faces, setFaces] = useState<any[]>([
-        { id: 'face-1', name: 'Mặt trước', pieceSize: { w: 50, h: 40 }, bgColor: '#e6f7ff', logoUrl: null, processedLogoUrl: null, removeTolerance: 240, logoColor: 'original', logoConfig: { x: 10, y: 10, width: 20, height: 20 }, selectedId: null }
+        { id: 'face-1', name: 'Mặt trước', pieceSize: { w: 50, h: 40 }, bgColor: '#e6f7ff', logoUrl: null, processedLogoUrl: null, removeTolerance: 240, logoColor: 'original', logoConfig: { x: 0, y: 0, width: 0, height: 0 }, selectedId: null }
     ]);
     const [activeFaceKey, setActiveFaceKey] = useState('face-1');
 
@@ -386,7 +424,7 @@ const UnifiedDesignWorkflow: React.FC = () => {
             const data = Array.isArray(res.data) ? res.data : [];
             const isRelevantItem = (item: any) => {
                 const name = (item.description || item.product?.name || item.material?.name || '').toLowerCase();
-                return name.includes('gia công in') || name.includes('gia công may') || name.includes('gia công thêu') || name.includes('gia công cắt');
+                return name.includes('gia công in');
             };
 
             const filtered = data.filter((po: any) => 
@@ -407,7 +445,17 @@ const UnifiedDesignWorkflow: React.FC = () => {
         formData.append('file', file);
         try {
             const res = await api.post('/upload/image', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-            updateFace(faceId, { logoUrl: res.data.url });
+            
+            setFaces(prev => prev.map(f => {
+                if (f.id === faceId) {
+                    const newLogoConfig = (!f.logoConfig || f.logoConfig.width === 0) 
+                        ? { x: 10, y: 10, width: 20, height: 20 } 
+                        : f.logoConfig;
+                    return { ...f, logoUrl: res.data.url, logoConfig: newLogoConfig };
+                }
+                return f;
+            }));
+            
             onSuccess(res.data.url);
             message.success('Tải logo thành công');
         } catch (e) {
@@ -484,12 +532,77 @@ const UnifiedDesignWorkflow: React.FC = () => {
         setActiveFaceKey(newFaces[0].id);
     };
 
-    const handleNext = () => {
-        if (currentStep === 0 && !selectedItem) {
+    const handleNext = async () => {
+        if (!standaloneProduct && currentStep === 0 && !selectedItem) {
             message.warning('Vui lòng chọn 1 sản phẩm trong đơn gia công!');
             return;
         }
+
+        const nextStepIsPack = (!standaloneProduct && currentStep === 1) || (standaloneProduct && currentStep === 0);
+        
+        if (nextStepIsPack && selectedItem?.product_id) {
+            try {
+                const res = await api.get(`/designs/print-designs?product_id=${selectedItem.product_id}`);
+                const markers = Array.isArray(res.data) ? res.data : [];
+                if (markers.length > 0) {
+                    setSavedProductMarkers(markers);
+                    setIsLoadSavedMarkerModalVisible(true);
+                    return; // Wait for modal to proceed to next step
+                }
+            } catch (e) {
+                console.error('Lỗi tải sơ đồ đã lưu', e);
+            }
+        }
+
         setCurrentStep(currentStep + 1);
+    };
+
+    const handleLoadSavedMarker = (design: any, rotationOption: 'keep' | 'rotate90' | 'repack') => {
+        if (design.tech_pack && design.tech_pack.faces) {
+            setFaces(design.tech_pack.faces);
+            setBinsByFace(design.tech_pack.binsByFace || { 'face-1': [{ w: 400, h: 120 }] });
+            setPadding(design.tech_pack.padding ?? 2);
+            setAllowRotation(design.tech_pack.allowRotation ?? false);
+            
+            if (design.tech_pack.resultsByFace) {
+                const results = { ...design.tech_pack.resultsByFace };
+                
+                if (rotationOption === 'rotate90') {
+                    // Xoay 90 độ tất cả mảnh rập
+                    Object.keys(results).forEach(faceId => {
+                        const faceResult = results[faceId];
+                        if (faceResult.binResults) {
+                            faceResult.binResults.forEach((bin: any) => {
+                                if (bin.packed) {
+                                    bin.packed.forEach((rect: any) => {
+                                        rect.rotation = (rect.rotation || 0) + 90;
+                                    });
+                                }
+                            });
+                        }
+                    });
+                    setResultsByFace(results);
+                } else if (rotationOption === 'keep') {
+                    // Giữ nguyên (Manual)
+                    setResultsByFace(results);
+                }
+            }
+            
+            if (design.tech_pack.continuousConfigs) {
+                 setContinuousConfigs(design.tech_pack.continuousConfigs);
+            }
+        }
+        setIsLoadSavedMarkerModalVisible(false);
+        setCurrentStep(currentStep + 1);
+        
+        if (rotationOption === 'repack') {
+            setTimeout(() => {
+                // Allow state to update before repacking
+                if (packingMode === 'CONTINUOUS') {
+                    setIsAutoPackModalVisible(true);
+                }
+            }, 100);
+        }
     };
 
     const handlePrev = () => {
@@ -688,22 +801,18 @@ const UnifiedDesignWorkflow: React.FC = () => {
         const expandedRowRender = (po: any) => {
             const items = po.items.filter((item: any) => {
                 const name = (item.description || item.product?.name || item.material?.name || '').toLowerCase();
-                return name.includes('gia công in') || name.includes('gia công may') || name.includes('gia công thêu') || name.includes('gia công cắt');
+                return name.includes('gia công in');
             });
             
             const columns = [
                 { title: 'Tên Sản phẩm / Mã hàng', dataIndex: 'description', render: (t: any, r: any) => r.product?.name || r.material?.name || t },
                 { title: 'Số lượng yêu cầu', dataIndex: 'quantity', render: (v: any) => <b>{v}</b> },
                 { title: 'Trạng thái', render: (r: any) => {
-                     const name = (r.description || r.product?.name || r.material?.name || '').toLowerCase();
-                     if (name.includes('gia công may')) return <Tag color="default">Không cần Sơ đồ</Tag>;
                      return r.print_design ? <Tag color="success">Đã làm Sơ đồ</Tag> : <Tag color="warning">Chưa làm</Tag>;
                 }},
                 { title: 'Ghi chú', dataIndex: 'note' },
                 {
                     title: 'Thao tác', render: (r: any) => {
-                        const name = (r.description || r.product?.name || r.material?.name || '').toLowerCase();
-                        const isMay = name.includes('gia công may');
                         return (
                             <Button
                                 type={selectedItem?.id === r.id ? 'primary' : 'default'}
@@ -711,7 +820,6 @@ const UnifiedDesignWorkflow: React.FC = () => {
                                     setSelectedPo(po);
                                     setSelectedItem(r);
                                 }}
-                                disabled={isMay}
                             >
                                 Chọn để làm Sơ đồ
                             </Button>
@@ -738,7 +846,7 @@ const UnifiedDesignWorkflow: React.FC = () => {
                 let done = 0;
                 items.forEach((item: any) => {
                      const name = (item.description || item.product?.name || item.material?.name || '').toLowerCase();
-                     if (name.includes('gia công in') || name.includes('gia công thêu') || name.includes('gia công cắt')) {
+                     if (name.includes('gia công in')) {
                          total++;
                          if (item.print_design) done++;
                      }
@@ -1131,7 +1239,7 @@ const UnifiedDesignWorkflow: React.FC = () => {
             <div style={{ marginTop: 24, textAlign: 'right' }}>
                 {currentStep > 0 && <Button style={{ margin: '0 8px' }} onClick={handlePrev}>Quay Lại</Button>}
                 {currentStep < steps.length - 1 && <Button type="primary" onClick={handleNext}>Tiếp Tục</Button>}
-                {currentStep === steps.length - 1 && <Button type="primary" style={{ background: '#52c41a' }} onClick={() => message.success('Hoàn thành!')}>Hoàn Thành</Button>}
+                {currentStep === steps.length - 1 && <Button type="primary" style={{ background: '#52c41a' }} onClick={handleSaveDesign}>Hoàn Thành</Button>}
             </div>
 
             <Modal title="Chọn Sơ đồ mẫu để Sao chép" open={isCopyModalVisible} onCancel={() => setIsCopyModalVisible(false)} footer={null} width={600}>
@@ -1148,6 +1256,42 @@ const UnifiedDesignWorkflow: React.FC = () => {
                         </List.Item>
                     )}
                 />
+            </Modal>
+
+            <Modal 
+                title="Đã tìm thấy Sơ đồ cho sản phẩm này" 
+                open={isLoadSavedMarkerModalVisible} 
+                onCancel={() => {
+                    setIsLoadSavedMarkerModalVisible(false);
+                    setCurrentStep(currentStep + 1);
+                }} 
+                footer={null} 
+                width={700}
+            >
+                <Alert message="Sản phẩm này đã có Sơ đồ được lưu trước đó. Bạn có thể chọn để tải lại Sơ đồ này, hoặc Bỏ qua để thiết kế sơ đồ hoàn toàn mới." type="info" showIcon style={{ marginBottom: 16 }} />
+                <List
+                    dataSource={savedProductMarkers}
+                    renderItem={(item: any) => (
+                        <List.Item
+                            actions={[
+                                <Button key="keep" type="default" size="small" onClick={() => handleLoadSavedMarker(item, 'keep')}>Sử dụng (Manual)</Button>,
+                                <Button key="rotate" type="default" size="small" onClick={() => handleLoadSavedMarker(item, 'rotate90')}>Sử dụng (Xoay 90°)</Button>,
+                                <Button key="repack" type="primary" size="small" onClick={() => handleLoadSavedMarker(item, 'repack')}>Chạy Tự động xếp lại</Button>
+                            ]}
+                        >
+                            <List.Item.Meta
+                                title={<b>{item.name}</b>}
+                                description={`Mã: ${item.code} | Ngày lưu: ${new Date(item.created_at).toLocaleDateString()}`}
+                            />
+                        </List.Item>
+                    )}
+                />
+                <div style={{ textAlign: 'right', marginTop: 16 }}>
+                    <Button onClick={() => {
+                        setIsLoadSavedMarkerModalVisible(false);
+                        setCurrentStep(currentStep + 1);
+                    }}>Bỏ qua (Tạo mới)</Button>
+                </div>
             </Modal>
 
             <Modal 

@@ -50,10 +50,7 @@ export function packRectangles(bin: Bin, rects: Rect[], padding: number = 0, all
                 rect.y = freeRect.y;
                 rect.rotated = true;
                 placed = true;
-                // Swap W and H for the output
-                const temp = rect.w;
-                rect.w = rect.h;
-                rect.h = temp;
+                // No longer mutating w and h here. We rely on the rotated flag.
                 packed.push(rect);
                 splitFreeRect(freeRect, { x: rect.x, y: rect.y, w: neededH, h: neededW }, freeRects);
                 break;

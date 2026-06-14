@@ -189,6 +189,10 @@ export class PurchasingService {
                     if (itemDTO.quantity !== undefined) poItem.quantity = Number(itemDTO.quantity);
                     if (itemDTO.unit_price !== undefined) poItem.unit_price = Number(itemDTO.unit_price);
                     if (itemDTO.note !== undefined) poItem.note = itemDTO.note; // Update Item Note
+                    if (itemDTO.print_design_id !== undefined) {
+                        poItem.print_design_id = itemDTO.print_design_id;
+                        poItem.print_design = { id: itemDTO.print_design_id } as any;
+                    }
 
                     // Recalculate Subtotal
                     poItem.subtotal = Number(poItem.quantity) * Number(poItem.unit_price);

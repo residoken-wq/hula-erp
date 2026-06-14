@@ -38,7 +38,7 @@ export class DesignsService {
     }
 
     // --- Print Design ---
-    async getPrintDesigns(customerId?: number, productId?: number) {
+    async getPrintDesigns(customerId?: number, productId?: number, categoryId?: number) {
         const query = this.designRepo.createQueryBuilder('design')
             .leftJoinAndSelect('design.customer', 'customer')
             .leftJoinAndSelect('design.product', 'product')
@@ -49,6 +49,9 @@ export class DesignsService {
         }
         if (productId) {
             query.andWhere('design.product_id = :productId', { productId });
+        }
+        if (categoryId) {
+            query.andWhere('product.category_id = :categoryId', { categoryId });
         }
         query.orderBy('design.created_at', 'DESC');
         return query.getMany();

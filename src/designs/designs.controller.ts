@@ -37,8 +37,8 @@ export class DesignsController {
     // --- Print Designs ---
     @Get('print-designs')
     @RequirePermission('PRODUCT', 'can_view')
-    getPrintDesigns(@Query('customer_id') customerId?: number, @Query('product_id') productId?: number) {
-        return this.designsService.getPrintDesigns(customerId, productId);
+    getPrintDesigns(@Query('customer_id') customerId?: number, @Query('product_id') productId?: number, @Query('category_id') categoryId?: number) {
+        return this.designsService.getPrintDesigns(customerId, productId, categoryId);
     }
 
     @Get('print-designs/:id')
