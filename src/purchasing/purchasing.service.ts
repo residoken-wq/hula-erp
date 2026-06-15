@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, IsNull } from 'typeorm';
 import { PurchaseOrder, POType, POStatus } from './entities/purchase-order.entity';
 import { PurchaseOrderItem } from './entities/purchase-order-item.entity';
 import { GoodsReceipt } from '../inventory/entities/goods-receipt.entity';
@@ -517,8 +517,8 @@ export class PurchasingService {
         return this.poRepo.find({
             where: {
                 type: type,
-                status: POStatus.ORDERED, // --- CHỈ GỘP PO ĐÃ ĐẶT HÀNG ---
-                parent_po_id: null as any
+                status: POStatus.DRAFT, // --- CHỈ GỘP PO CHƯA ĐẶT HÀNG (DRAFT) ---
+                parent_po_id: IsNull()
             },
             relations: ['supplier', 'items', 'items.material'],
             order: { created_at: 'DESC' }

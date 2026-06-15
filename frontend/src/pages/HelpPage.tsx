@@ -1825,8 +1825,8 @@ const HelpPage: React.FC = () => {
                                     <Card title="Team Mua Hàng" size="small" bordered={false} style={{ background: '#f0f5ff' }}>
                                         <Steps direction="vertical" size="small" current={-1} items={[
                                             { title: 'Review PO Nháp', description: 'Kiểm tra giá, điều khoản, ghi chú.' },
+                                            { title: 'Gộp PO (Pooling)', description: 'Gom nhiều PO DRAFT (chưa đặt hàng) cùng NCC thành 1 đơn lớn.' },
                                             { title: 'Gửi PO', description: 'Sent → Confirmed → Ordered.' },
-                                            { title: 'Gộp PO (Pooling)', description: 'Gom nhiều PO cùng NCC thành 1 đơn lớn.' },
                                         ]} />
                                     </Card>
                                 </Col>
@@ -1956,7 +1956,7 @@ const HelpPage: React.FC = () => {
                         <Card title="3. Gộp PO (Pooling)" style={{ marginBottom: 20, borderLeft: '4px solid #13c2c2' }}>
                             <Alert
                                 message="Khi nào cần gộp PO?"
-                                description="Khi có nhiều PO nhỏ lẻ cho cùng 1 NCC (từ các kế hoạch khác nhau), hãy gộp thành 1 PO lớn để tiện giao nhận và thanh toán."
+                                description="Khi có nhiều PO nhỏ lẻ cho cùng 1 NCC (từ các kế hoạch khác nhau), hãy gộp thành 1 PO lớn để tiện giao nhận và thanh toán. Lưu ý: Chỉ các PO ở trạng thái Nháp (DRAFT) mới có thể được gộp."
                                 type="info"
                                 showIcon
                                 style={{ marginBottom: 16 }}

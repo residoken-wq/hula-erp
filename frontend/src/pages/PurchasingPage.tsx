@@ -317,11 +317,12 @@ const PurchasingPage: React.FC = () => {
     // --- LOGIC REQUIREMENT (PO GỘP) ---
     const [requirements, setRequirements] = useState<any[]>([]);
     const [selectedReqs, setSelectedReqs] = useState<any[]>([]);
+    const [selectedMainRows, setSelectedMainRows] = useState<any[]>([]); // Chọn PO trên tab chính để gộp
 
     const fetchRequirements = async () => {
         try {
-            // Lấy danh sách PO_NPL có thể gộp (chưa có parent_po_id)
-            const type = activeTab === 'REQ_GC' ? 'OUTSOURCING' : 'MATERIAL';
+            // Lấy danh sách PO có thể gộp (chưa có parent_po_id, status=DRAFT)
+            const type = (activeTab === 'REQ_GC' || activeTab === 'OUTSOURCING') ? 'OUTSOURCING' : 'MATERIAL';
             const res = await api.get(`/purchasing/available-for-pooling?type=${type}`);
             setRequirements(res.data);
         } catch (e) { message.error('Lỗi tải danh sách PO'); }
@@ -329,20 +330,32 @@ const PurchasingPage: React.FC = () => {
 
     useEffect(() => {
         if (activeTab.startsWith('REQ')) fetchRequirements();
+        // Reset selection khi đổi tab
+        setSelectedMainRows([]);
+        setSelectedReqs([]);
     }, [activeTab]);
 
     const handleCreatePooledPO = async () => {
-        if (selectedReqs.length === 0) return message.warning('Chọn ít nhất 1 PO');
+        // Hỗ trợ gộp từ cả tab chính (MATERIAL/OUTSOURCING) lẫn tab REQ
+        const selected = (activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') ? selectedMainRows : selectedReqs;
+        if (selected.length === 0) return message.warning('Chọn ít nhất 1 PO để gộp');
         // Check types
-        const types = new Set(selectedReqs.map(r => r.type));
+        const types = new Set(selected.map(r => r.type));
         if (types.size > 1) return message.error('Không thể gộp NPL và Gia công chung 1 đơn');
 
+        // Check all selected are DRAFT
+        const nonDraft = selected.filter(r => r.status !== 'DRAFT');
+        if (nonDraft.length > 0) return message.error(`Chỉ gộp được PO ở trạng thái DRAFT. Có ${nonDraft.length} PO không hợp lệ.`);
+
+        // Temporarily store selected for proceedCreatePooled
+        setSelectedReqs(selected);
+
         // Check vendors (Optional warning)
-        const suppliers = [...new Set(selectedReqs.map(r => r.supplier?.name).filter(Boolean))];
-        if (suppliers.length > 1) {
+        const supplierNames = [...new Set(selected.map(r => r.supplier?.name).filter(Boolean))];
+        if (supplierNames.length > 1) {
             Modal.confirm({
                 title: 'Khác Nhà Cung Cấp',
-                content: `Các PO đã chọn thuộc nhiều NCC khác nhau (${suppliers.join(', ')}). Bạn có chắc muốn gộp chung?`,
+                content: `Các PO đã chọn thuộc nhiều NCC khác nhau (${supplierNames.join(', ')}). Bạn có chắc muốn gộp chung?`,
                 onOk: () => setIsSelectSupplierOpen(true)
             });
         } else {
@@ -438,6 +451,7 @@ const PurchasingPage: React.FC = () => {
                     ) : (
                         <Space>
                             {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedReqs.length === 0}>+ Tạo PO Gộp ({selectedReqs.length})</Button>}
+                            {(activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedMainRows.length === 0} icon={<LinkOutlined />}>Gộp PO ({selectedMainRows.length})</Button>}
                             {activeTab === 'POOLED' && <Popconfirm title="Xóa tất cả PO Gộp?" onConfirm={async () => {
                                 await api.delete(`/purchasing/pooled/all`);
                                 message.success('Đã xóa dữ liệu gộp');
@@ -476,7 +490,20 @@ const PurchasingPage: React.FC = () => {
                         ]}
                     />
                 ) : (
-                    <Table dataSource={filteredData} columns={columns} rowKey="id" loading={loading} />
+                    <Table
+                        dataSource={filteredData}
+                        columns={columns}
+                        rowKey="id"
+                        loading={loading}
+                        rowSelection={(activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') ? {
+                            type: 'checkbox',
+                            selectedRowKeys: selectedMainRows.map(r => r.id),
+                            onChange: (_, rows) => setSelectedMainRows(rows),
+                            getCheckboxProps: (record: any) => ({
+                                disabled: record.status !== 'DRAFT' || record.type === 'POOLED',
+                            }),
+                        } : undefined}
+                    />
                 )}
             </Card>
 
