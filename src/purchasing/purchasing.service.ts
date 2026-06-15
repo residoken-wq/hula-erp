@@ -580,28 +580,38 @@ export class PurchasingService {
         if (!po) throw new NotFoundException('Không tìm thấy PO');
         if (po.type !== POType.POOLED) throw new BadRequestException('PO này không phải Pooled PO');
 
-        // Aggregate by material
-        const materialMap = new Map<number, any>();
+        // Aggregate by material OR by description (cho PO Gia Công không có material_id)
+        const itemMap = new Map<string, any>();
 
         for (const childPO of (po.child_pos || [])) {
             for (const item of (childPO.items || [])) {
-                if (!item.material_id) continue;
+                // Tạo key: ưu tiên material_id, nếu không có thì dùng description
+                const key = item.material_id
+                    ? `mat-${item.material_id}`
+                    : `desc-${(item.description || item.reference_name || 'unknown').trim()}`;
 
-                if (!materialMap.has(item.material_id)) {
-                    materialMap.set(item.material_id, {
-                        material_id: item.material_id,
-                        material_name: item.material?.name || item.description,
-                        material_code: item.material?.code,
-                        unit: item.material?.unit,
+                if (!itemMap.has(key)) {
+                    itemMap.set(key, {
+                        material_id: item.material_id || null,
+                        material_name: item.material?.name || item.description || item.reference_name || '-',
+                        material_code: item.material?.code || null,
+                        unit: item.material?.unit || item.unit || '',
+                        unit_price: Number(item.unit_price || 0),
                         total_ordered: 0,
-                        total_delivered: 0,  // TODO: Tính từ GoodsReceipt
+                        total_subtotal: 0,
+                        total_delivered: 0,
                         remaining: 0,
                         po_sources: []
                     });
                 }
 
-                const agg = materialMap.get(item.material_id);
+                const agg = itemMap.get(key);
                 agg.total_ordered += Number(item.quantity || 0);
+                agg.total_subtotal += Number(item.subtotal || 0);
+                // Dùng đơn giá cao nhất (hoặc trung bình cũng được)
+                if (Number(item.unit_price || 0) > agg.unit_price) {
+                    agg.unit_price = Number(item.unit_price || 0);
+                }
                 if (!agg.po_sources.includes(childPO.po_code)) {
                     agg.po_sources.push(childPO.po_code);
                 }
@@ -609,7 +619,7 @@ export class PurchasingService {
         }
 
         // Calculate remaining
-        for (const agg of materialMap.values()) {
+        for (const agg of itemMap.values()) {
             agg.remaining = agg.total_ordered - agg.total_delivered;
         }
 
@@ -621,7 +631,7 @@ export class PurchasingService {
                 total_amount: po.total_amount,
                 child_count: po.child_pos?.length || 0
             },
-            aggregated_items: Array.from(materialMap.values())
+            aggregated_items: Array.from(itemMap.values())
         };
     }
     // ----------------------------

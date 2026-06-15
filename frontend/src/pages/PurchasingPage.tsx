@@ -83,7 +83,42 @@ const PurchasingPage: React.FC = () => {
             const poDetail = res.data;
 
             setCurrentPO(poDetail);
-            // Clone items for editing
+
+            // --- POOLED PO: Lấy dữ liệu gộp từ child POs ---
+            if (poDetail.type === 'POOLED') {
+                try {
+                    const aggRes = await api.get(`/purchasing/pooled/${poDetail.id}/aggregate`);
+                    const aggData = aggRes.data;
+                    // Chuyển aggregated_items thành format tương thích editingItems
+                    const aggItems = (aggData.aggregated_items || []).map((item: any, idx: number) => ({
+                        id: `agg-${idx}`,
+                        material: item.material_id ? { id: item.material_id, name: item.material_name, code: item.material_code, unit: item.unit } : null,
+                        material_id: item.material_id,
+                        description: item.material_name,
+                        quantity: item.total_ordered,
+                        raw_quantity: item.total_ordered,
+                        total_quantity: item.total_ordered,
+                        unit_price: item.unit_price || 0,
+                        subtotal: item.total_subtotal || (item.total_ordered * (item.unit_price || 0)),
+                        note: `Từ ${item.po_sources?.length || 0} PO: ${(item.po_sources || []).join(', ')}`,
+                        wastage_rate: 0,
+                    }));
+                    setEditingItems(aggItems);
+                    setPackingList([]);
+                } catch (e) {
+                    console.error('Error fetching pooled aggregate', e);
+                    setEditingItems([]);
+                    setPackingList([]);
+                }
+                setIsDetailOpen(true);
+
+                // Fetch Plan Products (skip for pooled)
+                setPlanProducts([]);
+                fetchDeliveryMatrix(poDetail.id);
+                return; // Early return — skip normal items/plan logic
+            }
+
+            // Clone items for editing (Normal PO)
             setEditingItems(poDetail.items ? poDetail.items.map((i: any) => ({ ...i })) : []);
 
             // Set packing list: If empty, auto-generate from Items
@@ -311,7 +346,15 @@ const PurchasingPage: React.FC = () => {
     ];
 
     const filteredData = data.filter((d: any) => {
-        return (activeTab === 'ALL' || d.type === activeTab) && d.po_code?.toLowerCase().includes(searchText.toLowerCase());
+        const tabMatch = activeTab === 'ALL' || d.type === activeTab;
+        if (!tabMatch) return false;
+        if (!searchText) return true;
+        const q = searchText.toLowerCase();
+        const poMatch = d.po_code?.toLowerCase().includes(q);
+        const supplierMatch = (d.supplier?.name || d.note?.split('NCC: ')[1] || '').toLowerCase().includes(q);
+        const customerNames = d.plan?.sales_orders?.map((so: any) => so?.customer?.name || so?.customer_name || '').join(' ') || '';
+        const customerMatch = customerNames.toLowerCase().includes(q);
+        return poMatch || supplierMatch || customerMatch;
     });
 
     // --- LOGIC REQUIREMENT (PO GỘP) ---
@@ -436,6 +479,27 @@ const PurchasingPage: React.FC = () => {
     };
 
     // ----------------------------------
+    const expandedRowRender = (record: any) => {
+        if (!record.items || record.items.length === 0) return <div style={{ color: '#888', padding: '10px 20px' }}>Không có chi tiết hàng hóa</div>;
+        
+        const itemColumns = [
+            { title: 'Tên hàng / Mô tả', render: (r: any) => r.material?.name || r.product?.name || r.description || '-' },
+            { title: 'Số lượng', dataIndex: 'quantity', align: 'center' as const, render: (v: number) => Number(v || 0).toLocaleString() },
+            { title: 'Đơn giá', dataIndex: 'unit_price', align: 'right' as const, render: (v: number) => Number(v || 0).toLocaleString() },
+            { title: 'Thành tiền', align: 'right' as const, render: (r: any) => <b>{Number((r.quantity || 0) * (r.unit_price || 0)).toLocaleString()}</b> }
+        ];
+
+        return (
+            <Table
+                columns={itemColumns}
+                dataSource={record.items}
+                pagination={false}
+                size="small"
+                rowKey="id"
+                style={{ margin: '10px 0', backgroundColor: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 4, padding: '10px 20px' }}
+            />
+        );
+    };
 
     return (
         <div>
@@ -488,6 +552,7 @@ const PurchasingPage: React.FC = () => {
                             { title: 'Trạng thái', dataIndex: 'status', width: 100, align: 'center' as const, render: (t: string) => <Tag color={t === 'COMPLETED' ? 'green' : t === 'DELIVERED' ? 'cyan' : t === 'PARTIAL_DELIVERED' ? 'orange' : t === 'ORDERED' ? 'blue' : 'default'}>{t === 'PARTIAL_DELIVERED' ? 'Giao 1 phần' : t === 'DELIVERED' ? 'Đã giao đủ' : t}</Tag> },
                             { title: 'Ngày tạo', dataIndex: 'created_at', width: 100, align: 'right' as const, render: (t: any) => dayjs(t).format('DD/MM/YY') }
                         ]}
+                        expandable={{ expandedRowRender, rowExpandable: record => record.items && record.items.length > 0 }}
                     />
                 ) : (
                     <Table
@@ -495,6 +560,7 @@ const PurchasingPage: React.FC = () => {
                         columns={columns}
                         rowKey="id"
                         loading={loading}
+                        expandable={{ expandedRowRender, rowExpandable: record => record.items && record.items.length > 0 }}
                         rowSelection={(activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') ? {
                             type: 'checkbox',
                             selectedRowKeys: selectedMainRows.map(r => r.id),
