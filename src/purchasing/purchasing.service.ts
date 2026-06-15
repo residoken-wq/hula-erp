@@ -577,47 +577,62 @@ export class PurchasingService {
     async getPooledAggregate(pooledId: number) {
         const po = await this.poRepo.findOne({
             where: { id: pooledId },
-            relations: ['child_pos', 'child_pos.items', 'child_pos.items.material', 'supplier']
+            relations: ['child_pos', 'child_pos.items', 'child_pos.items.material', 'child_pos.items.product', 'supplier']
         });
 
         if (!po) throw new NotFoundException('Không tìm thấy PO');
         if (po.type !== POType.POOLED) throw new BadRequestException('PO này không phải Pooled PO');
 
-        // Aggregate by material OR by description (cho PO Gia Công không có material_id)
+        // Aggregate by material OR by product/description
         const itemMap = new Map<string, any>();
 
         for (const childPO of (po.child_pos || [])) {
             for (const item of (childPO.items || [])) {
-                // Tạo key: ưu tiên material_id, nếu không có thì dùng description
+                // Tạo key: ưu tiên material_id, sau đó product_id, cuối cùng dùng description
                 const key = item.material_id
                     ? `mat-${item.material_id}`
-                    : `desc-${(item.description || 'unknown').trim()}`;
+                    : item.product_id
+                        ? `prod-${item.product_id}`
+                        : `desc-${(item.description || 'unknown').trim()}`;
 
                 if (!itemMap.has(key)) {
                     itemMap.set(key, {
                         material_id: item.material_id || null,
                         material_name: item.material?.name || item.description || '-',
                         material_code: item.material?.code || null,
+                        product_id: item.product_id || null,
+                        product: item.product || null,
                         unit: item.material?.unit || '',
                         unit_price: Number(item.unit_price || 0),
                         total_ordered: 0,
                         total_subtotal: 0,
                         total_delivered: 0,
                         remaining: 0,
-                        po_sources: []
+                        po_sources: [],
+                        po_details: [] // Chi tiết từng PO con
                     });
                 }
 
                 const agg = itemMap.get(key);
                 agg.total_ordered += Number(item.quantity || 0);
                 agg.total_subtotal += Number(item.subtotal || 0);
-                // Dùng đơn giá cao nhất (hoặc trung bình cũng được)
+                
+                // Dùng đơn giá cao nhất (hoặc trung bình)
                 if (Number(item.unit_price || 0) > agg.unit_price) {
                     agg.unit_price = Number(item.unit_price || 0);
                 }
+                
                 if (!agg.po_sources.includes(childPO.po_code)) {
                     agg.po_sources.push(childPO.po_code);
                 }
+                
+                // Thêm chi tiết PO con cho expand UI
+                agg.po_details.push({
+                    po_code: childPO.po_code,
+                    quantity: Number(item.quantity || 0),
+                    unit_price: Number(item.unit_price || 0),
+                    subtotal: Number(item.subtotal || 0)
+                });
             }
         }
 

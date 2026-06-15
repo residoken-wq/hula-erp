@@ -94,6 +94,8 @@ const PurchasingPage: React.FC = () => {
                         id: `agg-${idx}`,
                         material: item.material_id ? { id: item.material_id, name: item.material_name, code: item.material_code, unit: item.unit } : null,
                         material_id: item.material_id,
+                        product: item.product || null,
+                        product_id: item.product_id || null,
                         description: item.material_name,
                         quantity: item.total_ordered,
                         raw_quantity: item.total_ordered,
@@ -101,6 +103,7 @@ const PurchasingPage: React.FC = () => {
                         unit_price: item.unit_price || 0,
                         subtotal: item.total_subtotal || (item.total_ordered * (item.unit_price || 0)),
                         note: `Từ ${item.po_sources?.length || 0} PO: ${(item.po_sources || []).join(', ')}`,
+                        po_details: item.po_details || [],
                         wastage_rate: 0,
                     }));
                     setEditingItems(aggItems);
@@ -797,6 +800,28 @@ const PurchasingPage: React.FC = () => {
                                     { title: 'Thành tiền', render: (r: any) => <b>{Number(r.subtotal).toLocaleString()}</b> }
 
                                 ]}
+                                expandable={{
+                                    expandedRowRender: (record: any) => {
+                                        return (
+                                            <div style={{ padding: '10px 20px', backgroundColor: '#fafafa', borderRadius: 4, border: '1px solid #e8e8e8' }}>
+                                                <div style={{ marginBottom: 8, fontWeight: 'bold', color: '#1890ff' }}>Chi tiết từng PO:</div>
+                                                <Table
+                                                    dataSource={record.po_details}
+                                                    rowKey="po_code"
+                                                    pagination={false}
+                                                    size="small"
+                                                    columns={[
+                                                        { title: 'Mã PO', dataIndex: 'po_code', width: 150 },
+                                                        { title: 'Số lượng', dataIndex: 'quantity', width: 120, align: 'right', render: v => Number(v || 0).toLocaleString() },
+                                                        { title: 'Đơn giá', dataIndex: 'unit_price', width: 120, align: 'right', render: v => Number(v || 0).toLocaleString() },
+                                                        { title: 'Thành tiền', dataIndex: 'subtotal', align: 'right', render: v => <b>{Number(v || 0).toLocaleString()}</b> }
+                                                    ]}
+                                                />
+                                            </div>
+                                        );
+                                    },
+                                    rowExpandable: (record: any) => record.po_details && record.po_details.length > 0
+                                }}
                             />
                         )
                     },
