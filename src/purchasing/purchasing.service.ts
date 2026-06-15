@@ -514,15 +514,24 @@ export class PurchasingService {
 
     // Lấy danh sách PO_NPL có thể gộp (chưa có parent_po_id)
     async getAvailableForPooling(type: POType = POType.MATERIAL) {
-        return this.poRepo.find({
-            where: {
-                type: type,
-                status: POStatus.ORDERED, // --- CHỈ GỘP PO ĐÃ ĐẶT HÀNG ---
-                parent_po_id: null as any
-            },
-            relations: ['supplier', 'items', 'items.material'],
-            order: { created_at: 'DESC' }
-        });
+        const qb = this.poRepo.createQueryBuilder('po')
+            .leftJoinAndSelect('po.supplier', 'supplier')
+            .leftJoinAndSelect('po.items', 'items')
+            .leftJoinAndSelect('items.material', 'material')
+            .where('po.type = :type', { type })
+            .andWhere('po.status = :status', { status: POStatus.ORDERED })
+            .andWhere('po.parent_po_id IS NULL')
+            .orderBy('po.created_at', 'DESC');
+
+        if (type === POType.OUTSOURCING) {
+            // Không gộp các PO đã xuất kho NPL
+            qb.andWhere('NOT EXISTS (SELECT 1 FROM goods_issues gi WHERE gi.po_id = po.id)');
+        } else if (type === POType.MATERIAL) {
+            // Không gộp các PO đã nhập kho (đáng lẽ chuyển status nhưng filter cho chắc)
+            qb.andWhere('NOT EXISTS (SELECT 1 FROM goods_receipts gr WHERE gr.po_id = po.id)');
+        }
+
+        return qb.getMany();
     }
 
     // Tạo Pooled PO từ danh sách child PO IDs

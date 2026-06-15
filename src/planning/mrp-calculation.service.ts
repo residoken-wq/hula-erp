@@ -136,22 +136,10 @@ export class MrpCalculationService {
                 }
             }
 
-            // Deduct from stock
-            let currentStock = productStockMap.get(sku) || 0;
             let netQty = qty;
 
-            if (currentStock > 0) {
-                 if (currentStock >= netQty) {
-                      productStockMap.set(sku, currentStock - netQty);
-                      netQty = 0;
-                 } else {
-                      productStockMap.set(sku, 0);
-                      netQty = netQty - currentStock;
-                 }
-            }
-
             if (netQty <= 0) {
-                continue; // Stock covers it, no need to explode BOM
+                continue;
             }
 
             totalProductDemand.set(sku, (totalProductDemand.get(sku) || 0) + netQty);

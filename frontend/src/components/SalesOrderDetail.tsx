@@ -238,6 +238,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     };
 
     const currentCustomerId = Form.useWatch('customer_id', form);
+    const currentContactName = Form.useWatch('contact_name', form);
+    const currentContactPhone = Form.useWatch('contact_phone', form);
     const selectedCustomer = customers.find(c => c.id === currentCustomerId);
     const customerContacts = selectedCustomer?.contacts || [];
 
@@ -873,7 +875,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         <Select
                                             placeholder="Chọn người liên hệ..."
                                             allowClear
-                                            value={Form.useWatch('contact_name', form) ? `${Form.useWatch('contact_phone', form) || ''} - ${Form.useWatch('contact_name', form) || ''}` : undefined}
+                                            value={currentContactName ? `${currentContactPhone || ''} - ${currentContactName || ''}` : undefined}
                                             onChange={(val) => {
                                                 if (!val) {
                                                     form.setFieldsValue({ contact_name: null, contact_phone: null });
