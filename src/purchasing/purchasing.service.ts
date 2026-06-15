@@ -591,14 +591,14 @@ export class PurchasingService {
                 // Tạo key: ưu tiên material_id, nếu không có thì dùng description
                 const key = item.material_id
                     ? `mat-${item.material_id}`
-                    : `desc-${(item.description || item.reference_name || 'unknown').trim()}`;
+                    : `desc-${(item.description || 'unknown').trim()}`;
 
                 if (!itemMap.has(key)) {
                     itemMap.set(key, {
                         material_id: item.material_id || null,
-                        material_name: item.material?.name || item.description || item.reference_name || '-',
+                        material_name: item.material?.name || item.description || '-',
                         material_code: item.material?.code || null,
-                        unit: item.material?.unit || item.unit || '',
+                        unit: item.material?.unit || '',
                         unit_price: Number(item.unit_price || 0),
                         total_ordered: 0,
                         total_subtotal: 0,
