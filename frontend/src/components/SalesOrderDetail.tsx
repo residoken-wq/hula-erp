@@ -476,7 +476,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         ...(isQuotation ? [
                                             { key: 'rev', label: 'Tạo Version Mới', icon: <CopyOutlined />, onClick: handleCreateRevision },
                                             { key: 'hist', label: 'Lịch sử', icon: <HistoryOutlined />, onClick: () => setRevisionModalOpen(true) },
-                                            { key: 'del_q', label: <span style={{color: 'red'}}>Xóa Báo Giá</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: async () => { try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch (e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message || 'Lỗi xóa báo giá' }); } } }
+                                            { key: 'del_q', label: <span style={{color: 'red'}}>Xóa Báo Giá</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: () => confirmDelete('quote', initialData.id) }
                                         ] : []),
                                         ...(!isQuotation && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED' ? [
                                             { key: 'cancel', label: <span style={{color: 'red'}}>Hủy Đơn</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: () => setCancelModalOpen(true) }
@@ -488,7 +488,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                             { key: 'book', label: 'Giữ Kho (Book)', icon: <LockOutlined />, onClick: handleBookItems }
                                         ] : []),
                                         ...(!isQuotation && initialData.status === 'SO_PENDING' ? [
-                                            { key: 'del_o', label: <span style={{color: 'red'}}>Xóa đơn hàng</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: async () => { try { await api.delete(`/sales/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch (e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message || 'Lỗi xóa đơn hàng' }); } } }
+                                            { key: 'del_o', label: <span style={{color: 'red'}}>Xóa đơn hàng</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: () => confirmDelete('order', initialData.id) }
                                         ] : []),
                                         ...(!isQuotation && initialData.status !== 'CANCELLED' ? [
                                             { key: 'comp', label: <span style={{color: '#52c41a'}}>Hoàn tất</span>, icon: <CheckCircleOutlined style={{color: '#52c41a'}}/>, onClick: handleCompleteOrder }
@@ -507,11 +507,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 <Button size="middle" icon={<CopyOutlined />} onClick={handleCreateRevision}>Tạo Version Mới</Button>
                             )}
                             {isQuotation && initialData && (
-                                <Popconfirm title="Xóa báo giá?" onConfirm={async () => {
-                                    try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch (e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message || 'Lỗi xóa báo giá' }); }
-                                }}>
-                                    <Button size="middle" danger icon={<DeleteOutlined />}>Xóa Báo Giá</Button>
-                                </Popconfirm>
+                                <Button size="middle" danger icon={<DeleteOutlined />} onClick={() => confirmDelete('quote', initialData.id)}>Xóa Báo Giá</Button>
                             )}
                             {isQuotation && initialData && (
                                 <Button size="middle" icon={<HistoryOutlined />} onClick={() => setRevisionModalOpen(true)}>Lịch sử</Button>
@@ -527,22 +523,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 <Button size="middle" icon={<LockOutlined />} onClick={handleBookItems} style={{ borderColor: '#fa8c16', color: '#fa8c16' }}>Giữ Kho (Book)</Button>
                             )}
                             {(!isQuotation && initialData && initialData.status === 'SO_PENDING') && (
-                                <Popconfirm
-                                    title="Xóa đơn hàng?"
-                                    description="Đơn hàng sẽ bị xóa hoàn toàn khỏi hệ thống."
-                                    onConfirm={async () => {
-                                        try {
-                                            await api.delete(`/sales/${initialData.id}`);
-                                            message.success('Đã xóa đơn hàng');
-                                            onSuccess();
-                                            onClose();
-                                        } catch (e: any) {
-                                            Modal.error({ title: 'Lỗi', content: e.response?.data?.message || 'Lỗi xóa đơn hàng' });
-                                        }
-                                    }}
-                                >
-                                    <Button size="middle" danger type="dashed" icon={<DeleteOutlined />}>Xóa đơn hàng</Button>
-                                </Popconfirm>
+                                <Button size="middle" danger type="dashed" icon={<DeleteOutlined />} onClick={() => confirmDelete('order', initialData.id)}>Xóa đơn hàng</Button>
                             )}
                             {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
                                 <Button size="middle" type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>Hoàn tất đơn hàng</Button>

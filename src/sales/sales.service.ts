@@ -629,7 +629,7 @@ export class SalesService {
         await this.syncChecklistWithStatus(saved.id, saved.status);
         return saved;
     }
-    async deleteQuote(id: number) {
+    async deleteQuote(id: number, cascade: boolean = false) {
         const order = await this.orderRepo.findOne({ where: { id } });
         if (!order) throw new NotFoundException('Quote not found');
 
@@ -648,6 +648,17 @@ export class SalesService {
 
         // Xóa Versions/Revisions nếu có
         await this.versionRepo.delete({ order: { id } });
+
+        if (cascade) {
+            // Unlink Social Orders
+            try { await this.orderRepo.manager.query(`UPDATE social_orders SET sales_order_id = NULL WHERE sales_order_id = $1`, [id]); } catch (e) {}
+            // Delete Projects
+            try { await this.orderRepo.manager.query(`DELETE FROM projects WHERE sales_order_id = $1`, [id]); } catch (e) {}
+            // Delete Tasks
+            try { await this.orderRepo.manager.query(`DELETE FROM tasks WHERE reference_code = $1 AND reference_type = 'SALES'`, [order.order_code]); } catch (e) {}
+            // Delete Deliveries
+            try { await this.orderRepo.manager.query(`DELETE FROM sales_deliveries WHERE order_id = $1`, [id]); } catch (e) {}
+        }
 
         // Xóa đơn hàng
         await this.systemService.logAction('SALES', 'DELETE_QUOTE', `Deleted Quote ${order.order_code}`, null, null, order.order_code);
@@ -668,7 +679,7 @@ export class SalesService {
     }
 
     // --- DELETE ORDER (Only SO_PENDING status allowed) ---
-    async deleteOrder(id: number) {
+    async deleteOrder(id: number, cascade: boolean = false) {
         const order = await this.orderRepo.findOne({ where: { id } });
         if (!order) throw new NotFoundException('Order not found');
 
@@ -689,6 +700,13 @@ export class SalesService {
 
         // Xóa comments nếu có
         await this.commentRepo.delete({ order: { id } });
+
+        if (cascade) {
+            try { await this.orderRepo.manager.query(`UPDATE social_orders SET sales_order_id = NULL WHERE sales_order_id = $1`, [id]); } catch (e) {}
+            try { await this.orderRepo.manager.query(`DELETE FROM projects WHERE sales_order_id = $1`, [id]); } catch (e) {}
+            try { await this.orderRepo.manager.query(`DELETE FROM tasks WHERE reference_code = $1 AND reference_type = 'SALES'`, [order.order_code]); } catch (e) {}
+            try { await this.orderRepo.manager.query(`DELETE FROM sales_deliveries WHERE order_id = $1`, [id]); } catch (e) {}
+        }
 
         // Xóa đơn hàng
         await this.systemService.logAction('SALES', 'DELETE_ORDER', `Deleted Order ${order.order_code}`, null, null, order.order_code);
