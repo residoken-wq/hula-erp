@@ -328,7 +328,7 @@ const PurchasingPage: React.FC = () => {
     const columns = [
         { title: 'Mã PO', dataIndex: 'po_code', render: (t: any, r: any) => <a onClick={() => viewDetail(r)}><b>{t}</b></a> },
         { title: 'Khách hàng', dataIndex: 'plan', render: (p: any) => p?.sales_orders?.length > 0 ? Array.from(new Set(p.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ') || '-' : '-' },
-        { title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 100, render: (t: string) => t === 'MATERIAL' ? <Tag color="blue">NPL</Tag> : <Tag color="orange">Gia công</Tag> },
+        { title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 100, render: (t: string) => t === 'MATERIAL' ? <Tag color="blue">NPL</Tag> : t === 'POOLED' ? <Tag color="purple">Gộp</Tag> : <Tag color="orange">Gia công</Tag> },
         { title: 'Ngày', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
         { title: 'Đối tác', dataIndex: 'supplier', render: (s: any, r: any) => s?.name || (r.note?.split('NCC: ')[1] || '-') },
         { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
@@ -546,6 +546,7 @@ const PurchasingPage: React.FC = () => {
                         }}
                         columns={[
                             { title: 'Mã PO', dataIndex: 'po_code', width: 150, render: (t: any, r: any) => <a onClick={() => viewDetail(r)}><b>{t}</b></a> },
+                            { title: 'Khách hàng', dataIndex: 'plan', render: (p: any) => p?.sales_orders?.length > 0 ? Array.from(new Set(p.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ') || '-' : '-' },
                             { title: 'NCC', dataIndex: 'supplier', render: (s: any) => s?.name || '-' },
                             { title: 'Số mặt hàng', width: 100, align: 'center' as const, render: (r: any) => r.items?.length || 0 },
                             { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b>{Number(v).toLocaleString()}</b> },

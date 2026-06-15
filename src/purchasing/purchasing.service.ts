@@ -518,8 +518,11 @@ export class PurchasingService {
             .leftJoinAndSelect('po.supplier', 'supplier')
             .leftJoinAndSelect('po.items', 'items')
             .leftJoinAndSelect('items.material', 'material')
+            .leftJoinAndSelect('po.plan', 'plan')
+            .leftJoinAndSelect('plan.sales_orders', 'so')
+            .leftJoinAndSelect('so.customer', 'customer')
             .where('po.type = :type', { type })
-            .andWhere('po.status = :status', { status: POStatus.ORDERED })
+            .andWhere('po.status = :status', { status: POStatus.DRAFT })
             .andWhere('po.parent_po_id IS NULL')
             .orderBy('po.created_at', 'DESC');
 
