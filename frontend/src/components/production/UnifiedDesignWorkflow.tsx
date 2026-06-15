@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Steps, Card, Table, Button, Select, InputNumber, Row, Col, Space, message, Upload, Divider, Switch, Tabs, Input, Tag, Alert, Modal, List } from 'antd';
 import { UploadOutlined, FilePdfOutlined, FileImageOutlined, PlusOutlined, DeleteOutlined, SaveOutlined, CopyOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
-import { Stage, Layer, Rect as KonvaRect, Image as KonvaImage, Transformer, Group, Text as KonvaText, Arrow as KonvaArrow } from 'react-konva';
+import { Stage, Layer, Rect as KonvaRect, Image as KonvaImage, Transformer, Group, Text as KonvaText, Arrow as KonvaArrow, Line as KonvaLine } from 'react-konva';
 import useImage from 'use-image';
 import jsPDF from 'jspdf';
 import api from '../../utils/api';
@@ -148,7 +148,7 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
                 />
                 
                 {rect.data?.name && (
-                    <Text
+                    <KonvaText
                         text={rect.data.name}
                         width={rect.w * scale}
                         height={rect.h * scale}
@@ -161,7 +161,7 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
                 )}
 
                 {rect.data?.logoUrl && rect.data?.logoConfig && (
-                    <Image
+                    <KonvaImage
                         image={logoImage || undefined}
                         x={(rect.data.logoConfig.x / face.pieceSize.w) * rect.w * scale || 0}
                         y={(rect.data.logoConfig.y / face.pieceSize.h) * rect.h * scale || 0}
@@ -174,23 +174,23 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
                 {/* Kích thước (Dimensions) */}
                 <Group listening={false}>
                     {/* Đường dọc */}
-                    <Line
+                    <KonvaLine
                         points={[5, rect.h * scale - 10, rect.w * scale - 5, rect.h * scale - 10]}
                         stroke="red"
                         strokeWidth={1}
                         dash={[2, 2]}
                     />
-                    <Line
+                    <KonvaLine
                         points={[5, rect.h * scale - 15, 5, rect.h * scale - 5]}
                         stroke="red"
                         strokeWidth={1}
                     />
-                    <Line
+                    <KonvaLine
                         points={[rect.w * scale - 5, rect.h * scale - 15, rect.w * scale - 5, rect.h * scale - 5]}
                         stroke="red"
                         strokeWidth={1}
                     />
-                    <Text
+                    <KonvaText
                         text={`${rect.w} cm`}
                         fontSize={10}
                         fill="red"
@@ -199,23 +199,23 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
                     />
 
                     {/* Đường ngang */}
-                    <Line
+                    <KonvaLine
                         points={[rect.w * scale - 10, 5, rect.w * scale - 10, rect.h * scale - 5]}
                         stroke="red"
                         strokeWidth={1}
                         dash={[2, 2]}
                     />
-                    <Line
+                    <KonvaLine
                         points={[rect.w * scale - 15, 5, rect.w * scale - 5, 5]}
                         stroke="red"
                         strokeWidth={1}
                     />
-                    <Line
+                    <KonvaLine
                         points={[rect.w * scale - 15, rect.h * scale - 5, rect.w * scale - 5, rect.h * scale - 5]}
                         stroke="red"
                         strokeWidth={1}
                     />
-                    <Text
+                    <KonvaText
                         text={`${rect.h} cm`}
                         fontSize={10}
                         fill="red"
