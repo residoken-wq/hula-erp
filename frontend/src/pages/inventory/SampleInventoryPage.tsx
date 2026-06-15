@@ -153,7 +153,7 @@ const SampleInventoryPage: React.FC = () => {
     <div class="header">
         <div class="company-info">
             <strong>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</strong><br>
-            📍 74/21/2A Nguyễn Khuyến, P.12, Q.Bình Thạnh, TP.HCM<br>
+            📍 74/21/24 Nguyễn Khuyến, Phường Bình Thạnh, TP. Hồ Chí Minh<br>
             📞 0983.882210 - 0983.796654<br>
             MST: 0311.874.522
         </div>

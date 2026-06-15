@@ -76,6 +76,7 @@ export class MrpCalculationService {
         const productDemand = new Map<string, number>();
         const productInfoMap = new Map<string, number>();
         const productStockMap = new Map<string, number>();
+        const productNameMap = new Map<string, string>();
 
         // 1. Tổng hợp nhu cầu sản phẩm
         for (const so of plan.sales_orders) {
@@ -94,6 +95,7 @@ export class MrpCalculationService {
                     const prod = await this.productsService.findOneBySku(item.sku);
                     if (prod) {
                         productInfoMap.set(item.sku, prod.id);
+                        productNameMap.set(item.sku, prod.name);
                         const available = Number(prod.quantity_in_stock || 0) - Number(prod.approved_booking_stock || 0);
                         productStockMap.set(item.sku, Math.max(0, available));
                     }
@@ -104,6 +106,7 @@ export class MrpCalculationService {
         const materialDemand = new Map<number, number>();
         const materialDemandRaw = new Map<number, number>();
         const materialWastageMap = new Map<number, number>();
+        const materialDetailsMap = new Map<number, any[]>();
         const outsourcingDemand = [];
 
         // 2. Phân tích BOM & ROUTING — Phân giải Combos (BOM đa cấp)
@@ -129,6 +132,7 @@ export class MrpCalculationService {
                 const prod = await this.productsService.findOneBySku(sku);
                 if (prod) {
                     productInfoMap.set(sku, prod.id);
+                    productNameMap.set(sku, prod.name);
                     const available = Number(prod.quantity_in_stock || 0) - Number(prod.approved_booking_stock || 0);
                     productStockMap.set(sku, Math.max(0, available));
                 } else {
@@ -136,22 +140,10 @@ export class MrpCalculationService {
                 }
             }
 
-            // Deduct from stock
-            let currentStock = productStockMap.get(sku) || 0;
             let netQty = qty;
 
-            if (currentStock > 0) {
-                 if (currentStock >= netQty) {
-                      productStockMap.set(sku, currentStock - netQty);
-                      netQty = 0;
-                 } else {
-                      productStockMap.set(sku, 0);
-                      netQty = netQty - currentStock;
-                 }
-            }
-
             if (netQty <= 0) {
-                continue; // Stock covers it, no need to explode BOM
+                continue;
             }
 
             totalProductDemand.set(sku, (totalProductDemand.get(sku) || 0) + netQty);
@@ -185,6 +177,18 @@ export class MrpCalculationService {
 
                     const currentWastage = materialWastageMap.get(bom.material_id) || 0;
                     if (wastage > currentWastage) materialWastageMap.set(bom.material_id, wastage);
+
+                    // --- MỚI: Ghi nhận chi tiết sử dụng NPL ---
+                    const details = materialDetailsMap.get(bom.material_id) || [];
+                    details.push({
+                        product_name: productNameMap.get(sku) || sku,
+                        qty_needed: qty,
+                        bom_quantity: Number(bom.quantity),
+                        waste_percent: wastage,
+                        gross_req: req,
+                        net_requirement: req // Khởi tạo bằng gross, sau đó có thể trừ tồn kho
+                    });
+                    materialDetailsMap.set(bom.material_id, details);
                 }
             }
 
@@ -282,7 +286,8 @@ export class MrpCalculationService {
                     possible_suppliers: possibleSuppliers,
                     note: '',
                     wastage_percent: materialWastageMap.get(mat.id) || 0,
-                    gross_raw: Math.ceil(materialDemandRaw.get(mat.id) || 0)
+                    gross_raw: Math.ceil(materialDemandRaw.get(mat.id) || 0),
+                    details: materialDetailsMap.get(mat.id) || []
                 });
             }
         }

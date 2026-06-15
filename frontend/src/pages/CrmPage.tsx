@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge, Tabs, InputNumber, Typography, DatePicker, List } from 'antd'; // <--- Đã thêm Tabs
+import { Table, Button, message, Card, Modal, Form, Input, Select, Space, Timeline, Drawer, Row, Col, Statistic, Divider, Popconfirm, Tooltip, Progress, Avatar, Tag, Badge, Tabs, InputNumber, Typography, DatePicker, List, Checkbox } from 'antd'; // <--- Đã thêm Tabs
 import { UserOutlined, ClockCircleOutlined, CheckOutlined, CloseOutlined, SendOutlined, DollarOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, PrinterOutlined, LinkOutlined, CopyOutlined, UnorderedListOutlined, BellOutlined, SearchOutlined, FilterOutlined, RiseOutlined, TagOutlined, CalendarOutlined, RightOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
@@ -363,9 +363,31 @@ const CrmPage: React.FC = () => {
         } catch (e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message }); }
     };
 
-    const handleDeleteQuote = async (id: number) => {
-        try { await api.delete(`/sales/quote/${id}`); message.success('Đã xóa'); fetchData(); }
-        catch (e: any) { message.error('Không thể xóa'); }
+    const handleDeleteQuote = (id: number) => {
+        let cascade = false;
+        Modal.confirm({
+            title: 'Xác nhận Xóa Báo Giá',
+            content: (
+                <div>
+                    <p style={{ marginBottom: 10 }}>Bạn có chắc chắn muốn xóa báo giá này không?</p>
+                    <Checkbox onChange={(e) => { cascade = e.target.checked; }}>
+                        Xóa luôn các dữ liệu liên quan (Dự án, Task, Lịch sử...) nếu có
+                    </Checkbox>
+                </div>
+            ),
+            okText: 'Xóa',
+            cancelText: 'Hủy',
+            okButtonProps: { danger: true },
+            onOk: async () => {
+                try { 
+                    await api.delete(`/sales/quote/${id}?cascade=${cascade}`); 
+                    message.success('Đã xóa'); 
+                    fetchData(); 
+                } catch (e: any) { 
+                    Modal.error({ title: 'Lỗi', content: e.response?.data?.message || 'Không thể xóa báo giá' }); 
+                }
+            }
+        });
     };
 
     const openDetailModal = async (record?: any, isQuote = false) => {
@@ -398,6 +420,18 @@ const CrmPage: React.FC = () => {
                 message.error('Oops, unable to copy');
             }
             document.body.removeChild(textArea);
+        }
+    };
+
+    const handleCloneQuote = async (record: any) => {
+        try {
+            const res = await api.get(`/sales/${record.order_code}`);
+            const clonedData = { ...res.data, isClone: true };
+            setEditingOrder(clonedData);
+            setIsQuotationMode(true);
+            setDetailModalOpen(true);
+        } catch (e) {
+            message.error('Không thể tải dữ liệu để nhân bản');
         }
     };
 
@@ -502,12 +536,13 @@ const CrmPage: React.FC = () => {
             title: 'Thao tác', key: 'act', align: 'center' as const, width: 220,
             render: (_: any, r: any) => r.status === 'QUOTATION' ? (
                 <Space size="small">
+                    <Tooltip title="Nhân bản">{canUpdate && <Button icon={<CopyOutlined />} size="small" onClick={() => handleCloneQuote(r)} />}</Tooltip>
                     <Tooltip title="Link"><Button icon={<LinkOutlined />} size="small" onClick={() => handleCopyLink(r.uuid)} /></Tooltip>
                     <Tooltip title="Xem"><Button icon={<PrinterOutlined />} size="small" onClick={() => { openDetailModal(r); setTimeout(() => setIsPreviewOpen(true), 500) }} /></Tooltip>
                     <Tooltip title="Sửa">{canUpdate && <Button icon={<EditOutlined />} size="small" onClick={() => openDetailModal(r, true)} />}</Tooltip>
                     <Tooltip title="Task"><Button size="small" icon={<BellOutlined />} onClick={() => handleCreateTask(r, 'SALES')} /></Tooltip>
                     {canUpdate && <Popconfirm title="Xác nhận chốt đơn?" onConfirm={() => handleConvertQuote(r.id, true)}><Button type="primary" size="small" icon={<CheckOutlined />} /></Popconfirm>}
-                    {canDelete && <Popconfirm title="Xóa?" onConfirm={() => handleDeleteQuote(r.id)}><Button icon={<DeleteOutlined />} size="small" danger /></Popconfirm>}
+                    {canDelete && <Tooltip title="Xóa"><Button icon={<DeleteOutlined />} size="small" danger onClick={() => handleDeleteQuote(r.id)} /></Tooltip>}
                 </Space>
             ) : <Tag color="default">Đã chốt</Tag>
         }

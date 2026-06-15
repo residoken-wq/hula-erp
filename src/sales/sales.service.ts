@@ -326,6 +326,14 @@ export class SalesService {
         if (data.vat_email !== undefined) order.vat_email = data.vat_email;
         if (data.require_invoice !== undefined) order.require_invoice = data.require_invoice;
 
+        // --- DELIVERY & CONTACT INFO ---
+        if (data.shipping_address !== undefined) order.shipping_address = data.shipping_address;
+        if (data.receiver_name !== undefined) order.receiver_name = data.receiver_name;
+        if (data.receiver_phone !== undefined) order.receiver_phone = data.receiver_phone;
+        if (data.shipping_carrier !== undefined) order.shipping_carrier = data.shipping_carrier;
+        if (data.contact_name !== undefined) order.contact_name = data.contact_name;
+        if (data.contact_phone !== undefined) order.contact_phone = data.contact_phone;
+
         order.vat_rate = Number(data.vat_rate) || 0;
         order.shipping_fee = Number(data.shipping_fee) || 0;
 
@@ -629,7 +637,7 @@ export class SalesService {
         await this.syncChecklistWithStatus(saved.id, saved.status);
         return saved;
     }
-    async deleteQuote(id: number) {
+    async deleteQuote(id: number, cascade: boolean = false) {
         const order = await this.orderRepo.findOne({ where: { id } });
         if (!order) throw new NotFoundException('Quote not found');
 
@@ -649,9 +657,24 @@ export class SalesService {
         // Xóa Versions/Revisions nếu có
         await this.versionRepo.delete({ order: { id } });
 
+        if (cascade) {
+            // Unlink Social Orders
+            try { await this.orderRepo.manager.query(`UPDATE social_orders SET sales_order_id = NULL WHERE sales_order_id = $1`, [id]); } catch (e) {}
+            // Delete Projects
+            try { await this.orderRepo.manager.query(`DELETE FROM projects WHERE sales_order_id = $1`, [id]); } catch (e) {}
+            // Delete Tasks
+            try { await this.orderRepo.manager.query(`DELETE FROM tasks WHERE reference_code = $1 AND reference_type = 'SALES'`, [order.order_code]); } catch (e) {}
+            // Delete Deliveries
+            try { await this.orderRepo.manager.query(`DELETE FROM sales_deliveries WHERE order_id = $1`, [id]); } catch (e) {}
+        }
+
         // Xóa đơn hàng
         await this.systemService.logAction('SALES', 'DELETE_QUOTE', `Deleted Quote ${order.order_code}`, null, null, order.order_code);
-        return this.orderRepo.delete(id);
+        try {
+            return await this.orderRepo.delete(id);
+        } catch (error: any) {
+            throw new BadRequestException('Không thể xóa Báo giá. Vui lòng kiểm tra các dữ liệu liên kết (Dự án, Giao hàng, Lịch sử MXH...)');
+        }
     }
 
     // --- BOD FOLLOW UP ---
@@ -664,13 +687,13 @@ export class SalesService {
     }
 
     // --- DELETE ORDER (Only SO_PENDING status allowed) ---
-    async deleteOrder(id: number) {
+    async deleteOrder(id: number, cascade: boolean = false) {
         const order = await this.orderRepo.findOne({ where: { id } });
         if (!order) throw new NotFoundException('Order not found');
 
         // Chỉ cho phép xóa SO ở trạng thái "Mới" (SO_PENDING)
         if (order.status !== SalesOrderStatus.SO_PENDING) {
-            throw new Error('Chỉ có thể xóa đơn hàng ở trạng thái "Mới"');
+            throw new BadRequestException('Chỉ có thể xóa đơn hàng ở trạng thái "Mới"');
         }
 
         // Xóa các items liên quan
@@ -686,9 +709,20 @@ export class SalesService {
         // Xóa comments nếu có
         await this.commentRepo.delete({ order: { id } });
 
+        if (cascade) {
+            try { await this.orderRepo.manager.query(`UPDATE social_orders SET sales_order_id = NULL WHERE sales_order_id = $1`, [id]); } catch (e) {}
+            try { await this.orderRepo.manager.query(`DELETE FROM projects WHERE sales_order_id = $1`, [id]); } catch (e) {}
+            try { await this.orderRepo.manager.query(`DELETE FROM tasks WHERE reference_code = $1 AND reference_type = 'SALES'`, [order.order_code]); } catch (e) {}
+            try { await this.orderRepo.manager.query(`DELETE FROM sales_deliveries WHERE order_id = $1`, [id]); } catch (e) {}
+        }
+
         // Xóa đơn hàng
         await this.systemService.logAction('SALES', 'DELETE_ORDER', `Deleted Order ${order.order_code}`, null, null, order.order_code);
-        return this.orderRepo.delete(id);
+        try {
+            return await this.orderRepo.delete(id);
+        } catch (error: any) {
+            throw new BadRequestException('Không thể xóa Đơn hàng. Vui lòng kiểm tra các dữ liệu liên kết (Dự án, Giao hàng, Lịch sử MXH...)');
+        }
     }
     async getQuoteByUuid(uuid: string) {
         const order = await this.orderRepo.findOne({

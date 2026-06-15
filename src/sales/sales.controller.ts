@@ -182,7 +182,9 @@ export class SalesController {
     updateQuote(@Param('id') id: number, @Body() b: any) { return this.s.updateQuote(id, b); }
 
     @Delete('quote/:id')
-    deleteQuote(@Param('id') id: number) { return this.s.deleteQuote(id); }
+    deleteQuote(@Param('id') id: number, @Query('cascade') cascade?: boolean) { 
+        return this.s.deleteQuote(id, String(cascade) === 'true'); 
+    }
 
     @Post(':id/approve-samples')
     approveSamples(@Param('id') id: number) { return this.s.approveAllSamples(id); }
@@ -210,8 +212,8 @@ export class SalesController {
     // --- DELETE ORDER (Only SO_PENDING status allowed) ---
     @Delete(':id')
     @RequirePermission('SALES', 'can_delete')
-    deleteOrder(@Param('id') id: number) {
-        return this.s.deleteOrder(Number(id));
+    deleteOrder(@Param('id') id: number, @Query('cascade') cascade?: boolean) {
+        return this.s.deleteOrder(Number(id), String(cascade) === 'true');
     }
 
     // --- BOOK ITEMS ---

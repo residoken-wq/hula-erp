@@ -76,8 +76,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     useEffect(() => {
         if (open) {
-            if (initialData?.id) {
-                // --- EDIT MODE ---
+            if (initialData?.id || initialData?.isClone) {
+                // --- EDIT OR CLONE MODE ---
                 form.setFieldsValue({
                     ...initialData,
                     customer_id: initialData.customer?.id,
@@ -97,7 +97,11 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     vat_address: initialData.vat_address || initialData.customer?.legal_address || initialData.customer?.address || '',
                     vat_invoice_link: initialData.vat_invoice_link || '',
                     vat_email: initialData.vat_email || initialData.customer?.einvoice_email || '',
-                    require_invoice: initialData.require_invoice !== undefined ? initialData.require_invoice : true
+                    require_invoice: initialData.require_invoice !== undefined ? initialData.require_invoice : true,
+
+                    contact_name: initialData.contact_name,
+                    contact_phone: initialData.contact_phone,
+                    ...(initialData?.isClone ? { order_code: '' } : {}) // Reset code if clone
                 });
 
                 // FIX LỖI: Map dữ liệu từ Backend (subtotal) sang Frontend (total_price)
@@ -114,15 +118,18 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         sku: i.product?.sku || i.sku,
                         unit_price: price,
                         quantity: qty,
-                        total_price: calculatedTotal > 0 ? calculatedTotal : (Number(i.subtotal) || 0)
+                        total_price: calculatedTotal > 0 ? calculatedTotal : (Number(i.subtotal) || 0),
+                        ...(initialData?.isClone ? { id: undefined, order_id: undefined } : {}) // Reset item IDs if clone
                     };
                 }) || [];
 
                 setOrderItems(items);
                 calculateTotal(items);
 
-                // Fetch Revisions
-                fetchRevisions(initialData.id);
+                // Fetch Revisions only if not clone
+                if (!initialData?.isClone && initialData?.id) {
+                    fetchRevisions(initialData.id);
+                }
 
                 const termPrefix = isQuotation ? 'QUOTE' : 'ORDER';
                 api.get(`/system/config/${termPrefix}_TERMS_LIST`).catch(() => ({ data: null })).then((listRes) => {
@@ -230,6 +237,13 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
         }
     };
 
+    const currentCustomerId = Form.useWatch('customer_id', form);
+    const currentContactName = Form.useWatch('contact_name', form);
+    const currentContactPhone = Form.useWatch('contact_phone', form);
+    const currentShippingAddress = Form.useWatch('shipping_address', form);
+    const selectedCustomer = customers.find(c => c.id === currentCustomerId);
+    const customerContacts = selectedCustomer?.contacts || [];
+
     const handleCustomerChange = async (customerId: number) => {
         const customer = customers.find((c: any) => c.id === customerId);
         if (customer) {
@@ -336,6 +350,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             setLoading(true);
             const payload = {
                 ...values,
+                order_date: values.order_date ? values.order_date.format('YYYY-MM-DD') : null,
+                delivery_date: values.delivery_date ? values.delivery_date.format('YYYY-MM-DD') : null,
                 total_amount: totalAmount,
                 items: orderItems.map(i => ({
                     sku: i.sku,
@@ -472,7 +488,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         ...(isQuotation ? [
                                             { key: 'rev', label: 'Tạo Version Mới', icon: <CopyOutlined />, onClick: handleCreateRevision },
                                             { key: 'hist', label: 'Lịch sử', icon: <HistoryOutlined />, onClick: () => setRevisionModalOpen(true) },
-                                            { key: 'del_q', label: <span style={{color: 'red'}}>Xóa Báo Giá</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: async () => { try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); } } }
+                                            { key: 'del_q', label: <span style={{color: 'red'}}>Xóa Báo Giá</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: () => confirmDelete('quote', initialData.id) }
                                         ] : []),
                                         ...(!isQuotation && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED' ? [
                                             { key: 'cancel', label: <span style={{color: 'red'}}>Hủy Đơn</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: () => setCancelModalOpen(true) }
@@ -484,7 +500,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                             { key: 'book', label: 'Giữ Kho (Book)', icon: <LockOutlined />, onClick: handleBookItems }
                                         ] : []),
                                         ...(!isQuotation && initialData.status === 'SO_PENDING' ? [
-                                            { key: 'del_o', label: <span style={{color: 'red'}}>Xóa đơn hàng</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: async () => { try { await api.delete(`/sales/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); } } }
+                                            { key: 'del_o', label: <span style={{color: 'red'}}>Xóa đơn hàng</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: () => confirmDelete('order', initialData.id) }
                                         ] : []),
                                         ...(!isQuotation && initialData.status !== 'CANCELLED' ? [
                                             { key: 'comp', label: <span style={{color: '#52c41a'}}>Hoàn tất</span>, icon: <CheckCircleOutlined style={{color: '#52c41a'}}/>, onClick: handleCompleteOrder }
@@ -503,11 +519,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 <Button size="middle" icon={<CopyOutlined />} onClick={handleCreateRevision}>Tạo Version Mới</Button>
                             )}
                             {isQuotation && initialData && (
-                                <Popconfirm title="Xóa báo giá?" onConfirm={async () => {
-                                    try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); }
-                                }}>
-                                    <Button size="middle" danger icon={<DeleteOutlined />}>Xóa Báo Giá</Button>
-                                </Popconfirm>
+                                <Button size="middle" danger icon={<DeleteOutlined />} onClick={() => confirmDelete('quote', initialData.id)}>Xóa Báo Giá</Button>
                             )}
                             {isQuotation && initialData && (
                                 <Button size="middle" icon={<HistoryOutlined />} onClick={() => setRevisionModalOpen(true)}>Lịch sử</Button>
@@ -523,22 +535,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 <Button size="middle" icon={<LockOutlined />} onClick={handleBookItems} style={{ borderColor: '#fa8c16', color: '#fa8c16' }}>Giữ Kho (Book)</Button>
                             )}
                             {(!isQuotation && initialData && initialData.status === 'SO_PENDING') && (
-                                <Popconfirm
-                                    title="Xóa đơn hàng?"
-                                    description="Đơn hàng sẽ bị xóa hoàn toàn khỏi hệ thống."
-                                    onConfirm={async () => {
-                                        try {
-                                            await api.delete(`/sales/${initialData.id}`);
-                                            message.success('Đã xóa đơn hàng');
-                                            onSuccess();
-                                            onClose();
-                                        } catch (e: any) {
-                                            message.error(e.response?.data?.message || 'Lỗi xóa đơn hàng');
-                                        }
-                                    }}
-                                >
-                                    <Button size="middle" danger type="dashed" icon={<DeleteOutlined />}>Xóa đơn hàng</Button>
-                                </Popconfirm>
+                                <Button size="middle" danger type="dashed" icon={<DeleteOutlined />} onClick={() => confirmDelete('order', initialData.id)}>Xóa đơn hàng</Button>
                             )}
                             {(!isQuotation && initialData && initialData.status !== 'CANCELLED') && (
                                 <Button size="middle" type="primary" danger icon={<CheckCircleOutlined />} onClick={handleCompleteOrder}>Hoàn tất đơn hàng</Button>
@@ -873,6 +870,34 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                     </Form.Item>
                                 </Col>
                             </Row>
+
+                            {/* NGUỜI LIÊN HỆ */}
+                            <Row gutter={16}>
+                                <Col span={24}>
+                                    <Form.Item label="Người liên hệ (Sẽ in lên Báo giá/Hợp đồng)">
+                                        <Select
+                                            placeholder="Chọn người liên hệ..."
+                                            allowClear
+                                            value={currentContactName ? `${currentContactPhone || ''} - ${currentContactName || ''}` : undefined}
+                                            onChange={(val) => {
+                                                if (!val) {
+                                                    form.setFieldsValue({ contact_name: null, contact_phone: null });
+                                                } else {
+                                                    const parts = val.split(' - ');
+                                                    form.setFieldsValue({ contact_phone: parts[0], contact_name: parts[1] });
+                                                }
+                                            }}
+                                        >
+                                            {customerContacts.map((c: any) => (
+                                                <Option key={c.id} value={`${c.phone || ''} - ${c.full_name}`}>{c.full_name} {c.phone ? `(${c.phone})` : ''} {c.job_title ? `- ${c.job_title}` : ''}</Option>
+                                            ))}
+                                        </Select>
+                                        {/* Hidden fields to store real data */}
+                                        <Form.Item name="contact_name" hidden><Input /></Form.Item>
+                                        <Form.Item name="contact_phone" hidden><Input /></Form.Item>
+                                    </Form.Item>
+                                </Col>
+                            </Row>
                             <Row gutter={16}>
                                 <Col span={12}>
                                     <Form.Item name="vat_email" label="Email Nhận Hóa Đơn">
@@ -902,6 +927,29 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             />
                         </Tabs.TabPane>
                         <Tabs.TabPane tab={isMobile ? '4. GH' : '4. Giao hàng'} key="3">
+                            <div style={{ padding: isMobile ? 6 : 10, background: '#f5f5f5', borderRadius: 4, marginBottom: 15 }}>
+                                <div style={{ fontStyle: 'italic', color: '#666', marginBottom: 10, fontSize: 12 }}>
+                                    <InfoCircleOutlined /> Lấy từ "Danh sách chi nhánh" của Khách hàng
+                                </div>
+                                <Form form={form} layout="vertical">
+                                    <Form.Item label="Địa chỉ / Chi nhánh giao hàng (In trên báo giá/Đơn hàng)">
+                                        <Select
+                                            mode="multiple"
+                                            placeholder="Chọn chi nhánh/địa chỉ giao hàng..."
+                                            allowClear
+                                            value={currentShippingAddress ? currentShippingAddress.split('\n').filter((x: string) => x) : []}
+                                            onChange={(val: string[]) => {
+                                                form.setFieldsValue({ shipping_address: val.join('\n') });
+                                            }}
+                                            options={(selectedCustomer?.delivery_addresses || []).map((addr: any) => ({
+                                                label: `${addr.name ? addr.name + ' - ' : ''}${addr.address}`,
+                                                value: `${addr.name ? addr.name + ' - ' : ''}${addr.address}`
+                                            }))}
+                                        />
+                                        <Form.Item name="shipping_address" hidden><Input /></Form.Item>
+                                    </Form.Item>
+                                </Form>
+                            </div>
                             <SalesDeliveries order={initialData} products={products} customers={customers} onSuccess={onSuccess} />
                         </Tabs.TabPane>
                         <Tabs.TabPane tab={isMobile ? '5. Chat' : '5. Trao đổi'} key="4">

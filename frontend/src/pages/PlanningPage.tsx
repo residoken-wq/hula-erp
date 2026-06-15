@@ -124,6 +124,18 @@ const PlanningPage: React.FC = () => {
         }
     };
 
+    const handleDetailDataChange = (materialIndex: number, detailIndex: number, val: any) => {
+        const newData = [...mrpData.mrp_result];
+        const item = newData[materialIndex];
+        if (item.details) {
+            const newDetails = [...item.details];
+            newDetails[detailIndex] = { ...newDetails[detailIndex], net_requirement: val };
+            item.details = newDetails;
+            item.net_requirement = newDetails.reduce((sum, d) => sum + Number(d.net_requirement || 0), 0);
+        }
+        setMrpData({ ...mrpData, mrp_result: newData });
+    };
+
     const handleToggleStock = (index: number, checked: boolean) => {
         const newData = [...mrpData.mrp_result];
         const item = newData[index];
@@ -285,6 +297,7 @@ const PlanningPage: React.FC = () => {
                                 onDeletePlan={handleDeletePlan}
                                 onConfirmBookings={handleConfirmBookings}
                                 onDataChange={handleDataChange}
+                                onDetailDataChange={handleDetailDataChange}
                                 onToggleStock={handleToggleStock}
                                 onGeneratePOs={handleGeneratePOs}
                                 onSaveAnalysis={handleSaveAnalysis}
@@ -312,6 +325,7 @@ const PlanningPage: React.FC = () => {
                                 onDeletePlan={handleDeletePlan}
                                 onConfirmBookings={handleConfirmBookings}
                                 onDataChange={handleDataChange}
+                                onDetailDataChange={handleDetailDataChange}
                                 onToggleStock={handleToggleStock}
                                 onGeneratePOs={handleGeneratePOs}
                                 onSaveAnalysis={handleSaveAnalysis}

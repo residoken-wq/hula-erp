@@ -46,7 +46,7 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                     <div style={{ background: '#f9f9f9', padding: 15, borderRadius: 8, height: '100%', border: '1px solid #eee' }}>
                         <h4 style={{ marginTop: 0, color: '#1890ff', borderBottom: '1px solid #ddd', paddingBottom: 5, textTransform: 'uppercase' }}>BÊN BÁN (PARTY A)</h4>
                         <p style={{ marginBottom: 5 }}><b>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</b></p>
-                        <p style={{ marginBottom: 5 }}>📍 74/21/2A Nguyễn Khuyến, Phường Bình Thạnh, TP. HCM</p>
+                        <p style={{ marginBottom: 5 }}>📍 74/21/24 Nguyễn Khuyến, Phường Bình Thạnh, TP. Hồ Chí Minh</p>
                         <p style={{ marginBottom: 5 }}>📞 0983.882210 - 0983.796654</p>
                         <p style={{ marginBottom: 0 }}><b>MST:</b> 0311.874.522</p>
                     </div>
@@ -56,8 +56,21 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                         <h4 style={{ marginTop: 0, color: '#1890ff', borderBottom: '1px solid #ddd', paddingBottom: 5, textTransform: 'uppercase' }}>BÊN MUA (PARTY B)</h4>
                         <p style={{ marginBottom: 5, fontSize: 15 }}><b>{customerName}</b></p>
                         <p style={{ marginBottom: 5 }}>📍 {data.vat_address || data.shipping_address || '...'}</p>
-                        <p style={{ marginBottom: 5 }}>📞 {data.receiver_phone || '...'}</p>
-                        <p style={{ marginBottom: 0 }}><b>MST:</b> {data.vat_tax_code || '...'}</p>
+                        <p style={{ marginBottom: 5 }}>📞 {data.customer?.phone || data.receiver_phone || '...'}</p>
+                        <p style={{ marginBottom: 5 }}><b>MST:</b> {data.vat_tax_code || '...'}</p>
+                        {data.contact_name && (
+                            <p style={{ marginBottom: 5 }}>Người liên hệ: {data.contact_phone ? `${data.contact_phone} - ` : ''}{data.contact_name}</p>
+                        )}
+                        {isOrder && (
+                            <>
+                                {data.shipping_address && (
+                                    <p style={{ marginBottom: 5, whiteSpace: 'pre-wrap' }}>Giao hàng tại: {data.shipping_address}</p>
+                                )}
+                                {(data.receiver_name || data.receiver_phone) && (
+                                    <p style={{ marginBottom: 0 }}>Người nhận: {data.receiver_name || customerName} {data.receiver_phone ? `(${data.receiver_phone})` : ''}</p>
+                                )}
+                            </>
+                        )}
                     </div>
                 </Col>
             </Row>
