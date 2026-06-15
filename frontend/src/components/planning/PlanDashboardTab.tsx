@@ -21,6 +21,7 @@ interface PlanDashboardTabProps {
     onDeletePlan: (id: number) => void;
     onConfirmBookings: (id: number) => void;
     onDataChange: (type: 'MATERIAL' | 'OUTSOURCING', index: number, field: string, value: any) => void;
+    onDetailDataChange: (materialIndex: number, detailIndex: number, value: any) => void;
     onToggleStock: (index: number, checked: boolean) => void;
     onGeneratePOs: (type: 'MATERIAL' | 'OUTSOURCING') => void;
     onSaveAnalysis: () => void;
@@ -30,7 +31,7 @@ interface PlanDashboardTabProps {
 const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
     plans, mrpData, outsourcingList, logisticsList, suppliers, costBasis, setCostBasis, isMobile, loading,
     isDashboardOpen, setIsDashboardOpen,
-    onRunMrp, onDeletePlan, onConfirmBookings, onDataChange, onToggleStock, onGeneratePOs, onSaveAnalysis, onUpdateStatus
+    onRunMrp, onDeletePlan, onConfirmBookings, onDataChange, onDetailDataChange, onToggleStock, onGeneratePOs, onSaveAnalysis, onUpdateStatus
 }) => {
     const planColumns = [
         { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
@@ -186,6 +187,36 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                         children: (
                             <div>
                                 <Table dataSource={mrpData.mrp_result} rowKey="material_id" pagination={false} size="middle" scroll={{ x: 1600, y: 450 }}
+                                    expandable={{
+                                        expandedRowRender: (record, index) => {
+                                            if (!record.details || record.details.length === 0) return null;
+                                            return (
+                                                <Table
+                                                    dataSource={record.details}
+                                                    rowKey={(r, i) => i || 0}
+                                                    pagination={false}
+                                                    size="small"
+                                                    columns={[
+                                                        { title: 'Sản phẩm', dataIndex: 'product_name', width: 250 },
+                                                        { title: 'SL Sản xuất', dataIndex: 'qty_needed', width: 100, align: 'center' },
+                                                        { title: 'Định mức / SP', dataIndex: 'bom_quantity', width: 120, align: 'center' },
+                                                        { title: '% Hao hụt', dataIndex: 'waste_percent', width: 90, align: 'center', render: (v: any) => <Tag color="orange">{v}%</Tag> },
+                                                        { title: 'Tổng (+Hao hụt)', dataIndex: 'gross_req', width: 120, align: 'center', render: (v: any) => Number(v || 0).toLocaleString() },
+                                                        { title: 'Cần Mua (SL)', dataIndex: 'net_requirement', width: 120,
+                                                          render: (v: any, r: any, detailIndex: number) => (
+                                                              <InputNumber
+                                                                  value={v}
+                                                                  min={0}
+                                                                  onChange={(val) => onDetailDataChange(index, detailIndex, val)}
+                                                                  style={{ width: '100%' }}
+                                                              />
+                                                          )
+                                                        }
+                                                    ]}
+                                                />
+                                            );
+                                        }
+                                    }}
                                     columns={[
                                         {
                                             title: 'Nguyên Liệu', dataIndex: 'material_name', width: 250, fixed: 'left',
@@ -207,9 +238,9 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                                             )
                                         },
                                         {
-                                            title: 'Cần Mua (SL)', dataIndex: 'net_requirement', width: 130,
-                                            render: (v: any, r: any, i: number) => (
-                                                <InputNumber value={v} min={0} onChange={(val) => onDataChange('MATERIAL', i, 'net_requirement', val)} status={v > 0 ? 'warning' : ''} style={{ width: '100%' }} />
+                                            title: 'Cần Mua (SL)', dataIndex: 'net_requirement', width: 130, align: 'right' as const,
+                                            render: (v: any) => (
+                                                <b style={{ color: v > 0 ? '#faad14' : '#888', fontSize: 16 }}>{Number(v || 0).toLocaleString()}</b>
                                             )
                                         },
                                         { title: 'ĐVT', align: 'center' as const, dataIndex: 'unit', width: 70 },
