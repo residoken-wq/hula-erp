@@ -60,6 +60,9 @@ export class SalesOrder {
   @Column({ nullable: true }) shipping_address: string;
   @Column({ nullable: true }) receiver_name: string;
   @Column({ nullable: true }) receiver_phone: string;
+  
+  @Column({ nullable: true }) contact_name: string;
+  @Column({ nullable: true }) contact_phone: string;
   @Column({ nullable: true }) shipping_carrier: string;
   @Column({ nullable: true }) tracking_code: string;
   @Column('decimal', { default: 0 }) shipping_fee: number;

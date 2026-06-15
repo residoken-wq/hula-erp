@@ -431,7 +431,7 @@ const PortalQuotePage: React.FC = () => {
             <div class="party-box party-a">
                 <div class="party-label">Bên bán (Party A)</div>
                 <div class="party-row"><b>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</b></div>
-                <div class="party-row">📍 74/21/2A Nguyễn Khuyến, P.12, Q.Bình Thạnh, TP.HCM</div>
+                <div class="party-row">📍 74/21/24 Nguyễn Khuyến, Phường Bình Thạnh, TP. Hồ Chí Minh</div>
                 <div class="party-row">📞 0983.882210 - 0983.796654</div>
                 <div class="party-row">MST: <b>0311.874.522</b></div>
             </div>
@@ -439,9 +439,13 @@ const PortalQuotePage: React.FC = () => {
                 <div class="party-label">Bên mua (Party B)</div>
                 <div class="party-row"><b>${vatCompany || customerName}</b></div>
                 <div class="party-row">📍 ${vatAddress || customerAddress || '...'}</div>
-                <div class="party-row">📞 ${customerPhone || '...'}</div>
-                ${vatTax ? `<div class="party-row">MST: <b>${vatTax}</b></div>` : ''}
-                <div class="party-row">Người nhận: <b>${data.receiver_name || customerName}</b></div>
+                <div class="party-row">📞 ${customerPhone || data.receiver_phone || '...'}</div>
+                ${vatTax ? `<div class="party-row" style="margin-bottom: 5px;">MST: <b>${vatTax}</b></div>` : ''}
+                ${data.contact_name ? `<div class="party-row" style="margin-bottom: 5px;">Người liên hệ: ${data.contact_phone ? `${data.contact_phone} - ` : ''}${data.contact_name}</div>` : ''}
+                ${isOrder ? `
+                    ${data.shipping_address ? `<div class="party-row" style="margin-bottom: 5px;">Giao hàng tại: ${data.shipping_address}</div>` : ''}
+                    ${(data.receiver_name || data.receiver_phone) ? `<div class="party-row">Người nhận: <b>${data.receiver_name || customerName}</b> ${data.receiver_phone ? `(${data.receiver_phone})` : ''}</div>` : ''}
+                ` : ''}
             </div>
         </div>
         `}

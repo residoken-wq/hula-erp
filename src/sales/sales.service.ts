@@ -326,6 +326,14 @@ export class SalesService {
         if (data.vat_email !== undefined) order.vat_email = data.vat_email;
         if (data.require_invoice !== undefined) order.require_invoice = data.require_invoice;
 
+        // --- DELIVERY & CONTACT INFO ---
+        if (data.shipping_address !== undefined) order.shipping_address = data.shipping_address;
+        if (data.receiver_name !== undefined) order.receiver_name = data.receiver_name;
+        if (data.receiver_phone !== undefined) order.receiver_phone = data.receiver_phone;
+        if (data.shipping_carrier !== undefined) order.shipping_carrier = data.shipping_carrier;
+        if (data.contact_name !== undefined) order.contact_name = data.contact_name;
+        if (data.contact_phone !== undefined) order.contact_phone = data.contact_phone;
+
         order.vat_rate = Number(data.vat_rate) || 0;
         order.shipping_fee = Number(data.shipping_fee) || 0;
 

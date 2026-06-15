@@ -98,6 +98,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     vat_invoice_link: initialData.vat_invoice_link || '',
                     vat_email: initialData.vat_email || initialData.customer?.einvoice_email || '',
                     require_invoice: initialData.require_invoice !== undefined ? initialData.require_invoice : true,
+
+                    contact_name: initialData.contact_name,
+                    contact_phone: initialData.contact_phone,
                     ...(initialData?.isClone ? { order_code: '' } : {}) // Reset code if clone
                 });
 
@@ -233,6 +236,10 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
             handleCustomerChange(changedValues.customer_id);
         }
     };
+
+    const currentCustomerId = Form.useWatch('customer_id', form);
+    const selectedCustomer = customers.find(c => c.id === currentCustomerId);
+    const customerContacts = selectedCustomer?.contacts || [];
 
     const handleCustomerChange = async (customerId: number) => {
         const customer = customers.find((c: any) => c.id === customerId);
@@ -855,6 +862,34 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 <Col span={24}>
                                     <Form.Item name="vat_address" label="Địa chỉ xuất HĐ">
                                         <Input placeholder="Địa chỉ theo ĐKKD" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+
+                            {/* NGUỜI LIÊN HỆ */}
+                            <Row gutter={16}>
+                                <Col span={24}>
+                                    <Form.Item label="Người liên hệ (Sẽ in lên Báo giá/Hợp đồng)">
+                                        <Select
+                                            placeholder="Chọn người liên hệ..."
+                                            allowClear
+                                            value={Form.useWatch('contact_name', form) ? `${Form.useWatch('contact_phone', form) || ''} - ${Form.useWatch('contact_name', form) || ''}` : undefined}
+                                            onChange={(val) => {
+                                                if (!val) {
+                                                    form.setFieldsValue({ contact_name: null, contact_phone: null });
+                                                } else {
+                                                    const parts = val.split(' - ');
+                                                    form.setFieldsValue({ contact_phone: parts[0], contact_name: parts[1] });
+                                                }
+                                            }}
+                                        >
+                                            {customerContacts.map((c: any) => (
+                                                <Option key={c.id} value={`${c.phone || ''} - ${c.full_name}`}>{c.full_name} {c.phone ? `(${c.phone})` : ''} {c.job_title ? `- ${c.job_title}` : ''}</Option>
+                                            ))}
+                                        </Select>
+                                        {/* Hidden fields to store real data */}
+                                        <Form.Item name="contact_name" hidden><Input /></Form.Item>
+                                        <Form.Item name="contact_phone" hidden><Input /></Form.Item>
                                     </Form.Item>
                                 </Col>
                             </Row>
