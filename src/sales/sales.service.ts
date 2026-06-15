@@ -651,7 +651,11 @@ export class SalesService {
 
         // Xóa đơn hàng
         await this.systemService.logAction('SALES', 'DELETE_QUOTE', `Deleted Quote ${order.order_code}`, null, null, order.order_code);
-        return this.orderRepo.delete(id);
+        try {
+            return await this.orderRepo.delete(id);
+        } catch (error: any) {
+            throw new BadRequestException('Không thể xóa Báo giá. Vui lòng kiểm tra các dữ liệu liên kết (Dự án, Giao hàng, Lịch sử MXH...)');
+        }
     }
 
     // --- BOD FOLLOW UP ---
@@ -670,7 +674,7 @@ export class SalesService {
 
         // Chỉ cho phép xóa SO ở trạng thái "Mới" (SO_PENDING)
         if (order.status !== SalesOrderStatus.SO_PENDING) {
-            throw new Error('Chỉ có thể xóa đơn hàng ở trạng thái "Mới"');
+            throw new BadRequestException('Chỉ có thể xóa đơn hàng ở trạng thái "Mới"');
         }
 
         // Xóa các items liên quan
@@ -688,7 +692,11 @@ export class SalesService {
 
         // Xóa đơn hàng
         await this.systemService.logAction('SALES', 'DELETE_ORDER', `Deleted Order ${order.order_code}`, null, null, order.order_code);
-        return this.orderRepo.delete(id);
+        try {
+            return await this.orderRepo.delete(id);
+        } catch (error: any) {
+            throw new BadRequestException('Không thể xóa Đơn hàng. Vui lòng kiểm tra các dữ liệu liên kết (Dự án, Giao hàng, Lịch sử MXH...)');
+        }
     }
     async getQuoteByUuid(uuid: string) {
         const order = await this.orderRepo.findOne({

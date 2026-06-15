@@ -365,7 +365,7 @@ const CrmPage: React.FC = () => {
 
     const handleDeleteQuote = async (id: number) => {
         try { await api.delete(`/sales/quote/${id}`); message.success('Đã xóa'); fetchData(); }
-        catch (e: any) { message.error('Không thể xóa'); }
+        catch (e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message || 'Không thể xóa báo giá' }); }
     };
 
     const openDetailModal = async (record?: any, isQuote = false) => {
@@ -398,6 +398,18 @@ const CrmPage: React.FC = () => {
                 message.error('Oops, unable to copy');
             }
             document.body.removeChild(textArea);
+        }
+    };
+
+    const handleCloneQuote = async (record: any) => {
+        try {
+            const res = await api.get(`/sales/${record.order_code}`);
+            const clonedData = { ...res.data, isClone: true };
+            setEditingOrder(clonedData);
+            setIsQuotationMode(true);
+            setDetailModalOpen(true);
+        } catch (e) {
+            message.error('Không thể tải dữ liệu để nhân bản');
         }
     };
 
@@ -502,6 +514,7 @@ const CrmPage: React.FC = () => {
             title: 'Thao tác', key: 'act', align: 'center' as const, width: 220,
             render: (_: any, r: any) => r.status === 'QUOTATION' ? (
                 <Space size="small">
+                    <Tooltip title="Nhân bản">{canUpdate && <Button icon={<CopyOutlined />} size="small" onClick={() => handleCloneQuote(r)} />}</Tooltip>
                     <Tooltip title="Link"><Button icon={<LinkOutlined />} size="small" onClick={() => handleCopyLink(r.uuid)} /></Tooltip>
                     <Tooltip title="Xem"><Button icon={<PrinterOutlined />} size="small" onClick={() => { openDetailModal(r); setTimeout(() => setIsPreviewOpen(true), 500) }} /></Tooltip>
                     <Tooltip title="Sửa">{canUpdate && <Button icon={<EditOutlined />} size="small" onClick={() => openDetailModal(r, true)} />}</Tooltip>

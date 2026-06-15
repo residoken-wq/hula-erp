@@ -76,8 +76,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     useEffect(() => {
         if (open) {
-            if (initialData?.id) {
-                // --- EDIT MODE ---
+            if (initialData?.id || initialData?.isClone) {
+                // --- EDIT OR CLONE MODE ---
                 form.setFieldsValue({
                     ...initialData,
                     customer_id: initialData.customer?.id,
@@ -97,7 +97,8 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     vat_address: initialData.vat_address || initialData.customer?.legal_address || initialData.customer?.address || '',
                     vat_invoice_link: initialData.vat_invoice_link || '',
                     vat_email: initialData.vat_email || initialData.customer?.einvoice_email || '',
-                    require_invoice: initialData.require_invoice !== undefined ? initialData.require_invoice : true
+                    require_invoice: initialData.require_invoice !== undefined ? initialData.require_invoice : true,
+                    ...(initialData?.isClone ? { order_code: '' } : {}) // Reset code if clone
                 });
 
                 // FIX LỖI: Map dữ liệu từ Backend (subtotal) sang Frontend (total_price)
@@ -114,15 +115,18 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         sku: i.product?.sku || i.sku,
                         unit_price: price,
                         quantity: qty,
-                        total_price: calculatedTotal > 0 ? calculatedTotal : (Number(i.subtotal) || 0)
+                        total_price: calculatedTotal > 0 ? calculatedTotal : (Number(i.subtotal) || 0),
+                        ...(initialData?.isClone ? { id: undefined, order_id: undefined } : {}) // Reset item IDs if clone
                     };
                 }) || [];
 
                 setOrderItems(items);
                 calculateTotal(items);
 
-                // Fetch Revisions
-                fetchRevisions(initialData.id);
+                // Fetch Revisions only if not clone
+                if (!initialData?.isClone && initialData?.id) {
+                    fetchRevisions(initialData.id);
+                }
 
                 const termPrefix = isQuotation ? 'QUOTE' : 'ORDER';
                 api.get(`/system/config/${termPrefix}_TERMS_LIST`).catch(() => ({ data: null })).then((listRes) => {
@@ -472,7 +476,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                         ...(isQuotation ? [
                                             { key: 'rev', label: 'Tạo Version Mới', icon: <CopyOutlined />, onClick: handleCreateRevision },
                                             { key: 'hist', label: 'Lịch sử', icon: <HistoryOutlined />, onClick: () => setRevisionModalOpen(true) },
-                                            { key: 'del_q', label: <span style={{color: 'red'}}>Xóa Báo Giá</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: async () => { try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); } } }
+                                            { key: 'del_q', label: <span style={{color: 'red'}}>Xóa Báo Giá</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: async () => { try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch (e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message || 'Lỗi xóa báo giá' }); } } }
                                         ] : []),
                                         ...(!isQuotation && initialData.status !== 'CANCELLED' && initialData.status !== 'COMPLETED' ? [
                                             { key: 'cancel', label: <span style={{color: 'red'}}>Hủy Đơn</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: () => setCancelModalOpen(true) }
@@ -484,7 +488,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                             { key: 'book', label: 'Giữ Kho (Book)', icon: <LockOutlined />, onClick: handleBookItems }
                                         ] : []),
                                         ...(!isQuotation && initialData.status === 'SO_PENDING' ? [
-                                            { key: 'del_o', label: <span style={{color: 'red'}}>Xóa đơn hàng</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: async () => { try { await api.delete(`/sales/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); } } }
+                                            { key: 'del_o', label: <span style={{color: 'red'}}>Xóa đơn hàng</span>, icon: <DeleteOutlined style={{color: 'red'}}/>, onClick: async () => { try { await api.delete(`/sales/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch (e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message || 'Lỗi xóa đơn hàng' }); } } }
                                         ] : []),
                                         ...(!isQuotation && initialData.status !== 'CANCELLED' ? [
                                             { key: 'comp', label: <span style={{color: '#52c41a'}}>Hoàn tất</span>, icon: <CheckCircleOutlined style={{color: '#52c41a'}}/>, onClick: handleCompleteOrder }
@@ -504,7 +508,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                             )}
                             {isQuotation && initialData && (
                                 <Popconfirm title="Xóa báo giá?" onConfirm={async () => {
-                                    try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch { message.error('Lỗi xóa'); }
+                                    try { await api.delete(`/sales/quote/${initialData.id}`); message.success('Đã xóa'); onSuccess(); onClose(); } catch (e: any) { Modal.error({ title: 'Lỗi', content: e.response?.data?.message || 'Lỗi xóa báo giá' }); }
                                 }}>
                                     <Button size="middle" danger icon={<DeleteOutlined />}>Xóa Báo Giá</Button>
                                 </Popconfirm>
@@ -533,7 +537,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                             onSuccess();
                                             onClose();
                                         } catch (e: any) {
-                                            message.error(e.response?.data?.message || 'Lỗi xóa đơn hàng');
+                                            Modal.error({ title: 'Lỗi', content: e.response?.data?.message || 'Lỗi xóa đơn hàng' });
                                         }
                                     }}
                                 >
