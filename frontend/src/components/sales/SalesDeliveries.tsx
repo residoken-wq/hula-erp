@@ -273,7 +273,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         try {
             const payload = {
                 code: editingDeliveryId ? undefined : `PXK-${dayjs(shipDate).format('DDMMYY')}-${Math.floor(1000 + Math.random() * 9000)}`,
-                date: shipDate ? shipDate.toDate() : new Date(),
+                date: shipDate ? shipDate.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
                 note: shipNote,
                 delivery_address: shipAddress,
                 contact_name: shipContactName,

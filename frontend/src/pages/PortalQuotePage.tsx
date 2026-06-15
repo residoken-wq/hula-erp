@@ -443,7 +443,7 @@ const PortalQuotePage: React.FC = () => {
                 ${vatTax ? `<div class="party-row" style="margin-bottom: 5px;">MST: <b>${vatTax}</b></div>` : ''}
                 ${data.contact_name ? `<div class="party-row" style="margin-bottom: 5px;">Người liên hệ: ${data.contact_phone ? `${data.contact_phone} - ` : ''}${data.contact_name}</div>` : ''}
                 ${isOrder ? `
-                    ${data.shipping_address ? `<div class="party-row" style="margin-bottom: 5px;">Giao hàng tại: ${data.shipping_address}</div>` : ''}
+                    ${data.shipping_address ? `<div class="party-row" style="margin-bottom: 5px; white-space: pre-wrap;">Giao hàng tại:<br />${data.shipping_address}</div>` : ''}
                     ${(data.receiver_name || data.receiver_phone) ? `<div class="party-row">Người nhận: <b>${data.receiver_name || customerName}</b> ${data.receiver_phone ? `(${data.receiver_phone})` : ''}</div>` : ''}
                 ` : ''}
             </div>

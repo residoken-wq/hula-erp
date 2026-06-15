@@ -64,7 +64,7 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                         {isOrder && (
                             <>
                                 {data.shipping_address && (
-                                    <p style={{ marginBottom: 5 }}>Giao hàng tại: {data.shipping_address}</p>
+                                    <p style={{ marginBottom: 5, whiteSpace: 'pre-wrap' }}>Giao hàng tại: {data.shipping_address}</p>
                                 )}
                                 {(data.receiver_name || data.receiver_phone) && (
                                     <p style={{ marginBottom: 0 }}>Người nhận: {data.receiver_name || customerName} {data.receiver_phone ? `(${data.receiver_phone})` : ''}</p>
