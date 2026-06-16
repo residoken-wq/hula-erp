@@ -472,6 +472,36 @@ const InventoryPage: React.FC = () => {
                                         columns={[
                                             { title: 'SKU', dataIndex: 'sku', render: (t: any) => <b>{t}</b> },
                                             { title: 'Số lượng', dataIndex: 'quantity', render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
+                                            {
+                                                title: 'Tồn kho thực tế',
+                                                render: (_: any, item: any) => {
+                                                    const prod = products.find(p => p.sku === item.sku);
+                                                    return <b>{prod ? Number(prod.quantity_in_stock || 0).toLocaleString() : '-'}</b>;
+                                                }
+                                            },
+                                            {
+                                                title: 'Tồn kho khả dụng',
+                                                render: (_: any, item: any) => {
+                                                    const prod = products.find(p => p.sku === item.sku);
+                                                    const qty = Number(prod?.quantity_in_stock || 0);
+                                                    const approved = Number(prod?.approved_booking_stock || 0);
+                                                    return <b>{(qty - approved).toLocaleString()}</b>;
+                                                }
+                                            },
+                                            {
+                                                title: 'Booking',
+                                                render: (_: any, item: any) => {
+                                                    const prod = products.find(p => p.sku === item.sku);
+                                                    return <b>{prod ? Number(prod.booking_stock || 0).toLocaleString() : '-'}</b>;
+                                                }
+                                            },
+                                            {
+                                                title: 'Approve',
+                                                render: (_: any, item: any) => {
+                                                    const prod = products.find(p => p.sku === item.sku);
+                                                    return <b>{prod ? Number(prod.approved_booking_stock || 0).toLocaleString() : '-'}</b>;
+                                                }
+                                            },
                                             { title: 'Ghi chú', dataIndex: 'note' },
                                         ]}
                                     />
