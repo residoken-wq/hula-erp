@@ -35,8 +35,15 @@ export class MrpCalculationService {
         });
         if (!plan) throw new NotFoundException();
 
-        // 1. Kiểm tra xem đã có kết quả đã lưu chưa
-        if (plan.mrp_data && plan.outsourcing_data) {
+        // 1. Kiểm tra xem đã có kết quả đã lưu chưa (và có details chưa, nếu chưa thì bắt buộc tính lại)
+        let hasDetails = true;
+        if (plan.mrp_data && Array.isArray(plan.mrp_data) && plan.mrp_data.length > 0) {
+            hasDetails = plan.mrp_data.every((item: any) => item.details !== undefined);
+        } else if (!plan.mrp_data) {
+            hasDetails = false;
+        }
+
+        if (plan.mrp_data && plan.outsourcing_data && hasDetails) {
             // --- FIX: Update Real-time Stock for Display ---
             if (Array.isArray(plan.mrp_data)) {
                 const matIds = plan.mrp_data.map((i: any) => i.material_id).filter(id => !!id);

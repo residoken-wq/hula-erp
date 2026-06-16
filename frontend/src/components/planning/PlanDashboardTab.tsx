@@ -188,6 +188,7 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                             <div>
                                 <Table dataSource={mrpData.mrp_result} rowKey="material_id" pagination={false} size="middle" scroll={{ x: 1600, y: 450 }}
                                     expandable={{
+                                        rowExpandable: (record) => !!record.details && record.details.length > 0,
                                         expandedRowRender: (record, index) => {
                                             if (!record.details || record.details.length === 0) return null;
                                             return (
