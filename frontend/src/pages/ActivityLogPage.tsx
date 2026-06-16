@@ -1,28 +1,62 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Card, Button } from 'antd';
-import { ReloadOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { Table, Tag, Card, Button, Tabs } from 'antd';
+import { ReloadOutlined, DatabaseOutlined, UserOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
+dayjs.extend(relativeTime);
 
 const ActivityLogPage: React.FC = () => {
     const [logs, setLogs] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loadingLogs, setLoadingLogs] = useState(false);
+
+    const [users, setUsers] = useState<any[]>([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
+
+    const [activeTab, setActiveTab] = useState('1');
 
     const fetchLogs = async () => {
-        setLoading(true);
+        setLoadingLogs(true);
         try {
             const res = await api.get('/system/logs'); // Need to ensure this endpoint exists in SystemController
             setLogs(res.data);
         } catch (error) {
             console.error(error);
         } finally {
-            setLoading(false);
+            setLoadingLogs(false);
+        }
+    };
+
+    const fetchUsers = async () => {
+        setLoadingUsers(true);
+        try {
+            const res = await api.get('/users');
+            // Sort by last activity descending
+            const sorted = res.data.sort((a: any, b: any) => {
+                if (!a.last_activity_at) return 1;
+                if (!b.last_activity_at) return -1;
+                return new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime();
+            });
+            setUsers(sorted);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoadingUsers(false);
+        }
+    };
+
+    const fetchData = () => {
+        if (activeTab === '1') {
+            fetchLogs();
+        } else {
+            fetchUsers();
         }
     };
 
     useEffect(() => {
-        fetchLogs();
-    }, []);
+        fetchData();
+    }, [activeTab]);
 
     const columns = [
         {
@@ -106,17 +140,85 @@ const ActivityLogPage: React.FC = () => {
         }
     ];
 
+    const userColumns = [
+        {
+            title: 'Trạng thái',
+            dataIndex: 'last_activity_at',
+            width: 120,
+            render: (t: any) => {
+                if (!t) return <Tag color="default">N/A</Tag>;
+                const diff = dayjs().diff(dayjs(t), 'minute');
+                if (diff <= 15) {
+                    return <Tag color="success" icon={<UserOutlined />}>Online</Tag>;
+                }
+                return <Tag color="default">{dayjs(t).fromNow()}</Tag>;
+            }
+        },
+        {
+            title: 'User',
+            dataIndex: 'username',
+            width: 150,
+            render: (t: string) => <b>{t}</b>
+        },
+        {
+            title: 'Họ và tên',
+            dataIndex: 'full_name',
+            width: 200,
+        },
+        {
+            title: 'IP Address',
+            dataIndex: 'ip_address',
+            width: 150,
+        },
+        {
+            title: 'Thiết bị / Browser',
+            dataIndex: 'device_info',
+            render: (t: string) => <span style={{ color: '#666', fontSize: 12 }}>{t || 'Không xác định'}</span>
+        },
+        {
+            title: 'Hoạt động cuối',
+            dataIndex: 'last_activity_at',
+            width: 180,
+            render: (t: any) => t ? dayjs(t).format('DD/MM/YYYY HH:mm:ss') : '-'
+        }
+    ];
+
     return (
         <Card
-            title={<span><DatabaseOutlined /> Nhật ký hoạt động hệ thống</span>}
-            extra={<Button icon={<ReloadOutlined />} onClick={fetchLogs}>Làm mới</Button>}
+            title={<span><DatabaseOutlined /> Giám sát hệ thống</span>}
+            extra={<Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>}
         >
-            <Table
-                dataSource={logs}
-                columns={columns}
-                rowKey="id"
-                loading={loading}
-                pagination={{ pageSize: 20 }}
+            <Tabs
+                activeKey={activeTab}
+                onChange={setActiveTab}
+                items={[
+                    {
+                        key: '1',
+                        label: 'Nhật ký hoạt động',
+                        children: (
+                            <Table
+                                dataSource={logs}
+                                columns={columns}
+                                rowKey="id"
+                                loading={loadingLogs}
+                                pagination={{ pageSize: 20 }}
+                            />
+                        )
+                    },
+                    {
+                        key: '2',
+                        label: 'Phiên hoạt động (Online)',
+                        children: (
+                            <Table
+                                dataSource={users}
+                                columns={userColumns}
+                                rowKey="id"
+                                loading={loadingUsers}
+                                pagination={{ pageSize: 20 }}
+                            />
+                        )
+                    }
+                ]}
             />
         </Card>
     );
