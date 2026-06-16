@@ -329,7 +329,7 @@ const PurchasingPage: React.FC = () => {
     // ----------------------------------------
 
     const columns = [
-        { title: 'Mã PO', dataIndex: 'po_code', render: (t: any, r: any) => <a onClick={() => viewDetail(r)}><b>{t}</b></a> },
+        { title: 'Mã PO', dataIndex: 'po_code', render: (t: any, r: any) => <Space><a onClick={() => viewDetail(r)}><b>{t}</b></a>{r.parent_po_id && <Tooltip title="PO này đã được gộp chung"><Tag color="purple" style={{ margin: 0, fontSize: 10, lineHeight: '16px' }}>Đã gộp</Tag></Tooltip>}</Space> },
         { title: 'Khách hàng', dataIndex: 'plan', render: (p: any) => p?.sales_orders?.length > 0 ? Array.from(new Set(p.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ') || '-' : '-' },
         { title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 100, render: (t: string) => t === 'MATERIAL' ? <Tag color="blue">NPL</Tag> : t === 'POOLED' ? <Tag color="purple">Gộp</Tag> : <Tag color="orange">Gia công</Tag> },
         { title: 'Ngày', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
