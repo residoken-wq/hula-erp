@@ -12,6 +12,7 @@ import PlanDashboardTab from '../components/planning/PlanDashboardTab';
 import GanttChartTab from '../components/planning/GanttChartTab';
 import BookingApprovalModal from '../components/planning/BookingApprovalModal';
 import BookingListTab from '../components/planning/BookingListTab';
+import MrpSummaryDashboardTab from '../components/planning/MrpSummaryDashboardTab';
 
 const { RangePicker } = DatePicker;
 
@@ -348,6 +349,13 @@ const PlanningPage: React.FC = () => {
                         label: isMobile ? '📦 Booking' : '📦 4. Quản Lý Booking',
                         children: (
                             <BookingListTab isMobile={isMobile} />
+                        )
+                    },
+                    {
+                        key: 'SUMMARY',
+                        label: isMobile ? '📊 Tổng hợp' : '📊 5. Tổng Hợp Nhu Cầu',
+                        children: (
+                            <MrpSummaryDashboardTab isMobile={isMobile} />
                         )
                     }
                 ]} />

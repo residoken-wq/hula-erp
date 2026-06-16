@@ -201,8 +201,46 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                 <tbody>${rows}</tbody>
             </table>
         `;
-    }
+    } else if (template === 'SUPPLIER_TEMPLATE') {
+        let rawTemplate = currentPO?.supplier?.po_template || '';
+        
+        // Generate items table HTML
+        const rowsHtml = currentPO?.items?.map((i: any, idx: number) => `
+            <tr>
+                <td>${idx + 1}</td>
+                <td class="left-align">${i.description || i.product?.name || i.material?.name || '-'}</td>
+                <td>${Number(i.quantity).toLocaleString()}</td>
+                <td>${Number(i.unit_price || 0).toLocaleString()}</td>
+                <td>${Number(i.subtotal || 0).toLocaleString()}</td>
+            </tr>
+        `).join('');
+        
+        const itemsTable = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Sản phẩm / Công đoạn</th>
+                        <th>Số lượng</th>
+                        <th>Đơn giá</th>
+                        <th>Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+            </table>
+        `;
 
+        rawTemplate = rawTemplate.replace(/\{\{poCode\}\}/g, poCode);
+        rawTemplate = rawTemplate.replace(/\{\{supplierName\}\}/g, supplierDisplayName);
+        rawTemplate = rawTemplate.replace(/\{\{date\}\}/g, dateStr);
+        rawTemplate = rawTemplate.replace(/\{\{totalAmount\}\}/g, Number(currentPO?.total_amount || 0).toLocaleString());
+        rawTemplate = rawTemplate.replace(/\{\{itemsTable\}\}/g, itemsTable);
+
+        content = `
+            ${style}
+            ${rawTemplate}
+        `;
+    }
     w.document.write(`<html><head><title>Print PO ${poCode}</title></head><body>${content}</body></html>`);
     w.document.close();
     w.focus();

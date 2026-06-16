@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Drawer, List, DatePicker, InputNumber, Checkbox, Radio, Typography, Tooltip, Tabs, Statistic, Avatar, Segmented, Dropdown, Menu } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BankOutlined, DollarOutlined, AppstoreOutlined, CalendarOutlined, StarFilled, StarOutlined, ShopOutlined, LinkOutlined, ReloadOutlined, HistoryOutlined, MoreOutlined, FilterOutlined, EnvironmentOutlined, PhoneOutlined, MailOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BankOutlined, DollarOutlined, AppstoreOutlined, CalendarOutlined, StarFilled, StarOutlined, ShopOutlined, LinkOutlined, ReloadOutlined, HistoryOutlined, MoreOutlined, FilterOutlined, EnvironmentOutlined, PhoneOutlined, MailOutlined, FileTextOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import useMobile from '../hooks/useMobile';
+import RichTextEditor from '../components/common/RichTextEditor';
 
 const { RangePicker } = DatePicker;
 const { Text, Title } = Typography;
@@ -552,6 +553,37 @@ const SuppliersPage: React.FC = () => {
                                         />
                                     )}
 
+                                </div>
+                            )
+                        },
+                        {
+                            key: '4', label: <span style={{ color: '#eb2f96' }}><FileTextOutlined /> Template PO</span>,
+                            disabled: !editingItem,
+                            children: (
+                                <div style={{ padding: '10px 0' }}>
+                                    <div style={{ marginBottom: 16, background: '#fff0f6', padding: 16, borderRadius: 8, border: '1px solid #ffadd2' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#c41d7f', marginBottom: 8 }}>Mẫu In (Template) tùy chỉnh cho Đối tác này</div>
+                                        <div style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>
+                                            Sử dụng các biến số để tự động điền dữ liệu khi in PO: <br/>
+                                            <Tag color="magenta">{'{{poCode}}'}</Tag>
+                                            <Tag color="magenta">{'{{supplierName}}'}</Tag>
+                                            <Tag color="magenta">{'{{date}}'}</Tag>
+                                            <Tag color="magenta">{'{{totalAmount}}'}</Tag>
+                                            <Tag color="magenta">{'{{itemsTable}}'}</Tag>
+                                        </div>
+                                        <Space>
+                                            <Button size="small" onClick={() => form.setFieldsValue({ po_template: `<div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 20px;">ĐƠN ĐẶT HÀNG (NPL)</div>\n<div style="margin-bottom:10px;"><b>Kính gửi:</b> {{supplierName}}</div>\n<div style="margin-bottom:10px;"><b>Ngày:</b> {{date}}</div>\n<div style="margin-bottom:20px;"><b>Mã PO:</b> {{poCode}}</div>\n{{itemsTable}}\n<div style="margin-top: 20px; text-align: right; font-weight: bold; font-size: 16px;">Tổng cộng: {{totalAmount}}</div>`})}>
+                                                Sử dụng Mẫu NPL Chuẩn
+                                            </Button>
+                                            <Button size="small" onClick={() => form.setFieldsValue({ po_template: `<div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 20px;">ĐƠN ĐẶT HÀNG GIA CÔNG</div>\n<div style="margin-bottom:10px;"><b>Nhà gia công:</b> {{supplierName}}</div>\n<div style="margin-bottom:10px;"><b>Ngày lập:</b> {{date}}</div>\n<div style="margin-bottom:20px;"><b>Mã Đơn:</b> {{poCode}}</div>\n{{itemsTable}}\n<div style="margin-top: 40px; display: flex; justify-content: space-between; text-align: center;">\n<div><b>Bên Giao</b><br/><br/><br/>(Ký, ghi rõ họ tên)</div>\n<div><b>Bên Nhận</b><br/><br/><br/>(Ký, ghi rõ họ tên)</div>\n</div>`})}>
+                                                Sử dụng Mẫu Gia Công
+                                            </Button>
+                                            <Button size="small" danger onClick={() => form.setFieldsValue({ po_template: '' })}>Xóa trắng</Button>
+                                        </Space>
+                                    </div>
+                                    <Form.Item name="po_template">
+                                        <RichTextEditor />
+                                    </Form.Item>
                                 </div>
                             )
                         }

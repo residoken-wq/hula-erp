@@ -37,6 +37,9 @@ export class Supplier {
   @Column({ nullable: true }) address: string;
   @Column('text', { nullable: true }) note: string;
 
+  // --- MỚI: TEMPLATE PO ---
+  @Column('text', { nullable: true }) po_template: string;
+
   @OneToMany(() => SupplierContact, (c) => c.supplier, { cascade: true })
   contacts: SupplierContact[];
 

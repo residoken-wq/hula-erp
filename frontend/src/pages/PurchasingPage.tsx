@@ -1161,6 +1161,9 @@ const PurchasingPage: React.FC = () => {
             {/* MODAL PRINT SELECTION */}
             <Modal title="Chọn Mẫu In PO" open={isPrintModalOpen} onCancel={() => setIsPrintModalOpen(false)} footer={null}>
                 <Space direction="vertical" style={{ width: '100%' }}>
+                    {currentPO?.supplier?.po_template && (
+                        <Button type="primary" block onClick={() => handlePrint('SUPPLIER_TEMPLATE')}>Mẫu của NCC / NGC (Tùy chỉnh)</Button>
+                    )}
                     <Button block onClick={() => handlePrint('STANDARD')}>Mẫu Tiêu Chuẩn (Đơn hàng)</Button>
                     <Button block onClick={() => handlePrint('OUTSOURCING', true)}>Mẫu Gia Công (Có Đơn giá)</Button>
                     <Button block onClick={() => handlePrint('OUTSOURCING', false)}>Mẫu Gia Công (Không Đơn giá)</Button>

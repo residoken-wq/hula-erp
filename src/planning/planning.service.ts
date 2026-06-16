@@ -783,4 +783,165 @@ export class PlanningService {
         }
         return filtered;
     }
+
+    // --- MỚI: Dashboard Tổng hợp Nhu cầu NPL & Gia Công ---
+    async getSummaryDashboard(query: any) {
+        let { from_date, to_date, customers } = query;
+
+        const qb = this.planRepo.createQueryBuilder('p')
+            .leftJoinAndSelect('p.sales_orders', 'so')
+            .leftJoinAndSelect('so.customer', 'c');
+
+        if (from_date) {
+            qb.andWhere('p.start_date >= :fromDate', { fromDate: from_date });
+        }
+        if (to_date) {
+            qb.andWhere('p.start_date <= :toDate', { toDate: to_date });
+        }
+        
+        // Cần lấy tất cả plan thỏa điều kiện thời gian trước, để lấy list KH
+        const allPlansInRange = await qb.getMany();
+
+        // Lấy danh sách khách hàng unique có trong khoảng thời gian này
+        const customerSet = new Set<string>();
+        for (const p of allPlansInRange) {
+            if (p.sales_orders) {
+                for (const so of p.sales_orders) {
+                    const cName = so.customer_name || so.customer?.name;
+                    if (cName) customerSet.add(cName);
+                }
+            }
+        }
+        const customer_list = Array.from(customerSet).sort();
+
+        // Lọc theo khách hàng nếu có truyền lên
+        let plansToProcess = allPlansInRange;
+        if (customers) {
+            const customerArr = customers.split(',').map((c: string) => c.trim());
+            plansToProcess = allPlansInRange.filter(p => {
+                if (!p.sales_orders) return false;
+                return p.sales_orders.some(so => {
+                    const cName = so.customer_name || so.customer?.name;
+                    return cName && customerArr.includes(cName);
+                });
+            });
+        }
+
+        const plan_codes = plansToProcess.map(p => p.code);
+
+        // Map để gộp dữ liệu MRP
+        const mrpMap = new Map<number, any>();
+        
+        // Fetch tồn kho real-time cho NPL
+        // Để không fetch n+1, ta sẽ thu thập tất cả material_ids trước
+        const matIds = new Set<number>();
+        plansToProcess.forEach(p => {
+            if (p.mrp_data && Array.isArray(p.mrp_data)) {
+                p.mrp_data.forEach(item => {
+                    if (item.material_id) matIds.add(item.material_id);
+                });
+            }
+        });
+
+        const stockMap = new Map<number, number>();
+        if (matIds.size > 0) {
+            const mats = await this.materialsService.materialRepo.find({
+                where: { id: In(Array.from(matIds)) },
+                select: ['id', 'quantity_in_stock']
+            });
+            mats.forEach(m => stockMap.set(m.id, Number(m.quantity_in_stock || 0)));
+        }
+
+        // Gộp dữ liệu MRP
+        for (const p of plansToProcess) {
+            if (p.mrp_data && Array.isArray(p.mrp_data)) {
+                for (const item of p.mrp_data) {
+                    const matId = item.material_id;
+                    if (!matId) continue;
+
+                    if (!mrpMap.has(matId)) {
+                        mrpMap.set(matId, {
+                            material_id: item.material_id,
+                            material_code: item.material_code,
+                            material_name: item.material_name,
+                            unit: item.unit,
+                            supplier_name: item.supplier_name,
+                            reference_price: Number(item.reference_price || 0),
+                            wastage_percent: Number(item.wastage_percent || 0),
+                            gross_requirement: 0,
+                            gross_raw: 0,
+                            details: []
+                        });
+                    }
+
+                    const existing = mrpMap.get(matId);
+                    existing.gross_requirement += Number(item.gross_requirement || 0);
+                    existing.gross_raw += Number(item.gross_raw || 0);
+                    // Cập nhật wastage_percent lớn nhất nếu khác nhau
+                    if (Number(item.wastage_percent || 0) > existing.wastage_percent) {
+                        existing.wastage_percent = Number(item.wastage_percent || 0);
+                    }
+                    if (item.details && Array.isArray(item.details)) {
+                        existing.details.push(...item.details);
+                    }
+                }
+            }
+        }
+
+        const mrp_summary = Array.from(mrpMap.values()).map(item => {
+            const currentStock = stockMap.get(item.material_id) || 0;
+            const net = Math.max(0, Math.ceil(item.gross_requirement - currentStock));
+            
+            // Gộp trùng sản phẩm trong details
+            const detailMap = new Map<string, any>();
+            item.details.forEach((d: any) => {
+                const key = d.product_name;
+                if (!detailMap.has(key)) {
+                    detailMap.set(key, { ...d });
+                } else {
+                    const ed = detailMap.get(key);
+                    ed.qty_needed += Number(d.qty_needed || 0);
+                    ed.gross_req += Number(d.gross_req || 0);
+                }
+            });
+
+            return {
+                ...item,
+                available_stock: currentStock,
+                net_requirement: net,
+                details: Array.from(detailMap.values())
+            };
+        });
+
+        // Gộp dữ liệu Outsourcing
+        const outsourcingMap = new Map<string, any>();
+        for (const p of plansToProcess) {
+            if (p.outsourcing_data && Array.isArray(p.outsourcing_data)) {
+                for (const item of p.outsourcing_data) {
+                    const key = `${item.product_sku}_${item.step_name}`;
+                    if (!outsourcingMap.has(key)) {
+                        outsourcingMap.set(key, {
+                            product_sku: item.product_sku,
+                            step_name: item.step_name,
+                            supplier_name: item.supplier_name,
+                            unit_price: Number(item.unit_price || 0),
+                            quantity: 0,
+                            total_cost: 0
+                        });
+                    }
+                    const existing = outsourcingMap.get(key);
+                    existing.quantity += Number(item.quantity || 0);
+                    existing.total_cost += Number(item.total_cost || 0);
+                }
+            }
+        }
+        const outsourcing_summary = Array.from(outsourcingMap.values());
+
+        return {
+            customer_list,
+            plan_codes,
+            mrp_summary,
+            outsourcing_summary
+        };
+    }
 }

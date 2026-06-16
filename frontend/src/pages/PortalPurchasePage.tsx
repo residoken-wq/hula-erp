@@ -190,6 +190,29 @@ const PortalPurchasePage: React.FC = () => {
                 />
             </div>
 
+            {/* SUPPLIER PO TEMPLATE VIEW */}
+            {data.supplier?.po_template && (
+                <div style={{ background: '#fff', borderRadius: 12, padding: '24px 32px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', marginBottom: 24, overflowX: 'auto' }}>
+                    <Divider orientation="left" style={{ fontSize: 14, marginTop: 0 }}>📄 Mẫu Đơn Đặt Hàng</Divider>
+                    <div 
+                        dangerouslySetInnerHTML={{ 
+                            __html: data.supplier.po_template
+                                .replace(/\{\{poCode\}\}/g, data.po_code || '')
+                                .replace(/\{\{supplierName\}\}/g, data.supplier?.name || '')
+                                .replace(/\{\{date\}\}/g, dayjs(data.created_at).format('DD/MM/YYYY'))
+                                .replace(/\{\{totalAmount\}\}/g, Number(data.total_amount || 0).toLocaleString())
+                                .replace(/\{\{itemsTable\}\}/g, `<table style="width: 100%; border-collapse: collapse; margin-top: 10px;" border="1">
+                                    <thead><tr><th style="padding: 5px">STT</th><th style="padding: 5px">Sản phẩm / Công đoạn</th><th style="padding: 5px">Số lượng</th><th style="padding: 5px">Đơn giá</th><th style="padding: 5px">Thành tiền</th></tr></thead>
+                                    <tbody>
+                                        ${data.items?.map((i: any, idx: number) => `<tr><td style="padding: 5px; text-align: center;">${idx + 1}</td><td style="padding: 5px">${i.description || i.product?.name || i.material?.name || '-'}</td><td style="padding: 5px; text-align: center;">${Number(i.quantity).toLocaleString()}</td><td style="padding: 5px; text-align: center;">${Number(i.unit_price || 0).toLocaleString()}</td><td style="padding: 5px; text-align: center;">${Number(i.subtotal || 0).toLocaleString()}</td></tr>`).join('') || ''}
+                                    </tbody>
+                                </table>`)
+                        }} 
+                        style={{ padding: 20, border: '1px solid #f0f0f0', borderRadius: 8, minHeight: 100 }}
+                    />
+                </div>
+            )}
+
             {/* PRINT DESIGNS (Outsourcing) */}
             {data.type === 'OUTSOURCING' && data.items?.some((i: any) => i.print_design) && (
                 <div style={{ background: '#fff', borderRadius: 12, padding: '24px 32px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)', marginBottom: 24 }}>

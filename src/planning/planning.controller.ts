@@ -14,6 +14,11 @@ export class PlanningController {
     return this.s.getBookingStats(month, year);
   }
 
+  @Get('summary-dashboard')
+  getSummaryDashboard(@Query() query: any) {
+    return this.s.getSummaryDashboard(query);
+  }
+
   @Get('bookings') getAllBookings() { return this.s.getAllBookings(); }
   @Get('bookings/:sku') getBookingsBySku(@Param('sku') sku: string) { return this.s.getBookingsBySku(sku); }
   @Post('bookings/:itemId/revert') revertBooking(@Param('itemId') itemId: number) { return this.s.revertBooking(Number(itemId)); }
