@@ -195,6 +195,8 @@ const SalesPage: React.FC = () => {
                 matchTab = x.order_source === 'WEBSITE';
             } else if (activeTab === 'DELIVERED') {
                 matchTab = (x.status === 'DELIVERED' || x.status === 'PARTIAL_DELIVERY');
+            } else if (activeTab === 'IN_PRODUCTION') {
+                matchTab = (x.status === 'IN_PRODUCTION' || x.status === 'PLANED');
             } else {
                 matchTab = x.status === activeTab;
             }
@@ -276,6 +278,7 @@ const SalesPage: React.FC = () => {
                 if (t === 'SO_PENDING') { color = 'processing'; label = 'Mới'; }
                 if (t === 'SAMPLE_APPROVED') { color = 'cyan'; label = 'Đã Duyệt'; }
                 if (t === 'DEPOSITED') { color = 'purple'; label = 'Đã Cọc'; }
+                if (t === 'PLANED') { color = 'geekblue'; label = 'Kế Hoạch SX'; }
                 if (t === 'IN_PRODUCTION') { color = 'blue'; label = 'Đang SX'; }
                 if (t === 'MANUFACTURING_COMPLETED') { color = 'gold'; label = 'Xong SX'; }
                 if (t === 'COMPLETED') { color = 'success'; label = 'Hoàn Thành'; }
@@ -511,6 +514,7 @@ const SalesPage: React.FC = () => {
                             if (r.status === 'SO_PENDING') { color = 'processing'; label = 'Mới'; }
                             if (r.status === 'SAMPLE_APPROVED') { color = 'cyan'; label = 'Đã Duyệt'; }
                             if (r.status === 'DEPOSITED') { color = 'purple'; label = 'Đã Cọc'; }
+                            if (r.status === 'PLANED') { color = 'geekblue'; label = 'Kế Hoạch SX'; }
                             if (r.status === 'IN_PRODUCTION') { color = 'blue'; label = 'Đang SX'; }
                             if (r.status === 'COMPLETED') { color = 'success'; label = 'Hoàn Thành'; }
                             if (r.status === 'DELIVERED') { color = 'geekblue'; label = 'Đã Giao'; }
