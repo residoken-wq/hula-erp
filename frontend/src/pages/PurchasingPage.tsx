@@ -487,8 +487,23 @@ const PurchasingPage: React.FC = () => {
         
         const itemColumns = [
             { title: 'Tên hàng / Mô tả', render: (r: any) => r.material?.name || r.product?.name || r.description || '-' },
-            { title: 'Số lượng', dataIndex: 'quantity', align: 'center' as const, render: (v: number) => Number(v || 0).toLocaleString() },
-            { title: 'Đơn giá', dataIndex: 'unit_price', align: 'right' as const, render: (v: number) => Number(v || 0).toLocaleString() },
+            { 
+                title: 'Số lượng (Gốc)', 
+                dataIndex: 'quantity', 
+                align: 'center' as const, 
+                render: (v: number, r: any) => `${Number(v || 0).toLocaleString()} ${r.material?.unit || ''}` 
+            },
+            { 
+                title: 'SL Quy Đổi (Mua)', 
+                align: 'center' as const, 
+                render: (r: any) => {
+                    const factor = r.material ? Number(r.material.conversion_factor || 1) : 1;
+                    const unit = r.material ? r.material.purchase_unit : '';
+                    const val = (r.quantity || 0) * factor;
+                    return r.material && factor !== 1 ? `${Number(val).toLocaleString()} ${unit}` : '-';
+                }
+            },
+            { title: 'Đơn giá (Gốc)', dataIndex: 'unit_price', align: 'right' as const, render: (v: number) => Number(v || 0).toLocaleString() },
             { title: 'Thành tiền', align: 'right' as const, render: (r: any) => <b>{Number((r.quantity || 0) * (r.unit_price || 0)).toLocaleString()}</b> }
         ];
 
@@ -744,24 +759,28 @@ const PurchasingPage: React.FC = () => {
                                             return <span style={{ color: '#666', fontStyle: 'italic' }}>{content}</span>;
                                         }
                                     },
-                                    { title: 'Tổng Cần (Gốc)', width: 100, align: 'center', render: (r: any) => <span>{Number(r.raw_quantity || 0).toLocaleString()}</span> },
+                                    { title: 'Tổng Cần (Gốc)', width: 100, align: 'center', render: (r: any) => <span>{Number(r.raw_quantity || 0).toLocaleString()} {r.material?.unit}</span> },
                                     { title: '% Hao hụt', width: 80, align: 'center', render: (r: any) => <Tag color="orange">{r.wastage_rate || 0}%</Tag> },
-                                    { title: 'Tổng (+Hao hụt)', width: 120, align: 'center', render: (r: any) => <b>{Number(r.total_quantity || r.quantity).toLocaleString()}</b> },
+                                    { title: 'Tổng (+Hao hụt) (Gốc)', width: 140, align: 'center', render: (r: any) => <b>{Number(r.total_quantity || r.quantity).toLocaleString()} {r.material?.unit}</b> },
                                     {
-                                        title: 'SL (QĐ)', width: 150, render: (r: any, _: any, index: number) => {
-                                            // --- FIX: Allow edit for Outsourcing (no material) ---
+                                        title: 'SL Quy Đổi (Mua)', width: 160, render: (r: any, _: any, index: number) => {
+                                            // --- FIX: Logic tính SL Quy Đổi ---
+                                            // Theo yêu cầu: 1 ĐVT Gốc = [Hệ số] ĐVT Mua 
+                                            // Ví dụ: 1 mét vải viền (Gốc) = 0.053 mét vải lớn (Mua)
+                                            // => SL Mua = SL Gốc * Hệ số
                                             const factor = r.material ? Number(r.material.conversion_factor || 1) : 1;
                                             const unit = r.material ? r.material.purchase_unit : '';
 
-                                            const val = r.quantity / factor;
+                                            const val = r.quantity * factor;
                                             return <InputNumber
                                                 value={val}
                                                 min={0}
                                                 style={{ width: '100%' }}
                                                 onChange={(v) => {
-                                                    const newQ = Number(v) * factor;
+                                                    const newQ = factor !== 0 ? Number(v) / factor : 0;
                                                     const newItems = [...editingItems];
                                                     newItems[index].quantity = newQ;
+                                                    // Note: Giữ nguyên logic subtotal = SL Gốc * Đơn giá (gốc)
                                                     newItems[index].subtotal = newQ * Number(newItems[index].unit_price);
                                                     setEditingItems(newItems);
                                                 }}
@@ -770,7 +789,7 @@ const PurchasingPage: React.FC = () => {
                                         }
                                     },
                                     {
-                                        title: 'Đơn giá', width: 150, render: (r: any, _: any, index: number) => (
+                                        title: 'Đơn giá (theo ĐVT Gốc)', width: 160, render: (r: any, _: any, index: number) => (
                                             <InputNumber
                                                 value={r.unit_price}
                                                 min={0}
