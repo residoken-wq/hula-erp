@@ -80,7 +80,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
         if (skippedSteps[stepId]) return undefined;
         const selectedOptionId = stepSelections[stepId];
         if (!selectedOptionId) return undefined;
-        return step.options?.find(o => o.id === selectedOptionId);
+        return step.options?.find(o => o && o.id === selectedOptionId);
     };
 
     // Check if a yes_no step has selected "Không" (2nd option = hidden)
@@ -141,7 +141,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                     {[...(subcategory.base_images || [])].filter(Boolean).sort((a, b) => a.sort_order - b.sort_order).map((frame) => {
                         // Steps gắn frame cụ thể + steps KHÔNG gắn frame (global)
                         const mappedSteps = subcategory.customization_steps?.filter(s =>
-                            s.required_frame_id === frame.id || !s.required_frame_id
+                            s && (s.required_frame_id === frame.id || !s.required_frame_id)
                         ) || [];
 
                         // Kiểm tra ẩn frame:
@@ -149,7 +149,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                         // 2. yes_no chọn "Không"
                         // 3. Step is_skippable + chưa có selection → ẩn mặc định cho đến khi chọn
                         const linkedSteps = subcategory.customization_steps?.filter(s =>
-                            s.required_frame_id === frame.id
+                            s && s.required_frame_id === frame.id
                         ) || [];
                         const isFrameHidden = linkedSteps.some(s => {
                             if (skippedSteps[s.id]) return true;
