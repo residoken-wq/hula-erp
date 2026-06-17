@@ -144,9 +144,17 @@ const ProfilePage: React.FC = () => {
         );
     }
 
-    const todayAttendance = attendances.find(a =>
+    // Get ALL attendance records for today (supports multiple shifts per day)
+    const todayAttendances = attendances.filter(a =>
         dayjs(a.date).format('YYYY-MM-DD') === dayjs().format('YYYY-MM-DD')
     );
+    // The latest shift record determines current check-in/out state
+    // attendances are ordered by date DESC, check_in DESC from backend
+    const todayAttendance = todayAttendances.length > 0 ? todayAttendances[0] : undefined;
+    // Can check-in if: no record today, OR latest record already has check_out (shift completed)
+    const canCheckIn = !todayAttendance || !!todayAttendance.check_out;
+    // Can check-out if: latest record has check_in but no check_out (currently in a shift)
+    const canCheckOut = !!todayAttendance?.check_in && !todayAttendance?.check_out;
 
     return (
         <div style={{ padding: isMobile ? '12px 8px' : 24, paddingBottom: isMobile ? 80 : 24 }}>
@@ -240,14 +248,19 @@ const ProfilePage: React.FC = () => {
                                         </Col>
                                     </Row>
 
-                                    {todayAttendance && (
+                                    {todayAttendances.length > 0 && (
                                         <div style={{ textAlign: 'center', marginTop: 16 }}>
                                             <Tag
-                                                color={todayAttendance.status === 'PRESENT' ? 'green' : 'orange'}
+                                                color={todayAttendance?.status === 'PRESENT' ? 'green' : 'orange'}
                                                 style={{ fontSize: 13, padding: '4px 16px' }}
                                             >
-                                                {todayAttendance.status === 'PRESENT' ? '✓ Có mặt' : todayAttendance.status}
+                                                {todayAttendance?.status === 'PRESENT' ? '✓ Có mặt' : todayAttendance?.status}
                                             </Tag>
+                                            {todayAttendances.length > 1 && (
+                                                <Tag color="blue" style={{ fontSize: 13, padding: '4px 12px', marginLeft: 4 }}>
+                                                    Ca {todayAttendances.length}
+                                                </Tag>
+                                            )}
                                         </div>
                                     )}
 
@@ -259,13 +272,13 @@ const ProfilePage: React.FC = () => {
                                                 type="primary"
                                                 icon={<LoginOutlined />}
                                                 onClick={handleCheckIn}
-                                                disabled={!!todayAttendance?.check_in}
+                                                disabled={!canCheckIn}
                                                 block
                                                 size="large"
                                                 style={{
                                                     borderRadius: 10,
                                                     height: 48,
-                                                    background: todayAttendance?.check_in ? undefined : 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
+                                                    background: !canCheckIn ? undefined : 'linear-gradient(135deg, #52c41a 0%, #389e0d 100%)',
                                                     border: 'none'
                                                 }}
                                             >
@@ -276,15 +289,15 @@ const ProfilePage: React.FC = () => {
                                             <Button
                                                 icon={<LogoutOutlined />}
                                                 onClick={handleCheckOut}
-                                                disabled={!todayAttendance?.check_in || !!todayAttendance?.check_out}
+                                                disabled={!canCheckOut}
                                                 block
                                                 size="large"
                                                 style={{
                                                     borderRadius: 10,
                                                     height: 48,
-                                                    background: (!todayAttendance?.check_in || !!todayAttendance?.check_out) ? undefined : '#fa8c16',
-                                                    borderColor: (!todayAttendance?.check_in || !!todayAttendance?.check_out) ? undefined : '#fa8c16',
-                                                    color: (!todayAttendance?.check_in || !!todayAttendance?.check_out) ? undefined : '#fff'
+                                                    background: !canCheckOut ? undefined : '#fa8c16',
+                                                    borderColor: !canCheckOut ? undefined : '#fa8c16',
+                                                    color: !canCheckOut ? undefined : '#fff'
                                                 }}
                                             >
                                                 CHECK OUT

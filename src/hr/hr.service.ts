@@ -147,7 +147,7 @@ export class HrService implements OnModuleInit {
 
         // If the latest record has no check_out, then employee is currently checked in
         if (attendance && !attendance.check_out) {
-            return { message: 'Already checked in today', attendance };
+            return { message: 'Đang trong ca làm việc (chưa check-out)', attendance };
         }
 
         const now = new Date();
