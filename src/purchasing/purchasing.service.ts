@@ -603,6 +603,8 @@ export class PurchasingService {
                         product_id: item.product_id || null,
                         product: item.product || null,
                         unit: item.material?.unit || '',
+                        conversion_factor: item.material?.conversion_factor || 1,
+                        purchase_unit: item.material?.purchase_unit || '',
                         unit_price: Number(item.unit_price || 0),
                         total_ordered: 0,
                         total_subtotal: 0,

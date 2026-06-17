@@ -224,6 +224,7 @@ const RecruitmentTab: React.FC = () => {
                         rowKey="id"
                         columns={[
                             { title: 'Tên', dataIndex: 'name', key: 'name' },
+                            { title: 'Ngày tạo', dataIndex: 'applied_at', key: 'applied_at', render: val => val ? dayjs(val).format('DD/MM/YYYY HH:mm') : '-' },
                             { title: 'Vị trí', key: 'job', render: (_, record) => record.job_post?.title },
                             { title: 'Score', dataIndex: 'overall_score', key: 'score', render: val => val ? <Tag color={val >= 7 ? 'green' : 'red'}>{val}</Tag> : '-' },
                             { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: val => <Tag color="geekblue">{val}</Tag> },

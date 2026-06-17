@@ -92,7 +92,14 @@ const PurchasingPage: React.FC = () => {
                     // Chuyển aggregated_items thành format tương thích editingItems
                     const aggItems = (aggData.aggregated_items || []).map((item: any, idx: number) => ({
                         id: `agg-${idx}`,
-                        material: item.material_id ? { id: item.material_id, name: item.material_name, code: item.material_code, unit: item.unit } : null,
+                        material: item.material_id ? { 
+                            id: item.material_id, 
+                            name: item.material_name, 
+                            code: item.material_code, 
+                            unit: item.unit,
+                            conversion_factor: item.conversion_factor,
+                            purchase_unit: item.purchase_unit
+                        } : null,
                         material_id: item.material_id,
                         product: item.product || null,
                         product_id: item.product_id || null,
