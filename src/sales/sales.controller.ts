@@ -40,6 +40,7 @@ export class SalesController {
 
     // --- ANALYTICS DASHBOARD ---
     @Get('analytics')
+    @RequirePermission('SALES', 'can_view')
     getAnalytics(@Query() query: any) {
         return this.s.getAnalyticsDashboard({
             startDate: query.startDate,
@@ -50,17 +51,20 @@ export class SalesController {
     }
 
     @Post('analytics/push-reminder')
+    @RequirePermission('SALES', 'can_view')
     pushReminder(@Body() body: any) {
         return this.s.sendPushReminder(body);
     }
 
     // --- SALES TARGETS ---
     @Get('targets')
+    @RequirePermission('SALES', 'can_view')
     getTargets(@Query('year') year: number) {
         return this.s.getTargets(Number(year) || new Date().getFullYear());
     }
 
     @Post('targets')
+    @RequirePermission('SALES', 'can_update')
     upsertTarget(@Body() body: any) {
         return this.s.upsertTarget(body);
     }

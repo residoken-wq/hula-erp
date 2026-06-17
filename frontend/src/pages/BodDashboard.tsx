@@ -119,7 +119,7 @@ const BodDashboard: React.FC = () => {
             {
                 title: '🎯 Giá trị Phễu',
                 value: kpi.pipelineValue || 0,
-                trend: kpi.trends?.leadsTrend || 0,
+                trend: kpi.trends?.pipelineTrend || 0,
                 gradient: 'linear-gradient(135deg, #be185d 0%, #db2777 100%)',
                 icon: <FireOutlined />,
             },
@@ -200,6 +200,7 @@ const BodDashboard: React.FC = () => {
 
         const stages = [
             { stage: 'Lead Mới', count: funnel.new || 0 },
+            { stage: 'Tiềm Năng', count: funnel.qualified || 0 },
             { stage: 'Đã Liên Hệ', count: funnel.contacted || 0 },
             { stage: 'Duyệt Mẫu SX', count: funnel.sample_approved || 0 },
             { stage: 'Đàm Phán / BG', count: funnel.negotiation || 0 },
@@ -753,43 +754,43 @@ const BodDashboard: React.FC = () => {
 
             <Spin spinning={loading}>
                 {/* TOP ROW: KPI Cards */}
-                <KpiCards />
+                {KpiCards()}
 
                 {/* HIGH-VALUE LEADS (Manager Focus) */}
-                <HighValueLeads />
+                {HighValueLeads()}
 
                 {/* MONTHLY TREND */}
-                <MonthlyTrend />
+                {MonthlyTrend()}
 
                 {/* MIDDLE ROW: Charts */}
                 <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
                     <Col xs={24} lg={12}>
-                        <LeadSourceROI />
+                        {LeadSourceROI()}
                     </Col>
                     <Col xs={24} lg={12}>
-                        <ConversionFunnel />
+                        {ConversionFunnel()}
                     </Col>
                 </Row>
 
                 {/* BOTTOM ROW: Scorecard + Forecast */}
                 <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
                     <Col xs={24} lg={12}>
-                        <SalesScorecard />
+                        {SalesScorecard()}
                     </Col>
                     <Col xs={24} lg={12}>
-                        <RevenueForecast />
+                        {RevenueForecast()}
                     </Col>
                 </Row>
 
                 {/* TOP CUSTOMERS + TOP PRODUCTS/CATEGORIES */}
                 <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
                     <Col xs={24} lg={12} style={{ display: 'flex', flexDirection: 'column' }}>
-                        <TopCustomers />
+                        {TopCustomers()}
                     </Col>
                     <Col xs={24} lg={12}>
                         <Space direction="vertical" size="large" style={{ display: 'flex' }}>
-                            <TopProducts />
-                            <TopCategories />
+                            {TopProducts()}
+                            {TopCategories()}
                         </Space>
                     </Col>
                 </Row>
@@ -797,12 +798,12 @@ const BodDashboard: React.FC = () => {
                 {/* REGION STATS */}
                 <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
                     <Col xs={24}>
-                        <RegionStats />
+                        {RegionStats()}
                     </Col>
                 </Row>
 
                 {/* ACCOUNTS RECEIVABLE */}
-                <AccountsReceivable />
+                {AccountsReceivable()}
             </Spin>
         </div>
     );

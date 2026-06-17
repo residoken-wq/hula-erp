@@ -1429,11 +1429,13 @@ export class SalesService {
         const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
 
         // Pipeline Value (open leads)
-        const pipelineResult = await this.customerRepo.createQueryBuilder('c')
+        const pipelineQuery = this.customerRepo.createQueryBuilder('c')
             .select('COALESCE(SUM(c.potential_value), 0)', 'total')
             .where('c.type = :type', { type: 'LEAD' })
-            .andWhere('c.lead_status NOT IN (:...closed)', { closed: ['WON', 'LOST'] })
-            .getRawOne();
+            .andWhere('c.created_at BETWEEN :start AND :end', { start, end })
+            .andWhere('c.lead_status NOT IN (:...closed)', { closed: ['WON', 'LOST'] });
+        if (assignedToId) pipelineQuery.andWhere('c.assigned_to_id = :uid', { uid: assignedToId });
+        const pipelineResult = await pipelineQuery.getRawOne();
         const pipelineValue = Number(pipelineResult?.total || 0);
 
         // Expected Revenue (All quotes in timeframe)
@@ -1469,6 +1471,14 @@ export class SalesService {
             .andWhere('c.created_at BETWEEN :start AND :end', { start: prevStart, end: prevEnd });
         if (assignedToId) prevLeadsQuery.andWhere('c.assigned_to_id = :uid', { uid: assignedToId });
         const prevLeads = await prevLeadsQuery.getCount();
+        
+        const prevPipelineQuery = this.customerRepo.createQueryBuilder('c')
+            .select('COALESCE(SUM(c.potential_value), 0)', 'total')
+            .where('c.type = :type', { type: 'LEAD' })
+            .andWhere('c.created_at BETWEEN :start AND :end', { start: prevStart, end: prevEnd })
+            .andWhere('c.lead_status NOT IN (:...closed)', { closed: ['WON', 'LOST'] });
+        if (assignedToId) prevPipelineQuery.andWhere('c.assigned_to_id = :uid', { uid: assignedToId });
+        const prevPipelineValue = Number((await prevPipelineQuery.getRawOne())?.total || 0);
 
         const prevActualQuery = this.orderRepo.createQueryBuilder('o')
             .select('COALESCE(SUM(o.total_amount), 0)', 'total')
@@ -1510,6 +1520,7 @@ export class SalesService {
         const funnelStages = {
             new: totalLeads,
             contacted: await qs(['CONTACTED', 'QUALIFIED', 'SAMPLE_APPROVED', 'NEGOTIATION', 'WON']),
+            qualified: await qs(['QUALIFIED', 'SAMPLE_APPROVED', 'NEGOTIATION', 'WON']),
             sample_approved: await qs(['SAMPLE_APPROVED', 'NEGOTIATION', 'WON']),
             negotiation: await qs(['NEGOTIATION', 'WON']),
             won: wonLeads,
@@ -1528,6 +1539,7 @@ export class SalesService {
                 expectedTrend: trendPercent(expectedRevenue, prevExpected),
                 actualTrend: trendPercent(actualRevenue, prevActual),
                 paidTrend: trendPercent(paidRevenue, prevPaid),
+                pipelineTrend: trendPercent(pipelineValue, prevPipelineValue),
             }
         };
     }
@@ -1536,31 +1548,38 @@ export class SalesService {
         const sources = ['OUTBOUND', 'REFERRAL', 'FACEBOOK', 'WEBSITE', 'RETURNING_CUSTOMER', 'OTHER'];
         const result = [];
 
+        // 1. Fetch leads info grouped by source
+        const leadsQuery = this.customerRepo.createQueryBuilder('c')
+            .select('c.lead_source', 'source')
+            .addSelect('COUNT(*)', 'total')
+            .addSelect(`SUM(CASE WHEN c.lead_status IN ('QUALIFIED', 'NEGOTIATION', 'WON', 'SAMPLE_APPROVED') THEN 1 ELSE 0 END)`, 'qualified')
+            .addSelect(`SUM(CASE WHEN c.lead_status = 'WON' THEN 1 ELSE 0 END)`, 'won')
+            .where('c.type = :type', { type: 'LEAD' })
+            .andWhere('c.created_at BETWEEN :start AND :end', { start, end });
+        if (assignedToId) leadsQuery.andWhere('c.assigned_to_id = :uid', { uid: assignedToId });
+        
+        const leadsResult = await leadsQuery.groupBy('c.lead_source').getRawMany();
+        
+        // 2. Fetch avg order value grouped by source
+        const avgQuery = this.orderRepo.createQueryBuilder('o')
+            .select('c.lead_source', 'source')
+            .addSelect('COALESCE(AVG(o.total_amount), 0)', 'avg')
+            .innerJoin('o.customer', 'c')
+            .where('o.status NOT IN (:...ex)', { ex: ['CANCELLED', 'QUOTATION'] })
+            .andWhere('o.order_date BETWEEN :start AND :end', { start, end });
+        if (assignedToId) avgQuery.andWhere('o.assigned_to_id = :uid', { uid: assignedToId });
+        
+        const avgResult = await avgQuery.groupBy('c.lead_source').getRawMany();
+        const avgMap = new Map(avgResult.map(r => [r.source, Number(r.avg)]));
+
         for (const source of sources) {
-            const baseQuery = () => {
-                const q = this.customerRepo.createQueryBuilder('c')
-                    .where('c.type = :type', { type: 'LEAD' })
-                    .andWhere('c.lead_source = :source', { source })
-                    .andWhere('c.created_at BETWEEN :start AND :end', { start, end });
-                if (assignedToId) q.andWhere('c.assigned_to_id = :uid', { uid: assignedToId });
-                return q;
-            };
-
-            const leads = await baseQuery().getCount();
-            const qualified = await baseQuery()
-                .andWhere('c.lead_status IN (:...s)', { s: ['QUALIFIED', 'NEGOTIATION', 'WON', 'SAMPLE_APPROVED'] })
-                .getCount();
-            const won = await baseQuery()
-                .andWhere('c.lead_status = :ws', { ws: 'WON' })
-                .getCount();
-
-            // Average order value for this source
-            const avgResult = await this.orderRepo.createQueryBuilder('o')
-                .select('COALESCE(AVG(o.total_amount), 0)', 'avg')
-                .innerJoin('o.customer', 'c')
-                .where('c.lead_source = :source', { source })
-                .andWhere('o.status NOT IN (:...ex)', { ex: ['CANCELLED', 'QUOTATION'] })
-                .getRawOne();
+            const lData = leadsResult.find(r => r.source === source) || { total: 0, qualified: 0, won: 0 };
+            const leads = Number(lData.total);
+            if (leads === 0) continue;
+            
+            const qualified = Number(lData.qualified);
+            const won = Number(lData.won);
+            const avgOrderValue = Math.round(avgMap.get(source) || 0);
 
             result.push({
                 source,
@@ -1569,12 +1588,12 @@ export class SalesService {
                 qualified,
                 unqualified: leads - qualified,
                 won,
-                winRate: leads > 0 ? Math.round((won / leads) * 100) : 0,
-                avgOrderValue: Math.round(Number(avgResult?.avg || 0)),
+                winRate: Math.round((won / leads) * 100),
+                avgOrderValue,
             });
         }
 
-        return result.filter(r => r.leads > 0);
+        return result;
     }
 
     private getSourceLabel(source: string): string {
@@ -1629,70 +1648,85 @@ export class SalesService {
     }
 
     private async calculateScorecardData(start: Date, end: Date) {
-        // Get all sales users (assigned_to in any order or lead)
+        // Get all sales users
         const users = await this.userRepo.find();
         const salesUsers = [];
 
-        for (const user of users) {
-            // Check if user has any leads or orders assigned
-            const leadCount = await this.customerRepo.count({
-                where: { assigned_to_id: user.id, type: 'LEAD' as any }
-            });
-            const orderCount = await this.orderRepo.count({
-                where: { assigned_to: { id: user.id } }
-            });
-            if (leadCount === 0 && orderCount === 0) continue;
+        // Pre-fetch all targets for the first month of the range
+        const year = start.getFullYear();
+        const month = start.getMonth() + 1;
+        const targets = await this.targetRepo.find({ where: { year, month } });
+        const targetMap = new Map(targets.map(t => [t.user_id, t]));
 
-            // Target
-            const year = start.getFullYear();
-            const month = start.getMonth() + 1;
-            const target = await this.targetRepo.findOne({
-                where: { user_id: user.id, year, month }
-            });
+        // Aggregate actual revenue by user
+        const revResult = await this.orderRepo.createQueryBuilder('o')
+            .select('o.assigned_to_id', 'uid')
+            .addSelect('COALESCE(SUM(o.total_amount), 0)', 'total')
+            .where('o.status NOT IN (:...s)', { s: ['QUOTATION', 'CANCELLED'] })
+            .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
+            .andWhere('o.assigned_to_id IS NOT NULL')
+            .groupBy('o.assigned_to_id')
+            .getRawMany();
+        const revMap = new Map(revResult.map(r => [r.uid, Number(r.total)]));
 
-            // Actual revenue
-            const revResult = await this.orderRepo.createQueryBuilder('o')
-                .select('COALESCE(SUM(o.total_amount), 0)', 'total')
-                .where('o.assigned_to_id = :uid', { uid: user.id })
-                .andWhere('o.status NOT IN (:...s)', { s: ['QUOTATION', 'CANCELLED'] })
-                .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
-                .getRawOne();
+        // Aggregate new leads by user
+        const newLeadsResult = await this.customerRepo.createQueryBuilder('c')
+            .select('c.assigned_to_id', 'uid')
+            .addSelect('COUNT(*)', 'count')
+            .where('c.type = :type', { type: 'LEAD' })
+            .andWhere('c.created_at BETWEEN :start AND :end', { start, end })
+            .andWhere('c.assigned_to_id IS NOT NULL')
+            .groupBy('c.assigned_to_id')
+            .getRawMany();
+        const newLeadsMap = new Map(newLeadsResult.map(r => [r.uid, Number(r.count)]));
 
-            // New leads in period
-            const newLeads = await this.customerRepo.createQueryBuilder('c')
-                .where('c.assigned_to_id = :uid', { uid: user.id })
-                .andWhere('c.type = :type', { type: 'LEAD' })
-                .andWhere('c.created_at BETWEEN :start AND :end', { start, end })
-                .getCount();
+        // Aggregate average days to close by user
+        const closedOrders = await this.orderRepo.createQueryBuilder('o')
+            .where('o.status = :s', { s: 'COMPLETED' })
+            .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
+            .andWhere('o.assigned_to_id IS NOT NULL')
+            .getMany();
+        const closedDaysMap = new Map<number, { totalDays: number, count: number }>();
+        for (const o of closedOrders) {
+            if (!o.assigned_to_id) continue;
+            const created = new Date(o.order_date).getTime();
+            const updated = new Date(o.updated_at).getTime();
+            const days = Math.floor((updated - created) / (1000 * 60 * 60 * 24));
+            const stat = closedDaysMap.get(o.assigned_to_id) || { totalDays: 0, count: 0 };
+            stat.totalDays += days;
+            stat.count += 1;
+            closedDaysMap.set(o.assigned_to_id, stat);
+        }
 
-            // Average days to close
-            const closedOrders = await this.orderRepo.createQueryBuilder('o')
-                .where('o.assigned_to_id = :uid', { uid: user.id })
-                .andWhere('o.status = :s', { s: 'COMPLETED' })
-                .andWhere('o.order_date BETWEEN :start AND :end', { start, end })
-                .getMany();
-            let avgDaysToClose = 0;
-            if (closedOrders.length > 0) {
-                const totalDays = closedOrders.reduce((sum, o) => {
-                    const created = new Date(o.order_date).getTime();
-                    const updated = new Date(o.updated_at).getTime();
-                    return sum + Math.floor((updated - created) / (1000 * 60 * 60 * 24));
-                }, 0);
-                avgDaysToClose = Math.round(totalDays / closedOrders.length);
+        // Aggregate activities by user
+        const allLeads = await this.customerRepo.find({ where: { type: 'LEAD' as any } });
+        const activitiesMap = new Map<number, number>();
+        for (const lead of allLeads) {
+            if (!lead.assigned_to_id) continue;
+            const h = lead.history || [];
+            const count = h.filter((entry: any) => {
+                const entryDate = new Date(entry.date);
+                return entryDate >= start && entryDate <= end;
+            }).length;
+            if (count > 0) {
+                activitiesMap.set(lead.assigned_to_id, (activitiesMap.get(lead.assigned_to_id) || 0) + count);
             }
+        }
 
-            // Activities (count of history entries from customer interactions)
-            const leadsWithHistory = await this.customerRepo.createQueryBuilder('c')
-                .where('c.assigned_to_id = :uid', { uid: user.id })
-                .andWhere('c.type = :type', { type: 'LEAD' })
-                .getMany();
-            const activities = leadsWithHistory.reduce((sum, lead) => {
-                const h = lead.history || [];
-                return sum + h.filter((entry: any) => {
-                    const entryDate = new Date(entry.date);
-                    return entryDate >= start && entryDate <= end;
-                }).length;
-            }, 0);
+        for (const user of users) {
+            const actualRevenue = revMap.get(user.id) || 0;
+            const newLeads = newLeadsMap.get(user.id) || 0;
+            const activities = activitiesMap.get(user.id) || 0;
+            
+            // Only include user if they have any activity, revenue, leads, or a target
+            const target = targetMap.get(user.id);
+            if (actualRevenue === 0 && newLeads === 0 && activities === 0 && !target) continue;
+
+            let avgDaysToClose = 0;
+            const closedStats = closedDaysMap.get(user.id);
+            if (closedStats && closedStats.count > 0) {
+                avgDaysToClose = Math.round(closedStats.totalDays / closedStats.count);
+            }
 
             salesUsers.push({
                 userId: user.id,
@@ -1700,7 +1734,7 @@ export class SalesService {
                 targetRevenue: Number(target?.target_revenue || 0),
                 targetLeads: target?.target_leads || 0,
                 targetActivities: target?.target_activities || 0,
-                actualRevenue: Number(revResult?.total || 0),
+                actualRevenue,
                 newLeads,
                 avgDaysToClose,
                 activities,
@@ -1878,37 +1912,32 @@ export class SalesService {
     private async calculateLostReasonData(start: Date, end: Date) {
         try {
             const sources = ['OUTBOUND', 'REFERRAL', 'FACEBOOK', 'WEBSITE', 'RETURNING_CUSTOMER', 'OTHER'];
+            
+            const stats = await this.customerRepo.createQueryBuilder('c')
+                .select('c.lead_source', 'source')
+                .addSelect(`SUM(CASE WHEN c.lead_status = 'LOST' THEN 1 ELSE 0 END)`, 'lostCount')
+                .addSelect(`SUM(CASE WHEN c.lead_status = 'LOST' THEN COALESCE(c.potential_value, 0) ELSE 0 END)`, 'lostValue')
+                .addSelect('COUNT(*)', 'totalCount')
+                .where('c.type = :type', { type: 'LEAD' })
+                .andWhere('c.updated_at BETWEEN :start AND :end', { start, end })
+                .groupBy('c.lead_source')
+                .getRawMany();
+
             const result = [];
-
             for (const source of sources) {
-                const lostQuery = this.customerRepo.createQueryBuilder('c')
-                    .where('c.type = :type', { type: 'LEAD' })
-                    .andWhere('c.lead_status = :status', { status: 'LOST' })
-                    .andWhere('c.lead_source = :source', { source })
-                    .andWhere('c.updated_at BETWEEN :start AND :end', { start, end });
-                const lostCount = await lostQuery.getCount();
+                const stat = stats.find(s => s.source === source);
+                if (!stat) continue;
 
-                const valueQuery = this.customerRepo.createQueryBuilder('c')
-                    .select('COALESCE(SUM(c.potential_value), 0)', 'total')
-                    .where('c.type = :type', { type: 'LEAD' })
-                    .andWhere('c.lead_status = :status', { status: 'LOST' })
-                    .andWhere('c.lead_source = :source', { source })
-                    .andWhere('c.updated_at BETWEEN :start AND :end', { start, end });
-                const valueResult = await valueQuery.getRawOne();
-
-                // Total leads from this source for win-rate comparison
-                const totalQuery = this.customerRepo.createQueryBuilder('c')
-                    .where('c.type = :type', { type: 'LEAD' })
-                    .andWhere('c.lead_source = :source', { source })
-                    .andWhere('c.created_at BETWEEN :start AND :end', { start, end });
-                const totalCount = await totalQuery.getCount();
+                const lostCount = Number(stat.lostCount || 0);
+                const lostValue = Number(stat.lostValue || 0);
+                const totalCount = Number(stat.totalCount || 0);
 
                 if (lostCount > 0) {
                     result.push({
                         source,
                         sourceLabel: this.getSourceLabel(source),
                         lostCount,
-                        lostValue: Number(valueResult?.total || 0),
+                        lostValue,
                         totalLeads: totalCount,
                         lostRate: totalCount > 0 ? Math.round((lostCount / totalCount) * 100) : 0,
                     });
@@ -1931,12 +1960,30 @@ export class SalesService {
                 .orderBy('o.order_date', 'ASC')
                 .getMany();
 
+            if (orders.length === 0) {
+                return {
+                    summary: { '0-30': { count: 0, total: 0 }, '31-60': { count: 0, total: 0 }, '61-90': { count: 0, total: 0 }, '>90': { count: 0, total: 0 } },
+                    details: []
+                };
+            }
+
+            const orderCodes = orders.map(o => o.order_code);
+            const payments = await this.transRepo.createQueryBuilder('t')
+                .select('t.reference_code', 'code')
+                .addSelect('SUM(t.amount)', 'total')
+                .where('t.reference_type = :type', { type: 'SALES' })
+                .andWhere('t.reference_code IN (:...codes)', { codes: orderCodes })
+                .groupBy('t.reference_code')
+                .getRawMany();
+            
+            const paidMap = new Map(payments.map(p => [p.code, Number(p.total)]));
+
             const now = new Date();
             const arData = [];
 
             for (const order of orders) {
-                const info = await this.calculatePaymentInfo(order.order_code);
-                const remaining = Number(order.total_amount) - info.paid_amount;
+                const paidAmount = paidMap.get(order.order_code) || 0;
+                const remaining = Number(order.total_amount) - paidAmount;
                 if (remaining <= 0) continue;
 
                 const orderDate = new Date(order.order_date);
@@ -1949,9 +1996,9 @@ export class SalesService {
 
                 arData.push({
                     orderCode: order.order_code,
-                    customerName: order.customer?.name || order.customer_name || 'N/A',
+                    customerName: order.customer?.name || 'Khách lẻ',
                     totalAmount: Number(order.total_amount),
-                    paidAmount: info.paid_amount,
+                    paidAmount: paidAmount,
                     remainingAmount: remaining,
                     daysPast,
                     agingBucket,
@@ -1983,45 +2030,55 @@ export class SalesService {
     private async calculateMonthlyTrendData() {
         try {
             const now = new Date();
-            const months = [];
+            const startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+            const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
+            const orders = await this.orderRepo.createQueryBuilder('o')
+                .select('o.order_date', 'date')
+                .addSelect('o.status', 'status')
+                .addSelect('o.total_amount', 'amount')
+                .where('o.order_date BETWEEN :start AND :end', { start: startDate, end: endDate })
+                .getRawMany();
+
+            const trans = await this.transRepo.createQueryBuilder('t')
+                .select('t.date', 'date')
+                .addSelect('t.amount', 'amount')
+                .where('t.reference_type = :type', { type: 'SALES' })
+                .andWhere('t.date BETWEEN :start AND :end', { start: startDate, end: endDate })
+                .getRawMany();
+
+            const months = [];
             for (let i = 11; i >= 0; i--) {
                 const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
                 const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
 
-                // Actual revenue (confirmed orders)
-                const actualResult = await this.orderRepo.createQueryBuilder('o')
-                    .select('COALESCE(SUM(o.total_amount), 0)', 'total')
-                    .where('o.status NOT IN (:...s)', { s: ['QUOTATION', 'CANCELLED'] })
-                    .andWhere('o.order_date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
-                    .getRawOne();
+                const monthOrders = orders.filter(o => {
+                    const d = new Date(o.date);
+                    return d >= monthStart && d <= monthEnd;
+                });
+                
+                const actualRevenue = monthOrders
+                    .filter(o => !['QUOTATION', 'CANCELLED'].includes(o.status))
+                    .reduce((sum, o) => sum + Number(o.amount || 0), 0);
+                    
+                const expectedRevenue = monthOrders
+                    .filter(o => o.status === 'QUOTATION')
+                    .reduce((sum, o) => sum + Number(o.amount || 0), 0);
 
-                // Quotation value (expected)
-                const expectedResult = await this.orderRepo.createQueryBuilder('o')
-                    .select('COALESCE(SUM(o.total_amount), 0)', 'total')
-                    .where('o.status = :status', { status: 'QUOTATION' })
-                    .andWhere('o.order_date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
-                    .getRawOne();
+                const orderCount = monthOrders
+                    .filter(o => !['QUOTATION', 'CANCELLED'].includes(o.status)).length;
 
-                // Paid amount
-                const paidResult = await this.transRepo.createQueryBuilder('t')
-                    .select('COALESCE(SUM(t.amount), 0)', 'total')
-                    .where('t.reference_type = :type', { type: 'SALES' })
-                    .andWhere('t.date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
-                    .getRawOne();
-
-                // Order count
-                const orderCount = await this.orderRepo.createQueryBuilder('o')
-                    .where('o.status NOT IN (:...s)', { s: ['QUOTATION', 'CANCELLED'] })
-                    .andWhere('o.order_date BETWEEN :start AND :end', { start: monthStart, end: monthEnd })
-                    .getCount();
+                const paidRevenue = trans.filter(t => {
+                    const d = new Date(t.date);
+                    return d >= monthStart && d <= monthEnd;
+                }).reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
                 months.push({
                     month: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`,
                     label: `T${monthStart.getMonth() + 1}/${String(monthStart.getFullYear()).slice(2)}`,
-                    actualRevenue: Number(actualResult?.total || 0),
-                    expectedRevenue: Number(expectedResult?.total || 0),
-                    paidRevenue: Number(paidResult?.total || 0),
+                    actualRevenue,
+                    expectedRevenue,
+                    paidRevenue,
                     orderCount,
                 });
             }
@@ -2057,27 +2114,28 @@ export class SalesService {
                 .limit(10)
                 .getRawMany();
 
-            // Get payment info for each customer
-            const enriched = [];
-            for (const r of results) {
-                const paidResult = await this.transRepo.createQueryBuilder('t')
-                    .select('COALESCE(SUM(t.amount), 0)', 'total')
-                    .innerJoin(SalesOrder, 'o', 't.reference_code = o.order_code')
-                    .where('t.reference_type = :type', { type: 'SALES' })
-                    .andWhere('o.customer_id = :cid', { cid: r.customerId })
-                    .andWhere('t.date BETWEEN :start AND :end', { start, end })
-                    .getRawOne();
+            if (results.length === 0) return [];
 
-                enriched.push({
-                    customerId: r.customerId,
-                    customerName: r.customerName,
-                    phone: r.phone || '',
-                    totalRevenue: Number(r.totalRevenue || 0),
-                    orderCount: Number(r.orderCount || 0),
-                    paidAmount: Number(paidResult?.total || 0),
-                });
-            }
-            return enriched;
+            const customerIds = results.map(r => r.customerId);
+            const paidQuery = this.transRepo.createQueryBuilder('t')
+                .select('o.customer_id', 'customerId')
+                .addSelect('COALESCE(SUM(t.amount), 0)', 'total')
+                .innerJoin(SalesOrder, 'o', 't.reference_code = o.order_code')
+                .where('t.reference_type = :type', { type: 'SALES' })
+                .andWhere('o.customer_id IN (:...cids)', { cids: customerIds })
+                .andWhere('t.date BETWEEN :start AND :end', { start, end })
+                .groupBy('o.customer_id');
+            const paidResults = await paidQuery.getRawMany();
+            const paidMap = new Map(paidResults.map(p => [p.customerId, Number(p.total)]));
+
+            return results.map(r => ({
+                customerId: r.customerId,
+                customerName: r.customerName,
+                phone: r.phone || '',
+                totalRevenue: Number(r.totalRevenue || 0),
+                orderCount: Number(r.orderCount || 0),
+                paidAmount: paidMap.get(r.customerId) || 0,
+            }));
         } catch (e) {
             console.error('Error calculating top customers:', e);
             return [];

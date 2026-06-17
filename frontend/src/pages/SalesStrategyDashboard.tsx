@@ -58,8 +58,6 @@ const SalesStrategyDashboard: React.FC = () => {
         return v.toLocaleString('vi-VN');
     };
 
-    const fmtFullVND = (v: number) => `${v.toLocaleString('vi-VN')}₫`;
-
     const statusLabel: Record<string, string> = {
         NEW: 'Mới',
         CONTACTED: 'Đã liên hệ',
@@ -567,14 +565,14 @@ const SalesStrategyDashboard: React.FC = () => {
             </div>
 
             <Spin spinning={loading}>
-                <KpiCards />
-                <HighValueLeads />
-                <LeadSourceFunnel />
-                <VelocityAlerts />
-                <KpiScorecard />
-                <RevenueForecast />
-                <LostDealAnalysis />
-                <TopProducts />
+                {KpiCards()}
+                {HighValueLeads()}
+                {LeadSourceFunnel()}
+                {VelocityAlerts()}
+                {KpiScorecard()}
+                {RevenueForecast()}
+                {LostDealAnalysis()}
+                {TopProducts()}
             </Spin>
         </div>
     );
