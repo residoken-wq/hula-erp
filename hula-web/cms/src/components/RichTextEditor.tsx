@@ -162,7 +162,10 @@ export default function RichTextEditor({
                             { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
                             { model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1' },
                             { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
-                            { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' }
+                            { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' },
+                            { model: 'heading4', view: 'h4', title: 'Heading 4', class: 'ck-heading_heading4' },
+                            { model: 'heading5', view: 'h5', title: 'Heading 5', class: 'ck-heading_heading5' },
+                            { model: 'heading6', view: 'h6', title: 'Heading 6', class: 'ck-heading_heading6' }
                         ]
                     },
                     image: {
@@ -446,9 +449,28 @@ export default function RichTextEditor({
                 .ck-content li {
                     margin-bottom: 0.25em !important;
                 }
-                .ck-content h2, .ck-content h3, .ck-content h4 {
+                .ck-content h1, .ck-content h2, .ck-content h3, .ck-content h4, .ck-content h5, .ck-content h6 {
                     margin-top: 1em !important;
                     margin-bottom: 0.5em !important;
+                }
+                .ck-content h1 { font-size: 1.75em !important; }
+                .ck-content h2 { font-size: 1.5em !important; }
+                .ck-content h3 { font-size: 1.25em !important; }
+                .ck-content h4 { font-size: 1.1em !important; }
+                .ck-content h5 { font-size: 1em !important; }
+                .ck-content h6 { font-size: 0.85em !important; }
+                .ck-content figure.image {
+                    margin-left: auto !important;
+                    margin-right: auto !important;
+                    text-align: center !important;
+                    display: block !important;
+                }
+                .ck-content figure.image img {
+                    margin: 0 auto !important;
+                    display: block !important;
+                }
+                .ck-content figure.image figcaption {
+                    text-align: center !important;
                 }
                 .ck-content p {
                     margin-bottom: 1em !important;
