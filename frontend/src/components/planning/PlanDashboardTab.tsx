@@ -149,7 +149,10 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                         </Col>
                     </Row>
                     {(() => {
-                        const grossProfitAfterVat = totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost - totalStockCost;
+                        // Doanh thu (totalRevenue) đã bao gồm VAT
+                        // Lợi nhuận gộp trước thuế GTGT = Doanh thu (gồm VAT) - Tổng chi phí
+                        const grossProfitBeforeVat = totalRevenue - estMaterialCost - estOutsourceCost - estLogisticsCost - totalStockCost;
+                        // Tính tổng tiền thuế GTGT từ các đơn hàng
                         const totalVatAmount = mrpData.plan_info.sales_orders.reduce((s: number, o: any) => {
                             const total = Number(o.total_amount || 0);
                             const shipping = Number(o.shipping_fee || 0);
@@ -158,8 +161,10 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                             const taxable = Math.max(0, (total - shipping) / (1 + vatRate / 100));
                             return s + (taxable * vatRate / 100);
                         }, 0);
-                        const grossProfitBeforeVat = grossProfitAfterVat - totalVatAmount;
-                        const grossProfitAfterCIT = grossProfitBeforeVat * 0.8;
+                        // Lợi nhuận gộp sau thuế GTGT = Trước thuế - Thuế GTGT
+                        const grossProfitAfterVat = grossProfitBeforeVat - totalVatAmount;
+                        // Lợi nhuận gộp sau thuế TNDN = Sau thuế GTGT * 80% (trừ 20% thuế TNDN)
+                        const grossProfitAfterCIT = grossProfitAfterVat * 0.8;
 
                         return (
                             <div style={{ marginTop: 25, display: 'flex', justifyContent: 'space-around', fontWeight: 'bold', fontSize: 14, background: '#fff', padding: '15px 0', borderRadius: 8, border: '1px solid #e8e8e8' }}>
