@@ -171,20 +171,22 @@ export class FinanceService {
         return { income, expense, balance: income - expense };
     }
 
-    // --- MỚI: PHÂN TÍCH LỢI NHUẬN SO ---
+    // --- PHÂN TÍCH LỢI NHUẬN SO (NÂNG CẤP: trả thêm chi tiết transactions) ---
     async getSOProfitList() {
-        // Lấy danh sách SO (bỏ QUOTATION, CANCELLED)
+        // Lấy danh sách SO (bỏ QUOTATION, CANCELLED) - load relation customer để fallback tên
         const sos = await this.orderRepo.find({
             where: { status: Not(In([SalesOrderStatus.QUOTATION, SalesOrderStatus.CANCELLED])) },
+            relations: ['customer', 'items', 'items.product'],
             order: { order_date: 'DESC' }
         });
 
-        // Lấy tất cả transaction
-        const transactions = await this.transRepo.find();
+        // Lấy tất cả transaction kèm category
+        const transactions = await this.transRepo.find({ relations: ['category'] });
 
         const results = sos.map(so => {
             let totalIncome = 0;
             let totalExpense = 0;
+            const relatedTransactions: any[] = [];
 
             for (const t of transactions) {
                 // Tính thu/chi cho SO này
@@ -199,8 +201,6 @@ export class FinanceService {
                 } 
                 // 2. Kiểm tra reference_code nếu chứa mã SO
                 else if (t.reference_code && t.reference_code.includes(so.order_code)) {
-                    // Nếu reference_code chứa nhiều SO (ví dụ: SO-001, SO-002) mà không có allocations
-                    // chia đều theo số lượng SO (mang tính tương đối)
                     const refs = t.reference_code.split(',').map(r => r.trim());
                     if (refs.includes(so.order_code)) {
                         allocatedAmount = Number(t.amount) / refs.length;
@@ -210,19 +210,64 @@ export class FinanceService {
                 if (allocatedAmount > 0) {
                     if (t.type === 'INCOME') totalIncome += allocatedAmount;
                     if (t.type === 'EXPENSE') totalExpense += allocatedAmount;
+
+                    // Collect chi tiết transaction
+                    relatedTransactions.push({
+                        id: t.id,
+                        date: t.date,
+                        type: t.type,
+                        amount: Number(t.amount),
+                        allocated_amount: allocatedAmount,
+                        description: t.description || '',
+                        partner_name: t.partner_name || '',
+                        reference_code: t.reference_code || '',
+                        category_name: t.category?.name || '',
+                        category_color: t.category?.color || '',
+                        vat_invoice_code: t.vat_invoice_code || '',
+                        vat_invoice_url: t.vat_invoice_url || '',
+                        is_accounting: t.is_accounting || false,
+                        accounting_note: t.accounting_note || '',
+                        created_at: t.created_at,
+                    });
                 }
             }
+
+            // Tính chi phí dự kiến từ BOM và hàng có sẵn
+            let expected_bom_cost = 0;
+            let expected_stock_cost = 0;
+            if (so.items && so.items.length > 0) {
+                so.items.forEach((item: any) => {
+                    const productCost = item.product ? Number(item.product.cost_price || 0) : 0;
+                    const bookedQty = Number(item.booked_quantity || 0);
+                    const totalQty = Number(item.quantity || 0);
+                    const productionQty = Math.max(0, totalQty - bookedQty);
+
+                    expected_stock_cost += bookedQty * productCost;
+                    expected_bom_cost += productionQty * productCost;
+                });
+            }
+
+            // Fix customer_name: fallback sang customer relation nếu customer_name null
+            const customerName = so.customer_name || (so.customer ? so.customer.name : '') || '';
+
+            const profit = totalIncome - totalExpense;
 
             return {
                 id: so.id,
                 order_code: so.order_code,
-                customer_name: so.customer_name,
+                customer_name: customerName,
                 status: so.status,
                 total_amount: Number(so.total_amount),
                 real_income: totalIncome,
                 real_expense: totalExpense,
-                profit: totalIncome - totalExpense,
-                margin: so.total_amount > 0 ? ((totalIncome - totalExpense) / so.total_amount) * 100 : 0
+                expected_bom_cost,
+                expected_stock_cost,
+                profit,
+                // Margin = Lợi nhuận / Thực thu × 100 (đổi theo yêu cầu)
+                margin: totalIncome > 0 ? (profit / totalIncome) * 100 : 0,
+                // Chi tiết transactions phân loại Thu/Chi
+                income_transactions: relatedTransactions.filter(t => t.type === 'INCOME'),
+                expense_transactions: relatedTransactions.filter(t => t.type === 'EXPENSE'),
             };
         });
 

@@ -4,14 +4,15 @@ import usePermission from '../hooks/usePermission';
 import {
     Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form,
     Input, Select, DatePicker, Tag, message, Popconfirm,
-    Radio, InputNumber, Space, Segmented, Divider
+    Radio, InputNumber, Space, Segmented, Divider, Tooltip, Typography, Descriptions, Badge
 } from 'antd';
 import { Pie, Column } from '@ant-design/plots';
 import {
     WalletOutlined, ArrowUpOutlined, ArrowDownOutlined,
     PlusOutlined, DeleteOutlined, BankOutlined,
     FileTextOutlined, PieChartOutlined, ReloadOutlined, EditOutlined, CloseOutlined, SearchOutlined,
-    LineChartOutlined
+    LineChartOutlined, EyeOutlined, DollarOutlined, SwapOutlined,
+    CheckCircleOutlined, InfoCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../utils/api';
@@ -67,6 +68,7 @@ const FinancePage: React.FC = () => {
     const [accountingTrans, setAccountingTrans] = useState<any>(null);
     const [formAccounting] = Form.useForm();
     const [soProfitData, setSoProfitData] = useState<any[]>([]);
+    const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -280,15 +282,82 @@ const FinancePage: React.FC = () => {
         { title: 'Số tiền', dataIndex: 'amount', align: 'right' as const, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
     ];
 
+    const soStatusMap: any = {
+        SO_PENDING: { color: 'blue', label: 'Chờ xác nhận' },
+        SAMPLE_APPROVED: { color: 'cyan', label: 'Duyệt mẫu' },
+        DEPOSITED: { color: 'gold', label: 'Đã cọc' },
+        IN_PRODUCTION: { color: 'orange', label: 'Đang SX' },
+        PLANNED: { color: 'purple', label: 'Đã lên KH' },
+        PARTIAL_DELIVERY: { color: 'geekblue', label: 'Giao 1 phần' },
+        DELIVERED: { color: 'lime', label: 'Đã giao' },
+        COMPLETED: { color: 'green', label: 'Hoàn thành' },
+    };
+
     const columnsSOProfit = [
-        { title: 'Mã SO', dataIndex: 'order_code', render: (t: any) => <b>{t}</b> },
-        { title: 'Khách hàng', dataIndex: 'customer_name' },
-        { title: 'Trạng thái', dataIndex: 'status', render: (t: any) => <Tag>{t}</Tag> },
-        { title: 'Tổng giá trị', dataIndex: 'total_amount', align: 'right' as const, render: (v: any) => <b>{Number(v).toLocaleString()}</b> },
-        { title: 'Thực thu', dataIndex: 'real_income', align: 'right' as const, render: (v: any) => <b style={{color:'green'}}>{Number(v).toLocaleString()}</b> },
-        { title: 'Thực chi', dataIndex: 'real_expense', align: 'right' as const, render: (v: any) => <b style={{color:'red'}}>{Number(v).toLocaleString()}</b> },
-        { title: 'Lợi nhuận', dataIndex: 'profit', align: 'right' as const, render: (v: any) => <b style={{color: v >= 0 ? 'green' : 'red'}}>{Number(v).toLocaleString()}</b> },
-        { title: 'Biên LN (%)', dataIndex: 'margin', align: 'right' as const, render: (v: any) => <b>{Number(v).toFixed(2)}%</b> },
+        { title: 'Mã SO', dataIndex: 'order_code', width: 130,
+            render: (t: any, r: any) => <a href={`/orders?order=${r.id}`} style={{ fontWeight: 700 }}>{t}</a>
+        },
+        { title: 'Khách hàng', dataIndex: 'customer_name', ellipsis: true,
+            render: (t: any) => t ? <span style={{ fontWeight: 500 }}>{t}</span> : <span style={{ color: '#bbb', fontStyle: 'italic' }}>Chưa có</span>
+        },
+        { title: 'Trạng thái', dataIndex: 'status', width: 120,
+            render: (t: any) => { const s = soStatusMap[t] || { color: 'default', label: t }; return <Tag color={s.color}>{s.label}</Tag>; }
+        },
+        { title: 'Giá trị ĐH', dataIndex: 'total_amount', align: 'right' as const, width: 130,
+            render: (v: any) => <span style={{ fontWeight: 600 }}>{Number(v).toLocaleString()}</span>
+        },
+        { title: <span style={{ color: '#389e0d' }}>Thực thu</span>, dataIndex: 'real_income', align: 'right' as const, width: 130,
+            render: (v: any) => <b style={{ color: '#389e0d' }}>{Number(v).toLocaleString()}</b>
+        },
+        { title: <span style={{ color: '#fa8c16' }}>Chi dự kiến</span>, dataIndex: 'expected_cost', align: 'right' as const, width: 130,
+            render: (_: any, r: any) => (
+                <div style={{ fontSize: 13, lineHeight: '1.2' }}>
+                    <Tooltip title="Chi phí sản xuất theo BOM">
+                        <div style={{ color: '#fa8c16' }}>BOM: {Number(r.expected_bom_cost || 0).toLocaleString()}</div>
+                    </Tooltip>
+                    <Tooltip title="Chi phí hàng có sẵn (lấy từ kho)">
+                        <div style={{ color: '#13c2c2', marginTop: 4 }}>Kho: {Number(r.expected_stock_cost || 0).toLocaleString()}</div>
+                    </Tooltip>
+                </div>
+            )
+        },
+        { title: <span style={{ color: '#cf1322' }}>Thực chi</span>, dataIndex: 'real_expense', align: 'right' as const, width: 130,
+            render: (v: any) => <b style={{ color: '#cf1322' }}>{Number(v).toLocaleString()}</b>
+        },
+        { title: 'Lợi nhuận', dataIndex: 'profit', align: 'right' as const, width: 130,
+            render: (v: any) => <b style={{ color: Number(v) >= 0 ? '#389e0d' : '#cf1322', fontSize: 14 }}>{Number(v).toLocaleString()}</b>
+        },
+        { title: <Tooltip title="Biên LN = Lợi nhuận / Thực thu × 100">Biên LN (%)</Tooltip>, dataIndex: 'margin', align: 'right' as const, width: 100,
+            render: (v: any, r: any) => {
+                const val = Number(v);
+                if (Number(r.real_income) === 0) return <span style={{ color: '#bbb' }}>N/A</span>;
+                return <b style={{ color: val >= 20 ? '#389e0d' : val >= 0 ? '#d48806' : '#cf1322' }}>{val.toFixed(1)}%</b>;
+            }
+        },
+    ];
+
+    // Columns cho bảng chi tiết Thu/Chi trong expandable row
+    const columnsTransDetail = [
+        { title: 'Ngày', dataIndex: 'date', width: 100, render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
+        { title: 'Mã GD', dataIndex: 'id', width: 70, render: (v: any) => <span style={{ color: '#888' }}>#{v}</span> },
+        { title: 'Diễn giải', dataIndex: 'description', ellipsis: true, render: (t: any) => t || <span style={{ color: '#bbb' }}>—</span> },
+        { title: 'Danh mục', dataIndex: 'category_name', width: 120,
+            render: (t: any, r: any) => t ? <Tag color={r.category_color || 'default'}>{t}</Tag> : <span style={{ color: '#bbb' }}>—</span>
+        },
+        { title: 'Đối tác', dataIndex: 'partner_name', width: 140, ellipsis: true },
+        { title: 'Tổng phiếu', dataIndex: 'amount', align: 'right' as const, width: 120,
+            render: (v: any) => <span style={{ color: '#888' }}>{Number(v).toLocaleString()}</span>
+        },
+        { title: 'Phân bổ SO', dataIndex: 'allocated_amount', align: 'right' as const, width: 120,
+            render: (v: any, r: any) => <b style={{ color: r.type === 'INCOME' ? '#389e0d' : '#cf1322' }}>{Number(v).toLocaleString()}</b>
+        },
+        { title: '', key: 'action', width: 50, align: 'center' as const,
+            render: (_: any, r: any) => (
+                <Tooltip title="Xem chi tiết phiếu">
+                    <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => setSelectedTransaction(r)} />
+                </Tooltip>
+            )
+        },
     ];
 
     const columnsCat = [
@@ -614,16 +683,158 @@ const FinancePage: React.FC = () => {
                         label: <span><LineChartOutlined /> Lợi Nhuận SO</span>,
                         children: (
                             <div style={{ padding: 10 }}>
-                                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
-                                    <Button type="primary" onClick={fetchSOProfit} icon={<ReloadOutlined />}>Tải lại dữ liệu</Button>
+                                {/* Summary Cards */}
+                                <Row gutter={16} style={{ marginBottom: 16 }}>
+                                    <Col span={6}>
+                                        <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%)', borderRadius: 10 }}>
+                                            <Statistic title={<span style={{ color: '#389e0d', fontWeight: 600, fontSize: 12 }}>Tổng Thực Thu</span>}
+                                                value={soProfitData.reduce((s, r) => s + Number(r.real_income || 0), 0)}
+                                                precision={0} valueStyle={{ color: '#389e0d', fontWeight: 'bold', fontSize: 20 }}
+                                                prefix={<ArrowUpOutlined />} />
+                                        </Card>
+                                    </Col>
+                                    <Col span={6}>
+                                        <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #fff1f0 0%, #ffa39e 100%)', borderRadius: 10 }}>
+                                            <Statistic title={<span style={{ color: '#cf1322', fontWeight: 600, fontSize: 12 }}>Tổng Thực Chi</span>}
+                                                value={soProfitData.reduce((s, r) => s + Number(r.real_expense || 0), 0)}
+                                                precision={0} valueStyle={{ color: '#cf1322', fontWeight: 'bold', fontSize: 20 }}
+                                                prefix={<ArrowDownOutlined />} />
+                                        </Card>
+                                    </Col>
+                                    <Col span={6}>
+                                        {(() => { const totalProfit = soProfitData.reduce((s, r) => s + Number(r.profit || 0), 0); return (
+                                        <Card size="small" bordered={false} style={{ background: totalProfit >= 0 ? 'linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)' : 'linear-gradient(135deg, #fff2e8 0%, #ffbb96 100%)', borderRadius: 10 }}>
+                                            <Statistic title={<span style={{ color: '#1890ff', fontWeight: 600, fontSize: 12 }}>Tổng Lợi Nhuận</span>}
+                                                value={totalProfit}
+                                                precision={0} valueStyle={{ color: totalProfit >= 0 ? '#1890ff' : '#cf1322', fontWeight: 'bold', fontSize: 20 }}
+                                                prefix={<WalletOutlined />} />
+                                        </Card>); })()}
+                                    </Col>
+                                    <Col span={6}>
+                                        <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #f9f0ff 0%, #d3adf7 100%)', borderRadius: 10 }}>
+                                            <Statistic title={<span style={{ color: '#722ed1', fontWeight: 600, fontSize: 12 }}>Số đơn hàng</span>}
+                                                value={soProfitData.length}
+                                                valueStyle={{ color: '#722ed1', fontWeight: 'bold', fontSize: 20 }}
+                                                suffix={<span style={{ fontSize: 14 }}>đơn</span>} />
+                                        </Card>
+                                    </Col>
+                                </Row>
+
+                                <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                                    <Button type="primary" onClick={fetchSOProfit} icon={<ReloadOutlined />} loading={loading}>Tải lại dữ liệu</Button>
                                 </div>
+
                                 <Table 
                                     dataSource={soProfitData} 
                                     columns={columnsSOProfit} 
                                     rowKey="id" 
                                     loading={loading}
-                                    pagination={pageSize >= 999999 ? false : { pageSize: pageSize, showSizeChanger: false }} 
+                                    pagination={pageSize >= 999999 ? false : { pageSize: pageSize, showSizeChanger: false }}
+                                    rowClassName={(r: any) => Number(r.profit) < 0 ? 'so-profit-loss-row' : ''}
+                                    expandable={{
+                                        expandedRowRender: (record: any) => {
+                                            const incomes = record.income_transactions || [];
+                                            const expenses = record.expense_transactions || [];
+                                            return (
+                                                <div style={{ padding: '8px 0' }}>
+                                                    {/* KHOẢN THU */}
+                                                    <div style={{ marginBottom: 16 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                                            <Badge status="success" />
+                                                            <span style={{ fontWeight: 700, color: '#389e0d', fontSize: 14 }}>KHOẢN THU</span>
+                                                            <Tag color="green">{incomes.length} phiếu</Tag>
+                                                            <span style={{ marginLeft: 'auto', fontWeight: 700, color: '#389e0d', fontSize: 15 }}>
+                                                                ∑ {Number(record.real_income).toLocaleString()} ₫
+                                                            </span>
+                                                        </div>
+                                                        {incomes.length > 0 ? (
+                                                            <Table
+                                                                dataSource={incomes}
+                                                                columns={columnsTransDetail}
+                                                                rowKey="id"
+                                                                size="small"
+                                                                pagination={false}
+                                                                style={{ background: '#f6ffed', borderRadius: 8 }}
+                                                            />
+                                                        ) : (
+                                                            <div style={{ padding: '12px 16px', background: '#fafafa', borderRadius: 8, color: '#bbb', fontStyle: 'italic' }}>Chưa có khoản thu nào</div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* KHOẢN CHI */}
+                                                    <div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                                            <Badge status="error" />
+                                                            <span style={{ fontWeight: 700, color: '#cf1322', fontSize: 14 }}>KHOẢN CHI</span>
+                                                            <Tag color="red">{expenses.length} phiếu</Tag>
+                                                            <span style={{ marginLeft: 'auto', fontWeight: 700, color: '#cf1322', fontSize: 15 }}>
+                                                                ∑ {Number(record.real_expense).toLocaleString()} ₫
+                                                            </span>
+                                                        </div>
+                                                        {expenses.length > 0 ? (
+                                                            <Table
+                                                                dataSource={expenses}
+                                                                columns={columnsTransDetail}
+                                                                rowKey="id"
+                                                                size="small"
+                                                                pagination={false}
+                                                                style={{ background: '#fff1f0', borderRadius: 8 }}
+                                                            />
+                                                        ) : (
+                                                            <div style={{ padding: '12px 16px', background: '#fafafa', borderRadius: 8, color: '#bbb', fontStyle: 'italic' }}>Chưa có khoản chi nào</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        },
+                                        rowExpandable: (record: any) => {
+                                            const inc = record.income_transactions?.length || 0;
+                                            const exp = record.expense_transactions?.length || 0;
+                                            return (inc + exp) > 0;
+                                        },
+                                    }}
+                                    summary={() => {
+                                        const totalIncome = soProfitData.reduce((s, r) => s + Number(r.real_income || 0), 0);
+                                        const totalExpense = soProfitData.reduce((s, r) => s + Number(r.real_expense || 0), 0);
+                                        const totalBomCost = soProfitData.reduce((s, r) => s + Number(r.expected_bom_cost || 0), 0);
+                                        const totalStockCost = soProfitData.reduce((s, r) => s + Number(r.expected_stock_cost || 0), 0);
+                                        const totalProfit = totalIncome - totalExpense;
+                                        const totalMargin = totalIncome > 0 ? (totalProfit / totalIncome) * 100 : 0;
+                                        return (
+                                            <Table.Summary fixed>
+                                                <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
+                                                    <Table.Summary.Cell index={0} colSpan={4}>
+                                                        <span style={{ fontSize: 14, fontWeight: 700 }}>TỔNG CỘNG ({soProfitData.length} đơn)</span>
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={1} align="right">
+                                                        <b style={{ color: '#389e0d', fontSize: 14 }}>{totalIncome.toLocaleString()}</b>
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={2} align="right">
+                                                        <div style={{ fontSize: 13, lineHeight: '1.2' }}>
+                                                            <div style={{ color: '#fa8c16' }}>{totalBomCost.toLocaleString()}</div>
+                                                            <div style={{ color: '#13c2c2', marginTop: 4 }}>{totalStockCost.toLocaleString()}</div>
+                                                        </div>
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={3} align="right">
+                                                        <b style={{ color: '#cf1322', fontSize: 14 }}>{totalExpense.toLocaleString()}</b>
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={4} align="right">
+                                                        <b style={{ color: totalProfit >= 0 ? '#389e0d' : '#cf1322', fontSize: 15 }}>{totalProfit.toLocaleString()}</b>
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={5} align="right">
+                                                        <b style={{ color: totalMargin >= 20 ? '#389e0d' : totalMargin >= 0 ? '#d48806' : '#cf1322' }}>{totalMargin.toFixed(1)}%</b>
+                                                    </Table.Summary.Cell>
+                                                </Table.Summary.Row>
+                                            </Table.Summary>
+                                        );
+                                    }}
                                 />
+
+                                {/* STYLE cho dòng lỗ */}
+                                <style>{`
+                                    .so-profit-loss-row { background: #fff2f0 !important; }
+                                    .so-profit-loss-row:hover > td { background: #ffedeb !important; }
+                                `}</style>
                             </div>
                         )
                     },
@@ -848,6 +1059,61 @@ const FinancePage: React.FC = () => {
 
                     <Button type="primary" htmlType="submit" block size="large">Lưu Phiếu</Button>
                 </Form>
+            </Modal>
+
+            {/* MODAL CHI TIẾT TRANSACTION (DEEPLINK) */}
+            <Modal
+                title={<span><FileTextOutlined style={{ marginRight: 8 }} />Chi tiết Phiếu {selectedTransaction?.type === 'INCOME' ? 'Thu' : 'Chi'} #{selectedTransaction?.id}</span>}
+                open={!!selectedTransaction}
+                onCancel={() => setSelectedTransaction(null)}
+                footer={[
+                    <Button key="close" onClick={() => setSelectedTransaction(null)}>Đóng</Button>,
+                ]}
+                width={640}
+            >
+                {selectedTransaction && (
+                    <div>
+                        <div style={{ textAlign: 'center', marginBottom: 16, padding: '16px 0', background: selectedTransaction.type === 'INCOME' ? '#f6ffed' : '#fff1f0', borderRadius: 8 }}>
+                            <Tag color={selectedTransaction.type === 'INCOME' ? 'green' : 'red'} style={{ fontSize: 14, padding: '4px 16px' }}>
+                                {selectedTransaction.type === 'INCOME' ? '📥 PHIẾU THU' : '📤 PHIẾU CHI'}
+                            </Tag>
+                            <div style={{ fontSize: 28, fontWeight: 800, color: selectedTransaction.type === 'INCOME' ? '#389e0d' : '#cf1322', marginTop: 8 }}>
+                                {Number(selectedTransaction.amount).toLocaleString()} ₫
+                            </div>
+                            {selectedTransaction.amount !== selectedTransaction.allocated_amount && (
+                                <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
+                                    Phân bổ cho SO này: <b style={{ color: selectedTransaction.type === 'INCOME' ? '#389e0d' : '#cf1322' }}>{Number(selectedTransaction.allocated_amount).toLocaleString()} ₫</b>
+                                </div>
+                            )}
+                        </div>
+                        <Descriptions bordered size="small" column={2} labelStyle={{ fontWeight: 600, background: '#fafafa', width: 140 }}>
+                            <Descriptions.Item label="Mã giao dịch" span={1}>#{selectedTransaction.id}</Descriptions.Item>
+                            <Descriptions.Item label="Ngày" span={1}>{dayjs(selectedTransaction.date).format('DD/MM/YYYY')}</Descriptions.Item>
+                            <Descriptions.Item label="Đối tác" span={2}>{selectedTransaction.partner_name || <span style={{ color: '#bbb' }}>—</span>}</Descriptions.Item>
+                            <Descriptions.Item label="Diễn giải" span={2}>{selectedTransaction.description || <span style={{ color: '#bbb' }}>—</span>}</Descriptions.Item>
+                            <Descriptions.Item label="Danh mục" span={1}>
+                                {selectedTransaction.category_name ? <Tag color={selectedTransaction.category_color || 'default'}>{selectedTransaction.category_name}</Tag> : '—'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Mã tham chiếu" span={1}>{selectedTransaction.reference_code || '—'}</Descriptions.Item>
+                            <Descriptions.Item label="Mã HĐ VAT" span={1}>
+                                {selectedTransaction.vat_invoice_code ? <b>{selectedTransaction.vat_invoice_code}</b> : <span style={{ color: '#bbb' }}>Chưa có</span>}
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Hạch toán" span={1}>
+                                {selectedTransaction.is_accounting
+                                    ? <Tag icon={<CheckCircleOutlined />} color="success">Đã hạch toán</Tag>
+                                    : <Tag icon={<InfoCircleOutlined />} color="default">Chưa HT</Tag>}
+                            </Descriptions.Item>
+                            {selectedTransaction.accounting_note && (
+                                <Descriptions.Item label="Ghi chú HT" span={2}>{selectedTransaction.accounting_note}</Descriptions.Item>
+                            )}
+                            {selectedTransaction.vat_invoice_url && (
+                                <Descriptions.Item label="File HĐ VAT" span={2}>
+                                    <a href={selectedTransaction.vat_invoice_url} target="_blank" rel="noreferrer">Xem file đính kèm</a>
+                                </Descriptions.Item>
+                            )}
+                        </Descriptions>
+                    </div>
+                )}
             </Modal>
         </div>
     );
