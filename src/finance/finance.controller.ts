@@ -28,8 +28,8 @@ export class FinanceController {
   
   @Get('so-profit')
   @RequirePermission('FINANCE', 'can_view')
-  getSOProfit() {
-    return this.s.getSOProfitList();
+  getSOProfit(@Query('month') month: string) {
+    return this.s.getSOProfitList(month);
   }
   // -----------------------------
 

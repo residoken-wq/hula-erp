@@ -6,6 +6,7 @@ import { TransactionCategory } from './transaction-category.entity';
 import { PurchasingService } from '../purchasing/purchasing.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
+import { ProductsService } from '../products/products.service';
 
 @Injectable()
 export class FinanceService {
@@ -15,6 +16,7 @@ export class FinanceService {
         @InjectRepository(SalesOrder) private orderRepo: Repository<SalesOrder>,
         @Inject(forwardRef(() => PurchasingService)) private purchasingService: PurchasingService,
         @Inject(forwardRef(() => SuppliersService)) private suppliersService: SuppliersService,
+        @Inject(forwardRef(() => ProductsService)) private productsService: ProductsService,
     ) { }
 
     // ... (Giữ nguyên các hàm Category) ...
@@ -172,16 +174,33 @@ export class FinanceService {
     }
 
     // --- PHÂN TÍCH LỢI NHUẬN SO (NÂNG CẤP: trả thêm chi tiết transactions) ---
-    async getSOProfitList() {
+    async getSOProfitList(month?: string) {
+        let whereCondition: any = { status: Not(In([SalesOrderStatus.QUOTATION, SalesOrderStatus.CANCELLED])) };
+        if (month) {
+            const [y, m] = month.split('-');
+            const start = new Date(Number(y), Number(m) - 1, 1);
+            const end = new Date(Number(y), Number(m), 0);
+            whereCondition.order_date = Between(start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
+        }
+
         // Lấy danh sách SO (bỏ QUOTATION, CANCELLED) - load relation customer để fallback tên
         const sos = await this.orderRepo.find({
-            where: { status: Not(In([SalesOrderStatus.QUOTATION, SalesOrderStatus.CANCELLED])) },
+            where: whereCondition,
             relations: ['customer', 'items', 'items.product'],
             order: { order_date: 'DESC' }
         });
 
         // Lấy tất cả transaction kèm category
         const transactions = await this.transRepo.find({ relations: ['category'] });
+
+        // Lấy Cost Breakdowns cho tất cả productIds
+        const productIds = new Set<number>();
+        sos.forEach(so => {
+            so.items?.forEach((item: any) => {
+                if (item.product?.id) productIds.add(item.product.id);
+            });
+        });
+        const costBreakdowns = await this.productsService.getCostBreakdowns(Array.from(productIds));
 
         const results = sos.map(so => {
             let totalIncome = 0;
@@ -211,6 +230,13 @@ export class FinanceService {
                     if (t.type === 'INCOME') totalIncome += allocatedAmount;
                     if (t.type === 'EXPENSE') totalExpense += allocatedAmount;
 
+                    // Phân loại expense group
+                    const catName = (t.category?.name || '').toLowerCase();
+                    let expenseGroup = 'OTHER';
+                    if (catName.includes('npl') || catName.includes('nguyên') || catName.includes('vật liệu')) expenseGroup = 'NPL';
+                    else if (catName.includes('gia công')) expenseGroup = 'ROUTING';
+                    else if (catName.includes('vận chuyển') || catName.includes('logistic')) expenseGroup = 'LOGISTIC';
+
                     // Collect chi tiết transaction
                     relatedTransactions.push({
                         id: t.id,
@@ -228,29 +254,45 @@ export class FinanceService {
                         is_accounting: t.is_accounting || false,
                         accounting_note: t.accounting_note || '',
                         created_at: t.created_at,
+                        expense_group: expenseGroup, // NPL, ROUTING, LOGISTIC, OTHER
                     });
                 }
             }
 
-            // Tính chi phí dự kiến từ BOM và hàng có sẵn
-            let expected_bom_cost = 0;
-            let expected_stock_cost = 0;
+            // Tính chi phí dự kiến từ BOM, Routing, Logistics và hàng có sẵn
+            let expected_bom_cost = 0; // NPL
+            let expected_routing_cost = 0; // Gia công
+            let expected_logistic_cost = 0; // Vận chuyển
+            let expected_stock_cost = 0; // Hàng có sẵn
+
             if (so.items && so.items.length > 0) {
                 so.items.forEach((item: any) => {
-                    const productCost = item.product ? Number(item.product.cost_price || 0) : 0;
+                    const productId = item.product?.id;
+                    const productCost = productId ? Number(item.product.cost_price || 0) : 0;
                     const bookedQty = Number(item.booked_quantity || 0);
                     const totalQty = Number(item.quantity || 0);
                     const productionQty = Math.max(0, totalQty - bookedQty);
 
                     expected_stock_cost += bookedQty * productCost;
-                    expected_bom_cost += productionQty * productCost;
+
+                    if (productId && costBreakdowns[productId]) {
+                        const bd = costBreakdowns[productId];
+                        expected_bom_cost += productionQty * (bd.boms + bd.components);
+                        expected_routing_cost += productionQty * bd.routings;
+                        expected_logistic_cost += productionQty * bd.logistics;
+                    } else {
+                        expected_bom_cost += productionQty * productCost;
+                    }
                 });
             }
+
+            const totalExpectedCost = expected_bom_cost + expected_routing_cost + expected_logistic_cost + expected_stock_cost;
+            const expectedProfit = Number(so.total_amount) - totalExpectedCost;
 
             // Fix customer_name: fallback sang customer relation nếu customer_name null
             const customerName = so.customer_name || (so.customer ? so.customer.name : '') || '';
 
-            const profit = totalIncome - totalExpense;
+            const profit = totalIncome - totalExpense - expected_stock_cost;
 
             return {
                 id: so.id,
@@ -261,7 +303,10 @@ export class FinanceService {
                 real_income: totalIncome,
                 real_expense: totalExpense,
                 expected_bom_cost,
+                expected_routing_cost,
+                expected_logistic_cost,
                 expected_stock_cost,
+                expected_profit: expectedProfit,
                 profit,
                 // Margin = Lợi nhuận / Thực thu × 100 (đổi theo yêu cầu)
                 margin: totalIncome > 0 ? (profit / totalIncome) * 100 : 0,

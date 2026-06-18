@@ -13,6 +13,7 @@ import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { SuppliersModule } from '../suppliers/suppliers.module';
 import { SystemModule } from '../system/system.module';
 import { AuthModule } from '../auth/auth.module';
+import { ProductsModule } from '../products/products.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AuthModule } from '../auth/auth.module';
     forwardRef(() => PurchasingModule),
     forwardRef(() => SuppliersModule),
     forwardRef(() => SystemModule), // For CashFlowService to access config
+    forwardRef(() => ProductsModule),
     AuthModule,
   ],
   controllers: [FinanceController, CashFlowController],

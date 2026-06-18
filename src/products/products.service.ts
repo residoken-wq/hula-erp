@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Inject, forwardRef, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DeepPartial } from 'typeorm';
+import { Repository, DeepPartial, In } from 'typeorm';
 import { Product } from './product.entity';
 import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from './product-component.entity';
@@ -608,6 +608,51 @@ export class ProductsService {
         await this.productRepo.save(product);
 
         return { sku, new_cost_price: totalCost, new_base_price: sellingPrice, margin_used: margin };
+    }
+
+    async getCostBreakdowns(productIds: number[]): Promise<Record<number, { boms: number, routings: number, logistics: number, components: number }>> {
+        if (!productIds || productIds.length === 0) return {};
+        
+        const result: Record<number, { boms: number, routings: number, logistics: number, components: number }> = {};
+        for (const id of productIds) {
+            result[id] = { boms: 0, routings: 0, logistics: 0, components: 0 };
+        }
+
+        // 1. BOM (Direct Materials)
+        const boms = await this.bomRepo.find({ where: { product_id: In(productIds) }, relations: ['material'] });
+        for (const item of boms) {
+            if (item.material) {
+                const waste = Number(item.waste_percent || 0) / 100;
+                const materialCost = Number(item.material.cost_price || item.material.cost_per_unit || 0);
+                result[item.product_id].boms += materialCost * Number(item.quantity || 0) * (1 + waste);
+            }
+        }
+
+        // 2. Routings
+        const routings = await this.routingRepo.find({ where: { product_id: In(productIds), is_required: true } });
+        for (const r of routings) {
+            result[r.product_id].routings += Number(r.cost || 0);
+        }
+
+        // 3. Logistics
+        const logistics = await this.logisticRepo.find({ where: { product_id: In(productIds) } });
+        for (const l of logistics) {
+            result[l.product_id].logistics += Number(l.cost || 0);
+        }
+
+        // 4. Components (Combo)
+        const components = await this.componentRepo.find({
+            where: { parent_product: { id: In(productIds) } },
+            relations: ['child_product', 'parent_product']
+        });
+        for (const c of components) {
+             const parentId = c.parent_product?.id;
+             if (parentId && c.child_product) {
+                 result[parentId].components += Number(c.child_product.cost_price || 0) * Number(c.quantity || 0);
+             }
+        }
+
+        return result;
     }
 
     async updatePricesByCategory(categoryId: number, newMargin: number) {

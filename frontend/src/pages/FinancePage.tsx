@@ -4,7 +4,7 @@ import usePermission from '../hooks/usePermission';
 import {
     Card, Row, Col, Statistic, Table, Button, Tabs, Modal, Form,
     Input, Select, DatePicker, Tag, message, Popconfirm,
-    Radio, InputNumber, Space, Segmented, Divider, Tooltip, Typography, Descriptions, Badge
+    Radio, InputNumber, Space, Segmented, Divider, Tooltip, Typography, Descriptions, Badge, Collapse
 } from 'antd';
 import { Pie, Column } from '@ant-design/plots';
 import {
@@ -108,7 +108,8 @@ const FinancePage: React.FC = () => {
     const fetchSOProfit = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/finance/so-profit');
+            const monthStr = filterMonth ? filterMonth.format('YYYY-MM') : '';
+            const res = await api.get(`/finance/so-profit?month=${monthStr}`);
             setSoProfitData(Array.isArray(res.data) ? res.data : []);
         } catch(e) { message.error('Lỗi tải lợi nhuận SO'); }
         setLoading(false);
@@ -116,7 +117,7 @@ const FinancePage: React.FC = () => {
 
     useEffect(() => { fetchData(); }, [filterMonth]);
     useEffect(() => { if (activeTab === 'REPORT') fetchReport(); }, [activeTab, reportType, reportFilter]);
-    useEffect(() => { if (activeTab === 'SO_PROFIT') fetchSOProfit(); }, [activeTab]);
+    useEffect(() => { if (activeTab === 'SO_PROFIT') fetchSOProfit(); }, [activeTab, filterMonth]);
 
     // --- ACTIONS ---
     const handleSaveTrans = async (values: any) => {
@@ -297,7 +298,7 @@ const FinancePage: React.FC = () => {
         { title: 'Mã SO', dataIndex: 'order_code', width: 130,
             render: (t: any, r: any) => <a href={`/orders?order=${r.id}`} style={{ fontWeight: 700 }}>{t}</a>
         },
-        { title: 'Khách hàng', dataIndex: 'customer_name', ellipsis: true,
+        { title: 'Khách hàng', dataIndex: 'customer_name', width: 220, ellipsis: true,
             render: (t: any) => t ? <span style={{ fontWeight: 500 }}>{t}</span> : <span style={{ color: '#bbb', fontStyle: 'italic' }}>Chưa có</span>
         },
         { title: 'Trạng thái', dataIndex: 'status', width: 120,
@@ -309,22 +310,31 @@ const FinancePage: React.FC = () => {
         { title: <span style={{ color: '#389e0d' }}>Thực thu</span>, dataIndex: 'real_income', align: 'right' as const, width: 130,
             render: (v: any) => <b style={{ color: '#389e0d' }}>{Number(v).toLocaleString()}</b>
         },
-        { title: <span style={{ color: '#fa8c16' }}>Chi dự kiến</span>, dataIndex: 'expected_cost', align: 'right' as const, width: 130,
-            render: (_: any, r: any) => (
-                <div style={{ fontSize: 13, lineHeight: '1.2' }}>
-                    <Tooltip title="Chi phí sản xuất theo BOM">
-                        <div style={{ color: '#fa8c16' }}>BOM: {Number(r.expected_bom_cost || 0).toLocaleString()}</div>
+        { title: <span style={{ color: '#fa8c16' }}>Tổng Chi Dự Kiến</span>, dataIndex: 'expected_cost', align: 'right' as const, width: 140,
+            render: (_: any, r: any) => {
+                const total = Number(r.expected_bom_cost||0) + Number(r.expected_stock_cost||0) + Number(r.expected_routing_cost||0) + Number(r.expected_logistic_cost||0);
+                return (
+                    <Tooltip color="#fff" title={
+                        <div style={{ color: '#333', fontSize: 13, minWidth: 150 }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: 4 }}>Chi tiết dự kiến:</div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#888' }}>- NPL:</span> <b style={{ color: '#fa8c16' }}>{Number(r.expected_bom_cost || 0).toLocaleString()}</b></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#888' }}>- Hàng có sẵn:</span> <b style={{ color: '#fa8c16' }}>{Number(r.expected_stock_cost || 0).toLocaleString()}</b></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#888' }}>- Gia công:</span> <b style={{ color: '#fa8c16' }}>{Number(r.expected_routing_cost || 0).toLocaleString()}</b></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#888' }}>- Logistics:</span> <b style={{ color: '#fa8c16' }}>{Number(r.expected_logistic_cost || 0).toLocaleString()}</b></div>
+                        </div>
+                    }>
+                        <b style={{ color: '#fa8c16', cursor: 'help' }}>{total.toLocaleString()}</b>
                     </Tooltip>
-                    <Tooltip title="Chi phí hàng có sẵn (lấy từ kho)">
-                        <div style={{ color: '#13c2c2', marginTop: 4 }}>Kho: {Number(r.expected_stock_cost || 0).toLocaleString()}</div>
-                    </Tooltip>
-                </div>
-            )
+                );
+            }
         },
         { title: <span style={{ color: '#cf1322' }}>Thực chi</span>, dataIndex: 'real_expense', align: 'right' as const, width: 130,
             render: (v: any) => <b style={{ color: '#cf1322' }}>{Number(v).toLocaleString()}</b>
         },
-        { title: 'Lợi nhuận', dataIndex: 'profit', align: 'right' as const, width: 130,
+        { title: 'LN Dự kiến', dataIndex: 'expected_profit', align: 'right' as const, width: 120,
+            render: (v: any) => <b style={{ color: Number(v) >= 0 ? '#389e0d' : '#cf1322', fontSize: 14 }}>{Number(v).toLocaleString()}</b>
+        },
+        { title: 'LN Thực tế', dataIndex: 'profit', align: 'right' as const, width: 120,
             render: (v: any) => <b style={{ color: Number(v) >= 0 ? '#389e0d' : '#cf1322', fontSize: 14 }}>{Number(v).toLocaleString()}</b>
         },
         { title: <Tooltip title="Biên LN = Lợi nhuận / Thực thu × 100">Biên LN (%)</Tooltip>, dataIndex: 'margin', align: 'right' as const, width: 100,
@@ -761,28 +771,66 @@ const FinancePage: React.FC = () => {
                                                         )}
                                                     </div>
 
-                                                    {/* KHOẢN CHI */}
+                                                    {/* KHOẢN CHI (PHÂN TÍCH CHI PHÍ) */}
                                                     <div>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                                                             <Badge status="error" />
-                                                            <span style={{ fontWeight: 700, color: '#cf1322', fontSize: 14 }}>KHOẢN CHI</span>
+                                                            <span style={{ fontWeight: 700, color: '#cf1322', fontSize: 14 }}>PHÂN TÍCH CHI PHÍ</span>
                                                             <Tag color="red">{expenses.length} phiếu</Tag>
                                                             <span style={{ marginLeft: 'auto', fontWeight: 700, color: '#cf1322', fontSize: 15 }}>
-                                                                ∑ {Number(record.real_expense).toLocaleString()} ₫
+                                                                Thực chi: {Number(record.real_expense).toLocaleString()} ₫
                                                             </span>
                                                         </div>
-                                                        {expenses.length > 0 ? (
-                                                            <Table
-                                                                dataSource={expenses}
-                                                                columns={columnsTransDetail}
-                                                                rowKey="id"
-                                                                size="small"
-                                                                pagination={false}
-                                                                style={{ background: '#fff1f0', borderRadius: 8 }}
-                                                            />
-                                                        ) : (
-                                                            <div style={{ padding: '12px 16px', background: '#fafafa', borderRadius: 8, color: '#bbb', fontStyle: 'italic' }}>Chưa có khoản chi nào</div>
-                                                        )}
+
+                                                        <Collapse defaultActiveKey={['1', '2', '3', '4', '5']} bordered={false} style={{ background: '#fff1f0', borderRadius: 8 }}>
+                                                            <Collapse.Panel header={
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', paddingRight: 16 }}>
+                                                                    <b style={{ color: '#cf1322' }}>1. CP Mua Nguyên Vật Liệu (NPL)</b>
+                                                                    <span style={{ color: '#cf1322', fontSize: 13 }}>Dự kiến: <b style={{ color: '#fa8c16' }}>{Number(record.expected_bom_cost).toLocaleString()}</b></span>
+                                                                </div>
+                                                            } key="1" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                                                                {expenses.filter((e:any) => e.expense_group === 'NPL').length > 0 ? (
+                                                                    <Table dataSource={expenses.filter((e:any) => e.expense_group === 'NPL')} columns={columnsTransDetail} rowKey="id" size="small" pagination={false} />
+                                                                ) : <div style={{ color: '#bbb', fontStyle: 'italic', paddingLeft: 16 }}>Chưa có phiếu chi NPL</div>}
+                                                            </Collapse.Panel>
+
+                                                            <Collapse.Panel header={
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', paddingRight: 16 }}>
+                                                                    <b style={{ color: '#cf1322' }}>2. CP Hàng Có Sẵn</b>
+                                                                    <span style={{ color: '#cf1322', fontSize: 13 }}>Dự kiến: <b style={{ color: '#fa8c16' }}>{Number(record.expected_stock_cost).toLocaleString()}</b></span>
+                                                                </div>
+                                                            } key="2" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                                                                <div style={{ color: '#888', fontStyle: 'italic', padding: '0 16px' }}>Chi phí này tính từ hàng có sẵn trong kho, không phát sinh phiếu chi mới.</div>
+                                                            </Collapse.Panel>
+
+                                                            <Collapse.Panel header={
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', paddingRight: 16 }}>
+                                                                    <b style={{ color: '#cf1322' }}>3. CP Gia Công</b>
+                                                                    <span style={{ color: '#cf1322', fontSize: 13 }}>Dự kiến: <b style={{ color: '#fa8c16' }}>{Number(record.expected_routing_cost).toLocaleString()}</b></span>
+                                                                </div>
+                                                            } key="3" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                                                                {expenses.filter((e:any) => e.expense_group === 'ROUTING').length > 0 ? (
+                                                                    <Table dataSource={expenses.filter((e:any) => e.expense_group === 'ROUTING')} columns={columnsTransDetail} rowKey="id" size="small" pagination={false} />
+                                                                ) : <div style={{ color: '#bbb', fontStyle: 'italic', paddingLeft: 16 }}>Chưa có phiếu chi Gia công</div>}
+                                                            </Collapse.Panel>
+
+                                                            <Collapse.Panel header={
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', paddingRight: 16 }}>
+                                                                    <b style={{ color: '#cf1322' }}>4. CP Logistics</b>
+                                                                    <span style={{ color: '#cf1322', fontSize: 13 }}>Dự kiến: <b style={{ color: '#fa8c16' }}>{Number(record.expected_logistic_cost).toLocaleString()}</b></span>
+                                                                </div>
+                                                            } key="4" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                                                                {expenses.filter((e:any) => e.expense_group === 'LOGISTIC').length > 0 ? (
+                                                                    <Table dataSource={expenses.filter((e:any) => e.expense_group === 'LOGISTIC')} columns={columnsTransDetail} rowKey="id" size="small" pagination={false} />
+                                                                ) : <div style={{ color: '#bbb', fontStyle: 'italic', paddingLeft: 16 }}>Chưa có phiếu chi Vận chuyển</div>}
+                                                            </Collapse.Panel>
+
+                                                            <Collapse.Panel header={<b style={{ color: '#cf1322' }}>5. CP Khác</b>} key="5">
+                                                                {expenses.filter((e:any) => e.expense_group === 'OTHER').length > 0 ? (
+                                                                    <Table dataSource={expenses.filter((e:any) => e.expense_group === 'OTHER')} columns={columnsTransDetail} rowKey="id" size="small" pagination={false} />
+                                                                ) : <div style={{ color: '#bbb', fontStyle: 'italic', paddingLeft: 16 }}>Chưa có phiếu chi Khác</div>}
+                                                            </Collapse.Panel>
+                                                        </Collapse>
                                                     </div>
                                                 </div>
                                             );
@@ -798,7 +846,12 @@ const FinancePage: React.FC = () => {
                                         const totalExpense = soProfitData.reduce((s, r) => s + Number(r.real_expense || 0), 0);
                                         const totalBomCost = soProfitData.reduce((s, r) => s + Number(r.expected_bom_cost || 0), 0);
                                         const totalStockCost = soProfitData.reduce((s, r) => s + Number(r.expected_stock_cost || 0), 0);
-                                        const totalProfit = totalIncome - totalExpense;
+                                        const totalRoutingCost = soProfitData.reduce((s, r) => s + Number(r.expected_routing_cost || 0), 0);
+                                        const totalLogisticCost = soProfitData.reduce((s, r) => s + Number(r.expected_logistic_cost || 0), 0);
+                                        const totalExpected = totalBomCost + totalStockCost + totalRoutingCost + totalLogisticCost;
+                                        
+                                        const totalExpectedProfit = soProfitData.reduce((s, r) => s + Number(r.expected_profit || 0), 0);
+                                        const totalProfit = totalIncome - totalExpense - totalStockCost;
                                         const totalMargin = totalIncome > 0 ? (totalProfit / totalIncome) * 100 : 0;
                                         return (
                                             <Table.Summary fixed>
@@ -810,18 +863,27 @@ const FinancePage: React.FC = () => {
                                                         <b style={{ color: '#389e0d', fontSize: 14 }}>{totalIncome.toLocaleString()}</b>
                                                     </Table.Summary.Cell>
                                                     <Table.Summary.Cell index={2} align="right">
-                                                        <div style={{ fontSize: 13, lineHeight: '1.2' }}>
-                                                            <div style={{ color: '#fa8c16' }}>{totalBomCost.toLocaleString()}</div>
-                                                            <div style={{ color: '#13c2c2', marginTop: 4 }}>{totalStockCost.toLocaleString()}</div>
-                                                        </div>
+                                                        <Tooltip color="#fff" title={
+                                                            <div style={{ color: '#333', fontSize: 12 }}>
+                                                                <div style={{ color: '#888' }}>- NPL: <b style={{ color: '#fa8c16' }}>{totalBomCost.toLocaleString()}</b></div>
+                                                                <div style={{ color: '#888' }}>- Hàng có sẵn: <b style={{ color: '#fa8c16' }}>{totalStockCost.toLocaleString()}</b></div>
+                                                                <div style={{ color: '#888' }}>- Gia công: <b style={{ color: '#fa8c16' }}>{totalRoutingCost.toLocaleString()}</b></div>
+                                                                <div style={{ color: '#888' }}>- Vận chuyển: <b style={{ color: '#fa8c16' }}>{totalLogisticCost.toLocaleString()}</b></div>
+                                                            </div>
+                                                        }>
+                                                            <b style={{ color: '#fa8c16', fontSize: 14 }}>{totalExpected.toLocaleString()}</b>
+                                                        </Tooltip>
                                                     </Table.Summary.Cell>
                                                     <Table.Summary.Cell index={3} align="right">
                                                         <b style={{ color: '#cf1322', fontSize: 14 }}>{totalExpense.toLocaleString()}</b>
                                                     </Table.Summary.Cell>
                                                     <Table.Summary.Cell index={4} align="right">
-                                                        <b style={{ color: totalProfit >= 0 ? '#389e0d' : '#cf1322', fontSize: 15 }}>{totalProfit.toLocaleString()}</b>
+                                                        <b style={{ color: totalExpectedProfit >= 0 ? '#389e0d' : '#cf1322', fontSize: 14 }}>{totalExpectedProfit.toLocaleString()}</b>
                                                     </Table.Summary.Cell>
                                                     <Table.Summary.Cell index={5} align="right">
+                                                        <b style={{ color: totalProfit >= 0 ? '#389e0d' : '#cf1322', fontSize: 15 }}>{totalProfit.toLocaleString()}</b>
+                                                    </Table.Summary.Cell>
+                                                    <Table.Summary.Cell index={6} align="right">
                                                         <b style={{ color: totalMargin >= 20 ? '#389e0d' : totalMargin >= 0 ? '#d48806' : '#cf1322' }}>{totalMargin.toFixed(1)}%</b>
                                                     </Table.Summary.Cell>
                                                 </Table.Summary.Row>
