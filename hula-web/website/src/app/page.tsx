@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Script from 'next/script';
 import { getProducts, getBlogs, getHomeConfig, getSettings, getProjects } from '@/lib/api';
 import { resolveImageUrl } from '@/lib/utils';
 import HeroCarousel from '@/components/HeroCarousel';
@@ -107,6 +108,44 @@ export default async function HomePage() {
 
     return (
         <>
+            {/* Google Ads Conversion Script for Đặt hàng online */}
+            <Script id="google-ads-conversion" strategy="afterInteractive">
+                {`
+                    window.gtag_report_conversion = function(url) {
+                        var callback = function () {
+                            if (typeof(url) != 'undefined') {
+                                window.location = url;
+                            }
+                        };
+                        gtag('event', 'conversion', {
+                            'send_to': 'AW-651925751/du25CJ7s88wBEPex7rYC',
+                            'transaction_id': '',
+                            'event_callback': callback
+                        });
+                        return false;
+                    };
+
+                    // Auto-track clicks on links/buttons that have text indicating "Đặt hàng"
+                    if (typeof window !== 'undefined') {
+                        document.addEventListener('click', function(e) {
+                            var target = e.target.closest('a, button');
+                            if (target) {
+                                var text = (target.textContent || '').trim().toLowerCase();
+                                var href = target.getAttribute('href');
+                                if (text.includes('đặt hàng') || text.includes('mua ngay') || (href && href.includes('/dat-hang-si'))) {
+                                    if (href) {
+                                        e.preventDefault();
+                                        window.gtag_report_conversion(href);
+                                    } else {
+                                        window.gtag_report_conversion();
+                                    }
+                                }
+                            }
+                        });
+                    }
+                `}
+            </Script>
+
             {/* ============================================
                 SECTION 1 — HERO BANNER + USP BAR
                ============================================ */}
