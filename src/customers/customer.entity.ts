@@ -96,6 +96,12 @@ export class Customer {
   email: string;
 
   @Column({ nullable: true })
+  facebook: string;
+
+  @Column({ nullable: true })
+  website: string;
+
+  @Column({ nullable: true })
   address: string;
 
   @Column({ nullable: true })

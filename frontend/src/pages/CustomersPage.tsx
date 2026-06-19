@@ -246,6 +246,10 @@ const CustomersPage: React.FC = () => {
                                         <Col span={16}><Form.Item name="name" label="Tên Khách Hàng" rules={[{ required: true }]}><Input /></Form.Item></Col>
                                     </Row>
                                     <Row gutter={16}><Col span={12}><Form.Item name="phone" label="SĐT"><Input /></Form.Item></Col><Col span={12}><Form.Item name="email" label="Email"><Input /></Form.Item></Col></Row>
+                                    <Row gutter={16}>
+                                        <Col span={12}><Form.Item name="facebook" label="Facebook"><Input placeholder="Link Facebook" /></Form.Item></Col>
+                                        <Col span={12}><Form.Item name="website" label="Website"><Input placeholder="Link Website" /></Form.Item></Col>
+                                    </Row>
                                     <Form.Item name="address" label="Địa Chỉ (Trụ sở chính)"><Input /></Form.Item>
                                     <Row gutter={16}>
                                         <Col span={12}><Form.Item name="province" label="Tỉnh/Thành phố"><Input placeholder="VD: Hà Nội, TP.HCM..." /></Form.Item></Col>

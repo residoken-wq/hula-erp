@@ -253,12 +253,12 @@ export class CustomersService {
         if (!customer) throw new NotFoundException('Khách hàng không tồn tại');
 
         const comment = this.commentRepo.create({
-            customer_id: customerId,
+            customer: customer,
             content,
             sender_type: senderType,
             sender_name: senderName,
             comment_type: (commentType as any) || 'CUSTOMER',
-            mentioned_user_ids: mentionedUserIds || null
+            mentioned_user_ids: mentionedUserIds || undefined
         });
         return this.commentRepo.save(comment);
     }
