@@ -67,7 +67,10 @@ const BookingListTab: React.FC<BookingListTabProps> = ({ isMobile }) => {
             title: 'Sản phẩm', dataIndex: 'product_name', width: 180,
             ellipsis: true
         },
-        { title: 'Khách hàng', dataIndex: 'customer_name', width: 160, ellipsis: true },
+        { 
+            title: 'Khách hàng', dataIndex: 'customer_name', width: 160, ellipsis: true,
+            render: (t: any, r: any) => t || r.customer?.name || r.order?.customer_name || r.order?.customer?.name 
+        },
         {
             title: 'Ngày giao', dataIndex: 'delivery_date', width: 100,
             render: (d: string) => {
@@ -151,12 +154,13 @@ const BookingListTab: React.FC<BookingListTabProps> = ({ isMobile }) => {
 
     // Filter
     const filteredData = searchText
-        ? data.filter(d =>
-            d.sku?.toLowerCase().includes(searchText.toLowerCase()) ||
-            d.order_code?.toLowerCase().includes(searchText.toLowerCase()) ||
-            d.customer_name?.toLowerCase().includes(searchText.toLowerCase()) ||
-            d.product_name?.toLowerCase().includes(searchText.toLowerCase())
-        )
+        ? data.filter(d => {
+            const cName = d.customer_name || d.customer?.name || d.order?.customer_name || d.order?.customer?.name || '';
+            return (d.sku || '').toLowerCase().includes(searchText.toLowerCase()) ||
+                (d.order_code || '').toLowerCase().includes(searchText.toLowerCase()) ||
+                cName.toLowerCase().includes(searchText.toLowerCase()) ||
+                (d.product_name || '').toLowerCase().includes(searchText.toLowerCase());
+        })
         : data;
 
     // Summary stats

@@ -403,6 +403,15 @@ const FinancePage: React.FC = () => {
         );
     });
 
+    const filteredSOProfitData = soProfitData.filter(so => {
+        if (!searchText) return true;
+        const s = searchText.toLowerCase();
+        return (
+            so.order_code?.toLowerCase().includes(s) ||
+            so.customer_name?.toLowerCase().includes(s)
+        );
+    });
+
     return (
         <div style={{ paddingBottom: 20 }}>
             {/* TOP CARDS - HORIZONTAL SCROLL ON MOBILE */}
@@ -698,7 +707,7 @@ const FinancePage: React.FC = () => {
                                     <Col span={6}>
                                         <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%)', borderRadius: 10 }}>
                                             <Statistic title={<span style={{ color: '#389e0d', fontWeight: 600, fontSize: 12 }}>Tổng Thực Thu</span>}
-                                                value={soProfitData.reduce((s, r) => s + Number(r.real_income || 0), 0)}
+                                                value={filteredSOProfitData.reduce((s, r) => s + Number(r.real_income || 0), 0)}
                                                 precision={0} valueStyle={{ color: '#389e0d', fontWeight: 'bold', fontSize: 20 }}
                                                 prefix={<ArrowUpOutlined />} />
                                         </Card>
@@ -706,13 +715,13 @@ const FinancePage: React.FC = () => {
                                     <Col span={6}>
                                         <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #fff1f0 0%, #ffa39e 100%)', borderRadius: 10 }}>
                                             <Statistic title={<span style={{ color: '#cf1322', fontWeight: 600, fontSize: 12 }}>Tổng Thực Chi</span>}
-                                                value={soProfitData.reduce((s, r) => s + Number(r.real_expense || 0), 0)}
+                                                value={filteredSOProfitData.reduce((s, r) => s + Number(r.real_expense || 0), 0)}
                                                 precision={0} valueStyle={{ color: '#cf1322', fontWeight: 'bold', fontSize: 20 }}
                                                 prefix={<ArrowDownOutlined />} />
                                         </Card>
                                     </Col>
                                     <Col span={6}>
-                                        {(() => { const totalProfit = soProfitData.reduce((s, r) => s + Number(r.profit || 0), 0); return (
+                                        {(() => { const totalProfit = filteredSOProfitData.reduce((s, r) => s + Number(r.profit || 0), 0); return (
                                         <Card size="small" bordered={false} style={{ background: totalProfit >= 0 ? 'linear-gradient(135deg, #e6f7ff 0%, #91d5ff 100%)' : 'linear-gradient(135deg, #fff2e8 0%, #ffbb96 100%)', borderRadius: 10 }}>
                                             <Statistic title={<span style={{ color: '#1890ff', fontWeight: 600, fontSize: 12 }}>Tổng Lợi Nhuận</span>}
                                                 value={totalProfit}
@@ -723,7 +732,7 @@ const FinancePage: React.FC = () => {
                                     <Col span={6}>
                                         <Card size="small" bordered={false} style={{ background: 'linear-gradient(135deg, #f9f0ff 0%, #d3adf7 100%)', borderRadius: 10 }}>
                                             <Statistic title={<span style={{ color: '#722ed1', fontWeight: 600, fontSize: 12 }}>Số đơn hàng</span>}
-                                                value={soProfitData.length}
+                                                value={filteredSOProfitData.length}
                                                 valueStyle={{ color: '#722ed1', fontWeight: 'bold', fontSize: 20 }}
                                                 suffix={<span style={{ fontSize: 14 }}>đơn</span>} />
                                         </Card>
@@ -735,7 +744,7 @@ const FinancePage: React.FC = () => {
                                 </div>
 
                                 <Table 
-                                    dataSource={soProfitData} 
+                                    dataSource={filteredSOProfitData} 
                                     columns={columnsSOProfit} 
                                     rowKey="id" 
                                     loading={loading}
@@ -842,22 +851,22 @@ const FinancePage: React.FC = () => {
                                         },
                                     }}
                                     summary={() => {
-                                        const totalIncome = soProfitData.reduce((s, r) => s + Number(r.real_income || 0), 0);
-                                        const totalExpense = soProfitData.reduce((s, r) => s + Number(r.real_expense || 0), 0);
-                                        const totalBomCost = soProfitData.reduce((s, r) => s + Number(r.expected_bom_cost || 0), 0);
-                                        const totalStockCost = soProfitData.reduce((s, r) => s + Number(r.expected_stock_cost || 0), 0);
-                                        const totalRoutingCost = soProfitData.reduce((s, r) => s + Number(r.expected_routing_cost || 0), 0);
-                                        const totalLogisticCost = soProfitData.reduce((s, r) => s + Number(r.expected_logistic_cost || 0), 0);
+                                        const totalIncome = filteredSOProfitData.reduce((s, r) => s + Number(r.real_income || 0), 0);
+                                        const totalExpense = filteredSOProfitData.reduce((s, r) => s + Number(r.real_expense || 0), 0);
+                                        const totalBomCost = filteredSOProfitData.reduce((s, r) => s + Number(r.expected_bom_cost || 0), 0);
+                                        const totalStockCost = filteredSOProfitData.reduce((s, r) => s + Number(r.expected_stock_cost || 0), 0);
+                                        const totalRoutingCost = filteredSOProfitData.reduce((s, r) => s + Number(r.expected_routing_cost || 0), 0);
+                                        const totalLogisticCost = filteredSOProfitData.reduce((s, r) => s + Number(r.expected_logistic_cost || 0), 0);
                                         const totalExpected = totalBomCost + totalStockCost + totalRoutingCost + totalLogisticCost;
                                         
-                                        const totalExpectedProfit = soProfitData.reduce((s, r) => s + Number(r.expected_profit || 0), 0);
+                                        const totalExpectedProfit = filteredSOProfitData.reduce((s, r) => s + Number(r.expected_profit || 0), 0);
                                         const totalProfit = totalIncome - totalExpense - totalStockCost;
                                         const totalMargin = totalIncome > 0 ? (totalProfit / totalIncome) * 100 : 0;
                                         return (
                                             <Table.Summary fixed>
                                                 <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
                                                     <Table.Summary.Cell index={0} colSpan={4}>
-                                                        <span style={{ fontSize: 14, fontWeight: 700 }}>TỔNG CỘNG ({soProfitData.length} đơn)</span>
+                                                        <span style={{ fontSize: 14, fontWeight: 700 }}>TỔNG CỘNG ({filteredSOProfitData.length} đơn)</span>
                                                     </Table.Summary.Cell>
                                                     <Table.Summary.Cell index={1} align="right">
                                                         <b style={{ color: '#389e0d', fontSize: 14 }}>{totalIncome.toLocaleString()}</b>

@@ -101,7 +101,7 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
         },
         {
             title: 'Khách Hàng', dataIndex: 'customer_name', ellipsis: true,
-            render: (t: any) => <span style={{ fontWeight: 500 }}>{t}</span>
+            render: (t: any, r: any) => <span style={{ fontWeight: 500 }}>{t || r.customer?.name}</span>
         },
         {
             title: 'Trạng Thái', dataIndex: 'status', width: 160, align: 'center' as const,
@@ -226,7 +226,8 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
         
         let matchCustomer = true;
         if (customerSearch) {
-            matchCustomer = o.customer_name?.toLowerCase().includes(customerSearch.toLowerCase()) || o.order_code?.toLowerCase().includes(customerSearch.toLowerCase());
+            const cName = o.customer_name || o.customer?.name || '';
+            matchCustomer = cName.toLowerCase().includes(customerSearch.toLowerCase()) || (o.order_code || '').toLowerCase().includes(customerSearch.toLowerCase());
         }
 
         return matchDate && matchCustomer;
