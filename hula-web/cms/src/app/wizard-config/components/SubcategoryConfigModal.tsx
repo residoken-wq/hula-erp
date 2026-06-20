@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Modal, Form, Input, Button, Tabs, Space, InputNumber, Select, Card, Row, Col, Typography, Divider, Switch, Upload, message, Collapse } from 'antd';
 import { PlusOutlined, MinusCircleOutlined, DeleteOutlined, UploadOutlined, PictureOutlined } from '@ant-design/icons';
 import { WizardCategoryL2, WizardCustomizationStep, WizardPriceTier, WizardBaseImage } from '@/types/wizard';
@@ -26,13 +26,16 @@ interface Props {
 const { Text } = Typography;
 
 // --- Inline ImagePicker: upload hoặc chọn từ thư viện ---
-function InlineImagePicker({ value, onChange }: { value?: string; onChange?: (url: string) => void }) {
+function InlineImagePicker({ value, onChange, multiple = false, onMultiChange }: { value?: string; onChange?: (url: string) => void; multiple?: boolean; onMultiChange?: (urls: string[]) => void; }) {
     const [uploading, setUploading] = useState(false);
     const [libraryOpen, setLibraryOpen] = useState(false);
     const [libraryLoading, setLibraryLoading] = useState(false);
     const [libraryFiles, setLibraryFiles] = useState<Array<{ name: string; url: string; size: number, modified?: string }>>([]);
     const [monthFilter, setMonthFilter] = useState<string>('all');
     const [nameFilter, setNameFilter] = useState<string>('');
+    const [selectedUrls, setSelectedUrls] = useState<string[]>([]);
+    const pendingUploadsRef = useRef<string[]>([]);
+    const uploadTimerRef = useRef<any>(null);
 
     const handleUpload = async (file: File) => {
         if (!file.type.startsWith('image/')) { message.error('Chỉ cho phép hình ảnh!'); return; }
@@ -40,7 +43,19 @@ function InlineImagePicker({ value, onChange }: { value?: string; onChange?: (ur
         setUploading(true);
         try {
             const res = await uploadApi.image(file);
-            onChange?.(res.data?.url || '');
+            const url = res.data?.url || '';
+            if (multiple && onMultiChange) {
+                pendingUploadsRef.current.push(url);
+                clearTimeout(uploadTimerRef.current);
+                uploadTimerRef.current = setTimeout(() => {
+                    if (pendingUploadsRef.current.length > 0) {
+                        onMultiChange([...pendingUploadsRef.current]);
+                        pendingUploadsRef.current = [];
+                    }
+                }, 500);
+            } else {
+                onChange?.(url);
+            }
             message.success('Upload OK');
         } catch { message.error('Upload thất bại'); }
         finally { setUploading(false); }
@@ -50,12 +65,21 @@ function InlineImagePicker({ value, onChange }: { value?: string; onChange?: (ur
         setLibraryOpen(true);
         setMonthFilter('all');
         setNameFilter('');
+        setSelectedUrls([]);
         try {
             setLibraryLoading(true);
             const res = await uploadApi.listFiles();
             setLibraryFiles(Array.isArray(res.data) ? res.data : []);
         } catch { setLibraryFiles([]); }
         finally { setLibraryLoading(false); }
+    };
+
+    const handleConfirmMulti = () => {
+        if (selectedUrls.length > 0 && onMultiChange) {
+            onMultiChange(selectedUrls);
+        }
+        setLibraryOpen(false);
+        setSelectedUrls([]);
     };
 
     const getMonthStr = (dateStr?: string) => {
@@ -79,12 +103,13 @@ function InlineImagePicker({ value, onChange }: { value?: string; onChange?: (ur
                 <img src={resolveImageUrl(value)} alt="" style={{ width: 32, height: 32, objectFit: 'contain', border: '1px solid #f0f0f0', borderRadius: 4 }} />
             )}
             <Upload
+                multiple={multiple}
                 beforeUpload={(file) => { handleUpload(file); return false; }}
                 showUploadList={false}
                 accept="image/*"
             >
                 <Button size="small" icon={<UploadOutlined />} loading={uploading} style={{ fontSize: 11 }}>
-                    {value ? 'Đổi' : 'Upload'}
+                    {value ? 'Đổi' : (multiple ? 'Upload Multi' : 'Upload')}
                 </Button>
             </Upload>
             <Button size="small" icon={<PictureOutlined />} onClick={openLibrary} style={{ fontSize: 11 }}>
@@ -94,7 +119,22 @@ function InlineImagePicker({ value, onChange }: { value?: string; onChange?: (ur
                 <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onChange?.('')} style={{ fontSize: 11 }} />
             )}
 
-            <Modal open={libraryOpen} onCancel={() => setLibraryOpen(false)} footer={null} width={1000} title="Chọn ảnh" destroyOnClose>
+            <Modal 
+                open={libraryOpen} 
+                onCancel={() => setLibraryOpen(false)} 
+                footer={multiple ? (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Đã chọn {selectedUrls.length} ảnh</span>
+                        <Space>
+                            <Button onClick={() => setLibraryOpen(false)}>Hủy</Button>
+                            <Button type="primary" onClick={handleConfirmMulti} disabled={selectedUrls.length === 0}>Xác nhận</Button>
+                        </Space>
+                    </div>
+                ) : null} 
+                width={1000} 
+                title="Chọn ảnh" 
+                destroyOnClose
+            >
                 <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
                     <Input 
                         placeholder="Tìm theo tên file..." 
@@ -121,16 +161,34 @@ function InlineImagePicker({ value, onChange }: { value?: string; onChange?: (ur
                         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
                         gap: 12, maxHeight: '70vh', overflow: 'auto', paddingRight: 4
                     }}>
-                        {filteredFiles.map(f => (
-                            <div key={f.name} onClick={() => { onChange?.(f.url); setLibraryOpen(false); message.success('Đã chọn'); }}
-                                style={{ border: '1px solid #f0f0f0', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', background: '#fafafa' }}
-                            >
-                                <div style={{ aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <img src={resolveImageUrl(f.url)} alt={f.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                        {filteredFiles.map(f => {
+                            const isSelected = selectedUrls.includes(f.url);
+                            return (
+                                <div key={f.name} onClick={() => { 
+                                        if (multiple) {
+                                            setSelectedUrls(prev => prev.includes(f.url) ? prev.filter(u => u !== f.url) : [...prev, f.url]);
+                                        } else {
+                                            onChange?.(f.url); 
+                                            setLibraryOpen(false); 
+                                            message.success('Đã chọn'); 
+                                        }
+                                    }}
+                                    style={{ 
+                                        border: isSelected ? '2px solid #1890ff' : '1px solid #f0f0f0', 
+                                        borderRadius: 6, overflow: 'hidden', cursor: 'pointer', background: '#fafafa',
+                                        position: 'relative'
+                                    }}
+                                >
+                                    <div style={{ aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <img src={resolveImageUrl(f.url)} alt={f.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                    </div>
+                                    <div style={{ padding: '6px 8px', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
+                                    {isSelected && (
+                                        <div style={{ position: 'absolute', top: 4, right: 4, background: '#1890ff', color: '#fff', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>✓</div>
+                                    )}
                                 </div>
-                                <div style={{ padding: '6px 8px', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </Modal>
@@ -397,8 +455,8 @@ function ImageUrlField({ value, onChange }: { value?: string; onChange?: (val: s
 function MultiImageField({ value, onChange }: { value?: string[]; onChange?: (val: string[]) => void }) {
     const images = Array.isArray(value) ? value : [];
 
-    const handleAdd = (url: string) => {
-        if (url) onChange?.([...images, url]);
+    const handleAddMulti = (urls: string[]) => {
+        onChange?.([...images, ...urls]);
     };
 
     const handleRemove = (index: number) => {
@@ -421,7 +479,7 @@ function MultiImageField({ value, onChange }: { value?: string[]; onChange?: (va
                     />
                 </div>
             ))}
-            <InlineImagePicker value="" onChange={handleAdd} />
+            <InlineImagePicker value="" multiple={true} onMultiChange={handleAddMulti} />
         </div>
     );
 }
