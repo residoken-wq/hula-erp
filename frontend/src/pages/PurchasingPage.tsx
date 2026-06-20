@@ -1173,6 +1173,7 @@ const PurchasingPage: React.FC = () => {
                                                 return <Tag color="default">Chưa có mẫu</Tag>;
                                                 // TODO: Fetch and link samples correctly in the future
                                             }
+                                        }
                                     ]}
                                 />
                             </div>
