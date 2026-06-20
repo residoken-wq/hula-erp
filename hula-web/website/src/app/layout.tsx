@@ -127,6 +127,9 @@ export default function RootLayout({
                 <LayoutWrapper>
                     {children}
                 </LayoutWrapper>
+                {/* Zalo OA Widget */}
+                <div className="zalo-chat-widget" data-oaid="1367466153235995806" data-welcome-message="Rất vui khi được hỗ trợ bạn!" data-autopopup="0" data-width="" data-height=""></div>
+                <Script src="https://sp.zalo.me/plugins/sdk.js" strategy="lazyOnload" />
             </body>
         </html>
     );
