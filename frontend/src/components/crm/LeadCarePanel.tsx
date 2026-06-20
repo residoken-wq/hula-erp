@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { List, Avatar, Button, Input, message, Tag, Spin, Empty, Divider, Tooltip } from 'antd';
 import { UserOutlined, RobotOutlined, SendOutlined, MessageOutlined, ShopOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../utils/api';
 import dayjs from 'dayjs';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { API_URL } from '../../config';
 
 interface LeadCarePanelProps {
     customerId: number;
@@ -23,7 +22,7 @@ const LeadCarePanel: React.FC<LeadCarePanelProps> = ({ customerId, customerName 
         if (!customerId) return;
         setLoading(true);
         try {
-            const res = await axios.get(`${API_URL}/customers/${customerId}/comments`);
+            const res = await api.get(`/customers/${customerId}/comments`);
             setComments(res.data);
         } catch (e) {
             setComments([]);
@@ -33,7 +32,7 @@ const LeadCarePanel: React.FC<LeadCarePanelProps> = ({ customerId, customerName 
 
     const fetchProducts = async () => {
         try {
-            const res = await axios.get(`${API_URL}/products?limit=20`);
+            const res = await api.get(`/products?limit=20`);
             setProducts(res.data?.slice?.(0, 20) || []);
         } catch (e) { }
     };
@@ -48,7 +47,7 @@ const LeadCarePanel: React.FC<LeadCarePanelProps> = ({ customerId, customerName 
         if (!stripped) return message.warning('Nhập nội dung tin nhắn');
 
         try {
-            await axios.post(`${API_URL}/customers/${customerId}/comment`, {
+            await api.post(`/customers/${customerId}/comment`, {
                 content: text,
                 sender: 'STAFF',
                 name: 'Nhân viên',
@@ -65,7 +64,7 @@ const LeadCarePanel: React.FC<LeadCarePanelProps> = ({ customerId, customerName 
     const handleAiSuggest = async () => {
         setAiLoading(true);
         try {
-            const res = await axios.post(`${API_URL}/ai/suggest-reply`, {
+            const res = await api.post(`/ai/suggest-reply`, {
                 customerId,
                 customerName,
                 chatHistory: comments.slice(0, 10),

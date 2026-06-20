@@ -197,9 +197,9 @@ export class UploadController {
 
   @Post('file')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file: Express.Multer.File, @Body('source') source?: string) {
     if (!file) throw new BadRequestException('Chưa chọn file!');
-    return this.uploadService.uploadFile(file);
+    return this.uploadService.uploadFile(file, source);
   }
 
   // --- WATERMARK MANAGEMENT ---

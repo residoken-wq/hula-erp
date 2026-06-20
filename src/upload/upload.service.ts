@@ -36,8 +36,9 @@ export class UploadService {
     return this.saveFile(file, prefix, true); // compress images
   }
 
-  async uploadFile(file: Express.Multer.File) {
-    return this.saveFile(file, 'file', true); // compress if image
+  async uploadFile(file: Express.Multer.File, source?: string) {
+    const prefix = source === 'erp' ? 'erp' : 'file';
+    return this.saveFile(file, prefix, true); // compress if image
   }
 
   private async saveFile(file: Express.Multer.File, prefix: string, compressImages = true) {

@@ -465,6 +465,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
         const { file, onSuccess, onError } = options;
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('source', 'erp'); // Prevent CMS from showing this ERP image
         try {
             const res = await api.post('/upload/image', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             

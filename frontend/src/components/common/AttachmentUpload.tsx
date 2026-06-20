@@ -44,6 +44,7 @@ const AttachmentUpload: React.FC<Props> = ({
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('source', 'erp'); // Prevent CMS from showing ERP attachments
 
         setUploading(true);
         try {
