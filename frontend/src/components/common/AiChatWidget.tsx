@@ -191,7 +191,7 @@ const AiChatWidget: React.FC = () => {
                 placement="right"
                 onClose={() => setOpen(false)}
                 open={open}
-                width={350}
+                width={window.innerWidth > 768 ? '30vw' : 350}
                 bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column' }}
                 mask={false} // Allow interacting with BG
             >
