@@ -106,12 +106,19 @@ const AiChatWidget: React.FC = () => {
         if (e.key === 'Enter') handleSend();
     };
 
-    const toggleListen = () => {
+    const toggleListen = async () => {
         if (isListening) {
             setIsListening(false);
-            // SpeechRecognition will auto-stop when we don't restart it or we can force abort, 
-            // but for simplicity, we just let it end or we can call recognition.abort(). 
-            // Since we re-instantiate, it's better to just let it timeout or user stops speaking.
+            return;
+        }
+
+        // Kiểm tra permission trước
+        try {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+            }
+        } catch (err) {
+            alert('Lỗi: Bạn cần cấp quyền sử dụng Microphone cho trình duyệt để dùng tính năng này.');
             return;
         }
 
@@ -131,6 +138,9 @@ const AiChatWidget: React.FC = () => {
         recognition.onerror = (event: any) => {
             console.error('Speech recognition error', event.error);
             setIsListening(false);
+            if (event.error === 'not-allowed') {
+                alert('Quyền truy cập Microphone bị từ chối.');
+            }
         };
         recognition.onresult = (event: any) => {
             const transcript = event.results[0][0].transcript;
