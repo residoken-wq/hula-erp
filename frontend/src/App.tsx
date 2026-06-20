@@ -73,6 +73,7 @@ const QCPage = React.lazy(() => import('./pages/QCPage'));
 const ProductionDashboardPage = React.lazy(() => import('./pages/ProductionDashboardPage'));
 const ProcessesPage = React.lazy(() => import('./pages/ProcessesPage'));
 const PrintReportDashboard = React.lazy(() => import('./pages/PrintReportDashboard'));
+const AiDashboardPage = React.lazy(() => import('./pages/AiDashboardPage'));
 
 
 function getItem(label: React.ReactNode, key: React.Key, icon?: React.ReactNode, children?: MenuItem[]): MenuItem {
@@ -246,6 +247,7 @@ const App: React.FC = () => {
                 getItem(<Link to="/announcements">Thông báo nội bộ</Link>, 'announcements'),
                 getItem(<Link to="/system/settings">Cấu hình Email (SMTP)</Link>, 'sys_smtp'),
                 getItem(<Link to="/system/logs">Nhật ký hoạt động</Link>, 'sys_logs'), // <--- Activity Log Menu
+                getItem(<Link to="/ai-dashboard">AI Dashboard</Link>, 'ai_dash', <RobotOutlined />),
             ]));
         }
 
@@ -406,8 +408,9 @@ const App: React.FC = () => {
                                                         <Route path="/announcements" element={<AnnouncementsPage />} />
                                                         <Route path="/system/settings" element={<SystemSettingsPage />} />
                                                         <Route path="/system/logs" element={<ActivityLogPage />} /> {/* <--- Activity Log Route */}
-                                                    </>
                                                 )}
+
+                                                <Route path="/ai-dashboard" element={<AiDashboardPage />} />
 
                                                 <Route path="*" element={<h2>Không tìm thấy trang hoặc bạn không có quyền truy cập.</h2>} />
                                             </Routes>

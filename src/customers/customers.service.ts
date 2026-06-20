@@ -116,6 +116,19 @@ export class CustomersService {
         }));
     }
 
+    // --- ADVANCED SEARCH FOR AI ---
+    async searchCustomersAdvanced(searchQuery: string) {
+        const query = this.customerRepo.createQueryBuilder('customer');
+        if (searchQuery) {
+            query.where('(LOWER(customer.name) LIKE LOWER(:q) OR LOWER(customer.phone) LIKE LOWER(:q) OR LOWER(customer.code) LIKE LOWER(:q))', { q: `%${searchQuery}%` });
+        }
+        query.orderBy('customer.id', 'DESC');
+        query.take(10); // Limit to 10 for AI
+        return query.getMany();
+    }
+
+
+
     async findOne(id: number) {
         return this.customerRepo.findOne({
             where: { id },

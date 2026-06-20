@@ -11,6 +11,8 @@ import { InventoryService } from '../inventory/inventory.service';
 import { PlanningService } from '../planning/planning.service';
 import { TasksService } from '../tasks/tasks.service';
 import { UsersService } from '../users/users.service';
+import { AiLearningService } from './ai-learning.service';
+import { AiKnowledgeService } from './ai-knowledge.service';
 
 @Injectable()
 export class AiService {
@@ -25,6 +27,8 @@ export class AiService {
         private planningService: PlanningService,
         private tasksService: TasksService,
         private usersService: UsersService,
+        private aiLearningService: AiLearningService,
+        private aiKnowledgeService: AiKnowledgeService,
     ) {}
 
     private selectedModel: string | null = null;
@@ -159,19 +163,30 @@ export class AiService {
             ? `\n\nCONVERSATION HISTORY:\n${history.map(h => `${h.role}: ${h.content}`).join('\n')}\n`
             : '';
 
+        // Get learned examples
+        const learnedExamples = await this.aiLearningService.getTopExamples(5);
+        const learnedContext = learnedExamples.length > 0
+            ? `\n\nLEARNED EXAMPLES (Prioritize these patterns):\n${learnedExamples.map(e => `- User asks: "${e.question_pattern}" -> Output: ${JSON.stringify(e.expected_args)}`).join('\n')}\n`
+            : '';
+
+        const knowledgeContext = this.aiKnowledgeService.getKnowledgeContext();
+
         const prompt = `
             You are HulaBot, an intelligent assistant for the Hula ERP system in Vietnam.
             Current date: ${now.toISOString().split('T')[0]} (Month: ${currentMonth}, Year: ${currentYear})
             
             Your job is to help the user manage Inventory, Finance, and Sales.
             You MUST respond in Vietnamese when the user speaks Vietnamese.
-            ${historyContext}
+            
+            ${knowledgeContext}
+
             CRITICAL RULES:
             1. When user asks about "tháng [số]" (month X) without year, assume they mean the CURRENT YEAR (${currentYear})
             2. When user asks "tháng này" (this month), use month ${currentMonth} and year ${currentYear}
             3. When user asks "tháng trước" (last month), calculate the previous month correctly
             4. Output ONLY a valid JSON object, NO markdown code blocks, NO text before or after
             5. Use conversation history to understand context when the user asks follow-up questions
+            ${learnedContext}
             
             AVAILABLE TOOLS:
             1. CHECK_STOCK: Search for products and check their stock.
@@ -226,6 +241,10 @@ export class AiService {
 
             10. UNKNOWN: If you cannot help.
                Output: { "tool": "UNKNOWN", "reply": "Xin lỗi, tôi chưa hiểu yêu cầu này." }
+
+            11. QUERY_ORDERS_ADVANCED: Lọc đơn hàng theo tháng, trạng thái thanh toán (UNPAID, PAID, PARTIAL_PAID), trạng thái đơn.
+               Output: { "tool": "QUERY_ORDERS_ADVANCED", "month": number, "paymentStatus": "UNPAID" | "PAID" | "PARTIAL_PAID", "status": string }
+               Example: "liệt kê các đơn hàng tháng 5 chưa thanh toán đủ" -> { "tool": "QUERY_ORDERS_ADVANCED", "month": 5, "paymentStatus": "UNPAID" }
 
             USER MESSAGE: "${message}"
             
@@ -331,11 +350,8 @@ export class AiService {
             }
 
             if (action.tool === 'CHECK_ORDER') {
-                const allOrders = await this.salesService.findAll();
-                const orders = allOrders.filter((o: any) =>
-                    o.order_code?.toLowerCase().includes(action.query.toLowerCase()) ||
-                    o.customer?.name?.toLowerCase().includes(action.query.toLowerCase())
-                );
+                // Sử dụng hàm SQL mới thay vì load all
+                const orders = await this.salesService.findOrdersByFilters({ customerName: action.query });
 
                 if (!orders || orders.length === 0) {
                     const reply = `Không tìm thấy đơn hàng nào khớp với "${action.query}".`;
@@ -354,6 +370,35 @@ export class AiService {
                 this.addToHistory(userId, 'assistant', reply);
                 return { text: reply };
             }
+
+            if (action.tool === 'QUERY_ORDERS_ADVANCED') {
+                const orders = await this.salesService.findOrdersByFilters({
+                    month: action.month,
+                    year: action.year || new Date().getFullYear(),
+                    paymentStatus: action.paymentStatus,
+                    status: action.status
+                });
+
+                if (!orders || orders.length === 0) {
+                    const reply = `Không có đơn hàng nào thỏa mãn điều kiện tìm kiếm.`;
+                    this.addToHistory(userId, 'user', message);
+                    this.addToHistory(userId, 'assistant', reply);
+                    return { text: reply };
+                }
+
+                const details = orders.slice(0, 10).map((o: any) => {
+                    const customerName = o.customer?.name || 'N/A';
+                    const total = this.formatMoney(o.total_amount || 0);
+                    const paid = this.formatMoney(o.paid_amount || 0);
+                    const remaining = this.formatMoney((o.total_amount || 0) - (o.paid_amount || 0));
+                    return `- ${o.order_code}: ${customerName} - Tổng: ${total}đ - Đã thu: ${paid}đ - Còn lại: ${remaining}đ (${o.payment_status})`;
+                }).join('\n');
+                const reply = `Đã tìm thấy ${orders.length} đơn hàng:\n${details}`;
+                this.addToHistory(userId, 'user', message);
+                this.addToHistory(userId, 'assistant', reply);
+                return { text: reply };
+            }
+
 
             if (action.tool === 'GET_PRODUCT_INFO') {
                 const product = await this.productsService.findOneBySku(action.sku);
@@ -375,12 +420,8 @@ export class AiService {
             }
 
             if (action.tool === 'SEARCH_CUSTOMER') {
-                const allCustomers = await this.customersService.findAll();
-                const customers = allCustomers.filter((c: any) =>
-                    c.name?.toLowerCase().includes(action.query.toLowerCase()) ||
-                    c.code?.toLowerCase().includes(action.query.toLowerCase()) ||
-                    c.phone?.toLowerCase().includes(action.query.toLowerCase())
-                );
+                const customers = await this.customersService.searchCustomersAdvanced(action.query);
+
 
                 if (!customers || customers.length === 0) {
                     const reply = `Không tìm thấy khách hàng nào khớp với "${action.query}".`;
@@ -721,12 +762,24 @@ You MUST return ONLY a valid JSON object in this structure:
                 }
             }
             if (functionName === 'check_order') {
-                const allOrders = await this.salesService.findAll();
-                const orders = allOrders.filter((o: any) =>
-                    o.order_code?.toLowerCase().includes(args.query.toLowerCase()) ||
-                    o.customer?.name?.toLowerCase().includes(args.query.toLowerCase())
-                ).slice(0, 5);
-                return orders.map(o => ({ code: o.order_code, customer: o.customer?.name, total: o.total_amount, status: o.status }));
+                const orders = await this.salesService.findOrdersByFilters({ customerName: args.query });
+                return orders.slice(0, 5).map(o => ({ code: o.order_code, customer: o.customer?.name, total: o.total_amount, status: o.status }));
+            }
+            if (functionName === 'query_orders_advanced') {
+                const orders = await this.salesService.findOrdersByFilters({
+                    month: args.month,
+                    year: args.year || new Date().getFullYear(),
+                    paymentStatus: args.paymentStatus,
+                    status: args.status
+                });
+                return orders.slice(0, 10).map((o: any) => ({
+                    code: o.order_code,
+                    customer: o.customer?.name,
+                    total: o.total_amount,
+                    paid: o.paid_amount,
+                    remaining: (o.total_amount || 0) - (o.paid_amount || 0),
+                    payment_status: o.payment_status
+                }));
             }
             if (functionName === 'get_product_info') {
                 const p = await this.productsService.findOneBySku(args.sku);
@@ -734,11 +787,8 @@ You MUST return ONLY a valid JSON object in this structure:
                 return { name: p.name, type: p.product_type, price: p.base_price, stock: p.quantity_in_stock };
             }
             if (functionName === 'search_customer') {
-                const all = await this.customersService.findAll();
-                return all.filter((c: any) =>
-                    c.name?.toLowerCase().includes(args.query.toLowerCase()) ||
-                    c.phone?.toLowerCase().includes(args.query.toLowerCase())
-                ).slice(0, 5).map(c => ({ name: c.name, phone: c.phone, email: c.email }));
+                const customers = await this.customersService.searchCustomersAdvanced(args.query);
+                return customers.slice(0, 5).map(c => ({ name: c.name, phone: c.phone, email: c.email }));
             }
             if (functionName === 'check_mrp') {
                 try {
@@ -761,7 +811,7 @@ You MUST return ONLY a valid JSON object in this structure:
         }
     }
 
-    async handleChatStream(userId: string, message: string, onChunk: (text: string) => void) {
+    async handleChatStream(userId: string, message: string, contextUrl: string, onChunk: (text: string) => void) {
         let apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) {
             onChunk("AI Service is not configured (Missing GEMINI_API_KEY).");
@@ -783,9 +833,15 @@ You MUST return ONLY a valid JSON object in this structure:
         }));
 
         const now = new Date();
+        const knowledgeContext = this.aiKnowledgeService.getKnowledgeContext();
+
         const systemInstruction = {
             parts: [{ text: `You are HulaBot, an intelligent, helpful, and natural-sounding assistant for the Hula ERP system in Vietnam.
 Current date: ${now.toISOString().split('T')[0]}
+Current Page URL User is viewing: ${contextUrl || 'Unknown'}
+
+${knowledgeContext}
+
 CRITICAL RULES:
 - Always respond in Vietnamese naturally and politely.
 - Use markdown for formatting (bold, lists, etc) to make the response easy to read.
@@ -809,6 +865,19 @@ CRITICAL RULES:
                     name: "check_order",
                     description: "Tìm kiếm đơn hàng theo tên khách hoặc mã",
                     parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
+                },
+                {
+                    name: "query_orders_advanced",
+                    description: "Lọc đơn hàng nâng cao theo tháng, trạng thái thanh toán (UNPAID, PAID, PARTIAL_PAID), trạng thái đơn.",
+                    parameters: { 
+                        type: "OBJECT", 
+                        properties: { 
+                            month: { type: "INTEGER" }, 
+                            year: { type: "INTEGER" }, 
+                            paymentStatus: { type: "STRING" }, 
+                            status: { type: "STRING" } 
+                        } 
+                    }
                 },
                 {
                     name: "get_product_info",

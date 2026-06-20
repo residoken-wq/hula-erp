@@ -266,6 +266,41 @@ export class SalesService {
         return ordersWithPayment;
     }
 
+    // --- ADVANCED FILTERING FOR AI ---
+    async findOrdersByFilters(filters: { month?: number, year?: number, paymentStatus?: string, status?: string, customerName?: string }) {
+        const query = this.orderRepo.createQueryBuilder('order')
+            .leftJoinAndSelect('order.customer', 'customer')
+            .leftJoinAndSelect('order.assigned_to', 'assigned_to');
+
+        if (filters.year) {
+            query.andWhere('EXTRACT(YEAR FROM order.order_date) = :year', { year: filters.year });
+        }
+        if (filters.month && filters.month > 0 && filters.month <= 12) {
+            query.andWhere('EXTRACT(MONTH FROM order.order_date) = :month', { month: filters.month });
+        }
+        if (filters.paymentStatus) {
+            query.andWhere('order.payment_status = :paymentStatus', { paymentStatus: filters.paymentStatus });
+        }
+        if (filters.status) {
+            query.andWhere('order.status = :status', { status: filters.status });
+        }
+        if (filters.customerName) {
+            query.andWhere('(LOWER(customer.name) LIKE LOWER(:cname) OR LOWER(order.order_code) LIKE LOWER(:cname))', { cname: `%${filters.customerName}%` });
+        }
+
+        query.orderBy('order.order_date', 'DESC');
+        const orders = await query.getMany();
+
+        // Map over orders to include payment info
+        const ordersWithPayment = await Promise.all(orders.map(async (order) => {
+            const info = await this.calculatePaymentInfo(order.order_code);
+            return { ...order, paid_amount: info.paid_amount, deposit_date: info.deposit_date };
+        }));
+
+        return ordersWithPayment;
+    }
+
+
     // --- FIND ONE (FIX: Tính tổng tiền đã trả) ---
     async findOne(idOrCode: string | number) {
         const query = this.orderRepo.createQueryBuilder('order')

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FloatButton, Drawer, Input, Button, List, Avatar, Tag, Space, Typography } from 'antd';
-import { RobotOutlined, SendOutlined, UserOutlined } from '@ant-design/icons';
+import { RobotOutlined, SendOutlined, UserOutlined, LikeOutlined, DislikeOutlined, AudioOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import { API_URL } from '../../config';
 
@@ -15,6 +15,7 @@ const AiChatWidget: React.FC = () => {
     const [open, setOpen] = useState(false);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [isListening, setIsListening] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         { id: '0', sender: 'BOT', text: 'Xin chào! Tôi là trợ lý ảo Hula. Tôi có thể giúp gì cho bạn? (Thử "Tồn kho [Mã]", "Doanh thu tháng 12")', timestamp: new Date() }
     ]);
@@ -48,7 +49,10 @@ const AiChatWidget: React.FC = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ message: userMsg.text })
+                body: JSON.stringify({ 
+                    message: userMsg.text,
+                    contextUrl: window.location.pathname
+                })
             });
 
             if (!response.ok) {
@@ -102,6 +106,76 @@ const AiChatWidget: React.FC = () => {
         if (e.key === 'Enter') handleSend();
     };
 
+    const toggleListen = () => {
+        if (isListening) {
+            setIsListening(false);
+            // SpeechRecognition will auto-stop when we don't restart it or we can force abort, 
+            // but for simplicity, we just let it end or we can call recognition.abort(). 
+            // Since we re-instantiate, it's better to just let it timeout or user stops speaking.
+            return;
+        }
+
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert('Trình duyệt của bạn không hỗ trợ nhận diện giọng nói.');
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'vi-VN';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => setIsListening(true);
+        recognition.onend = () => setIsListening(false);
+        recognition.onerror = (event: any) => {
+            console.error('Speech recognition error', event.error);
+            setIsListening(false);
+        };
+        recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+        };
+
+        recognition.start();
+    };
+
+
+    const handleFeedback = async (msgId: string, rating: 'GOOD' | 'BAD') => {
+        try {
+            const token = localStorage.getItem('token');
+            const botMsg = messages.find(m => m.id === msgId);
+            const userMsg = messages.slice().reverse().find((m, index) => m.sender === 'USER' && messages.indexOf(m) < messages.indexOf(botMsg!));
+            
+            if (!botMsg || !userMsg) return;
+
+            let correction = undefined;
+            if (rating === 'BAD') {
+                correction = prompt('Bạn mong đợi AI trả lời như thế nào?');
+                if (!correction && correction !== "") return; // Cancelled
+            }
+
+            await fetch(`${API_URL}/ai/feedback`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    messageId: msgId,
+                    rating,
+                    question: userMsg.text,
+                    answer: botMsg.text,
+                    correction
+                })
+            });
+            alert('Cảm ơn bạn đã góp ý!');
+        } catch (e) {
+            console.error('Error sending feedback:', e);
+        }
+    };
+
+
     return (
         <>
             <FloatButton
@@ -152,11 +226,24 @@ const AiChatWidget: React.FC = () => {
                                             .replace(/\*(.*?)\*/g, '<em>$1</em>')
                                     }}>
                                     </div>
+                                    {item.sender === 'BOT' && item.id !== '0' && (
+                                        <div style={{ marginTop: 4, display: 'flex', gap: 4, justifyContent: 'flex-start', width: '100%' }}>
+                                            <Button type="text" size="small" icon={<LikeOutlined />} onClick={() => handleFeedback(item.id, 'GOOD')} />
+                                            <Button type="text" size="small" icon={<DislikeOutlined />} onClick={() => handleFeedback(item.id, 'BAD')} />
+                                        </div>
+                                    )}
                                 </div>
                             </List.Item>
                         )}
                     />
                     <div ref={messagesEndRef} />
+                </div>
+
+                {/* Quick Actions */}
+                <div style={{ padding: '8px 12px', background: '#fafafa', borderTop: '1px solid #ebd9d9', display: 'flex', gap: 8, overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                    <Tag color="blue" style={{ cursor: 'pointer' }} onClick={() => setInput('Đơn hàng tháng này chưa thanh toán đủ')}>Đơn chưa thanh toán</Tag>
+                    <Tag color="green" style={{ cursor: 'pointer' }} onClick={() => setInput('Doanh thu tháng này')}>Doanh thu</Tag>
+                    <Tag color="orange" style={{ cursor: 'pointer' }} onClick={() => setInput('Tìm khách hàng VIP')}>Khách VIP</Tag>
                 </div>
 
                 {/* Input Area */}
@@ -168,6 +255,14 @@ const AiChatWidget: React.FC = () => {
                             onChange={e => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             disabled={loading}
+                        />
+                        <Button 
+                            type={isListening ? "primary" : "default"} 
+                            danger={isListening}
+                            icon={<AudioOutlined />} 
+                            onClick={toggleListen} 
+                            disabled={loading} 
+                            title="Nhập bằng giọng nói"
                         />
                         <Button type="primary" icon={<SendOutlined />} onClick={handleSend} loading={loading} />
                     </div>
