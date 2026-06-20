@@ -408,6 +408,7 @@ const App: React.FC = () => {
                                                         <Route path="/announcements" element={<AnnouncementsPage />} />
                                                         <Route path="/system/settings" element={<SystemSettingsPage />} />
                                                         <Route path="/system/logs" element={<ActivityLogPage />} /> {/* <--- Activity Log Route */}
+                                                    </>
                                                 )}
 
                                                 <Route path="/ai-dashboard" element={<AiDashboardPage />} />
