@@ -86,6 +86,7 @@ const URLImage = ({ image, x, y, width, height, isSelected, onSelect, onChange }
 const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: any) => {
     const shapeRef = useRef<any>();
     const trRef = useRef<any>();
+    const [logoImage] = useImage(rect.data?.logoUrl || '', 'anonymous');
 
     useEffect(() => {
         if (isSelected && trRef.current && shapeRef.current) {
@@ -311,6 +312,9 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
             setBinsByFace(design.tech_pack.binsByFace || { 'face-1': [{ w: 400, h: 120 }] });
             setPadding(design.tech_pack.padding ?? 2);
             setAllowRotation(design.tech_pack.allowRotation ?? true);
+            if (design.tech_pack.continuousConfigs) {
+                setContinuousConfigs(design.tech_pack.continuousConfigs);
+            }
             if (design.tech_pack.resultsByFace) {
                 setResultsByFace(design.tech_pack.resultsByFace);
             }
@@ -339,7 +343,8 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                     binsByFace,
                     padding,
                     allowRotation,
-                    resultsByFace
+                    resultsByFace,
+                    continuousConfigs
                 }
             };
             const res = await api.post('/designs/print-designs', dataToSave);
@@ -586,6 +591,9 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
             setBinsByFace(design.tech_pack.binsByFace || { 'face-1': [{ w: 400, h: 120 }] });
             setPadding(design.tech_pack.padding ?? 2);
             setAllowRotation(design.tech_pack.allowRotation ?? false);
+            if (design.tech_pack.continuousConfigs) {
+                setContinuousConfigs(design.tech_pack.continuousConfigs);
+            }
             
             if (design.tech_pack.resultsByFace) {
                 const results = { ...design.tech_pack.resultsByFace };
@@ -664,7 +672,8 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
             const rects: Rect[] = [];
             
             if (packingMode === 'CONTINUOUS') {
-                const config = newConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100 };
+                const defaultProductQuantity = selectedPo?.items?.find((i: any) => i.product && !i.description?.toLowerCase().includes('gia công'))?.quantity || 100;
+                const config = newConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem.quantity || 100, productQuantity: defaultProductQuantity };
                 let qtyToPack = config.qtyPerFile || 10;
                 let finalAllowRotation = allowRotation;
 
@@ -697,7 +706,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                         id: `P-${face.id}-${i}`,
                         w: face.pieceSize.w,
                         h: face.pieceSize.h,
-                        data: { name: face.name, color: face.bgColor, logoUrl: face.logoUrl, logoConfig: face.logoConfig }
+                        data: { name: face.name, color: face.bgColor, logoUrl: face.processedLogoUrl || face.logoUrl, logoConfig: face.logoConfig }
                     };
                     
                     if (options && options.force) {
@@ -709,9 +718,10 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                     }
                     rects.push(rect);
                 }
-                const totalQty = config.totalQty || selectedItem.quantity || 100;
-                const fullRuns = Math.floor(totalQty / qtyToPack);
-                const remainderQty = totalQty % qtyToPack;
+                const productQuantity = config.productQuantity || 100;
+                const totalQtyField = config.totalQty || selectedItem.quantity || 0;
+                const fullRuns = Math.floor(productQuantity / qtyToPack);
+                const remainderQty = productQuantity % qtyToPack;
                 const result = packContinuous(config.width, rects, padding, finalAllowRotation);
                 
                 const binResults = [{
@@ -752,7 +762,8 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                     stats: {
                         runs: fullRuns, // Only main runs
                         qtyPerFile: qtyToPack,
-                        totalQty: totalQty,
+                        totalQty: totalQtyField,
+                        productQuantity: productQuantity,
                         width: config.width,
                         length: result.totalLength,
                         remainderQty: remainderQty,
@@ -1074,18 +1085,22 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                         {packingMode === 'CONTINUOUS' ? (
                                             <Space direction="vertical" style={{ width: '100%' }}>
                                                 <div><label>Khổ vải (cm):</label> <InputNumber size="small" value={continuousConfigs[face.id]?.width || 150} onChange={v => {
-                                                    const newConf = {...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), width: v || 150 }};
+                                                    const newConf = {...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 0, productQuantity: 100 }), width: v || 150 }};
                                                     setContinuousConfigs(newConf);
                                                 }} onBlur={() => executeAutoPack()} onPressEnter={() => executeAutoPack()} style={{ width: '100%' }} /></div>
-                                                <div><label>Tổng số lượng:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.totalQty || selectedItem?.quantity || 100} onChange={v => {
-                                                    const newConf = {...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), totalQty: v || 1 }};
+                                                <div><label>Số lượng sản phẩm:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.productQuantity || 100} onChange={v => {
+                                                    const newConf = {...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 0, productQuantity: 100 }), productQuantity: v || 1 }};
+                                                    setContinuousConfigs(newConf);
+                                                }} onBlur={() => executeAutoPack()} onPressEnter={() => executeAutoPack()} style={{ width: '100%' }} /></div>
+                                                <div><label>Tổng số mét vải cần (m):</label> <InputNumber size="small" value={continuousConfigs[face.id]?.totalQty ?? selectedItem?.quantity ?? 0} onChange={v => {
+                                                    const newConf = {...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 0, productQuantity: 100 }), totalQty: v || 0 }};
                                                     setContinuousConfigs(newConf);
                                                 }} onBlur={() => executeAutoPack()} onPressEnter={() => executeAutoPack()} style={{ width: '100%' }} /></div>
                                                 <div><label>Số con / file:</label> <InputNumber size="small" value={continuousConfigs[face.id]?.qtyPerFile || 10} onChange={v => {
-                                                    const newConf = {...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 100 }), qtyPerFile: v || 1 }};
+                                                    const newConf = {...continuousConfigs, [face.id]: { ...(continuousConfigs[face.id] || { width: 150, qtyPerFile: 10, totalQty: selectedItem?.quantity || 0, productQuantity: 100 }), qtyPerFile: v || 1 }};
                                                     setContinuousConfigs(newConf);
                                                 }} onBlur={() => executeAutoPack()} onPressEnter={() => executeAutoPack()} style={{ width: '100%' }} /></div>
-                                                <div style={{color: '#1890ff', fontSize: 12}}>Số lần in (Runs): <b>{Math.ceil((continuousConfigs[face.id]?.totalQty || selectedItem?.quantity || 100) / (continuousConfigs[face.id]?.qtyPerFile || 10))}</b></div>
+                                                <div style={{color: '#1890ff', fontSize: 12}}>Số lần in (Runs): <b>{Math.ceil((continuousConfigs[face.id]?.productQuantity || 100) / (continuousConfigs[face.id]?.qtyPerFile || 10))}</b></div>
                                             </Space>
                                         ) : (
                                             <Space direction="vertical" style={{ width: '100%' }}>
@@ -1252,6 +1267,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                         runs: stats.runs,
                                         qtyPerFile: stats.qtyPerFile,
                                         totalQty: stats.totalQty,
+                                        productQuantity: stats.productQuantity,
                                         width: stats.width,
                                         length: stats.length,
                                         remainderQty: stats.remainderQty,
@@ -1262,9 +1278,10 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                 }).filter(Boolean)}
                                 columns={[
                                     { title: 'Nội dung in', dataIndex: 'name', render: t => <b>{t}</b> },
+                                    { title: 'Số lượng SP', dataIndex: 'productQuantity', render: v => <b>{v}</b> },
                                     { title: 'Số lần in', dataIndex: 'runs', render: (v, r) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+1 (lượt cuối)</small></span> : v },
                                     { title: 'Số con/file', dataIndex: 'qtyPerFile', render: (v, r) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+ {r.remainderQty} (lượt cuối)</small></span> : v },
-                                    { title: 'Tổng số con', dataIndex: 'totalQty' },
+                                    { title: 'Tổng mét vải (m)', dataIndex: 'totalQty' },
                                     { title: 'Khổ (cm)', dataIndex: 'width' },
                                     { title: 'Kích thước / file (cm)', dataIndex: 'length', render: (v, r) => r.remainderQty > 0 ? <span><span style={{ color: '#cf1322' }}>{v.toFixed(2)}</span> <br/><small style={{color: '#cf1322'}}>+ {r.remainderLength.toFixed(2)} (lượt cuối)</small></span> : <span style={{ color: '#cf1322' }}>{v.toFixed(2)}</span> },
                                     { title: 'Dự kiến cần (cm)', dataIndex: 'expectedTotalLength', render: v => <b style={{ color: '#1890ff' }}>{v}</b> },

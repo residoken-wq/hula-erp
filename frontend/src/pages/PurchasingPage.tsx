@@ -1173,9 +1173,62 @@ const PurchasingPage: React.FC = () => {
                                                 return <Tag color="default">Chưa có mẫu</Tag>;
                                                 // TODO: Fetch and link samples correctly in the future
                                             }
-                                        }
                                     ]}
                                 />
+                            </div>
+                        )
+                    }] : []),
+                    // --- MỚI: Tab Sơ đồ cho Gia công và Gộp ---
+                    ...(currentPO?.po_type === 'OUTSOURCING' || currentPO?.po_type === 'POOLED' ? [{
+                        key: 'sodo_tab', label: 'Sơ đồ', children: (
+                            <div style={{ maxHeight: 600, overflowY: 'auto' }}>
+                                {editingItems.filter((i: any) => i.print_design?.tech_pack?.resultsByFace).map((item: any, idx: number) => {
+                                    const faces = item.print_design.tech_pack.faces || [];
+                                    const resultsByFace = item.print_design.tech_pack.resultsByFace;
+                                    
+                                    const dataSource = faces.map((face: any) => {
+                                        const stats = resultsByFace[face.id]?.stats;
+                                        if (!stats) return null;
+                                        return {
+                                            key: face.id,
+                                            name: face.name,
+                                            runs: stats.runs,
+                                            qtyPerFile: stats.qtyPerFile,
+                                            totalQty: stats.totalQty,
+                                            productQuantity: stats.productQuantity,
+                                            width: stats.width,
+                                            length: stats.length,
+                                            remainderQty: stats.remainderQty,
+                                            remainderLength: stats.remainderLength,
+                                            expectedTotalLength: stats.expectedTotalLength,
+                                            wasteArea: stats.wasteArea
+                                        };
+                                    }).filter(Boolean);
+
+                                    return (
+                                        <Card size="small" title={`Sơ đồ: ${item.description || item.product?.name || item.material?.name}`} key={idx} style={{ marginBottom: 16 }}>
+                                            <Table
+                                                size="small"
+                                                pagination={false}
+                                                dataSource={dataSource}
+                                                columns={[
+                                                    { title: 'Nội dung in', dataIndex: 'name', render: (t: string) => <b>{t}</b> },
+                                                    { title: 'Số lượng SP', dataIndex: 'productQuantity', render: (v: number) => <b>{v || '-'}</b> },
+                                                    { title: 'Số lần in', dataIndex: 'runs', render: (v: number, r: any) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+1 (lượt cuối)</small></span> : v },
+                                                    { title: 'Số con/file', dataIndex: 'qtyPerFile', render: (v: number, r: any) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+ {r.remainderQty} (lượt cuối)</small></span> : v },
+                                                    { title: 'Tổng mét vải (m)', dataIndex: 'totalQty', render: (v: number) => v || '-' },
+                                                    { title: 'Khổ (cm)', dataIndex: 'width' },
+                                                    { title: 'Kích thước / file (cm)', dataIndex: 'length', render: (v: number, r: any) => r.remainderQty > 0 ? <span><span style={{ color: '#cf1322' }}>{v?.toFixed(2)}</span> <br/><small style={{color: '#cf1322'}}>+ {r.remainderLength?.toFixed(2)} (lượt cuối)</small></span> : <span style={{ color: '#cf1322' }}>{v?.toFixed(2)}</span> },
+                                                    { title: 'Dự kiến cần (cm)', dataIndex: 'expectedTotalLength', render: (v: number) => <b style={{ color: '#1890ff' }}>{Number(v || 0).toFixed(2)}</b> },
+                                                    { title: 'Diện tích dư cuối (cm²)', dataIndex: 'wasteArea', render: (v: number) => Number(v || 0).toFixed(2) },
+                                                ]}
+                                            />
+                                        </Card>
+                                    );
+                                })}
+                                {editingItems.filter((i: any) => i.print_design?.tech_pack?.resultsByFace).length === 0 && (
+                                    <Alert message="Chưa có thông tin sơ đồ nào trong đơn hàng này." type="info" />
+                                )}
                             </div>
                         )
                     }] : [])
