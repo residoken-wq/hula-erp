@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FloatButton, Drawer, Input, Button, List, Avatar, Tag, Space, Typography } from 'antd';
 import { RobotOutlined, SendOutlined, UserOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
+import { API_URL } from '../../config';
 
 interface Message {
     id: string;
@@ -40,7 +41,7 @@ const AiChatWidget: React.FC = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+            const apiUrl = API_URL;
             const response = await fetch(`${apiUrl}/ai/chat-stream`, {
                 method: 'POST',
                 headers: {
