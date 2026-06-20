@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Button, Card, InputNumber, Input, Space, message, Tooltip, Upload, Modal, Spin, Empty } from 'antd';
+import { Button, Card, InputNumber, Input, Space, message, Tooltip, Upload, Modal, Spin, Empty, Select } from 'antd';
 import { PlusOutlined, DeleteOutlined, PictureOutlined, UploadOutlined, DragOutlined, EyeOutlined } from '@ant-design/icons';
 import { WizardBaseImage } from '@/types/wizard';
 import { uploadApi } from '@/lib/api';
@@ -35,8 +35,9 @@ export default function ImageBaseEditor({ value, onChange }: Props) {
     const [uploading, setUploading] = useState(false);
     const [libraryOpen, setLibraryOpen] = useState(false);
     const [libraryLoading, setLibraryLoading] = useState(false);
-    const [libraryFiles, setLibraryFiles] = useState<Array<{ name: string; url: string; size: number }>>([]);
+    const [libraryFiles, setLibraryFiles] = useState<Array<{ name: string; url: string; size: number, modified?: string }>>([]);
     const [librarySearch, setLibrarySearch] = useState('');
+    const [libraryMonthFilter, setLibraryMonthFilter] = useState<string>('all');
     const [addingFrameViaLibrary, setAddingFrameViaLibrary] = useState(false);
     const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +97,7 @@ export default function ImageBaseEditor({ value, onChange }: Props) {
         setAddingFrameViaLibrary(forAdding);
         setLibraryOpen(true);
         setLibrarySearch('');
+        setLibraryMonthFilter('all');
         try {
             setLibraryLoading(true);
             const res = await uploadApi.listFiles();
@@ -203,9 +205,21 @@ export default function ImageBaseEditor({ value, onChange }: Props) {
     }, [dragging, resizing, dragOffset, resizeStart, updateFrame]);
 
     const selectedFrame = frames.find(f => f.id === selectedFrameId);
-    const filteredLibraryFiles = libraryFiles.filter(f =>
-        (f?.name || '').toLowerCase().includes(librarySearch.trim().toLowerCase())
-    );
+
+    const getMonthStr = (dateStr?: string) => {
+        if (!dateStr) return 'Khác';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return 'Khác';
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+
+    const libraryMonths = Array.from(new Set(libraryFiles.map(f => getMonthStr(f.modified)))).sort().reverse();
+
+    const filteredLibraryFiles = libraryFiles.filter(f => {
+        if (libraryMonthFilter !== 'all' && getMonthStr(f.modified) !== libraryMonthFilter) return false;
+        if (librarySearch && !(f?.name || '').toLowerCase().includes(librarySearch.trim().toLowerCase())) return false;
+        return true;
+    });
 
     // Bring selected frame to front
     const bringToFront = (id: string) => {
@@ -448,7 +462,18 @@ export default function ImageBaseEditor({ value, onChange }: Props) {
                         value={librarySearch}
                         onChange={(e) => setLibrarySearch(e.target.value)}
                         allowClear
+                        style={{ width: 250 }}
                     />
+                    <Select 
+                        value={libraryMonthFilter} 
+                        onChange={setLibraryMonthFilter} 
+                        style={{ width: 150 }}
+                    >
+                        <Select.Option value="all">Tất cả các tháng</Select.Option>
+                        {libraryMonths.map(m => (
+                            <Select.Option key={m} value={m}>Tháng {m}</Select.Option>
+                        ))}
+                    </Select>
                     <Button onClick={() => openLibrary(addingFrameViaLibrary)} loading={libraryLoading}>
                         Tải lại
                     </Button>

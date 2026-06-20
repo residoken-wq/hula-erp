@@ -30,7 +30,9 @@ function InlineImagePicker({ value, onChange }: { value?: string; onChange?: (ur
     const [uploading, setUploading] = useState(false);
     const [libraryOpen, setLibraryOpen] = useState(false);
     const [libraryLoading, setLibraryLoading] = useState(false);
-    const [libraryFiles, setLibraryFiles] = useState<Array<{ name: string; url: string; size: number }>>([]);
+    const [libraryFiles, setLibraryFiles] = useState<Array<{ name: string; url: string; size: number, modified?: string }>>([]);
+    const [monthFilter, setMonthFilter] = useState<string>('all');
+    const [nameFilter, setNameFilter] = useState<string>('');
 
     const handleUpload = async (file: File) => {
         if (!file.type.startsWith('image/')) { message.error('Chỉ cho phép hình ảnh!'); return; }
@@ -46,6 +48,8 @@ function InlineImagePicker({ value, onChange }: { value?: string; onChange?: (ur
 
     const openLibrary = async () => {
         setLibraryOpen(true);
+        setMonthFilter('all');
+        setNameFilter('');
         try {
             setLibraryLoading(true);
             const res = await uploadApi.listFiles();
@@ -53,6 +57,21 @@ function InlineImagePicker({ value, onChange }: { value?: string; onChange?: (ur
         } catch { setLibraryFiles([]); }
         finally { setLibraryLoading(false); }
     };
+
+    const getMonthStr = (dateStr?: string) => {
+        if (!dateStr) return 'Khác';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return 'Khác';
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+
+    const months = Array.from(new Set(libraryFiles.map(f => getMonthStr(f.modified)))).sort().reverse();
+
+    const filteredFiles = libraryFiles.filter(f => {
+        if (monthFilter !== 'all' && getMonthStr(f.modified) !== monthFilter) return false;
+        if (nameFilter && !f.name.toLowerCase().includes(nameFilter.toLowerCase())) return false;
+        return true;
+    });
 
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -75,22 +94,41 @@ function InlineImagePicker({ value, onChange }: { value?: string; onChange?: (ur
                 <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onChange?.('')} style={{ fontSize: 11 }} />
             )}
 
-            <Modal open={libraryOpen} onCancel={() => setLibraryOpen(false)} footer={null} width={700} title="Chọn ảnh" destroyOnClose>
+            <Modal open={libraryOpen} onCancel={() => setLibraryOpen(false)} footer={null} width={1000} title="Chọn ảnh" destroyOnClose>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                    <Input 
+                        placeholder="Tìm theo tên file..." 
+                        value={nameFilter} 
+                        onChange={(e) => setNameFilter(e.target.value)} 
+                        allowClear 
+                        style={{ width: 250 }}
+                    />
+                    <Select 
+                        value={monthFilter} 
+                        onChange={setMonthFilter} 
+                        style={{ width: 150 }}
+                    >
+                        <Select.Option value="all">Tất cả các tháng</Select.Option>
+                        {months.map(m => (
+                            <Select.Option key={m} value={m}>Tháng {m}</Select.Option>
+                        ))}
+                    </Select>
+                </div>
                 {libraryLoading ? (
                     <div style={{ textAlign: 'center', padding: 40 }}>Đang tải...</div>
                 ) : (
                     <div style={{
-                        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                        gap: 8, maxHeight: '50vh', overflow: 'auto',
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                        gap: 12, maxHeight: '70vh', overflow: 'auto', paddingRight: 4
                     }}>
-                        {libraryFiles.map(f => (
+                        {filteredFiles.map(f => (
                             <div key={f.name} onClick={() => { onChange?.(f.url); setLibraryOpen(false); message.success('Đã chọn'); }}
                                 style={{ border: '1px solid #f0f0f0', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', background: '#fafafa' }}
                             >
                                 <div style={{ aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <img src={resolveImageUrl(f.url)} alt={f.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                                 </div>
-                                <div style={{ padding: '4px 6px', fontSize: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
+                                <div style={{ padding: '6px 8px', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</div>
                             </div>
                         ))}
                     </div>
