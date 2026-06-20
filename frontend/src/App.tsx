@@ -4,7 +4,7 @@ import type { MenuProps } from 'antd';
 import {
     DesktopOutlined, PieChartOutlined, TeamOutlined, ShopOutlined, DropboxOutlined, CloudUploadOutlined,
     SettingOutlined, UserOutlined, LogoutOutlined, BankOutlined, CalendarOutlined, ShoppingCartOutlined, QuestionCircleOutlined, CodeOutlined, MenuOutlined, IdcardOutlined,
-    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined, FolderOutlined, MessageOutlined, GlobalOutlined, PrinterOutlined, ExperimentOutlined
+    LinkOutlined, RocketOutlined, FacebookOutlined, NotificationOutlined, FolderOutlined, MessageOutlined, GlobalOutlined, PrinterOutlined, ExperimentOutlined, RobotOutlined
 } from '@ant-design/icons';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Drawer } from 'antd'; // <--- Import Drawer
