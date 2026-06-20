@@ -1148,7 +1148,7 @@ const S: Record<string, React.CSSProperties> = {
     },
     // Hero
     heroSection: {
-        background: 'linear-gradient(135deg, #23A7D3 0%, #1a8daf 50%, #156b87 100%)',
+        background: 'url("/banner-bg.jpg") center/cover no-repeat',
         borderRadius: '0 0 24px 24px',
         padding: '48px 32px',
         textAlign: 'center' as const,
@@ -1159,8 +1159,8 @@ const S: Record<string, React.CSSProperties> = {
     heroOverlay: {
         position: 'absolute' as const,
         top: 0, left: 0, right: 0, bottom: 0,
-        background: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.06\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-        opacity: 0.5,
+        background: 'rgba(0, 0, 0, 0.55)',
+        backdropFilter: 'blur(3px)',
     },
     heroContent: {
         position: 'relative' as const,
@@ -1172,14 +1172,15 @@ const S: Record<string, React.CSSProperties> = {
         color: '#fff',
         letterSpacing: 3,
         margin: '0 0 12px',
-        textShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        textShadow: '0 2px 10px rgba(0,0,0,0.5)',
     },
     heroDesc: {
         fontSize: 15,
-        color: 'rgba(255,255,255,0.85)',
+        color: '#fff',
         maxWidth: 500,
         margin: '0 auto 16px',
         lineHeight: 1.6,
+        textShadow: '0 1px 4px rgba(0,0,0,0.3)',
     },
     heroBadge: {
         display: 'inline-block',
