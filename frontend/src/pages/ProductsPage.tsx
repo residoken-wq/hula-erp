@@ -693,8 +693,10 @@ const ProductsPage: React.FC = () => {
                         />
                         <Input placeholder="Tìm kiếm SKU/Tên..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} allowClear />
                         {canViewCost && (
-                            <Button icon={<SyncOutlined />} onClick={handleCalculateAllCosts}>Cập nhật tất cả giá</Button>
-                            <Button icon={<SyncOutlined />} onClick={handleSyncBookingStocks}>Đồng bộ Booking Stock</Button>
+                            <>
+                                <Button icon={<SyncOutlined />} onClick={handleCalculateAllCosts}>Cập nhật tất cả giá</Button>
+                                <Button icon={<SyncOutlined />} onClick={handleSyncBookingStocks}>Đồng bộ Booking Stock</Button>
+                            </>
                         )}
                         <Dropdown menu={printMenuProps} placement="bottomRight">
                             <Button icon={<PrinterOutlined />}>In DS</Button>
