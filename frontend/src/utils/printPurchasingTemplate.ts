@@ -73,7 +73,10 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
 
         const rows = currentPO?.items?.map((i: any, idx: number) => {
             const priceCells = showPrice ? `<td>${Number(i.unit_price || 0).toLocaleString()}</td><td>${Number(i.subtotal || 0).toLocaleString()}</td>` : '';
-            let sku = i.material?.code || i.product?.sku || '-';
+            
+            let productName = i.product?.name || i.material?.name || '';
+            let frontColor = i.product?.attributes?.front_color || '-';
+            let backColor = i.product?.attributes?.back_color || '-';
             let processingDesc = i.product?.processing_description || i.material?.name || ''; 
 
             if (i.product && !processingDesc) {
@@ -81,24 +84,25 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
             }
 
             if (!i.product && !i.material && i.description) {
-                const skuMatch = i.description.match(/\\(([^)]+)\\)\\s*$/);
-                const descMatch = i.description.match(/^(.+?)\\s*\\([^)]+\\)\\s*$/);
-
-                if (skuMatch) sku = skuMatch[1].trim();
+                const descMatch = i.description.match(/^(.+?)\s*\([^)]+\)\s*$/);
                 if (descMatch) {
+                    productName = descMatch[1].trim();
                     processingDesc = descMatch[1].trim();
                 } else {
+                    productName = i.description;
                     if (!processingDesc) processingDesc = i.description;
                 }
             } else if (!processingDesc && i.description) {
-                const descMatch = i.description.match(/^(.+?)\\s*\\([^)]+\\)\\s*$/);
+                const descMatch = i.description.match(/^(.+?)\s*\([^)]+\)\s*$/);
                 processingDesc = descMatch ? descMatch[1].trim() : i.description;
             }
 
             return `
             <tr>
                 <td>${idx + 1}</td>
-                <td>${sku}</td>
+                <td class="left-align">${productName}</td>
+                <td>${frontColor}</td>
+                <td>${backColor}</td>
                 <td class="left-align">${processingDesc}</td>
                 <td>-</td> 
                 <td>-</td> 
@@ -127,7 +131,9 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                 <thead>
                     <tr>
                         <th>STT</th>
-                        <th>Mã SKU</th>
+                        <th>Tên hàng</th>
+                        <th>Màu MT</th>
+                        <th>Màu MS</th>
                         <th>Mô tả sản xuất</th>
                         <th>Định mức vải (VMT)</th>
                         <th>Định mức vải (VMS)</th>

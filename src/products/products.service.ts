@@ -139,7 +139,7 @@ export class ProductsService {
     }
 
     private cleanData(data: any) {
-        const { boms, routings, logistics, components, patterns, color, size, fabric, customer_description, processing_description, vat_description, tags, ...clean } = data;
+        const { boms, routings, logistics, components, patterns, front_color, back_color, size, logo, design, customer_description, processing_description, vat_description, tags, ...clean } = data;
 
         clean.customer_description = customer_description;
         clean.processing_description = processing_description;
@@ -157,8 +157,8 @@ export class ProductsService {
             clean.contact_for_price = data.contact_for_price;
         }
 
-        if (!clean.attributes && (color || size || fabric)) {
-            clean.attributes = { color, size, fabric };
+        if (!clean.attributes && (front_color || back_color || size || logo || design)) {
+            clean.attributes = { front_color, back_color, size, logo, design };
         }
 
         // Explicitly ensure image_url is preserved (though ...clean should cover it, being explicit helps debugging)

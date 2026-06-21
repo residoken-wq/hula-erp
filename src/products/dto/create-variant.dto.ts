@@ -17,10 +17,11 @@ export class CreateVariantDto {
   @IsObject()
   @IsOptional()
   attributes: {
-    color?: string;
+    front_color?: string;
+    back_color?: string;
     size?: string;
-    logo?: string;   // <--- MỚI: Thuộc tính Logo
-    design?: string; // <--- MỚI: Thuộc tính Design
-    [key: string]: any; // Cho phép các thuộc tính khác
+    logo?: string;
+    design?: string;
+    [key: string]: any;
   };
 }

@@ -241,7 +241,7 @@ const ProductsPage: React.FC = () => {
     }
 
     const handleCreateVariant = async (values: any) => {
-        const { base_sku, variant_sku_suffix, variant_name_suffix, color, size, logo, design, ...otherValues } = values;
+        const { base_sku, variant_sku_suffix, variant_name_suffix, front_color, back_color, size, logo, design, ...otherValues } = values;
 
         const newSku = `${base_sku}_${variant_sku_suffix}`;
         const newName = `${baseProductForVariant.name} ${variant_name_suffix}`;
@@ -250,7 +250,7 @@ const ProductsPage: React.FC = () => {
             baseSku: base_sku,
             newSku: newSku,
             newName: newName,
-            attributes: { color, size, logo, design }
+            attributes: { front_color, back_color, size, logo, design }
         };
 
         try {
@@ -799,18 +799,17 @@ const ProductsPage: React.FC = () => {
                                         <Form.Item name="processing_description" label="Mô tả Gia công/Sản xuất" tooltip="Hiển thị trên PO Gia công, Lệnh sản xuất"><TextArea rows={3} placeholder="Yêu cầu kỹ thuật, chi tiết may/cắt, v.v." /></Form.Item>
                                         <Form.Item name="vat_description" label="Mô tả VAT" tooltip="Hiển thị trên đơn hàng để xuất hóa đơn"><TextArea rows={2} placeholder="Mô tả xuất hóa đơn..." /></Form.Item>
 
-                                        {/* BIẾN THỂ: Cho phép sửa thuộc tính */}
-                                        {editingItem && editingItem.attributes && Object.keys(editingItem.attributes).length > 0 && (
-                                            <>
-                                                <Divider orientation="left"><ForkOutlined /> Thuộc tính Biến thể</Divider>
-                                                <Row gutter={10}>
-                                                    <Col span={12}><Form.Item name={['attributes', 'color']} label="Màu sắc"><Input /></Form.Item></Col>
-                                                    <Col span={12}><Form.Item name={['attributes', 'size']} label="Kích thước"><Input /></Form.Item></Col>
-                                                    <Col span={12}><Form.Item name={['attributes', 'fabric']} label="Chất liệu"><Input /></Form.Item></Col>
-                                                    <Col span={12}><Form.Item name={['attributes', 'design']} label="Design"><Input /></Form.Item></Col>
-                                                </Row>
-                                            </>
-                                        )}
+                                        {/* BIẾN THỂ: Luôn hiển thị để cho phép thêm/sửa thuộc tính */}
+                                        <>
+                                            <Divider orientation="left"><ForkOutlined /> Thuộc tính Biến thể</Divider>
+                                            <Row gutter={10}>
+                                                <Col span={12}><Form.Item name={['attributes', 'front_color']} label="Màu sắc (Mặt trước)"><Input /></Form.Item></Col>
+                                                <Col span={12}><Form.Item name={['attributes', 'back_color']} label="Màu sắc (Mặt sau)"><Input /></Form.Item></Col>
+                                                <Col span={12}><Form.Item name={['attributes', 'size']} label="Kích thước"><Input /></Form.Item></Col>
+                                                <Col span={12}><Form.Item name={['attributes', 'logo']} label="Logo (Hình in/Thêu)"><Input /></Form.Item></Col>
+                                                <Col span={12}><Form.Item name={['attributes', 'design']} label="Design (Thiết kế)"><Input /></Form.Item></Col>
+                                            </Row>
+                                        </>
                                     </Col>
                                 </Row>
                             </Form>
@@ -927,11 +926,14 @@ const ProductsPage: React.FC = () => {
                     </Row>
                     <Divider orientation="left">Thuộc tính Biến thể</Divider>
                     <Row gutter={16}>
-                        <Col span={12}><Form.Item name="color" label="Màu sắc (Color)"><Input placeholder="VD: Đỏ, Xanh Navy" /></Form.Item></Col>
-                        <Col span={12}><Form.Item name="size" label="Kích thước (Size)"><Input placeholder="VD: L, 40x60cm" /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="front_color" label="Màu sắc (Mặt trước)"><Input placeholder="VD: Đỏ, Xanh Navy" /></Form.Item></Col>
+                        <Col span={12}><Form.Item name="back_color" label="Màu sắc (Mặt sau)"><Input placeholder="VD: Đen, Trắng" /></Form.Item></Col>
                     </Row>
                     <Row gutter={16}>
+                        <Col span={12}><Form.Item name="size" label="Kích thước (Size)"><Input placeholder="VD: L, 40x60cm" /></Form.Item></Col>
                         <Col span={12}><Form.Item name="logo" label="Logo (Hình in/Thêu)"><Input placeholder="VD: Logo ngực trái, In Pet" /></Form.Item></Col>
+                    </Row>
+                    <Row gutter={16}>
                         <Col span={12}><Form.Item name="design" label="Design (Thiết kế)"><Input placeholder="VD: Mẫu A, Hình in rồng" /></Form.Item></Col>
                     </Row>
                 </Form>

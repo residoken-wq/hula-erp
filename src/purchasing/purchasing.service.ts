@@ -45,6 +45,8 @@ export class PurchasingService {
                 item.product_id = i.product_id;
                 item.description = i.description || '';
                 item.note = i.note || ''; // --- FIX: Save note ---
+                item.front_color = i.front_color || ''; // --- MỚI: Màu NPL ---
+                item.back_color = i.back_color || ''; // --- MỚI: Màu NPL ---
                 item.quantity = Number(i.quantity);
                 item.unit_price = Number(i.unit_price);
                 item.subtotal = item.quantity * item.unit_price;
@@ -189,6 +191,8 @@ export class PurchasingService {
                     if (itemDTO.quantity !== undefined) poItem.quantity = Number(itemDTO.quantity);
                     if (itemDTO.unit_price !== undefined) poItem.unit_price = Number(itemDTO.unit_price);
                     if (itemDTO.note !== undefined) poItem.note = itemDTO.note; // Update Item Note
+                    if (itemDTO.front_color !== undefined) poItem.front_color = itemDTO.front_color;
+                    if (itemDTO.back_color !== undefined) poItem.back_color = itemDTO.back_color;
                     if (itemDTO.print_design_id !== undefined) {
                         poItem.print_design_id = itemDTO.print_design_id;
                         poItem.print_design = { id: itemDTO.print_design_id } as any;

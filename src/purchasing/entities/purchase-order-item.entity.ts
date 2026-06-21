@@ -65,4 +65,11 @@ export class PurchaseOrderItem {
 
   @Column({ nullable: true })
   print_design_id: number;
+
+  // --- MỚI: Gán màu sắc sản phẩm cho NPL ---
+  @Column({ nullable: true })
+  front_color: string;
+
+  @Column({ nullable: true })
+  back_color: string;
 }

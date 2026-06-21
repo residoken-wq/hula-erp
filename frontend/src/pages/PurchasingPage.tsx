@@ -519,6 +519,14 @@ const PurchasingPage: React.FC = () => {
         
         const itemColumns = [
             { title: 'Tên hàng / Mô tả', render: (r: any) => r.material?.name || r.product?.name || r.description || '-' },
+            ...(record.type === 'OUTSOURCING' ? [
+                { title: 'Màu MT', render: (r: any) => r.product?.attributes?.front_color || '-' },
+                { title: 'Màu MS', render: (r: any) => r.product?.attributes?.back_color || '-' }
+            ] : []),
+            ...(record.type === 'MATERIAL' ? [
+                { title: 'Màu vải MT', render: (r: any) => r.front_color || '-' },
+                { title: 'Màu vải MS', render: (r: any) => r.back_color || '-' }
+            ] : []),
             { 
                 title: 'Số lượng (Gốc)', 
                 dataIndex: 'quantity', 
@@ -550,6 +558,9 @@ const PurchasingPage: React.FC = () => {
             />
         );
     };
+
+    const uniqueFrontColors = Array.from(new Set(products.map(p => p.attributes?.front_color).filter(Boolean)));
+    const uniqueBackColors = Array.from(new Set(products.map(p => p.attributes?.back_color).filter(Boolean)));
 
     return (
         <div>
@@ -771,6 +782,46 @@ const PurchasingPage: React.FC = () => {
                                             return r.description;
                                         }
                                     },
+                                    ...(currentPO?.type === 'OUTSOURCING' ? [
+                                        { title: 'Màu MT', width: 100, render: (r: any) => <span>{r.product?.attributes?.front_color || '-'}</span> },
+                                        { title: 'Màu MS', width: 100, render: (r: any) => <span>{r.product?.attributes?.back_color || '-'}</span> }
+                                    ] : []),
+                                    ...(currentPO?.type === 'MATERIAL' ? [
+                                        {
+                                            title: 'Màu vải MT', width: 120, render: (r: any, _: any, index: number) => (
+                                                <Select
+                                                    allowClear
+                                                    showSearch
+                                                    style={{ width: '100%' }}
+                                                    placeholder="Chọn màu..."
+                                                    value={r.front_color}
+                                                    onChange={(val) => {
+                                                        const newItems = [...editingItems];
+                                                        newItems[index].front_color = val;
+                                                        setEditingItems(newItems);
+                                                    }}
+                                                    options={uniqueFrontColors.map(c => ({ label: c, value: c }))}
+                                                />
+                                            )
+                                        },
+                                        {
+                                            title: 'Màu vải MS', width: 120, render: (r: any, _: any, index: number) => (
+                                                <Select
+                                                    allowClear
+                                                    showSearch
+                                                    style={{ width: '100%' }}
+                                                    placeholder="Chọn màu..."
+                                                    value={r.back_color}
+                                                    onChange={(val) => {
+                                                        const newItems = [...editingItems];
+                                                        newItems[index].back_color = val;
+                                                        setEditingItems(newItems);
+                                                    }}
+                                                    options={uniqueBackColors.map(c => ({ label: c, value: c }))}
+                                                />
+                                            )
+                                        }
+                                    ] : []),
                                     {
                                         title: 'Mô tả', width: 250, render: (r: any) => {
                                             let content = '-';
