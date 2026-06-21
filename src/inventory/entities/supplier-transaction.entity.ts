@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Supplier } from '../../suppliers/supplier.entity';
-import { Material } from '../../products/material.entity';
+import { Material } from '../../materials/material.entity';
 
 export enum SupplierTransactionType {
   RECEIVE_NPL = 'RECEIVE_NPL', // Nhận NPL từ Cty (Cộng tồn)

@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Supplier } from '../../suppliers/supplier.entity';
-import { Material } from '../../products/material.entity';
+import { Material } from '../../materials/material.entity';
 
 @Entity('supplier_stocks')
 export class SupplierStock {
