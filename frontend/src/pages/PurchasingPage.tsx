@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, Card, Tabs, Space, Tooltip, Popconfirm, message, Modal, Descriptions, Divider, Input, Statistic, Row, Col, InputNumber, Select, DatePicker, Form, Alert } from 'antd';
+import { Table, Tag, Button, Card, Tabs, Space, Tooltip, Popconfirm, message, Modal, Descriptions, Divider, Input, Statistic, Row, Col, InputNumber, Select, DatePicker, Form, Alert, AutoComplete } from 'antd';
 import { ReloadOutlined, EyeOutlined, DeleteOutlined, SendOutlined, CheckCircleOutlined, ShopOutlined, ScissorOutlined, PrinterOutlined, SearchOutlined, DollarOutlined, CarOutlined, LinkOutlined, ImportOutlined, FileExcelOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
@@ -559,8 +559,21 @@ const PurchasingPage: React.FC = () => {
         );
     };
 
-    const uniqueFrontColors = Array.from(new Set(products.map(p => p.attributes?.front_color).filter(Boolean)));
-    const uniqueBackColors = Array.from(new Set(products.map(p => p.attributes?.back_color).filter(Boolean)));
+    const uniqueFrontColors = Array.from(new Set(products.map(p => {
+        let attr = p.attributes;
+        if (typeof attr === 'string') {
+            try { attr = JSON.parse(attr); } catch (e) { attr = {}; }
+        }
+        return attr?.front_color;
+    }).filter(Boolean)));
+    
+    const uniqueBackColors = Array.from(new Set(products.map(p => {
+        let attr = p.attributes;
+        if (typeof attr === 'string') {
+            try { attr = JSON.parse(attr); } catch (e) { attr = {}; }
+        }
+        return attr?.back_color;
+    }).filter(Boolean)));
 
     return (
         <div>
@@ -789,9 +802,8 @@ const PurchasingPage: React.FC = () => {
                                     ...(currentPO?.type === 'MATERIAL' ? [
                                         {
                                             title: 'Màu vải MT', width: 120, render: (r: any, _: any, index: number) => (
-                                                <Select
+                                                <AutoComplete
                                                     allowClear
-                                                    showSearch
                                                     style={{ width: '100%' }}
                                                     placeholder="Chọn màu..."
                                                     value={r.front_color}
@@ -800,15 +812,17 @@ const PurchasingPage: React.FC = () => {
                                                         newItems[index].front_color = val;
                                                         setEditingItems(newItems);
                                                     }}
-                                                    options={uniqueFrontColors.map(c => ({ label: c, value: c }))}
+                                                    options={uniqueFrontColors.map(c => ({ value: c as string }))}
+                                                    filterOption={(inputValue, option) =>
+                                                        (option?.value as string)?.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                                    }
                                                 />
                                             )
                                         },
                                         {
                                             title: 'Màu vải MS', width: 120, render: (r: any, _: any, index: number) => (
-                                                <Select
+                                                <AutoComplete
                                                     allowClear
-                                                    showSearch
                                                     style={{ width: '100%' }}
                                                     placeholder="Chọn màu..."
                                                     value={r.back_color}
@@ -817,30 +831,47 @@ const PurchasingPage: React.FC = () => {
                                                         newItems[index].back_color = val;
                                                         setEditingItems(newItems);
                                                     }}
-                                                    options={uniqueBackColors.map(c => ({ label: c, value: c }))}
+                                                    options={uniqueBackColors.map(c => ({ value: c as string }))}
+                                                    filterOption={(inputValue, option) =>
+                                                        (option?.value as string)?.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                                    }
                                                 />
                                             )
                                         }
                                     ] : []),
                                     {
-                                        title: 'Mô tả', width: 250, render: (r: any) => {
-                                            let content = '-';
+                                        title: 'Mô tả', width: 250, render: (r: any, _: any, index: number) => {
+                                            let defaultContent = '';
+                                            if (currentPO?.type === 'MATERIAL') {
+                                                const mt = r.front_color || '';
+                                                const ms = r.back_color || '';
+                                                const name = r.material?.name || r.product?.name || r.description || '';
+                                                if (mt || ms) {
+                                                    defaultContent = `${mt}${ms ? '/' + ms : ''}---${name}`;
+                                                } else {
+                                                    defaultContent = name;
+                                                }
+                                            } else {
+                                                if (r.product?.processing_description) {
+                                                    defaultContent = r.product.processing_description;
+                                                } else if (!r.material && r.description) {
+                                                    const match = r.description.match(/^(.+?)\s*\([^)]+\)\s*$/);
+                                                    if (match) defaultContent = match[1].trim();
+                                                    else defaultContent = r.description;
+                                                } else if (r.product?.name) {
+                                                    defaultContent = r.product.name;
+                                                }
+                                            }
 
-                                            // 1. Try Product Processing Description
-                                            if (r.product?.processing_description) {
-                                                content = r.product.processing_description;
-                                            }
-                                            // 2. Try parsing Description "Text (SKU)"
-                                            else if (!r.material && r.description) {
-                                                const match = r.description.match(/^(.+?)\s*\([^)]+\)\s*$/);
-                                                if (match) content = match[1].trim();
-                                                else content = r.description; // Fallback to full description if format doesn't match
-                                            }
-                                            else if (r.product?.name) {
-                                                content = r.product.name;
-                                            }
-
-                                            return <span style={{ color: '#666', fontStyle: 'italic' }}>{content}</span>;
+                                            return <Input 
+                                                placeholder="Nhập mô tả..."
+                                                value={r.description !== undefined && r.description !== null ? r.description : defaultContent}
+                                                onChange={(e) => {
+                                                    const newItems = [...editingItems];
+                                                    newItems[index].description = e.target.value;
+                                                    setEditingItems(newItems);
+                                                }}
+                                            />;
                                         }
                                     },
                                     { title: 'Tổng Cần (Gốc)', width: 100, align: 'center', render: (r: any) => <span>{Number(r.raw_quantity || 0).toLocaleString()} {r.material?.unit}</span> },
@@ -1328,6 +1359,7 @@ const PurchasingPage: React.FC = () => {
                     <Button block onClick={() => handlePrint('OUTSOURCING', false)}>Mẫu Gia Công (Không Đơn giá)</Button>
                     <Button block onClick={() => handlePrint('CARA')}>Mẫu Đóng Gói (Cara Style)</Button>
                     <Button block onClick={() => handlePrint('HQ')}>Mẫu Đóng Gói (HQ Style)</Button>
+                    <Button block onClick={() => handlePrint('TV')}>Mẫu Đặt Hàng (Trần Văn)</Button>
                 </Space>
             </Modal>
 

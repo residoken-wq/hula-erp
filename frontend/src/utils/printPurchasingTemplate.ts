@@ -252,12 +252,12 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
 
             <div class="header">
                 <div class="header-left">
-                    <div style="font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 8px;">\${companyConfig?.COMPANY_NAME || 'HULA'}</div>
-                    <div>\${companyConfig?.COMPANY_ADDRESS ? \`Đ/C: \${companyConfig.COMPANY_ADDRESS}\` : 'Đ/C: 123 ABC...'}</div>
+                    <div style="font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 8px;">${companyConfig?.COMPANY_NAME || 'HULA'}</div>
+                    <div>${companyConfig?.COMPANY_ADDRESS ? `Đ/C: ${companyConfig.COMPANY_ADDRESS}` : 'Đ/C: 123 ABC...'}</div>
                 </div>
                 <div class="header-right">
-                    <div><span class="bold">Ngày lập:</span> \${dateStr}</div>
-                    <div><span class="bold">Mã PO:</span> \${poCode}</div>
+                    <div><span class="bold">Ngày lập:</span> ${dateStr}</div>
+                    <div><span class="bold">Mã PO:</span> ${poCode}</div>
                 </div>
             </div>
 
@@ -280,7 +280,7 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                         <th>N1</th><th>N2</th><th>C1</th><th>C2</th><th>G1</th><th>G2</th>
                     </tr>
                 </thead>
-                <tbody>\${rows}</tbody>
+                <tbody>${rows}</tbody>
             </table>
 
             <div class="summary-container">
@@ -295,20 +295,20 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                         </tr>
                     </thead>
                     <tbody>
-                        \${summaryRows}
+                        ${summaryRows}
                     </tbody>
                     <tfoot>
                         <tr>
                             <td class="right-align bold" style="color: #111827;">TỔNG TOÀN BỘ</td>
-                            <td class="bold">\${totalAllN1 || '-'}</td>
-                            <td class="bold">\${totalAllN2 || '-'}</td>
-                            <td class="bold">\${totalAllC1 || '-'}</td>
-                            <td class="bold">\${totalAllC2 || '-'}</td>
-                            <td class="bold">\${totalAllG1 || '-'}</td>
-                            <td class="bold">\${totalAllG2 || '-'}</td>
-                            <td class="bold">\${totalAllOdd || '-'}</td>
-                            <td class="bold">\${totalAllBorder || '-'}</td>
-                            <td class="bold text-highlight">\${grandTotal || '-'}</td>
+                            <td class="bold">${totalAllN1 || '-'}</td>
+                            <td class="bold">${totalAllN2 || '-'}</td>
+                            <td class="bold">${totalAllC1 || '-'}</td>
+                            <td class="bold">${totalAllC2 || '-'}</td>
+                            <td class="bold">${totalAllG1 || '-'}</td>
+                            <td class="bold">${totalAllG2 || '-'}</td>
+                            <td class="bold">${totalAllOdd || '-'}</td>
+                            <td class="bold">${totalAllBorder || '-'}</td>
+                            <td class="bold text-highlight">${grandTotal || '-'}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -328,6 +328,84 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                     <div style="color: #9ca3af; font-size: 13px;">(Ký, ghi rõ họ tên)</div>
                 </div>
             </div>
+        `;
+    } else if (template === 'TV') {
+        const rows = currentPO?.items?.map((i: any, idx: number) => {
+            let desc = i.description;
+            if (!desc) {
+                const mt = i.front_color || '';
+                const ms = i.back_color || '';
+                const name = i.material?.name || i.product?.name || '';
+                if (mt || ms) desc = `${mt}${ms ? '/' + ms : ''}---${name}`;
+                else desc = name;
+            }
+
+            return `
+            <tr>
+                <td>${idx + 1}</td>
+                <td class="left-align">${desc}</td>
+                <td>${Number(i.quantity).toLocaleString()}</td>
+                <td class="left-align bold">${i.note || '-'}</td>
+            </tr>
+        `}).join('');
+
+        const totalQty = currentPO?.items?.reduce((s: number, i: any) => s + Number(i.quantity || 0), 0);
+
+        content = `
+            ${style}
+            <style>
+                .tv-header-table { width: 100%; border: none; margin-bottom: 20px; font-size: 15px; font-weight: bold; border-collapse: collapse; margin-top: 0; }
+                .tv-header-table td { border: none; padding: 5px 0; text-align: left; }
+                .tv-header-table .right { text-align: right; }
+                .tv-table th { background-color: #f9f9f9; font-weight: bold; }
+                .tv-table td, .tv-table th { padding: 10px; font-size: 14px; }
+            </style>
+            
+            <div style="font-weight: bold; font-size: 18px; margin-bottom: 5px;">ĐƠN ĐẶT HÀNG</div>
+            <table class="tv-header-table">
+                <tr>
+                    <td>Bên Gia công: ${supplierDisplayName}</td>
+                    <td class="right">Bên đặt hàng: ${companyConfig?.COMPANY_NAME || 'HULA'}</td>
+                </tr>
+                <tr>
+                    <td>Ngày: ${dateStr}</td>
+                    <td class="right">${poCode}</td>
+                </tr>
+            </table>
+
+            <table class="tv-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">STT</th>
+                        <th style="width: 55%;">Chần vải mặt trước/Mặt sau - Gòn</th>
+                        <th style="width: 20%;">SL m chần gòn</th>
+                        <th style="width: 20%;">GHI CHÚ</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2" style="font-weight: bold; text-align: center;">Tổng cộng</td>
+                        <td style="font-weight: bold;">${Number(totalQty).toLocaleString()}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <div style="margin-top: 5px; font-size: 13px;">
+                ***Ghi chú: Nội dung nguyên phụ liệu được bàn giao đính kèm Phiếu xuất kho.
+            </div>
+
+            <table style="width: 100%; border: none; margin-top: 10px; font-weight: bold;">
+                <tr>
+                    <td style="border: none; text-align: left; width: 50%; padding-left: 30px;">Bên gia công</td>
+                    <td style="border: none; text-align: right; width: 50%; padding-right: 30px;">Bên đặt hàng</td>
+                </tr>
+                <tr>
+                    <td style="border: none; text-align: left; padding-top: 80px; padding-left: 30px;">${supplierDisplayName}</td>
+                    <td style="border: none; text-align: right; padding-top: 80px; padding-right: 30px;">${companyConfig?.COMPANY_NAME || 'HULA'}</td>
+                </tr>
+            </table>
         `;
     } else if (template === 'SUPPLIER_TEMPLATE') {
         let rawTemplate = currentPO?.supplier?.po_template || '';
