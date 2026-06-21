@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox, DatePicker, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined, EyeOutlined, PrinterOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined, EyeOutlined, PrinterOutlined, StarOutlined, StarFilled } from '@ant-design/icons';
 import axios from 'axios';
 import api from '../utils/api';
 import useMobile from '../hooks/useMobile';
@@ -196,6 +196,16 @@ const ProductsPage: React.FC = () => {
         catch (e) { message.error('Lỗi xóa'); }
     };
 
+    const handleToggleFlag = async (record: any) => {
+        try {
+            await api.put(`/products/${record.id}`, { is_flagged: !record.is_flagged });
+            message.success(record.is_flagged ? 'Đã bỏ đánh dấu ưu tiên' : 'Đã đánh dấu ưu tiên');
+            fetchData();
+        } catch (e) {
+            message.error('Lỗi cập nhật trạng thái');
+        }
+    };
+
     const openEdit = (item: any) => {
         form.resetFields();
         setEditingItem(item);
@@ -272,16 +282,18 @@ const ProductsPage: React.FC = () => {
     };
 
     // --- FILTER VARIANT VS BASE ---
-    const [viewMode, setViewMode] = useState('BASE'); // 'BASE' | 'VARIANT'
+    const [viewMode, setViewMode] = useState('MAIN'); // 'MAIN' | 'SEMI' | 'FLAGGED'
 
     const filteredData = useMemo(() => {
         let list = data;
 
         // 1. Filter by Mode
-        if (viewMode === 'BASE') {
-            list = list.filter(d => !d.attributes || Object.keys(d.attributes).length === 0);
-        } else {
-            list = list.filter(d => d.attributes && Object.keys(d.attributes).length > 0);
+        if (viewMode === 'MAIN') {
+            list = list.filter(d => d.product_type !== 'SEMI_FINISHED');
+        } else if (viewMode === 'SEMI') {
+            list = list.filter(d => d.product_type === 'SEMI_FINISHED');
+        } else if (viewMode === 'FLAGGED') {
+            list = list.filter(d => d.is_flagged === true);
         }
 
         // 2. Filter by Category
@@ -363,7 +375,16 @@ const ProductsPage: React.FC = () => {
             }
         },
         {
-            title: 'Mã (SKU)', dataIndex: 'sku', width: 120, render: (t: any) => <b>{t}</b>,
+            title: 'Mã (SKU)', dataIndex: 'sku', width: 140, render: (t: any, r: any) => (
+                <Space>
+                    <Tooltip title={r.is_flagged ? "Bỏ ưu tiên" : "Đánh dấu ưu tiên hiển thị tồn kho"}>
+                        {r.is_flagged ? 
+                            <StarFilled style={{ color: '#faad14', cursor: 'pointer', fontSize: 16 }} onClick={(e) => { e.stopPropagation(); handleToggleFlag(r); }} /> : 
+                            <StarOutlined style={{ color: '#d9d9d9', cursor: 'pointer', fontSize: 16 }} onClick={(e) => { e.stopPropagation(); handleToggleFlag(r); }} />}
+                    </Tooltip>
+                    <b>{t}</b>
+                </Space>
+            ),
             sorter: (a: any, b: any) => (a.sku || '').localeCompare(b.sku || '')
         },
         {
@@ -625,7 +646,7 @@ const ProductsPage: React.FC = () => {
                             allowClear
                             value={filterCategory}
                             onChange={setFilterCategory}
-                            style={{ width: 160 }}
+                            style={{ width: 250 }}
                             options={categories.map(c => ({ label: c.name, value: c.id }))}
                             showSearch
                             optionFilterProp="label"
@@ -665,6 +686,7 @@ const ProductsPage: React.FC = () => {
                 size={isMobile ? 'small' : 'middle'}
                 items={[
                     { key: 'MAIN', label: <span><AppstoreOutlined /> {isMobile ? 'SP' : 'Danh Sách Sản Phẩm'}</span> },
+                    { key: 'FLAGGED', label: <span><StarFilled style={{ color: '#faad14' }} /> {isMobile ? 'Ưu tiên' : 'Sản Phẩm Ưu Tiên'}</span> },
                     { key: 'SEMI', label: <span><BuildOutlined /> {isMobile ? 'BOM' : 'Bán Thành Phẩm (BOM)'}</span> }
                 ]}
                 style={{ marginBottom: 16 }}

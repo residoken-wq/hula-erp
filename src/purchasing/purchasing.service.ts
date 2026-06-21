@@ -600,6 +600,7 @@ export class PurchasingService {
                         material_id: item.material_id || null,
                         material_name: item.material?.name || item.description || '-',
                         material_code: item.material?.code || null,
+                        material_unit: item.material?.unit || '',
                         product_id: item.product_id || null,
                         product: item.product || null,
                         unit: item.material?.unit || '',

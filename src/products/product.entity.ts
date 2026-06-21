@@ -55,6 +55,10 @@ export class Product {
   @Column({ default: true })
   is_active: boolean;
 
+  // --- MỚI: FIELD ĐÁNH DẤU SẢN PHẨM ƯU TIÊN ---
+  @Column({ default: false })
+  is_flagged: boolean;
+
   // --- MỚI: FIELD MÔ TẢ KHÁCH HÀNG ---
   @Column('text', { nullable: true })
   customer_description: string;

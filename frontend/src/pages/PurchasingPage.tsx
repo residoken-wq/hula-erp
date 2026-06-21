@@ -114,7 +114,20 @@ const PurchasingPage: React.FC = () => {
                         wastage_rate: 0,
                     }));
                     setEditingItems(aggItems);
-                    setPackingList([]);
+                    // FIX: Auto-generate packingList từ aggregated items cho POOLED PO
+                    if (poDetail.packing_list_details && poDetail.packing_list_details.length > 0) {
+                        setPackingList(poDetail.packing_list_details);
+                    } else {
+                        const generatedPacking = aggItems.map((item: any, idx: number) => ({
+                            id: Date.now() + idx,
+                            po_form_code: '',
+                            material_name: item.material?.name || item.description || '-',
+                            material_id: item.material_id || null,
+                            quantity: item.quantity,
+                            n1: '', n2: '', c1: '', c2: '', g1: '', g2: '', odd: '', border: '', note: ''
+                        }));
+                        setPackingList(generatedPacking);
+                    }
                 } catch (e) {
                     console.error('Error fetching pooled aggregate', e);
                     setEditingItems([]);
@@ -306,7 +319,8 @@ const PurchasingPage: React.FC = () => {
                 po_id: currentPO.id,
                 items: validRows.map(r => {
                     // Find matching PO Item ID
-                    const poItem = currentPO.items?.find((i: any) => (i.material?.name || i.reference_name || i.sku) === r.material_name);
+                    // FIX: Dùng editingItems thay vì currentPO.items để hỗ trợ POOLED PO
+                    const poItem = editingItems?.find((i: any) => (i.material?.name || i.description || i.reference_name || i.sku) === r.material_name);
                     const totalQty =
                         Number(r.n1_input || 0) + Number(r.n2_input || 0) +
                         Number(r.c1_input || 0) + Number(r.c2_input || 0) +
@@ -440,9 +454,10 @@ const PurchasingPage: React.FC = () => {
     }
 
     const handleSavePOChanges = async () => {
+        const isPooled = currentPO?.type === 'POOLED';
         try {
             await api.put(`/purchasing/${currentPO.id}`, {
-                items: editingItems,
+                items: isPooled ? undefined : editingItems, // FIX: POOLED PO không có items riêng
                 packing_list_details: packingList,
                 supplier_id: currentPO.supplier?.id, // Include Supplier ID
                 project_id: currentPO.project_id, // Include project
@@ -467,12 +482,15 @@ const PurchasingPage: React.FC = () => {
 
     const handleCreateReceipt = async () => {
         if (!currentPO) return;
+        // FIX: Dùng editingItems thay vì currentPO.items để hỗ trợ POOLED PO
+        const items = editingItems?.length > 0 ? editingItems : (currentPO.items || []);
+        if (items.length === 0) return message.warning('Không có hàng hóa nào');
         try {
             await api.post(`/inventory/goods-receipt/draft`, {
                 po_id: currentPO.id,
-                items: currentPO.items.map((i: any) => ({
+                items: items.map((i: any) => ({
                     po_item_id: i.id,
-                    material_id: i.material?.id,
+                    material_id: i.material?.id || i.material_id,
                     quantity: i.quantity
                 })),
                 note: `Nhập kho từ PO ${currentPO.po_code}`
@@ -855,7 +873,7 @@ const PurchasingPage: React.FC = () => {
                     // Removed old "Thông tin giao hàng" tab that used removed state variables.
 
                     // Only show Packing Matrix for MATERIAL POs
-                    ...(currentPO?.po_type !== 'OUTSOURCING' ? [{
+                    ...(currentPO?.type !== 'OUTSOURCING' ? [{
                         key: '3', label: 'Thông tin đóng gói', children: (
                             <div>
                                 <div style={{ marginBottom: 10 }}>
@@ -877,7 +895,8 @@ const PurchasingPage: React.FC = () => {
                                         {
                                             title: 'Tổng SL', width: 100, align: 'right', render: (t, r, idx) => {
                                                 // Find matching item in PO items to get quantity
-                                                const matchingItem = currentPO?.items?.find((i: any) => (i.material?.name || i.reference_name || i.sku) === r.material_name);
+                                                // FIX: Dùng editingItems thay vì currentPO.items để hỗ trợ POOLED PO
+                                                const matchingItem = editingItems?.find((i: any) => (i.material?.name || i.description || i.reference_name || i.sku) === r.material_name);
                                                 return <b>{matchingItem ? Number(matchingItem.quantity).toLocaleString() : '-'}</b>;
                                             }
                                         },
@@ -1020,7 +1039,8 @@ const PurchasingPage: React.FC = () => {
                                         { title: 'Tên NPL', dataIndex: 'material_name', width: 200 },
                                         {
                                             title: 'Tổng SL ĐM', width: 80, align: 'right', render: (t, r, idx) => {
-                                                const matchingItem = currentPO?.items?.find((i: any) => (i.material?.name || i.reference_name || i.sku) === r.material_name);
+                                                // FIX: Dùng editingItems thay vì currentPO.items để hỗ trợ POOLED PO
+                                                const matchingItem = editingItems?.find((i: any) => (i.material?.name || i.description || i.reference_name || i.sku) === r.material_name);
                                                 return <b>{matchingItem ? Number(matchingItem.quantity).toLocaleString() : '-'}</b>;
                                             }
                                         },
@@ -1130,7 +1150,7 @@ const PurchasingPage: React.FC = () => {
                         )
                     }] : []),
                     // --- MỚI: Tab Thiết kế & In ấn cho Gia công ---
-                    ...(currentPO?.po_type === 'OUTSOURCING' ? [{
+                    ...(currentPO?.type === 'OUTSOURCING' ? [{
                         key: '5', label: 'Thiết kế & In ấn', children: (
                             <div>
                                 <div style={{ marginBottom: 16 }}>
@@ -1180,7 +1200,7 @@ const PurchasingPage: React.FC = () => {
                         )
                     }] : []),
                     // --- MỚI: Tab Sơ đồ cho Gia công và Gộp ---
-                    ...(currentPO?.po_type === 'OUTSOURCING' || currentPO?.po_type === 'POOLED' ? [{
+                    ...(currentPO?.type === 'OUTSOURCING' || currentPO?.type === 'POOLED' ? [{
                         key: 'sodo_tab', label: 'Sơ đồ', children: (
                             <div style={{ maxHeight: 600, overflowY: 'auto' }}>
                                 {editingItems.filter((i: any) => i.print_design?.tech_pack?.resultsByFace).map((item: any, idx: number) => {
