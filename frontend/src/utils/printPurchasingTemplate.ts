@@ -160,7 +160,7 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
         const rows = list.map((r: any, idx: number) => `
             <tr>
                 <td>${idx + 1}</td>
-                <td class="left-align">${r.po_form_code || ''}</td>
+                <td class="left-align bold">${r.po_form_code || ''}</td>
                 <td class="left-align">${r.material_name || ''}</td>
                 <td>${r.n1 || '-'}</td>
                 <td>${r.n2 || '-'}</td>
@@ -170,22 +170,97 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                 <td>${r.g2 || '-'}</td>
                 <td>${r.odd || '-'}</td>
                 <td>${r.border || '-'}</td>
-                <td>${r.note || ''}</td>
+                <td class="left-align">${r.note || ''}</td>
             </tr>
         `).join('');
 
+        // Calculate summary statistics by PO Form
+        const grouped = list.reduce((acc: any, curr: any) => {
+            const code = curr.po_form_code || 'Khác';
+            if (!acc[code]) acc[code] = { n1: 0, n2: 0, c1: 0, c2: 0, g1: 0, g2: 0, odd: 0, border: 0 };
+            acc[code].n1 += parseFloat(curr.n1) || 0;
+            acc[code].n2 += parseFloat(curr.n2) || 0;
+            acc[code].c1 += parseFloat(curr.c1) || 0;
+            acc[code].c2 += parseFloat(curr.c2) || 0;
+            acc[code].g1 += parseFloat(curr.g1) || 0;
+            acc[code].g2 += parseFloat(curr.g2) || 0;
+            acc[code].odd += parseFloat(curr.odd) || 0;
+            acc[code].border += parseFloat(curr.border) || 0;
+            return acc;
+        }, {});
+
+        let totalAllN1 = 0, totalAllN2 = 0, totalAllC1 = 0, totalAllC2 = 0, totalAllG1 = 0, totalAllG2 = 0, totalAllOdd = 0, totalAllBorder = 0, grandTotal = 0;
+        
+        const summaryRows = Object.keys(grouped).map(code => {
+            const g = grouped[code];
+            const total = g.n1 + g.n2 + g.c1 + g.c2 + g.g1 + g.g2 + g.odd + g.border;
+            
+            totalAllN1 += g.n1; totalAllN2 += g.n2; totalAllC1 += g.c1; totalAllC2 += g.c2;
+            totalAllG1 += g.g1; totalAllG2 += g.g2; totalAllOdd += g.odd; totalAllBorder += g.border;
+            grandTotal += total;
+
+            return `
+                <tr>
+                    <td class="left-align bold">${code}</td>
+                    <td>${g.n1 || '-'}</td>
+                    <td>${g.n2 || '-'}</td>
+                    <td>${g.c1 || '-'}</td>
+                    <td>${g.c2 || '-'}</td>
+                    <td>${g.g1 || '-'}</td>
+                    <td>${g.g2 || '-'}</td>
+                    <td>${g.odd || '-'}</td>
+                    <td>${g.border || '-'}</td>
+                    <td class="bold text-highlight">${total || '-'}</td>
+                </tr>
+            `;
+        }).join('');
+
         content = `
             ${style}
-            <style>th { background-color: #f0f0f0; }</style>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                body { font-family: 'Inter', system-ui, -apple-system, sans-serif !important; color: #1f2937; background-color: #fff; }
+                table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 15px; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden; }
+                th, td { border: none; border-bottom: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; padding: 10px 8px; text-align: center; font-size: 13px; }
+                th:last-child, td:last-child { border-right: none; }
+                tr:last-child td { border-bottom: none; }
+                th { background-color: #f9fafb; color: #374151; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; }
+                tr:nth-child(even) td { background-color: #fdfdfd; }
+                .header { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #f3f4f6; padding-bottom: 15px; }
+                .header-left div { margin-bottom: 5px; color: #6b7280; font-size: 14px; }
+                .header-right { text-align: right; }
+                .header-right div { margin-bottom: 5px; font-size: 14px; }
+                .title { text-align: center; font-size: 24px; font-weight: 700; color: #111827; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 25px; margin-top: 10px; }
+                .bold { font-weight: 600 !important; }
+                .right-align { text-align: right !important; }
+                .summary-container { margin-top: 40px; page-break-inside: avoid; }
+                .summary-title { font-size: 15px; font-weight: 700; margin-bottom: 15px; color: #1f2937; text-transform: uppercase; display: inline-block; border-bottom: 2px solid #3b82f6; padding-bottom: 4px; }
+                .summary-table { width: 100%; margin: 0 auto; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
+                .summary-table th { background-color: #eff6ff; color: #1e3a8a; }
+                .summary-table tfoot td { background-color: #f3f4f6; font-size: 14px; border-top: 2px solid #e5e7eb; }
+                .text-highlight { color: #ef4444; font-weight: 700; }
+                .signature-section { display: flex; justify-content: space-between; margin-top: 50px; text-align: center; page-break-inside: avoid; }
+                .signature-box { width: 30%; }
+                .signature-title { font-weight: 600; font-size: 14px; margin-bottom: 70px; }
+            </style>
+
             <div class="header">
-                <div><b>Ngày:</b> ${dateStr}</div>
-                <div><b>Mã PO:</b> ${poCode}</div>
+                <div class="header-left">
+                    <div style="font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 8px;">\${companyConfig?.COMPANY_NAME || 'HULA'}</div>
+                    <div>\${companyConfig?.COMPANY_ADDRESS ? \`Đ/C: \${companyConfig.COMPANY_ADDRESS}\` : 'Đ/C: 123 ABC...'}</div>
+                </div>
+                <div class="header-right">
+                    <div><span class="bold">Ngày lập:</span> \${dateStr}</div>
+                    <div><span class="bold">Mã PO:</span> \${poCode}</div>
+                </div>
             </div>
-            <div class="title">ĐƠN ĐẶT HÀNG</div>
-                <table>
+
+            <div class="title">ĐƠN ĐẶT HÀNG / ĐÓNG GÓI</div>
+
+            <table>
                 <thead>
                     <tr>
-                        <th rowspan="2">STT</th>
+                        <th rowspan="2" style="width: 50px;">STT</th>
                         <th rowspan="2">Mã PO Form</th>
                         <th rowspan="2">Mã Vải / Tên NPL</th>
                         <th colspan="2">N</th>
@@ -193,14 +268,60 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                         <th colspan="2">G</th>
                         <th rowspan="2">Kiện lẻ</th>
                         <th rowspan="2">Kiện viền</th>
-                        <th rowspan="2">Ghi chú</th>
+                        <th rowspan="2" style="width: 15%;">Ghi chú</th>
                     </tr>
                     <tr>
                         <th>N1</th><th>N2</th><th>C1</th><th>C2</th><th>G1</th><th>G2</th>
                     </tr>
                 </thead>
-                <tbody>${rows}</tbody>
+                <tbody>\${rows}</tbody>
             </table>
+
+            <div class="summary-container">
+                <div class="summary-title">BẢNG THỐNG KÊ TỔNG SẢN PHẨM</div>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Mã PO Form</th>
+                            <th>N1</th><th>N2</th><th>C1</th><th>C2</th><th>G1</th><th>G2</th>
+                            <th>Kiện lẻ</th><th>Kiện viền</th>
+                            <th>Tổng cộng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        \${summaryRows}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="right-align bold" style="color: #111827;">TỔNG TOÀN BỘ</td>
+                            <td class="bold">\${totalAllN1 || '-'}</td>
+                            <td class="bold">\${totalAllN2 || '-'}</td>
+                            <td class="bold">\${totalAllC1 || '-'}</td>
+                            <td class="bold">\${totalAllC2 || '-'}</td>
+                            <td class="bold">\${totalAllG1 || '-'}</td>
+                            <td class="bold">\${totalAllG2 || '-'}</td>
+                            <td class="bold">\${totalAllOdd || '-'}</td>
+                            <td class="bold">\${totalAllBorder || '-'}</td>
+                            <td class="bold text-highlight">\${grandTotal || '-'}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="signature-section">
+                <div class="signature-box">
+                    <div class="signature-title">Người lập phiếu</div>
+                    <div style="color: #9ca3af; font-size: 13px;">(Ký, ghi rõ họ tên)</div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-title">Người duyệt</div>
+                    <div style="color: #9ca3af; font-size: 13px;">(Ký, ghi rõ họ tên)</div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-title">Đơn vị tiếp nhận</div>
+                    <div style="color: #9ca3af; font-size: 13px;">(Ký, ghi rõ họ tên)</div>
+                </div>
+            </div>
         `;
     } else if (template === 'SUPPLIER_TEMPLATE') {
         let rawTemplate = currentPO?.supplier?.po_template || '';
