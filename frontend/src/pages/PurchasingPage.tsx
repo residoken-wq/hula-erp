@@ -468,6 +468,8 @@ const PurchasingPage: React.FC = () => {
             });
             message.success('Đã lưu thay đổi PO');
             fetchData(); // Refresh global list
+            fetchRequirements(); // Refresh requirements list
+            
             // Update local currentPO to reflect changes safely
             const updatedPO = { ...currentPO, items: editingItems, packing_list_details: packingList };
             // Recalc total
@@ -503,7 +505,11 @@ const PurchasingPage: React.FC = () => {
     };
 
     const handlePrint = (template: string, showPrice = true) => {
-        handlePrintPO(currentPO, packingList, template, showPrice, companyConfig);
+        const printData = {
+            ...currentPO,
+            items: currentPO?.type === 'POOLED' ? editingItems : (currentPO?.items || editingItems)
+        };
+        handlePrintPO(printData, packingList, template, showPrice, companyConfig);
     };
 
     // ----------------------------------

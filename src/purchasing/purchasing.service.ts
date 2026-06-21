@@ -220,6 +220,18 @@ export class PurchasingService {
             await this.planningService.checkAndUpdatePlanStatus(savedPO.plan_id);
         }
 
+        // --- MỚI: Cập nhật lại tổng tiền của PO Gộp nếu PO này là PO con ---
+        if (savedPO.parent_po_id) {
+            const parentPo = await this.poRepo.findOne({ 
+                where: { id: savedPO.parent_po_id },
+                relations: ['child_pos'] 
+            });
+            if (parentPo && parentPo.child_pos) {
+                parentPo.total_amount = parentPo.child_pos.reduce((sum, child) => sum + Number(child.total_amount || 0), 0);
+                await this.poRepo.save(parentPo);
+            }
+        }
+
         return savedPO;
     }
 
@@ -555,6 +567,18 @@ export class PurchasingService {
         // Tính tổng tiền từ các child POs
         const totalAmount = childPos.reduce((sum, p) => sum + Number(p.total_amount || 0), 0);
 
+        // --- MỚI: Merge các tab data từ child POs ---
+        const allPackingList = childPos.reduce((acc, p) => {
+            if (p.packing_list_details && Array.isArray(p.packing_list_details)) {
+                return acc.concat(p.packing_list_details);
+            }
+            return acc;
+        }, [] as any[]);
+
+        // Lấy thông tin giao hàng từ PO con đầu tiên có dữ liệu
+        const firstDeliveryInfo = childPos.find(p => p.delivery_info)?.delivery_info;
+        const firstOutsourcingDeliveryInfo = childPos.find(p => p.outsourcing_delivery_info)?.outsourcing_delivery_info;
+
         const pooledPO = this.poRepo.create({
             po_code: `POOLED-${Date.now()}`,
             uuid: uuidv4(),
@@ -562,6 +586,9 @@ export class PurchasingService {
             supplier_id: dto.supplier_id,
             status: 'DRAFT' as any,
             total_amount: totalAmount,
+            packing_list_details: allPackingList.length > 0 ? allPackingList : null,
+            delivery_info: firstDeliveryInfo || null,
+            outsourcing_delivery_info: firstOutsourcingDeliveryInfo || null,
             note: `Gộp ${childPos.length} PO: ${childPos.map(p => p.po_code).join(', ')}`
         });
 
