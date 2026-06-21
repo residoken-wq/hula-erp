@@ -300,7 +300,11 @@ export class PurchasingService {
         // Unlink children if this is a Pooled PO
         const children = await this.poRepo.find({ where: { parent_po_id: id } });
         if (children.length > 0) {
-            await this.poRepo.update({ parent_po_id: id }, { parent_po_id: null });
+            for (const child of children) {
+                child.parent_po_id = null;
+                child.parent_po = null;
+                await this.poRepo.save(child);
+            }
         }
         return this.poRepo.delete(id);
     }
