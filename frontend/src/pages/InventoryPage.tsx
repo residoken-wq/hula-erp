@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Tag, Statistic, Radio, Divider, Space, Badge, Checkbox, Popconfirm } from 'antd';
+import { Table, Button, message, Card, Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Tag, Statistic, Radio, Divider, Space, Badge, Checkbox, Popconfirm, DatePicker } from 'antd';
 import {
     ReloadOutlined, SwapOutlined, HistoryOutlined,
     AppstoreOutlined, ArrowUpOutlined, ArrowDownOutlined,
@@ -53,6 +53,11 @@ const InventoryPage: React.FC = () => {
     const [isCarrierModalOpen, setIsCarrierModalOpen] = useState(false);
     const [carrierForm] = Form.useForm();
     const [editingCarrier, setEditingCarrier] = useState<any>(null);
+
+    // --- CONFIRM RECEIPT MODAL STATE ---
+    const [isConfirmReceiptModalOpen, setIsConfirmReceiptModalOpen] = useState(false);
+    const [confirmReceiptForm] = Form.useForm();
+    const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
 
     const [form] = Form.useForm();
 
@@ -173,13 +178,51 @@ const InventoryPage: React.FC = () => {
         }
     };
 
-    const handleConfirmReceipt = async (id: number) => {
+    const openConfirmReceiptModal = (receipt: any) => {
+        setSelectedReceipt(receipt);
+        const initialValues: any = {
+            actual_receive_date: dayjs(),
+            shipping_fee: 0,
+            delivery_note_url: ''
+        };
+        receipt.items.forEach((item: any) => {
+            initialValues[`quantity_${item.id}`] = item.quantity;
+        });
+        confirmReceiptForm.setFieldsValue(initialValues);
+        setIsConfirmReceiptModalOpen(true);
+    };
+
+    const handleConfirmReceipt = async () => {
         try {
-            await api.post(`/inventory/goods-receipt/${id}/confirm`);
+            const values = await confirmReceiptForm.validateFields();
+            if (!selectedReceipt) return;
+            
+            const payload = {
+                actual_receive_date: values.actual_receive_date ? values.actual_receive_date.format('YYYY-MM-DD') : undefined,
+                shipping_fee: values.shipping_fee,
+                delivery_note_url: values.delivery_note_url,
+                items: selectedReceipt.items.map((item: any) => ({
+                    id: item.id,
+                    quantity: values[`quantity_${item.id}`] !== undefined ? values[`quantity_${item.id}`] : item.quantity
+                }))
+            };
+
+            await api.post(`/inventory/goods-receipt/${selectedReceipt.id}/confirm`, payload);
             message.success('Đã nhập kho thành công');
+            setIsConfirmReceiptModalOpen(false);
             fetchData();
         } catch (e) {
             message.error('Lỗi nhập kho');
+        }
+    };
+
+    const handleDeleteReceipt = async (id: number) => {
+        try {
+            await api.delete(`/inventory/goods-receipt/${id}`);
+            message.success('Đã hủy phiếu nhập');
+            fetchData();
+        } catch (e) {
+            message.error('Lỗi hủy phiếu nhập');
         }
     };
 
@@ -568,9 +611,9 @@ const InventoryPage: React.FC = () => {
                                         size="small"
                                         pagination={false}
                                         columns={[
-                                            { title: 'Vật tư', render: (r: any) => r.material?.name || '-' },
-                                            { title: 'Mã', render: (r: any) => r.material?.code || '-' },
-                                            { title: 'Số lượng', dataIndex: 'quantity', render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
+                                            { title: 'Vật tư / SP', render: (r: any) => r.material?.name || r.product?.name || '-' },
+                                            { title: 'Mã', render: (r: any) => r.material?.code || r.product?.sku || r.product?.code || '-' },
+                                            { title: 'Số lượng dự kiến', dataIndex: 'quantity', render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
                                         ]}
                                     />
                                 )
@@ -582,9 +625,12 @@ const InventoryPage: React.FC = () => {
                                 { title: 'Ghi chú', dataIndex: 'note' },
                                 {
                                     title: 'Thao tác', render: (r: any) => (
-                                        <Popconfirm title="Xác nhận nhập kho chính thức?" onConfirm={() => handleConfirmReceipt(r.id)}>
-                                            <Button type="primary" size="small" icon={<CheckCircleOutlined />}>Nhập Kho</Button>
-                                        </Popconfirm>
+                                        <Space>
+                                            <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => openConfirmReceiptModal(r)}>Nhập Kho</Button>
+                                            <Popconfirm title="Bạn có chắc chắn muốn hủy phiếu nhập này?" onConfirm={() => handleDeleteReceipt(r.id)}>
+                                                <Button danger size="small" icon={<DeleteOutlined />}>Hủy</Button>
+                                            </Popconfirm>
+                                        </Space>
                                     )
                                 }
                             ]}
@@ -760,6 +806,67 @@ const InventoryPage: React.FC = () => {
                     <Form.Item name="is_active" valuePropName="checked">
                         <Checkbox>Đang hoạt động</Checkbox>
                     </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* MODAL XÁC NHẬN NHẬP KHO */}
+            <Modal
+                title="Xác nhận nhận hàng & Nhập kho"
+                open={isConfirmReceiptModalOpen}
+                onCancel={() => setIsConfirmReceiptModalOpen(false)}
+                onOk={handleConfirmReceipt}
+                okText="Xác nhận Nhập Kho"
+                width={800}
+            >
+                <Form form={confirmReceiptForm} layout="vertical">
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="actual_receive_date" label="Ngày nhận hàng thực tế" rules={[{ required: true }]}>
+                                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="shipping_fee" label="Phí vận chuyển (VND)">
+                                <InputNumber
+                                    style={{ width: '100%' }}
+                                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                    parser={value => value?.replace(/\$\s?|(,*)/g, '') as unknown as number}
+                                    min={0}
+                                />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Form.Item name="delivery_note_url" label="Link / URL Phiếu giao hàng (Hoặc ghi chú file)">
+                        <Input placeholder="Nhập đường dẫn lưu trữ file hoặc ghi chú..." />
+                    </Form.Item>
+
+                    <Divider orientation="left">Chi tiết hàng hóa thực nhận</Divider>
+                    {selectedReceipt && (
+                        <Table
+                            dataSource={selectedReceipt.items}
+                            rowKey="id"
+                            size="small"
+                            pagination={false}
+                            columns={[
+                                { title: 'Vật tư / SP', render: (r: any) => r.material?.name || r.product?.name || '-' },
+                                { title: 'Mã', render: (r: any) => r.material?.code || r.product?.sku || r.product?.code || '-' },
+                                { title: 'Số lượng PO (Dự kiến)', dataIndex: 'quantity', align: 'center', render: (v: number) => <Tag color="blue">{Number(v).toLocaleString()}</Tag> },
+                                {
+                                    title: 'SỐ LƯỢNG THỰC NHẬN',
+                                    align: 'center',
+                                    render: (r: any) => (
+                                        <Form.Item
+                                            name={`quantity_${r.id}`}
+                                            noStyle
+                                            rules={[{ required: true, message: 'Nhập số lượng' }]}
+                                        >
+                                            <InputNumber min={0} style={{ width: 100 }} />
+                                        </Form.Item>
+                                    )
+                                }
+                            ]}
+                        />
+                    )}
                 </Form>
             </Modal>
         </div>

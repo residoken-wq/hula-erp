@@ -29,6 +29,15 @@ export class GoodsReceipt {
     @Column({ type: 'date', nullable: true })
     delivery_date: string;
 
+    @Column({ type: 'date', nullable: true })
+    actual_receive_date: string;
+
+    @Column('decimal', { precision: 15, scale: 2, default: 0 })
+    shipping_fee: number;
+
+    @Column({ nullable: true })
+    delivery_note_url: string;
+
     @Column({ nullable: true })
     note: string;
 

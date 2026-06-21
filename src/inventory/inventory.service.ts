@@ -204,7 +204,8 @@ export class InventoryService {
       for (const item of data.items) {
         const rItem = this.receiptItemRepo.create({
           receipt: receipt,
-          material_id: item.material_id, // Assuming material PO for now
+          material_id: item.material_id,
+          product_id: item.product_id,
           po_item_id: item.po_item_id,
           quantity: item.quantity
         });
@@ -218,18 +219,45 @@ export class InventoryService {
   async getPendingReceipts() {
     return this.receiptRepo.find({
       where: { status: GoodsReceiptStatus.DRAFT },
-      relations: ['items', 'items.material', 'purchase_order', 'purchase_order.supplier'],
+      relations: ['items', 'items.material', 'items.product', 'purchase_order', 'purchase_order.supplier'],
       order: { created_at: 'DESC' }
     });
   }
 
-  async confirmReceipt(id: number, warehouseCode: string = 'KHO_NPL', updated_by: string = 'System') {
+  async deleteDraftReceipt(id: number) {
+    const receipt = await this.receiptRepo.findOne({ where: { id } });
+    if (!receipt) throw new BadRequestException('Phiếu nhập không tồn tại');
+    if (receipt.status !== GoodsReceiptStatus.DRAFT) throw new BadRequestException('Chỉ xóa được phiếu nháp');
+    await this.receiptRepo.delete(id);
+    return { success: true, message: 'Đã xóa phiếu nhập' };
+  }
+
+  async confirmReceipt(id: number, data?: { items?: any[], actual_receive_date?: string, shipping_fee?: number, delivery_note_url?: string }, warehouseCode: string = 'KHO_NPL', updated_by: string = 'System') {
     const receipt = await this.receiptRepo.findOne({
       where: { id },
       relations: ['items', 'purchase_order', 'purchase_order.items']
     });
     if (!receipt) throw new BadRequestException('Phiếu nhập không tồn tại');
     if (receipt.status !== GoodsReceiptStatus.DRAFT) throw new BadRequestException('Phiếu đã xử lý');
+
+    // Cập nhật thông tin phiếu nếu có
+    if (data) {
+      if (data.actual_receive_date) receipt.actual_receive_date = data.actual_receive_date;
+      if (data.shipping_fee !== undefined) receipt.shipping_fee = data.shipping_fee;
+      if (data.delivery_note_url !== undefined) receipt.delivery_note_url = data.delivery_note_url;
+
+      // Cập nhật số lượng item
+      if (data.items && data.items.length > 0) {
+        for (const inputItem of data.items) {
+          const matchedItem = receipt.items.find(i => i.id === inputItem.id);
+          if (matchedItem) {
+            matchedItem.quantity = inputItem.quantity;
+            await this.receiptItemRepo.save(matchedItem);
+          }
+        }
+      }
+      await this.receiptRepo.save(receipt);
+    }
 
     // 1. Loop items and import to stock
     let totalValue = 0;
@@ -246,23 +274,46 @@ export class InventoryService {
           warehouseCode,
           updated_by
         );
+      } else if (item.product_id) {
+        await this.adjustStock(
+          'IMPORT',
+          'PRODUCT',
+          item.product_id,
+          item.quantity,
+          receipt.code,
+          `Nhập kho từ PO ${receipt.po_id ? '#' + receipt.po_id : ''}`,
+          warehouseCode === 'KHO_NPL' ? 'KHO_TP' : warehouseCode, // Fallback for product
+          updated_by
+        );
+      }
 
-        // Calculate Debt: Find PO Price
-        if (receipt.po_id && item.po_item_id) {
-          const poItem = await this.poItemRepo.findOne({ where: { id: item.po_item_id } });
-          if (poItem) {
-            totalValue += Number(item.quantity) * Number(poItem.unit_price);
-          }
+      // Calculate Debt: Find PO Price
+      if (receipt.po_id && item.po_item_id) {
+        const poItem = await this.poItemRepo.findOne({ where: { id: item.po_item_id } });
+        if (poItem) {
+          totalValue += Number(item.quantity) * Number(poItem.unit_price);
         }
       }
     }
 
     // 2. Update Supplier Debt
-    if (receipt.purchase_order && receipt.purchase_order.supplier_id && totalValue > 0) {
+    // Cộng thêm phí vận chuyển vào công nợ
+    const totalDebt = totalValue + Number(receipt.shipping_fee || 0);
+
+    if (receipt.purchase_order && receipt.purchase_order.supplier_id && totalDebt > 0) {
       const supplier = await this.supplierRepo.findOne({ where: { id: receipt.purchase_order.supplier_id } });
       if (supplier) {
-        supplier.debt = Number(supplier.debt || 0) + totalValue;
+        supplier.debt = Number(supplier.debt || 0) + totalDebt;
         await this.supplierRepo.save(supplier);
+      }
+    }
+
+    // Cập nhật thông tin vào PO
+    if (receipt.po_id) {
+      const po = await this.poRepo.findOne({ where: { id: receipt.po_id } });
+      if (po) {
+        po.total_amount = Number(po.total_amount || 0) + Number(receipt.shipping_fee || 0);
+        await this.poRepo.save(po);
       }
     }
 

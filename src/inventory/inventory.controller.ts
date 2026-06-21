@@ -65,8 +65,13 @@ export class InventoryController {
   getReceiptsByPo(@Param('poId') poId: number) { return this.inventoryService.getReceiptsByPo(poId); }
 
   @Post('goods-receipt/:id/confirm')
-  async confirm(@Param('id') id: string, @Req() req: any) {
-    return this.inventoryService.confirmReceipt(Number(id), undefined, req.user?.full_name || req.user?.username || 'System');
+  async confirm(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+    return this.inventoryService.confirmReceipt(Number(id), body, 'KHO_NPL', req.user?.full_name || req.user?.username || 'System');
+  }
+
+  @Delete('goods-receipt/:id')
+  async deleteReceipt(@Param('id') id: string) {
+    return this.inventoryService.deleteDraftReceipt(Number(id));
   }
 
   // --- EXPORT CONFIRMATION API ---

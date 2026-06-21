@@ -658,14 +658,34 @@ export class PlanningService {
         const result = {};
         statsMap.forEach((value, key) => {
             result[key] = {
-                // In products page, `booking_stock` usually includes all booked (TEMPORARY + CONFIRMED).
-                // `approved_booking_stock` is only the CONFIRMED ones.
-                booking_stock: value.booked + value.approved,
+                booking_stock: value.booked,
                 approved_booking_stock: value.approved
             };
         });
-
         return result;
+    }
+
+    // --- MỚI: Đồng bộ lại toàn bộ số lượng booking cho sản phẩm ---
+    async syncBookingStock() {
+        const stats = await this.getBookingStats();
+        // Since productRepo is private in productsService, we use any to access it
+        const productRepo = (this.productsService as any).productRepo;
+        const allProducts = await productRepo.find();
+        
+        let updated = 0;
+        for (const p of allProducts) {
+            const stat = stats[p.sku] || { booking_stock: 0, approved_booking_stock: 0 };
+            const bs = Number(stat.booking_stock) || 0;
+            const abs = Number(stat.approved_booking_stock) || 0;
+            
+            if (p.booking_stock !== bs || p.approved_booking_stock !== abs) {
+                p.booking_stock = bs;
+                p.approved_booking_stock = abs;
+                await productRepo.save(p);
+                updated++;
+            }
+        }
+        return { message: `Đã đồng bộ lại tồn kho booking cho ${updated} sản phẩm`, updated };
     }
 
     // --- MỚI: Lấy tất cả bookings ---

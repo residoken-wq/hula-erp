@@ -118,18 +118,19 @@ const ProductsPage: React.FC = () => {
     useEffect(() => { fetchData(); }, []);
 
     useEffect(() => {
-        if (filterMonth) {
-            fetchBookingStats(filterMonth);
-        } else {
-            setBookingStats({});
-        }
+        // Luôn fetch booking stats để cập nhật số liệu chính xác nhất
+        fetchBookingStats(filterMonth);
     }, [filterMonth]);
 
     const fetchBookingStats = async (monthStr: string) => {
         setStatsLoading(true);
         try {
-            const [year, month] = monthStr.split('-');
-            const res = await api.get(`/planning/booking-stats?month=${month}&year=${year}`);
+            let url = `/planning/booking-stats`;
+            if (monthStr) {
+                const [year, month] = monthStr.split('-');
+                url += `?month=${month}&year=${year}`;
+            }
+            const res = await api.get(url);
             setBookingStats(res.data || {});
         } catch (e) {
             message.error('Lỗi tải thống kê booking');
@@ -318,7 +319,7 @@ const ProductsPage: React.FC = () => {
         }
 
         // Map Booking Stats if available
-        if (filterMonth && Object.keys(bookingStats).length > 0) {
+        if (Object.keys(bookingStats).length > 0) {
             list = list.map(d => ({
                 ...d,
                 display_booking_stock: bookingStats[d.sku]?.booking_stock || 0,
@@ -536,6 +537,28 @@ const ProductsPage: React.FC = () => {
         });
     };
 
+    const handleSyncBookingStocks = () => {
+        Modal.confirm({
+            title: 'Đồng bộ toàn bộ tồn kho booking?',
+            content: 'Hệ thống sẽ tính toán lại tồn kho Đã Book và Approved cho tất cả sản phẩm dựa trên các đơn đặt hàng hiện tại. Bạn có chắc chắn muốn chạy?',
+            okText: 'Đồng ý đồng bộ',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                const hide = message.loading('Đang đồng bộ số liệu...', 0);
+                try {
+                    const res = await api.post(`/planning/sync-booking-stock`);
+                    hide();
+                    message.success(res.data?.message || 'Đồng bộ thành công!');
+                    fetchBookingStats(filterMonth);
+                    fetchData();
+                } catch (e) {
+                    hide();
+                    message.error('Lỗi khi đồng bộ booking stock.');
+                }
+            }
+        });
+    };
+
     const handlePrint = (option: 1 | 2) => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
@@ -671,6 +694,7 @@ const ProductsPage: React.FC = () => {
                         <Input placeholder="Tìm kiếm SKU/Tên..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} allowClear />
                         {canViewCost && (
                             <Button icon={<SyncOutlined />} onClick={handleCalculateAllCosts}>Cập nhật tất cả giá</Button>
+                            <Button icon={<SyncOutlined />} onClick={handleSyncBookingStocks}>Đồng bộ Booking Stock</Button>
                         )}
                         <Dropdown menu={printMenuProps} placement="bottomRight">
                             <Button icon={<PrinterOutlined />}>In DS</Button>

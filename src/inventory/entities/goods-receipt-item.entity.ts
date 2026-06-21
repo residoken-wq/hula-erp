@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { GoodsReceipt } from './goods-receipt.entity';
 import { Material } from '../../materials/material.entity';
+import { Product } from '../../products/product.entity';
 import { PurchaseOrderItem } from '../../purchasing/entities/purchase-order-item.entity';
 
 @Entity('goods_receipt_items')
@@ -21,6 +22,13 @@ export class GoodsReceiptItem {
 
     @Column({ nullable: true })
     material_id: number;
+
+    @ManyToOne(() => Product, { nullable: true })
+    @JoinColumn({ name: 'product_id' })
+    product: Product;
+
+    @Column({ nullable: true })
+    product_id: number;
 
     @ManyToOne(() => PurchaseOrderItem, { nullable: true })
     @JoinColumn({ name: 'po_item_id' })
