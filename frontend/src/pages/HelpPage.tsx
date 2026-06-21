@@ -1332,6 +1332,76 @@ const HelpPage: React.FC = () => {
 
                     </div>
                 );
+            case 'supplier-stock':
+                return (
+                    <div>
+                        <Tag color="cyan" style={{ marginBottom: 16 }}>Quản lý Kho / Gia Công</Tag>
+                        <Title level={2}>🏭 Quy trình Quản lý Tồn kho NPL tại Nhà Gia Công</Title>
+                        <Paragraph>
+                            Khi thuê gia công ngoài, hệ thống HULA ERP cho phép theo dõi sát sao lượng nguyên phụ liệu (NPL) bạn đã giao cho xưởng, lượng NPL xưởng đã tiêu hao để sản xuất thành phẩm, và số dư (Live Balance) còn lại ngay tại xưởng gia công. Quy trình này hoàn toàn tự động dựa trên phiếu xuất/nhập kho.
+                        </Paragraph>
+
+                        <Divider orientation="left">I. Quy trình tự động hóa Tồn Kho NCC</Divider>
+                        <Steps
+                            direction="vertical"
+                            current={-1}
+                            items={[
+                                {
+                                    title: <Text strong>Bước 1: Giao NPL cho xưởng (Cộng tồn NCC)</Text>,
+                                    description: (
+                                        <ul>
+                                            <li>Vào module <b>Kho Vận</b> &rarr; Tab <b>Phiếu Xuất NPL (Gia Công)</b>.</li>
+                                            <li>Xác nhận xuất kho cho các yêu cầu gia công (Trạng thái chuyển sang Đã duyệt).</li>
+                                            <li>Khi NPL được xác nhận <b>"Đã giao NCC"</b>, hệ thống tự động: <Text type="danger">Trừ tồn kho Nhà máy</Text> và <Text type="success">Cộng vào Tồn kho NCC</Text>.</li>
+                                        </ul>
+                                    ),
+                                    icon: <CarOutlined style={{ color: '#1890ff' }} />
+                                },
+                                {
+                                    title: <Text strong>Bước 2: Nhập kho Thành phẩm (Trừ tồn NCC)</Text>,
+                                    description: (
+                                        <ul>
+                                            <li>Khi xưởng gia công xong và giao thành phẩm (TP) về, bạn làm <b>Phiếu Nhập Kho Thành Phẩm</b>.</li>
+                                            <li>Hệ thống sẽ dựa vào cấu trúc sản phẩm (BOM) để tự động tính toán lượng NPL đã tiêu hao.</li>
+                                            <li>Kết quả: <Text type="success">Cộng Tồn kho TP tại Nhà máy</Text> và <Text type="danger">Trừ tự động NPL tại kho NCC</Text> theo đúng định mức.</li>
+                                        </ul>
+                                    ),
+                                    icon: <InboxOutlined style={{ color: '#52c41a' }} />
+                                }
+                            ]}
+                        />
+
+                        <Divider orientation="left">II. Tính năng theo dõi</Divider>
+                        <Row gutter={[16, 16]}>
+                            <Col span={12}>
+                                <Card title="1. Dashboard Lập Kế Hoạch (MRP)" size="small" bordered style={{ borderColor: '#fa8c16' }}>
+                                    <ul>
+                                        <li>Tại màn hình <b>Lập Kế Hoạch (Planning)</b>, hệ thống sẽ gộp chung <b>Tồn Kho Nhà Máy</b> và <b>Tồn Kho NCC</b> khi tính toán lượng hàng sẵn có.</li>
+                                        <li>Cột <b>"Tồn Kho NCC"</b> (màu hồng) hiển thị rõ ràng số lượng NPL còn đang gửi ở xưởng gia công để Planner quyết định <b>"Cần Mua"</b> thêm chính xác nhất, tránh lãng phí.</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card title="2. Xem Chi tiết Tồn kho từng NCC" size="small" bordered style={{ borderColor: '#13c2c2' }}>
+                                    <ul>
+                                        <li>Vào danh sách <b>Nhà Gia Công / Cung Cấp</b>, nhấn vào Chi tiết nhà gia công.</li>
+                                        <li>Mở tab <b>Tồn kho NPL</b>.</li>
+                                        <li><b>Số dư Live:</b> Theo dõi chính xác hiện tại xưởng đang giữ những NPL nào, số lượng bao nhiêu.</li>
+                                        <li><b>Lịch sử giao dịch:</b> Xem chi tiết Nhật ký (Ledger) từng lần Nhận NPL, từng lần bị trừ NPL do nhập thành phẩm (Có hỗ trợ bộ lọc theo khoảng thời gian).</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Alert
+                            message="Khớp số liệu Tồn kho"
+                            description="Vì việc trừ tồn kho NCC dựa trên Định mức (BOM), nếu thực tế xưởng tiêu hao nhiều hơn/ít hơn BOM, bạn có thể thực hiện Phiếu Điều chỉnh Kho hoặc Phiếu Bù NPL để cân bằng lại số liệu trên hệ thống cho khớp với thực tế kiểm kê tại xưởng."
+                            type="warning"
+                            showIcon
+                            style={{ marginTop: 24 }}
+                        />
+                    </div>
+                );
             case 'changelog':
                 return (
                     <div>
@@ -2268,6 +2338,7 @@ const HelpPage: React.FC = () => {
                             icon: <ContainerOutlined />,
                             children: [
                                 { key: 'inventory-guide', label: 'Kho & Quy đổi Đơn vị' },
+                                { key: 'supplier-stock', label: 'Tồn Kho NPL Nhà Gia Công' },
                             ]
                         },
                         {
