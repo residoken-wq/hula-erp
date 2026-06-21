@@ -11,6 +11,7 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
 
     const style = `
         <style>
+            @page { size: A4 landscape; margin: 10mm; }
             body { font-family: 'Times New Roman', serif; padding: 20px; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
             th, td { border: 1px solid #000; padding: 5px; text-align: center; }
