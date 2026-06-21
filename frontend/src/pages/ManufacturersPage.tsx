@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Space, Popconfirm, Row, Col, Divider, Tabs, Drawer, List, DatePicker, InputNumber, Typography } from 'antd';
 import { PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined, ScissorOutlined, BankOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, TagsOutlined, CalendarOutlined, WarningOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../utils/api';
 import dayjs from 'dayjs';
-import { API_URL } from '../config';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -32,32 +31,37 @@ const ManufacturersPage: React.FC = () => {
   const [inputPrice, setInputPrice] = useState(0);
   const [dateRange, setDateRange] = useState<any>([]);
 
+  // Tồn kho NPL (Supplier Stock)
+  const [supplierStocks, setSupplierStocks] = useState<any[]>([]);
+  const [supplierTransactions, setSupplierTransactions] = useState<any[]>([]);
+  const [stockDateRange, setStockDateRange] = useState<any>([]);
+
   const [form] = Form.useForm();
 
   // 1. Fetch Data
   const fetchData = async () => {
     setLoading(true);
     try {
-        const res = await axios.get(`${API_URL}/suppliers`);
+        const res = await api.get(`/suppliers`);
         const manufacturers = Array.isArray(res.data) 
             ? res.data.filter((s:any) => s.type === 'PROCESSING' || s.type === 'MIX') 
             : [];
         setData(manufacturers);
 
         // Load NPL
-        const resMat = await axios.get(`${API_URL}/materials`);
+        const resMat = await api.get(`/materials`);
         if(Array.isArray(resMat.data)) setMaterials(resMat.data.map((m:any) => ({label: `${m.code} - ${m.name}`, value: m.id})));
 
         // Load Products
-        const resProd = await axios.get(`${API_URL}/products`);
+        const resProd = await api.get(`/products`);
         if(Array.isArray(resProd.data)) setProducts(resProd.data.map((p:any) => ({label: `${p.sku} - ${p.name}`, value: p.id})));
 
         // Load Processes
         try {
-            const resProc = await axios.get(`${API_URL}/processes`);
+            const resProc = await api.get(`/processes`);
             if (!resProc.data || resProc.data.length === 0) {
-                await axios.post(`${API_URL}/processes/seed`);
-                const resProc2 = await axios.get(`${API_URL}/processes`);
+                await api.post(`/processes/seed`);
+                const resProc2 = await api.get(`/processes`);
                 setProcesses(resProc2.data.map((p:any) => ({label: `${p.name} (${p.unit})`, value: p.id})));
             } else {
                 setProcesses(resProc.data.map((p:any) => ({label: `${p.name} (${p.unit})`, value: p.id})));
@@ -74,14 +78,14 @@ const ManufacturersPage: React.FC = () => {
   const handleSave = async (values: any) => {
       try {
           const payload = { ...values };
-          if(editingItem) await axios.put(`${API_URL}/suppliers/${editingItem.id}`, payload);
-          else await axios.post(`${API_URL}/suppliers`, payload);
+          if(editingItem) await api.put(`/suppliers/${editingItem.id}`, payload);
+          else await api.post(`/suppliers`, payload);
           message.success('Thành công'); setIsModalOpen(false); fetchData();
       } catch(e) { message.error('Lỗi lưu'); }
   };
 
   const handleDelete = async (id: number) => {
-      try { await axios.delete(`${API_URL}/suppliers/${id}`); fetchData(); } catch(e) { message.error('Lỗi xóa'); }
+      try { await api.delete(`/suppliers/${id}`); fetchData(); } catch(e) { message.error('Lỗi xóa'); }
   };
 
   // 3. Price List Logic
@@ -93,11 +97,30 @@ const ManufacturersPage: React.FC = () => {
       
       setPriceDrawerOpen(true);
       setDateRange([]); 
+      setStockDateRange([]);
       loadPrices(manu.id);
+      loadSupplierStocks(manu.id, []);
   };
 
   const loadPrices = async (id: number) => {
-      try { const res = await axios.get(`${API_URL}/suppliers/${id}/prices`); setPriceList(res.data); } catch(e) { setPriceList([]); }
+      try { const res = await api.get(`/suppliers/${id}/prices`); setPriceList(res.data); } catch(e) { setPriceList([]); }
+  };
+
+  const loadSupplierStocks = async (id: number, dates: any[]) => {
+      try {
+          let url = `/inventory/supplier-stocks/${id}`;
+          if (dates && dates.length === 2) {
+              const startDate = dates[0].startOf('day').toISOString();
+              const endDate = dates[1].endOf('day').toISOString();
+              url += `?startDate=${startDate}&endDate=${endDate}`;
+          }
+          const res = await api.get(url);
+          setSupplierStocks(res.data.stocks || []);
+          setSupplierTransactions(res.data.transactions || []);
+      } catch (e) {
+          setSupplierStocks([]);
+          setSupplierTransactions([]);
+      }
   };
 
   const handleAddPrice = async () => {
@@ -105,7 +128,7 @@ const ManufacturersPage: React.FC = () => {
       if(activePriceTab === 'PROCESS' && !selProductId) return message.warning('Chọn Sản phẩm áp dụng');
 
       try {
-          await axios.post(`${API_URL}/suppliers/price`, {
+          await api.post(`/suppliers/price`, {
               supplierId: currentManu.id,
               itemId: selItemId,
               itemType: activePriceTab,
@@ -123,7 +146,7 @@ const ManufacturersPage: React.FC = () => {
   };
 
   const handleRemovePrice = async (priceId: number) => {
-      await axios.delete(`${API_URL}/suppliers/price/${priceId}`);
+      await api.delete(`/suppliers/price/${priceId}`);
       loadPrices(currentManu.id);
   };
 
@@ -221,8 +244,8 @@ const ManufacturersPage: React.FC = () => {
             </Form>
         </Modal>
 
-        {/* DRAWER PRICE LIST */}
-        <Drawer title={`Bảng Giá: ${currentManu?.name}`} width={600} open={priceDrawerOpen} onClose={()=>setPriceDrawerOpen(false)}>
+        {/* DRAWER CHI TIẾT NHÀ GIA CÔNG */}
+        <Drawer title={`Chi tiết Nhà Gia Công: ${currentManu?.name}`} width={800} open={priceDrawerOpen} onClose={()=>setPriceDrawerOpen(false)}>
             <Tabs activeKey={activePriceTab} onChange={setActivePriceTab} items={[
                 { 
                     key: 'PROCESS', label: 'Giá Gia Công', icon: <ExperimentOutlined />,
@@ -250,7 +273,69 @@ const ManufacturersPage: React.FC = () => {
                             {renderPriceTable('MATERIAL')}
                         </div>
                     )
-                }] : [])
+                }] : []),
+                {
+                    key: 'STOCK', label: 'Tồn Kho NPL', icon: <AppstoreOutlined />,
+                    children: (
+                        <div>
+                            <div style={{marginBottom: 16}}>
+                                <b>Lọc lịch sử giao dịch: </b>
+                                <RangePicker 
+                                    value={stockDateRange} 
+                                    onChange={(dates) => {
+                                        setStockDateRange(dates);
+                                        loadSupplierStocks(currentManu.id, dates);
+                                    }} 
+                                />
+                            </div>
+
+                            <Tabs items={[
+                                {
+                                    key: 'BALANCE', label: 'Số dư hiện tại',
+                                    children: (
+                                        <Table 
+                                            size="small"
+                                            dataSource={supplierStocks} 
+                                            rowKey="id"
+                                            pagination={false}
+                                            columns={[
+                                                { title: 'Mã NPL', dataIndex: ['material', 'code'] },
+                                                { title: 'Tên NPL', dataIndex: ['material', 'name'] },
+                                                { title: 'Tồn kho (Live)', dataIndex: 'quantity', align: 'right', render: v => <b style={{color:'#1890ff'}}>{Number(v).toLocaleString()}</b> }
+                                            ]}
+                                        />
+                                    )
+                                },
+                                {
+                                    key: 'HISTORY', label: 'Lịch sử giao dịch',
+                                    children: (
+                                        <Table 
+                                            size="small"
+                                            dataSource={supplierTransactions} 
+                                            rowKey="id"
+                                            columns={[
+                                                { title: 'Thời gian', dataIndex: 'created_at', render: v => dayjs(v).format('DD/MM/YYYY HH:mm') },
+                                                { title: 'Mã NPL', dataIndex: ['material', 'code'] },
+                                                { title: 'Giao dịch', dataIndex: 'type', render: v => {
+                                                    if (v === 'RECEIVE_NPL') return <Tag color="green">Nhận NPL</Tag>;
+                                                    if (v === 'CONSUME_NPL') return <Tag color="orange">Khấu trừ BOM</Tag>;
+                                                    return <Tag>{v}</Tag>;
+                                                }},
+                                                { title: 'Số lượng', dataIndex: 'quantity', align: 'right', render: v => {
+                                                    const num = Number(v);
+                                                    return <span style={{color: num > 0 ? 'green' : 'red', fontWeight:'bold'}}>{num > 0 ? '+' : ''}{num.toLocaleString()}</span>;
+                                                }},
+                                                { title: 'Tồn sau GD', dataIndex: 'balance_after', align: 'right', render: v => <b>{Number(v).toLocaleString()}</b> },
+                                                { title: 'Tham chiếu', dataIndex: 'reference_code' },
+                                                { title: 'Ghi chú', dataIndex: 'note' }
+                                            ]}
+                                        />
+                                    )
+                                }
+                            ]} />
+                        </div>
+                    )
+                }
             ]} />
         </Drawer>
     </div>

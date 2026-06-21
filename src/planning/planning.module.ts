@@ -14,10 +14,11 @@ import { WorkOrderStep } from '../production/work-order-step.entity';
 import { ProductsModule } from '../products/products.module';
 import { MaterialsModule } from '../materials/materials.module';
 import { InventoryModule } from '../inventory/inventory.module';
+import { SupplierStock } from '../inventory/entities/supplier-stock.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ProductionPlan, SalesOrder, SalesOrderItem, PurchaseOrder, PurchaseOrderItem, WorkOrder, WorkOrderStep]),
+    TypeOrmModule.forFeature([ProductionPlan, SalesOrder, SalesOrderItem, PurchaseOrder, PurchaseOrderItem, WorkOrder, WorkOrderStep, SupplierStock]),
     ProductsModule,
     MaterialsModule,
     InventoryModule

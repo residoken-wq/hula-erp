@@ -63,7 +63,8 @@ const MrpSummaryDashboardTab: React.FC<MrpSummaryDashboardTabProps> = ({ isMobil
         { title: 'Tổng Cần (Gốc)', dataIndex: 'gross_raw', align: 'right' as const, render: (v: any) => Number(v || 0).toLocaleString() },
         { title: '% Hao hụt', dataIndex: 'wastage_percent', align: 'center' as const, render: (v: any) => `${v || 0}%` },
         { title: 'Tổng Cần (+Hao hụt)', dataIndex: 'gross_requirement', align: 'right' as const, render: (v: any) => <b>{Number(v || 0).toLocaleString()}</b> },
-        { title: 'Tồn Kho', dataIndex: 'available_stock', align: 'right' as const, render: (v: any) => <span style={{ color: '#52c41a' }}>{Number(v || 0).toLocaleString()}</span> },
+        { title: 'Tồn Kho Nhà Máy', dataIndex: 'available_stock', align: 'right' as const, render: (v: any) => <span style={{ color: '#52c41a' }}>{Number(v || 0).toLocaleString()}</span> },
+        { title: 'Tồn Kho NCC', dataIndex: 'supplier_stock', align: 'right' as const, render: (v: any) => <span style={{ color: '#eb2f96' }}>{Number(v || 0).toLocaleString()}</span> },
         { title: 'Cần Mua', dataIndex: 'net_requirement', align: 'right' as const, render: (v: any) => <span style={{ color: '#cf1322', fontWeight: 'bold' }}>{Number(v || 0).toLocaleString()}</span> },
         { title: 'Đơn Giá (Tham khảo)', dataIndex: 'reference_price', align: 'right' as const, render: (v: any) => Number(v || 0).toLocaleString() },
         { 

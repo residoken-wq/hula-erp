@@ -15,6 +15,8 @@ import { SalesDelivery } from '../sales/sales-delivery.entity';
 import { ProductsService } from '../products/products.service';
 import { GoodsIssue, GoodsIssueStatus } from './entities/goods-issue.entity';
 import { GoodsIssueItem } from './entities/goods-issue-item.entity';
+import { SupplierStock } from './entities/supplier-stock.entity';
+import { SupplierTransaction, SupplierTransactionType } from './entities/supplier-transaction.entity';
 import * as dayjs from 'dayjs';
 
 @Injectable()
@@ -33,6 +35,8 @@ export class InventoryService {
     @InjectRepository(SalesDelivery) private deliveryRepo: Repository<SalesDelivery>,
     @InjectRepository(GoodsIssue) private goodsIssueRepo: Repository<GoodsIssue>,
     @InjectRepository(GoodsIssueItem) private giItemRepo: Repository<GoodsIssueItem>,
+    @InjectRepository(SupplierStock) private supplierStockRepo: Repository<SupplierStock>,
+    @InjectRepository(SupplierTransaction) private supplierTxRepo: Repository<SupplierTransaction>,
     private productsService: ProductsService,
   ) { }
 
@@ -187,6 +191,68 @@ export class InventoryService {
         });
     }
 
+  // --- SUPPLIER STOCK MANAGEMENT ---
+  async adjustSupplierStock(
+    supplierId: number,
+    materialId: number,
+    quantityChange: number,
+    type: SupplierTransactionType,
+    referenceCode: string,
+    note: string
+  ) {
+    let stock = await this.supplierStockRepo.findOne({
+      where: { supplier_id: supplierId, material_id: materialId }
+    });
+
+    if (!stock) {
+      stock = this.supplierStockRepo.create({
+        supplier_id: supplierId,
+        material_id: materialId,
+        quantity: 0
+      });
+    }
+
+    stock.quantity = Number(stock.quantity) + Number(quantityChange);
+    await this.supplierStockRepo.save(stock);
+
+    const tx = this.supplierTxRepo.create({
+      supplier_id: supplierId,
+      material_id: materialId,
+      type,
+      quantity: quantityChange,
+      balance_after: stock.quantity,
+      reference_code: referenceCode,
+      note
+    });
+    await this.supplierTxRepo.save(tx);
+
+    return stock;
+  }
+
+  async getSupplierStocks(supplierId: number, startDate?: string, endDate?: string) {
+    const stocks = await this.supplierStockRepo.find({
+      where: { supplier_id: supplierId },
+      relations: ['material']
+    });
+
+    const query = this.supplierTxRepo.createQueryBuilder('tx')
+      .leftJoinAndSelect('tx.material', 'material')
+      .where('tx.supplier_id = :supplierId', { supplierId })
+      .orderBy('tx.created_at', 'DESC');
+
+    if (startDate) query.andWhere('tx.created_at >= :startDate', { startDate });
+    if (endDate) query.andWhere('tx.created_at <= :endDate', { endDate });
+
+    const transactions = await query.getMany();
+    return { stocks, transactions };
+  }
+
+  async getAllSupplierStocks() {
+    return this.supplierStockRepo.find({
+      relations: ['material']
+    });
+  }
+
   // --- GOODS RECEIPT FLOW ---
 
   async createDraftReceipt(data: { po_id: number; items: any[]; note?: string }) {
@@ -285,6 +351,27 @@ export class InventoryService {
           warehouseCode === 'KHO_NPL' ? 'KHO_TP' : warehouseCode, // Fallback for product
           updated_by
         );
+
+        // [MỚI] Tự động trừ Tồn kho NPL của NCC dựa trên Định mức (BOM)
+        if (receipt.purchase_order && receipt.purchase_order.supplier_id) {
+          const product = await this.productRepo.findOne({ where: { id: item.product_id } });
+          if (product) {
+            const boms = await this.productsService.getProductBOM(product.sku);
+            for (const bom of boms) {
+              const qtyConsumed = Number(bom.quantity || 0) * Number(item.quantity);
+              if (qtyConsumed > 0) {
+                await this.adjustSupplierStock(
+                  receipt.purchase_order.supplier_id,
+                  bom.material_id,
+                  -qtyConsumed,
+                  SupplierTransactionType.CONSUME_NPL,
+                  receipt.code,
+                  `Khấu trừ NPL sản xuất ${product.sku} (SL: ${item.quantity})`
+                );
+              }
+            }
+          }
+        }
       }
 
       // Calculate Debt: Find PO Price
@@ -560,6 +647,18 @@ export class InventoryService {
           'KHO_NPL',
           updated_by
         );
+
+        // [MỚI] Tự động cộng Tồn kho NPL cho NCC khi xuất kho giao NCC
+        if (gi.supplier_id && gi.type === 'OUTSOURCING') {
+          await this.adjustSupplierStock(
+            gi.supplier_id,
+            item.material_id,
+            Number(item.quantity),
+            SupplierTransactionType.RECEIVE_NPL,
+            gi.code,
+            `Nhận NPL từ Phiếu xuất ${gi.code}`
+          );
+        }
       }
     }
 

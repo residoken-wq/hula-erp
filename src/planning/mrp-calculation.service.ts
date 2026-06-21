@@ -6,6 +6,7 @@ import { SalesOrder } from '../sales/sales-order.entity';
 import { ProductsService } from '../products/products.service';
 import { MaterialsService } from '../materials/materials.service';
 import { PurchaseOrder, POStatus } from '../purchasing/entities/purchase-order.entity';
+import { SupplierStock } from '../inventory/entities/supplier-stock.entity';
 
 @Injectable()
 export class MrpCalculationService {
@@ -13,6 +14,7 @@ export class MrpCalculationService {
         @InjectRepository(ProductionPlan) private planRepo: Repository<ProductionPlan>,
         @InjectRepository(SalesOrder) private orderRepo: Repository<SalesOrder>,
         @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
+        @InjectRepository(SupplierStock) private supplierStockRepo: Repository<SupplierStock>,
         private productsService: ProductsService,
         private materialsService: MaterialsService,
     ) { }
@@ -238,7 +240,21 @@ export class MrpCalculationService {
             });
 
             if (mat) {
-                const net = Math.max(0, Math.ceil(gross - Number(mat.quantity_in_stock)));
+                // 1. Fetch Supplier Stocks for this material
+                const supplierStocks = await this.supplierStockRepo.find({
+                    where: { material_id: matId },
+                    relations: ['supplier']
+                });
+                const totalSupplierStock = supplierStocks.reduce((sum, s) => sum + Number(s.quantity), 0);
+                const supplierStockDetails = supplierStocks.filter(s => Number(s.quantity) > 0).map(s => ({
+                    supplier_name: s.supplier?.name,
+                    quantity: Number(s.quantity)
+                }));
+
+                // 2. Tùy thuộc vào chiến lược, ta có thể tự động trừ Tồn kho NCC khỏi Net Requirement.
+                // Nếu NPL này chủ yếu nằm ở NCC và sẽ dùng cho đơn này, ta lấy tổng tồn kho (kho nhà máy + kho NCC)
+                const totalAvailableStock = Number(mat.quantity_in_stock) + totalSupplierStock;
+                const net = Math.max(0, Math.ceil(gross - totalAvailableStock));
 
                 let selectedSupplier = mat.supplier_name;
                 let selectedCost = Number(mat.cost_per_unit);
@@ -286,6 +302,8 @@ export class MrpCalculationService {
                     supplier_name: selectedSupplier,
                     gross_requirement: Math.ceil(gross),
                     available_stock: Number(mat.quantity_in_stock),
+                    supplier_stock: totalSupplierStock, // <--- MỚI: Tồn kho tại NCC
+                    supplier_stock_details: supplierStockDetails, // <--- MỚI: Chi tiết tồn kho NCC
                     net_requirement: net,
                     unit: mat.unit,
                     reference_price: selectedCost,

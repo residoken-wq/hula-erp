@@ -890,6 +890,7 @@ export class PlanningService {
                             wastage_percent: Number(item.wastage_percent || 0),
                             gross_requirement: 0,
                             gross_raw: 0,
+                            supplier_stock: 0,
                             details: []
                         });
                     }
@@ -897,6 +898,7 @@ export class PlanningService {
                     const existing = mrpMap.get(matId);
                     existing.gross_requirement += Number(item.gross_requirement || 0);
                     existing.gross_raw += Number(item.gross_raw || 0);
+                    existing.supplier_stock = Math.max(existing.supplier_stock, Number(item.supplier_stock || 0)); // Tồn kho NCC không cộng dồn theo plan, mà lấy theo thực tế
                     // Cập nhật wastage_percent lớn nhất nếu khác nhau
                     if (Number(item.wastage_percent || 0) > existing.wastage_percent) {
                         existing.wastage_percent = Number(item.wastage_percent || 0);
@@ -910,7 +912,8 @@ export class PlanningService {
 
         const mrp_summary = Array.from(mrpMap.values()).map(item => {
             const currentStock = stockMap.get(item.material_id) || 0;
-            const net = Math.max(0, Math.ceil(item.gross_requirement - currentStock));
+            const totalAvailableStock = currentStock + item.supplier_stock;
+            const net = Math.max(0, Math.ceil(item.gross_requirement - totalAvailableStock));
             
             // Gộp trùng sản phẩm trong details
             const detailMap = new Map<string, any>();

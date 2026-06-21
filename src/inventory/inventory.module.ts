@@ -20,6 +20,8 @@ import { InventorySamplesService } from './samples/inventory-samples.service';
 import { InventorySamplesController } from './samples/inventory-samples.controller';
 import { GoodsIssue } from './entities/goods-issue.entity';
 import { GoodsIssueItem } from './entities/goods-issue-item.entity';
+import { SupplierStock } from './entities/supplier-stock.entity';
+import { SupplierTransaction } from './entities/supplier-transaction.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
@@ -40,7 +42,9 @@ import { AuthModule } from '../auth/auth.module';
       SampleTransaction,
       SampleTransactionItem,
       GoodsIssue,          // <--- MỚI: Phiếu xuất kho
-      GoodsIssueItem       // <--- MỚI: Chi tiết xuất kho
+      GoodsIssueItem,      // <--- MỚI: Chi tiết xuất kho
+      SupplierStock,
+      SupplierTransaction
     ]),
     ProductsModule, // <--- Register ProductsModule
     AuthModule

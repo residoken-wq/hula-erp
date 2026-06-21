@@ -71,6 +71,8 @@ import { SampleTransaction } from './inventory/samples/sample-transaction.entity
 import { SampleTransactionItem } from './inventory/samples/sample-transaction-item.entity';
 import { GoodsIssue } from './inventory/entities/goods-issue.entity';
 import { GoodsIssueItem } from './inventory/entities/goods-issue-item.entity';
+import { SupplierStock } from './inventory/entities/supplier-stock.entity';
+import { SupplierTransaction } from './inventory/entities/supplier-transaction.entity';
 
 import { ProductionOrder } from './production/entities/production-order.entity';
 import { WorkOrder } from './production/work-order.entity';
@@ -184,7 +186,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           PriceList, PriceListRule, SalesOrderVersion, SalesTarget,
           PurchaseOrder, PurchaseOrderItem, GoodsReceipt, GoodsReceiptItem,
           StockHistory, InventoryStock, ShippingCarrier, SampleTransaction, SampleTransactionItem,
-          GoodsIssue, GoodsIssueItem,
+          GoodsIssue, GoodsIssueItem, SupplierStock, SupplierTransaction,
           ProductionOrder, WorkOrder, WorkOrderStep, OutsourcingAssignment,
           QualityInspection, QCDefectItem,
           Transaction, TransactionCategory,

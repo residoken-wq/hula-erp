@@ -153,4 +153,22 @@ export class InventoryController {
   async deleteGoodsIssue(@Param('id') id: string) {
     return this.inventoryService.deleteGoodsIssue(Number(id));
   }
+
+  // ===========================================
+  // --- SUPPLIER STOCKS ---
+  // ===========================================
+
+  @Get('supplier-stocks/all')
+  async getAllSupplierStocks() {
+    return this.inventoryService.getAllSupplierStocks();
+  }
+
+  @Get('supplier-stocks/:supplierId')
+  async getSupplierStocks(
+    @Param('supplierId') supplierId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
+    return this.inventoryService.getSupplierStocks(Number(supplierId), startDate, endDate);
+  }
 }

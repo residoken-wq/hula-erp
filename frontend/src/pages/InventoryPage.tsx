@@ -33,6 +33,7 @@ const InventoryPage: React.FC = () => {
     const [pendingDeliveries, setPendingDeliveries] = useState<any[]>([]); // <--- New State: Pending Export Requests
     const [completedDeliveries, setCompletedDeliveries] = useState<any[]>([]); // <--- New State: Completed Export Deliveries
     const [shippingCarriers, setShippingCarriers] = useState<any[]>([]); // <--- Shipping Carriers
+    const [goodsIssues, setGoodsIssues] = useState<any[]>([]); // <--- Phiếu Xuất NPL
 
     const [searchText, setSearchText] = useState('');
 
@@ -69,7 +70,7 @@ const InventoryPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [pRes, mRes, sRes, hRes, grRes, dRes, cdRes, cRes] = await Promise.all([
+            const [pRes, mRes, sRes, hRes, grRes, dRes, cdRes, cRes, giRes] = await Promise.all([
                 api.get('/products'),
                 api.get('/materials'),
                 api.get('/inventory/stocks'),
@@ -77,7 +78,8 @@ const InventoryPage: React.FC = () => {
                 api.get('/inventory/goods-receipt/pending'),
                 api.get('/inventory/deliveries/pending'),
                 api.get('/inventory/deliveries/completed'),
-                api.get('/inventory/shipping-carriers')
+                api.get('/inventory/shipping-carriers'),
+                api.get('/inventory/goods-issue')
             ]);
             setProducts(pRes.data);
             setMaterials(mRes.data);
@@ -87,6 +89,7 @@ const InventoryPage: React.FC = () => {
             setPendingDeliveries(dRes.data || []);
             setCompletedDeliveries(cdRes.data || []);
             setShippingCarriers(cRes.data || []);
+            setGoodsIssues(giRes.data || []);
         } catch (error) {
             message.error('Đã xảy ra lỗi khi tải dữ liệu');
         } finally {
@@ -594,6 +597,75 @@ const InventoryPage: React.FC = () => {
                                 { title: 'Ngày giao', dataIndex: 'delivery_date', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
                                 { title: 'Trạng thái', dataIndex: 'status', render: () => <Tag color="green">Đã xuất kho</Tag> },
                                 { title: 'Ghi chú', dataIndex: 'note' }
+                            ]}
+                        />
+                    </Tabs.TabPane>
+
+                    {/* TAB PHIẾU XUẤT NPL (GIA CÔNG) */}
+                    <Tabs.TabPane tab={<span><AppstoreOutlined /> Phiếu Xuất NPL (Gia Công)</span>} key="GOODS_ISSUE">
+                        <Table
+                            dataSource={goodsIssues}
+                            rowKey="id"
+                            size="small"
+                            expandable={{
+                                expandedRowRender: record => (
+                                    <Table
+                                        dataSource={record.items}
+                                        size="small"
+                                        pagination={false}
+                                        columns={[
+                                            { title: 'NPL', dataIndex: ['material', 'name'] },
+                                            { title: 'Mã NPL', dataIndex: ['material', 'code'] },
+                                            { title: 'Số lượng xuất', dataIndex: 'quantity', render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
+                                        ]}
+                                    />
+                                )
+                            }}
+                            columns={[
+                                { title: 'Mã PXK', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
+                                { title: 'PO / Plan', render: (r: any) => r.po_id ? <Tag color="blue">PO #{r.po_id}</Tag> : '-' },
+                                { title: 'Nhà Gia Công', render: (r: any) => r.supplier?.name || '-' },
+                                { title: 'Loại', dataIndex: 'type', render: (t: any) => t === 'OUTSOURCING' ? <Tag color="orange">Gia công</Tag> : <Tag>{t}</Tag> },
+                                { title: 'Trạng thái', dataIndex: 'status', render: (t: any) => {
+                                    if (t === 'DRAFT') return <Tag color="blue">Nháp</Tag>;
+                                    if (t === 'CONFIRMED') return <Tag color="orange">Đã duyệt (Chờ giao)</Tag>;
+                                    if (t === 'DELIVERED') return <Tag color="green">Đã nhận (NCC)</Tag>;
+                                    return <Tag>{t}</Tag>;
+                                }},
+                                { title: 'Ngày tạo', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YY HH:mm') },
+                                { title: 'Ghi chú', dataIndex: 'note' },
+                                {
+                                    title: 'Thao tác', render: (r: any) => (
+                                        <Space>
+                                            {r.status === 'DRAFT' && (
+                                                <Popconfirm title="Xác nhận xuất kho (trừ tồn kho và cộng tồn NCC)?" onConfirm={async () => {
+                                                    try {
+                                                        await api.post(`/inventory/goods-issue/${r.id}/confirm`);
+                                                        message.success('Đã xác nhận xuất kho!');
+                                                        fetchData();
+                                                    } catch (e: any) {
+                                                        message.error(e.response?.data?.message || 'Lỗi xác nhận xuất kho');
+                                                    }
+                                                }}>
+                                                    <Button type="primary" size="small" icon={<CheckCircleOutlined />}>Xác nhận xuất</Button>
+                                                </Popconfirm>
+                                            )}
+                                            {r.status === 'CONFIRMED' && (
+                                                <Popconfirm title="Đã giao đến NCC thành công?" onConfirm={async () => {
+                                                    try {
+                                                        await api.post(`/inventory/goods-issue/${r.id}/delivered`);
+                                                        message.success('Đã xác nhận giao hàng!');
+                                                        fetchData();
+                                                    } catch (e: any) {
+                                                        message.error(e.response?.data?.message || 'Lỗi xác nhận');
+                                                    }
+                                                }}>
+                                                    <Button style={{backgroundColor:'#52c41a', color:'#fff'}} size="small" icon={<CarOutlined />}>Đã giao NCC</Button>
+                                                </Popconfirm>
+                                            )}
+                                        </Space>
+                                    )
+                                }
                             ]}
                         />
                     </Tabs.TabPane>
