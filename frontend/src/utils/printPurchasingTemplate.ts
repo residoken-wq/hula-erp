@@ -17,7 +17,7 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
             th, td { border: 1px solid #000; padding: 5px; text-align: center; }
             .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
             .title { text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 20px; }
-            .left-align { text-align: left; }
+            .left-align { text-align: left; white-space: pre-wrap; }
             .bold { font-weight: bold; }
             @media print { .no-print { display: none; } }
         </style>
@@ -128,7 +128,7 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                     <tr>
                         <th>STT</th>
                         <th>Mã SKU</th>
-                        <th>Mô tả sản phẩm</th>
+                        <th>Mô tả sản xuất</th>
                         <th>Định mức vải (VMT)</th>
                         <th>Định mức vải (VMS)</th>
                         <th>Số lượng</th>
