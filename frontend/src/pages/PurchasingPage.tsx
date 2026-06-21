@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Tag, Button, Card, Tabs, Space, Tooltip, Popconfirm, message, Modal, Descriptions, Divider, Input, Statistic, Row, Col, InputNumber, Select, DatePicker, Form, Alert } from 'antd';
-import { ReloadOutlined, EyeOutlined, DeleteOutlined, SendOutlined, CheckCircleOutlined, ShopOutlined, ScissorOutlined, PrinterOutlined, SearchOutlined, DollarOutlined, CarOutlined, LinkOutlined, ImportOutlined } from '@ant-design/icons';
+import { ReloadOutlined, EyeOutlined, DeleteOutlined, SendOutlined, CheckCircleOutlined, ShopOutlined, ScissorOutlined, PrinterOutlined, SearchOutlined, DollarOutlined, CarOutlined, LinkOutlined, ImportOutlined, FileExcelOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import useMobile from '../hooks/useMobile';
 import OutsourcingMaterialIssueModal from '../components/purchasing/OutsourcingMaterialIssueModal';
 import { handlePrintPO } from '../utils/printPurchasingTemplate';
+import { exportPOToExcel } from '../utils/exportPOToExcel';
 
 const PurchasingPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
@@ -642,8 +643,9 @@ const PurchasingPage: React.FC = () => {
                 width={1200}
                 style={{ top: 20 }}
                 footer={[
-                    <Button key="portal" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/po/${currentPO?.uuid}`); message.success('Đã copy link Portal NCC!'); }}>📎 Copy Link Portal</Button>,
+                    <Button key="portal" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/portal/po/${currentPO?.uuid}`); message.success('Đã copy link Portal NCC!'); }}>🔗 Copy Link Portal</Button>,
                     <Button key="print" icon={<PrinterOutlined />} onClick={() => setIsPrintModalOpen(true)}>In PO</Button>,
+                    <Button key="export" icon={<FileExcelOutlined />} onClick={() => exportPOToExcel(currentPO, editingItems, packingList)} style={{ backgroundColor: '#107c41', color: 'white' }}>Xuất Excel</Button>,
                     <Button key="receipt" icon={<ImportOutlined />} type="dashed" onClick={handleCreateReceipt}>Tạo Phiếu Kho</Button>,
                     <Button key="save" type="primary" onClick={handleSavePOChanges}>Lưu Thay Đổi</Button>,
                     <Button key="close" onClick={() => setIsDetailOpen(false)}>Đóng</Button>
