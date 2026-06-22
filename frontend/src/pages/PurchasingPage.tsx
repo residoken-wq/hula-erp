@@ -761,6 +761,27 @@ const PurchasingPage: React.FC = () => {
                                 rowKey="id"
                                 pagination={false}
                                 size="small"
+                                expandable={{
+                                    expandedRowRender: (r: any) => {
+                                        if (currentPO?.type === 'MATERIAL' && r.material) {
+                                            const relatedProducts = planProducts.filter(p => 
+                                                p.materials && p.materials.some((m: any) => m.key === r.material.id)
+                                            );
+                                            if (relatedProducts.length > 0) {
+                                                return (
+                                                    <div style={{ paddingLeft: 30, color: '#1890ff', fontSize: 13 }}>
+                                                        <b style={{color: '#666'}}>Dùng cho SP (SO):</b> {relatedProducts.map(p => `${p.product?.name || p.name} (${p.quantity})`).join(', ')}
+                                                    </div>
+                                                );
+                                            }
+                                        }
+                                        return null;
+                                    },
+                                    rowExpandable: (r: any) => {
+                                        if (currentPO?.type !== 'MATERIAL' || !r.material) return false;
+                                        return planProducts.some(p => p.materials && p.materials.some((m: any) => m.key === r.material.id));
+                                    }
+                                }}
                                 columns={[
                                     {
                                         title: 'Tên hàng', width: 200, render: (r: any, _: any, index: number) => {
@@ -863,7 +884,8 @@ const PurchasingPage: React.FC = () => {
                                                 }
                                             }
 
-                                            return <Input 
+                                            return <Input.TextArea 
+                                                autoSize={{ minRows: 1, maxRows: 3 }}
                                                 placeholder="Nhập mô tả..."
                                                 value={r.description !== undefined && r.description !== null ? r.description : defaultContent}
                                                 onChange={(e) => {
