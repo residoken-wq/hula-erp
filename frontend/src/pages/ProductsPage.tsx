@@ -805,8 +805,6 @@ const ProductsPage: React.FC = () => {
                                             <Row gutter={10}>
                                                 <Col span={12}><Form.Item name={['attributes', 'front_color']} label="Màu sắc (Mặt trước)"><Input /></Form.Item></Col>
                                                 <Col span={12}><Form.Item name={['attributes', 'back_color']} label="Màu sắc (Mặt sau)"><Input /></Form.Item></Col>
-                                                <Col span={12}><Form.Item name={['attributes', 'front_material']} label="Vải (Mặt trước)"><Input /></Form.Item></Col>
-                                                <Col span={12}><Form.Item name={['attributes', 'back_material']} label="Vải (Mặt sau)"><Input /></Form.Item></Col>
                                                 <Col span={12}><Form.Item name={['attributes', 'size']} label="Kích thước"><Input /></Form.Item></Col>
                                                 <Col span={12}><Form.Item name={['attributes', 'logo']} label="Logo (Hình in/Thêu)"><Input /></Form.Item></Col>
                                                 <Col span={12}><Form.Item name={['attributes', 'design']} label="Design (Thiết kế)"><Input /></Form.Item></Col>

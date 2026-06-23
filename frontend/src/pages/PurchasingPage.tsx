@@ -817,10 +817,8 @@ const PurchasingPage: React.FC = () => {
                                         }
                                     },
                                     ...((currentPO?.type === 'OUTSOURCING' || (currentPO?.type === 'POOLED' && editingItems.some((i: any) => !i.material))) ? [
-                                        { title: 'Màu MT', width: 70, render: (r: any) => <span>{r.product?.attributes?.front_color || '-'}</span> },
-                                        { title: 'Màu MS', width: 70, render: (r: any) => <span>{r.product?.attributes?.back_color || '-'}</span> },
-                                        { title: 'Vải MT', width: 90, render: (r: any) => <span>{r.product?.attributes?.front_material || '-'}</span> },
-                                        { title: 'Vải MS', width: 90, render: (r: any) => <span>{r.product?.attributes?.back_material || '-'}</span> }
+                                        { title: 'Màu MT', width: 100, render: (r: any) => <span>{r.product?.attributes?.front_color || '-'}</span> },
+                                        { title: 'Màu MS', width: 100, render: (r: any) => <span>{r.product?.attributes?.back_color || '-'}</span> }
                                     ] : []),
                                     ...(currentPO?.type === 'MATERIAL' ? [
                                         {
@@ -886,10 +884,17 @@ const PurchasingPage: React.FC = () => {
                                                 }
                                             }
 
+                                            let displayValue = r.description !== undefined && r.description !== null ? r.description : defaultContent;
+                                            if (currentPO?.type === 'OUTSOURCING' && r.product?.processing_description) {
+                                                if (!r.description || (r.product.sku && r.description.includes(r.product.sku))) {
+                                                    displayValue = r.product.processing_description;
+                                                }
+                                            }
+
                                             return <Input.TextArea 
                                                 autoSize={{ minRows: 1, maxRows: 3 }}
                                                 placeholder="Nhập mô tả..."
-                                                value={r.description !== undefined && r.description !== null ? r.description : defaultContent}
+                                                value={displayValue}
                                                 onChange={(e) => {
                                                     const newItems = [...editingItems];
                                                     newItems[index].description = e.target.value;
