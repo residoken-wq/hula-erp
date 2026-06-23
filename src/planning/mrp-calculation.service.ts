@@ -41,7 +41,7 @@ export class MrpCalculationService {
         let hasDetails = true;
         if (plan.mrp_data && Array.isArray(plan.mrp_data) && plan.mrp_data.length > 0) {
             hasDetails = plan.mrp_data.every((item: any) => item.details !== undefined);
-        } else if (!plan.mrp_data) {
+        } else {
             hasDetails = false;
         }
 
