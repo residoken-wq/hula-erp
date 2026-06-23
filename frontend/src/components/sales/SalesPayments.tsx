@@ -31,7 +31,8 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
     const fetchHistory = async () => {
         try {
             const res = await api.get(`/sales/${orderCode}/payment-history`);
-            setHistory(res.data);
+            // Chỉ hiển thị phiếu thu (INCOME), không hiển thị phiếu chi
+            setHistory(res.data.filter((item: any) => item.type === 'INCOME'));
         } catch (e) {
             console.error(e);
         }
