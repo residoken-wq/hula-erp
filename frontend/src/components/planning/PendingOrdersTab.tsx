@@ -132,19 +132,34 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
         },
         {
             title: 'Thao tác', width: 130, align: 'center' as const,
-            render: (_: any, r: any) => (
-                r.can_fulfill_stock && (
-                    <Button
-                        type="primary"
-                        size="small"
-                        icon={<TruckOutlined />}
-                        onClick={() => handleFulfillStock(r)}
-                        style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', border: 'none', borderRadius: 6, fontWeight: 500 }}
-                    >
-                        Xuất Kho
-                    </Button>
-                )
-            )
+            render: (_: any, r: any) => {
+                if (!r.can_fulfill_stock && !r.has_pending_export) return null;
+                return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
+                        {r.can_fulfill_stock && (
+                            <Button
+                                type="primary"
+                                size="small"
+                                icon={<TruckOutlined />}
+                                onClick={() => handleFulfillStock(r)}
+                                disabled={r.has_pending_export}
+                                style={
+                                    r.has_pending_export
+                                        ? { borderRadius: 6, fontWeight: 500, opacity: 0.6 }
+                                        : { background: 'linear-gradient(135deg, #52c41a, #389e0d)', border: 'none', borderRadius: 6, fontWeight: 500 }
+                                }
+                            >
+                                Xuất Kho
+                            </Button>
+                        )}
+                        {r.has_pending_export && (
+                            <Tag color="warning" style={{ margin: 0, borderRadius: 4, fontSize: 11 }}>
+                                Chờ kho xác nhận
+                            </Tag>
+                        )}
+                    </div>
+                );
+            }
         }
     ];
 

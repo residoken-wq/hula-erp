@@ -33,7 +33,7 @@ export class PlanningService {
                 status: In([SalesOrderStatus.SO_PENDING, SalesOrderStatus.SAMPLE_APPROVED, SalesOrderStatus.DEPOSITED]),
                 plan_id: IsNull()
             },
-            relations: ['customer', 'items', 'items.product'],
+            relations: ['customer', 'items', 'items.product', 'deliveries'],
             order: { delivery_date: 'ASC' }
         });
 
@@ -119,7 +119,13 @@ export class PlanningService {
             if (!o.customer_name && o.customer) {
                 o.customer_name = o.customer.name;
             }
-            enrichedOrders.push({ ...o, items: enrichedItems, can_fulfill_stock: (totalItems > 0 && canFulfill) });
+            const has_pending_export = o.deliveries && o.deliveries.some((d: any) => d.status === 'PENDING_EXPORT');
+            enrichedOrders.push({ 
+                ...o, 
+                items: enrichedItems, 
+                can_fulfill_stock: (totalItems > 0 && canFulfill),
+                has_pending_export 
+            });
         }
 
         return enrichedOrders;
