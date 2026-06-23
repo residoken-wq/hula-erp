@@ -243,7 +243,7 @@ export class SalesService {
     // --- LOGIC TÍNH TOÁN THANH TOÁN (Helper) ---
     private async calculatePaymentInfo(orderCode: string): Promise<{ paid_amount: number, deposit_date: any | null }> {
         const payments = await this.transRepo.find({ 
-            where: { reference_code: orderCode },
+            where: { reference_code: orderCode, type: 'INCOME' },
             order: { date: 'ASC' }
         });
         const paid_amount = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
