@@ -806,7 +806,7 @@ const PurchasingPage: React.FC = () => {
                                                         }
                                                         setEditingItems(newItems);
                                                     }}
-                                                    options={products.map(p => ({ label: `${p.name} (${p.sku})`, value: p.id }))}
+                                                    options={products.map(p => ({ label: p.name, value: p.id }))}
                                                 />
                                             }
 
@@ -816,9 +816,11 @@ const PurchasingPage: React.FC = () => {
                                             return r.description;
                                         }
                                     },
-                                    ...(currentPO?.type === 'OUTSOURCING' ? [
-                                        { title: 'Màu MT', width: 100, render: (r: any) => <span>{r.product?.attributes?.front_color || '-'}</span> },
-                                        { title: 'Màu MS', width: 100, render: (r: any) => <span>{r.product?.attributes?.back_color || '-'}</span> }
+                                    ...((currentPO?.type === 'OUTSOURCING' || (currentPO?.type === 'POOLED' && editingItems.some((i: any) => !i.material))) ? [
+                                        { title: 'Màu MT', width: 70, render: (r: any) => <span>{r.product?.attributes?.front_color || '-'}</span> },
+                                        { title: 'Màu MS', width: 70, render: (r: any) => <span>{r.product?.attributes?.back_color || '-'}</span> },
+                                        { title: 'Vải MT', width: 90, render: (r: any) => <span>{r.product?.attributes?.front_material || '-'}</span> },
+                                        { title: 'Vải MS', width: 90, render: (r: any) => <span>{r.product?.attributes?.back_material || '-'}</span> }
                                     ] : []),
                                     ...(currentPO?.type === 'MATERIAL' ? [
                                         {
@@ -861,7 +863,7 @@ const PurchasingPage: React.FC = () => {
                                         }
                                     ] : []),
                                     {
-                                        title: 'Mô tả', width: 250, render: (r: any, _: any, index: number) => {
+                                        title: 'Mô tả', width: 200, render: (r: any, _: any, index: number) => {
                                             let defaultContent = '';
                                             if (currentPO?.type === 'MATERIAL') {
                                                 const mt = r.front_color || '';
@@ -896,11 +898,11 @@ const PurchasingPage: React.FC = () => {
                                             />;
                                         }
                                     },
-                                    { title: 'Tổng Cần (Gốc)', width: 100, align: 'center', render: (r: any) => <span>{Number(r.raw_quantity || 0).toLocaleString()} {r.material?.unit}</span> },
-                                    { title: '% Hao hụt', width: 80, align: 'center', render: (r: any) => <Tag color="orange">{r.wastage_rate || 0}%</Tag> },
-                                    { title: 'Tổng (+Hao hụt) (Gốc)', width: 140, align: 'center', render: (r: any) => <b>{Number(r.total_quantity || r.quantity).toLocaleString()} {r.material?.unit}</b> },
+                                    { title: 'Tổng Cần (Gốc)', width: 80, align: 'center', render: (r: any) => <span>{Number(r.raw_quantity || 0).toLocaleString()} {r.material?.unit}</span> },
+                                    { title: '% Hao hụt', width: 70, align: 'center', render: (r: any) => <Tag color="orange">{r.wastage_rate || 0}%</Tag> },
+                                    { title: 'Tổng (+Hao hụt) (Gốc)', width: 100, align: 'center', render: (r: any) => <b>{Number(r.total_quantity || r.quantity).toLocaleString()} {r.material?.unit}</b> },
                                     {
-                                        title: 'SL Quy Đổi (Mua)', width: 160, render: (r: any, _: any, index: number) => {
+                                        title: 'SL Quy Đổi (Mua)', width: 110, render: (r: any, _: any, index: number) => {
                                             // --- FIX: Logic tính SL Quy Đổi ---
                                             // Theo yêu cầu: 1 ĐVT Gốc = [Hệ số] ĐVT Mua 
                                             // Ví dụ: 1 mét vải viền (Gốc) = 0.053 mét vải lớn (Mua)
