@@ -97,6 +97,17 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                 processingDesc = descMatch ? descMatch[1].trim() : i.description;
             }
 
+            let theuText = '-';
+            if (i.product?.routings && Array.isArray(i.product.routings)) {
+                const hasEmbroidery = i.product.routings.some((r: any) => 
+                    r.process?.name?.toLowerCase().includes('thêu') || r.step_name?.toLowerCase().includes('thêu')
+                );
+                if (hasEmbroidery) {
+                    const logo = i.product.attributes?.Logo || i.product.attributes?.logo;
+                    theuText = logo ? `thêu ${logo}` : 'thêu';
+                }
+            }
+
             return `
             <tr>
                 <td>${idx + 1}</td>
@@ -107,7 +118,7 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                 <td>-</td> 
                 <td>-</td> 
                 <td>${Number(i.quantity).toLocaleString()}</td>
-                <td>-</td> 
+                <td>${theuText}</td> 
                 ${priceCells}
                 <td>${i.note || ''}</td>
             </tr>

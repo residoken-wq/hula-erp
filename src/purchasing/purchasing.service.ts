@@ -67,7 +67,7 @@ export class PurchasingService {
     }
 
     async getPODetail(id: number) {
-        const po = await this.poRepo.findOne({ where: { id }, relations: ['supplier', 'items', 'items.material', 'items.product'] });
+        const po = await this.poRepo.findOne({ where: { id }, relations: ['supplier', 'items', 'items.material', 'items.product', 'items.product.routings', 'items.product.routings.process'] });
         if (!po || !po.items) return po;
 
         // --- MỚI: Recover Missing Product (Legacy Data Fix) ---
@@ -685,7 +685,8 @@ export class PurchasingService {
                 po_code: po.po_code,
                 supplier: po.supplier,
                 total_amount: po.total_amount,
-                child_count: po.child_pos?.length || 0
+                child_count: po.child_pos?.length || 0,
+                child_pos: po.child_pos
             },
             aggregated_items: Array.from(itemMap.values())
         };

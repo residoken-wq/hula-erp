@@ -136,8 +136,84 @@ const PurchasingPage: React.FC = () => {
                 }
                 setIsDetailOpen(true);
 
-                // Fetch Plan Products (skip for pooled)
+                // Fetch Plan Products for pooled
                 setPlanProducts([]);
+                if (aggData.pooled_po?.child_pos) {
+                    const planIds = new Set<number>();
+                    const targetMaterialIds = new Set<number>();
+                    aggData.pooled_po.child_pos.forEach((child: any) => {
+                        child.items?.forEach((item: any) => {
+                            if (item.plan_id) planIds.add(item.plan_id);
+                            if (item.material?.id) targetMaterialIds.add(item.material.id);
+                        });
+                    });
+
+                    if (planIds.size > 0) {
+                        try {
+                            const prods = new Map();
+                            const addProductToMap = (product: any, qty: number) => {
+                                const isCombo = product.product_type === 'COMBO' || (product.components && product.components.length > 0);
+                                if (isCombo && product.components && product.components.length > 0) {
+                                    product.components.forEach((comp: any) => {
+                                        if (comp.child_product) addProductToMap(comp.child_product, qty * Number(comp.quantity));
+                                    });
+                                } else {
+                                    if (!prods.has(product.sku)) {
+                                        prods.set(product.sku, { sku: product.sku, name: product.name, quantity: 0, product: product });
+                                    }
+                                    prods.get(product.sku).quantity += Number(qty);
+                                }
+                            };
+
+                            for (const planId of Array.from(planIds)) {
+                                const pRes = await api.get(`/planning/${planId}`);
+                                const plan = pRes.data;
+                                if (plan && plan.sales_orders) {
+                                    plan.sales_orders.forEach((so: any) => {
+                                        so.items?.forEach((item: any) => {
+                                            if (item.product) {
+                                                addProductToMap(item.product, Number(item.quantity));
+                                            } else {
+                                                if (!prods.has(item.sku)) prods.set(item.sku, { sku: item.sku, name: item.product_name, quantity: 0 });
+                                                prods.get(item.sku).quantity += Number(item.quantity);
+                                            }
+                                        });
+                                    });
+                                }
+                            }
+
+                            const finalProducts = Array.from(prods.values()).map((p: any) => {
+                                let unitNorm = 0;
+                                let materials: any[] = [];
+                                if (p.product && p.product.boms) {
+                                    p.product.boms.forEach((bom: any) => {
+                                        if (bom.material && targetMaterialIds.has(bom.material.id)) {
+                                            unitNorm += Number(bom.quantity || 0);
+                                            materials.push({
+                                                key: bom.material.id,
+                                                material_name: bom.material.name,
+                                                material_code: bom.material.code,
+                                                unit_norm: Number(bom.quantity || 0),
+                                                total_norm: Number(bom.quantity || 0) * p.quantity
+                                            });
+                                        }
+                                    });
+                                }
+                                return {
+                                    ...p,
+                                    unit_norm: unitNorm > 0 ? unitNorm : 0,
+                                    total_norm: (unitNorm > 0 ? unitNorm : 0) * p.quantity,
+                                    materials
+                                };
+                            });
+
+                            setPlanProducts(finalProducts);
+                        } catch (e) {
+                            console.error('Error fetching plan products for pooled', e);
+                        }
+                    }
+                }
+
                 fetchDeliveryMatrix(poDetail.id);
                 return; // Early return — skip normal items/plan logic
             }
@@ -1033,42 +1109,42 @@ const PurchasingPage: React.FC = () => {
                                             }
                                         },
                                         {
-                                            title: 'N1', width: 60, render: (t, r, idx) => <Input value={r.n1} onChange={e => {
+                                            title: 'N1', width: 100, render: (t, r, idx) => <Input value={r.n1} onChange={e => {
                                                 const list = [...packingList]; list[idx].n1 = e.target.value; setPackingList(list);
                                             }} />
                                         },
                                         {
-                                            title: 'N2', width: 60, render: (t, r, idx) => <Input value={r.n2} onChange={e => {
+                                            title: 'N2', width: 100, render: (t, r, idx) => <Input value={r.n2} onChange={e => {
                                                 const list = [...packingList]; list[idx].n2 = e.target.value; setPackingList(list);
                                             }} />
                                         },
                                         {
-                                            title: 'C1', width: 60, render: (t, r, idx) => <Input value={r.c1} onChange={e => {
+                                            title: 'C1', width: 100, render: (t, r, idx) => <Input value={r.c1} onChange={e => {
                                                 const list = [...packingList]; list[idx].c1 = e.target.value; setPackingList(list);
                                             }} />
                                         },
                                         {
-                                            title: 'C2', width: 60, render: (t, r, idx) => <Input value={r.c2} onChange={e => {
+                                            title: 'C2', width: 100, render: (t, r, idx) => <Input value={r.c2} onChange={e => {
                                                 const list = [...packingList]; list[idx].c2 = e.target.value; setPackingList(list);
                                             }} />
                                         },
                                         {
-                                            title: 'G1', width: 60, render: (t, r, idx) => <Input value={r.g1} onChange={e => {
+                                            title: 'G1', width: 100, render: (t, r, idx) => <Input value={r.g1} onChange={e => {
                                                 const list = [...packingList]; list[idx].g1 = e.target.value; setPackingList(list);
                                             }} />
                                         },
                                         {
-                                            title: 'G2', width: 60, render: (t, r, idx) => <Input value={r.g2} onChange={e => {
+                                            title: 'G2', width: 100, render: (t, r, idx) => <Input value={r.g2} onChange={e => {
                                                 const list = [...packingList]; list[idx].g2 = e.target.value; setPackingList(list);
                                             }} />
                                         },
                                         {
-                                            title: 'Kiện lẻ', width: 80, render: (t, r, idx) => <Input value={r.odd} onChange={e => {
+                                            title: 'Kiện lẻ', width: 100, render: (t, r, idx) => <Input value={r.odd} onChange={e => {
                                                 const list = [...packingList]; list[idx].odd = e.target.value; setPackingList(list);
                                             }} />
                                         },
                                         {
-                                            title: 'Kiện viền', width: 80, render: (t, r, idx) => <Input value={r.border} onChange={e => {
+                                            title: 'Kiện viền', width: 100, render: (t, r, idx) => <Input value={r.border} onChange={e => {
                                                 const list = [...packingList]; list[idx].border = e.target.value; setPackingList(list);
                                             }} />
                                         },
