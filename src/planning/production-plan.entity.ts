@@ -41,16 +41,10 @@ export class ProductionPlan {
   mrp_data: any;
 
   @Column({ type: 'simple-json', nullable: true })
-  mrp_result: any;
-
-  @Column({ type: 'simple-json', nullable: true })
   outsourcing_data: any;
 
   @Column({ type: 'simple-json', nullable: true })
   logistics_data: any;
-
-  @Column({ type: 'simple-json', nullable: true })
-  outsourcing_result: any;
 
   @Column({ type: 'simple-json', nullable: true })
   gantt_config: any; // { [sku]: { steps: [{step_name, start, end}], step_order: [...] } }

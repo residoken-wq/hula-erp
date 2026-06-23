@@ -79,10 +79,10 @@ const PlanningPage: React.FC = () => {
         } catch (e) { message.error('Lỗi tạo kế hoạch'); }
     };
 
-    const handleRunMrp = async (planId: number) => {
+    const handleRunMrp = async (planId: number, force: boolean = false) => {
         setLoading(true);
         try {
-            const res = await axios.post(`${API_URL}/planning/mrp/${planId}`);
+            const res = await axios.post(`${API_URL}/planning/mrp/${planId}${force ? '?force=true' : ''}`);
             if (res.data && res.data.mrp_result) {
                 res.data.mrp_result = res.data.mrp_result.map((item: any) => ({ ...item, use_stock: true }));
             }
@@ -90,9 +90,14 @@ const PlanningPage: React.FC = () => {
             setOutsourcingList(res.data.outsourcing_result || []);
             setLogisticsList(res.data.logistics_result || []);
             setIsDashboardOpen(true);
+            if (force) message.success('Đã tính lại MRP thành công!');
             fetchData();
         } catch (e) { message.error('Lỗi chạy MRP'); }
         setLoading(false);
+    };
+
+    const handleForceRunMrp = (planId: number) => {
+        handleRunMrp(planId, true);
     };
 
     const handleGeneratePOs = async (type: 'MATERIAL' | 'OUTSOURCING') => {
@@ -303,6 +308,7 @@ const PlanningPage: React.FC = () => {
                                 onGeneratePOs={handleGeneratePOs}
                                 onSaveAnalysis={handleSaveAnalysis}
                                 onUpdateStatus={handleUpdateStatus}
+                                onForceRunMrp={handleForceRunMrp}
                             />
                         )
                     },
@@ -331,6 +337,7 @@ const PlanningPage: React.FC = () => {
                                 onGeneratePOs={handleGeneratePOs}
                                 onSaveAnalysis={handleSaveAnalysis}
                                 onUpdateStatus={handleUpdateStatus}
+                                onForceRunMrp={handleForceRunMrp}
                             />
                         )
                     },

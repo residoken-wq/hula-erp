@@ -1,6 +1,6 @@
 import React from 'react';
 import { Table, Button, Row, Col, Statistic, Tag, Tabs, Select, InputNumber, Checkbox, Input, Progress, Modal } from 'antd';
-import { DollarOutlined, ShoppingCartOutlined, ScissorOutlined, TruckOutlined, AppstoreAddOutlined, ExperimentOutlined, DeleteOutlined, SaveOutlined, FallOutlined } from '@ant-design/icons';
+import { DollarOutlined, ShoppingCartOutlined, ScissorOutlined, TruckOutlined, AppstoreAddOutlined, ExperimentOutlined, DeleteOutlined, SaveOutlined, FallOutlined, SyncOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -26,12 +26,13 @@ interface PlanDashboardTabProps {
     onGeneratePOs: (type: 'MATERIAL' | 'OUTSOURCING') => void;
     onSaveAnalysis: () => void;
     onUpdateStatus: (planId: number, status: string) => void;
+    onForceRunMrp?: (planId: number) => void;
 }
 
 const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
     plans, mrpData, outsourcingList, logisticsList, suppliers, costBasis, setCostBasis, isMobile, loading,
     isDashboardOpen, setIsDashboardOpen,
-    onRunMrp, onDeletePlan, onConfirmBookings, onDataChange, onDetailDataChange, onToggleStock, onGeneratePOs, onSaveAnalysis, onUpdateStatus
+    onRunMrp, onDeletePlan, onConfirmBookings, onDataChange, onDetailDataChange, onToggleStock, onGeneratePOs, onSaveAnalysis, onUpdateStatus, onForceRunMrp
 }) => {
     const planColumns = [
         { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
@@ -455,7 +456,19 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                 title={
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 30 }}>
                         <span>Phân Tích Kế Hoạch: {mrpData?.plan_info?.name || ''}</span>
-                        <Button type="primary" onClick={onSaveAnalysis} icon={<SaveOutlined />} loading={loading}>Lưu Kết Quả</Button>
+                        <div>
+                            {onForceRunMrp && mrpData?.plan_info?.id && (
+                                <Button 
+                                    icon={<SyncOutlined />} 
+                                    onClick={() => onForceRunMrp(mrpData.plan_info.id)} 
+                                    style={{ marginRight: 8 }}
+                                    loading={loading}
+                                >
+                                    Tính lại
+                                </Button>
+                            )}
+                            <Button type="primary" onClick={onSaveAnalysis} icon={<SaveOutlined />} loading={loading}>Lưu Kết Quả</Button>
+                        </div>
                     </div>
                 }
                 open={isDashboardOpen}

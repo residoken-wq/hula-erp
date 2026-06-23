@@ -763,23 +763,57 @@ const PurchasingPage: React.FC = () => {
                                 size="small"
                                 expandable={{
                                     expandedRowRender: (r: any) => {
+                                        let materialHtml = null;
                                         if (currentPO?.type === 'MATERIAL' && r.material) {
                                             const relatedProducts = planProducts.filter(p => 
                                                 p.materials && p.materials.some((m: any) => m.key === r.material.id)
                                             );
                                             if (relatedProducts.length > 0) {
-                                                return (
-                                                    <div style={{ paddingLeft: 30, color: '#1890ff', fontSize: 13 }}>
+                                                materialHtml = (
+                                                    <div style={{ paddingLeft: 30, color: '#1890ff', fontSize: 13, marginBottom: 8 }}>
                                                         <b style={{color: '#666'}}>Dùng cho SP (SO):</b> {relatedProducts.map(p => `${p.product?.name || p.name} (${p.quantity})`).join(', ')}
                                                     </div>
                                                 );
                                             }
                                         }
-                                        return null;
+                                        
+                                        let poDetailsHtml = null;
+                                        if (r.po_details && r.po_details.length > 0) {
+                                            poDetailsHtml = (
+                                                <div style={{ padding: '10px 20px', backgroundColor: '#fafafa', borderRadius: 4, border: '1px solid #e8e8e8' }}>
+                                                    <div style={{ marginBottom: 8, fontWeight: 'bold', color: '#1890ff' }}>Chi tiết từng PO:</div>
+                                                    <Table
+                                                        dataSource={r.po_details}
+                                                        rowKey="po_code"
+                                                        pagination={false}
+                                                        size="small"
+                                                        columns={[
+                                                            { title: 'Mã PO', dataIndex: 'po_code', width: 150 },
+                                                            { title: 'Số lượng', dataIndex: 'quantity', width: 120, align: 'right', render: v => Number(v || 0).toLocaleString() },
+                                                            { title: 'Đơn giá', dataIndex: 'unit_price', width: 120, align: 'right', render: v => Number(v || 0).toLocaleString() },
+                                                            { title: 'Thành tiền', dataIndex: 'subtotal', align: 'right', render: v => <b>{Number(v || 0).toLocaleString()}</b> }
+                                                        ]}
+                                                    />
+                                                </div>
+                                            );
+                                        }
+
+                                        if (!materialHtml && !poDetailsHtml) return null;
+                                        
+                                        return (
+                                            <>
+                                                {materialHtml}
+                                                {poDetailsHtml}
+                                            </>
+                                        );
                                     },
                                     rowExpandable: (r: any) => {
-                                        if (currentPO?.type !== 'MATERIAL' || !r.material) return false;
-                                        return planProducts.some(p => p.materials && p.materials.some((m: any) => m.key === r.material.id));
+                                        let hasMaterialInfo = false;
+                                        if (currentPO?.type === 'MATERIAL' && r.material) {
+                                            hasMaterialInfo = planProducts.some(p => p.materials && p.materials.some((m: any) => m.key === r.material.id));
+                                        }
+                                        let hasPoDetails = r.po_details && r.po_details.length > 0;
+                                        return hasMaterialInfo || hasPoDetails;
                                     }
                                 }}
                                 columns={[
@@ -963,28 +997,7 @@ const PurchasingPage: React.FC = () => {
                                     { title: 'Thành tiền', render: (r: any) => <b>{Number(r.subtotal).toLocaleString()}</b> }
 
                                 ]}
-                                expandable={{
-                                    expandedRowRender: (record: any) => {
-                                        return (
-                                            <div style={{ padding: '10px 20px', backgroundColor: '#fafafa', borderRadius: 4, border: '1px solid #e8e8e8' }}>
-                                                <div style={{ marginBottom: 8, fontWeight: 'bold', color: '#1890ff' }}>Chi tiết từng PO:</div>
-                                                <Table
-                                                    dataSource={record.po_details}
-                                                    rowKey="po_code"
-                                                    pagination={false}
-                                                    size="small"
-                                                    columns={[
-                                                        { title: 'Mã PO', dataIndex: 'po_code', width: 150 },
-                                                        { title: 'Số lượng', dataIndex: 'quantity', width: 120, align: 'right', render: v => Number(v || 0).toLocaleString() },
-                                                        { title: 'Đơn giá', dataIndex: 'unit_price', width: 120, align: 'right', render: v => Number(v || 0).toLocaleString() },
-                                                        { title: 'Thành tiền', dataIndex: 'subtotal', align: 'right', render: v => <b>{Number(v || 0).toLocaleString()}</b> }
-                                                    ]}
-                                                />
-                                            </div>
-                                        );
-                                    },
-                                    rowExpandable: (record: any) => record.po_details && record.po_details.length > 0
-                                }}
+
                             />
                         )
                     },

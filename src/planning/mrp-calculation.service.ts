@@ -20,7 +20,7 @@ export class MrpCalculationService {
     ) { }
 
     // --- LOGIC PHÂN TÍCH KẾ HOẠCH (MRP & GIA CÔNG) ---
-    async calculateMaterialNeeds(planId: number) {
+    async calculateMaterialNeeds(planId: number, force: boolean = false) {
         const plan = await this.planRepo.findOne({
             where: { id: planId },
             relations: [
@@ -45,7 +45,9 @@ export class MrpCalculationService {
             hasDetails = false;
         }
 
-        if (plan.mrp_data && plan.outsourcing_data && hasDetails) {
+        const hasMrpData = Array.isArray(plan.mrp_data) && plan.mrp_data.length > 0;
+        const hasOutsourcingData = Array.isArray(plan.outsourcing_data) && plan.outsourcing_data.length > 0;
+        if (!force && (hasMrpData || hasOutsourcingData) && hasDetails) {
             // --- FIX: Update Real-time Stock for Display ---
             if (Array.isArray(plan.mrp_data)) {
                 const matIds = plan.mrp_data.map((i: any) => i.material_id).filter(id => !!id);
@@ -383,8 +385,8 @@ export class MrpCalculationService {
         }
 
         let changed = false;
-        if (plan.mrp_result && Array.isArray(plan.mrp_result)) {
-            plan.mrp_result = plan.mrp_result.map((item: any) => {
+        if (plan.mrp_data && Array.isArray(plan.mrp_data)) {
+            plan.mrp_data = plan.mrp_data.map((item: any) => {
                 if (item.material_id && priceMap.has(item.material_id)) {
                     const newPrice = priceMap.get(item.material_id);
                     if (item.purchase_price !== newPrice) {
@@ -396,8 +398,8 @@ export class MrpCalculationService {
             });
         }
 
-        if (plan.outsourcing_result && Array.isArray(plan.outsourcing_result)) {
-            plan.outsourcing_result = plan.outsourcing_result.map((item: any) => {
+        if (plan.outsourcing_data && Array.isArray(plan.outsourcing_data)) {
+            plan.outsourcing_data = plan.outsourcing_data.map((item: any) => {
                 const desc = `${item.step_name} (${item.product_sku})`;
                 if (outsourcePriceMap.has(desc)) {
                     const newPrice = outsourcePriceMap.get(desc);

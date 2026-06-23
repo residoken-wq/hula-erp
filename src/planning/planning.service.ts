@@ -155,8 +155,8 @@ export class PlanningService {
     }
 
     // --- Delegate to MrpCalculationService ---
-    async calculateMaterialNeeds(planId: number) {
-        return this.mrpCalculationService.calculateMaterialNeeds(planId);
+    async calculateMaterialNeeds(planId: number, force: boolean = false) {
+        return this.mrpCalculationService.calculateMaterialNeeds(planId, force);
     }
 
     async saveAnalysis(id: number, mrpData: any, outsourcingData: any, logisticsData: any) {
