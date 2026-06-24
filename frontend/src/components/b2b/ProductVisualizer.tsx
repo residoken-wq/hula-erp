@@ -212,6 +212,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                                 )}
 
                                 {/* Priority 2: Color tint (chỉ khi không có overlay image và không swap ảnh) */}
+                                {/* Tắt chức năng phủ bóng đen (color tint) theo yêu cầu 
                                 {!overlayOption && !swapOption && tintOption && hasValidColor(tintOption) && (
                                     <div 
                                         className="absolute inset-0 pointer-events-none transition-colors duration-500"
@@ -231,6 +232,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                                         }}
                                     />
                                 )}
+                                */}
                             </div>
                         );
                     })}
@@ -246,6 +248,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                     />
                     
                     {/* Color Tinting Overlay */}
+                    {/* Tắt chức năng phủ bóng đen (color tint) theo yêu cầu
                     {!globalImageSwap && globalColor && hasValidColor(globalColor) && (
                         <div 
                             className="absolute inset-0 z-20 pointer-events-none transition-colors duration-500"
@@ -264,6 +267,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
                             }}
                         />
                     )}
+                    */}
 
                     {/* Texture Overlay */}
                     {globalTexture && globalTexture.visualization_overlay && (
@@ -303,7 +307,7 @@ export default function ProductVisualizer({ subcategory, selectedOptions, stepSe
             {hasBaseImages && (
                 <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-1 z-40">
                     {subcategory.base_images!.map(frame => (
-                        <div key={frame.id} className="bg-black/40 text-white text-xs px-2 py-0.5 rounded-full backdrop-blur-sm">
+                        <div key={frame.id} className="bg-white/80 text-gray-800 border border-gray-200 text-xs px-2 py-0.5 rounded-full backdrop-blur-sm shadow-sm">
                             {frame.label || frame.id}
                         </div>
                     ))}
