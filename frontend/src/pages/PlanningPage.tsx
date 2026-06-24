@@ -83,14 +83,30 @@ const PlanningPage: React.FC = () => {
         setLoading(true);
         try {
             const res = await axios.post(`${API_URL}/planning/mrp/${planId}${force ? '?force=true' : ''}`);
+            let mrpResult = res.data.mrp_result || [];
             if (res.data && res.data.mrp_result) {
-                res.data.mrp_result = res.data.mrp_result.map((item: any) => ({ ...item, use_stock: true }));
+                mrpResult = res.data.mrp_result.map((item: any) => ({ ...item, use_stock: true }));
+                res.data.mrp_result = mrpResult;
             }
             setMrpData(res.data);
             setOutsourcingList(res.data.outsourcing_result || []);
             setLogisticsList(res.data.logistics_result || []);
+
+            // Auto save UI modifications (use_stock = true) back to db if it's a fresh calculation or forced
+            if (force || res.data.is_saved === false) {
+                await axios.post(`${API_URL}/planning/save/${planId}`, {
+                    mrp_result: mrpResult,
+                    outsourcing_result: res.data.outsourcing_result || [],
+                    logistics_result: res.data.logistics_result || []
+                });
+            }
+
             setIsDashboardOpen(true);
-            if (force) message.success('Đã tính lại MRP thành công!');
+            if (force) {
+                message.success('Đã tính lại MRP và tự động lưu kết quả thành công!');
+            } else if (res.data.is_saved === false) {
+                message.success('Dữ liệu đã được tự động tính lại do có thay đổi!');
+            }
             fetchData();
         } catch (e) { message.error('Lỗi chạy MRP'); }
         setLoading(false);

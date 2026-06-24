@@ -175,6 +175,14 @@ export class PlanningService {
         return { message: 'Đã lưu kết quả phân tích' };
     }
 
+    async invalidateAnalysisCache(planId: number) {
+        await this.planRepo.update(planId, {
+            mrp_data: null,
+            outsourcing_data: null,
+            logistics_data: null
+        });
+    }
+
     // --- HÀM TẠO PO (Dùng chung cho NPL và Gia Công) ---
     async generatePos(planId: number, data: any[]) {
         const supplierGroups = {};
@@ -436,6 +444,10 @@ export class PlanningService {
             }
         }
 
+        if (confirmedCount > 0) {
+            await this.invalidateAnalysisCache(planId);
+        }
+
         return { message: `Đã xác nhận ${confirmedCount} mục giữ chỗ.` };
     }
 
@@ -535,7 +547,7 @@ export class PlanningService {
     async revertBooking(itemId: number) {
         const item = await this.orderItemRepo.findOne({
             where: { id: itemId },
-            relations: ['product', 'order', 'order.deliveries', 'order.deliveries.items']
+            relations: ['product', 'order', 'order.deliveries', 'order.deliveries.items', 'order.production_plan']
         });
         if (!item) throw new NotFoundException('Booking item không tồn tại');
         if (item.booking_status !== BookingStatus.CONFIRMED) {
@@ -578,6 +590,10 @@ export class PlanningService {
         item.booking_status = BookingStatus.TEMPORARY;
         item.booking_expires_at = expires;
         await this.orderItemRepo.save(item);
+
+        if (item.order && item.order.production_plan) {
+            await this.invalidateAnalysisCache(item.order.production_plan.id);
+        }
 
         return { message: `Đã chuyển booking ${item.sku} về trạng thái chờ duyệt` };
     }

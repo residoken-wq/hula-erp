@@ -301,6 +301,18 @@ export class PurchasingService {
     // ------------------------------------------------------
 
     async remove(id: number) {
+        const po = await this.poRepo.findOne({ where: { id } });
+        if (!po) throw new NotFoundException('PO không tồn tại');
+
+        // MỚI: Invalidate MRP cache của plan nếu PO thuộc một plan
+        if (po.plan_id) {
+            await this.poRepo.manager.update('ProductionPlan', po.plan_id, {
+                mrp_data: null,
+                outsourcing_data: null,
+                logistics_data: null
+            });
+        }
+
         // Unlink children if this is a Pooled PO
         const children = await this.poRepo.find({ where: { parent_po_id: id } });
         if (children.length > 0) {

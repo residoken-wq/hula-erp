@@ -355,7 +355,8 @@ export class MrpCalculationService {
             mrp_result: mrpResult,
             outsourcing_result: outsourcingResult,
             logistics_result: logisticsResult,
-            gantt_data: ganttData
+            gantt_data: ganttData,
+            is_saved: false
         };
     }
 

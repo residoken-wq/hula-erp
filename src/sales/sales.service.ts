@@ -967,7 +967,7 @@ export class SalesService {
     async deleteDelivery(deliveryId: number) {
         const delivery = await this.deliveryRepo.findOne({
             where: { id: deliveryId },
-            relations: ['items', 'sales_order']
+            relations: ['items', 'sales_order', 'sales_order.items', 'sales_order.items.product', 'sales_order.production_plan']
         });
         if (!delivery) throw new NotFoundException('Phiếu xuất kho không tồn tại');
 
@@ -979,11 +979,11 @@ export class SalesService {
             throw new Error('Không thể xóa phiếu xuất kho khi đơn hàng đã Hoàn thành');
         }
 
-        // If delivery was already SHIPPED, restore inventory
-        if (delivery.status === 'SHIPPED') {
-            for (const item of delivery.items || []) {
-                // Lookup product by SKU to get ID
-                const product = await this.productsService.findOneBySku(item.sku);
+        for (const item of delivery.items || []) {
+            const product = await this.productsService.findOneBySku(item.sku);
+            
+            // If delivery was already SHIPPED, restore inventory
+            if (delivery.status === 'SHIPPED') {
                 if (product) {
                     await this.inventoryService.adjustStock(
                         'IMPORT',           // type: restore = import
@@ -995,7 +995,47 @@ export class SalesService {
                         'MAIN'              // warehouse (default)
                     );
                 }
+            } else if (delivery.status === 'PENDING_EXPORT') {
+                // MỚI: Trừ approved_booking_stock nếu chưa xuất kho
+                if (product) {
+                    const revertQty = Number(item.quantity);
+                    if (product.product_type === 'COMBO') {
+                        const components = await this.productsService.getComboComponents(product.sku);
+                        for (const comp of components) {
+                            if (comp.child_product) {
+                                const childRevert = revertQty * Number(comp.quantity);
+                                comp.child_product.approved_booking_stock = Math.max(0, Number(comp.child_product.approved_booking_stock || 0) - childRevert);
+                                await this.productsService.update(comp.child_product.id, { approved_booking_stock: comp.child_product.approved_booking_stock } as any);
+                            }
+                        }
+                    } else {
+                        product.approved_booking_stock = Math.max(0, Number(product.approved_booking_stock || 0) - revertQty);
+                        await this.productsService.update(product.id, { approved_booking_stock: product.approved_booking_stock } as any);
+                    }
+                }
             }
+
+            // Revert booked_quantity trên SalesOrderItem
+            if (order.items) {
+                const soItem = order.items.find(i => i.sku === item.sku);
+                if (soItem) {
+                    const newBookedQty = Math.max(0, Number(soItem.booked_quantity || 0) - Number(item.quantity));
+                    soItem.booked_quantity = newBookedQty;
+                    if (newBookedQty === 0) {
+                        soItem.booking_status = 'NONE'; // HOẶC TEMPORARY tuỳ logic, set NONE là xoá booking luôn
+                    }
+                    await this.deliveryRepo.manager.save('SalesOrderItem', soItem);
+                }
+            }
+        }
+
+        // MỚI: Invalidate MRP cache của plan
+        if (order.production_plan) {
+            await this.deliveryRepo.manager.update('ProductionPlan', order.production_plan.id, {
+                mrp_data: null,
+                outsourcing_data: null,
+                logistics_data: null
+            });
         }
 
         // Delete delivery items first

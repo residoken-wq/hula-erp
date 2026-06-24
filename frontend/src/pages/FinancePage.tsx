@@ -860,7 +860,7 @@ const FinancePage: React.FC = () => {
                                         const totalExpected = totalBomCost + totalStockCost + totalRoutingCost + totalLogisticCost;
                                         
                                         const totalExpectedProfit = filteredSOProfitData.reduce((s, r) => s + Number(r.expected_profit || 0), 0);
-                                        const totalProfit = totalIncome - totalExpense - totalStockCost;
+                                        const totalProfit = totalIncome - totalExpense;
                                         const totalMargin = totalIncome > 0 ? (totalProfit / totalIncome) * 100 : 0;
                                         return (
                                             <Table.Summary fixed>

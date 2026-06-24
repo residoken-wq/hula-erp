@@ -292,7 +292,7 @@ export class FinanceService {
             // Fix customer_name: fallback sang customer relation nếu customer_name null
             const customerName = so.customer_name || (so.customer ? so.customer.name : '') || '';
 
-            const profit = totalIncome - totalExpense - expected_stock_cost;
+            const profit = totalIncome - totalExpense;
 
             return {
                 id: so.id,
