@@ -1022,7 +1022,7 @@ export class SalesService {
                     const newBookedQty = Math.max(0, Number(soItem.booked_quantity || 0) - Number(item.quantity));
                     soItem.booked_quantity = newBookedQty;
                     if (newBookedQty === 0) {
-                        soItem.booking_status = 'NONE'; // HOẶC TEMPORARY tuỳ logic, set NONE là xoá booking luôn
+                        soItem.booking_status = BookingStatus.NONE; // HOẶC TEMPORARY tuỳ logic, set NONE là xoá booking luôn
                     }
                     await this.deliveryRepo.manager.save('SalesOrderItem', soItem);
                 }
