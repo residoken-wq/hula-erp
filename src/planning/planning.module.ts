@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlanningController } from './planning.controller';
 import { PlanningService } from './planning.service';
@@ -21,7 +21,7 @@ import { SupplierStock } from '../inventory/entities/supplier-stock.entity';
     TypeOrmModule.forFeature([ProductionPlan, SalesOrder, SalesOrderItem, PurchaseOrder, PurchaseOrderItem, WorkOrder, WorkOrderStep, SupplierStock]),
     ProductsModule,
     MaterialsModule,
-    InventoryModule
+    forwardRef(() => InventoryModule)
   ],
   controllers: [PlanningController],
   providers: [PlanningService, MrpCalculationService, GanttService],

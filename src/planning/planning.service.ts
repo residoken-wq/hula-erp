@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, IsNull } from 'typeorm';
 import { ProductionPlan, PlanStatus } from './production-plan.entity';
@@ -22,7 +22,7 @@ export class PlanningService {
         @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
         private productsService: ProductsService,
         private materialsService: MaterialsService,
-        private inventoryService: InventoryService,
+        @Inject(forwardRef(() => InventoryService)) private inventoryService: InventoryService,
         private mrpCalculationService: MrpCalculationService,
         private ganttService: GanttService,
     ) { }
