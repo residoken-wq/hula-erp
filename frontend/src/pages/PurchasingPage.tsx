@@ -87,9 +87,10 @@ const PurchasingPage: React.FC = () => {
 
             // --- POOLED PO: Lấy dữ liệu gộp từ child POs ---
             if (poDetail.type === 'POOLED') {
+                let aggData: any = null;
                 try {
                     const aggRes = await api.get(`/purchasing/pooled/${poDetail.id}/aggregate`);
-                    const aggData = aggRes.data;
+                    aggData = aggRes.data;
                     // Chuyển aggregated_items thành format tương thích editingItems
                     const aggItems = (aggData.aggregated_items || []).map((item: any, idx: number) => ({
                         id: `agg-${idx}`,
@@ -138,7 +139,7 @@ const PurchasingPage: React.FC = () => {
 
                 // Fetch Plan Products for pooled
                 setPlanProducts([]);
-                if (aggData.pooled_po?.child_pos) {
+                if (aggData && aggData.pooled_po?.child_pos) {
                     const planIds = new Set<number>();
                     const targetMaterialIds = new Set<number>();
                     aggData.pooled_po.child_pos.forEach((child: any) => {
