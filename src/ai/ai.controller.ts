@@ -36,9 +36,17 @@ export class AiController {
         res.setHeader('Connection', 'keep-alive');
 
         try {
-            await this.aiService.handleChatStream(userId, message, contextUrl, (chunk: string) => {
-                res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
-            });
+            await this.aiService.handleChatStream(
+                userId, 
+                message, 
+                contextUrl, 
+                (chunk: string) => {
+                    res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
+                },
+                (status: string) => {
+                    res.write(`data: ${JSON.stringify({ status })}\n\n`);
+                }
+            );
             res.write(`data: [DONE]\n\n`);
             res.end();
         } catch (e) {

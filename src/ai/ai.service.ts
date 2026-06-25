@@ -811,7 +811,7 @@ You MUST return ONLY a valid JSON object in this structure:
         }
     }
 
-    async handleChatStream(userId: string, message: string, contextUrl: string, onChunk: (text: string) => void) {
+    async handleChatStream(userId: string, message: string, contextUrl: string, onChunk: (text: string) => void, onStatus?: (status: string) => void) {
         let apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) {
             onChunk("AI Service is not configured (Missing GEMINI_API_KEY).");
@@ -910,6 +910,7 @@ CRITICAL RULES:
         // Step 1: Call non-streaming to check for tool calls
         let generateRes;
         try {
+            if (onStatus) onStatus('Đang phân tích yêu cầu...');
             generateRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -939,8 +940,26 @@ CRITICAL RULES:
             const funcName = functionCall.name;
             const args = functionCall.args;
             
+            if (onStatus) {
+                 const toolNames: Record<string, string> = {
+                     'check_stock': 'Đang kiểm tra tồn kho...',
+                     'check_finance': 'Đang truy xuất dữ liệu tài chính...',
+                     'check_order': 'Đang tìm kiếm đơn hàng...',
+                     'query_orders_advanced': 'Đang lọc dữ liệu đơn hàng...',
+                     'get_product_info': 'Đang lấy thông tin sản phẩm...',
+                     'search_customer': 'Đang tìm kiếm thông tin khách hàng...',
+                     'check_mrp': 'Đang phân tích kế hoạch sản xuất...',
+                     'check_tasks': 'Đang kiểm tra danh sách công việc...'
+                 };
+                 onStatus(toolNames[funcName] || `Đang xử lý nghiệp vụ (${funcName})...`);
+            }
+
             // Execute tool
             const result = await this.handleAiToolCall(funcName, args);
+            
+            if (onStatus) {
+                 onStatus('Đang tổng hợp câu trả lời...');
+            }
             
             // Append the function call message from model
             finalContents.push({ role: 'model', parts: [{ functionCall }] });

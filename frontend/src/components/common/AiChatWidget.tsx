@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FloatButton, Drawer, Input, Button, List, Avatar, Tag, Space, Typography } from 'antd';
-import { RobotOutlined, SendOutlined, UserOutlined, LikeOutlined, DislikeOutlined, AudioOutlined } from '@ant-design/icons';
+import { FloatButton, Drawer, Input, Button, List, Avatar, Tag, Space, Typography, Spin } from 'antd';
+import { RobotOutlined, SendOutlined, UserOutlined, LikeOutlined, DislikeOutlined, AudioOutlined, LoadingOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import { API_URL } from '../../config';
 
@@ -9,6 +9,7 @@ interface Message {
     sender: 'USER' | 'BOT';
     text: string;
     timestamp: Date;
+    status?: string;
 }
 
 const AiChatWidget: React.FC = () => {
@@ -61,14 +62,16 @@ const AiChatWidget: React.FC = () => {
 
             const reader = response.body?.getReader();
             const decoder = new TextDecoder('utf-8');
+            let buffer = '';
 
             if (reader) {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split('\n');
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
                     
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
@@ -78,11 +81,15 @@ const AiChatWidget: React.FC = () => {
                                 const parsed = JSON.parse(dataStr);
                                 if (parsed.text) {
                                     setMessages(prev => prev.map(m => 
-                                        m.id === botMsgId ? { ...m, text: m.text + parsed.text } : m
+                                        m.id === botMsgId ? { ...m, text: m.text + parsed.text, status: undefined } : m
+                                    ));
+                                } else if (parsed.status) {
+                                    setMessages(prev => prev.map(m => 
+                                        m.id === botMsgId ? { ...m, status: parsed.status } : m
                                     ));
                                 } else if (parsed.error) {
                                     setMessages(prev => prev.map(m => 
-                                        m.id === botMsgId ? { ...m, text: m.text + '\n[Lỗi: ' + parsed.error + ']' } : m
+                                        m.id === botMsgId ? { ...m, text: m.text + '\n[Lỗi: ' + parsed.error + ']', status: undefined } : m
                                     ));
                                 }
                             } catch (e) {
@@ -229,12 +236,19 @@ const AiChatWidget: React.FC = () => {
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                                         whiteSpace: 'pre-wrap',
                                         fontSize: 13
-                                    }} dangerouslySetInnerHTML={{
-                                        __html: item.text
-                                            .replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
                                     }}>
+                                        {item.status && !item.text ? (
+                                            <div style={{ color: '#1890ff', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <Spin indicator={<LoadingOutlined style={{ fontSize: 16 }} spin />} /> {item.status}
+                                            </div>
+                                        ) : (
+                                            <div dangerouslySetInnerHTML={{
+                                                __html: item.text
+                                                    .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                                                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                            }}></div>
+                                        )}
                                     </div>
                                     {item.sender === 'BOT' && item.id !== '0' && (
                                         <div style={{ marginTop: 4, display: 'flex', gap: 4, justifyContent: 'flex-start', width: '100%' }}>
