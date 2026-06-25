@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { PurchaseOrder, POType, POStatus } from './entities/purchase-order.entity';
@@ -17,7 +17,7 @@ export class PurchasingService {
         @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
         @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
         @InjectRepository(GoodsReceipt) private grRepo: Repository<GoodsReceipt>,
-        private inventoryService: InventoryService,
+        @Inject(forwardRef(() => InventoryService)) private inventoryService: InventoryService,
         private productsService: ProductsService,
         private suppliersService: SuppliersService,
         private planningService: PlanningService,

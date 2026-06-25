@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PurchasingService } from './purchasing.service';
 import { PurchasingController } from './purchasing.controller';
@@ -23,7 +23,7 @@ import { PlanningModule } from '../planning/planning.module';
       GoodsReceipt, // <--- Đảm bảo đã đăng ký
       ProductionPlan
     ]),
-    InventoryModule,
+    forwardRef(() => InventoryModule),
     ProductsModule,
 
     SuppliersModule,
