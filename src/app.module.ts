@@ -102,6 +102,7 @@ import { SupplierContact } from './suppliers/supplier-contact.entity';
 import { Customer } from './customers/customer.entity';
 import { CustomerContact } from './customers/customer-contact.entity';
 import { CustomerComment } from './customers/customer-comment.entity';
+import { CustomerCredit } from './customers/customer-credit.entity';
 import { ProductionPlan } from './planning/production-plan.entity';
 import { Process } from './processes/process.entity';
 import { Category } from './categories/category.entity';
@@ -193,7 +194,7 @@ import { UserContextInterceptor } from './common/interceptors/user-context.inter
           Task, TaskTimeLog, Notification,
           Project, Milestone, Discussion, DiscussionComment,
           Supplier, SupplierMaterial, SupplierContact,
-          Customer, CustomerContact, CustomerComment,
+          Customer, CustomerContact, CustomerComment, CustomerCredit,
           ProductionPlan, Process, Category,
           User, UserGroup, GroupPermission,
           SystemConfig, ActivityLog, ApiToken,

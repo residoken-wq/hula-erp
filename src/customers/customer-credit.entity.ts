@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Customer } from './customer.entity';
 
 export enum CreditTransactionType {
     ADD = 'ADD',        // Khi khách trả dư -> Tăng credit
@@ -11,9 +12,9 @@ export class CustomerCredit {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne('Customer', { onDelete: 'CASCADE' })
+    @ManyToOne(() => Customer, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'customer_id' })
-    customer: any;
+    customer: Customer;
 
     @Column({ name: 'customer_id' })
     customer_id: number;
