@@ -536,8 +536,44 @@ const HelpPage: React.FC = () => {
                         <Tag color="green" style={{ marginBottom: 16 }}>Modules: Finance</Tag>
                         <Title level={2}>📈 Lợi Nhuận Đơn Hàng (SO Profit)</Title>
                         <Paragraph>
-                            Tính toán lợi nhuận cho từng Sales Order (Đơn hàng bán) sau khi đã xuất hóa đơn, trừ đi các chi phí liên quan.
+                            Tính toán lợi nhuận cho từng Sales Order (Đơn hàng bán) sau khi hoàn tất quy trình giao hàng và xuất hóa đơn, trừ đi các khoản chi phí phát sinh.
                         </Paragraph>
+
+                        <Divider orientation="left">Tự động hạch toán chi phí</Divider>
+                        <Paragraph>
+                            Hệ thống sẽ **tự động** sinh các giao dịch chi phí (EXPENSE) và phân bổ (allocate) trực tiếp vào báo cáo Lợi Nhuận SO trong các nghiệp vụ kho sau:
+                        </Paragraph>
+                        
+                        <Row gutter={[16, 16]}>
+                            <Col span={12}>
+                                <Card title="1. Xuất NPL cho KHSX" size="small" bordered style={{ borderColor: '#ffd666' }}>
+                                    <ul>
+                                        <li>Khi Kế hoạch sản xuất (KHSX) xuất nguyên phụ liệu (NPL) từ kho để gia công.</li>
+                                        <li>Hệ thống tính tổng giá trị NPL xuất kho theo <code>cost_price</code>.</li>
+                                        <li>Tự động chia đều/tính theo tỷ lệ số lượng sản phẩm để phân bổ chi phí này cho các Đơn Hàng (SO) nằm trong KHSX.</li>
+                                        <li>Nhãn tham chiếu: <b>GOODS_ISSUE_NPL</b>.</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card title="2. Xuất kho Bán hàng / Giao hàng" size="small" bordered style={{ borderColor: '#95de64' }}>
+                                    <ul>
+                                        <li>Khi thực hiện xuất kho giao sản phẩm cho khách hàng.</li>
+                                        <li>Hệ thống tính Giá vốn hàng bán (COGS) dựa trên <code>cost_price</code> của thành phẩm xuất đi.</li>
+                                        <li>Chi phí được phân bổ 100% vào mã Đơn hàng (SO) tương ứng.</li>
+                                        <li>Nhãn tham chiếu: <b>GOODS_ISSUE_PRODUCT</b>.</li>
+                                    </ul>
+                                </Card>
+                            </Col>
+                        </Row>
+
+                        <Alert
+                            message="Lưu ý"
+                            description="Vì hệ thống tự động ghi nhận chi phí thực tế (real expense) ngay khi có thao tác xuất kho, báo cáo SO Profit sẽ hiển thị chính xác lợi nhuận kể cả khi đơn hàng sử dụng NPL hoặc Sản phẩm có sẵn từ trong kho (không phát sinh PO mua hàng mới)."
+                            type="info"
+                            showIcon
+                            style={{ marginTop: 16 }}
+                        />
                     </div>
                 );
             case 'finance-credits':

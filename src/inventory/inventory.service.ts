@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { StockHistory } from './stock-history.entity';
@@ -17,6 +17,8 @@ import { GoodsIssue, GoodsIssueStatus } from './entities/goods-issue.entity';
 import { GoodsIssueItem } from './entities/goods-issue-item.entity';
 import { SupplierStock } from './entities/supplier-stock.entity';
 import { SupplierTransaction, SupplierTransactionType } from './entities/supplier-transaction.entity';
+import { FinanceService } from '../finance/finance.service';
+import { PlanningService } from '../planning/planning.service';
 import * as dayjs from 'dayjs';
 
 @Injectable()
@@ -38,6 +40,8 @@ export class InventoryService {
     @InjectRepository(SupplierStock) private supplierStockRepo: Repository<SupplierStock>,
     @InjectRepository(SupplierTransaction) private supplierTxRepo: Repository<SupplierTransaction>,
     private productsService: ProductsService,
+    @Inject(forwardRef(() => FinanceService)) private financeService: FinanceService,
+    @Inject(forwardRef(() => PlanningService)) private planningService: PlanningService,
   ) { }
 
   // --- SHIPPING CARRIER MANAGEMENT ---
@@ -570,6 +574,34 @@ export class InventoryService {
 
     await this.deliveryRepo.save(delivery);
 
+    // --- MỚI: Cập nhật Finance / SO Profit ---
+    try {
+      let totalCogs = 0;
+      for (const item of delivery.items) {
+        if (!item.sku) continue;
+        const product = await this.productRepo.findOne({ where: { sku: item.sku } });
+        if (product) {
+          totalCogs += Number(item.quantity) * Number(product.cost_price || 0);
+        }
+      }
+
+      if (totalCogs > 0 && delivery.sales_order) {
+        await this.financeService.createTransaction({
+          date: new Date().toISOString().split('T')[0],
+          type: 'EXPENSE',
+          amount: totalCogs,
+          reference_code: delivery.code,
+          reference_type: 'GOODS_ISSUE_PRODUCT',
+          description: `Giá vốn xuất kho sản phẩm (Phiếu ${delivery.code})`,
+          allocations: [{ refCode: delivery.sales_order.order_code, amount: totalCogs }],
+          partner_name: delivery.sales_order.customer?.name || delivery.sales_order.customer_name || 'Khách hàng'
+        });
+      }
+    } catch (e) {
+      console.error('Failed to create Finance Transaction for Stock Export:', e);
+    }
+    // ----------------------------------------
+
     return { message: 'Đã xuất kho thành công', delivery };
   }
 
@@ -638,8 +670,11 @@ export class InventoryService {
     if (gi.status !== GoodsIssueStatus.DRAFT) throw new BadRequestException('Phiếu đã xử lý');
 
     // Xuất kho thực tế từng NPL
+    let totalNplCost = 0;
     for (const item of gi.items) {
       if (item.material_id) {
+        totalNplCost += Number(item.quantity) * Number(item.material?.cost_price || 0);
+
         await this.adjustStock(
           'EXPORT', 'MATERIAL', item.material_id,
           Number(item.quantity), gi.code,
@@ -661,6 +696,55 @@ export class InventoryService {
         }
       }
     }
+
+    // --- MỚI: Cập nhật Finance / SO Profit ---
+    if (totalNplCost > 0 && gi.plan_id) {
+      try {
+        const plan = await this.planningService.findOne(gi.plan_id);
+        if (plan && plan.sales_orders && plan.sales_orders.length > 0) {
+          // Tính tổng số lượng sản phẩm của KHSX
+          let totalPlanItems = 0;
+          plan.sales_orders.forEach(so => {
+            so.items?.forEach(i => {
+               totalPlanItems += Number(i.quantity || 0);
+            });
+          });
+
+          const allocations = [];
+          plan.sales_orders.forEach(so => {
+             let soItemsQty = 0;
+             so.items?.forEach(i => { soItemsQty += Number(i.quantity || 0); });
+             
+             let allocatedAmount = 0;
+             if (totalPlanItems > 0) {
+                allocatedAmount = (soItemsQty / totalPlanItems) * totalNplCost;
+             } else {
+                allocatedAmount = totalNplCost / plan.sales_orders.length; // fallback chia đều
+             }
+
+             if (allocatedAmount > 0) {
+                allocations.push({ refCode: so.order_code, amount: allocatedAmount });
+             }
+          });
+
+          if (allocations.length > 0) {
+             await this.financeService.createTransaction({
+                date: new Date().toISOString().split('T')[0],
+                type: 'EXPENSE',
+                amount: totalNplCost,
+                reference_code: gi.code,
+                reference_type: 'GOODS_ISSUE_NPL',
+                description: `Chi phí NPL xuất kho KHSX ${plan.code} (Phiếu ${gi.code})`,
+                allocations: allocations,
+                partner_name: gi.supplier ? gi.supplier.name : 'Kho Nội Bộ'
+             });
+          }
+        }
+      } catch (e) {
+         console.error('Failed to create Finance Transaction for Goods Issue:', e);
+      }
+    }
+    // ----------------------------------------
 
     gi.status = GoodsIssueStatus.CONFIRMED;
     return this.goodsIssueRepo.save(gi);

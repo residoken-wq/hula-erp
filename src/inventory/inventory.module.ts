@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { StockHistory } from './stock-history.entity';
 import { InventoryStock } from './inventory-stock.entity';
@@ -47,7 +47,9 @@ import { AuthModule } from '../auth/auth.module';
       SupplierTransaction
     ]),
     ProductsModule, // <--- Register ProductsModule
-    AuthModule
+    AuthModule,
+    forwardRef(() => import('../finance/finance.module').then(m => m.FinanceModule)),
+    forwardRef(() => import('../planning/planning.module').then(m => m.PlanningModule))
   ],
   controllers: [InventoryController, InventorySamplesController],
   providers: [InventoryService, InventorySamplesService],
