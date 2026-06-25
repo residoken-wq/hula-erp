@@ -824,13 +824,31 @@ You MUST return ONLY a valid JSON object in this structure:
         await this.aiMessageRepo.save(userMsg);
 
         // 2. Load history (last 10 messages)
-        const history = await this.aiMessageRepo.find({ where: { user_id: userId }, order: { id: 'ASC' }, take: 10 });
+        // Format contents for Gemini - Ensure alternating roles and valid content
+        const validHistory = history.filter(h => h.content && h.content.trim() !== '');
+        const contents: any[] = [];
+        let lastRole = '';
         
-        // Format contents for Gemini
-        const contents: any[] = history.map(h => ({
-            role: h.role,
-            parts: [{ text: h.content }]
-        }));
+        for (const h of validHistory) {
+            const role = h.role === 'assistant' || h.role === 'model' ? 'model' : 'user';
+            if (role === lastRole) {
+                // If consecutive same role, append to the last one
+                contents[contents.length - 1].parts[0].text += '\n\n' + h.content;
+            } else {
+                contents.push({
+                    role: role,
+                    parts: [{ text: h.content }]
+                });
+                lastRole = role;
+            }
+        }
+        
+        // Ensure the last message is from user
+        if (contents.length > 0 && contents[contents.length - 1].role === 'model') {
+             // Gemini requires the final message to be from user before model responds
+             // If for some reason it's model, just ignore it or push a dummy user msg
+             contents.push({ role: 'user', parts: [{ text: 'Tiếp tục' }]});
+        }
 
         const now = new Date();
         const knowledgeContext = this.aiKnowledgeService.getKnowledgeContext();
@@ -914,7 +932,8 @@ CRITICAL RULES:
             generateRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ systemInstruction, contents, tools })
+                body: JSON.stringify({ systemInstruction, contents, tools }),
+                signal: AbortSignal.timeout(30000)
             });
         } catch (e) {
             onChunk("Lỗi kết nối AI (Network).");
@@ -976,6 +995,9 @@ CRITICAL RULES:
                 onChunk(text);
                 const aiMsg = this.aiMessageRepo.create({ user_id: userId, role: 'model', content: text });
                 await this.aiMessageRepo.save(aiMsg);
+            } else {
+                const reason = candidate.finishReason || 'Unknown';
+                onChunk(`[Hệ thống AI không thể trả lời yêu cầu này. Lý do: ${reason}]`);
             }
             return;
         }
@@ -986,7 +1008,8 @@ CRITICAL RULES:
             const streamRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:streamGenerateContent?alt=sse&key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ systemInstruction, contents: finalContents })
+                body: JSON.stringify({ systemInstruction, contents: finalContents }),
+                signal: AbortSignal.timeout(60000)
             });
 
             if (!streamRes.ok) {
