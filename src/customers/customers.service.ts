@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Customer, CustomerType } from './customer.entity';
 import { CustomerContact } from './customer-contact.entity';
 import { CustomerComment } from './customer-comment.entity';
+import { CustomerCredit, CreditTransactionType } from './customer-credit.entity';
 
 import { Transaction } from '../finance/transaction.entity';
 import { SalesComment } from '../sales/sales-comment.entity';
@@ -20,6 +21,8 @@ export class CustomersService {
         private contactRepo: Repository<CustomerContact>,
         @InjectRepository(CustomerComment)
         private commentRepo: Repository<CustomerComment>,
+        @InjectRepository(CustomerCredit)
+        private creditRepo: Repository<CustomerCredit>,
         @InjectRepository(Transaction)
         private transRepo: Repository<Transaction>,
         @InjectRepository(PortalSession)
@@ -307,5 +310,38 @@ export class CustomersService {
         await this.sessionRepo.save(session);
 
         return { token, slug };
+    }
+
+    // --- CUSTOMER CREDIT LOGIC ---
+    async addCredit(customerId: number, amount: number, type: CreditTransactionType, note?: string, refCode?: string) {
+        const customer = await this.customerRepo.findOne({ where: { id: customerId } });
+        if (!customer) throw new NotFoundException('Customer not found');
+
+        const credit = this.creditRepo.create({
+            customer_id: customerId,
+            type,
+            amount: Number(amount),
+            note,
+            reference_code: refCode
+        });
+
+        await this.creditRepo.save(credit);
+
+        // Update balance
+        if (type === CreditTransactionType.ADD) {
+            customer.credit_balance = Number(customer.credit_balance || 0) + Number(amount);
+        } else if (type === CreditTransactionType.USE || type === CreditTransactionType.REFUND) {
+            customer.credit_balance = Number(customer.credit_balance || 0) - Number(amount);
+        }
+
+        await this.customerRepo.save(customer);
+        return credit;
+    }
+
+    async getCreditHistory(customerId: number) {
+        return this.creditRepo.find({ 
+            where: { customer_id: customerId },
+            order: { created_at: 'DESC' }
+        });
     }
 }

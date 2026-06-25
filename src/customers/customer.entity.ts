@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { SalesOrder } from '../sales/sales-order.entity';
 import { CustomerContact } from './customer-contact.entity';
+import { CustomerCredit } from './customer-credit.entity';
 import { User } from '../users/entities/user.entity';
 
 export enum CustomerType {
@@ -115,6 +116,12 @@ export class Customer {
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   current_debt: number;
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  credit_balance: number; // Tiền khách trả dư / cấn trừ
+
+  @OneToMany(() => CustomerCredit, (credit) => credit.customer)
+  credits: CustomerCredit[];
 
   @OneToMany(() => SalesOrder, (order) => order.customer)
   orders: SalesOrder[];

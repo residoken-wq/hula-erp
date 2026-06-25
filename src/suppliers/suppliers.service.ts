@@ -5,6 +5,7 @@ import { Supplier } from './supplier.entity';
 import { SupplierMaterial } from './supplier-material.entity';
 import { ProductRouting } from '../products/product-routing.entity';
 import { Material } from '../materials/material.entity';
+import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 
 @Injectable()
 export class SuppliersService {
@@ -13,6 +14,7 @@ export class SuppliersService {
         @InjectRepository(SupplierMaterial) private supplierMaterialRepo: Repository<SupplierMaterial>,
         @InjectRepository(ProductRouting) private routingRepo: Repository<ProductRouting>,
         @InjectRepository(Material) private materialRepo: Repository<Material>,
+        @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
     ) { }
 
     // --- HÀM CRUD CƠ BẢN (KHÔNG THỂ THIẾU) ---
@@ -21,19 +23,30 @@ export class SuppliersService {
     async findAll() {
         const qb = this.supplierRepo.createQueryBuilder('s')
             .leftJoin('s.transactions', 't', 't.type = :type', { type: 'EXPENSE' })
-            .select(['s.id', 's.code', 's.name', 's.debt', 's.type', 's.phone', 's.email', 's.address', 's.note', 's.created_at'])
-            .addSelect('SUM(CASE WHEN t.reference_code LIKE :poPrefix THEN t.amount ELSE 0 END)', 'paid_po')
-            .addSelect('SUM(CASE WHEN t.reference_code IS NULL OR t.reference_code NOT LIKE :poPrefix THEN t.amount ELSE 0 END)', 'paid_other')
+            .select(['s.id', 's.code', 's.name', 's.type', 's.phone', 's.email', 's.address', 's.note', 's.created_at'])
+            .addSelect('SUM(CASE WHEN t.reference_code LIKE :poPrefix OR t.reference_code LIKE :bulkPrefix THEN t.amount ELSE 0 END)', 'paid_po')
+            .addSelect('SUM(CASE WHEN t.reference_code IS NULL OR (t.reference_code NOT LIKE :poPrefix AND t.reference_code NOT LIKE :bulkPrefix) THEN t.amount ELSE 0 END)', 'paid_other')
             .groupBy('s.id')
             .orderBy('s.created_at', 'DESC') // Note: Order by in group by might require s.created_at in select
-            .setParameter('poPrefix', 'PO-%');
+            .setParameter('poPrefix', 'PO-%')
+            .setParameter('bulkPrefix', 'BULK-PO-%');
 
         const { entities, raw } = await qb.getRawAndEntities();
 
+        // Calculate Debt separately to avoid cartesian product
+        const debtData = await this.poRepo.createQueryBuilder('po')
+            .select('po.supplier_id', 'supplier_id')
+            .addSelect('SUM(po.total_amount - COALESCE(po.paid_amount, 0))', 'debt')
+            .where('po.status != :cancelled', { cancelled: 'CANCELLED' })
+            .groupBy('po.supplier_id')
+            .getRawMany();
+
         return entities.map(e => {
             const r = raw.find(row => row.s_id === e.id);
+            const d = debtData.find(row => row.supplier_id === e.id);
             return {
                 ...e,
+                debt: d ? Number(d.debt) : 0,
                 paid_po: r ? Math.abs(Number(r.paid_po)) : 0,
                 paid_other: r ? Math.abs(Number(r.paid_other)) : 0
             };

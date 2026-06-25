@@ -246,6 +246,7 @@ const SuppliersPage: React.FC = () => {
     const [paymentDate, setPaymentDate] = useState<any>(dayjs());
     const [vatCode, setVatCode] = useState('');
     const [vatUrl, setVatUrl] = useState('');
+    const [allocations, setAllocations] = useState<Record<number, number>>({});
 
     const openDebtModal = async (supplier: any) => {
         setCurrentSupplier(supplier);
@@ -266,6 +267,7 @@ const SuppliersPage: React.FC = () => {
             );
             setDebtPOs(unpaid);
             setSelectedDebtPOs([]);
+            setAllocations({});
             setPaymentAmount(0);
         } catch (e) { message.error('Lỗi tải công nợ'); }
     };
@@ -300,15 +302,29 @@ const SuppliersPage: React.FC = () => {
 
     const handleBulkPayment = async () => {
         try {
-            await axios.post(`${API_URL}/finance/po-payment`, {
-                poCode: selectedDebtPOs.map((p: any) => p.id), // Send IDs array
-                amount: paymentAmount,
+            const allocationData = selectedDebtPOs.map((p: any) => ({
+                po_id: p.id,
+                poCode: p.po_code,
+                amount: allocations[p.id] || 0
+            })).filter(a => a.amount > 0);
+
+            if (allocationData.length === 0) {
+                message.warning('Vui lòng nhập số tiền phân bổ lớn hơn 0 cho ít nhất 1 PO');
+                return;
+            }
+
+            const totalAllocated = allocationData.reduce((sum, a) => sum + a.amount, 0);
+
+            await axios.post(`${API_URL}/finance/payment/bulk-po`, {
+                poCode: selectedDebtPOs.map((p: any) => p.id), // Send IDs array as fallback
+                amount: totalAllocated,
                 note: paymentNote,
                 date: paymentDate,
                 vatCode: vatCode,
                 vatUrl: vatUrl,
                 partnerName: currentSupplier.name,
-                supplier_id: currentSupplier.id // <--- IMPORTANT: Link Transaction to Supplier
+                supplier_id: currentSupplier.id, // <--- IMPORTANT: Link Transaction to Supplier
+                allocations: allocationData
             });
             message.success('Thanh toán thành công');
             setIsDebtModalOpen(false);
@@ -603,7 +619,17 @@ const SuppliersPage: React.FC = () => {
                                 type: 'checkbox',
                                 onChange: (_, rows) => {
                                     setSelectedDebtPOs(rows);
-                                    const total = rows.reduce((sum, r) => sum + (Number(r.total_amount) - Number(r.paid_amount || 0)), 0);
+                                    
+                                    // Auto fill remaining amount for newly selected rows
+                                    const newAllocations = { ...allocations };
+                                    rows.forEach(r => {
+                                        if (!newAllocations[r.id]) {
+                                            newAllocations[r.id] = Number(r.total_amount) - Number(r.paid_amount || 0);
+                                        }
+                                    });
+                                    setAllocations(newAllocations);
+                                    
+                                    const total = rows.reduce((sum, r) => sum + (newAllocations[r.id] || 0), 0);
                                     setPaymentAmount(total);
                                 }
                             }}
@@ -612,7 +638,31 @@ const SuppliersPage: React.FC = () => {
                                 { title: 'Ngày', dataIndex: 'created_at', render: t => dayjs(t).format('DD/MM/YYYY') },
                                 { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right', render: v => Number(v).toLocaleString() },
                                 { title: 'Đã trả', dataIndex: 'paid_amount', align: 'right', render: v => Number(v).toLocaleString() },
-                                { title: 'Còn lại', align: 'right', render: (t, r: any) => <b style={{ color: 'red' }}>{(Number(r.total_amount) - Number(r.paid_amount || 0)).toLocaleString()}</b> }
+                                { title: 'Còn nợ', align: 'right', render: (t, r: any) => <b style={{ color: 'red' }}>{(Number(r.total_amount) - Number(r.paid_amount || 0)).toLocaleString()}</b> },
+                                {
+                                    title: 'Số tiền trả', align: 'right', width: 150,
+                                    render: (t, r: any) => {
+                                        const isSelected = selectedDebtPOs.some(p => p.id === r.id);
+                                        return (
+                                            <InputNumber
+                                                disabled={!isSelected}
+                                                style={{ width: '100%' }}
+                                                min={0}
+                                                max={Number(r.total_amount) - Number(r.paid_amount || 0)}
+                                                value={allocations[r.id] || 0}
+                                                onChange={(val) => {
+                                                    const newAllocations = { ...allocations, [r.id]: Number(val) || 0 };
+                                                    setAllocations(newAllocations);
+                                                    
+                                                    // Recalculate total payment
+                                                    const total = selectedDebtPOs.reduce((sum, p) => sum + (newAllocations[p.id] || 0), 0);
+                                                    setPaymentAmount(total);
+                                                }}
+                                                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                            />
+                                        );
+                                    }
+                                }
                             ]}
                             pagination={false}
                             scroll={{ y: 300 }}
@@ -627,7 +677,7 @@ const SuppliersPage: React.FC = () => {
                                     formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                                     addonAfter="₫"
                                     value={paymentAmount}
-                                    onChange={(v) => setPaymentAmount(Number(v))}
+                                    disabled={true} // Tự tính tổng từ chi tiết
                                 />
                             </Form.Item>
                             <Form.Item label="Ngày thanh toán">

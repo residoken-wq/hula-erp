@@ -505,6 +505,58 @@ const HelpPage: React.FC = () => {
                         </Card>
                     </div>
                 );
+            case 'finance-supplier-payment':
+                return (
+                    <div>
+                        <Tag color="green" style={{ marginBottom: 16 }}>Modules: Finance</Tag>
+                        <Title level={2}>🏢 Công Nợ & Thanh Toán PO Đối Tác</Title>
+                        <Paragraph>
+                            Hướng dẫn cách thanh toán nhiều PO (Đơn đặt hàng/Gia công) cho đối tác cùng một lúc và theo dõi công nợ.
+                        </Paragraph>
+                        
+                        <Card title="1. Quản lý Công nợ" style={{ marginBottom: 16 }}>
+                            <ul>
+                                <li>Công nợ được tính <b>Real-time</b>: <code>Tổng giá trị các PO - Tổng số tiền đã trả</code>.</li>
+                                <li>Vào <b>Đối tác / Nhà cung cấp</b>, chuyển sang tab <b>Công Nợ</b> để xem những bên đang còn nợ.</li>
+                            </ul>
+                        </Card>
+                        
+                        <Card title="2. Thanh toán Gộp (Bulk Payment)" style={{ marginBottom: 16 }}>
+                            <ul>
+                                <li>Nhấn nút <b>Thanh Toán</b> trên nhà cung cấp.</li>
+                                <li>Chọn các PO muốn thanh toán. Nhập số tiền trả cho từng PO.</li>
+                                <li>Hệ thống sẽ tự tạo <b>Phiếu Chi</b> gộp (BULK-PO) liên kết với các PO này và cập nhật số tiền đã trả cho mỗi PO.</li>
+                            </ul>
+                        </Card>
+                    </div>
+                );
+            case 'finance-so-profit':
+                return (
+                    <div>
+                        <Tag color="green" style={{ marginBottom: 16 }}>Modules: Finance</Tag>
+                        <Title level={2}>📈 Lợi Nhuận Đơn Hàng (SO Profit)</Title>
+                        <Paragraph>
+                            Tính toán lợi nhuận cho từng Sales Order (Đơn hàng bán) sau khi đã xuất hóa đơn, trừ đi các chi phí liên quan.
+                        </Paragraph>
+                    </div>
+                );
+            case 'finance-credits':
+                return (
+                    <div>
+                        <Tag color="green" style={{ marginBottom: 16 }}>Modules: Finance</Tag>
+                        <Title level={2}>💳 Quản lý Customer Credit (Tiền dư)</Title>
+                        <Paragraph>
+                            Cách xử lý khi khách hàng chuyển khoản dư tiền so với giá trị đơn hàng.
+                        </Paragraph>
+                        <Card>
+                            <Steps direction="vertical">
+                                <Step title="Ghi nhận trả dư" description="Khi khách thanh toán đơn hàng (Sales Order), nếu số tiền nhập vào lớn hơn số tiền còn lại, hệ thống sẽ hỏi bạn muốn 'Hoàn tiền' hay 'Tạo Credit'." />
+                                <Step title="Lưu Credit" description="Chọn 'Tạo Credit', hệ thống sẽ lưu số dư vào Tài Khoản Credit của khách hàng đó." />
+                                <Step title="Sử dụng Credit" description="Trong các lần thanh toán đơn hàng sau, có thể cấn trừ số dư Credit này vào đơn hàng." />
+                            </Steps>
+                        </Card>
+                    </div>
+                );
             case 'sales-approval':
                 return (
                     <div>
@@ -2317,6 +2369,9 @@ const HelpPage: React.FC = () => {
                             icon: <DollarOutlined />,
                             children: [
                                 { key: 'finance-guide', label: 'Quản lý Thu/Chi' },
+                                { key: 'finance-supplier-payment', label: 'Công Nợ & Thanh Toán PO' },
+                                { key: 'finance-so-profit', label: 'Tính Lợi Nhuận Đơn Hàng' },
+                                { key: 'finance-credits', label: 'Quản Lý Credit Khách Hàng' },
                             ]
                         },
                         {

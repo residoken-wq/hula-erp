@@ -5,7 +5,7 @@ import { Transaction } from './transaction.entity';
 import { TransactionCategory } from './transaction-category.entity';
 import { PurchasingService } from '../purchasing/purchasing.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
-import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
+import { SalesOrder, SalesOrderStatus, PaymentStatus } from '../sales/sales-order.entity';
 import { ProductsService } from '../products/products.service';
 
 @Injectable()
@@ -64,69 +64,70 @@ export class FinanceService {
             attachments: data.attachments || [], // <--- Save Attachments
             allocations: data.allocations || null, // Lưu JSON phân bổ
         });
-        return this.transRepo.save(trans);
+        const savedTrans = await this.transRepo.save(trans);
+        
+        // Sync SO Payment Status
+        if (data.refCode) {
+            await this.syncSOPaymentStatus(data.refCode);
+        }
+
+        return savedTrans;
     }
 
     // --- CẬP NHẬT: THANH TOÁN PO (CHI TIỀN) ---
     async createPOPayment(data: any) {
-        // --- FIX: Fetch PO to get Supplier ID ---
-        let supplierId = null;
-        if (data.poCode) {
-            const po = await this.purchasingService.getPOByCode(data.poCode);
+        // Hỗ trợ truyền mảng poCode hoặc string
+        const poCodes = Array.isArray(data.poCode) ? data.poCode : [data.poCode];
+        
+        let supplierId = data.supplier_id || null;
+        if (!supplierId && poCodes.length > 0) {
+            // Lấy PO đầu tiên để suy ra supplier nếu chưa có
+            // Lưu ý: createPOPayment cũ frontend có thể pass ID thay vì Code, vì vậy kiểm tra logic
+            const po = await this.purchasingService.getPOByCode(String(poCodes[0]));
             if (po) supplierId = po.supplier_id;
         }
-        // ----------------------------------------
 
         return this.createBulkPoPayment({
-            supplier_id: supplierId, // Pass fetched ID
-            po_ids: [data.poCode], // Treat as single item array (Note: logic needs ID not Code usually, but let's check input)
-            // Actually legacy used poCode string. Bulk uses IDs.
-            // Let's implement Bulk properly.
+            supplier_id: supplierId,
+            po_ids: poCodes, // Mảng IDs hoặc Codes
             amount: data.amount,
             note: data.note,
             date: data.date,
             vatCode: data.vatCode,
             vatUrl: data.vatUrl,
-            partnerName: data.partnerName
+            partnerName: data.partnerName,
+            allocations: data.allocations || null,
         });
     }
 
     async createBulkPoPayment(data: any) {
-        // data: { po_ids: number[], amount: number, note: string, date: Date, vatCode, vatUrl, partnerName, supplier_id }
+        // data: { po_ids: any[], amount: number, note: string, date: Date, vatCode, vatUrl, partnerName, supplier_id, allocations: any[] }
 
         // 1. Create Transaction
         const trans = this.transRepo.create({
             date: data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             type: 'EXPENSE',
             amount: Number(data.amount),
-            reference_code: `BULK-PO-${Date.now()}`, // Generate a Bulk Ref
-            reference_type: 'PURCHASE', // Or 'BULK_PURCHASE' if distinct
+            reference_code: `BULK-PO-${Date.now()}`,
+            reference_type: 'PURCHASE',
             description: data.note || `Thanh toán công nợ NCC`,
             partner_name: data.partnerName,
-            supplier_id: data.supplier_id, // <--- SAVE SUPPLIER ID
+            supplier_id: data.supplier_id,
             vat_invoice_code: data.vatCode,
             vat_invoice_url: data.vatUrl,
-            allocations: data.allocations || null, // Lưu JSON phân bổ
+            allocations: data.allocations || null,
         });
         const savedTrans = await this.transRepo.save(trans);
 
-        // 2. Distribute Payment to POs
-        // Logic: Iterate POs and update paid_amount.
-        // NOTE: We don't know exactly how much for EACH PO if user just pays a lump sum.
-        // BUT, usually in this flow, user selects specific POs to pay.
-        // OPTION A: User selects POs and explicitly pays Full/Partial for each?
-        // OPTION B: User pays X amount, we distribute?
-        // OPTION C: User selects POs -> System sums up -> User confirms.
-        // Requirement: "chọn các PO chưa thanh toán --> gộp chung thanh toán"
-        // Implies we pay off the selected POs.
-        // Let's assume we update `paid_amount` for each selected PO.
-        // For simplicity: We might need to know HOW MUCH allocated to each PO if it's not full payment.
-        // Check `PurchasingService.updatePayment`. It takes poCode and amount.
-
+        // 2. Cập nhật paid_amount cho từng PO
         if (data.allocations && Array.isArray(data.allocations)) {
-            // data.allocations = [{ po_id, amount }]
             for (const alloc of data.allocations) {
-                await this.purchasingService.updatePaymentById(alloc.po_id, Number(alloc.amount));
+                // alloc có thể chứa po_id hoặc po_code
+                if (alloc.po_id) {
+                    await this.purchasingService.updatePaymentById(alloc.po_id, Number(alloc.amount));
+                } else if (alloc.poCode) {
+                    await this.purchasingService.updatePayment(alloc.poCode, Number(alloc.amount));
+                }
             }
         }
 
@@ -134,7 +135,53 @@ export class FinanceService {
     }
     // ------------------------------------------
 
-    async deleteTransaction(id: number) { return this.transRepo.delete(id); }
+    async deleteTransaction(id: number) { 
+        const trans = await this.transRepo.findOne({ where: { id } });
+        if (trans) {
+            // Rollback PO paid_amount
+            if (trans.type === 'EXPENSE' && trans.allocations && Array.isArray(trans.allocations)) {
+                for (const alloc of trans.allocations) {
+                    if (alloc.po_id) {
+                        await this.purchasingService.updatePaymentById(alloc.po_id, -Number(alloc.amount));
+                    } else if (alloc.poCode) {
+                        await this.purchasingService.updatePayment(alloc.poCode, -Number(alloc.amount));
+                    }
+                }
+            }
+            
+            // Delete
+            await this.transRepo.delete(id);
+
+            // Rollback SO payment_status nếu là Thu của SO
+            if (trans.type === 'INCOME' && trans.reference_code) {
+                await this.syncSOPaymentStatus(trans.reference_code);
+            }
+        }
+        return { deleted: true };
+    }
+
+    // --- Helper Đồng bộ Payment Status cho SO ---
+    async syncSOPaymentStatus(orderCode: string) {
+        const order = await this.orderRepo.findOne({ where: { order_code: orderCode } });
+        if (!order) return;
+
+        const payments = await this.transRepo.find({ 
+            where: { reference_code: orderCode, type: 'INCOME' }
+        });
+        const paid_amount = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+        
+        let payment_status = PaymentStatus.UNPAID;
+        if (paid_amount >= Number(order.total_amount) && Number(order.total_amount) > 0) {
+            payment_status = PaymentStatus.PAID;
+        } else if (paid_amount > 0) {
+            payment_status = PaymentStatus.PARTIAL_PAID;
+        }
+
+        if (order.payment_status !== payment_status) {
+            order.payment_status = payment_status;
+            await this.orderRepo.save(order);
+        }
+    }
 
     async updateTransaction(id: number, data: any) {
         await this.transRepo.update(id, data);

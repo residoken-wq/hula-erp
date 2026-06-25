@@ -75,54 +75,57 @@ export class CashFlowService {
         const today = new Date().toISOString().split('T')[0];
 
         // 1. Tổng Thu/Chi tất cả thời gian
-        const allTrans = await this.transRepo.find();
-        const totalIncome = allTrans.filter(t => t.type === 'INCOME').reduce((s, t) => s + Number(t.amount), 0);
-        const totalExpense = allTrans.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + Number(t.amount), 0);
+        const totalRaw = await this.transRepo.createQueryBuilder('t')
+            .select("SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE 0 END)", 'totalIncome')
+            .addSelect("SUM(CASE WHEN t.type = 'EXPENSE' THEN t.amount ELSE 0 END)", 'totalExpense')
+            .getRawOne();
+        const totalIncome = Number(totalRaw?.totalIncome || 0);
+        const totalExpense = Number(totalRaw?.totalExpense || 0);
         const currentBalance = totalIncome - totalExpense;
 
         // 2. Thu/Chi hôm nay
-        const todayTrans = await this.transRepo.find({ where: { date: today } });
-        const todayIncome = todayTrans.filter(t => t.type === 'INCOME').reduce((s, t) => s + Number(t.amount), 0);
-        const todayExpense = todayTrans.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + Number(t.amount), 0);
+        const todayRaw = await this.transRepo.createQueryBuilder('t')
+            .select("SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE 0 END)", 'todayIncome')
+            .addSelect("SUM(CASE WHEN t.type = 'EXPENSE' THEN t.amount ELSE 0 END)", 'todayExpense')
+            .where('t.date = :today', { today })
+            .getRawOne();
+        const todayIncome = Number(todayRaw?.todayIncome || 0);
+        const todayExpense = Number(todayRaw?.todayExpense || 0);
 
         // 3. Dự báo 7 ngày (SO sắp đến hạn - PO sắp đến hạn)
         const next7Days = new Date();
         next7Days.setDate(next7Days.getDate() + 7);
         const next7Str = next7Days.toISOString().split('T')[0];
 
-        // SO chưa thanh toán đủ với delivery_date trong 7 ngày
-        const upcomingSO = await this.salesRepo.find({
-            where: {
-                payment_status: In([PaymentStatus.UNPAID, PaymentStatus.PARTIAL_PAID]),
-                delivery_date: Between(new Date(today), new Date(next7Str)),
-                status: Not(In([SalesOrderStatus.CANCELLED, SalesOrderStatus.QUOTATION]))
-            }
-        });
-        const expectedIncome = upcomingSO.reduce((s, o) => s + (Number(o.total_amount) - Number(o.paid_amount)), 0);
+        const expectedIncomeRaw = await this.salesRepo.createQueryBuilder('so')
+            .select('SUM(so.total_amount - COALESCE(so.paid_amount, 0))', 'expectedIncome')
+            .where('so.payment_status IN (:...statuses)', { statuses: [PaymentStatus.UNPAID, PaymentStatus.PARTIAL_PAID] })
+            .andWhere('so.status NOT IN (:...cancelled)', { cancelled: [SalesOrderStatus.CANCELLED, SalesOrderStatus.QUOTATION] })
+            .andWhere('so.delivery_date BETWEEN :start AND :end', { start: today, end: next7Str })
+            .getRawOne();
+        const expectedIncome = Number(expectedIncomeRaw?.expectedIncome || 0);
 
-        // PO chưa thanh toán đủ
-        const upcomingPO = await this.poRepo.find({
-            where: {
-                status: In([POStatus.CONFIRMED, POStatus.ORDERED, POStatus.DELIVERED])
-            }
-        });
-        const expectedExpense = upcomingPO.reduce((s, p) => s + (Number(p.total_amount) - Number(p.paid_amount)), 0);
+        const expectedExpenseRaw = await this.poRepo.createQueryBuilder('po')
+            .select('SUM(po.total_amount - COALESCE(po.paid_amount, 0))', 'expectedExpense')
+            .where('po.status IN (:...statuses)', { statuses: [POStatus.CONFIRMED, POStatus.ORDERED, POStatus.DELIVERED] })
+            .getRawOne();
+        const expectedExpense = Number(expectedExpenseRaw?.expectedExpense || 0);
 
         const forecast7Days = expectedIncome - expectedExpense;
 
         // 4. Tổng công nợ phải thu/trả
-        const allSO = await this.salesRepo.find({
-            where: {
-                payment_status: In([PaymentStatus.UNPAID, PaymentStatus.PARTIAL_PAID]),
-                status: Not(In([SalesOrderStatus.CANCELLED, SalesOrderStatus.QUOTATION]))
-            }
-        });
-        const receivablesTotal = allSO.reduce((s, o) => s + (Number(o.total_amount) - Number(o.paid_amount)), 0);
+        const receivablesRaw = await this.salesRepo.createQueryBuilder('so')
+            .select('SUM(so.total_amount - COALESCE(so.paid_amount, 0))', 'receivablesTotal')
+            .where('so.payment_status IN (:...statuses)', { statuses: [PaymentStatus.UNPAID, PaymentStatus.PARTIAL_PAID] })
+            .andWhere('so.status NOT IN (:...cancelled)', { cancelled: [SalesOrderStatus.CANCELLED, SalesOrderStatus.QUOTATION] })
+            .getRawOne();
+        const receivablesTotal = Number(receivablesRaw?.receivablesTotal || 0);
 
-        const allPO = await this.poRepo.find({
-            where: { status: Not(In([POStatus.CANCELLED, POStatus.DRAFT])) }
-        });
-        const payablesTotal = allPO.reduce((s, p) => s + (Number(p.total_amount) - Number(p.paid_amount)), 0);
+        const payablesRaw = await this.poRepo.createQueryBuilder('po')
+            .select('SUM(po.total_amount - COALESCE(po.paid_amount, 0))', 'payablesTotal')
+            .where('po.status NOT IN (:...cancelled)', { cancelled: [POStatus.CANCELLED, POStatus.DRAFT] })
+            .getRawOne();
+        const payablesTotal = Number(payablesRaw?.payablesTotal || 0);
 
         return {
             currentBalance,
@@ -170,12 +173,11 @@ export class CashFlowService {
         const result: CashFlowChartPoint[] = [];
 
         // Get initial balance (before start date)
-        const beforeTrans = await this.transRepo.find({
-            where: { date: LessThan(startStr) }
-        });
-        runningBalance = beforeTrans.reduce((s, t) => {
-            return s + (t.type === 'INCOME' ? Number(t.amount) : -Number(t.amount));
-        }, 0);
+        const beforeTransRaw = await this.transRepo.createQueryBuilder('t')
+            .select("SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END)", 'balance')
+            .where('t.date < :startDate', { startDate: startStr })
+            .getRawOne();
+        runningBalance = Number(beforeTransRaw?.balance || 0);
 
         // Build chart data
         dataMap.forEach((value, date) => {

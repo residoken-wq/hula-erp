@@ -47,4 +47,15 @@ export class CustomersController {
   addComment(@Param('id') id: number, @Body() body: any) {
     return this.s.addComment(id, body.content, body.sender, body.name, body.comment_type, body.mentioned_user_ids);
   }
+
+  // --- CUSTOMER CREDIT ---
+  @Get(':id/credits')
+  getCredits(@Param('id') id: number) {
+    return this.s.getCreditHistory(id);
+  }
+
+  @Post(':id/credits')
+  addCredit(@Param('id') id: number, @Body() body: any) {
+    return this.s.addCredit(id, body.amount, body.type, body.note, body.reference_code);
+  }
 }

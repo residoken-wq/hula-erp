@@ -75,19 +75,20 @@ const SalesPayments: React.FC<Props> = ({ orderId, orderCode, totalAmount, paidA
 
             // 2. If overpayment, handle based on action
             if (isOverpaying && overpaymentAction === 'CREDIT') {
-                // Create customer credit transaction
-                await api.post(`/finance/payment`, {
-                    type: 'INCOME',
-                    amount: -overpayment, // Negative to indicate credit (stored balance)
-                    refCode: `CREDIT-${customerId || customerName}`,
-                    note: `[TẠO CREDIT] Số dư từ đơn ${orderCode} - Khách hàng: ${customerName}`,
-                    customerName: customerName,
-                    date: date
-                });
-                message.success(`Đã tạo Credit ${overpayment.toLocaleString()}đ cho khách hàng!`);
+                if (customerId) {
+                    await api.post(`/customers/${customerId}/credits`, {
+                        amount: overpayment,
+                        type: 'ADD',
+                        reference_code: orderCode,
+                        note: `Số dư từ đơn ${orderCode} - Khách hàng: ${customerName}`,
+                    });
+                    message.success(`Đã tạo Credit ${overpayment.toLocaleString()}đ cho khách hàng!`);
+                } else {
+                    message.warning(`Không thể tạo Credit vì không xác định được ID khách hàng.`);
+                }
             } else if (isOverpaying && overpaymentAction === 'REFUND') {
                 // Create refund expense transaction
-                await api.post(`/finance/transaction`, {
+                await api.post(`/finance/transactions`, {
                     type: 'EXPENSE',
                     amount: overpayment,
                     reference_code: orderCode,
