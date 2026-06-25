@@ -824,6 +824,8 @@ You MUST return ONLY a valid JSON object in this structure:
         await this.aiMessageRepo.save(userMsg);
 
         // 2. Load history (last 10 messages)
+        const history = await this.aiMessageRepo.find({ where: { user_id: userId }, order: { id: 'ASC' }, take: 10 });
+
         // Format contents for Gemini - Ensure alternating roles and valid content
         const validHistory = history.filter(h => h.content && h.content.trim() !== '');
         const contents: any[] = [];
