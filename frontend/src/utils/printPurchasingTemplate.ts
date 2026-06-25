@@ -75,6 +75,7 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
             const priceCells = showPrice ? `<td>${Number(i.unit_price || 0).toLocaleString()}</td><td>${Number(i.subtotal || 0).toLocaleString()}</td>` : '';
             
             let productName = i.product?.name || i.material?.name || '';
+            let productSku = i.product?.sku || i.material?.sku || '';
             let frontColor = i.product?.attributes?.front_color || '-';
             let backColor = i.product?.attributes?.back_color || '-';
             let processingDesc = i.product?.processing_description || i.material?.name || ''; 
@@ -111,7 +112,7 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
             return `
             <tr>
                 <td>${idx + 1}</td>
-                <td class="left-align">${productName}</td>
+                <td class="left-align">${productSku || productName}</td>
                 <td>${frontColor}</td>
                 <td>${backColor}</td>
                 <td class="left-align">${processingDesc}</td>
@@ -142,7 +143,7 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                 <thead>
                     <tr>
                         <th>STT</th>
-                        <th>Tên hàng</th>
+                        <th>Mã SKU</th>
                         <th>Màu MT</th>
                         <th>Màu MS</th>
                         <th>Mô tả sản xuất</th>
