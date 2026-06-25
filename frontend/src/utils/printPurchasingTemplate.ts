@@ -116,8 +116,6 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                 <td>${frontColor}</td>
                 <td>${backColor}</td>
                 <td class="left-align">${processingDesc}</td>
-                <td>-</td> 
-                <td>-</td> 
                 <td>${Number(i.quantity).toLocaleString()}</td>
                 <td>${theuText}</td> 
                 ${priceCells}
@@ -142,17 +140,15 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                 <table>
                 <thead>
                     <tr>
-                        <th>STT</th>
-                        <th>Mã SKU</th>
+                        <th style="width: 5%;">STT</th>
+                        <th style="width: 12%;">Mã SKU</th>
                         <th>Màu MT</th>
                         <th>Màu MS</th>
                         <th>Mô tả sản xuất</th>
-                        <th>Định mức vải (VMT)</th>
-                        <th>Định mức vải (VMS)</th>
                         <th>Số lượng</th>
                         <th>Thêu</th>
                         ${priceHeaders}
-                        <th>Ghi chú</th>
+                        <th style="width: 25%;">Ghi chú</th>
                     </tr>
                 </thead>
                 <tbody>${rows}</tbody>
