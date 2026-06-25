@@ -98,16 +98,8 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                 processingDesc = descMatch ? descMatch[1].trim() : i.description;
             }
 
-            let theuText = '-';
-            if (i.product?.routings && Array.isArray(i.product.routings)) {
-                const hasEmbroidery = i.product.routings.some((r: any) => 
-                    r.process?.name?.toLowerCase().includes('thêu') || r.step_name?.toLowerCase().includes('thêu')
-                );
-                if (hasEmbroidery) {
-                    const logo = i.product.attributes?.Logo || i.product.attributes?.logo;
-                    theuText = logo ? `thêu ${logo}` : 'thêu';
-                }
-            }
+            const logoAttr = i.product?.attributes?.Logo || i.product?.attributes?.logo;
+            let theuText = logoAttr || '-';
 
             return `
             <tr>
@@ -146,7 +138,7 @@ export const handlePrintPO = (currentPO: any, packingList: any[], template: stri
                         <th>Màu MS</th>
                         <th>Mô tả sản xuất</th>
                         <th>Số lượng</th>
-                        <th>Thêu</th>
+                        <th>Thêu/in</th>
                         ${priceHeaders}
                         <th style="width: 25%;">Ghi chú</th>
                     </tr>
