@@ -65,7 +65,7 @@ export class UploadService {
       try {
         const sharp = require('sharp');
 
-        const sharpInstance = sharp(buffer).resize(1920, 1920, {
+        const sharpInstance = sharp(buffer).withMetadata().resize(1920, 1920, {
           fit: 'inside',
           withoutEnlargement: true
         });
@@ -353,6 +353,7 @@ export class UploadService {
 
     // Composite onto original image
     const result = await sharp(imageBuffer)
+      .withMetadata()
       .composite([{
         input: watermarkWithOpacity,
         gravity: gravity as any,
