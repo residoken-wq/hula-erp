@@ -27,10 +27,10 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
         <div style={{ padding: 40, background: '#fff', fontSize: 14, fontFamily: 'Times New Roman, serif', color: '#000' }}>
 
             {/* HEADER */}
-            <Row justify="space-between" align="middle" style={{ borderBottom: '2px solid #1890ff', paddingBottom: 20, marginBottom: 30 }}>
+            <Row gutter={40} align="stretch" style={{ borderBottom: '2px solid #1890ff', paddingBottom: 20, marginBottom: 30 }}>
                 <Col span={12}>
-                    <div style={{ textAlign: 'left' }}>
-                        <Image preview={false} src="/company_header.png" alt="Company Header" style={{ maxWidth: '100%', height: 'auto', maxHeight: 80 }} />
+                    <div style={{ textAlign: 'left', height: '100%', display: 'flex', alignItems: 'center' }}>
+                        <Image preview={false} src="/company_header.png" alt="Company Header" style={{ width: '100%', objectFit: 'contain', objectPosition: 'left center' }} />
                     </div>
                 </Col>
                 <Col span={12} style={{ textAlign: 'right' }}>
@@ -44,32 +44,30 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
             <Row gutter={40} style={{ marginBottom: 30 }}>
                 <Col span={12}>
                     <div style={{ background: '#f9f9f9', padding: 15, borderRadius: 8, height: '100%', border: '1px solid #eee' }}>
-                        <h4 style={{ marginTop: 0, color: '#1890ff', borderBottom: '1px solid #ddd', paddingBottom: 5, textTransform: 'uppercase' }}>BÊN BÁN (PARTY A)</h4>
+                        <h4 style={{ marginTop: 0, color: '#1890ff', borderBottom: '1px solid #ddd', paddingBottom: 5, textTransform: 'uppercase' }}>BÊN BÁN</h4>
                         <p style={{ marginBottom: 5 }}><b>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</b></p>
                         <p style={{ marginBottom: 5 }}>📍 74/21/24 Nguyễn Khuyến, Phường Bình Thạnh, TP. Hồ Chí Minh</p>
                         <p style={{ marginBottom: 5 }}>📞 0983.882210 - 0983.796654</p>
-                        <p style={{ marginBottom: 0 }}><b>MST:</b> 0311.874.522</p>
+                        <p style={{ marginBottom: 5 }}><b>MST:</b> 0311.874.522</p>
+                        <p style={{ marginBottom: 5 }}><b>Email:</b> nemmanonhula@gmail.com</p>
+                        <p style={{ marginBottom: 0 }}><b>Sale Agent:</b> {data.created_by?.full_name || data.created_by?.name || data.sale_agent?.name || data.sale_name || '...'} - {data.created_by?.phone || data.sale_agent?.phone || data.sale_phone || '...'}</p>
                     </div>
                 </Col>
                 <Col span={12}>
                     <div style={{ background: '#fff', border: '1px solid #1890ff', padding: 15, borderRadius: 8, height: '100%' }}>
-                        <h4 style={{ marginTop: 0, color: '#1890ff', borderBottom: '1px solid #ddd', paddingBottom: 5, textTransform: 'uppercase' }}>BÊN MUA (PARTY B)</h4>
+                        <h4 style={{ marginTop: 0, color: '#1890ff', borderBottom: '1px solid #ddd', paddingBottom: 5, textTransform: 'uppercase' }}>BÊN MUA</h4>
                         <p style={{ marginBottom: 5, fontSize: 15 }}><b>{customerName}</b></p>
                         <p style={{ marginBottom: 5 }}>📍 {data.vat_address || data.shipping_address || '...'}</p>
                         <p style={{ marginBottom: 5 }}>📞 {data.customer?.phone || data.receiver_phone || '...'}</p>
                         <p style={{ marginBottom: 5 }}><b>MST:</b> {data.vat_tax_code || '...'}</p>
                         {data.contact_name && (
-                            <p style={{ marginBottom: 5 }}>Người liên hệ: {data.contact_phone ? `${data.contact_phone} - ` : ''}{data.contact_name}</p>
+                            <p style={{ marginBottom: 5 }}><b>Người liên hệ:</b> {data.contact_name} {data.contact_phone ? `- ${data.contact_phone}` : ''}</p>
                         )}
-                        {isOrder && (
-                            <>
-                                {data.shipping_address && (
-                                    <p style={{ marginBottom: 5, whiteSpace: 'pre-wrap' }}>Giao hàng tại: {data.shipping_address}</p>
-                                )}
-                                {(data.receiver_name || data.receiver_phone) && (
-                                    <p style={{ marginBottom: 0 }}>Người nhận: {data.receiver_name || customerName} {data.receiver_phone ? `(${data.receiver_phone})` : ''}</p>
-                                )}
-                            </>
+                        {data.shipping_address && (
+                            <p style={{ marginBottom: 5, whiteSpace: 'pre-wrap' }}><b>Địa chỉ giao hàng:</b> {data.shipping_address}</p>
+                        )}
+                        {(data.receiver_name || data.receiver_phone) && (
+                            <p style={{ marginBottom: 0 }}><b>Người nhận:</b> {data.receiver_name || customerName} {data.receiver_phone ? `- ${data.receiver_phone}` : ''}</p>
                         )}
                     </div>
                 </Col>
@@ -88,21 +86,27 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                     { title: 'STT', width: 50, align: 'center', render: (_: any, __: any, index: number) => index + 1 },
                     {
                         title: 'Tên Sản phẩm',
-                        render: (r: any) => (
-                            <div>
-                                <div style={{ fontWeight: 600 }}>{r.product_name_real || r.product?.name || r.sku}</div>
-                                {r.variant_color && <div style={{ fontSize: 12, color: '#666' }}>Màu: {r.variant_color}</div>}
-                                {r.is_sample_approved && <div style={{ marginTop: 5, fontSize: 12 }}><Tag color="success" icon={<CheckCircleFilled />}>Mẫu đã duyệt</Tag></div>}
-                            </div>
-                        )
+                        render: (r: any) => {
+                            const productName = r.product_name_real || r.product?.name || r.sku;
+                            const vatName = r.vat_content;
+                            return (
+                                <div>
+                                    <div style={{ fontWeight: 600 }}>{vatName || productName}</div>
+                                    {vatName && (
+                                        <div style={{ fontStyle: 'italic', fontSize: 12, color: '#555' }}>{productName}</div>
+                                    )}
+                                    {r.variant_color && <div style={{ fontSize: 12, color: '#666' }}>Màu: {r.variant_color}</div>}
+                                    {r.is_sample_approved && <div style={{ marginTop: 5, fontSize: 12 }}><Tag color="success" icon={<CheckCircleFilled />}>Mẫu đã duyệt</Tag></div>}
+                                </div>
+                            );
+                        }
                     },
                     // --- MỚI: CỘT MÔ TẢ SẢN PHẨM ---
                     {
                         title: 'Mô tả chi tiết',
-                        dataIndex: 'vat_content',
                         width: '30%',
-                        render: (t: string, r: any) => {
-                            const desc = t || r.product?.customer_description || r.product_desc || '';
+                        render: (r: any) => {
+                            const desc = r.product?.customer_description || r.product_desc || '';
                             return <div style={{ whiteSpace: 'pre-line', fontSize: 12, color: '#555' }}>{desc}</div>;
                         }
                     },
@@ -152,36 +156,38 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                     <b style={{ textDecoration: 'underline' }}>GHI CHÚ & ĐIỀU KHOẢN:</b>
                     <div style={{ fontSize: 13, marginTop: 5, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{data.terms_content || "Chưa có điều khoản."}</div>
                 </div>
-                <div style={{ width: 300, textAlign: 'center', border: '1px solid #ddd', padding: 10, borderRadius: 8 }}>
-                    {Number(data.deposit_amount) > 0 && (
-                        <div style={{ background: '#f9f0ff', padding: 10, borderRadius: 8, border: '1px solid #d3adf7', textAlign: 'center', marginBottom: 10 }}>
-                            <div style={{ color: '#722ed1', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>💰 Cần đặt cọc ({data.deposit_percent || 0}%)</div>
-                            <div style={{ fontSize: 16, fontWeight: '700', color: '#531dab' }}>{Number(data.deposit_amount).toLocaleString()} ₫</div>
-                        </div>
-                    )}
+                {isOrder && (
+                    <div style={{ width: 300, textAlign: 'center', border: '1px solid #ddd', padding: 10, borderRadius: 8 }}>
+                        {Number(data.deposit_amount) > 0 && (
+                            <div style={{ background: '#f9f0ff', padding: 10, borderRadius: 8, border: '1px solid #d3adf7', textAlign: 'center', marginBottom: 10 }}>
+                                <div style={{ color: '#722ed1', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>💰 Cần đặt cọc ({data.deposit_percent || 0}%)</div>
+                                <div style={{ fontSize: 16, fontWeight: '700', color: '#531dab' }}>{Number(data.deposit_amount).toLocaleString()} ₫</div>
+                            </div>
+                        )}
 
-                    {paidAmount > 0 && (
-                        <div style={{ background: '#f0f5ff', padding: 8, borderRadius: 8, border: '1px solid #adc6ff', textAlign: 'center', marginBottom: 8 }}>
-                            <div style={{ color: '#2f54eb', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Đã thanh toán</div>
-                            <div style={{ fontSize: 16, fontWeight: '700', color: '#1d39c4' }}>{paidAmount.toLocaleString()} ₫</div>
-                        </div>
-                    )}
+                        {paidAmount > 0 && (
+                            <div style={{ background: '#f0f5ff', padding: 8, borderRadius: 8, border: '1px solid #adc6ff', textAlign: 'center', marginBottom: 8 }}>
+                                <div style={{ color: '#2f54eb', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Đã thanh toán</div>
+                                <div style={{ fontSize: 16, fontWeight: '700', color: '#1d39c4' }}>{paidAmount.toLocaleString()} ₫</div>
+                            </div>
+                        )}
 
-                    <div style={{ background: '#f6ffed', padding: 10, borderRadius: 8, border: '1px solid #b7eb8f', textAlign: 'center', marginBottom: 10 }}>
-                        <div style={{ color: '#52c41a', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Cần thanh toán</div>
-                        <div style={{ fontSize: 18, fontWeight: '800', color: '#389e0d' }}>{(Number(data.total_amount) - paidAmount).toLocaleString()} ₫</div>
+                        <div style={{ background: '#f6ffed', padding: 10, borderRadius: 8, border: '1px solid #b7eb8f', textAlign: 'center', marginBottom: 10 }}>
+                            <div style={{ color: '#52c41a', fontSize: 11, textTransform: 'uppercase', fontWeight: 600 }}>Cần thanh toán</div>
+                            <div style={{ fontSize: 18, fontWeight: '800', color: '#389e0d' }}>{(Number(data.total_amount) - paidAmount).toLocaleString()} ₫</div>
+                        </div>
+                        <div style={{ fontSize: 11, lineHeight: 1.6, textAlign: 'left', marginBottom: 15 }}>
+                            <div><b>ACB - TP.HCM</b></div>
+                            <div>STK: <span style={{ fontFamily: 'monospace', background: '#f0f0f0', padding: '0 4px' }}>141847859</span></div>
+                            <div>Chủ TK: CTY TNHH TM DV TƯỜNG LINH</div>
+                            <div>Nội dung: <b>{data.order_code}</b></div>
+                        </div>
+                        
+                        <div style={{ marginBottom: 5, fontSize: 11, color: '#666' }}>Quét mã để thanh toán</div>
+                        <Image src={qrLink} width={150} preview={false} />
+                        <div style={{ marginTop: 5, fontWeight: 'bold', color: '#1890ff', fontSize: 12 }}>HULA PAYMENT</div>
                     </div>
-                    <div style={{ fontSize: 11, lineHeight: 1.6, textAlign: 'left', marginBottom: 15 }}>
-                        <div><b>ACB - TP.HCM</b></div>
-                        <div>STK: <span style={{ fontFamily: 'monospace', background: '#f0f0f0', padding: '0 4px' }}>141847859</span></div>
-                        <div>Chủ TK: CTY TNHH TM DV TƯỜNG LINH</div>
-                        <div>Nội dung: <b>{data.order_code}</b></div>
-                    </div>
-                    
-                    <div style={{ marginBottom: 5, fontSize: 11, color: '#666' }}>Quét mã để thanh toán</div>
-                    <Image src={qrLink} width={150} preview={false} />
-                    <div style={{ marginTop: 5, fontWeight: 'bold', color: '#1890ff', fontSize: 12 }}>HULA PAYMENT</div>
-                </div>
+                )}
             </div>
 
             <Row style={{ marginTop: 50, textAlign: 'center' }}>
