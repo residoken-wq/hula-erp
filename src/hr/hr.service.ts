@@ -98,6 +98,7 @@ export class HrService implements OnModuleInit {
         return emp;
     }
 
+
     async findEmployeeByUserId(userId: number) {
         return this.employeeRepo.findOne({ where: { user_id: userId }, relations: ['user', 'work_shift'] });
     }

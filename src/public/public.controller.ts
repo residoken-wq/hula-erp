@@ -809,6 +809,18 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
         const quote = await this.salesService.getQuoteByUuid(uuid);
         if (!quote) return null;
         
+        // --- ATTACH EMPLOYEE PHONE TO ASSIGNED_TO ---
+        if (quote.assigned_to?.id) {
+            try {
+                const employee = await this.hrService.findEmployeeByUserId(quote.assigned_to.id);
+                if (employee && employee.phone) {
+                    (quote.assigned_to as any).phone = employee.phone;
+                }
+            } catch (e) {
+                // Ignore if HR module fails
+            }
+        }
+        
         // --- LOG VIEW PORTAL ---
         const ip = req.headers['x-forwarded-for'] || req.connection?.remoteAddress || '';
         const ua = req.headers['user-agent'] || '';
