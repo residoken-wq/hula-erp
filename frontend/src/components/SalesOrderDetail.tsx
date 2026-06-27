@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table, Switch, Dropdown, MenuProps } from 'antd';
 import { PlusOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined, MoreOutlined } from '@ant-design/icons';
-import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined, FileTextOutlined, AppstoreAddOutlined, LockOutlined, MenuOutlined } from '@ant-design/icons';
+import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined, FileTextOutlined, AppstoreAddOutlined, LockOutlined, MenuOutlined, FileExcelOutlined } from '@ant-design/icons';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import SalesPayments from './sales/SalesPayments';
@@ -57,6 +59,194 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
     // Quote Terms State
     const [quoteTermsList, setQuoteTermsList] = useState<any[]>([]);
+
+    const [exportingExcel, setExportingExcel] = useState(false);
+
+    const handleExportExcel = async () => {
+        try {
+            setExportingExcel(true);
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet(isQuotation ? 'Bao_Gia' : 'Don_Hang');
+
+            sheet.columns = [
+                { header: '', key: 'stt', width: 6 },
+                { header: '', key: 'hinh', width: 12 },
+                { header: '', key: 'ten', width: 25 },
+                { header: '', key: 'mota', width: 35 },
+                { header: '', key: 'dvt', width: 8 },
+                { header: '', key: 'sl', width: 8 },
+                { header: '', key: 'dongia', width: 15 },
+                { header: '', key: 'thanhtien', width: 15 },
+            ];
+
+            sheet.mergeCells('A1:D1');
+            const c1 = sheet.getCell('A1');
+            c1.value = 'BÊN BÁN: CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH';
+            c1.font = { bold: true, color: { argb: 'FF0070C0' } };
+
+            sheet.mergeCells('E1:H1');
+            const c2 = sheet.getCell('E1');
+            c2.value = 'BÊN MUA: ' + (form.getFieldValue('vat_company_name') || initialData?.customer?.legal_name || initialData?.customer?.name || '');
+            c2.font = { bold: true, color: { argb: 'FFD2691E' } };
+
+            sheet.mergeCells('A2:D2');
+            sheet.getCell('A2').value = '74/21/24 Nguyễn Khuyến, Phường 12, Bình Thạnh, HCM';
+            sheet.mergeCells('E2:H2');
+            sheet.getCell('E2').value = 'Địa chỉ: ' + (form.getFieldValue('vat_address') || initialData?.customer?.legal_address || initialData?.customer?.address || '');
+
+            sheet.mergeCells('A3:D3');
+            sheet.getCell('A3').value = 'SĐT: 0983.882210 - 0983.796654';
+            sheet.mergeCells('E3:H3');
+            sheet.getCell('E3').value = 'SĐT: ' + (form.getFieldValue('contact_phone') || initialData?.customer?.phone || '');
+
+            sheet.mergeCells('A4:D4');
+            sheet.getCell('A4').value = 'MST: 0311.874.522';
+            sheet.mergeCells('E4:H4');
+            sheet.getCell('E4').value = 'MST: ' + (form.getFieldValue('vat_tax_code') || initialData?.customer?.tax_code || '');
+
+            sheet.mergeCells('A5:D5');
+            sheet.getCell('A5').value = 'Email: nemmamnonhula@gmail.com';
+            sheet.mergeCells('A6:D6');
+            sheet.getCell('A6').value = 'Sale Agent: ' + (initialData?.assigned_to?.full_name || 'Hula ERP');
+
+            sheet.addRow([]);
+            const titleRow = sheet.addRow(['', '', '', isQuotation ? 'BẢNG BÁO GIÁ' : 'ĐƠN ĐẶT HÀNG']);
+            sheet.mergeCells(`A${titleRow.number}:H${titleRow.number}`);
+            const titleCell = sheet.getCell(`A${titleRow.number}`);
+            titleCell.font = { bold: true, size: 16, color: { argb: 'FF0070C0' } };
+            titleCell.alignment = { horizontal: 'center' };
+
+            const dateStr = form.getFieldValue('order_date') ? dayjs(form.getFieldValue('order_date')).format('DD/MM/YYYY') : '';
+            const dateRow = sheet.addRow(['', '', '', `Ngày ${dateStr} - Số: ${initialData?.order_code || 'New'}`]);
+            sheet.mergeCells(`A${dateRow.number}:H${dateRow.number}`);
+            sheet.getCell(`A${dateRow.number}`).alignment = { horizontal: 'center' };
+            sheet.getCell(`A${dateRow.number}`).font = { italic: true };
+            
+            sheet.addRow([]);
+
+            const th = sheet.addRow(['STT', 'HÌNH', 'TÊN SẢN PHẨM', 'MÔ TẢ SẢN PHẨM', 'ĐVT', 'SL', 'ĐƠN GIÁ', 'THÀNH TIỀN']);
+            th.eachCell((cell) => {
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF004E98' } };
+                cell.alignment = { vertical: 'middle', horizontal: 'center' };
+                cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            });
+
+            const getDirectLink = (url: string) => {
+                if (!url) return '';
+                if (url.includes('drive.google.com')) {
+                    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                    if (match && match[1]) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w500`;
+                }
+                return url;
+            };
+
+            const downloadImage = async (url: string) => {
+                try {
+                    const res = await api.get(`/proxy-image?url=${encodeURIComponent(url)}`, { responseType: 'arraybuffer' });
+                    return res.data;
+                } catch (e) {
+                    return null;
+                }
+            };
+
+            let rowIdx = sheet.rowCount + 1;
+            for (let i = 0; i < orderItems.length; i++) {
+                const item = orderItems[i];
+                const tr = sheet.addRow([
+                    i + 1,
+                    '',
+                    item.product_name_real || item.product?.name || item.sku,
+                    (item.product?.customer_description || '').replace(/\r\n/g, '\n').replace(/<[^>]*>?/gm, ''), // strip html if any
+                    item.product?.unit || 'Cái',
+                    item.quantity,
+                    item.unit_price,
+                    item.total_price
+                ]);
+                tr.height = 60;
+                
+                tr.getCell(3).alignment = { wrapText: true, vertical: 'top' };
+                tr.getCell(4).alignment = { wrapText: true, vertical: 'top' };
+                tr.getCell(5).alignment = { vertical: 'middle', horizontal: 'center' };
+                tr.getCell(6).alignment = { vertical: 'middle', horizontal: 'center' };
+                tr.getCell(7).alignment = { vertical: 'middle', horizontal: 'right' };
+                tr.getCell(7).numFmt = '#,##0';
+                tr.getCell(8).alignment = { vertical: 'middle', horizontal: 'right' };
+                tr.getCell(8).numFmt = '#,##0';
+
+                tr.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                    if (colNumber <= 8) {
+                        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+                    }
+                });
+
+                const imgUrl = getDirectLink(item.product?.image_url);
+                if (imgUrl) {
+                    const buffer = await downloadImage(imgUrl);
+                    if (buffer) {
+                        try {
+                            const imageId = workbook.addImage({
+                                buffer: buffer,
+                                extension: imgUrl.toLowerCase().includes('png') ? 'png' : 'jpeg',
+                            });
+                            sheet.addImage(imageId, {
+                                tl: { col: 1.1, row: rowIdx - 1 + 0.1 },
+                                ext: { width: 65, height: 65 },
+                            });
+                        } catch (e) { console.error('Image add error', e); }
+                    }
+                }
+                rowIdx++;
+            }
+
+            const totalRow = sheet.addRow(['', '', '', '', '', '', 'Tổng cộng:', totalAmount]);
+            totalRow.getCell(7).font = { bold: true };
+            totalRow.getCell(8).font = { bold: true };
+            totalRow.getCell(8).numFmt = '#,##0';
+
+            const discount = form.getFieldValue('discount_amount') || 0;
+            if (discount > 0) {
+                const dr = sheet.addRow(['', '', '', '', '', '', 'Chiết khấu:', -discount]);
+                dr.getCell(8).numFmt = '#,##0';
+            }
+            
+            const shipping = form.getFieldValue('shipping_fee') || 0;
+            if (shipping > 0) {
+                const sr = sheet.addRow(['', '', '', '', '', '', 'Phí vận chuyển:', shipping]);
+                sr.getCell(8).numFmt = '#,##0';
+            }
+
+            const deposit = form.getFieldValue('deposit_amount') || 0;
+            if (deposit > 0) {
+                const dpr = sheet.addRow(['', '', '', '', '', '', 'Đã cọc:', deposit]);
+                dpr.getCell(8).numFmt = '#,##0';
+            }
+            
+            const finalTotal = totalAmount - discount + shipping;
+            const remaining = finalTotal - deposit;
+
+            const finalRow = sheet.addRow(['', '', '', '', '', '', 'Thanh toán:', finalTotal]);
+            finalRow.getCell(7).font = { bold: true, color: { argb: 'FFFF0000' } };
+            finalRow.getCell(8).font = { bold: true, color: { argb: 'FFFF0000' } };
+            finalRow.getCell(8).numFmt = '#,##0';
+            
+            if (deposit > 0) {
+                const remRow = sheet.addRow(['', '', '', '', '', '', 'Còn lại:', remaining]);
+                remRow.getCell(7).font = { bold: true };
+                remRow.getCell(8).font = { bold: true };
+                remRow.getCell(8).numFmt = '#,##0';
+            }
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            saveAs(new Blob([buffer]), `${isQuotation ? 'Bao_Gia' : 'Don_Hang'}_${initialData?.order_code || 'New'}.xlsx`);
+            message.success('Xuất Excel thành công!');
+        } catch (error) {
+            console.error('Export Excel Error:', error);
+            message.error('Lỗi khi xuất Excel');
+        } finally {
+            setExportingExcel(false);
+        }
+    };
 
     const fetchContractTemplates = async () => {
         try {
@@ -839,6 +1029,11 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                                 <Col>
                                     <Button type={initialData?.contract_html ? "default" : "primary"} icon={<PrinterOutlined />} onClick={() => setContractBuilderOpen(true)}>
                                         {initialData?.contract_html ? 'Mở Hợp Đồng Đã Lưu' : 'Soạn Thảo & In Hợp Đồng'}
+                                    </Button>
+                                </Col>
+                                <Col>
+                                    <Button type="default" style={{ borderColor: '#52c41a', color: '#52c41a' }} icon={<FileExcelOutlined />} onClick={handleExportExcel} loading={exportingExcel}>
+                                        Xuất Excel
                                     </Button>
                                 </Col>
                             </Row>

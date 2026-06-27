@@ -1,6 +1,9 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpException, HttpStatus, Headers, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpException, HttpStatus, Headers, Req, Res } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
+import { Response } from 'express';
+import axios from 'axios';
 import { Product } from '../products/product.entity';
 import { Category } from '../categories/category.entity';
 import { Customer, CustomerType } from '../customers/customer.entity';
@@ -877,5 +880,18 @@ ${body.render_image ? '\n[Có hình render đính kèm]' : ''}
     @Delete('portal/quote/comment/:commentId')
     portalDeleteComment(@Param('commentId') commentId: number, @Body() body: any) {
         return this.salesService.softDeleteComment(Number(commentId), body?.deletedBy || 'Khách hàng');
+    }
+
+    @Get('proxy-image')
+    async proxyImage(@Query('url') url: string, @Res() res: Response) {
+        if (!url) return res.status(400).send('Missing url');
+        try {
+            const response = await axios.get(url, { responseType: 'stream' });
+            res.set('Content-Type', response.headers['content-type']);
+            res.set('Access-Control-Allow-Origin', '*');
+            response.data.pipe(res);
+        } catch (e) {
+            res.status(400).send('Error loading image');
+        }
     }
 }
