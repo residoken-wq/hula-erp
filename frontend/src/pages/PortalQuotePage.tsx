@@ -491,11 +491,9 @@ const PortalQuotePage: React.FC = () => {
                             const comboMatch = cleanLine.match(/^•\s*(.*?)\s*\(x([\d\.]+)\)(?:\s*-\s*(.*))?$/);
                             if (comboMatch) {
                                 const [_, name, qty, trailingDesc] = comboMatch;
+                                if (!trailingDesc) return '';
                                 let res = '<div style="margin-top:' + (idx > 0 ? '6px' : '0') + ';">';
-                                res += '<div style="font-weight:700;color:#333;font-size:11px;">*** ' + name + (Number(qty) > 1 ? ' <span style="font-weight:400;color:#666;font-size:11px;">(x' + qty + ')</span>' : '') + '</div>';
-                                if (trailingDesc) {
-                                    res += '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + trailingDesc + '</div>';
-                                }
+                                res += '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + trailingDesc + '</div>';
                                 res += '</div>';
                                 return res;
                             }
@@ -852,21 +850,14 @@ const PortalQuotePage: React.FC = () => {
 
                                         if (comboMatch) {
                                             const [_, name, qty, trailingDesc] = comboMatch;
+                                            if (!trailingDesc) return null;
                                             return (
                                                 <div key={idx} style={{ marginTop: idx > 0 ? 8 : 0 }}>
-                                                    {/* Header: *** Name */}
-                                                    <div style={{ fontWeight: 700, color: '#333', fontSize: 11, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                        <span>*** {name}</span>
-                                                        {Number(qty) > 1 && <span style={{ fontWeight: 400, color: '#666', fontSize: 12 }}>(x{qty})</span>}
-                                                    </div>
-
                                                     {/* If there's a description on the same line, render it as first row */}
-                                                    {trailingDesc && (
-                                                        <div style={{ paddingLeft: 16, marginTop: 2, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                                                            <span style={{ fontSize: 14, color: '#999', lineHeight: 1 }}>.</span>
-                                                            <span style={{ fontSize: 13, color: '#666', fontStyle: 'italic', lineHeight: 1.4 }}>{trailingDesc}</span>
-                                                        </div>
-                                                    )}
+                                                    <div style={{ paddingLeft: 16, marginTop: 2, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                                                        <span style={{ fontSize: 14, color: '#999', lineHeight: 1 }}>.</span>
+                                                        <span style={{ fontSize: 13, color: '#666', fontStyle: 'italic', lineHeight: 1.4 }}>{trailingDesc}</span>
+                                                    </div>
                                                 </div>
                                             );
                                         }
