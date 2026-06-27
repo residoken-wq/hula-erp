@@ -501,6 +501,28 @@ const ProductsPage: React.FC = () => {
         }
     ];
 
+    const handleRefreshComboDescription = () => {
+        if (!components || components.length === 0) {
+            message.warning('Sản phẩm này chưa có thành phần con nào');
+            return;
+        }
+
+        const newDescription = components
+            .filter(c => c.child_product)
+            .map(c => {
+                const p = c.child_product;
+                let desc = `- ${p.name} (x${c.quantity})`;
+                if (p.customer_description) {
+                    desc += `\n${p.customer_description}`;
+                }
+                return desc;
+            })
+            .join('\n\n');
+
+        form.setFieldsValue({ customer_description: newDescription });
+        message.success('Đã làm mới mô tả từ các sản phẩm con');
+    };
+
     const handleFormValuesChange = (changedValues: any) => {
         if (changedValues.category_id !== undefined) {
             const newCategoryId = changedValues.category_id;
@@ -795,7 +817,25 @@ const ProductsPage: React.FC = () => {
 
                                     <Col span={8}>
                                         <Divider orientation="left"><FileTextOutlined /> Mô tả & Thông tin chi tiết</Divider>
-                                        <Form.Item name="customer_description" label="Mô tả Khách hàng/Bán hàng" tooltip="Hiển thị trên Báo giá, SO, Phiếu giao hàng"><TextArea rows={3} placeholder="Mô tả thương mại, chất liệu cơ bản, v.v." /></Form.Item>
+                                        <Form.Item 
+                                            name="customer_description" 
+                                            label={
+                                                <Space>
+                                                    Mô tả Khách hàng/Bán hàng
+                                                    {editingItem?.product_type === 'COMBO' && (
+                                                        <Tooltip title="Làm mới mô tả từ sản phẩm con">
+                                                            <SyncOutlined 
+                                                                onClick={handleRefreshComboDescription} 
+                                                                style={{ color: '#1890ff', cursor: 'pointer' }} 
+                                                            />
+                                                        </Tooltip>
+                                                    )}
+                                                </Space>
+                                            }
+                                            tooltip="Hiển thị trên Báo giá, SO, Phiếu giao hàng"
+                                        >
+                                            <TextArea rows={3} placeholder="Mô tả thương mại, chất liệu cơ bản, v.v." />
+                                        </Form.Item>
                                         <Form.Item name="processing_description" label="Mô tả Gia công/Sản xuất" tooltip="Hiển thị trên PO Gia công, Lệnh sản xuất"><TextArea rows={3} placeholder="Yêu cầu kỹ thuật, chi tiết may/cắt, v.v." /></Form.Item>
                                         <Form.Item name="vat_description" label="Mô tả VAT" tooltip="Hiển thị trên đơn hàng để xuất hóa đơn"><TextArea rows={2} placeholder="Mô tả xuất hóa đơn..." /></Form.Item>
 

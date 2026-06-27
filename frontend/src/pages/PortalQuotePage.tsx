@@ -491,10 +491,10 @@ const PortalQuotePage: React.FC = () => {
                             const comboMatch = cleanLine.match(/^•\s*(.*?)\s*\(x([\d\.]+)\)(?:\s*-\s*(.*))?$/);
                             if (comboMatch) {
                                 const [_, name, qty, trailingDesc] = comboMatch;
-                                if (!trailingDesc) return '';
-                                let res = '<div style="margin-top:' + (idx > 0 ? '6px' : '0') + ';">';
-                                res += '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + trailingDesc + '</div>';
-                                res += '</div>';
+                                let res = idx > 0 ? '<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #ddd;"></div>' : '';
+                                if (trailingDesc) {
+                                    res += '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + trailingDesc + '</div>';
+                                }
                                 return res;
                             }
 
@@ -850,14 +850,14 @@ const PortalQuotePage: React.FC = () => {
 
                                         if (comboMatch) {
                                             const [_, name, qty, trailingDesc] = comboMatch;
-                                            if (!trailingDesc) return null;
                                             return (
-                                                <div key={idx} style={{ marginTop: idx > 0 ? 8 : 0 }}>
-                                                    {/* If there's a description on the same line, render it as first row */}
-                                                    <div style={{ paddingLeft: 16, marginTop: 2, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                                                        <span style={{ fontSize: 14, color: '#999', lineHeight: 1 }}>.</span>
-                                                        <span style={{ fontSize: 13, color: '#666', fontStyle: 'italic', lineHeight: 1.4 }}>{trailingDesc}</span>
-                                                    </div>
+                                                <div key={idx} style={{ marginTop: idx > 0 ? 8 : 0, paddingTop: idx > 0 ? 8 : 0, borderTop: idx > 0 ? '1px dashed #e8e8e8' : 'none' }}>
+                                                    {trailingDesc && (
+                                                        <div style={{ paddingLeft: 16, marginTop: 2, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                                                            <span style={{ fontSize: 14, color: '#999', lineHeight: 1 }}>.</span>
+                                                            <span style={{ fontSize: 13, color: '#666', fontStyle: 'italic', lineHeight: 1.4 }}>{trailingDesc}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         }
