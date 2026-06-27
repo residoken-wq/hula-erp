@@ -38,7 +38,8 @@ export default function SettingsPage() {
                     'banner_news_title', 'banner_news_desc', 'banner_news_image',
                     'banner_shop_title', 'banner_shop_desc', 'banner_shop_image',
                     'banner_recruitment_title', 'banner_recruitment_desc', 'banner_recruitment_image',
-                    'product_tags_config', 'hidden_pages'
+                    'product_tags_config', 'hidden_pages',
+                    'facebook', 'instagram', 'tiktok', 'youtube', 'linkedin', 'pinterest'
                 ];
                 const configValues: Record<string, any> = {};
 
@@ -118,7 +119,8 @@ export default function SettingsPage() {
                 'banner_news_title', 'banner_news_desc', 'banner_news_image',
                 'banner_shop_title', 'banner_shop_desc', 'banner_shop_image',
                 'banner_recruitment_title', 'banner_recruitment_desc', 'banner_recruitment_image',
-                'product_tags_config', 'hidden_pages'
+                'product_tags_config', 'hidden_pages',
+                'facebook', 'instagram', 'tiktok', 'youtube', 'linkedin', 'pinterest'
             ];
 
             for (const key of configKeys) {
@@ -393,6 +395,14 @@ export default function SettingsPage() {
 
                     <Form.Item name="youtube" label="YouTube">
                         <Input placeholder="https://youtube.com/..." />
+                    </Form.Item>
+
+                    <Form.Item name="linkedin" label="LinkedIn">
+                        <Input placeholder="https://linkedin.com/in/..." />
+                    </Form.Item>
+
+                    <Form.Item name="pinterest" label="Pinterest">
+                        <Input placeholder="https://pinterest.com/..." />
                     </Form.Item>
                 </div>
             ),

@@ -16,6 +16,7 @@ import {
     CheckCircleOutlined,
     LinkOutlined,
     StopOutlined,
+    DownloadOutlined,
 } from '@ant-design/icons';
 import { uploadApi } from '@/lib/api';
 
@@ -136,6 +137,39 @@ export default function MediaPage() {
         );
     };
 
+    const handleDownload = async (file: UploadedFile) => {
+        try {
+            const url = resolveUrl(file.url);
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = file.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Download failed:', error);
+            message.error(`Không thể tải xuống ${file.name}`);
+        }
+    };
+
+    const handleDownloadSelected = async () => {
+        if (selectedKeys.length === 0) return;
+        message.info(`Đang tải xuống ${selectedKeys.length} hình ảnh...`);
+        const selectedFiles = files.filter(f => selectedKeys.includes(f.name));
+        for (let i = 0; i < selectedFiles.length; i++) {
+            await handleDownload(selectedFiles[i]);
+            // Small delay to prevent browser from blocking multiple downloads
+            if (i < selectedFiles.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+        }
+        message.success('Đã tải xuống hoàn tất');
+    };
+
     const handleSelectAllUnused = () => {
         const unusedFiles = filteredFiles.filter(f => getFileUsage(f.name).length === 0);
         const newSelected = [...selectedKeys];
@@ -188,6 +222,7 @@ export default function MediaPage() {
                             <Space style={{ marginRight: 16 }}>
                                 <Text strong type="danger">{selectedKeys.length} đã chọn</Text>
                                 <Button size="small" onClick={() => setSelectedKeys([])}>Bỏ chọn</Button>
+                                <Button size="small" type="primary" icon={<DownloadOutlined />} onClick={handleDownloadSelected}>Tải xuống</Button>
                                 <Button size="small" danger icon={<DeleteOutlined />} onClick={handleDeleteSelected}>Xóa</Button>
                             </Space>
                         )}
@@ -360,6 +395,9 @@ export default function MediaPage() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
                                         <Text type="secondary" style={{ fontSize: 11 }}>{formatSize(file.size)}</Text>
                                         <Space size={4}>
+                                            <Tooltip title="Tải xuống">
+                                                <Button type="text" size="small" icon={<DownloadOutlined />} onClick={(e) => { e.stopPropagation(); handleDownload(file); }} />
+                                            </Tooltip>
                                             <Tooltip title="Copy URL">
                                                 <Button type="text" size="small" icon={<CopyOutlined />} onClick={(e) => { e.stopPropagation(); handleCopyUrl(file); }} />
                                             </Tooltip>
@@ -421,6 +459,7 @@ export default function MediaPage() {
                                 </div>
                                 <Space size={4}>
                                     <Tooltip title="Xem"><Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setPreviewFile(file)} /></Tooltip>
+                                    <Tooltip title="Tải xuống"><Button type="text" size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(file)} /></Tooltip>
                                     <Tooltip title="Copy URL"><Button type="text" size="small" icon={<CopyOutlined />} onClick={() => handleCopyUrl(file)} /></Tooltip>
                                     <Popconfirm
                                         title={getFileUsage(file.name).length > 0 ? `⚠️ Hình này đang được sử dụng tại ${getFileUsage(file.name).length} nơi. Xóa?` : 'Xóa hình này?'}
@@ -463,6 +502,9 @@ export default function MediaPage() {
                 footer={
                     previewFile ? (
                         <Space>
+                            <Button icon={<DownloadOutlined />} onClick={() => handleDownload(previewFile)}>
+                                Tải xuống
+                            </Button>
                             <Button icon={<CopyOutlined />} onClick={() => handleCopyUrl(previewFile)}>
                                 Copy URL
                             </Button>
