@@ -79,48 +79,65 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 { header: '', key: 'thanhtien', width: 15 },
             ];
 
+            // Row 1: Logo & Title
+            const r1 = sheet.addRow(['NỆM MẦM NON HULA', '', '', '', isQuotation ? 'BẢNG BÁO GIÁ' : 'ĐƠN ĐẶT HÀNG']);
             sheet.mergeCells('A1:D1');
-            const c1 = sheet.getCell('A1');
-            c1.value = 'BÊN BÁN: CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH';
-            c1.font = { bold: true, color: { argb: 'FF0070C0' } };
-
             sheet.mergeCells('E1:H1');
-            const c2 = sheet.getCell('E1');
-            c2.value = 'BÊN MUA: ' + (form.getFieldValue('vat_company_name') || initialData?.customer?.legal_name || initialData?.customer?.name || '');
-            c2.font = { bold: true, color: { argb: 'FFD2691E' } };
+            r1.getCell(1).font = { bold: true, size: 16, color: { argb: 'FF0070C0' } };
+            r1.getCell(5).font = { bold: true, size: 18, color: { argb: 'FF0070C0' } };
+            r1.getCell(5).alignment = { horizontal: 'center' };
 
+            // Row 2: Company & Quote Number
+            const r2 = sheet.addRow(['CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH', '', '', '', `Số: ${initialData?.order_code || 'New'}`]);
             sheet.mergeCells('A2:D2');
-            sheet.getCell('A2').value = '74/21/24 Nguyễn Khuyến, Phường 12, Bình Thạnh, HCM';
             sheet.mergeCells('E2:H2');
-            sheet.getCell('E2').value = 'Địa chỉ: ' + (form.getFieldValue('vat_address') || initialData?.customer?.legal_address || initialData?.customer?.address || '');
+            r2.getCell(1).font = { bold: true, color: { argb: 'FF555555' } };
+            r2.getCell(5).alignment = { horizontal: 'center' };
 
+            // Row 3: Date
+            const dateStrDay = dayjs(form.getFieldValue('order_date')).format('DD');
+            const dateStrMonth = dayjs(form.getFieldValue('order_date')).format('MM');
+            const dateStrYear = dayjs(form.getFieldValue('order_date')).format('YYYY');
+            const r3 = sheet.addRow(['', '', '', '', `Ngày ${dateStrDay} tháng ${dateStrMonth} năm ${dateStrYear}`]);
             sheet.mergeCells('A3:D3');
-            sheet.getCell('A3').value = 'SĐT: 0983.882210 - 0983.796654';
             sheet.mergeCells('E3:H3');
-            sheet.getCell('E3').value = 'SĐT: ' + (form.getFieldValue('contact_phone') || initialData?.customer?.phone || '');
-
-            sheet.mergeCells('A4:D4');
-            sheet.getCell('A4').value = 'MST: 0311.874.522';
-            sheet.mergeCells('E4:H4');
-            sheet.getCell('E4').value = 'MST: ' + (form.getFieldValue('vat_tax_code') || initialData?.customer?.tax_code || '');
-
-            sheet.mergeCells('A5:D5');
-            sheet.getCell('A5').value = 'Email: nemmamnonhula@gmail.com';
-            sheet.mergeCells('A6:D6');
-            sheet.getCell('A6').value = 'Sale Agent: ' + (initialData?.assigned_to?.full_name || 'Hula ERP');
+            r3.getCell(5).alignment = { horizontal: 'center' };
+            r3.getCell(5).font = { italic: true };
 
             sheet.addRow([]);
-            const titleRow = sheet.addRow(['', '', '', isQuotation ? 'BẢNG BÁO GIÁ' : 'ĐƠN ĐẶT HÀNG']);
-            sheet.mergeCells(`A${titleRow.number}:H${titleRow.number}`);
-            const titleCell = sheet.getCell(`A${titleRow.number}`);
-            titleCell.font = { bold: true, size: 16, color: { argb: 'FF0070C0' } };
-            titleCell.alignment = { horizontal: 'center' };
 
-            const dateStr = form.getFieldValue('order_date') ? dayjs(form.getFieldValue('order_date')).format('DD/MM/YYYY') : '';
-            const dateRow = sheet.addRow(['', '', '', `Ngày ${dateStr} - Số: ${initialData?.order_code || 'New'}`]);
-            sheet.mergeCells(`A${dateRow.number}:H${dateRow.number}`);
-            sheet.getCell(`A${dateRow.number}`).alignment = { horizontal: 'center' };
-            sheet.getCell(`A${dateRow.number}`).font = { italic: true };
+            // Row 5: Ben Ban / Ben Mua Titles
+            const r5 = sheet.addRow(['BÊN BÁN:', '', '', '', 'BÊN MUA:']);
+            sheet.mergeCells('A5:D5');
+            sheet.mergeCells('E5:H5');
+            r5.getCell(1).font = { bold: true, color: { argb: 'FF0070C0' } };
+            r5.getCell(5).font = { bold: true, color: { argb: 'FFD2691E' } };
+
+            // Row 6: Address
+            const r6 = sheet.addRow(['74/21/24 Nguyễn Khuyến, Phường 12, Bình Thạnh, HCM', '', '', '', form.getFieldValue('vat_company_name') || initialData?.customer?.legal_name || initialData?.customer?.name || '']);
+            sheet.mergeCells('A6:D6');
+            sheet.mergeCells('E6:H6');
+            r6.getCell(5).font = { bold: true };
+
+            // Row 7: Phone / Address
+            const r7 = sheet.addRow(['SĐT: 0983.882210 - 0983.796654', '', '', '', 'Địa chỉ: ' + (form.getFieldValue('vat_address') || initialData?.customer?.legal_address || initialData?.customer?.address || '')]);
+            sheet.mergeCells('A7:D7');
+            sheet.mergeCells('E7:H7');
+            r7.getCell(5).alignment = { wrapText: true };
+
+            // Row 8: MST / Phone
+            const r8 = sheet.addRow(['MST: 0311.874.522', '', '', '', 'SĐT: ' + (form.getFieldValue('contact_phone') || initialData?.customer?.phone || '')]);
+            sheet.mergeCells('A8:D8');
+            sheet.mergeCells('E8:H8');
+
+            // Row 9: Email / MST
+            const r9 = sheet.addRow(['Email: nemmamnonhula@gmail.com', '', '', '', 'MST: ' + (form.getFieldValue('vat_tax_code') || initialData?.customer?.tax_code || '')]);
+            sheet.mergeCells('A9:D9');
+            sheet.mergeCells('E9:H9');
+
+            // Row 10: Sale Agent
+            const r10 = sheet.addRow(['Sale Agent: ' + (initialData?.assigned_to?.full_name || 'Hula ERP')]);
+            sheet.mergeCells('A10:D10');
             
             sheet.addRow([]);
 
@@ -236,6 +253,39 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 remRow.getCell(8).font = { bold: true };
                 remRow.getCell(8).numFmt = '#,##0';
             }
+
+            // --- FOOTER START ---
+            sheet.addRow([]);
+            const termsContent = initialData?.terms_content || form.getFieldValue('terms_content') || '';
+            if (termsContent) {
+                const termTitleRow = sheet.addRow(['Điều khoản & Quy định']);
+                termTitleRow.getCell(1).font = { bold: true, italic: true };
+                
+                const tr = sheet.addRow([termsContent.replace(/<[^>]*>?/gm, '')]); // strip HTML just in case
+                sheet.mergeCells(`A${tr.number}:H${tr.number}`);
+                tr.height = (termsContent.split('\n').length + 1) * 15;
+                tr.getCell(1).alignment = { wrapText: true, vertical: 'top' };
+                sheet.addRow([]);
+            }
+
+            const sigRow = sheet.addRow(['ĐẠI DIỆN BÊN MUA', '', '', '', '', 'ĐẠI DIỆN BÊN BÁN']);
+            sheet.mergeCells(`A${sigRow.number}:C${sigRow.number}`);
+            sheet.mergeCells(`F${sigRow.number}:H${sigRow.number}`);
+            sigRow.getCell(1).font = { bold: true };
+            sigRow.getCell(1).alignment = { horizontal: 'center' };
+            sigRow.getCell(6).font = { bold: true };
+            sigRow.getCell(6).alignment = { horizontal: 'center' };
+            
+            const sigTitle = sheet.addRow(['(Ký và ghi rõ họ tên)', '', '', '', '', '(Ký và ghi rõ họ tên)']);
+            sheet.mergeCells(`A${sigTitle.number}:C${sigTitle.number}`);
+            sheet.mergeCells(`F${sigTitle.number}:H${sigTitle.number}`);
+            sigTitle.getCell(1).font = { italic: true };
+            sigTitle.getCell(1).alignment = { horizontal: 'center' };
+            sigTitle.getCell(6).font = { italic: true };
+            sigTitle.getCell(6).alignment = { horizontal: 'center' };
+            
+            sheet.addRow([]);
+            sheet.addRow([]);
 
             const buffer = await workbook.xlsx.writeBuffer();
             saveAs(new Blob([buffer]), `${isQuotation ? 'Bao_Gia' : 'Don_Hang'}_${initialData?.order_code || 'New'}.xlsx`);
