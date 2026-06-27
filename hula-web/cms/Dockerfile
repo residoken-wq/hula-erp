@@ -11,7 +11,7 @@ ENV NEXT_TELEMETRY_DISABLED 1
 ARG NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN --mount=type=cache,target=/app/.next/cache npm run build
+RUN npm run build
 
 # Stage 3: Runner
 FROM node:18-alpine AS runner

@@ -16,7 +16,7 @@ ENV API_URL=${API_URL}
 ARG NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-RUN --mount=type=cache,target=/app/.next/cache npm run build
+RUN npm run build
 
 # Stage 3: Runner
 FROM node:18-alpine AS runner

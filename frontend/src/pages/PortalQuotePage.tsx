@@ -336,8 +336,8 @@ const PortalQuotePage: React.FC = () => {
         .page { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0; }
         
         /* HEADER */
-        .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 3px solid #0050b3; margin-bottom: 15px; gap: 15px; }
-        .header-left { width: calc(50% - 7.5px); }
+        .header { display: flex; justify-content: space-between; align-items: stretch; padding-bottom: 12px; border-bottom: 3px solid #0050b3; margin-bottom: 15px; gap: 15px; }
+        .header-left { width: calc(50% - 7.5px); display: flex; align-items: center; }
         .header-right { text-align: right; min-width: 200px; }
         .doc-title { font-size: 22px; font-weight: 800; color: #0050b3; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
         .doc-subtitle { font-size: 11px; color: #666; font-style: italic; text-transform: uppercase; letter-spacing: 2px; }
@@ -413,11 +413,10 @@ const PortalQuotePage: React.FC = () => {
         <!-- HEADER -->
         <div class="header">
             <div class="header-left">
-                <img src="${window.location.origin}/b2b_header_banner.png" alt="Company" style="width: 100%; object-fit: contain;" onerror="this.src='${window.location.origin}/company_header.png'; this.style.maxHeight='70px'; this.style.width='auto';" />
+                <img src="${window.location.origin}/b2b_header_banner.png" alt="Company" style="width: 100%; object-fit: contain; object-position: left center;" onerror="this.src='${window.location.origin}/company_header.png';" />
             </div>
             <div class="header-right">
                 <div class="doc-title">${docTitle}</div>
-                <div class="doc-subtitle">${docSubTitle}</div>
                 <div class="doc-meta">
                     Số: <b>${data.order_code}</b><br/>
                     Ngày ${dayjs(data.order_date).format('DD')} tháng ${dayjs(data.order_date).format('MM')} năm ${dayjs(data.order_date).format('YYYY')}
@@ -429,23 +428,23 @@ const PortalQuotePage: React.FC = () => {
         ${mode === 'retail' ? '' : `
         <div class="parties">
             <div class="party-box party-a">
-                <div class="party-label">Bên bán (Party A)</div>
+                <div class="party-label">Bên bán</div>
                 <div class="party-row"><b>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</b></div>
                 <div class="party-row">📍 74/21/24 Nguyễn Khuyến, Phường Bình Thạnh, TP. Hồ Chí Minh</div>
                 <div class="party-row">📞 0983.882210 - 0983.796654</div>
                 <div class="party-row">MST: <b>0311.874.522</b></div>
+                <div class="party-row">Email: <b>nemmanonhula@gmail.com</b></div>
+                <div class="party-row">Sale Agent: <b>${data.assigned_to?.full_name || data.assigned_to?.name || data.sale_agent?.name || data.sale_name || data.created_by?.full_name || data.created_by?.name || '...'}</b> - ${data.assigned_to?.phone || data.sale_agent?.phone || data.sale_phone || data.created_by?.phone || '...'}</div>
             </div>
             <div class="party-box party-b">
-                <div class="party-label">Bên mua (Party B)</div>
+                <div class="party-label">Bên mua</div>
                 <div class="party-row"><b>${vatCompany || customerName}</b></div>
                 <div class="party-row">📍 ${vatAddress || customerAddress || '...'}</div>
                 <div class="party-row">📞 ${customerPhone || data.receiver_phone || '...'}</div>
                 ${vatTax ? `<div class="party-row" style="margin-bottom: 5px;">MST: <b>${vatTax}</b></div>` : ''}
-                ${data.contact_name ? `<div class="party-row" style="margin-bottom: 5px;">Người liên hệ: ${data.contact_phone ? `${data.contact_phone} - ` : ''}${data.contact_name}</div>` : ''}
-                ${isOrder ? `
-                    ${data.shipping_address ? `<div class="party-row" style="margin-bottom: 5px; white-space: pre-wrap;">Giao hàng tại:<br />${data.shipping_address}</div>` : ''}
-                    ${(data.receiver_name || data.receiver_phone) ? `<div class="party-row">Người nhận: <b>${data.receiver_name || customerName}</b> ${data.receiver_phone ? `(${data.receiver_phone})` : ''}</div>` : ''}
-                ` : ''}
+                ${data.contact_name ? `<div class="party-row" style="margin-bottom: 5px;"><b>Người liên hệ:</b> ${data.contact_name} ${data.contact_phone ? `- ${data.contact_phone}` : ''}</div>` : ''}
+                ${data.shipping_address ? `<div class="party-row" style="margin-bottom: 5px; white-space: pre-wrap;"><b>Địa chỉ giao hàng:</b><br />${data.shipping_address}</div>` : ''}
+                ${(data.receiver_name || data.receiver_phone) ? `<div class="party-row"><b>Người nhận:</b> ${data.receiver_name || customerName} ${data.receiver_phone ? `- ${data.receiver_phone}` : ''}</div>` : ''}
             </div>
         </div>
         `}
@@ -516,12 +515,12 @@ const PortalQuotePage: React.FC = () => {
                     return '<tr>'
                         + '<td style="text-align:center;font-weight:600;">' + (idx + 1) + '</td>'
                         + '<td style="text-align:center;padding:4px;">' + imgCell + '</td>'
-                        + '<td style="text-align:left;padding:6px 8px;font-size:11px;color:#555;white-space:pre-wrap;line-height:1.5;">' + (vatContent || '-') + '</td>'
                         + '<td style="text-align:left;padding:6px 8px;">'
-                        +   '<div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-bottom:2px;">' + productName + '</div>'
-                        +   colorLine + descLines
-                        +   priceRangesHtml
+                        +   '<div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-bottom:2px;">' + (vatContent || productName) + '</div>'
+                        +   (vatContent ? '<div style="font-style:italic;font-size:10px;color:#555;">' + productName + '</div>' : '')
+                        +   colorLine
                         + '</td>'
+                        + '<td style="text-align:left;padding:6px 8px;font-size:11px;color:#555;line-height:1.5;">' + descLines + priceRangesHtml + '</td>'
                         + '<td style="text-align:center;font-weight:bold;">' + (item.product?.unit || 'Cái') + '</td>'
                         + '<td style="text-align:center;font-weight:700;font-size:13px;">' + Number(item.quantity) + '</td>'
                         + '<td style="text-align:right;padding-right:8px;font-weight:bold;">' + Number(item.unit_price).toLocaleString() + '</td>'
@@ -557,6 +556,7 @@ const PortalQuotePage: React.FC = () => {
             <div class="terms-box">
                 ${termsHtml ? '<div class="terms-title">Điều khoản & Quy định</div><div style="white-space:pre-line;color:#555;">' + data.terms_content + '</div>' : ''}
             </div>
+            ${isOrder ? `
             <div class="qr-box">
                 ${depositAmount > 0 ? `
                 <div style="background:#f9f0ff;padding:8px;border-radius:6px;border:1px solid #d3adf7;text-align:center;margin-bottom:8px;">
@@ -586,6 +586,7 @@ const PortalQuotePage: React.FC = () => {
                 <img src="${qrLink}" alt="QR" />
                 <div style="font-size:10px;font-weight:700;color:#0050b3;margin-top:4px;">HULA PAYMENT</div>
             </div>
+            ` : ''}
         </div>
         
         <!-- SIGNATURES -->
