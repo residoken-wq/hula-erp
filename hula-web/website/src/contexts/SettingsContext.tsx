@@ -13,6 +13,12 @@ interface Settings {
     zalo_url: string;
     google_maps_url: string;
     facebook_page_url: string;
+    facebook?: string;
+    instagram?: string;
+    tiktok?: string;
+    youtube?: string;
+    linkedin?: string;
+    pinterest?: string;
     // Section background colors
     section_hero_bg: string;
     section_hero_usp_bg: string;
@@ -52,6 +58,12 @@ const defaultSettings: Settings = {
     zalo_url: '',
     google_maps_url: '',
     facebook_page_url: '',
+    facebook: '',
+    instagram: '',
+    tiktok: '',
+    youtube: '',
+    linkedin: '',
+    pinterest: '',
     section_hero_bg: '',
     section_hero_usp_bg: '',
     section_categories_bg: '',
@@ -111,6 +123,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         zalo_url: data.zalo_url || '',
                         google_maps_url: data.google_maps_url || '',
                         facebook_page_url: data.facebook_page_url || '',
+                        facebook: data.facebook || '',
+                        instagram: data.instagram || '',
+                        tiktok: data.tiktok || '',
+                        youtube: data.youtube || '',
+                        linkedin: data.linkedin || '',
+                        pinterest: data.pinterest || '',
                         section_hero_bg: data.section_hero_bg || '',
                         section_hero_usp_bg: data.section_hero_usp_bg || '',
                         section_categories_bg: data.section_categories_bg || '',

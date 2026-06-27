@@ -67,6 +67,7 @@ export class PublicController {
         const cmsKeys = [
             'site_name', 'site_description', 'logo_url', 'favicon_url', 'contact_phone', 'contact_email', 'contact_address',
             'facebook_url', 'zalo_url', 'google_maps_url', 'facebook_page_url',
+            'facebook', 'instagram', 'tiktok', 'youtube', 'linkedin', 'pinterest',
             // Page Banners
             'banner_shop_title', 'banner_shop_desc', 'banner_shop_image',
             'banner_projects_title', 'banner_projects_desc', 'banner_projects_image',
@@ -123,6 +124,12 @@ export class PublicController {
             zalo_url: result.zalo_url || '',
             google_maps_url: result.google_maps_url || '',
             facebook_page_url: result.facebook_page_url || '',
+            facebook: result.facebook || '',
+            instagram: result.instagram || '',
+            tiktok: result.tiktok || '',
+            youtube: result.youtube || '',
+            linkedin: result.linkedin || '',
+            pinterest: result.pinterest || '',
             // Options
             product_tags_config: result.product_tags_config || '',
             hidden_pages: isBeta ? '' : (result.hidden_pages || ''),
