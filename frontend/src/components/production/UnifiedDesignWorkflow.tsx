@@ -1302,9 +1302,9 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                             extra={<Button size="small" type="dashed" icon={<PlusOutlined />} onClick={() => handleAddCustomPiece(face.id, idx)}>Thêm chi tiết phụ</Button>}
                                         >
                                             <div style={{ overflowX: 'auto', background: '#f0f2f5', padding: 10 }}>
-                                                <div style={{ position: 'relative', width: CANVAS_DISPLAY_WIDTH + 40, height: displayHeight + 40 }}>
+                                                <div style={{ position: 'relative', width: CANVAS_DISPLAY_WIDTH + 80, height: displayHeight + 80 }}>
                                                     <div style={{ position: 'absolute', top: 40, left: 40, width: CANVAS_DISPLAY_WIDTH, height: displayHeight, background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', backgroundImage: 'linear-gradient(#f0f0f0 1px, transparent 1px), linear-gradient(90deg, #f0f0f0 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                                                    <Stage style={{ position: 'absolute', top: 0, left: 0 }} width={CANVAS_DISPLAY_WIDTH + 40} height={displayHeight + 40} ref={(node) => { stageRefs.current[face.id][idx] = node; }} onMouseDown={(e) => {
+                                                    <Stage style={{ position: 'absolute', top: 0, left: 0 }} width={CANVAS_DISPLAY_WIDTH + 80} height={displayHeight + 80} ref={(node) => { stageRefs.current[face.id][idx] = node; }} onMouseDown={(e) => {
                                                         if (e.target === e.target.getStage()) setSelectedPiece(null);
                                                     }}>
                                                         <Layer x={40} y={40}>
