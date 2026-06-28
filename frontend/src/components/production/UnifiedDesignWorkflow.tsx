@@ -1197,91 +1197,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                             title={lockedFaces[face.id] ? "Mở khóa sơ đồ" : "Khóa sơ đồ (Giữ cố định khi Chạy Tự Động xếp)"}
                                         />
                                         {lockedFaces[face.id] && <Tag color="error">Đã khóa</Tag>}
-                                        {lockedFaces[face.id] && (() => {
-                                            const stats = resultsByFace[face.id]?.stats;
-                                            if (!stats) return null;
-                                            
-                                            let maxEmptyW = 0;
-                                            let maxEmptyH = 0;
-                                            let maxEmptyArea = 0;
-                                            
-                                            resultsByFace[face.id].binResults.forEach(bin => {
-                                                const binW = bin.w;
-                                                const binH = bin.h;
-                                                let xSet = new Set([0, binW]);
-                                                let ySet = new Set([0, binH]);
-                                                
-                                                bin.packed.forEach(p => {
-                                                    const pW = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.h : p.w;
-                                                    const pH = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.w : p.h;
-                                                    xSet.add(p.x);
-                                                    xSet.add(p.x + pW);
-                                                    ySet.add(p.y);
-                                                    ySet.add(p.y + pH);
-                                                });
-                                                
-                                                const xCoords = Array.from(xSet).sort((a,b) => a-b);
-                                                const yCoords = Array.from(ySet).sort((a,b) => a-b);
-                                                const R = xCoords.length - 1;
-                                                const C = yCoords.length - 1;
-                                                
-                                                const grid = [];
-                                                for(let i=0; i<R; i++) {
-                                                    grid[i] = [];
-                                                    const cx = xCoords[i];
-                                                    const cw = xCoords[i+1] - cx;
-                                                    const midX = cx + cw/2;
-                                                    for(let j=0; j<C; j++) {
-                                                        const cy = yCoords[j];
-                                                        const ch = yCoords[j+1] - cy;
-                                                        const midY = cy + ch/2;
-                                                        
-                                                        let filled = false;
-                                                        for(const p of bin.packed) {
-                                                            const pW = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.h : p.w;
-                                                            const pH = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.w : p.h;
-                                                            if (midX > p.x && midX < p.x + pW && midY > p.y && midY < p.y + pH) {
-                                                                filled = true;
-                                                                break;
-                                                            }
-                                                        }
-                                                        grid[i][j] = filled;
-                                                    }
-                                                }
-                                                
-                                                const accW = new Array(C).fill(0);
-                                                for(let i=0; i<R; i++) {
-                                                    const cw = xCoords[i+1] - xCoords[i];
-                                                    for(let j=0; j<C; j++) {
-                                                        if (!grid[i][j]) accW[j] += cw;
-                                                        else accW[j] = 0;
-                                                    }
-                                                    
-                                                    for(let j=0; j<C; j++) {
-                                                        let minW = accW[j];
-                                                        if (minW === 0) continue;
-                                                        let currentH = 0;
-                                                        for(let k=j; k<C; k++) {
-                                                            if (accW[k] === 0) break;
-                                                            minW = Math.min(minW, accW[k]);
-                                                            currentH += yCoords[k+1] - yCoords[k];
-                                                            const area = minW * currentH;
-                                                            if (area > maxEmptyArea) {
-                                                                maxEmptyArea = area;
-                                                                maxEmptyW = minW;
-                                                                maxEmptyH = currentH;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            });
 
-                                            return (
-                                                <Tag color="warning" style={{marginLeft: 8}}>
-                                                    Phần dư: {maxEmptyW.toFixed(1)}x{maxEmptyH.toFixed(1)} cm ({maxEmptyArea.toFixed(1)} cm²)
-                                                </Tag>
-                                            );
-                                        })()}
                                     </Space>
                                 </Divider>
                                 
@@ -1299,7 +1215,89 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
 
                                     return (
                                         <Card 
-                                            title={`Sơ đồ: ${face.name} - Tấm ${idx + 1} (${result.w}x${result.h} cm) - Đã xếp: ${result.packed.length} mảnh`} 
+                                            title={(
+                                                <Space>
+                                                    <span>Sơ đồ: {face.name} - Tấm {idx + 1} ({result.w}x{result.h} cm) - Đã xếp: {result.packed.length} mảnh</span>
+                                                    {lockedFaces[face.id] && (() => {
+                                                        const binW = result.w;
+                                                        const binH = result.h;
+                                                        let xSet = new Set([0, binW]);
+                                                        let ySet = new Set([0, binH]);
+                                                        
+                                                        result.packed.forEach((p: any) => {
+                                                            const pW = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.h : p.w;
+                                                            const pH = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.w : p.h;
+                                                            xSet.add(p.x);
+                                                            xSet.add(p.x + pW);
+                                                            ySet.add(p.y);
+                                                            ySet.add(p.y + pH);
+                                                        });
+                                                        
+                                                        const xCoords = Array.from(xSet).sort((a,b) => a-b);
+                                                        const yCoords = Array.from(ySet).sort((a,b) => a-b);
+                                                        const R = xCoords.length - 1;
+                                                        const C = yCoords.length - 1;
+                                                        
+                                                        const grid = [];
+                                                        for(let i=0; i<R; i++) {
+                                                            grid[i] = [];
+                                                            const cx = xCoords[i];
+                                                            const cw = xCoords[i+1] - cx;
+                                                            const midX = cx + cw/2;
+                                                            for(let j=0; j<C; j++) {
+                                                                const cy = yCoords[j];
+                                                                const ch = yCoords[j+1] - cy;
+                                                                const midY = cy + ch/2;
+                                                                
+                                                                let filled = false;
+                                                                for(const p of result.packed) {
+                                                                    const pW = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.h : p.w;
+                                                                    const pH = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.w : p.h;
+                                                                    if (midX > p.x && midX < p.x + pW && midY > p.y && midY < p.y + pH) {
+                                                                        filled = true;
+                                                                        break;
+                                                                    }
+                                                                }
+                                                                grid[i][j] = filled;
+                                                            }
+                                                        }
+                                                        
+                                                        let maxEmptyW = 0;
+                                                        let maxEmptyH = 0;
+                                                        let maxEmptyArea = 0;
+                                                        const accW = new Array(C).fill(0);
+                                                        for(let i=0; i<R; i++) {
+                                                            const cw = xCoords[i+1] - xCoords[i];
+                                                            for(let j=0; j<C; j++) {
+                                                                if (!grid[i][j]) accW[j] += cw;
+                                                                else accW[j] = 0;
+                                                            }
+                                                            
+                                                            for(let j=0; j<C; j++) {
+                                                                let minW = accW[j];
+                                                                if (minW === 0) continue;
+                                                                let currentH = 0;
+                                                                for(let k=j; k<C; k++) {
+                                                                    if (accW[k] === 0) break;
+                                                                    minW = Math.min(minW, accW[k]);
+                                                                    currentH += yCoords[k+1] - yCoords[k];
+                                                                    const area = minW * currentH;
+                                                                    if (area > maxEmptyArea) {
+                                                                        maxEmptyArea = area;
+                                                                        maxEmptyW = minW;
+                                                                        maxEmptyH = currentH;
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        return (
+                                                            <Tag color="warning">
+                                                                Phần dư: {maxEmptyW.toFixed(1)}x{maxEmptyH.toFixed(1)} cm ({maxEmptyArea.toFixed(1)} cm²)
+                                                            </Tag>
+                                                        );
+                                                    })()}
+                                                </Space>
+                                            )} 
                                             size="small" style={{ marginBottom: 16 }} key={idx}
                                             extra={<Button size="small" type="dashed" icon={<PlusOutlined />} onClick={() => handleAddCustomPiece(face.id, idx)}>Thêm chi tiết phụ</Button>}
                                         >
