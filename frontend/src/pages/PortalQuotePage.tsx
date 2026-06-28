@@ -525,26 +525,26 @@ const PortalQuotePage: React.FC = () => {
                         + '<td style="text-align:right;padding-right:8px;font-weight:700;">' + Number(item.subtotal).toLocaleString() + '</td>'
                         + '</tr>';
                 }).join('')}
+                <!-- SUMMARY -->
+                <tr>
+                    <td colspan="4" style="border:none;"></td>
+                    <td colspan="3" class="summary-label">Tổng tiền hàng:</td>
+                    <td class="summary-value">${subTotal.toLocaleString()}</td>
+                </tr>
+                ${discountAmount > 0 ? '<tr><td colspan="4" style="border:none;"></td><td colspan="3" class="summary-label">Giảm giá (' + (data.discount_rate || 0) + '%):</td><td class="summary-value" style="color:#52c41a;">-' + discountAmount.toLocaleString() + '</td></tr>' : ''}
+                <tr>
+                    <td colspan="4" style="border:none;"></td>
+                    <td colspan="3" class="summary-label">Thuế GTGT (${vatRate}%):</td>
+                    <td class="summary-value">${vatAmount.toLocaleString()}</td>
+                </tr>
+                ${shippingFee > 0 ? '<tr><td colspan="4" style="border:none;"></td><td colspan="3" class="summary-label">Phí vận chuyển:</td><td class="summary-value">' + shippingFee.toLocaleString() + '</td></tr>' : ''}
+                <tr class="summary-total">
+                    <td colspan="4" style="border:none; background:#fff;"></td>
+                    <td colspan="3" class="summary-label">TỔNG CỘNG:</td>
+                    <td class="summary-value">${total.toLocaleString()} ₫</td>
+                </tr>
+                ${paidAmount > 0 ? '<tr><td colspan="4" style="border:none;"></td><td colspan="3" class="summary-label" style="color:#52c41a;">Đã thanh toán:</td><td class="summary-value" style="color:#52c41a;">' + paidAmount.toLocaleString() + ' ₫</td></tr><tr><td colspan="4" style="border:none;"></td><td colspan="3" class="summary-label" style="color:#cf1322;font-weight:700;">Còn lại cần thanh toán:</td><td class="summary-value" style="color:#cf1322;font-weight:800;font-size:14px;">' + remaining.toLocaleString() + ' ₫</td></tr>' : ''}
             </tbody>
-        </table>
-        
-        <!-- SUMMARY -->
-        <table class="summary-table">
-            <tr>
-                <td class="summary-label" colspan="1">Tổng tiền hàng:</td>
-                <td class="summary-value">${subTotal.toLocaleString()}</td>
-            </tr>
-            ${discountAmount > 0 ? '<tr><td class="summary-label">Giảm giá (' + (data.discount_rate || 0) + '%):</td><td class="summary-value" style="color:#52c41a;">-' + discountAmount.toLocaleString() + '</td></tr>' : ''}
-            <tr>
-                <td class="summary-label">Thuế GTGT (${vatRate}%):</td>
-                <td class="summary-value">${vatAmount.toLocaleString()}</td>
-            </tr>
-            ${shippingFee > 0 ? '<tr><td class="summary-label">Phí vận chuyển:</td><td class="summary-value">' + shippingFee.toLocaleString() + '</td></tr>' : ''}
-            <tr class="summary-total">
-                <td class="summary-label">TỔNG CỘNG:</td>
-                <td class="summary-value">${total.toLocaleString()} ₫</td>
-            </tr>
-            ${paidAmount > 0 ? '<tr><td class="summary-label" style="color:#52c41a;">Đã thanh toán:</td><td class="summary-value" style="color:#52c41a;">' + paidAmount.toLocaleString() + ' ₫</td></tr><tr><td class="summary-label" style="color:#cf1322;font-weight:700;">Còn lại cần thanh toán:</td><td class="summary-value" style="color:#cf1322;font-weight:800;font-size:14px;">' + remaining.toLocaleString() + ' ₫</td></tr>' : ''}
         </table>
 
         ${data.note ? '<div style="margin-top:12px;display:flex;gap:10px;background:#fff7e6;padding:12px 14px;border-radius:8px;border:1px solid #ffec3d;font-size:12px;"><span style="color:#faad14;font-size:16px;margin-top:2px;">ℹ️</span><div><div style="font-weight:700;color:#d48806;margin-bottom:4px;">Ghi chú từ người bán:</div><div style="color:#595959;white-space:pre-line;line-height:1.6;">' + data.note + '</div></div></div>' : ''}
