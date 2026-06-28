@@ -1136,11 +1136,21 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                 ]}
                             />
                         </div>
-                        <Tabs type="card" size="small" style={{ marginBottom: 16 }}>
-                            {faces.map(face => {
+                        <div style={{ marginBottom: 16, padding: 12, background: '#fafafa', border: '1px solid #e8e8e8', borderRadius: 4 }}>
+                            <div style={{ marginBottom: 12 }}>
+                                <label><b>Cấu hình cho Mặt:</b></label>
+                                <Select 
+                                    value={activeFaceKey} 
+                                    onChange={setActiveFaceKey} 
+                                    style={{ width: '100%', marginTop: 4 }}
+                                    options={faces.map(f => ({ label: f.name, value: f.id }))}
+                                />
+                            </div>
+                            
+                            {faces.filter(f => f.id === activeFaceKey).map(face => {
                                 const bins = binsByFace[face.id] || [];
                                 return (
-                                    <Tabs.TabPane tab={face.name} key={face.id}>
+                                    <div key={face.id}>
                                         {packingMode === 'CONTINUOUS' ? (
                                             <Space direction="vertical" style={{ width: '100%' }}>
                                                 <div><label>Khổ vải (cm):</label> <InputNumber size="small" value={continuousConfigs[face.id]?.width || 150} onChange={v => {
@@ -1172,10 +1182,10 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                                 <Button type="dashed" block icon={<PlusOutlined />} onClick={() => handleAddBin(face.id)}>Thêm tấm vải mới</Button>
                                             </Space>
                                         )}
-                                    </Tabs.TabPane>
+                                    </div>
                                 );
                             })}
-                        </Tabs>
+                        </div>
 
                         <Divider />
                         <Space direction="vertical" style={{ width: '100%' }}>
