@@ -123,20 +123,28 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange, onRe
                         rotation: currentRotation + 90
                     });
                 }}
+                onDragMove={(e) => {
+                    // Snap to 1cm grid
+                    const snapSize = scale;
+                    const x = Math.round(e.target.x() / snapSize) * snapSize;
+                    const y = Math.round(e.target.y() / snapSize) * snapSize;
+                    e.target.x(x);
+                    e.target.y(y);
+                }}
                 onDragEnd={(e) => {
                     onChange({
                         ...rect,
-                        x: e.target.x() / scale,
-                        y: e.target.y() / scale
+                        x: Math.round(e.target.x() / scale),
+                        y: Math.round(e.target.y() / scale)
                     });
                 }}
                 onTransformEnd={(e) => {
                     const node = shapeRef.current;
                     onChange({
                         ...rect,
-                        x: node.x() / scale,
-                        y: node.y() / scale,
-                        rotation: node.rotation()
+                        x: Math.round(node.x() / scale),
+                        y: Math.round(node.y() / scale),
+                        rotation: Math.round(node.rotation() / 90) * 90
                     });
                 }}
             >
@@ -1192,18 +1200,85 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                         {lockedFaces[face.id] && (() => {
                                             const stats = resultsByFace[face.id]?.stats;
                                             if (!stats) return null;
-                                            let totalUsedArea = 0;
-                                            let totalBinArea = 0;
+                                            
+                                            let maxEmptyW = 0;
+                                            let maxEmptyH = 0;
+                                            let maxEmptyArea = 0;
+                                            
                                             resultsByFace[face.id].binResults.forEach(bin => {
-                                                bin.packed.forEach(r => totalUsedArea += r.w * r.h);
-                                                totalBinArea += bin.w * bin.h;
+                                                const binW = bin.w;
+                                                const binH = bin.h;
+                                                let xSet = new Set([0, binW]);
+                                                let ySet = new Set([0, binH]);
+                                                
+                                                bin.packed.forEach(p => {
+                                                    const pW = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.h : p.w;
+                                                    const pH = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.w : p.h;
+                                                    xSet.add(p.x);
+                                                    xSet.add(p.x + pW);
+                                                    ySet.add(p.y);
+                                                    ySet.add(p.y + pH);
+                                                });
+                                                
+                                                const xCoords = Array.from(xSet).sort((a,b) => a-b);
+                                                const yCoords = Array.from(ySet).sort((a,b) => a-b);
+                                                const R = xCoords.length - 1;
+                                                const C = yCoords.length - 1;
+                                                
+                                                const grid = [];
+                                                for(let i=0; i<R; i++) {
+                                                    grid[i] = [];
+                                                    const cx = xCoords[i];
+                                                    const cw = xCoords[i+1] - cx;
+                                                    const midX = cx + cw/2;
+                                                    for(let j=0; j<C; j++) {
+                                                        const cy = yCoords[j];
+                                                        const ch = yCoords[j+1] - cy;
+                                                        const midY = cy + ch/2;
+                                                        
+                                                        let filled = false;
+                                                        for(const p of bin.packed) {
+                                                            const pW = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.h : p.w;
+                                                            const pH = p.rotated || p.rotation === -90 || p.rotation === 90 || p.rotation === 270 ? p.w : p.h;
+                                                            if (midX > p.x && midX < p.x + pW && midY > p.y && midY < p.y + pH) {
+                                                                filled = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                        grid[i][j] = filled;
+                                                    }
+                                                }
+                                                
+                                                const accW = new Array(C).fill(0);
+                                                for(let i=0; i<R; i++) {
+                                                    const cw = xCoords[i+1] - xCoords[i];
+                                                    for(let j=0; j<C; j++) {
+                                                        if (!grid[i][j]) accW[j] += cw;
+                                                        else accW[j] = 0;
+                                                    }
+                                                    
+                                                    for(let j=0; j<C; j++) {
+                                                        let minW = accW[j];
+                                                        if (minW === 0) continue;
+                                                        let currentH = 0;
+                                                        for(let k=j; k<C; k++) {
+                                                            if (accW[k] === 0) break;
+                                                            minW = Math.min(minW, accW[k]);
+                                                            currentH += yCoords[k+1] - yCoords[k];
+                                                            const area = minW * currentH;
+                                                            if (area > maxEmptyArea) {
+                                                                maxEmptyArea = area;
+                                                                maxEmptyW = minW;
+                                                                maxEmptyH = currentH;
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             });
-                                            const waste = totalBinArea - totalUsedArea;
-                                            const w = stats.width;
-                                            const hD = waste / w;
+
                                             return (
                                                 <Tag color="warning" style={{marginLeft: 8}}>
-                                                    Phần dư: {w}x{hD.toFixed(1)} cm ({waste.toFixed(1)} cm²)
+                                                    Phần dư: {maxEmptyW.toFixed(1)}x{maxEmptyH.toFixed(1)} cm ({maxEmptyArea.toFixed(1)} cm²)
                                                 </Tag>
                                             );
                                         })()}
