@@ -316,6 +316,10 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
     const [isAutoPackModalVisible, setIsAutoPackModalVisible] = useState(false);
     const [autoPackOrientation, setAutoPackOrientation] = useState<'width' | 'height'>('width');
     const [autoPackForce, setAutoPackForce] = useState<boolean>(true);
+    
+    // --- Save Modal Data ---
+    const [isSaveNameModalVisible, setIsSaveNameModalVisible] = useState(false);
+    const [saveDesignName, setSaveDesignName] = useState('');
 
     useEffect(() => {
         if (isCopyModalVisible) {
@@ -351,16 +355,21 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
         }
     };
 
-    const handleSaveDesign = async () => {
+    const handleSaveDesign = () => {
         if (!selectedItem) {
             message.warning('Chưa chọn sản phẩm!');
             return;
         }
-        
+        setSaveDesignName(`Sơ đồ ${selectedItem.product?.name || selectedItem.material?.name || 'Sản phẩm'}`);
+        setIsSaveNameModalVisible(true);
+    };
+
+    const confirmSaveDesign = async () => {
+        setIsSaveNameModalVisible(false);
         try {
             const dataToSave = {
                 code: `SD-${Date.now()}`,
-                name: `Sơ đồ ${selectedItem.product?.name || selectedItem.material?.name || 'Sản phẩm'}`,
+                name: saveDesignName || `Sơ đồ ${selectedItem.product?.name || selectedItem.material?.name || 'Sản phẩm'}`,
                 type: 'PRINT',
                 product_id: selectedItem.product?.id,
                 customer_id: selectedPo?.plan?.sales_orders?.[0]?.customer_id || selectedPo?.customer_id || null,
@@ -1418,7 +1427,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                     { title: 'Số lượng SP', dataIndex: 'productQuantity', render: v => <b>{v}</b> },
                                     { title: 'Số lần in', dataIndex: 'runs', render: (v, r) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+1 (lượt cuối)</small></span> : v },
                                     { title: 'Số con/file', dataIndex: 'qtyPerFile', render: (v, r) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+ {r.remainderQty} (lượt cuối)</small></span> : v },
-                                    { title: 'Tổng mét vải (m)', dataIndex: 'totalQty' },
+                                    { title: 'Tổng mét vải (m)', dataIndex: 'expectedTotalLength', render: v => <b style={{ color: '#52c41a' }}>{(Number(v) / 100).toFixed(2)}</b> },
                                     { title: 'Khổ (cm)', dataIndex: 'width' },
                                     { title: 'Kích thước / file (cm)', dataIndex: 'length', render: (v, r) => r.remainderQty > 0 ? <span><span style={{ color: '#cf1322' }}>{v.toFixed(2)}</span> <br/><small style={{color: '#cf1322'}}>+ {r.remainderLength.toFixed(2)} (lượt cuối)</small></span> : <span style={{ color: '#cf1322' }}>{v.toFixed(2)}</span> },
                                     { title: 'Dự kiến cần (cm)', dataIndex: 'expectedTotalLength', render: v => <b style={{ color: '#1890ff' }}>{v}</b> },
@@ -1440,6 +1449,22 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
 
     return (
         <Card title="Quy Trình Xếp Sơ Đồ & Thiết Kế In/Thêu">
+
+            <Modal 
+                title="Đặt tên sơ đồ (VD: Mốc 30, Mốc 50...)" 
+                open={isSaveNameModalVisible} 
+                onOk={confirmSaveDesign}
+                onCancel={() => setIsSaveNameModalVisible(false)}
+                okText="Lưu Sơ đồ"
+                cancelText="Hủy"
+            >
+                <Input 
+                    value={saveDesignName} 
+                    onChange={e => setSaveDesignName(e.target.value)} 
+                    placeholder="Nhập tên hoặc mốc số lượng..." 
+                    onPressEnter={confirmSaveDesign}
+                />
+            </Modal>
             <Steps current={currentStep} items={steps.map(s => ({ title: s.title }))} style={{ marginBottom: 24 }} />
             
             <div style={{ minHeight: 400 }}>

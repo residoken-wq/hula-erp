@@ -23,6 +23,10 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
     const [isCopyModalVisible, setIsCopyModalVisible] = useState(false);
     const [categoryDesigns, setCategoryDesigns] = useState<any[]>([]);
     const [searchCopyText, setSearchCopyText] = useState('');
+    
+    // --- Pattern Copy States ---
+    const [isCopyPatternModalVisible, setIsCopyPatternModalVisible] = useState(false);
+    const [categoryProductsWithPattern, setCategoryProductsWithPattern] = useState<any[]>([]);
 
     useEffect(() => {
         if (editingItem?.id) {
@@ -72,6 +76,43 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
             setPrintDesigns(res.data);
         } catch (e) {
             console.error('Error fetching print designs', e);
+        }
+    };
+    
+    const fetchProductsForPatternCopy = async () => {
+        if (!editingItem?.category_id) {
+            message.warning('Sản phẩm chưa có Danh mục!');
+            return;
+        }
+        try {
+            const res = await api.get(`/products?category_id=${editingItem.category_id}&limit=100`);
+            const products = res.data.items || res.data || [];
+            const filtered = products.filter((p: any) => p.id !== editingItem.id);
+            setCategoryProductsWithPattern(filtered);
+            setIsCopyPatternModalVisible(true);
+        } catch (e) {
+            message.error('Lỗi tải danh sách sản phẩm cùng danh mục');
+        }
+    };
+    
+    const handleCopyPattern = async (product: any) => {
+        try {
+            const res = await api.get(`/products/${product.id}/pattern`);
+            if (res.data) {
+                form.setFieldsValue({
+                    fabric_width: res.data.fabric_width,
+                    fabric_yield: res.data.fabric_yield,
+                    note: res.data.note
+                });
+                setImageUrl(res.data.image_url || '');
+                setDetails(res.data.details || []);
+                message.success('Đã sao chép cấu hình Rập. Vui lòng bấm Lưu để ghi nhận!');
+                setIsCopyPatternModalVisible(false);
+            } else {
+                message.warning('Sản phẩm này chưa có dữ liệu rập!');
+            }
+        } catch (e) {
+            message.error('Lỗi tải thông tin rập của sản phẩm');
         }
     };
 
@@ -176,7 +217,11 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
             <Row gutter={24}>
                 {/* Cột Trái: Hình ảnh & Thông số chung */}
             <Col span={10}>
-                <Card title="Sơ đồ Rập (Marker)" size="small">
+                <Card 
+                    title="Sơ đồ Rập (Marker)" 
+                    size="small"
+                    extra={<Button size="small" type="default" icon={<CopyOutlined />} onClick={fetchProductsForPatternCopy}>Copy Rập</Button>}
+                >
                     <div style={{ textAlign: 'center', marginBottom: 20 }}>
                         {imageUrl ? (
                             <img src={imageUrl.startsWith('http') ? imageUrl : `${API_URL.replace('/api', '')}${imageUrl}`} alt="Sơ đồ" style={{ maxWidth: '100%', maxHeight: 300, border: '1px dashed #ccc', borderRadius: 8 }} />
@@ -319,6 +364,36 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
                 ]}
             />
         </Modal>
+
+        <Modal 
+            title="Sao chép Sơ đồ rập từ Sản phẩm cùng Danh mục" 
+            open={isCopyPatternModalVisible} 
+            onCancel={() => setIsCopyPatternModalVisible(false)} 
+            footer={null} 
+            width={700}
+        >
+            <Input.Search 
+                placeholder="Tìm kiếm sản phẩm..." 
+                allowClear 
+                style={{ marginBottom: 16 }}
+            />
+            <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                <List
+                    dataSource={categoryProductsWithPattern}
+                    renderItem={(item: any) => (
+                        <List.Item
+                            actions={[<Button type="primary" size="small" onClick={() => handleCopyPattern(item)}>Sao chép</Button>]}
+                        >
+                            <List.Item.Meta
+                                title={<b>{item.name}</b>}
+                                description={`SKU: ${item.sku || '-'}`}
+                            />
+                        </List.Item>
+                    )}
+                />
+            </div>
+        </Modal>
+
         </>
     );
 };
