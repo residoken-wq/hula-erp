@@ -30,6 +30,12 @@ export function packRectangles(bin: Bin, rects: Rect[], padding: number = 0, all
         let placed = false;
         const initialRotated = rect.rotated === true;
 
+        // Sort freeRects by y, then by x to prefer top-left placement (Left-to-Right, Top-to-Bottom packing)
+        freeRects.sort((a, b) => {
+            if (a.y !== b.y) return a.y - b.y;
+            return a.x - b.x;
+        });
+
         // Try to find a free rectangle that fits
         for (let i = 0; i < freeRects.length; i++) {
             const freeRect = freeRects[i];
