@@ -83,7 +83,7 @@ const URLImage = ({ image, x, y, width, height, isSelected, onSelect, onChange }
 };
 
 // --- Step 3 Interactive Rect Component ---
-const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: any) => {
+const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange, onRemove }: any) => {
     const shapeRef = useRef<any>();
     const trRef = useRef<any>();
     const [logoImage] = useImage(rect.data?.logoUrl || '', 'anonymous');
@@ -225,6 +225,24 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
                         rotation={-90}
                     />
                 </Group>
+                
+                {isSelected && rect.id.startsWith('custom-') && (
+                    <Group
+                        x={rect.w * scale - 10}
+                        y={-10}
+                        onClick={(e) => {
+                            e.cancelBubble = true;
+                            if (onRemove) onRemove();
+                        }}
+                        onTap={(e) => {
+                            e.cancelBubble = true;
+                            if (onRemove) onRemove();
+                        }}
+                    >
+                        <KonvaRect width={20} height={20} fill="red" cornerRadius={10} offsetX={10} offsetY={10} />
+                        <KonvaText text="X" x={-4} y={-5} fill="white" fontSize={12} fontStyle="bold" />
+                    </Group>
+                )}
             </Group>
             {isSelected && (
                 <Transformer
@@ -237,17 +255,17 @@ const DraggableRect = ({ rect, scale, face, isSelected, onSelect, onChange }: an
     );
 };
 
-const RulerLayer = ({ width, height, scale }: { width: number, height: number, scale: number }) => {
+const RulerLayer = ({ width, height, scale, offsetX = 0, offsetY = 0 }: { width: number, height: number, scale: number, offsetX?: number, offsetY?: number }) => {
     const ticksX = [];
     for(let i=0; i<=width; i+=50) {
-        ticksX.push(<KonvaRect key={`x${i}`} x={i * scale} y={0} width={1} height={10} fill="red" />);
-        ticksX.push(<KonvaText key={`xt${i}`} x={i * scale + 2} y={12} text={`${i}cm`} fontSize={12} fill="red" />);
+        ticksX.push(<KonvaRect key={`x${i}`} x={offsetX + i * scale} y={offsetY - 10} width={1} height={10} fill="red" />);
+        ticksX.push(<KonvaText key={`xt${i}`} x={offsetX + i * scale + 2} y={offsetY - 25} text={`${i}cm`} fontSize={12} fill="red" />);
     }
     const ticksY = [];
     for(let i=0; i<=height; i+=50) {
         if (i === 0) continue;
-        ticksY.push(<KonvaRect key={`y${i}`} x={0} y={i * scale} width={10} height={1} fill="red" />);
-        ticksY.push(<KonvaText key={`yt${i}`} x={12} y={i * scale + 2} text={`${i}cm`} fontSize={12} fill="red" />);
+        ticksY.push(<KonvaRect key={`y${i}`} x={offsetX - 10} y={offsetY + i * scale} width={10} height={1} fill="red" />);
+        ticksY.push(<KonvaText key={`yt${i}`} x={offsetX - 35} y={offsetY + i * scale - 5} text={`${i}cm`} fontSize={12} fill="red" />);
     }
 
     return (
@@ -1171,6 +1189,24 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                             title={lockedFaces[face.id] ? "Mở khóa sơ đồ" : "Khóa sơ đồ (Giữ cố định khi Chạy Tự Động xếp)"}
                                         />
                                         {lockedFaces[face.id] && <Tag color="error">Đã khóa</Tag>}
+                                        {lockedFaces[face.id] && (() => {
+                                            const stats = resultsByFace[face.id]?.stats;
+                                            if (!stats) return null;
+                                            let totalUsedArea = 0;
+                                            let totalBinArea = 0;
+                                            resultsByFace[face.id].binResults.forEach(bin => {
+                                                bin.packed.forEach(r => totalUsedArea += r.w * r.h);
+                                                totalBinArea += bin.w * bin.h;
+                                            });
+                                            const waste = totalBinArea - totalUsedArea;
+                                            const w = stats.width;
+                                            const hD = waste / w;
+                                            return (
+                                                <Tag color="warning" style={{marginLeft: 8}}>
+                                                    Phần dư: {w}x{hD.toFixed(1)} cm ({waste.toFixed(1)} cm²)
+                                                </Tag>
+                                            );
+                                        })()}
                                     </Space>
                                 </Divider>
                                 
@@ -1193,11 +1229,12 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                             extra={<Button size="small" type="dashed" icon={<PlusOutlined />} onClick={() => handleAddCustomPiece(face.id, idx)}>Thêm chi tiết phụ</Button>}
                                         >
                                             <div style={{ overflowX: 'auto', background: '#f0f2f5', padding: 10 }}>
-                                                <div style={{ width: CANVAS_DISPLAY_WIDTH, height: displayHeight, background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', backgroundImage: 'linear-gradient(#f0f0f0 1px, transparent 1px), linear-gradient(90deg, #f0f0f0 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-                                                    <Stage width={CANVAS_DISPLAY_WIDTH} height={displayHeight} ref={(node) => { stageRefs.current[face.id][idx] = node; }} onMouseDown={(e) => {
+                                                <div style={{ position: 'relative', width: CANVAS_DISPLAY_WIDTH + 40, height: displayHeight + 40 }}>
+                                                    <div style={{ position: 'absolute', top: 40, left: 40, width: CANVAS_DISPLAY_WIDTH, height: displayHeight, background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', backgroundImage: 'linear-gradient(#f0f0f0 1px, transparent 1px), linear-gradient(90deg, #f0f0f0 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                                                    <Stage style={{ position: 'absolute', top: 0, left: 0 }} width={CANVAS_DISPLAY_WIDTH + 40} height={displayHeight + 40} ref={(node) => { stageRefs.current[face.id][idx] = node; }} onMouseDown={(e) => {
                                                         if (e.target === e.target.getStage()) setSelectedPiece(null);
                                                     }}>
-                                                        <Layer>
+                                                        <Layer x={40} y={40}>
                                                             {result.packed.map((rect) => {
                                                                 const isSelected = selectedPiece?.faceId === face.id && selectedPiece?.binIdx === idx && selectedPiece?.rectId === rect.id;
                                                                 return (
@@ -1208,6 +1245,33 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                                                         face={face}
                                                                         isSelected={isSelected}
                                                                         onSelect={() => setSelectedPiece({ faceId: face.id, binIdx: idx, rectId: rect.id })}
+                                                                        onRemove={() => {
+                                                                            const newResults = {...resultsByFace};
+                                                                            const packed = newResults[face.id].binResults[idx].packed;
+                                                                            const rectIdx = packed.findIndex((r: any) => r.id === rect.id);
+                                                                            if (rectIdx !== -1) {
+                                                                                packed.splice(rectIdx, 1);
+                                                                                if (packingMode === 'CONTINUOUS' && newResults[face.id].stats) {
+                                                                                    let maxLength = 0;
+                                                                                    let totalArea = 0;
+                                                                                    packed.forEach((r: any) => {
+                                                                                        const rW = r.rotated || r.rotation === -90 || r.rotation === 90 || r.rotation === 270 ? r.h : r.w;
+                                                                                        const rH = r.rotated || r.rotation === -90 || r.rotation === 90 || r.rotation === 270 ? r.w : r.h;
+                                                                                        const bottomEdge = (r.y || 0) + rH;
+                                                                                        if (bottomEdge > maxLength) maxLength = bottomEdge;
+                                                                                        totalArea += (r.w * r.h);
+                                                                                    });
+                                                                                    if (maxLength === 0) maxLength = 10;
+                                                                                    const stats = newResults[face.id].stats;
+                                                                                    stats.length = maxLength;
+                                                                                    stats.expectedTotalLength = stats.runs * maxLength;
+                                                                                    stats.wasteArea = Math.max(0, (maxLength * stats.width) - totalArea);
+                                                                                    newResults[face.id].binResults[idx].h = maxLength;
+                                                                                }
+                                                                                setResultsByFace(newResults);
+                                                                                setSelectedPiece(null);
+                                                                            }
+                                                                        }}
                                                                         onChange={(newAttrs: any) => {
                                                                             const newResults = {...resultsByFace};
                                                                             const packed = newResults[face.id].binResults[idx].packed;
@@ -1242,7 +1306,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                                                 );
                                                             })}
                                                         </Layer>
-                                                        <RulerLayer width={result.w} height={result.h} scale={scale} />
+                                                        <RulerLayer width={result.w} height={result.h} scale={scale} offsetX={40} offsetY={40} />
                                                     </Stage>
                                                 </div>
                                             </div>
