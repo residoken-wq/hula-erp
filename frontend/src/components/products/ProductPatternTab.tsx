@@ -20,6 +20,7 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
     const [printDesigns, setPrintDesigns] = useState<any[]>([]);
     
     const [isStandaloneModalVisible, setIsStandaloneModalVisible] = useState(false);
+    const [editingMarker, setEditingMarker] = useState<any>(null);
     const [isCopyModalVisible, setIsCopyModalVisible] = useState(false);
     const [categoryDesigns, setCategoryDesigns] = useState<any[]>([]);
     const [searchCopyText, setSearchCopyText] = useState('');
@@ -296,7 +297,7 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
             extra={
                 <Space>
                     <Button type="default" icon={<CopyOutlined />} onClick={fetchDesignsByCategory}>Copy Sơ đồ từ SP cùng loại</Button>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsStandaloneModalVisible(true)}>Tạo Sơ đồ Marker</Button>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingMarker(null); setIsStandaloneModalVisible(true); }}>Tạo Sơ đồ Marker</Button>
                 </Space>
             }
         >
@@ -311,13 +312,14 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
                     { title: 'Ngày tạo', dataIndex: 'created_at', render: (t) => new Date(t).toLocaleString() },
                     { title: 'Khách hàng', render: (r: any) => r.customer?.name || '-' },
                     { title: 'Loại', dataIndex: 'type' },
-                    { title: 'SL Mặt vải', render: (r: any) => r.tech_pack?.faces?.length || 0 }
+                    { title: 'SL Mặt vải', render: (r: any) => r.tech_pack?.faces?.length || 0 },
+                    { title: 'Thao tác', render: (r: any) => <Button type="link" onClick={() => { setEditingMarker(r); setIsStandaloneModalVisible(true); }}>Sửa</Button> }
                 ]}
             />
         </Card>
 
         <Modal 
-            title="Tạo Sơ đồ Marker" 
+            title={editingMarker ? "Sửa Sơ đồ Marker" : "Tạo Sơ đồ Marker"} 
             open={isStandaloneModalVisible} 
             onCancel={() => setIsStandaloneModalVisible(false)} 
             footer={null} 
@@ -327,6 +329,7 @@ const ProductPatternTab: React.FC<ProductPatternTabProps> = ({ editingItem }) =>
         >
             <UnifiedDesignWorkflow 
                 standaloneProduct={editingItem} 
+                initialMarker={editingMarker}
                 onStandaloneComplete={() => { 
                     setIsStandaloneModalVisible(false); 
                     fetchPrintDesigns(); 

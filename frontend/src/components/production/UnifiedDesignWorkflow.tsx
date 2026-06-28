@@ -287,9 +287,10 @@ const RulerLayer = ({ width, height, scale, offsetX = 0, offsetY = 0 }: { width:
 interface UnifiedDesignWorkflowProps {
     standaloneProduct?: any;
     onStandaloneComplete?: () => void;
+    initialMarker?: any;
 }
 
-const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standaloneProduct, onStandaloneComplete }) => {
+const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standaloneProduct, onStandaloneComplete, initialMarker }) => {
     // --- Global State ---
     const [currentStep, setCurrentStep] = useState(0);
 
@@ -326,6 +327,23 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
             fetchSavedDesigns();
         }
     }, [isCopyModalVisible]);
+
+    useEffect(() => {
+        if (initialMarker && initialMarker.tech_pack && initialMarker.tech_pack.faces) {
+            setFaces(initialMarker.tech_pack.faces);
+            setBinsByFace(initialMarker.tech_pack.binsByFace || { 'face-1': [{ w: 400, h: 120 }] });
+            setPadding(initialMarker.tech_pack.padding ?? 2);
+            setAllowRotation(initialMarker.tech_pack.allowRotation ?? true);
+            if (initialMarker.tech_pack.continuousConfigs) {
+                setContinuousConfigs(initialMarker.tech_pack.continuousConfigs);
+            }
+            if (initialMarker.tech_pack.resultsByFace) {
+                setResultsByFace(initialMarker.tech_pack.resultsByFace);
+            }
+            setSaveDesignName(initialMarker.name || '');
+            setCurrentStep(2); // Jump to layout step
+        }
+    }, [initialMarker]);
 
     const fetchSavedDesigns = async () => {
         try {
@@ -368,7 +386,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
         setIsSaveNameModalVisible(false);
         try {
             const dataToSave = {
-                code: `SD-${Date.now()}`,
+                code: initialMarker ? initialMarker.code : `SD-${Date.now()}`,
                 name: saveDesignName || `Sơ đồ ${selectedItem.product?.name || selectedItem.material?.name || 'Sản phẩm'}`,
                 type: 'PRINT',
                 product_id: selectedItem.product?.id,
@@ -382,8 +400,16 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                     continuousConfigs
                 }
             };
-            const res = await api.post('/designs/print-designs', dataToSave);
-            const savedDesign = res.data;
+            let savedDesign;
+            if (initialMarker && initialMarker.id) {
+                const res = await api.put(`/designs/print-designs/${initialMarker.id}`, dataToSave);
+                savedDesign = res.data;
+                message.success('Đã cập nhật sơ đồ thành công!');
+            } else {
+                const res = await api.post('/designs/print-designs', dataToSave);
+                savedDesign = res.data;
+                message.success('Đã lưu sơ đồ vào hệ thống!');
+            }
             
             if (!standaloneProduct && selectedPo && selectedItem.id !== 'standalone') {
                 await api.put(`/purchasing/${selectedPo.id}`, {
@@ -403,14 +429,12 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                 }));
             }
             
-            message.success('Đã lưu sơ đồ vào hệ thống!');
-            
             if (standaloneProduct && onStandaloneComplete) {
                 onStandaloneComplete();
             }
         } catch (e) {
-            console.error(e);
-            message.error('Lỗi khi lưu sơ đồ');
+            console.error('Lỗi lưu sơ đồ', e);
+            message.error('Lỗi khi lưu sơ đồ!');
         }
     };
 
