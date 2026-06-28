@@ -440,7 +440,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
 
     // --- Step 2 Data: Multi-Face Support ---
     const [faces, setFaces] = useState<any[]>([
-        { id: 'face-1', name: 'Mặt trước', pieceSize: { w: 50, h: 40 }, bgColor: '#e6f7ff', logoUrl: null, processedLogoUrl: null, removeTolerance: 240, logoColor: 'original', logoConfig: { x: 0, y: 0, width: 0, height: 0 }, selectedId: null }
+        { id: 'face-1', name: 'Mặt trước', pieceSize: { w: 50, h: 40 }, bgColor: '#e6f7ff', logoUrl: null, processedLogoUrl: null, removeTolerance: 240, logoColor: 'original', logoConfig: { x: 0, y: 0, width: 0, height: 0 }, selectedId: null, fabricType: 'Canvas' }
     ]);
     const [activeFaceKey, setActiveFaceKey] = useState('face-1');
 
@@ -455,7 +455,8 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
     const stageRefs = useRef<Record<string, any[]>>({}); // Refs for multiple canvases mapped by faceId
 
     const [packingMode, setPackingMode] = useState<'CONTINUOUS' | 'FIXED_BINS'>('CONTINUOUS');
-    const [continuousConfigs, setContinuousConfigs] = useState<Record<string, { width: number, qtyPerFile: number, totalQty: number }>>({});
+    const [continuousConfigs, setContinuousConfigs] = useState<Record<string, { width: number, qtyPerFile: number, totalQty: number, manualLength?: number }>>({});
+    const [printOverrides, setPrintOverrides] = useState<Record<string, { length?: number, runs?: number }>>({});
 
     const [selectedPiece, setSelectedPiece] = useState<{faceId: string, binIdx: number, rectId: string} | null>(null);
     const [customPiece, setCustomPiece] = useState({ name: 'Túi hông', w: 10, h: 10, color: '#ffec3d' });
@@ -607,7 +608,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
 
     const handleAddFace = () => {
         const newId = `face-${Date.now()}`;
-        setFaces([...faces, { id: newId, name: `Mặt vải ${faces.length + 1}`, pieceSize: { w: 50, h: 40 }, bgColor: '#fff7e6', logoUrl: null, processedLogoUrl: null, removeTolerance: 240, logoColor: 'original', logoConfig: { x: 10, y: 10, width: 20, height: 20 }, selectedId: null }]);
+        setFaces([...faces, { id: newId, name: `Mặt vải ${faces.length + 1}`, pieceSize: { w: 50, h: 40 }, bgColor: '#fff7e6', logoUrl: null, processedLogoUrl: null, removeTolerance: 240, logoColor: 'original', logoConfig: { x: 10, y: 10, width: 20, height: 20 }, selectedId: null, fabricType: 'Canvas' }]);
         setBinsByFace({ ...binsByFace, [newId]: [{ w: 400, h: 120 }] });
         setActiveFaceKey(newId);
     };
@@ -1022,8 +1023,12 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                     <Card title="Thông số (1 mảnh)" extra={faces.length > 1 && <Button danger type="text" icon={<DeleteOutlined />} onClick={() => handleRemoveFace(face.id)} />}>
                                         <Space direction="vertical" style={{ width: '100%' }}>
                                             <div>
-                                                <label>Tên Mặt/Vải:</label>
+                                                <label>Tên Mặt/Chi tiết:</label>
                                                 <input className="ant-input" value={face.name} onChange={e => updateFace(face.id, { name: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label>Loại vải in:</label>
+                                                <input className="ant-input" value={face.fabricType || ''} onChange={e => updateFace(face.id, { fabricType: e.target.value })} placeholder="Ví dụ: Canvas trắng ngà" />
                                             </div>
                                             <div>
                                                 <label>Kích thước Dài (cm):</label>
@@ -1434,41 +1439,118 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                     })}
 
                     {packingMode === 'CONTINUOUS' && Object.keys(resultsByFace).length > 0 && (
-                        <Card title="Bảng Thống Kê (Dự kiến thực tế)" size="small" style={{ marginTop: 24, borderColor: '#52c41a' }}>
-                            <Table
-                                size="small"
-                                pagination={false}
-                                dataSource={faces.map(face => {
-                                    const stats = resultsByFace[face.id]?.stats;
-                                    if (!stats) return null;
-                                    return {
-                                        key: face.id,
-                                        name: face.name,
-                                        runs: stats.runs,
-                                        qtyPerFile: stats.qtyPerFile,
-                                        totalQty: stats.totalQty,
-                                        productQuantity: stats.productQuantity,
-                                        width: stats.width,
-                                        length: stats.length,
-                                        remainderQty: stats.remainderQty,
-                                        remainderLength: stats.remainderLength,
-                                        expectedTotalLength: stats.expectedTotalLength.toFixed(2),
-                                        wasteArea: stats.wasteArea.toFixed(2)
-                                    };
-                                }).filter(Boolean)}
-                                columns={[
-                                    { title: 'Nội dung in', dataIndex: 'name', render: t => <b>{t}</b> },
-                                    { title: 'Số lượng SP', dataIndex: 'productQuantity', render: v => <b>{v}</b> },
-                                    { title: 'Số lần in', dataIndex: 'runs', render: (v, r) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+1 (lượt cuối)</small></span> : v },
-                                    { title: 'Số con/file', dataIndex: 'qtyPerFile', render: (v, r) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+ {r.remainderQty} (lượt cuối)</small></span> : v },
-                                    { title: 'Tổng mét vải (m)', dataIndex: 'expectedTotalLength', render: v => <b style={{ color: '#52c41a' }}>{(Number(v) / 100).toFixed(2)}</b> },
-                                    { title: 'Khổ (cm)', dataIndex: 'width' },
-                                    { title: 'Kích thước / file (cm)', dataIndex: 'length', render: (v, r) => r.remainderQty > 0 ? <span><span style={{ color: '#cf1322' }}>{v.toFixed(2)}</span> <br/><small style={{color: '#cf1322'}}>+ {r.remainderLength.toFixed(2)} (lượt cuối)</small></span> : <span style={{ color: '#cf1322' }}>{v.toFixed(2)}</span> },
-                                    { title: 'Dự kiến cần (cm)', dataIndex: 'expectedTotalLength', render: v => <b style={{ color: '#1890ff' }}>{v}</b> },
-                                    { title: 'Diện tích dư cuối (cm²)', dataIndex: 'wasteArea' },
-                                ]}
-                            />
-                        </Card>
+                        <>
+                            <Card title="Bảng Thống Kê (Dự kiến thực tế)" size="small" style={{ marginTop: 24, borderColor: '#52c41a' }}>
+                                <Table
+                                    size="small"
+                                    pagination={false}
+                                    dataSource={faces.map(face => {
+                                        const stats = resultsByFace[face.id]?.stats;
+                                        if (!stats) return null;
+                                        return {
+                                            key: face.id,
+                                            name: face.name,
+                                            runs: stats.runs,
+                                            qtyPerFile: stats.qtyPerFile,
+                                            totalQty: stats.totalQty,
+                                            productQuantity: stats.productQuantity,
+                                            width: stats.width,
+                                            length: stats.length,
+                                            remainderQty: stats.remainderQty,
+                                            remainderLength: stats.remainderLength,
+                                            expectedTotalLength: stats.expectedTotalLength.toFixed(2),
+                                            wasteArea: stats.wasteArea.toFixed(2)
+                                        };
+                                    }).filter(Boolean)}
+                                    columns={[
+                                        { title: 'Nội dung in', dataIndex: 'name', render: t => <b>{t}</b> },
+                                        { title: 'Số lượng SP', dataIndex: 'productQuantity', render: v => <b>{v}</b> },
+                                        { title: 'Số lần in', dataIndex: 'runs', render: (v, r) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+1 (lượt cuối)</small></span> : v },
+                                        { title: 'Số con/file', dataIndex: 'qtyPerFile', render: (v, r) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+ {r.remainderQty} (lượt cuối)</small></span> : v },
+                                        { title: 'Tổng mét vải (m)', dataIndex: 'expectedTotalLength', render: v => <b style={{ color: '#52c41a' }}>{(Number(v) / 100).toFixed(2)}</b> },
+                                        { title: 'Khổ (cm)', dataIndex: 'width' },
+                                        { title: 'Kích thước / file (cm)', dataIndex: 'length', render: (v, r) => r.remainderQty > 0 ? <span><span style={{ color: '#cf1322' }}>{v.toFixed(2)}</span> <br/><small style={{color: '#cf1322'}}>+ {r.remainderLength.toFixed(2)} (lượt cuối)</small></span> : <span style={{ color: '#cf1322' }}>{v.toFixed(2)}</span> },
+                                        { title: 'Dự kiến cần (cm)', dataIndex: 'expectedTotalLength', render: v => <b style={{ color: '#1890ff' }}>{v}</b> },
+                                        { title: 'Diện tích dư cuối (cm²)', dataIndex: 'wasteArea' },
+                                    ]}
+                                />
+                            </Card>
+
+                            <Card title="Gửi nhà in" size="small" style={{ marginTop: 24, borderColor: '#1890ff' }}>
+                                <Table
+                                    size="small"
+                                    pagination={false}
+                                    dataSource={faces.map(face => {
+                                        const stats = resultsByFace[face.id]?.stats;
+                                        if (!stats) return null;
+                                        
+                                        const manualLength = printOverrides[face.id]?.length ?? (stats.length / 100);
+                                        const manualRuns = printOverrides[face.id]?.runs ?? (manualLength > 0 ? (stats.totalQty / manualLength) : 0);
+
+                                        return {
+                                            key: face.id,
+                                            fabricType: face.fabricType || face.name,
+                                            runs: manualRuns,
+                                            width: stats.width,
+                                            length: manualLength,
+                                            expectedTotalLength: stats.totalQty,
+                                            faceId: face.id
+                                        };
+                                    }).filter(Boolean)}
+                                    columns={[
+                                        { 
+                                            title: 'IN VẢI', 
+                                            dataIndex: 'fabricType', 
+                                            render: t => <b style={{ color: 'red' }}>{t}</b> 
+                                        },
+                                        { 
+                                            title: 'Số lần in', 
+                                            dataIndex: 'runs',
+                                            render: (v, r: any) => (
+                                                <InputNumber 
+                                                    size="small" 
+                                                    style={{ width: 80 }}
+                                                    value={Number(v)} 
+                                                    onChange={(val) => setPrintOverrides(prev => ({ ...prev, [r.faceId]: { ...prev[r.faceId], runs: val || 0 } }))} 
+                                                />
+                                            )
+                                        },
+                                        { title: 'Khổ', dataIndex: 'width' },
+                                        { 
+                                            title: 'Kích thước', 
+                                            dataIndex: 'length',
+                                            render: (v, r: any) => (
+                                                <InputNumber 
+                                                    size="small" 
+                                                    style={{ width: 80 }}
+                                                    value={Number(v)} 
+                                                    onChange={(val) => setPrintOverrides(prev => ({ ...prev, [r.faceId]: { ...prev[r.faceId], length: val || 0 } }))} 
+                                                />
+                                            )
+                                        },
+                                        { 
+                                            title: 'Dự kiến cần', 
+                                            dataIndex: 'expectedTotalLength',
+                                            render: v => <span>{v}</span>
+                                        }
+                                    ]}
+                                    summary={(pageData: readonly any[]) => {
+                                        let totalExpected = 0;
+                                        pageData.forEach(({ expectedTotalLength }) => {
+                                            totalExpected += Number(expectedTotalLength || 0);
+                                        });
+                                        return (
+                                            <Table.Summary.Row style={{ background: '#fafafa', fontWeight: 'bold' }}>
+                                                <Table.Summary.Cell index={0} colSpan={4} align="right">Tổng cộng Dự kiến cần:</Table.Summary.Cell>
+                                                <Table.Summary.Cell index={1}>
+                                                    <div style={{ background: '#fffb8f', padding: '4px 8px', display: 'inline-block' }}>{totalExpected.toFixed(2)}</div>
+                                                </Table.Summary.Cell>
+                                            </Table.Summary.Row>
+                                        );
+                                    }}
+                                />
+                            </Card>
+                        </>
                     )}
                 </Col>
             </Row>
