@@ -599,7 +599,6 @@ const PortalQuotePage: React.FC = () => {
                 <div class="sig-role">Đại diện Cty Tường Linh</div>
                 <div class="sig-note">(Ký, đóng dấu)</div>
                 <div class="sig-space"></div>
-                <div style="font-weight:700;">${data.assigned_to?.full_name || ''}</div>
             </div>
         </div>
         `}
