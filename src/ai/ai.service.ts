@@ -667,19 +667,43 @@ Chỉ trả về nội dung gợi ý, không giải thích thêm.`;
         }
     }
 
+    // Helper to parse CV from URL
+    async parseCvUrl(cvUrl: string): Promise<string> {
+        if (!cvUrl || !cvUrl.startsWith('http')) return cvUrl || '';
+        try {
+            const res = await fetch(cvUrl);
+            const buffer = await res.arrayBuffer();
+            if (cvUrl.toLowerCase().endsWith('.pdf')) {
+                const pdfParse = require('pdf-parse');
+                const data = await pdfParse(Buffer.from(buffer));
+                return data.text;
+            } else {
+                // Return URL for Gemini multimodal if supported, else return empty or basic
+                return cvUrl;
+            }
+        } catch (e) {
+            console.error('Lỗi đọc nội dung CV:', e);
+            return cvUrl;
+        }
+    }
+
     // Feature 1: AI Generate 10 STAR Questions
-    async generateRecruitmentQuestions(jdText: string, cvText: string): Promise<any> {
+    async generateRecruitmentQuestions(jdText: string, cvUrlOrText: string): Promise<any> {
+        const cvContent = await this.parseCvUrl(cvUrlOrText);
         const prompt = `
 ### ROLE: Chuyên gia Phỏng Vấn Tuyển Dụng cao cấp (Senior Talent Acquisition).
 ### TASK: Tạo 10 câu hỏi phỏng vấn dựa trên Mô tả công việc (JD) và CV ứng viên.
 
 Job Description: ${jdText}
-Candidate CV Summary: ${cvText || 'N/A'}
+Candidate CV Summary/Content: ${cvContent || 'N/A'}
 
 ### YÊU CẦU:
 1. Tạo đúng 10 câu hỏi phỏng vấn, áp dụng mô hình S.T.A.R nếu phù hợp.
 2. Dựa vào JD để đánh giá Core Skills, Dựa vào CV để đào sâu kinh nghiệm.
 3. Câu hỏi phải bằng tiếng Việt, rõ ràng.
+4. **Trọng số theo category:** Phân bổ "max_score" cho từng câu hỏi sao cho tổng điểm 10 câu là đúng 100 điểm. Các kỹ năng quan trọng trong JD nên chiếm trọng số điểm cao hơn.
+5. Cung cấp tiêu chí chấm điểm (scoring_criteria) chi tiết cho 3 mức: excellent (xuất sắc), good (tốt), poor (yếu).
+6. Cung cấp các ý chính cần có (key_points) trong câu trả lời.
 
 ### OUTPUT FORMAT:
 You MUST return ONLY a valid JSON object in this structure:
@@ -689,7 +713,14 @@ You MUST return ONLY a valid JSON object in this structure:
        "id": "1",
        "category": "Behavioral",
        "question": "Nội dung câu hỏi...",
-       "intent": "Mục đích câu hỏi"
+       "intent": "Mục đích câu hỏi",
+       "max_score": 10,
+       "scoring_criteria": {
+          "excellent": "Mô tả câu trả lời xuất sắc (8-10 điểm)",
+          "good": "Mô tả câu trả lời tốt (5-7 điểm)",
+          "poor": "Mô tả câu trả lời yếu (1-4 điểm)"
+       },
+       "key_points": ["Ý chính 1", "Ý chính 2"]
     }
   ]
 }

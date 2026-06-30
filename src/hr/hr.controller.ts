@@ -3,9 +3,11 @@ import { HrService } from './hr.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { LeaveStatus } from './entities/leave-request.entity';
 import { Public } from '../auth/public.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('hr')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class HrController {
     constructor(private readonly hrService: HrService) { }
 
@@ -230,26 +232,31 @@ export class HrController {
     // ==================== RECRUITMENT ====================
 
     @Get('recruitment/jobs')
+    @RequirePermission('HR', 'can_view')
     findAllJobs() {
         return this.hrService.findAllJobs();
     }
 
     @Post('recruitment/jobs')
+    @RequirePermission('HR', 'can_create')
     createJob(@Body() data: any) {
         return this.hrService.createJob(data);
     }
 
     @Put('recruitment/jobs/:id')
+    @RequirePermission('HR', 'can_update')
     updateJob(@Param('id') id: string, @Body() data: any) {
         return this.hrService.updateJob(+id, data);
     }
 
     @Delete('recruitment/jobs/:id')
+    @RequirePermission('HR', 'can_delete')
     deleteJob(@Param('id') id: string) {
         return this.hrService.deleteJob(+id);
     }
 
     @Post('recruitment/jobs/parse-requirements')
+    @RequirePermission('HR', 'can_create')
     parseRequirements(@Body('description') description: string) {
         // We inject AiService implicitly via HrService, wait, HrService does not expose it natively unless we add a wrapper.
         // It's better to add the wrapper in HrService or inject AiService directly into HrController.
@@ -258,61 +265,73 @@ export class HrController {
     }
 
     @Get('recruitment/candidates')
+    @RequirePermission('HR', 'can_view')
     findCandidates(@Query('job_id') jobId?: string) {
         return this.hrService.findCandidates(jobId ? +jobId : undefined);
     }
 
     @Post('recruitment/candidates')
+    @RequirePermission('HR', 'can_create')
     createCandidate(@Body() data: any) {
         return this.hrService.createCandidate(data);
     }
 
     @Put('recruitment/candidates/:id')
+    @RequirePermission('HR', 'can_update')
     updateCandidate(@Param('id') id: string, @Body() data: any) {
         return this.hrService.updateCandidate(+id, data);
     }
 
     @Delete('recruitment/candidates/:id')
+    @RequirePermission('HR', 'can_delete')
     deleteCandidate(@Param('id') id: string) {
         return this.hrService.deleteCandidate(+id);
     }
 
     @Post('recruitment/candidates/:id/send-assessment')
+    @RequirePermission('HR', 'can_update')
     sendAssessment(@Param('id') id: string, @Body('questions') questions: any[]) {
         return this.hrService.createAssessment(+id, questions);
     }
 
     @Post('recruitment/candidates/:id/generate-questions')
+    @RequirePermission('HR', 'can_update')
     generateQuestions(@Param('id') id: string) {
         return this.hrService.generateAIQuestions(+id);
     }
 
     @Get('recruitment/assessments/:candidateId')
+    @RequirePermission('HR', 'can_view')
     getAssessment(@Param('candidateId') candidateId: string) {
         return this.hrService.getAssessmentByCandidate(+candidateId);
     }
     
     @Post('recruitment/assessments/:id/evaluate')
+    @RequirePermission('HR', 'can_update')
     evaluateAssessment(@Param('id') id: string) {
         return this.hrService.evaluateAssessment(+id);
     }
 
     @Get('recruitment/interviews')
+    @RequirePermission('HR', 'can_view')
     findInterviews(@Query('candidate_id') candidateId?: string) {
         return this.hrService.findInterviews(candidateId ? +candidateId : undefined);
     }
 
     @Post('recruitment/interviews')
+    @RequirePermission('HR', 'can_create')
     createInterview(@Body() data: any) {
         return this.hrService.createInterview(data);
     }
 
     @Put('recruitment/interviews/:id')
+    @RequirePermission('HR', 'can_update')
     updateInterview(@Param('id') id: string, @Body() data: any) {
         return this.hrService.updateInterview(+id, data);
     }
 
     @Delete('recruitment/interviews/:id')
+    @RequirePermission('HR', 'can_delete')
     deleteInterview(@Param('id') id: string) {
         return this.hrService.deleteInterview(+id);
     }
