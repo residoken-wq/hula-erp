@@ -385,13 +385,16 @@ const PortalQuotePage: React.FC = () => {
         .summary-total .summary-value { font-size: 15px; font-weight: 800; color: #cf1322; }
         
         /* BOTTOM SECTION */
-        .bottom-section { display: flex; gap: 15px; margin-top: 15px; }
-        .terms-box { flex: 1; font-size: 11px; line-height: 1.5; }
+        .bottom-section { display: block; margin-top: 15px; }
+        .terms-box { margin-bottom: 15px; font-size: 11px; line-height: 1.5; }
         .terms-title { font-weight: 700; text-transform: uppercase; font-size: 11px; color: #0050b3; margin-bottom: 6px; border-bottom: 1px solid #0050b3; padding-bottom: 3px; }
-        .bank-info { background: #f9f9f9; padding: 8px 10px; border-radius: 6px; border: 1px solid #e8e8e8; margin-top: 8px; font-size: 11px; }
-        .qr-box { width: 220px; text-align: center; border: 1px solid #d9d9d9; border-radius: 8px; padding: 8px; flex-shrink: 0; }
-        .qr-box img { width: 120px; }
-        .qr-label { font-size: 9px; color: #888; margin-bottom: 4px; }
+        .payment-horizontal { border: 1px solid #d9d9d9; border-radius: 8px; padding: 10px; display: flex; align-items: center; gap: 15px; page-break-inside: avoid; }
+        .payment-amounts { display: flex; gap: 10px; }
+        .payment-amount-box { flex: 1; padding: 6px; border-radius: 6px; text-align: center; }
+        .bank-info { background: #f9f9f9; padding: 6px 10px; border-radius: 6px; border: 1px solid #e8e8e8; font-size: 11px; display: flex; justify-content: space-between; margin-top: 8px; }
+        .qr-box { width: 90px; text-align: center; flex-shrink: 0; }
+        .qr-box img { width: 80px; height: 80px; }
+        .qr-label { font-size: 9px; font-weight: 700; color: #0050b3; margin-top: 2px; }
         
         /* SIGNATURES */
         .signatures { display: flex; justify-content: space-between; margin-top: 25px; text-align: center; page-break-inside: avoid; }
@@ -461,7 +464,7 @@ const PortalQuotePage: React.FC = () => {
                     <th style="width:40px;">ĐVT</th>
                     <th style="width:35px;">SL</th>
                     <th style="width:75px;">Đơn Giá</th>
-                    <th style="width:95px;">Thành Tiền</th>
+                    <th style="width:75px;">Thành Tiền</th>
                 </tr>
             </thead>
             <tbody>
@@ -549,40 +552,45 @@ const PortalQuotePage: React.FC = () => {
 
         ${data.note ? '<div style="margin-top:12px;display:flex;gap:10px;background:#fff7e6;padding:12px 14px;border-radius:8px;border:1px solid #ffec3d;font-size:12px;"><span style="color:#faad14;font-size:16px;margin-top:2px;">ℹ️</span><div><div style="font-weight:700;color:#d48806;margin-bottom:4px;">Ghi chú từ người bán:</div><div style="color:#595959;white-space:pre-line;line-height:1.6;">' + data.note + '</div></div></div>' : ''}
         
-        <!-- BOTTOM: TERMS + QR -->
+        <!-- BOTTOM: TERMS + PAYMENT -->
         <div class="bottom-section">
             <div class="terms-box">
                 ${termsHtml ? '<div class="terms-title">Điều khoản & Quy định</div><div style="white-space:pre-line;color:#555;">' + data.terms_content + '</div>' : ''}
             </div>
             ${isOrder ? `
-            <div class="qr-box">
-                ${depositAmount > 0 ? `
-                <div style="background:#f9f0ff;padding:8px;border-radius:6px;border:1px solid #d3adf7;text-align:center;margin-bottom:8px;">
-                    <div style="color:#722ed1;font-size:9px;text-transform:uppercase;font-weight:600;">💰 Cần đặt cọc (${data.deposit_percent || 0}%)</div>
-                    <div style="font-size:13px;font-weight:700;color:#531dab;">${depositAmount.toLocaleString('vi-VN')} ₫</div>
-                </div>` : ''}
+            <div class="payment-horizontal">
+                <div style="display: flex; flex-direction: column; flex: 1;">
+                    <div class="payment-amounts">
+                        ${depositAmount > 0 ? `
+                        <div class="payment-amount-box" style="background:#f9f0ff; border:1px solid #d3adf7;">
+                            <div style="color:#722ed1;font-size:9px;text-transform:uppercase;font-weight:600;">💰 Cần đặt cọc (${data.deposit_percent || 0}%)</div>
+                            <div style="font-size:13px;font-weight:700;color:#531dab;">${depositAmount.toLocaleString('vi-VN')} ₫</div>
+                        </div>` : ''}
 
-                ${paidAmount > 0 ? `
-                <div style="background:#f0f5ff;padding:8px;border-radius:6px;border:1px solid #adc6ff;text-align:center;margin-bottom:8px;">
-                    <div style="color:#2f54eb;font-size:9px;text-transform:uppercase;font-weight:600;">Đã thanh toán</div>
-                    <div style="font-size:13px;font-weight:700;color:#1d39c4;">${paidAmount.toLocaleString('vi-VN')} ₫</div>
-                </div>` : ''}
+                        ${paidAmount > 0 ? `
+                        <div class="payment-amount-box" style="background:#f0f5ff; border:1px solid #adc6ff;">
+                            <div style="color:#2f54eb;font-size:9px;text-transform:uppercase;font-weight:600;">Đã thanh toán</div>
+                            <div style="font-size:13px;font-weight:700;color:#1d39c4;">${paidAmount.toLocaleString('vi-VN')} ₫</div>
+                        </div>` : ''}
 
-                <div style="background:#f6ffed;padding:8px;border-radius:6px;border:1px solid #b7eb8f;text-align:center;margin-bottom:8px;">
-                    <div style="color:#52c41a;font-size:9px;text-transform:uppercase;font-weight:600;">Cần thanh toán</div>
-                    <div style="font-size:14px;font-weight:800;color:#389e0d;">${remaining.toLocaleString('vi-VN')} ₫</div>
+                        <div class="payment-amount-box" style="background:#f6ffed; border:1px solid #b7eb8f;">
+                            <div style="color:#52c41a;font-size:9px;text-transform:uppercase;font-weight:600;">Cần thanh toán</div>
+                            <div style="font-size:14px;font-weight:800;color:#389e0d;">${remaining.toLocaleString('vi-VN')} ₫</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bank-info">
+                        <div><b>NH:</b> ACB - TP.HCM</div>
+                        <div><b>STK:</b> 141847859</div>
+                        <div><b>Chủ TK:</b> CTY TNHH TM DV TƯỜNG LINH</div>
+                        <div><b>ND CK:</b> <b style="color:#0050b3;">${data.order_code}</b></div>
+                    </div>
                 </div>
-
-                <div style="font-size:9px;line-height:1.5;text-align:left;margin-bottom:10px;">
-                    <div><b>ACB - TP.HCM</b></div>
-                    <div>STK: <span style="font-family:monospace;background:#f0f0f0;padding:0 3px;">141847859</span></div>
-                    <div>Chủ TK: CTY TNHH TM DV TƯỜNG LINH</div>
-                    <div>Nội dung CK: <b style="color:#0050b3;">${data.order_code}</b></div>
+                
+                <div class="qr-box">
+                    <img src="${qrLink}" alt="QR" />
+                    <div class="qr-label">HULA PAYMENT</div>
                 </div>
-
-                <div class="qr-label">Quét mã thanh toán</div>
-                <img src="${qrLink}" alt="QR" />
-                <div style="font-size:10px;font-weight:700;color:#0050b3;margin-top:4px;">HULA PAYMENT</div>
             </div>
             ` : ''}
         </div>
