@@ -392,8 +392,8 @@ const PortalQuotePage: React.FC = () => {
         .payment-amounts { display: flex; gap: 10px; }
         .payment-amount-box { flex: 1; padding: 6px; border-radius: 6px; text-align: center; }
         .bank-info { background: #f9f9f9; padding: 6px 10px; border-radius: 6px; border: 1px solid #e8e8e8; font-size: 11px; display: flex; justify-content: space-between; margin-top: 8px; }
-        .qr-box { width: 90px; text-align: center; flex-shrink: 0; }
-        .qr-box img { width: 80px; height: 80px; }
+        .qr-box { width: 130px; text-align: center; flex-shrink: 0; }
+        .qr-box img { width: 130px; height: 130px; }
         .qr-label { font-size: 9px; font-weight: 700; color: #0050b3; margin-top: 2px; }
         
         /* SIGNATURES */
