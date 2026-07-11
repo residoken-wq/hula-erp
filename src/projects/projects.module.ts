@@ -8,10 +8,11 @@ import { SalesOrder } from '../sales/sales-order.entity';
 import { Task } from '../tasks/task.entity';
 import { Transaction } from '../finance/transaction.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
+import { SystemConfig } from '../system/system-config.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Project, Milestone, SalesOrder, Task, Transaction, PurchaseOrder])
+        TypeOrmModule.forFeature([Project, Milestone, SalesOrder, Task, Transaction, PurchaseOrder, SystemConfig])
     ],
     controllers: [ProjectsController],
     providers: [ProjectsService],

@@ -144,9 +144,201 @@ const GeneralSettingsTab: React.FC = () => {
             <Card title="Cấu Hình Dòng Tiền" bordered={false} size="small">
                 <NumberConfigItem label="Ngưỡng cảnh báo quỹ thấp (VNĐ)" configKey="CASH_FLOW_THRESHOLD" defaultValue={50000000} />
             </Card>
+
+            <Divider />
+
+            <SOProjectTemplateConfig />
         </>
     );
 };
+
+const SOProjectTemplateConfig: React.FC = () => {
+    const [milestones, setMilestones] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+
+    // Modal state for editing milestone
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const [form] = Form.useForm();
+
+    useEffect(() => {
+        fetchTemplate();
+    }, []);
+
+    const fetchTemplate = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get(`${API_URL}/system/so-project-template`);
+            setMilestones(res.data || []);
+        } catch (e) {
+            message.error('Lỗi tải template dự án SO');
+        }
+        setLoading(false);
+    };
+
+    const handleSaveTemplate = async () => {
+        setSubmitting(true);
+        try {
+            await axios.post(`${API_URL}/system/so-project-template`, milestones);
+            message.success('Đã lưu Template Dự án');
+        } catch (e) {
+            message.error('Lỗi khi lưu Template');
+        }
+        setSubmitting(false);
+    };
+
+    const openModal = (index?: number) => {
+        setEditingIndex(index ?? null);
+        if (index !== undefined && index !== null) {
+            form.setFieldsValue(milestones[index]);
+        } else {
+            form.resetFields();
+            form.setFieldsValue({
+                sort_order: (milestones.length > 0 ? Math.max(...milestones.map(m => m.sort_order)) : 0) + 1,
+                tasks: []
+            });
+        }
+        setModalOpen(true);
+    };
+
+    const handleModalOk = async () => {
+        try {
+            const values = await form.validateFields();
+            const newMilestones = [...milestones];
+            if (editingIndex !== null) {
+                newMilestones[editingIndex] = { ...newMilestones[editingIndex], ...values };
+            } else {
+                newMilestones.push(values);
+            }
+            newMilestones.sort((a, b) => a.sort_order - b.sort_order);
+            setMilestones(newMilestones);
+            setModalOpen(false);
+        } catch (e) { }
+    };
+
+    const handleDelete = (index: number) => {
+        const newMilestones = [...milestones];
+        newMilestones.splice(index, 1);
+        setMilestones(newMilestones);
+    };
+
+    const columns = [
+        { title: 'Thứ tự', dataIndex: 'sort_order', width: 80, align: 'center' as const },
+        { title: 'Giai đoạn (Milestone)', dataIndex: 'title' },
+        { title: 'Phòng ban', dataIndex: 'department', width: 150 },
+        { 
+            title: 'Công việc (Tasks)', 
+            dataIndex: 'tasks',
+            render: (tasks: string[]) => (
+                <ul style={{ paddingLeft: 16, margin: 0 }}>
+                    {tasks?.map((t, i) => <li key={i}>{t}</li>)}
+                </ul>
+            )
+        },
+        {
+            title: 'Thao tác', width: 120, align: 'center' as const,
+            render: (_: any, __: any, index: number) => (
+                <Space>
+                    <Button type="text" icon={<EditOutlined />} onClick={() => openModal(index)} />
+                    <Popconfirm title="Xóa giai đoạn này?" onConfirm={() => handleDelete(index)}>
+                        <Button type="text" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                </Space>
+            )
+        }
+    ];
+
+    return (
+        <Card 
+            title="Template Dự Án (Tạo từ Đơn Hàng)" 
+            bordered={false} 
+            size="small"
+            extra={
+                <Space>
+                    <Button icon={<PlusOutlined />} onClick={() => openModal()}>Thêm Giai Đoạn</Button>
+                    <Button type="primary" icon={<SaveOutlined />} loading={submitting} onClick={handleSaveTemplate}>Lưu Template</Button>
+                </Space>
+            }
+        >
+            <Alert message="Cấu hình này định nghĩa các giai đoạn và công việc mặc định được tạo ra khi chuyển Báo giá thành Đơn hàng (Sales Order)." type="info" showIcon style={{ marginBottom: 16 }} />
+            
+            <Table 
+                dataSource={milestones}
+                columns={columns}
+                rowKey={(r, i) => i?.toString() || Math.random().toString()}
+                pagination={false}
+                loading={loading}
+                size="small"
+                bordered
+            />
+
+            <Modal
+                title={editingIndex !== null ? "Sửa Giai Đoạn" : "Thêm Giai Đoạn"}
+                open={modalOpen}
+                onOk={handleModalOk}
+                onCancel={() => setModalOpen(false)}
+                width={600}
+                destroyOnClose
+            >
+                <Form form={form} layout="vertical">
+                    <Row gutter={16}>
+                        <Col span={16}>
+                            <Form.Item name="title" label="Tên giai đoạn" rules={[{ required: true }]}>
+                                <Input placeholder="VD: Sản xuất & Gia công" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                            <Form.Item name="sort_order" label="Thứ tự" rules={[{ required: true }]}>
+                                <InputNumber style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Form.Item name="department" label="Bộ phận phụ trách" rules={[{ required: true }]}>
+                        <Input placeholder="VD: PRODUCTION" />
+                    </Form.Item>
+                    
+                    <Form.List name="tasks">
+                        {(fields, { add, remove }) => (
+                            <>
+                                <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Danh sách công việc (Tasks):</div>
+                                {fields.map((field, index) => (
+                                    <Form.Item
+                                        required={false}
+                                        key={field.key}
+                                        style={{ marginBottom: 8 }}
+                                    >
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <Form.Item
+                                                {...field}
+                                                validateTrigger={['onChange', 'onBlur']}
+                                                rules={[{ required: true, message: 'Vui lòng nhập tên task hoặc xóa đi' }]}
+                                                noStyle
+                                            >
+                                                <Input placeholder="Tên công việc" style={{ width: '100%' }} />
+                                            </Form.Item>
+                                            <MinusCircleOutlined
+                                                className="dynamic-delete-button"
+                                                onClick={() => remove(field.name)}
+                                                style={{ marginTop: 8, color: 'red' }}
+                                            />
+                                        </div>
+                                    </Form.Item>
+                                ))}
+                                <Form.Item>
+                                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                                        Thêm Task
+                                    </Button>
+                                </Form.Item>
+                            </>
+                        )}
+                    </Form.List>
+                </Form>
+            </Modal>
+        </Card>
+    );
+};
+
 
 const ContractTemplatesTab: React.FC = () => {
     const [templates, setTemplates] = useState<any[]>([]);
