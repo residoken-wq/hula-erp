@@ -307,9 +307,11 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             // Fallback for color/variant if stored in order items
             const orderItem = order?.items?.find((oi: any) => oi.sku === di.sku);
 
+            const defaultName = product ? (product.name || product.label?.split(' - ')[1] || product.label) : di.sku;
             return {
                 index: idx + 1,
-                name: product ? (product.label || product.name) : di.sku, // Prefer product name, fallback SKU
+                name: orderItem?.vat_content || orderItem?.vat_description || defaultName,
+                sku: di.sku,
                 unit: product?.unit || 'Cái',
                 qty: di.quantity,
                 note: orderItem?.variant_color || di.note || '' // Try to show variant color/note
@@ -333,12 +335,13 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 <title>In Phiếu Xuất Kho - ${delivery.code}</title>
                 <style>
                     body { font-family: 'Times New Roman', Times, serif; padding: 20px; font-size: 14px; }
-                    .header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #0050b3; padding-bottom: 10px; }
+                    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #0050b3; padding-bottom: 10px; }
                     .company-info { width: 60%; }
                     .company-info h1 { margin: 0; color: #0050b3; font-size: 24px; text-transform: uppercase; }
                     .company-info p { margin: 2px 0; font-size: 13px; }
+                    .header-logo { width: 60%; text-align: left; }
                     .title-section { text-align: center; width: 40%; }
-                    .title-section h2 { margin: 10px 0 5px; font-size: 26px; text-transform: uppercase; }
+                    .title-section h2 { margin: 0 0 5px; font-size: 24px; text-transform: uppercase; }
                     .info-grid { margin-bottom: 20px; }
                     .info-row { display: flex; margin-bottom: 8px; }
                     .info-label { width: 130px; font-weight: bold; }
@@ -356,13 +359,13 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             </head>
             <body>
                 <div class="header">
-                    <div class="header-logo" style="text-align:center;">
-                        <img src="${window.location.origin}/company_header.png" alt="Company Header" style="max-height: 100px; max-width: 100%;" />
+                    <div class="header-logo">
+                        <img src="${window.location.origin}/company_header.png" alt="Company Header" style="max-height: 80px; max-width: 100%;" />
                     </div>
                     <div class="title-section">
                         <h2>PHIẾU XUẤT KHO</h2>
-                        <div style="font-style:italic;">Ngày ${dayjs(delivery.delivery_date).format('DD')} tháng ${dayjs(delivery.delivery_date).format('MM')} năm ${dayjs(delivery.delivery_date).format('YYYY')}</div>
-                        <div style="margin-top:10px; text-align:right; font-size:12px; font-style:italic;">Số PXK: <b>${delivery.code}</b></div>
+                        <div style="font-style:italic; font-size: 14px;">Ngày ${dayjs(delivery.delivery_date).format('DD')} tháng ${dayjs(delivery.delivery_date).format('MM')} năm ${dayjs(delivery.delivery_date).format('YYYY')}</div>
+                        <div style="margin-top:5px; font-size:12px; font-style:italic;">Số PXK: <b>${delivery.code}</b></div>
                     </div>
                 </div>
 
@@ -401,7 +404,10 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                         ${printItems.map((item: any) => `
                         <tr>
                             <td>${item.index}</td>
-                            <td style="text-align:left; font-weight:bold;">${item.name}</td>
+                            <td style="text-align:left;">
+                                <div style="font-weight:bold;">${item.name}</div>
+                                <div style="font-size:12px; font-style:italic; color:#555;">${item.sku}</div>
+                            </td>
                             <td>${item.unit}</td>
                             <td>${item.qty}</td>
                             <td style="text-align:left;">${item.note}</td>
@@ -425,8 +431,9 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                     </div>
                 </div>
 
-                <div class="note-bottom">
-                    Quý khách vui lòng kiểm tra kỹ số lượng và chất lượng hàng hóa khi nhận hàng.
+                <div class="note-bottom" style="text-align: center; font-weight: bold;">
+                    Quý khách vui lòng ký nhận vào PXK này gửi lại cho NV giao hàng (TP. HCM) hoặc scan/chụp gửi xác nhận cho Hula (Ngoài TP.HCM).<br/>
+                    Đây là cơ sở để xác nhận KH đã nhận đủ số lượng và Hula tiếp nhận giải quyết các vấn đề về hàng hóa.
                 </div>
 
                 <script>
