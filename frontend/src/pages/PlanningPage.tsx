@@ -85,7 +85,10 @@ const PlanningPage: React.FC = () => {
             const res = await axios.post(`${API_URL}/planning/mrp/${planId}${force ? '?force=true' : ''}`);
             let mrpResult = res.data.mrp_result || [];
             if (res.data && res.data.mrp_result) {
-                mrpResult = res.data.mrp_result.map((item: any) => ({ ...item, use_stock: true }));
+                mrpResult = res.data.mrp_result.map((item: any) => ({
+                    ...item,
+                    use_stock: res.data.is_saved && item.use_stock !== undefined ? item.use_stock : true
+                }));
                 res.data.mrp_result = mrpResult;
             }
             setMrpData(res.data);

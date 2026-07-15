@@ -172,7 +172,47 @@ export class PlanningService {
         plan.outsourcing_data = outsourcingData;
         if (logisticsData) plan.logistics_data = logisticsData;
         await this.planRepo.save(plan);
+
+        // Update reserved stock for materials
+        if (Array.isArray(mrpData)) {
+            const materialIds = mrpData.map(item => item.material_id).filter(Boolean);
+            if (materialIds.length > 0) {
+                await this.updateMaterialReservedStock(materialIds);
+            }
+        }
+
         return { message: 'Đã lưu kết quả phân tích' };
+    }
+
+    async updateMaterialReservedStock(materialIds: number[]) {
+        if (!materialIds.length) return;
+        const activePlans = await this.planRepo.find({
+            where: { status: In([PlanStatus.DRAFT, PlanStatus.CALCULATED, PlanStatus.HAS_PO_MATERIAL, PlanStatus.HAS_PO_OUTSOURCING, PlanStatus.IN_PRODUCTION]) }
+        });
+        
+        const reservedMap = new Map<number, number>();
+        materialIds.forEach(id => reservedMap.set(id, 0));
+
+        for (const p of activePlans) {
+            if (Array.isArray(p.mrp_data)) {
+                for (const item of p.mrp_data) {
+                    if (item.material_id && materialIds.includes(item.material_id)) {
+                        const useStock = item.use_stock !== false;
+                        if (useStock) {
+                            const gross = Number(item.gross_requirement) || 0;
+                            const net = Number(item.net_requirement) || 0;
+                            const reserved = Math.max(0, gross - net);
+                            const actualReserved = Math.min(reserved, Number(item.available_stock || 0));
+                            reservedMap.set(item.material_id, (reservedMap.get(item.material_id) || 0) + actualReserved);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (const [matId, reserved] of reservedMap.entries()) {
+            await this.materialsService.materialRepo.update(matId, { reserved_stock: reserved });
+        }
     }
 
     async invalidateAnalysisCache(planId: number) {

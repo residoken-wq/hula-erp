@@ -19,6 +19,9 @@ export class Material {
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   cost_price: number;
 
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  reserved_stock: number;
+
   @OneToMany(() => SupplierMaterial, (sm) => sm.material)
   supplier_prices: SupplierMaterial[];
 

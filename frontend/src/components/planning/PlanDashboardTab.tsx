@@ -192,6 +192,31 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                         key: '1', label: '1. Nhu Cầu Nguyên Liệu (MRP)',
                         children: (
                             <div>
+                                <div style={{ marginBottom: 16 }}>
+                                    <h4 style={{ color: '#1890ff', marginBottom: 12 }}>Thống kê NPL (Cập nhật Real-time theo Dùng Kho)</h4>
+                                    <Row gutter={[16, 16]}>
+                                        <Col xs={12} sm={6}>
+                                            <Card size="small" style={{ background: '#f6ffed', border: '1px solid #b7eb8f' }}>
+                                                <Statistic title="Loại NPL" value={mrpData.mrp_result?.length || 0} />
+                                            </Card>
+                                        </Col>
+                                        <Col xs={12} sm={6}>
+                                            <Card size="small" style={{ background: '#e6f7ff', border: '1px solid #91d5ff' }}>
+                                                <Statistic title="Tổng NPL Tồn Kho" value={mrpData.mrp_result?.reduce((s:number, i:any) => s + (Number(i.available_stock) || 0), 0) || 0} />
+                                            </Card>
+                                        </Col>
+                                        <Col xs={12} sm={6}>
+                                            <Card size="small" style={{ background: '#fff7e6', border: '1px solid #ffd591' }}>
+                                                <Statistic title="Tổng NPL Dùng Kho" value={mrpData.mrp_result?.reduce((s:number, i:any) => s + (i.use_stock !== false ? Math.min(Number(i.gross_requirement)||0, Number(i.available_stock)||0) : 0), 0) || 0} />
+                                            </Card>
+                                        </Col>
+                                        <Col xs={12} sm={6}>
+                                            <Card size="small" style={{ background: '#fff1f0', border: '1px solid #ffa39e' }}>
+                                                <Statistic title="Tổng NPL Đặt Thêm" value={mrpData.mrp_result?.reduce((s:number, i:any) => s + (Number(i.net_requirement) || 0), 0) || 0} valueStyle={{ color: '#cf1322' }} />
+                                            </Card>
+                                        </Col>
+                                    </Row>
+                                </div>
                                 <Table dataSource={mrpData.mrp_result} rowKey="material_id" pagination={false} size="middle" scroll={{ x: 1600, y: 450 }}
                                     expandable={{
                                         rowExpandable: (record) => !!record.details && record.details.length > 0,
@@ -204,7 +229,7 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                                                     pagination={false}
                                                     size="small"
                                                     columns={[
-                                                        { title: 'Sản phẩm', dataIndex: 'product_name', width: 250 },
+                                                        { title: 'Mã SKU', dataIndex: 'product_sku', width: 250, render: (v: any, r: any) => <div><b>{v || r.product_name}</b><br/><span style={{fontSize: 12, color: '#888'}}>{r.product_name}</span></div> },
                                                         { title: 'SL Sản xuất', dataIndex: 'qty_needed', width: 100, align: 'center' },
                                                         { title: 'Định mức / SP', dataIndex: 'bom_quantity', width: 120, align: 'center' },
                                                         { title: '% Hao hụt', dataIndex: 'waste_percent', width: 90, align: 'center', render: (v: any) => <Tag color="orange">{v}%</Tag> },
@@ -287,7 +312,7 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                             <div>
                                 <Table dataSource={outsourcingList} rowKey={(r, i) => i || 0} pagination={false} size="small" scroll={{ y: 300 }}
                                     columns={[
-                                        { title: 'Sản Phẩm', dataIndex: 'product_sku', width: 100, render: (t: any) => <b>{t}</b> },
+                                        { title: 'Mã SKU', dataIndex: 'product_sku', width: 100, render: (t: any) => <b>{t}</b> },
                                         { title: 'Công Đoạn', dataIndex: 'step_name', width: 150 },
                                         {
                                             title: 'Nhà Gia Công', dataIndex: 'supplier_name', width: 180,
@@ -329,7 +354,7 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                                 <div style={{ marginBottom: 10 }}>Dữ liệu lấy từ mục <b>Logistics</b> của từng sản phẩm.</div>
                                 <Table dataSource={logisticsList} rowKey={(r, i) => i || 0} pagination={false} size="small"
                                     columns={[
-                                        { title: 'Sản Phẩm', dataIndex: 'product_sku', render: (t: any) => <b>{t}</b> },
+                                        { title: 'Mã SKU', dataIndex: 'product_sku', render: (t: any) => <b>{t}</b> },
                                         { title: 'Khoản Mục', dataIndex: 'name' },
                                         { title: 'Đơn Giá', dataIndex: 'cost', align: 'right' as const, render: (v: any) => Number(v).toLocaleString() },
                                         { title: 'Số Lượng', dataIndex: 'quantity', align: 'center' as const },

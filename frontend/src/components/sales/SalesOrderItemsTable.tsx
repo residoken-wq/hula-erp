@@ -162,8 +162,13 @@ const SalesOrderItemsTable: React.FC<Props> = ({
                     <div>
                         <Select
                             showSearch
-                            placeholder="Chọn SP"
-                            optionFilterProp="label"
+                            placeholder="Chọn SP (Tìm tên hoặc mã SKU)"
+                            filterOption={(input, option) => {
+                                const labelStr = (option?.label ?? '').toString().toLowerCase();
+                                const valueStr = (option?.value ?? '').toString().toLowerCase();
+                                const searchStr = input.toLowerCase();
+                                return labelStr.includes(searchStr) || valueStr.includes(searchStr);
+                            }}
                             style={{ width: '100%' }}
                             value={record.sku}
                             onChange={(val) => onItemChange(index, 'sku', val)}
@@ -295,8 +300,13 @@ const SalesOrderItemsTable: React.FC<Props> = ({
                                 <div style={{ flex: 1, marginRight: 8 }}>
                                     <Select
                                         showSearch
-                                        placeholder="Chọn SP"
-                                        optionFilterProp="label"
+                                        placeholder="Chọn SP (Tìm tên hoặc mã SKU)"
+                                        filterOption={(input, option) => {
+                                            const labelStr = (option?.label ?? '').toString().toLowerCase();
+                                            const valueStr = (option?.value ?? '').toString().toLowerCase();
+                                            const searchStr = input.toLowerCase();
+                                            return labelStr.includes(searchStr) || valueStr.includes(searchStr);
+                                        }}
                                         style={{ width: '100%' }}
                                         value={record.sku}
                                         onChange={(val) => onItemChange(index, 'sku', val)}

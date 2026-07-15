@@ -268,6 +268,14 @@ export class PurchasingService {
         const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items', 'items.product'] });
         if (!po || po.type !== POType.OUTSOURCING) return [];
 
+        let mrpData: any[] = [];
+        if (po.plan_id) {
+            const plan = await this.planRepo.findOne({ where: { id: po.plan_id } });
+            if (plan && Array.isArray(plan.mrp_data)) {
+                mrpData = plan.mrp_data;
+            }
+        }
+
         const materialNeeds = new Map<number, any>();
 
         for (const item of po.items) {
@@ -278,18 +286,25 @@ export class PurchasingService {
                         const matId = bom.material.id;
                         const needQty = Number(bom.quantity) * Number(item.quantity) * (1 + Number(bom.waste_percent) / 100);
 
+                        let reserved_for_plan = false;
+                        const mrpItem = mrpData.find(m => m.material_id === matId);
+                        if (mrpItem && mrpItem.use_stock !== false) {
+                            reserved_for_plan = true;
+                        }
+
                         if (materialNeeds.has(matId)) {
                             const exist = materialNeeds.get(matId);
                             exist.quantity += needQty;
+                            if (reserved_for_plan) exist.reserved_for_plan = true;
                         } else {
                             materialNeeds.set(matId, {
                                 material_id: matId,
-                                code: bom.material.code, // FIX: Chỉ dùng code, bỏ sku
+                                code: bom.material.code,
                                 name: bom.material.name,
                                 unit: bom.material.unit,
                                 quantity: needQty,
                                 stock: Number(bom.material.quantity_in_stock || 0),
-                                // image: bom.material.image_url // FIX: Bỏ image_url vì không tồn tại trong Material entity
+                                reserved_for_plan: reserved_for_plan
                             });
                         }
                     }
@@ -304,13 +319,10 @@ export class PurchasingService {
         const po = await this.poRepo.findOne({ where: { id } });
         if (!po) throw new NotFoundException('PO không tồn tại');
 
-        // MỚI: Invalidate MRP cache của plan nếu PO thuộc một plan
+        // MỚI: Nếu PO thuộc một plan, ta có thể cập nhật trạng thái plan nếu cần thiết
+        // Nhưng KHÔNG invalidate mrp_data để tránh mất kết quả tính toán và use_stock
         if (po.plan_id) {
-            await this.poRepo.manager.update('ProductionPlan', po.plan_id, {
-                mrp_data: null,
-                outsourcing_data: null,
-                logistics_data: null
-            });
+            // (Tuỳ chọn: downgrade trạng thái plan)
         }
 
         // Unlink children if this is a Pooled PO
@@ -323,6 +335,18 @@ export class PurchasingService {
             }
         }
         return this.poRepo.delete(id);
+    }
+
+    async batchDelete(ids: number[]) {
+        let deletedCount = 0;
+        for (const id of ids) {
+            const po = await this.poRepo.findOne({ where: { id } });
+            if (po && po.status === POStatus.DRAFT) {
+                await this.remove(id);
+                deletedCount++;
+            }
+        }
+        return { deletedCount };
     }
 
     async createGoodsReceipt(poId: number, data: any) {

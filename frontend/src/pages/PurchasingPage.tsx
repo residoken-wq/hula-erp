@@ -77,6 +77,17 @@ const PurchasingPage: React.FC = () => {
         } catch (e) { message.error('Lỗi xóa PO'); }
     };
 
+    const handleBatchDelete = async (ids: number[]) => {
+        try {
+            const res = await api.post(`/purchasing/batch-delete`, { ids });
+            message.success(`Đã xóa ${res.data?.deletedCount || 0} PO (DRAFT)`);
+            setSelectedMainRows([]);
+            setSelectedReqs([]);
+            fetchData();
+            if (activeTab.startsWith('REQ')) fetchRequirements();
+        } catch (e) { message.error('Lỗi xóa PO'); }
+    };
+
     const viewDetail = async (record: any) => {
         try {
             // FIX: Gọi API để lấy data enriched thay vì dùng record từ list
@@ -667,6 +678,11 @@ const PurchasingPage: React.FC = () => {
                         <Space>
                             {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedReqs.length === 0}>+ Tạo PO Gộp ({selectedReqs.length})</Button>}
                             {(activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedMainRows.length === 0} icon={<LinkOutlined />}>Gộp PO ({selectedMainRows.length})</Button>}
+                            {(activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') && selectedMainRows.length > 0 && (
+                                <Popconfirm title={`Xóa ${selectedMainRows.length} PO đã chọn?`} onConfirm={() => handleBatchDelete(selectedMainRows.map(r => r.id))}>
+                                    <Button danger icon={<DeleteOutlined />}>Xóa PO ({selectedMainRows.length})</Button>
+                                </Popconfirm>
+                            )}
                             {activeTab === 'POOLED' && <Popconfirm title="Xóa tất cả PO Gộp?" onConfirm={async () => {
                                 await api.delete(`/purchasing/pooled/all`);
                                 message.success('Đã xóa dữ liệu gộp');
