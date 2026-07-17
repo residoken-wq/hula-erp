@@ -19,6 +19,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const [shipItems, setShipItems] = useState<any[]>([]);
     const [editingDeliveryId, setEditingDeliveryId] = useState<number | null>(null);
     const [shipStatus, setShipStatus] = useState<string>('PENDING_EXPORT');
+    const [isDraft, setIsDraft] = useState<boolean>(false);
 
     // Additional Ship Info state
     const [shipDate, setShipDate] = useState<any>(dayjs());
@@ -190,12 +191,13 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
     const openCreateModal = () => {
         setEditingDeliveryId(null);
+        setIsDraft(false);
+        setShipStatus('PENDING_EXPORT');
         setShipItems(summaryData.map((d: any) => {
-            // Chỉ cho phép xuất nếu đã CONFIRMED Booking
             const canShip = d.bookingStatus === 'CONFIRMED' && d.remaining > 0;
             return {
                 sku: d.sku, 
-                max: canShip ? d.remaining : 0, 
+                max: d.remaining, 
                 quantity: canShip ? d.remaining : 0,
                 bookingStatus: d.bookingStatus
             };
@@ -219,6 +221,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
     const openEditModal = (delivery: any) => {
         setEditingDeliveryId(delivery.id);
+        setIsDraft(delivery.status === 'DRAFT');
+        setShipStatus(delivery.status || 'PENDING_EXPORT');
         setShipDate(dayjs(delivery.delivery_date));
         setShipAddress(delivery.delivery_address || '');
         setShipContactName(delivery.contact_name || '');
@@ -282,7 +286,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 attachments: attachments,
                 shipping_carrier: shippingCarrier,
                 tracking_code: trackingCode,
-                shipping_cost: shippingCost
+                shipping_cost: shippingCost,
+                status: isDraft ? 'DRAFT' : (editingDeliveryId ? shipStatus : 'PENDING_EXPORT')
             };
 
             if (editingDeliveryId) {
@@ -573,7 +578,9 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 {
                     title: 'Trạng thái', align: 'center', render: (r: any) => (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                            <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>{r.status === 'SHIPPED' ? 'Đã báo khách' : 'Đang giao'}</Tag>
+                            <Tag color={r.status === 'SHIPPED' ? 'green' : r.status === 'DRAFT' ? 'default' : 'orange'}>
+                                {r.status === 'SHIPPED' ? 'Đã báo khách' : r.status === 'DRAFT' ? 'Phiếu nháp' : 'Đang giao'}
+                            </Tag>
                             {r.email_sent && <span style={{ fontSize: 10, color: 'green' }}><CheckCircleOutlined /> Email: Sent</span>}
                         </div>
                     )
@@ -651,9 +658,36 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
             <Modal title={editingDeliveryId ? "Cập nhật Phiếu Xuất Kho" : "Tạo Phiếu Xuất Kho"} open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={handleShip} width={600}>
                 {/* DATE SELECTION */}
-                <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontWeight: 500 }}>Ngày xuất kho:</div>
-                    <DatePicker format="DD/MM/YYYY" value={shipDate} onChange={setShipDate} style={{ width: '100%' }} />
+                <div style={{ display: 'flex', gap: 15, marginBottom: 10 }}>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500 }}>Loại phiếu:</div>
+                        <Select
+                            style={{ width: '100%' }}
+                            value={isDraft}
+                            onChange={(draft) => {
+                                setIsDraft(draft);
+                                if (!editingDeliveryId) {
+                                    setShipItems(summaryData.map((d: any) => {
+                                        const canShip = draft || (d.bookingStatus === 'CONFIRMED' && d.remaining > 0);
+                                        return {
+                                            sku: d.sku, 
+                                            max: d.remaining, 
+                                            quantity: canShip ? d.remaining : 0,
+                                            bookingStatus: d.bookingStatus
+                                        };
+                                    }));
+                                }
+                            }}
+                            options={[
+                                { value: false, label: 'Chính thức (Xuất kho)' },
+                                { value: true, label: 'Bản nháp (Chỉ in/gửi khách)' }
+                            ]}
+                        />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500 }}>Ngày xuất kho:</div>
+                        <DatePicker format="DD/MM/YYYY" value={shipDate} onChange={setShipDate} style={{ width: '100%' }} />
+                    </div>
                 </div>
 
                 {/* ADDRESS SELECTION */}
@@ -758,7 +792,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 </div>
 
                 <div style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 5 }}>Danh sách xuất:</div>
-                <div style={{ fontSize: 12, color: 'red', marginBottom: 10, fontStyle: 'italic' }}>* Lưu ý: Chỉ được phép xuất kho các sản phẩm đã được duyệt giữ kho (Trạng thái: Sẵn sàng).</div>
+                {!isDraft && <div style={{ fontSize: 12, color: 'red', marginBottom: 10, fontStyle: 'italic' }}>* Lưu ý: Chỉ được phép xuất kho các sản phẩm đã được duyệt giữ kho (Trạng thái: Sẵn sàng).</div>}
+                {isDraft && <div style={{ fontSize: 12, color: '#1890ff', marginBottom: 10, fontStyle: 'italic' }}>* Đang tạo Phiếu Nháp: Có thể điền số lượng tự do không cần giữ kho. Tồn kho sẽ KHÔNG bị trừ.</div>}
                 <Table dataSource={shipItems} rowKey="sku" pagination={false} size="small" columns={[
                     { title: 'SKU', dataIndex: 'sku' },
                     { title: 'Trạng thái', width: 90, align: 'center', render: (r: any) => {
@@ -766,8 +801,16 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                         if (r.bookingStatus === 'TEMPORARY') return <Tag color="orange" style={{ margin: 0 }}>Chưa duyệt</Tag>;
                         return <Tag style={{ margin: 0 }}>Chưa giữ kho</Tag>;
                     }},
-                    { title: 'SL Còn', dataIndex: 'max' },
-                    { title: 'Giao lần này', render: (_: any, r: any, idx: number) => (<InputNumber max={r.max} min={0} value={r.quantity} disabled={r.bookingStatus !== 'CONFIRMED'} onChange={(v: any) => { const newItems = [...shipItems]; newItems[idx].quantity = v; setShipItems(newItems); }} />) }
+                    { title: 'SL Cần giao', dataIndex: 'max' },
+                    { title: 'Giao lần này', render: (_: any, r: any, idx: number) => (
+                        <InputNumber 
+                            max={r.max} 
+                            min={0} 
+                            value={r.quantity} 
+                            disabled={!isDraft && r.bookingStatus !== 'CONFIRMED'} 
+                            onChange={(v: any) => { const newItems = [...shipItems]; newItems[idx].quantity = v || 0; setShipItems(newItems); }} 
+                        />
+                    )}
                 ]} />
             </Modal>
 

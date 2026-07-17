@@ -1339,7 +1339,7 @@ const PortalQuotePage: React.FC = () => {
                 </Row>
 
                 {/* --- CONTRACT SECTION --- */}
-                {data.contract_html && data.contract_status !== 'DRAFT' && (
+                {data.contract_html && data.contract_status !== 'DRAFT' && data.contract_variables?.is_contract_visible !== false && (
                     <Row gutter={24} style={{ marginBottom: 24 }}>
                         <Col span={24}>
                             <Card 
