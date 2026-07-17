@@ -1396,11 +1396,32 @@ const PurchasingPage: React.FC = () => {
                                                     showSearch
                                                     allowClear
                                                     placeholder="Chọn sơ đồ In/Thêu..."
-                                                    style={{ width: 300 }}
+                                                    style={{ width: '100%', minWidth: 400 }}
                                                     value={r.print_design_id || r.print_design?.id}
                                                     onChange={(val) => {
                                                         const newItems = [...editingItems];
                                                         newItems[index].print_design_id = val;
+                                                        
+                                                        // Nếu là PO_GC In, tự động cập nhật số lượng = số mét in theo sơ đồ
+                                                        if (currentPO?.type === 'OUTSOURCING' && val) {
+                                                            const pd = printDesigns.find(d => d.id === val);
+                                                            if (pd && pd.type === 'PRINT' && pd.tech_pack?.binsByFace) {
+                                                                let maxH = 0;
+                                                                Object.values(pd.tech_pack.binsByFace).forEach((bins: any) => {
+                                                                    if (Array.isArray(bins)) {
+                                                                        bins.forEach(b => {
+                                                                            if (b.h > maxH) maxH = b.h;
+                                                                        });
+                                                                    }
+                                                                });
+                                                                if (maxH > 0) {
+                                                                    // Quy đổi cm sang m nếu cần (các marker có h > 100 cm thường là đơn vị cm)
+                                                                    const meters = maxH > 100 ? maxH / 100 : maxH;
+                                                                    newItems[index].qty = Number(meters.toFixed(2));
+                                                                }
+                                                            }
+                                                        }
+                                                        
                                                         setEditingItems(newItems);
                                                     }}
                                                     options={printDesigns.map(pd => ({

@@ -115,12 +115,20 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         const price = Number(item.unit_price) || 0;
 
         let delivered = 0;
+        let pending = 0;
         history.forEach((d: any) => {
+            if (d.status === 'DRAFT') return; // Bỏ qua phiếu nháp
             const found = d.items?.find((di: any) => di.sku === item.sku);
-            if (found) delivered += Number(found.quantity);
+            if (found) {
+                if (d.status === 'SHIPPED' || d.status === 'COMPLETED') {
+                    delivered += Number(found.quantity);
+                } else { // PENDING_EXPORT or others
+                    pending += Number(found.quantity);
+                }
+            }
         });
 
-        const remaining = ordered - delivered;
+        const remaining = Math.max(0, ordered - delivered - pending);
 
         // Lookup stock from products list
         const productInfo = products.find((p: any) => p.value === item.sku);
@@ -153,12 +161,14 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         return {
             id: item.id,
             sku: item.sku,
-            stock, // <--- Add stock
+            stock,
             ordered,
             delivered,
+            pending,
             remaining,
             totalVal: ordered * price,
             deliveredVal: delivered * price,
+            pendingVal: pending * price,
             remainingVal: remaining * price,
             bookingStatus: item.booking_status || 'NONE',
             bookedQuantity: item.booked_quantity || 0,
@@ -536,6 +546,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                             </span>
                         )},
                         { title: 'SL Đặt', dataIndex: 'ordered', align: 'center', width: 70 },
+                        { title: 'Chờ xuất', dataIndex: 'pending', align: 'center', width: 70, render: (v: any) => v > 0 ? <b style={{ color: '#faad14' }}>{v}</b> : <span style={{ color: '#ccc' }}>0</span> },
                         { title: 'Đã giao', dataIndex: 'delivered', align: 'center', width: 70, render: (v: any) => <b style={{ color: 'green' }}>{v}</b> },
                         { title: 'Còn lại', dataIndex: 'remaining', align: 'center', width: 70, render: (v: any) => v > 0 ? <b style={{ color: 'red' }}>{v}</b> : <CheckCircleOutlined style={{ color: 'green' }} /> },
 
@@ -546,11 +557,13 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                     summary={(pageData: readonly any[]) => {
                         let totalAmount = 0;
                         let totalDelivered = 0;
+                        let totalPending = 0;
                         let totalRemaining = 0;
 
                         pageData.forEach((item) => {
                             totalAmount += (item.totalVal || 0);
                             totalDelivered += (item.deliveredVal || 0);
+                            totalPending += (item.pendingVal || 0);
                             totalRemaining += (item.remainingVal || 0);
                         });
 
@@ -622,7 +635,20 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 },
                 {
                     title: '', width: 120, align: 'center', render: (_: any, r: any) => (
-                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
+                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap' }}>
+                            {r.status === 'DRAFT' && (
+                                <Tooltip title="Chuyển thành phiếu chính thức (Chờ xuất kho)">
+                                    <Button size="small" type="primary" style={{ background: '#52c41a', borderColor: '#52c41a' }} onClick={async () => {
+                                        try {
+                                            await api.put(`/sales/delivery/${r.id}`, { status: 'PENDING_EXPORT' });
+                                            message.success('Đã chuyển thành phiếu chính thức');
+                                            fetchHistory();
+                                        } catch (e: any) {
+                                            message.error(e.response?.data?.message || 'Không thể cập nhật trạng thái');
+                                        }
+                                    }}>Duyệt phiếu</Button>
+                                </Tooltip>
+                            )}
                             <Tooltip title="In Phiếu Xuất Kho">
                                 <Button size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
                             </Tooltip>
