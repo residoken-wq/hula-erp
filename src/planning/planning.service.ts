@@ -11,7 +11,7 @@ import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.en
 import { InventoryService } from '../inventory/inventory.service';
 import { MrpCalculationService } from './mrp-calculation.service';
 import { GanttService } from './gantt.service';
-import { WorkOrder } from '../production/work-order.entity';
+import { WorkOrder, WorkOrderStatus } from '../production/work-order.entity';
 
 import { ProductionPlanHistory } from './production-plan-history.entity';
 
@@ -1137,7 +1137,7 @@ export class PlanningService {
                     product_sku: item.product.sku,
                     quantity: Number(item.quantity),
                     plan_id: planId,
-                    status: 'PENDING' as any,
+                    status: WorkOrderStatus.PENDING,
                     steps: stepsToCreate
                 });
                 await this.woRepo.save(wo);
@@ -1161,17 +1161,15 @@ export class PlanningService {
         let prodCheckboxes = [];
         let nplNote = '';
         
-        // Logic sync đơn giản (có thể nâng cấp):
-        // Nếu có PO MATERIAL và trạng thái >= DELIVERED -> check fabric
-        const hasDeliveredMaterial = purchaseOrders.some(po => po.type === 'MATERIAL' && ['DELIVERED', 'COMPLETED'].includes(po.status));
+        const hasDeliveredMaterial = purchaseOrders.some(po => po.type === POType.MATERIAL && [POStatus.DELIVERED, POStatus.COMPLETED].includes(po.status));
         if (hasDeliveredMaterial) {
             nplCheckboxes.push('fabric');
             nplCheckboxes.push('quilt'); // Giả sử vải và gòn chung
             nplNote += ` Đã giao nguyên liệu (PO cập nhật: ${new Date().toLocaleDateString()}).`;
         }
 
-        const hasCompletedWo = workOrders.some(wo => wo.status === 'COMPLETED');
-        const hasInProgressWo = workOrders.some(wo => wo.status === 'IN_PROGRESS');
+        const hasCompletedWo = workOrders.some(wo => wo.status === WorkOrderStatus.COMPLETED);
+        const hasInProgressWo = workOrders.some(wo => wo.status === WorkOrderStatus.IN_PROGRESS);
         
         if (hasDeliveredMaterial) prodCheckboxes.push('fabric');
         if (hasInProgressWo || hasCompletedWo) {
