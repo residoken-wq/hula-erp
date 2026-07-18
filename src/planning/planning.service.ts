@@ -11,6 +11,7 @@ import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.en
 import { InventoryService } from '../inventory/inventory.service';
 import { MrpCalculationService } from './mrp-calculation.service';
 import { GanttService } from './gantt.service';
+import { WorkOrder } from '../production/work-order.entity';
 
 import { ProductionPlanHistory } from './production-plan-history.entity';
 
@@ -23,6 +24,7 @@ export class PlanningService {
         @InjectRepository(SalesOrderItem) private orderItemRepo: Repository<SalesOrderItem>,
         @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
         @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
+        @InjectRepository(WorkOrder) private woRepo: Repository<WorkOrder>,
         private productsService: ProductsService,
         private materialsService: MaterialsService,
         @Inject(forwardRef(() => InventoryService)) private inventoryService: InventoryService,
