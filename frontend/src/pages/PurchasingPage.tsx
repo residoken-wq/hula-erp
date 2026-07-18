@@ -754,7 +754,16 @@ const PurchasingPage: React.FC = () => {
 
             {/* MODAL DETAIL */}
             <Modal
-                title={`Chi tiết: ${currentPO?.po_code}`}
+                title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 32 }}>
+                        <span>Chi tiết: {currentPO?.po_code}</span>
+                        {currentPO?.plan?.sales_orders?.length > 0 && (
+                            <span style={{ fontSize: 14, fontWeight: 'normal', color: '#666' }}>
+                                KH: {Array.from(new Set(currentPO.plan.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ')}
+                            </span>
+                        )}
+                    </div>
+                }
                 open={isDetailOpen}
                 onCancel={() => setIsDetailOpen(false)}
                 width={1200}
@@ -1391,6 +1400,7 @@ const PurchasingPage: React.FC = () => {
                                         { title: 'Sản phẩm / NPL', render: (r: any) => r.product?.name || r.material?.name || r.description },
                                         {
                                             title: 'Chọn Sơ đồ Thiết kế',
+                                            width: 500,
                                             render: (r: any, _: any, index: number) => (
                                                 <Select
                                                     showSearch
