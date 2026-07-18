@@ -4,7 +4,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../config';
 
 interface VersionHistoryModalProps {
     planId: number;

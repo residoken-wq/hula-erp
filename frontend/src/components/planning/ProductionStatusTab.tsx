@@ -3,7 +3,7 @@ import { Button, Steps, Card, Spin, message, Space, Tag, Popconfirm } from 'antd
 import { DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../config';
 
 interface ProductionStatusTabProps {
     planId: number;

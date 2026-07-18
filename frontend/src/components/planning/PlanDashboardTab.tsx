@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import ProductionStatusTab from './ProductionStatusTab';
 import VersionHistoryModal from './VersionHistoryModal';
 import axios from 'axios';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { API_URL } from '../../config';
 
 const { Option } = Select;
 
