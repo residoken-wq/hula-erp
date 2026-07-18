@@ -1,7 +1,11 @@
 import React from 'react';
 import { Table, Button, Row, Col, Statistic, Tag, Tabs, Select, InputNumber, Checkbox, Input, Progress, Modal, Card } from 'antd';
-import { DollarOutlined, ShoppingCartOutlined, ScissorOutlined, TruckOutlined, AppstoreAddOutlined, ExperimentOutlined, DeleteOutlined, SaveOutlined, FallOutlined, SyncOutlined } from '@ant-design/icons';
+import { DollarOutlined, ShoppingCartOutlined, ScissorOutlined, TruckOutlined, AppstoreAddOutlined, ExperimentOutlined, DeleteOutlined, SaveOutlined, FallOutlined, SyncOutlined, HistoryOutlined, CloudSyncOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import ProductionStatusTab from './ProductionStatusTab';
+import VersionHistoryModal from './VersionHistoryModal';
+import axios from 'axios';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const { Option } = Select;
 
@@ -34,6 +38,17 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
     isDashboardOpen, setIsDashboardOpen,
     onRunMrp, onDeletePlan, onConfirmBookings, onDataChange, onDetailDataChange, onToggleStock, onGeneratePOs, onSaveAnalysis, onUpdateStatus, onForceRunMrp
 }) => {
+    const [historyOpen, setHistoryOpen] = React.useState(false);
+
+    const handleSyncBOD = async (planId: number) => {
+        try {
+            await axios.post(`${API_URL}/planning/${planId}/sync-bod-followup`);
+            alert('Đồng bộ thành công');
+        } catch (error) {
+            alert('Đồng bộ thất bại');
+        }
+    };
+
     const planColumns = [
         { title: 'Mã KH', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
         { title: 'Tên Đợt', dataIndex: 'name' },
@@ -376,15 +391,10 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                         )
                     },
                     {
-                        key: '4', label: '4. Tiến Độ (Gantt)',
+                        key: '4', label: '4. Tiến Độ Sản Xuất',
                         children: (
                             <div>
-                                {mrpData?.gantt_data?.map((task: any) => (
-                                    <div key={task.id} style={{ marginBottom: 15 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}><strong>{task.name}</strong><small>{dayjs(task.end).format('DD/MM')}</small></div>
-                                        <Progress percent={30} strokeColor="#1890ff" trailColor="#f0f0f0" />
-                                    </div>
-                                ))}
+                                <ProductionStatusTab planId={mrpData?.plan_info?.id} />
                             </div>
                         )
                     },
@@ -468,6 +478,28 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                                 />
                             </div>
                         )
+                    },
+                    {
+                        key: '6', label: '6. Tổng Hợp PO',
+                        children: (
+                            <div>
+                                <div style={{ marginBottom: 10 }}>Danh sách các Đơn đặt hàng (PO) liên quan đến Kế hoạch này.</div>
+                                <Table
+                                    dataSource={mrpData?.plan_info?.purchase_orders || []}
+                                    rowKey="id"
+                                    pagination={false}
+                                    size="small"
+                                    columns={[
+                                        { title: 'Mã PO', dataIndex: 'code', render: (t) => <b>{t}</b> },
+                                        { title: 'Nhà Cung Cấp', dataIndex: ['supplier', 'name'] },
+                                        { title: 'Loại', dataIndex: 'type', render: (t) => <Tag color={t === 'MATERIAL' ? 'blue' : 'orange'}>{t}</Tag> },
+                                        { title: 'Trạng Thái', dataIndex: 'status', render: (t) => <Tag>{t}</Tag> },
+                                        { title: 'Tổng Tiền', dataIndex: 'total_amount', render: (v) => Number(v).toLocaleString() },
+                                        { title: 'Ngày Giao', dataIndex: 'delivery_date', render: (v) => v ? dayjs(v).format('DD/MM/YYYY') : '-' }
+                                    ]}
+                                />
+                            </div>
+                        )
                     }
                 ]} />
             </div>
@@ -492,6 +524,20 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
                                     Tính lại
                                 </Button>
                             )}
+                            <Button 
+                                icon={<CloudSyncOutlined />} 
+                                onClick={() => mrpData?.plan_info?.id && handleSyncBOD(mrpData.plan_info.id)} 
+                                style={{ marginRight: 8 }}
+                            >
+                                Sync BOD
+                            </Button>
+                            <Button 
+                                icon={<HistoryOutlined />} 
+                                onClick={() => setHistoryOpen(true)} 
+                                style={{ marginRight: 8 }}
+                            >
+                                Lịch sử
+                            </Button>
                             <Button type="primary" onClick={onSaveAnalysis} icon={<SaveOutlined />} loading={loading}>Lưu Kết Quả</Button>
                         </div>
                     </div>
@@ -504,6 +550,14 @@ const PlanDashboardTab: React.FC<PlanDashboardTabProps> = ({
             >
                 {renderDashboard()}
             </Modal>
+            
+            {mrpData?.plan_info?.id && (
+                <VersionHistoryModal 
+                    planId={mrpData.plan_info.id} 
+                    open={historyOpen} 
+                    onClose={() => setHistoryOpen(false)} 
+                />
+            )}
         </>
     );
 };

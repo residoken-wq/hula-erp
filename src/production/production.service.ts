@@ -128,6 +128,13 @@ export class ProductionService {
       return step;
   }
 
+  async deleteStep(stepId: number) {
+      const step = await this.stepRepo.findOne({ where: { id: stepId } });
+      if (!step) throw new NotFoundException('Step not found');
+      await this.stepRepo.delete(stepId);
+      return { success: true };
+  }
+
   async startProduction(id: number) {
       const order = await this.prodRepo.findOne({ where: { id }, relations: ['product'] });
       if (!order) throw new NotFoundException('Order not found');
