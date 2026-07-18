@@ -2349,6 +2349,65 @@ const HelpPage: React.FC = () => {
                         />
                     </div>
                 );
+            case 'mrp-tracking':
+                return (
+                    <div>
+                        <Tag color="purple" style={{ marginBottom: 16 }}>Phân hệ Sản Xuất</Tag>
+                        <Title level={2}>📊 Theo Dõi Tiến Độ Kế Hoạch Sản Xuất</Title>
+                        <Paragraph>
+                            Tính năng quản lý và theo dõi tiến độ chi tiết của một Kế Hoạch Sản Xuất (KHSX), bao gồm: theo dõi trạng thái từng khâu (Pipeline), Quản lý Lịch sử (Version History) và Tự động hóa đồng bộ (Sync BOD).
+                        </Paragraph>
+
+                        <Divider orientation="left">I. Tiến Độ Sản Xuất (Pipeline)</Divider>
+                        <Card style={{ marginBottom: 16 }}>
+                            <Steps
+                                direction="vertical"
+                                current={-1}
+                                items={[
+                                    {
+                                        title: <Text strong>Khởi tạo Lệnh Sản Xuất</Text>,
+                                        description: 'Nhấn nút "Khởi tạo Lệnh Sản Xuất". Hệ thống sẽ lấy các công đoạn từ Product Routing hoặc tạo các công đoạn mặc định (Mua NPL → Nối vải → Chần gòn → Thêu → In → May → Đóng gói → Giao hàng).'
+                                    },
+                                    {
+                                        title: <Text strong>Cập nhật Tiến Độ</Text>,
+                                        description: 'Với mỗi công đoạn, bạn có thể nhấn "Bắt đầu" (chuyển sang In Progress) hoặc "Hoàn thành" (chuyển sang Completed) ngay trên thanh giao diện Tiến Độ.'
+                                    },
+                                    {
+                                        title: <Text strong>Chỉnh sửa linh hoạt</Text>,
+                                        description: 'Bạn có thể xóa (Remove) bất kỳ công đoạn nào không cần thiết bằng nút Xóa bên cạnh.'
+                                    }
+                                ]}
+                            />
+                        </Card>
+
+                        <Divider orientation="left">II. Lịch Sử Phiên Bản (Version History)</Divider>
+                        <Card style={{ marginBottom: 16 }}>
+                            <ul>
+                                <li>Mỗi khi nhấn <b>"Lưu Kết Quả"</b> hoặc <b>"Tính lại"</b> KHSX, hệ thống sẽ tự động lưu lại Snapshot toàn bộ dữ liệu MRP (bao gồm Định mức Nguyên liệu, Giá, v.v.).</li>
+                                <li>Nhấn nút <b>"Lịch sử"</b> trên thanh trên cùng để mở Modal xem lại danh sách các phiên bản, thời gian sửa và người thực hiện thay đổi.</li>
+                                <li>Nút <b>"Tính lại"</b> sẽ tự động tải BOM và Routing mới nhất của sản phẩm từ hệ thống để tính toán thay vì dùng dữ liệu cũ.</li>
+                            </ul>
+                        </Card>
+
+                        <Divider orientation="left">III. Đồng bộ BOD FollowUp</Divider>
+                        <Card style={{ marginBottom: 16 }}>
+                            <ul>
+                                <li>Nút <b>"Sync BOD"</b> dùng để đồng bộ nhanh tình trạng cung ứng / sản xuất vào màn hình <b>BOD FollowUp</b> của Đơn Hàng.</li>
+                                <li>Nếu đã có PO Nguyên liệu nào được giao, hệ thống tự động tick chọn <b>Vải / Gòn</b> bên BOD FollowUp và ghi chú ngày cập nhật.</li>
+                                <li>Nếu Lệnh Sản Xuất đang tiến hành, hệ thống tự động tick chọn phần <b>Sản xuất</b>.</li>
+                                <li><b>Lưu ý:</b> Tính năng chỉ thêm thông tin (Merge) vào ghi chú cũ, không ghi đè nên bạn hoàn toàn yên tâm.</li>
+                            </ul>
+                        </Card>
+
+                        <Divider orientation="left">IV. Tổng Hợp PO</Divider>
+                        <Card style={{ marginBottom: 16 }}>
+                            <ul>
+                                <li>Tab <b>6. Tổng Hợp PO</b> hiển thị danh sách tập trung mọi Đơn đặt hàng (PO Nguyên Phụ Liệu) và PO Gia Công phát sinh từ Kế hoạch này.</li>
+                                <li>Theo dõi tổng tiền và trạng thái giao hàng ở một nơi duy nhất.</li>
+                            </ul>
+                        </Card>
+                    </div>
+                );
             default:
                 return <div>Select a topic</div>;
         }
@@ -2416,6 +2475,7 @@ const HelpPage: React.FC = () => {
                             icon: <ExperimentOutlined />,
                             children: [
                                 { key: 'mrp-guide', label: 'SOP: Lập Kế Hoạch (MRP)' },
+                                { key: 'mrp-tracking', label: 'Tiến độ & Theo dõi' },
                                 { key: 'mrp-nesting', label: 'Công cụ Xếp Sơ đồ (2D Nesting)' },
                                 { key: 'po-npl', label: 'PO Nguyên Phụ Liệu' },
                                 { key: 'po-gc', label: 'PO Gia Công' },

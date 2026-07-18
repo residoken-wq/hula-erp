@@ -1054,6 +1054,8 @@ export class PlanningService {
             mrp_summary,
             outsourcing_summary
         };
+    }
+
     // --- MỚI: Version History, Production Status, Sync BOD ---
     async getHistory(planId: number) {
         return this.historyRepo.find({
