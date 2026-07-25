@@ -41,6 +41,7 @@ export class PfoBomEngineService {
         let totalOrderQuantity = 0;
 
         if (pfo.sales_order && pfo.sales_order.items) {
+            console.log(`[BOM-ENGINE] Found ${pfo.sales_order.items.length} items in SO`);
             for (const item of pfo.sales_order.items) {
                 const orderQty = Number(item.quantity) || 0;
                 if (orderQty <= 0) continue;
@@ -52,7 +53,12 @@ export class PfoBomEngineService {
                     product = await this.productRepo.findOne({ where: { sku: item.sku } });
                 }
 
-                if (!product) continue;
+                if (!product) {
+                    console.log(`[BOM-ENGINE] No product found for SKU: ${item.sku}`);
+                    continue;
+                }
+
+                console.log(`[BOM-ENGINE] Processing product ${product.id} - ${product.sku} - ${product.product_type}`);
 
                 // Queue nổ BOM (hỗ trợ đệ quy Combo)
                 const queue: { productId: number; multiplier: number }[] = [
@@ -69,6 +75,7 @@ export class PfoBomEngineService {
 
                     // 1. Kiểm tra nếu là COMBO -> Nổ ra các sản phẩm con
                     if (targetProd.product_type === 'COMBO') {
+                        console.log(`[BOM-ENGINE] Product ${targetProd.id} is COMBO. Exploding children...`);
                         const components = await this.componentRepo.find({
                             where: { parent_product: { id: targetProd.id } },
                             relations: ['child_product']
@@ -84,10 +91,12 @@ export class PfoBomEngineService {
                         }
                     } else {
                         // 2. Nếu là STANDARD -> Lấy định mức vật tư BOM
+                        console.log(`[BOM-ENGINE] Product ${targetProd.id} is STANDARD. Fetching BOMs...`);
                         const boms = await this.bomRepo.find({
                             where: { product_id: targetProd.id },
                             relations: ['material']
                         });
+                        console.log(`[BOM-ENGINE] Found ${boms.length} BOM items for product ${targetProd.id}`);
 
                         for (const bom of boms) {
                             if (!bom.material_id) continue;
@@ -124,6 +133,7 @@ export class PfoBomEngineService {
 
         // FALLBACK: Nếu Sản phẩm trong DB chưa được khai báo BOM chi tiết -> Tự động sinh danh mục NPL định mức chuẩn cho PFO
         if (materialMap.size === 0) {
+            console.log(`[BOM-ENGINE] No BOMs found in materialMap. Falling back to default materials.`);
             const fallbackQty = totalOrderQuantity > 0 ? totalOrderQuantity : (pfo.quantity || 1);
             
             // Tìm các vật tư mẫu có sẵn trong DB hoặc tạo giả định chuẩn ngành may
@@ -135,7 +145,14 @@ export class PfoBomEngineService {
                     const normFactor = idx === 0 ? 2.5 : (idx === 1 ? 0.8 : 1.0); // Định mức m vải / kg gòn / cái
                     materialMap.set(mat.id, {
                         qty: fallbackQty * normFactor,
-                        material: mat
+                        material: mat,
+                        details: [{
+                            product_name: 'Dữ liệu mẫu (Fallback)',
+                            original_norm: normFactor,
+                            waste: 0,
+                            order_quantity: fallbackQty,
+                            total: fallbackQty * normFactor
+                        }]
                     });
                 });
             } else {
