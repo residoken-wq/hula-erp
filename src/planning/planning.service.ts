@@ -28,7 +28,6 @@ export class PlanningService {
         private productsService: ProductsService,
         private materialsService: MaterialsService,
         @Inject(forwardRef(() => InventoryService)) private inventoryService: InventoryService,
-        private mrpCalculationService: any,
         private ganttService: GanttService,
     ) { }
 
