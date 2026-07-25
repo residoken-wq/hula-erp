@@ -20,6 +20,7 @@ export class PlanningController {
   // ============================================================
 
   // --- GENERAL PLANNING / BOOKING APIs ---
+  @Get() findAll() { return this.planningSvc.findAll(); }
   @Get('suggestion') getSuggestion() { return this.planningSvc.getSuggestion(); }
   @Get('booking-stats') getBookingStats(@Query('month') month?: string, @Query('year') year?: string) { return this.planningSvc.getBookingStats(month, year); }
   @Get('bookings') getAllBookings() { return this.planningSvc.getAllBookings(); }
