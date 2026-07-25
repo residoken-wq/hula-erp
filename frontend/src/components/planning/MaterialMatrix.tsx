@@ -14,7 +14,7 @@ interface MaterialMatrixProps {
     requirements: any[];
     loading?: boolean;
     onSaveReqs?: (updatedReqs: any[]) => void;
-    onGeneratePo?: () => void;
+    onGeneratePo?: (reqs?: any[]) => void;
     onCalculateBom?: () => void;
 }
 
@@ -160,7 +160,7 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
                     <Button 
                         type="primary" 
                         icon={<ShoppingCartOutlined />} 
-                        onClick={onGeneratePo}
+                        onClick={() => onGeneratePo && onGeneratePo(editableData)}
                     >
                         Tạo PO Vật Tư
                     </Button>
@@ -175,6 +175,43 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
                 size="middle"
                 loading={loading}
                 scroll={{ y: 350 }}
+                expandable={{
+                    expandedRowRender: record => {
+                        if (!record.bom_details || record.bom_details.length === 0) {
+                            return <Text type="secondary" style={{ marginLeft: 32 }}>Không có chi tiết bóc tách (Nhập tay hoặc BOM tĩnh)</Text>;
+                        }
+                        
+                        const detailCols = [
+                            { title: 'Sản phẩm', dataIndex: 'product_name', key: 'product_name' },
+                            { title: 'SL Yêu cầu (A)', dataIndex: 'order_quantity', key: 'order_quantity', align: 'right' as const, render: (v: number) => Number(v || 0).toLocaleString() },
+                            { title: 'ĐM gốc (B)', dataIndex: 'original_norm', key: 'original_norm', align: 'right' as const, render: (v: number) => Number(v || 0).toLocaleString() },
+                            { title: 'Waste % (C)', dataIndex: 'waste', key: 'waste', align: 'right' as const },
+                            { 
+                                title: 'Tổng nhu cầu (A * B * (1 + C%))', 
+                                dataIndex: 'total', 
+                                key: 'total', 
+                                align: 'right' as const, 
+                                render: (val: number) => <Text strong style={{ color: '#1890ff' }}>{Number(val || 0).toLocaleString()}</Text> 
+                            }
+                        ];
+                        
+                        return (
+                            <div style={{ padding: '8px 24px', backgroundColor: '#fcfcfc', border: '1px dashed #d9d9d9', borderRadius: 6, margin: '8px 16px' }}>
+                                <Text strong style={{ display: 'block', marginBottom: 8, fontSize: 12, color: '#595959' }}>
+                                    Chi tiết bóc tách NPL:
+                                </Text>
+                                <Table 
+                                    columns={detailCols} 
+                                    dataSource={record.bom_details} 
+                                    pagination={false} 
+                                    size="small" 
+                                    rowKey={(r, i) => i?.toString() || '0'} 
+                                    bordered
+                                />
+                            </div>
+                        );
+                    }
+                }}
             />
         </div>
     );

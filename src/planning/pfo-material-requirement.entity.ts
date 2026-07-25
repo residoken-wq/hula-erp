@@ -63,4 +63,7 @@ export class PfoMaterialRequirement {
 
   @Column('text', { nullable: true })
   note: string;
+
+  @Column('simple-json', { nullable: true })
+  bom_details: any;
 }

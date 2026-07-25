@@ -139,10 +139,26 @@ const PlanningPage: React.FC = () => {
         setLoading(false);
     };
 
-    const handleGeneratePo = async () => {
+    const handleSaveReqs = async (reqs: any[]) => {
         if (!selectedPfo) return;
         setLoading(true);
         try {
+            await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/save-requirements`, { requirements: reqs });
+            message.success('Đã lưu cấu hình vật tư');
+            fetchData();
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi lưu cấu hình vật tư');
+        }
+        setLoading(false);
+    };
+
+    const handleGeneratePo = async (reqs?: any[]) => {
+        if (!selectedPfo) return;
+        setLoading(true);
+        try {
+            if (reqs && reqs.length > 0) {
+                await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/save-requirements`, { requirements: reqs });
+            }
             const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/generate-pos`);
             message.success(res.data.message || 'Đã phát hành các Đơn đặt hàng (PO)');
             fetchData();
@@ -233,7 +249,10 @@ const PlanningPage: React.FC = () => {
                 title={
                     <Space size="large">
                         <Text strong style={{ fontSize: 18, color: '#1d39c4' }}>
-                            📋 Chi Tiết Lệnh SX: {selectedPfo?.code}
+                            📋 Chi Tiết Lệnh SX: {selectedPfo?.code} 
+                            {pfoDetails?.sales_order?.customer_name || pfoDetails?.sales_order?.customer?.name 
+                                ? ` - Khách hàng: ${pfoDetails?.sales_order?.customer_name || pfoDetails?.sales_order?.customer?.name}` 
+                                : ''}
                         </Text>
                         <Tag color="blue" style={{ fontSize: 13, padding: '2px 10px' }}>
                             {pfoDetails?.status || selectedPfo?.status}
@@ -241,7 +260,7 @@ const PlanningPage: React.FC = () => {
                     </Space>
                 }
                 placement="right"
-                width={isMobile ? '100%' : '92%'}
+                width={isMobile ? '100%' : '80%'}
                 onClose={() => setIsDrawerOpen(false)}
                 open={isDrawerOpen}
                 extra={
@@ -313,6 +332,7 @@ const PlanningPage: React.FC = () => {
                             <MaterialMatrix 
                                 requirements={pfoDetails?.material_requirements || []} 
                                 loading={loading}
+                                onSaveReqs={handleSaveReqs}
                                 onGeneratePo={handleGeneratePo}
                                 onCalculateBom={handleCalculateBom}
                             />

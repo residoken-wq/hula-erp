@@ -60,6 +60,11 @@ export class PlanningController {
     return this.bomSvc.calculateMaterialRequirements(Number(id));
   }
 
+  @Post('pfo/:id/save-requirements')
+  saveRequirements(@Param('id') id: string, @Body('requirements') reqs: any[]) {
+    return this.bomSvc.saveMaterialRequirements(Number(id), reqs);
+  }
+
   // --- PFO SOURCING APIs (Gate 3, 4, 5) ---
   @Post('pfo/:id/assign-vendor')
   assignVendor(@Param('id') id: string, @Body('vendor_id') vendorId: number) {

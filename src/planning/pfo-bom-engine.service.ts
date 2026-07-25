@@ -96,13 +96,24 @@ export class PfoBomEngineService {
                             const waste = Number(bom.waste_percent || 0);
                             const totalReqQty = rawQty * (1 + waste / 100);
 
+                            const detail = {
+                                product_name: targetProd.name || targetProd.sku || `Product ${targetProd.id}`,
+                                original_norm: Number(bom.quantity || 0),
+                                waste: waste,
+                                order_quantity: current.multiplier,
+                                total: totalReqQty
+                            };
+
                             const existing = materialMap.get(bom.material_id);
                             if (existing) {
                                 existing.qty += totalReqQty;
+                                if (!existing.details) existing.details = [];
+                                existing.details.push(detail);
                             } else {
                                 materialMap.set(bom.material_id, {
                                     qty: totalReqQty,
-                                    material: bom.material
+                                    material: bom.material,
+                                    details: [detail]
                                 });
                             }
                         }
@@ -168,7 +179,8 @@ export class PfoBomEngineService {
                 planned_quantity: Math.round(data.qty * 100) / 100,
                 actual_order_quantity: Math.round(data.qty * 100) / 100,
                 unit_price: Number(mat?.cost_price || mat?.cost_per_unit || (data as any).price || 0),
-                issued_quantity: 0
+                issued_quantity: 0,
+                bom_details: data.details || null
             });
             requirements.push(req);
         }
@@ -182,5 +194,20 @@ export class PfoBomEngineService {
             total_materials: requirements.length,
             requirements
         };
+    }
+
+    async saveMaterialRequirements(pfoId: number, reqs: any[]) {
+        if (!reqs || !Array.isArray(reqs)) return;
+        
+        for (const r of reqs) {
+            if (r.id) {
+                await this.materialReqRepo.update(r.id, {
+                    actual_order_quantity: r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity),
+                    supply_method: r.supply_method,
+                    supplier_id: r.supplier_id
+                });
+            }
+        }
+        return { message: 'Đã lưu cấu hình vật tư' };
     }
 }

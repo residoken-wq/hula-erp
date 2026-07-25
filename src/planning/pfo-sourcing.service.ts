@@ -92,6 +92,9 @@ export class PfoSourcingService {
             }
 
             for (const [suppId, reqs] of Object.entries(supplierGroups)) {
+                const validReqs = reqs.filter(r => (r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity)) > 0);
+                if (validReqs.length === 0) continue;
+
                 const poCode = `PO-NPL-PFO${pfoId}-${Math.floor(1000 + Math.random() * 9000)}`;
                 const matPo = this.poRepo.create({
                     po_code: poCode,
@@ -103,8 +106,8 @@ export class PfoSourcingService {
                 });
                 await this.poRepo.save(matPo);
 
-                const matItems = reqs.map(r => {
-                    const qty = Number(r.actual_order_quantity || r.planned_quantity || 0);
+                const matItems = validReqs.map(r => {
+                    const qty = r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity);
                     const price = Number(r.unit_price || 0);
                     return this.poItemRepo.create({
                         purchase_order: matPo,
