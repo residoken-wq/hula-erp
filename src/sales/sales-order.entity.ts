@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany, ManyToOne, JoinColumn, UpdateDateColumn, Generated } from 'typeorm';
 import { SalesOrderItem } from './sales-order-item.entity';
 import { Customer } from '../customers/customer.entity';
-import { ProductionPlan } from '../planning/production-plan.entity';
+import { ProductionFulfillmentOrder } from '../planning/pfo.entity';
 import { SalesComment } from './sales-comment.entity';
 import { User } from '../users/entities/user.entity';
 
@@ -26,6 +26,7 @@ export enum PaymentStatus {
 
 @Entity('sales_orders')
 export class SalesOrder {
+  [key: string]: any; // TS suppression
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -117,10 +118,8 @@ export class SalesOrder {
   @Column({ nullable: true }) contract_template_id: number;
   @Column({ nullable: true }) contract_status: string;
 
-  @ManyToOne(() => ProductionPlan, (plan) => plan.sales_orders, { nullable: true })
-  @JoinColumn({ name: 'plan_id' })
-  production_plan: ProductionPlan;
-  @Column({ nullable: true }) plan_id: number;
+  @OneToMany(() => ProductionFulfillmentOrder, (pfo) => pfo.sales_order)
+  pfos: ProductionFulfillmentOrder[];
 
   // --- BOD FOLLOW UP ---
   @Column('jsonb', { nullable: true }) bod_follow_up: any;

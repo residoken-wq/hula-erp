@@ -48,7 +48,7 @@ export class QualityInspection {
   supplier_id: number;
 
   @Column({ nullable: true })
-  plan_id: number;
+  pfo_id: number;
 
   // Số lượng kiểm tra
   @Column('int', { default: 0 })

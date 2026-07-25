@@ -1,84 +1,76 @@
 import { Controller, Get, Post, Put, Param, Body, Delete, Query } from '@nestjs/common';
 import { PlanningService } from './planning.service';
+import { PfoDemandService } from './pfo-demand.service';
+import { PfoBomEngineService } from './pfo-bom-engine.service';
+import { PfoSourcingService } from './pfo-sourcing.service';
+import { PfoExecutionService } from './pfo-execution.service';
 
 @Controller('planning')
 export class PlanningController {
-  constructor(private readonly s: PlanningService) { }
+  constructor(
+    private readonly planningSvc: PlanningService,
+    private readonly demandSvc: PfoDemandService,
+    private readonly bomSvc: PfoBomEngineService,
+    private readonly sourcingSvc: PfoSourcingService,
+    private readonly execSvc: PfoExecutionService
+  ) { }
 
-  @Get('suggestion') getSuggestion() { return this.s.getSuggestion(); }
-  @Get('gantt') getGantt() { return this.s.getGanttData(); }
+  // --- GENERAL PLANNING / BOOKING APIs ---
+  @Get('suggestion') getSuggestion() { return this.planningSvc.getSuggestion(); }
+  @Get('booking-stats') getBookingStats(@Query('month') month?: string, @Query('year') year?: string) { return this.planningSvc.getBookingStats(month, year); }
+  @Get('bookings') getAllBookings() { return this.planningSvc.getAllBookings(); }
+  @Post('bookings/:itemId/revert') revertBooking(@Param('itemId') itemId: number) { return this.planningSvc.revertBooking(Number(itemId)); }
+  @Post('sync-booking-stock') syncBookingStock() { return this.planningSvc.syncBookingStock(); }
+  @Get(':id/booking-items') getBookingItemsWithStock(@Param('id') id: number) { return this.planningSvc.getBookingItemsWithStock(Number(id)); }
+  @Post(':id/confirm-bookings') confirmBookings(@Param('id') id: number, @Body('itemIds') itemIds?: number[]) { return this.planningSvc.confirmBookings(id, itemIds); }
+  @Get('gantt') getGantt() { return this.planningSvc.getGanttData(); }
 
-  // --- MỚI: Booking Management APIs ---
-  @Get('booking-stats')
-  getBookingStats(@Query('month') month?: string, @Query('year') year?: string) {
-    return this.s.getBookingStats(month, year);
+  // --- PFO DEMAND APIs (Gate 1) ---
+  @Get('pfo/suggestions')
+  getPfoSuggestions() {
+    return this.demandSvc.getDemandSuggestions();
   }
 
-  @Get('summary-dashboard')
-  getSummaryDashboard(@Query() query: any) {
-    return this.s.getSummaryDashboard(query);
+  @Post('pfo/generate')
+  generatePfo(@Body() b: any) {
+    return this.demandSvc.generatePfo(b);
   }
 
-  @Get('bookings') getAllBookings() { return this.s.getAllBookings(); }
-  @Get('bookings/:sku') getBookingsBySku(@Param('sku') sku: string) { return this.s.getBookingsBySku(sku); }
-  @Post('bookings/:itemId/revert') revertBooking(@Param('itemId') itemId: number) { return this.s.revertBooking(Number(itemId)); }
-  @Post('sync-booking-stock') syncBookingStock() { return this.s.syncBookingStock(); }
-
-  @Post('gantt/:id/config') saveGanttConfig(@Param('id') id: number, @Body() b: any) { return this.s.saveGanttConfig(id, b); }
-  @Post('create') create(@Body() b: any) { return this.s.createPlan(b); }
-  @Get() findAll() { return this.s.findAll(); }
-  @Get(':id') getOne(@Param('id') id: number) { return this.s.findOne(id); }
-  @Delete(':id') delete(@Param('id') id: number) { return this.s.deletePlan(id); }
-
-  @Post('mrp/:id') runMrp(@Param('id') id: number, @Query('force') force: string) { return this.s.calculateMaterialNeeds(id, force === 'true'); }
-  @Post('save/:id') save(@Param('id') id: number, @Body() b: any) { return this.s.saveAnalysis(id, b.mrp_result, b.outsourcing_result, b.logistics_result); }
-
-  // Endpoint chung để tạo PO (cho cả NPL và Gia công)
-  @Post(':id/generate-pos')
-  generatePos(@Param('id') id: number, @Body() body: any) {
-    return this.s.generatePos(id, body.items);
+  @Get('pfo/:id')
+  getPfoDetails(@Param('id') id: number) {
+    return this.demandSvc.getPfoDetails(id);
   }
 
-  // --- MỚI: API Xác nhận Bookings ---
-  @Get(':id/booking-items')
-  getBookingItemsWithStock(@Param('id') id: number) {
-    return this.s.getBookingItemsWithStock(Number(id));
+  // --- PFO BOM APIs (Gate 2) ---
+  @Post('pfo/:id/calculate-bom')
+  calculateBom(@Param('id') id: number) {
+    return this.bomSvc.calculateMaterialRequirements(id);
   }
 
-  @Post(':id/confirm-bookings')
-  confirmBookings(@Param('id') id: number, @Body('itemIds') itemIds?: number[]) {
-    return this.s.confirmBookings(id, itemIds);
+  // --- PFO SOURCING APIs (Gate 3, 4, 5) ---
+  @Post('pfo/:id/assign-vendor')
+  assignVendor(@Param('id') id: number, @Body('vendor_id') vendorId: number) {
+    return this.sourcingSvc.assignVendor(id, vendorId);
   }
 
-  // --- MỚI: Plan Status Management ---
-  @Put(':id/status')
-  updatePlanStatus(@Param('id') id: number, @Body('status') status: string) {
-    return this.s.updatePlanStatus(id, status);
+  @Post('pfo/:id/generate-pos')
+  generatePos(@Param('id') id: number) {
+    return this.sourcingSvc.generatePos(id);
   }
 
-  @Post(':id/check-status')
-  checkPlanStatus(@Param('id') id: number) {
-    return this.s.checkAndUpdatePlanStatus(id);
+  // --- PFO EXECUTION APIs (Gate 6, 7, 8, 9, 10) ---
+  @Post('pfo/material-issue/:reqId')
+  updateMaterialIssue(@Param('reqId') reqId: number, @Body('issue_qty') issueQty: number) {
+    return this.execSvc.updateMaterialIssue(reqId, issueQty);
   }
 
-  // --- MỚI: Version History, Production Status, Sync BOD ---
-  @Get(':id/history')
-  getHistory(@Param('id') id: number) {
-    return this.s.getHistory(id);
+  @Post('pfo/:id/milestone')
+  updateMilestone(@Param('id') id: number, @Body() b: any) {
+    return this.execSvc.updateMilestone(id, b.milestone_type, b.data);
   }
 
-  @Get(':id/production-status')
-  getProductionStatus(@Param('id') id: number) {
-    return this.s.getProductionStatus(id);
-  }
-
-  @Post(':id/init-production')
-  initProduction(@Param('id') id: number) {
-    return this.s.initProduction(id);
-  }
-
-  @Post(':id/sync-bod-followup')
-  syncBodFollowUp(@Param('id') id: number) {
-    return this.s.syncBodFollowUp(id);
+  @Post('pfo/:id/qc')
+  submitQcRecord(@Param('id') id: number, @Body() b: any) {
+    return this.execSvc.submitQcRecord(id, b);
   }
 }

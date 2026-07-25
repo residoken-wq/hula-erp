@@ -31,11 +31,11 @@ export class AgentApiController {
 
     @Get('mrp/needs')
     getMrpNeeds(
-        @Query('plan_id') plan_id?: string,
+        @Query('pfo_id') pfo_id?: string,
         @Query('plan_status') plan_status?: string
     ) {
         return this.agentApiService.getMrpNeeds({ 
-            plan_id: plan_id ? Number(plan_id) : undefined, 
+            pfo_id: pfo_id ? Number(pfo_id) : undefined, 
             plan_status 
         });
     }

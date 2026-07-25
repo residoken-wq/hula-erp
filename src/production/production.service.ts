@@ -24,7 +24,7 @@ export class ProductionService {
       const order = this.prodRepo.create({
           code: data.code,
           product_id: data.product_id,
-          plan_id: data.plan_id || null,
+          pfo_id: data.pfo_id || null,
           sales_order_code: data.so_code || null,
           assigned_supplier_id: data.assigned_supplier_id || null,
           quantity: data.quantity,
@@ -45,7 +45,7 @@ export class ProductionService {
                   product_sku: product.sku,
                   quantity: Number(data.quantity),
                   production_order_id: saved.id,
-                  plan_id: data.plan_id || null,
+                  pfo_id: data.pfo_id || null,
                   status: WorkOrderStatus.PENDING,
                   steps: routings.map((r: any, idx: number) => ({
                       step_name: r.step_name || r.process?.name || `Step ${idx + 1}`,
@@ -73,9 +73,9 @@ export class ProductionService {
   }
 
   // --- MỚI: Lấy WorkOrders theo Plan ---
-  async getWorkOrdersByPlan(planId: number) {
+  async getWorkOrdersByPlan(pfoId: number) {
       return this.woRepo.find({
-          where: { plan_id: planId },
+          where: { pfo_id: pfoId },
           relations: ['steps', 'production_order'],
           order: { created_at: 'DESC' }
       });
@@ -177,7 +177,7 @@ export class ProductionService {
       production_order_id: data.production_order_id || null,
       step_id: data.step_id || null,
       supplier_id: data.supplier_id,
-      plan_id: data.plan_id || null,
+      pfo_id: data.pfo_id || null,
       assigned_quantity: Number(data.assigned_quantity || 0),
       completed_quantity: 0,
       defect_quantity: 0,
@@ -189,9 +189,9 @@ export class ProductionService {
     return this.assignRepo.save(assignment);
   }
 
-  async getAssignments(query?: { plan_id?: number; supplier_id?: number; step_id?: number }) {
+  async getAssignments(query?: { pfo_id?: number; supplier_id?: number; step_id?: number }) {
     const where: any = {};
-    if (query?.plan_id) where.plan_id = query.plan_id;
+    if (query?.pfo_id) where.pfo_id = query.pfo_id;
     if (query?.supplier_id) where.supplier_id = query.supplier_id;
     if (query?.step_id) where.step_id = query.step_id;
 
@@ -234,4 +234,4 @@ export class ProductionService {
     await this.assignRepo.delete(id);
     return { success: true };
   }
-}
+}

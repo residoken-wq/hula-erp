@@ -21,7 +21,7 @@ export class QCService {
       status: QCStatus.PENDING,
       po_id: data.po_id || null,
       supplier_id: data.supplier_id || null,
-      plan_id: data.plan_id || null,
+      pfo_id: data.pfo_id || null,
       total_quantity: Number(data.total_quantity || 0),
       inspected_quantity: 0,
       passed_quantity: 0,

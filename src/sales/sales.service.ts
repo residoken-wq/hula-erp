@@ -973,7 +973,7 @@ export class SalesService {
     async deleteDelivery(deliveryId: number) {
         const delivery = await this.deliveryRepo.findOne({
             where: { id: deliveryId },
-            relations: ['items', 'sales_order', 'sales_order.items', 'sales_order.items.product', 'sales_order.production_plan']
+            relations: ['items', 'sales_order', 'sales_order.items', 'sales_order.items.product', 'sales_order.pfo']
         });
         if (!delivery) throw new NotFoundException('Phiếu xuất kho không tồn tại');
 
@@ -1036,8 +1036,8 @@ export class SalesService {
         }
 
         // MỚI: Invalidate MRP cache của plan
-        if (order.production_plan) {
-            await this.deliveryRepo.manager.update('ProductionPlan', order.production_plan.id, {
+        if (order.pfo) {
+            await this.deliveryRepo.manager.update('ProductionFulfillmentOrder', order.pfos.id, {
                 mrp_data: null,
                 outsourcing_data: null,
                 logistics_data: null

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { ProductionPlan, PlanStatus } from './production-plan.entity';
+import { ProductionFulfillmentOrder, PfoStatus } from './pfo.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { WorkOrder } from '../production/work-order.entity';
 import { WorkOrderStep } from '../production/work-order-step.entity';
@@ -9,7 +9,7 @@ import { WorkOrderStep } from '../production/work-order-step.entity';
 @Injectable()
 export class GanttService {
     constructor(
-        @InjectRepository(ProductionPlan) private planRepo: Repository<ProductionPlan>,
+        @InjectRepository(ProductionFulfillmentOrder) private planRepo: Repository<ProductionFulfillmentOrder>,
         @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
         @InjectRepository(WorkOrder) private woRepo: Repository<WorkOrder>,
         @InjectRepository(WorkOrderStep) private stepRepo: Repository<WorkOrderStep>,
@@ -18,7 +18,7 @@ export class GanttService {
     // --- Gantt Chart: Lấy các kế hoạch chưa hoàn thiện kèm công đoạn sản phẩm ---
     async getGanttData() {
         const plans = await this.planRepo.find({
-            where: { status: In([PlanStatus.DRAFT, PlanStatus.CALCULATED, PlanStatus.IN_PRODUCTION]) },
+            where: { status: In([PfoStatus.DRAFT, PfoStatus.CALCULATED, PfoStatus.IN_PRODUCTION]) },
             relations: [
                 'sales_orders',
                 'sales_orders.items',
@@ -30,13 +30,13 @@ export class GanttService {
         });
 
         // Batch load POs for all plans
-        const planIds = plans.map(p => p.id);
+        const pfoIds = plans.map(p => p.id);
         let allPos: any[] = [];
-        if (planIds.length > 0) {
+        if (pfoIds.length > 0) {
             allPos = await this.poRepo.find({
-                where: { plan_id: In(planIds) },
+                where: { pfo_id: In(pfoIds) },
                 relations: ['items'],
-                select: ['id', 'plan_id', 'status', 'type']
+                select: ['id', 'pfo_id', 'status', 'type']
             });
         }
 
@@ -44,7 +44,7 @@ export class GanttService {
 
         return Promise.all(plans.map(async plan => {
             // --- NPL Status ---
-            const planPos = allPos.filter(po => po.plan_id === plan.id);
+            const planPos = allPos.filter(po => po.pfo_id === plan.id);
             const materialPos = planPos.filter(po => po.type === 'MATERIAL');
             const mrpItems = Array.isArray(plan.mrp_data) ? plan.mrp_data : [];
             const totalMaterials = mrpItems.filter((m: any) => (m.net_requirement || 0) > 0).length;
@@ -120,7 +120,7 @@ export class GanttService {
             }
 
             return {
-                plan_id: plan.id,
+                pfo_id: plan.id,
                 plan_code: plan.code,
                 plan_name: plan.name,
                 start_date: plan.start_date,
@@ -134,8 +134,8 @@ export class GanttService {
     }
 
     // --- Lưu cấu hình Gantt (step order + timing) ---
-    async saveGanttConfig(planId: number, config: any) {
-        const plan = await this.planRepo.findOneBy({ id: planId });
+    async saveGanttConfig(pfoId: number, config: any) {
+        const plan = await this.planRepo.findOneBy({ id: pfoId });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
         plan.gantt_config = config;
         await this.planRepo.save(plan);
@@ -143,11 +143,11 @@ export class GanttService {
     }
 
     // --- MỚI: Enrich products với live progress từ WorkOrder ---
-    private async enrichProductsWithProgress(products: any[], planId: number) {
+    private async enrichProductsWithProgress(products: any[], pfoId: number) {
         try {
             // Load tất cả WO của plan này
             const workOrders = await this.woRepo.find({
-                where: { plan_id: planId },
+                where: { pfo_id: pfoId },
                 relations: ['steps']
             });
 

@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { Product } from '../../products/product.entity';
-import { ProductionPlan } from '../../planning/production-plan.entity';
+import { ProductionFulfillmentOrder } from '../../planning/pfo.entity';
 import { WorkOrder } from '../work-order.entity';
 
 @Entity('production_orders')
@@ -19,12 +19,12 @@ export class ProductionOrder {
   product_id: number;
 
   // --- MỚI: Liên kết Kế hoạch SX ---
-  @ManyToOne(() => ProductionPlan, { nullable: true })
-  @JoinColumn({ name: 'plan_id' })
-  plan: ProductionPlan;
+  @ManyToOne(() => ProductionFulfillmentOrder, { nullable: true })
+  @JoinColumn({ name: 'pfo_id' })
+  pfo: ProductionFulfillmentOrder;
 
   @Column({ nullable: true })
-  plan_id: number;
+  pfo_id: number;
 
   // --- MỚI: Truy vết đơn hàng gốc ---
   @Column({ nullable: true })

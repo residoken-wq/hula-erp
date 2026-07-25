@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { PurchaseOrderItem } from './purchase-order-item.entity';
-import { ProductionPlan } from '../../planning/production-plan.entity';
+import { ProductionFulfillmentOrder } from '../../planning/pfo.entity';
 import { Supplier } from '../../suppliers/supplier.entity';
 
 export enum POStatus {
@@ -54,12 +54,12 @@ export class PurchaseOrder {
   @Column({ nullable: true })
   supplier_id: number;
 
-  @ManyToOne(() => ProductionPlan, { nullable: true })
-  @JoinColumn({ name: 'plan_id' })
-  plan: ProductionPlan;
+  @ManyToOne(() => ProductionFulfillmentOrder, { nullable: true })
+  @JoinColumn({ name: 'pfo_id' })
+  pfo: ProductionFulfillmentOrder;
 
   @Column({ nullable: true })
-  plan_id: number;
+  pfo_id: number;
 
   @Column({ nullable: true })
   project_id: number;

@@ -46,7 +46,7 @@ export class OutsourcingAssignment {
   supplier_id: number;
 
   @Column({ nullable: true })
-  plan_id: number;
+  pfo_id: number;
 
   // Sản lượng phân bổ
   @Column('int', { default: 0 })

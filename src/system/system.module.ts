@@ -18,7 +18,7 @@ import { SalesOrder } from '../sales/sales-order.entity';
 import { InventoryStock } from '../inventory/inventory-stock.entity';
 import { GoodsReceipt } from '../inventory/entities/goods-receipt.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
-import { ProductionPlan } from '../planning/production-plan.entity';
+import { ProductionFulfillmentOrder } from '../planning/pfo.entity';
 import { Customer } from '../customers/customer.entity';
 import { Product } from '../products/product.entity';
 import { Material } from '../materials/material.entity';
@@ -37,7 +37,7 @@ import { AgentApiService } from './agent-api.service';
             InventoryStock,
             GoodsReceipt,
             PurchaseOrder,
-            ProductionPlan,
+            ProductionFulfillmentOrder,
             Customer,
             Product,
             Material

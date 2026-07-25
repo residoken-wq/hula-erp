@@ -7,7 +7,7 @@ import { PurchasingController } from './purchasing.controller';
 import { PurchaseOrder } from './entities/purchase-order.entity';
 import { PurchaseOrderItem } from './entities/purchase-order-item.entity';
 import { GoodsReceipt } from '../inventory/entities/goods-receipt.entity';
-import { ProductionPlan } from '../planning/production-plan.entity';
+import { ProductionFulfillmentOrder } from '../planning/pfo.entity';
 
 // External Modules (Service cần gọi đến)
 import { InventoryModule } from '../inventory/inventory.module';
@@ -21,7 +21,7 @@ import { PlanningModule } from '../planning/planning.module';
       PurchaseOrder,
       PurchaseOrderItem,
       GoodsReceipt, // <--- Đảm bảo đã đăng ký
-      ProductionPlan
+      ProductionFulfillmentOrder
     ]),
     forwardRef(() => InventoryModule),
     ProductsModule,

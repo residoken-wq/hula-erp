@@ -15,9 +15,9 @@ export class PurchaseOrderItem {
   purchase_order: PurchaseOrder;
   // ---------------------------------------------
 
-  // --- MỚI: Traceability - Link Item to specific Plan ---
+  // --- MỚI: Traceability - Link Item to specific PFO ---
   @Column({ nullable: true })
-  plan_id: number;
+  pfo_id: number;
   // -----------------------------------------------------
 
   @ManyToOne(() => Material, { nullable: true })

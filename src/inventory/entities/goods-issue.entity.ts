@@ -54,7 +54,7 @@ export class GoodsIssue {
     supplier_id: number;
 
     @Column({ nullable: true })
-    plan_id: number;
+    pfo_id: number;
 
     @Column({ type: 'date', nullable: true })
     issue_date: string;

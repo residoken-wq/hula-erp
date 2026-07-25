@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
 import { InventoryStock } from '../inventory/inventory-stock.entity';
-import { ProductionPlan } from '../planning/production-plan.entity';
+import { ProductionFulfillmentOrder } from '../planning/pfo.entity';
 import { Customer } from '../customers/customer.entity';
 import { Product } from '../products/product.entity';
 import { Material } from '../materials/material.entity';
@@ -13,7 +13,7 @@ export class AgentApiService {
     constructor(
         @InjectRepository(SalesOrder) private orderRepo: Repository<SalesOrder>,
         @InjectRepository(InventoryStock) private stockRepo: Repository<InventoryStock>,
-        @InjectRepository(ProductionPlan) private planRepo: Repository<ProductionPlan>,
+        @InjectRepository(ProductionFulfillmentOrder) private planRepo: Repository<ProductionFulfillmentOrder>,
         @InjectRepository(Customer) private customerRepo: Repository<Customer>,
         @InjectRepository(Product) private productRepo: Repository<Product>,
         @InjectRepository(Material) private materialRepo: Repository<Material>,
@@ -227,8 +227,8 @@ export class AgentApiService {
     async getMrpNeeds(filters: any) {
         const qb = this.planRepo.createQueryBuilder('plan');
 
-        if (filters.plan_id) {
-            qb.andWhere('plan.id = :planId', { planId: filters.plan_id });
+        if (filters.pfo_id) {
+            qb.andWhere('plan.id = :pfoId', { pfoId: filters.pfo_id });
         }
         if (filters.plan_status) {
             qb.andWhere('plan.status = :status', { status: filters.plan_status });
@@ -254,7 +254,7 @@ export class AgentApiService {
             }
 
             return {
-                plan_id: plan.id,
+                pfo_id: plan.id,
                 plan_name: plan.name,
                 plan_status: plan.status,
                 materials: materials

@@ -2,9 +2,15 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PlanningController } from './planning.controller';
 import { PlanningService } from './planning.service';
-import { MrpCalculationService } from './mrp-calculation.service';
 import { GanttService } from './gantt.service';
-import { ProductionPlan } from './production-plan.entity';
+import { PfoDemandService } from './pfo-demand.service';
+import { PfoBomEngineService } from './pfo-bom-engine.service';
+import { PfoSourcingService } from './pfo-sourcing.service';
+import { PfoExecutionService } from './pfo-execution.service';
+import { ProductionFulfillmentOrder } from './pfo.entity';
+import { PfoMaterialRequirement } from './pfo-material-requirement.entity';
+import { PfoMilestone } from './pfo-milestone.entity';
+import { PfoQcRecord } from './pfo-qc-record.entity';
 import { SalesOrder } from '../sales/sales-order.entity';
 import { SalesOrderItem } from '../sales/sales-order-item.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
@@ -16,17 +22,30 @@ import { MaterialsModule } from '../materials/materials.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { SupplierStock } from '../inventory/entities/supplier-stock.entity';
 
-import { ProductionPlanHistory } from './production-plan-history.entity';
+
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ProductionPlan, ProductionPlanHistory, SalesOrder, SalesOrderItem, PurchaseOrder, PurchaseOrderItem, WorkOrder, WorkOrderStep, SupplierStock]),
+    TypeOrmModule.forFeature([ProductionFulfillmentOrder, PfoMaterialRequirement, PfoMilestone, PfoQcRecord, SalesOrder, SalesOrderItem, PurchaseOrder, PurchaseOrderItem, WorkOrder, WorkOrderStep, SupplierStock]),
     ProductsModule,
     MaterialsModule,
     forwardRef(() => InventoryModule)
   ],
   controllers: [PlanningController],
-  providers: [PlanningService, MrpCalculationService, GanttService],
-  exports: [PlanningService]
+  providers: [
+    PlanningService, 
+    GanttService,
+    PfoDemandService,
+    PfoBomEngineService,
+    PfoSourcingService,
+    PfoExecutionService
+  ],
+  exports: [
+    PlanningService,
+    PfoDemandService,
+    PfoBomEngineService,
+    PfoSourcingService,
+    PfoExecutionService
+  ]
 })
 export class PlanningModule { }

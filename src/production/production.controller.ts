@@ -26,9 +26,9 @@ export class ProductionController {
   }
 
   // --- WorkOrder APIs ---
-  @Get('work-orders/plan/:planId')
-  getWorkOrdersByPlan(@Param('planId') planId: number) {
-    return this.productionService.getWorkOrdersByPlan(planId);
+  @Get('work-orders/plan/:pfoId')
+  getWorkOrdersByPlan(@Param('pfoId') pfoId: number) {
+    return this.productionService.getWorkOrdersByPlan(pfoId);
   }
 
   @Get('work-orders/:id')
@@ -57,12 +57,12 @@ export class ProductionController {
 
   @Get('assignments')
   getAssignments(
-    @Query('plan_id') planId?: string,
+    @Query('pfo_id') pfoId?: string,
     @Query('supplier_id') supplierId?: string,
     @Query('step_id') stepId?: string
   ) {
     const query: any = {};
-    if (planId) query.plan_id = Number(planId);
+    if (pfoId) query.pfo_id = Number(pfoId);
     if (supplierId) query.supplier_id = Number(supplierId);
     if (stepId) query.step_id = Number(stepId);
     return this.productionService.getAssignments(query);

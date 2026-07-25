@@ -9,7 +9,7 @@ import { ProductsService } from '../products/products.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { PlanningService } from '../planning/planning.service'; // --- MỚI ---
 import { v4 as uuidv4 } from 'uuid';
-import { ProductionPlan } from '../planning/production-plan.entity';
+import { ProductionFulfillmentOrder } from '../planning/pfo.entity';
 
 @Injectable()
 export class PurchasingService {
@@ -21,7 +21,7 @@ export class PurchasingService {
         private productsService: ProductsService,
         private suppliersService: SuppliersService,
         private planningService: PlanningService,
-        @InjectRepository(ProductionPlan) private planRepo: Repository<ProductionPlan>,
+        @InjectRepository(ProductionFulfillmentOrder) private planRepo: Repository<ProductionFulfillmentOrder>,
     ) { }
 
     async createPO(data: any) {
@@ -40,7 +40,7 @@ export class PurchasingService {
         if (data.items) {
             for (const i of data.items) {
                 const item = new PurchaseOrderItem();
-                item.plan_id = i.plan_id; // --- FIX: Lưu plan_id ---
+                item.pfo_id = i.pfo_id; // --- FIX: Lưu pfo_id ---
                 item.material_id = i.material_id;
                 item.product_id = i.product_id;
                 item.description = i.description || '';
@@ -117,15 +117,15 @@ export class PurchasingService {
 
 
         // --- MỚI: Enrich Item Data from Plan if missing ---
-        const planIds = new Set(po.items.map(i => i.plan_id).filter(Boolean));
-        if (planIds.size > 0) {
-            const plans = await this.planRepo.find({ where: { id: In(Array.from(planIds)) } });
+        const pfoIds = new Set(po.items.map(i => i.pfo_id).filter(Boolean));
+        if (pfoIds.size > 0) {
+            const plans = await this.planRepo.find({ where: { id: In(Array.from(pfoIds)) } });
             const planMap = new Map(plans.map(p => [p.id, p]));
 
             for (const item of po.items) {
                 // Chỉ điền nếu dữ liệu đang bằng 0
-                if (item.plan_id && planMap.has(item.plan_id)) {
-                    const plan = planMap.get(item.plan_id);
+                if (item.pfo_id && planMap.has(item.pfo_id)) {
+                    const plan = planMap.get(item.pfo_id);
 
                     // A. Material Logic
                     if (item.material_id) {
@@ -216,13 +216,13 @@ export class PurchasingService {
         const savedPO = await this.poRepo.save(po);
 
         // --- Sync Price to Planning if Ordered ---
-        if (data.status === 'ORDERED' && savedPO.plan_id) {
-            await this.planningService.syncPoPrices(savedPO.plan_id);
+        if (data.status === 'ORDERED' && savedPO.pfo_id) {
+            await this.planningService.syncPoPrices(savedPO.pfo_id);
         }
 
         // --- MỚI: Auto-check Plan Status khi PO status thay đổi ---
-        if (data.status && savedPO.plan_id) {
-            await this.planningService.checkAndUpdatePlanStatus(savedPO.plan_id);
+        if (data.status && savedPO.pfo_id) {
+            await this.planningService.checkAndUpdatePfoStatus(savedPO.pfo_id);
         }
 
         // --- MỚI: Cập nhật lại tổng tiền của PO Gộp nếu PO này là PO con ---
@@ -270,8 +270,8 @@ export class PurchasingService {
         if (!po || po.type !== POType.OUTSOURCING) return [];
 
         let mrpData: any[] = [];
-        if (po.plan_id) {
-            const plan = await this.planRepo.findOne({ where: { id: po.plan_id } });
+        if (po.pfo_id) {
+            const plan = await this.planRepo.findOne({ where: { id: po.pfo_id } });
             if (plan && Array.isArray(plan.mrp_data)) {
                 mrpData = plan.mrp_data;
             }
@@ -322,7 +322,7 @@ export class PurchasingService {
 
         // MỚI: Nếu PO thuộc một plan, ta có thể cập nhật trạng thái plan nếu cần thiết
         // Nhưng KHÔNG invalidate mrp_data để tránh mất kết quả tính toán và use_stock
-        if (po.plan_id) {
+        if (po.pfo_id) {
             // (Tuỳ chọn: downgrade trạng thái plan)
         }
 
@@ -437,8 +437,8 @@ export class PurchasingService {
         const saved = await this.poRepo.save(po);
 
         // Auto-check plan status
-        if (saved.plan_id) {
-            await this.planningService.checkAndUpdatePlanStatus(saved.plan_id);
+        if (saved.pfo_id) {
+            await this.planningService.checkAndUpdatePfoStatus(saved.pfo_id);
         }
 
         return saved;
@@ -460,18 +460,18 @@ export class PurchasingService {
             const activePoItems = allPoItems.filter(i => i.purchase_order && i.purchase_order.status !== 'CANCELLED');
             console.log('Active PO items:', activePoItems.length);
 
-            const orderedQtyMap = new Map<string, number>(); // key: planId_type_idOrRef
+            const orderedQtyMap = new Map<string, number>(); // key: pfoId_type_idOrRef
 
             for (const item of activePoItems) {
-                if (item.plan_id) { // Chỉ quan tâm item có link đến Plan
+                if (item.pfo_id) { // Chỉ quan tâm item có link đến Plan
                     // Nếu là Material
                     if (item.material_id) {
-                        const key = `${item.plan_id}_MAT_${item.material_id}`;
+                        const key = `${item.pfo_id}_MAT_${item.material_id}`;
                         orderedQtyMap.set(key, (orderedQtyMap.get(key) || 0) + Number(item.quantity));
                     } else {
                         // Nếu là Outsourcing (Dựa vào Description match)
                         // Format: "StepName (SKU)"
-                        const key = `${item.plan_id}_OUT_${item.description}`;
+                        const key = `${item.pfo_id}_OUT_${item.description}`;
                         orderedQtyMap.set(key, (orderedQtyMap.get(key) || 0) + Number(item.quantity));
                     }
                 }
@@ -495,7 +495,7 @@ export class PurchasingService {
                         if (remaining > 0) {
                             pendingItems.push({
                                 type: 'MATERIAL',
-                                plan_id: plan.id,
+                                pfo_id: plan.id,
                                 plan_code: plan.code,
                                 material_id: item.material_id, // Quan trọng
                                 material_code: item.material_code,
@@ -534,7 +534,7 @@ export class PurchasingService {
                         if (remaining > 0) {
                             pendingItems.push({
                                 type: 'OUTSOURCING',
-                                plan_id: plan.id,
+                                pfo_id: plan.id,
                                 plan_code: plan.code,
                                 material_id: null,
                                 material_code: item.product_sku,

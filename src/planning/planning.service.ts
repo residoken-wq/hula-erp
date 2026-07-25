@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, IsNull } from 'typeorm';
-import { ProductionPlan, PlanStatus } from './production-plan.entity';
+import { ProductionFulfillmentOrder, PfoStatus } from './pfo.entity';
 import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
 import { SalesOrderItem, BookingStatus } from '../sales/sales-order-item.entity';
 import { ProductsService } from '../products/products.service';
@@ -9,17 +9,17 @@ import { MaterialsService } from '../materials/materials.service';
 import { PurchaseOrder, POType, POStatus } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { InventoryService } from '../inventory/inventory.service';
-import { MrpCalculationService } from './mrp-calculation.service';
+// import { MrpCalculationService } from './mrp-calculation.service';
 import { GanttService } from './gantt.service';
 import { WorkOrder, WorkOrderStatus } from '../production/work-order.entity';
 
-import { ProductionPlanHistory } from './production-plan-history.entity';
+// import { PfoQcRecord } from './production-plan-history.entity';
 
 @Injectable()
 export class PlanningService {
     constructor(
-        @InjectRepository(ProductionPlan) private planRepo: Repository<ProductionPlan>,
-        @InjectRepository(ProductionPlanHistory) private historyRepo: Repository<ProductionPlanHistory>,
+        @InjectRepository(ProductionFulfillmentOrder) private planRepo: Repository<ProductionFulfillmentOrder>,
+        @InjectRepository(PfoQcRecord) private historyRepo: Repository<PfoQcRecord>,
         @InjectRepository(SalesOrder) private orderRepo: Repository<SalesOrder>,
         @InjectRepository(SalesOrderItem) private orderItemRepo: Repository<SalesOrderItem>,
         @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
@@ -28,7 +28,7 @@ export class PlanningService {
         private productsService: ProductsService,
         private materialsService: MaterialsService,
         @Inject(forwardRef(() => InventoryService)) private inventoryService: InventoryService,
-        private mrpCalculationService: MrpCalculationService,
+        private mrpCalculationService: any,
         private ganttService: GanttService,
     ) { }
 
@@ -36,7 +36,7 @@ export class PlanningService {
         const orders = await this.orderRepo.find({
             where: {
                 status: In([SalesOrderStatus.SO_PENDING, SalesOrderStatus.SAMPLE_APPROVED, SalesOrderStatus.DEPOSITED]),
-                plan_id: IsNull()
+                pfo_id: IsNull()
             },
             relations: ['customer', 'items', 'items.product', 'deliveries'],
             order: { delivery_date: 'ASC' }
@@ -141,10 +141,10 @@ export class PlanningService {
         if (!orders.length) throw new BadRequestException('Không tìm thấy đơn hàng');
 
         const plan = this.planRepo.create({
-            code: data.code, name: data.name, start_date: data.start_date, end_date: data.end_date, status: PlanStatus.DRAFT
+            code: data.code, name: data.name, start_date: data.start_date, end_date: data.end_date, status: PfoStatus.DRAFT
         });
         const saved = await this.planRepo.save(plan);
-        await this.orderRepo.update({ id: In(orders.map(o => o.id)) }, { plan_id: saved.id, status: SalesOrderStatus.PLANNED });
+        await this.orderRepo.update({ id: In(orders.map(o => o.id)) }, { status: SalesOrderStatus.PLANNED });
         return saved;
     }
 
@@ -176,13 +176,13 @@ export class PlanningService {
 
         // 1. Tạo bản ghi history trước khi lưu
         const lastVersion = await this.historyRepo.findOne({
-            where: { plan_id: id },
+            where: { pfo_id: id },
             order: { version: 'DESC' }
         });
         const currentVersion = lastVersion ? lastVersion.version + 1 : 1;
         
         const history = this.historyRepo.create({
-            plan_id: id,
+            pfo_id: id,
             version: currentVersion,
             changes_summary: { type: 'MRP_SAVE', description: 'Lưu kết quả MRP / Phân bổ thủ công' },
             snapshot_data: {
@@ -215,7 +215,7 @@ export class PlanningService {
     async updateMaterialReservedStock(materialIds: number[]) {
         if (!materialIds.length) return;
         const activePlans = await this.planRepo.find({
-            where: { status: In([PlanStatus.DRAFT, PlanStatus.CALCULATED, PlanStatus.HAS_PO_MATERIAL, PlanStatus.HAS_PO_OUTSOURCING, PlanStatus.IN_PRODUCTION]) }
+            where: { status: In([PfoStatus.DRAFT, PfoStatus.CALCULATED, PfoStatus.HAS_PO_MATERIAL, PfoStatus.HAS_PO_OUTSOURCING, PfoStatus.IN_PRODUCTION]) }
         });
         
         const reservedMap = new Map<number, number>();
@@ -272,7 +272,7 @@ export class PlanningService {
             const po = this.poRepo.create({
                 po_code: `PO-${isMaterial ? 'NPL' : 'GC'}-${planId}-${Math.floor(Math.random() * 1000)}`,
                 type: isMaterial ? POType.MATERIAL : 'OUTSOURCING' as any,
-                plan_id: planId,
+                pfo_id: planId,
                 status: POStatus.DRAFT,
                 note: `Tự động từ Kế hoạch ${planId}. NCC: ${suppName}`
             });
@@ -290,7 +290,7 @@ export class PlanningService {
                     quantity: i.qtyToBuy,
                     unit_price: price,
                     subtotal: sub,
-                    plan_id: planId,
+                    pfo_id: planId,
                     material_id: isMaterial ? i.material_id : null,
                     product_id: !isMaterial ? i.product_id : null,
                     raw_quantity: i.gross_raw || 0,
@@ -315,10 +315,10 @@ export class PlanningService {
             if (plan) {
                 const hasOutsourcing = createdPos.some(c => c.includes('PO-GC'));
                 const hasMaterial = createdPos.some(c => c.includes('PO-NPL'));
-                if (hasOutsourcing && plan.status !== PlanStatus.HAS_PO_OUTSOURCING) {
-                    plan.status = PlanStatus.HAS_PO_OUTSOURCING;
-                } else if (hasMaterial && plan.status !== PlanStatus.HAS_PO_OUTSOURCING && plan.status !== PlanStatus.HAS_PO_MATERIAL) {
-                    plan.status = PlanStatus.HAS_PO_MATERIAL;
+                if (hasOutsourcing && plan.status !== PfoStatus.HAS_PO_OUTSOURCING) {
+                    plan.status = PfoStatus.HAS_PO_OUTSOURCING;
+                } else if (hasMaterial && plan.status !== PfoStatus.HAS_PO_OUTSOURCING && plan.status !== PfoStatus.HAS_PO_MATERIAL) {
+                    plan.status = PfoStatus.HAS_PO_MATERIAL;
                 }
                 await this.planRepo.save(plan);
             }
@@ -333,13 +333,13 @@ export class PlanningService {
         const plan = await this.planRepo.findOne({ where: { id }, relations: ['sales_orders'] });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
 
-        const existingPos = await this.poRepo.count({ where: { plan_id: id } });
+        const existingPos = await this.poRepo.count({ where: { pfo_id: id } });
         if (existingPos > 0) {
             throw new BadRequestException('Không thể xóa kế hoạch đã tạo Đơn mua hàng (PO)');
         }
 
         if (plan.sales_orders && plan.sales_orders.length > 0) {
-            await this.orderRepo.update({ production_plan: { id } }, { production_plan: null });
+            await this.orderRepo.update({ pfos: { id } }, { pfos: null });
         }
 
         await this.planRepo.remove(plan);
@@ -365,7 +365,7 @@ export class PlanningService {
     // =============================================
 
     // Cập nhật status plan thủ công
-    async updatePlanStatus(planId: number, status: string) {
+    async updatePfoStatus(planId: number, status: string) {
         const plan = await this.planRepo.findOne({ where: { id: planId } });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
 
@@ -389,18 +389,18 @@ export class PlanningService {
             // throw new BadRequestException(`Không thể chuyển từ ${plan.status} sang ${status}`);
         }
 
-        plan.status = status as PlanStatus;
+        plan.status = status as PfoStatus;
         return this.planRepo.save(plan);
     }
 
     // Auto-detect plan status từ PO statuses
-    async checkAndUpdatePlanStatus(planId: number) {
+    async checkAndUpdatePfoStatus(planId: number) {
         try {
             const plan = await this.planRepo.findOne({ where: { id: planId } });
             if (!plan) return;
 
             // Lấy tất cả PO thuộc plan này
-            const pos = await this.poRepo.find({ where: { plan_id: planId } });
+            const pos = await this.poRepo.find({ where: { pfo_id: planId } });
             if (pos.length === 0) return;
 
             const allPosDelivered = pos.every(
@@ -411,14 +411,14 @@ export class PlanningService {
             );
 
             // Auto-transition logic
-            if (allPosDelivered && plan.status !== PlanStatus.COMPLETED) {
+            if (allPosDelivered && plan.status !== PfoStatus.COMPLETED) {
                 // Tất cả PO đã giao đủ → Có thể chuyển Plan sang COMPLETED
                 // Nhưng cần kiểm tra thêm ProductionOrder nếu có
-                plan.status = PlanStatus.COMPLETED;
+                plan.status = PfoStatus.COMPLETED;
                 await this.planRepo.save(plan);
-            } else if (anyPoOrdered && plan.status === PlanStatus.CALCULATED) {
+            } else if (anyPoOrdered && plan.status === PfoStatus.CALCULATED) {
                 // Có ít nhất 1 PO đã order → Plan chuyển sang IN_PRODUCTION
-                plan.status = PlanStatus.IN_PRODUCTION;
+                plan.status = PfoStatus.IN_PRODUCTION;
                 await this.planRepo.save(plan);
             }
         } catch (e) {
@@ -1061,7 +1061,7 @@ export class PlanningService {
     // --- MỚI: Version History, Production Status, Sync BOD ---
     async getHistory(planId: number) {
         return this.historyRepo.find({
-            where: { plan_id: planId },
+            where: { pfo_id: planId },
             order: { version: 'DESC' }
         });
     }
@@ -1069,13 +1069,13 @@ export class PlanningService {
     async getProductionStatus(planId: number) {
         // Lấy WorkOrders của plan
         const workOrders = await this.woRepo.find({
-            where: { plan_id: planId },
+            where: { pfo_id: planId },
             relations: ['steps', 'production_order']
         });
         
         // Lấy POs
         const pos = await this.poRepo.find({
-            where: { plan_id: planId },
+            where: { pfo_id: planId },
             relations: ['items']
         });
 
@@ -1099,7 +1099,7 @@ export class PlanningService {
         if (!plan) throw new NotFoundException('Plan not found');
 
         // Check if any WorkOrder already exists for this plan
-        const existingWos = await this.woRepo.find({ where: { plan_id: planId } });
+        const existingWos = await this.woRepo.find({ where: { pfo_id: planId } });
         if (existingWos.length > 0) {
             return { message: 'Đã khởi tạo Lệnh sản xuất rồi' };
         }
@@ -1136,7 +1136,7 @@ export class PlanningService {
                     code: `WO-${plan.code}-${item.product.sku}`,
                     product_sku: item.product.sku,
                     quantity: Number(item.quantity),
-                    plan_id: planId,
+                    pfo_id: planId,
                     status: WorkOrderStatus.PENDING,
                     steps: stepsToCreate
                 });

@@ -616,7 +616,7 @@ export class InventoryService {
       delivery_mode: data.delivery_mode || 'PER_ORDER',
       po_id: data.po_id || null,
       supplier_id: data.supplier_id || null,
-      plan_id: data.plan_id || null,
+      pfo_id: data.pfo_id || null,
       issue_date: data.issue_date || dayjs().format('YYYY-MM-DD'),
       vehicle: data.vehicle || null,
       note: data.note || null,
@@ -698,9 +698,9 @@ export class InventoryService {
     }
 
     // --- MỚI: Cập nhật Finance / SO Profit ---
-    if (totalNplCost > 0 && gi.plan_id) {
+    if (totalNplCost > 0 && gi.pfo_id) {
       try {
-        const plan = await this.planningService.findOne(gi.plan_id);
+        const plan = await this.planningService.findOne(gi.pfo_id);
         if (plan && plan.sales_orders && plan.sales_orders.length > 0) {
           // Tính tổng số lượng sản phẩm của KHSX
           let totalPlanItems = 0;
@@ -764,4 +764,4 @@ export class InventoryService {
     await this.goodsIssueRepo.delete(id);
     return { success: true };
   }
-}
+}

@@ -39,7 +39,7 @@ export class WorkOrder {
   production_order_id: number;
 
   @Column({ nullable: true })
-  plan_id: number;
+  pfo_id: number;
 
   // --- QUẢN LÝ TIẾN ĐỘ CHI TIẾT ---
   @OneToMany(() => WorkOrderStep, (step) => step.work_order, { cascade: true })
