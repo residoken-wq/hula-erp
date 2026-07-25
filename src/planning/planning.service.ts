@@ -31,6 +31,13 @@ export class PlanningService {
         private ganttService: GanttService,
     ) { }
 
+    async findAll() {
+        return this.planRepo.find({
+            relations: ['sales_order', 'sales_order.customer'],
+            order: { created_at: 'DESC' }
+        });
+    }
+
     async getSuggestion() {
         const orders = await this.orderRepo.find({
             where: {
