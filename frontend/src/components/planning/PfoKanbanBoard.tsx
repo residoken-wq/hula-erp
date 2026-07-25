@@ -66,10 +66,13 @@ const PfoKanbanBoard: React.FC<PfoKanbanBoardProps> = ({ pfos, onPfoClick }) => 
                 </div>
                 
                 {soCode && (
-                    <div style={{ fontSize: 12, color: '#1890ff', fontWeight: 600, marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, color: '#1890ff', fontWeight: 600, marginBottom: 4 }}>
                         <FileTextOutlined style={{ marginRight: 4 }} /> Đơn hàng: {soCode}
                     </div>
                 )}
+                <div style={{ fontSize: 12, color: '#595959', fontWeight: 600, marginBottom: 6 }}>
+                    <UserAddOutlined style={{ marginRight: 4 }} /> Khách: {pfo.sales_order?.customer?.name || 'N/A'}
+                </div>
                 
                 <div style={{ fontSize: 12, color: '#595959', marginBottom: 6 }}>
                     <ShopOutlined style={{ marginRight: 4 }} /> {pfo.vendor_name || (pfo.vendor_id ? `Vendor #${pfo.vendor_id}` : 'Chưa gán xưởng')}

@@ -34,7 +34,7 @@ const ControlTowerKPI: React.FC<ControlTowerKPIProps> = ({ stats }) => {
                     >
                         <Statistic 
                             title={<span style={{ fontSize: 13, color: '#d46b08', fontWeight: 600 }}>Cảnh báo (Chờ Quyết Định)</span>} 
-                            value={stats?.alerts || 3} 
+                            value={stats?.alerts ?? 3} 
                             prefix={<AlertOutlined />} 
                             valueStyle={{ color: '#cf1322', fontSize: 24, fontWeight: 700 }} 
                         />
@@ -55,7 +55,7 @@ const ControlTowerKPI: React.FC<ControlTowerKPIProps> = ({ stats }) => {
                     >
                         <Statistic 
                             title={<span style={{ fontSize: 13, color: '#096dd9', fontWeight: 600 }}>PFO Đang Chạy</span>} 
-                            value={stats?.activePfos || 12} 
+                            value={stats?.activePfos ?? 12} 
                             prefix={<AppstoreAddOutlined />} 
                             valueStyle={{ color: '#096dd9', fontSize: 24, fontWeight: 700 }} 
                         />
@@ -76,7 +76,7 @@ const ControlTowerKPI: React.FC<ControlTowerKPIProps> = ({ stats }) => {
                     >
                         <Statistic 
                             title={<span style={{ fontSize: 13, color: '#389e0d', fontWeight: 600 }}>Lô hàng Pass QC (Tuần)</span>} 
-                            value={stats?.qcPassed || 45} 
+                            value={stats?.qcPassed ?? 45} 
                             prefix={<SafetyCertificateOutlined />} 
                             valueStyle={{ color: '#389e0d', fontSize: 24, fontWeight: 700 }} 
                         />
@@ -98,7 +98,7 @@ const ControlTowerKPI: React.FC<ControlTowerKPIProps> = ({ stats }) => {
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span style={{ fontSize: 13, color: '#595959', fontWeight: 600, marginBottom: 8 }}>OTIF (Giao hàng đúng hạn)</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Progress type="circle" percent={stats?.otif || 92} size={40} strokeColor="#52c41a" />
+                                <Progress type="circle" percent={stats?.otif ?? 92} size={40} strokeColor="#52c41a" />
                                 <span style={{ fontSize: 16, fontWeight: 700, color: '#52c41a' }}>Mục tiêu: 95%</span>
                             </div>
                         </div>
