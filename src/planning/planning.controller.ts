@@ -15,15 +15,16 @@ export class PlanningController {
     private readonly execSvc: PfoExecutionService
   ) { }
 
+  // ============================================================
+  // STATIC ROUTES FIRST (phải đặt trước :id để tránh route conflict)
+  // ============================================================
+
   // --- GENERAL PLANNING / BOOKING APIs ---
   @Get('suggestion') getSuggestion() { return this.planningSvc.getSuggestion(); }
   @Get('booking-stats') getBookingStats(@Query('month') month?: string, @Query('year') year?: string) { return this.planningSvc.getBookingStats(month, year); }
   @Get('bookings') getAllBookings() { return this.planningSvc.getAllBookings(); }
-  @Post('bookings/:itemId/revert') revertBooking(@Param('itemId') itemId: number) { return this.planningSvc.revertBooking(Number(itemId)); }
-  @Post('sync-booking-stock') syncBookingStock() { return this.planningSvc.syncBookingStock(); }
-  @Get(':id/booking-items') getBookingItemsWithStock(@Param('id') id: number) { return this.planningSvc.getBookingItemsWithStock(Number(id)); }
-  @Post(':id/confirm-bookings') confirmBookings(@Param('id') id: number, @Body('itemIds') itemIds?: number[]) { return this.planningSvc.confirmBookings(id, itemIds); }
   @Get('gantt') getGantt() { return this.planningSvc.getGanttData(); }
+  @Post('sync-booking-stock') syncBookingStock() { return this.planningSvc.syncBookingStock(); }
 
   // --- PFO DEMAND APIs (Gate 1) ---
   @Get('pfo/suggestions')
@@ -36,6 +37,17 @@ export class PlanningController {
     return this.demandSvc.generatePfo(b);
   }
 
+  // --- PFO EXECUTION APIs (Gate 6) - static path ---
+  @Post('pfo/material-issue/:reqId')
+  updateMaterialIssue(@Param('reqId') reqId: number, @Body('issue_qty') issueQty: number) {
+    return this.execSvc.updateMaterialIssue(reqId, issueQty);
+  }
+
+  // ============================================================
+  // PARAMETERIZED ROUTES (:id) - phải đặt SAU static routes
+  // ============================================================
+
+  // --- PFO Detail ---
   @Get('pfo/:id')
   getPfoDetails(@Param('id') id: number) {
     return this.demandSvc.getPfoDetails(id);
@@ -58,12 +70,7 @@ export class PlanningController {
     return this.sourcingSvc.generatePos(id);
   }
 
-  // --- PFO EXECUTION APIs (Gate 6, 7, 8, 9, 10) ---
-  @Post('pfo/material-issue/:reqId')
-  updateMaterialIssue(@Param('reqId') reqId: number, @Body('issue_qty') issueQty: number) {
-    return this.execSvc.updateMaterialIssue(reqId, issueQty);
-  }
-
+  // --- PFO EXECUTION APIs (Gate 7-10) ---
   @Post('pfo/:id/milestone')
   updateMilestone(@Param('id') id: number, @Body() b: any) {
     return this.execSvc.updateMilestone(id, b.milestone_type, b.data);
@@ -73,4 +80,9 @@ export class PlanningController {
   submitQcRecord(@Param('id') id: number, @Body() b: any) {
     return this.execSvc.submitQcRecord(id, b);
   }
+
+  // --- LEGACY: Booking APIs (cần :id param) ---
+  @Get(':id/booking-items') getBookingItemsWithStock(@Param('id') id: number) { return this.planningSvc.getBookingItemsWithStock(Number(id)); }
+  @Post(':id/confirm-bookings') confirmBookings(@Param('id') id: number, @Body('itemIds') itemIds?: number[]) { return this.planningSvc.confirmBookings(id, itemIds); }
+  @Post('bookings/:itemId/revert') revertBooking(@Param('itemId') itemId: number) { return this.planningSvc.revertBooking(Number(itemId)); }
 }
