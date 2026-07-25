@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Modal, Form, Input, DatePicker, Tabs, Button, message, Drawer, Space, Typography, Tag, Divider, Select } from 'antd';
-import { ReloadOutlined, PlusOutlined, SettingOutlined, CalculatorOutlined, UserAddOutlined } from '@ant-design/icons';
+import { Card, Modal, Form, Input, DatePicker, Tabs, Button, message, Drawer, Space, Typography, Tag, Divider, Row, Col } from 'antd';
+import { ReloadOutlined, PlusOutlined, SettingOutlined, CalculatorOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -10,11 +10,11 @@ import useMobile from '../hooks/useMobile';
 import ControlTowerKPI from '../components/planning/ControlTowerKPI';
 import PfoKanbanBoard from '../components/planning/PfoKanbanBoard';
 import MaterialMatrix from '../components/planning/MaterialMatrix';
+import PfoProcessRouting from '../components/planning/PfoProcessRouting';
 import PendingOrdersTab from '../components/planning/PendingOrdersTab';
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
-const { Option } = Select;
 
 const PlanningPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('CONTROL_TOWER');
@@ -36,7 +36,6 @@ const PlanningPage: React.FC = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [selectedPfo, setSelectedPfo] = useState<any>(null);
     const [pfoDetails, setPfoDetails] = useState<any>(null);
-    const [selectedVendorId, setSelectedVendorId] = useState<number | null>(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -86,17 +85,13 @@ const PlanningPage: React.FC = () => {
 
     const handlePfoClick = async (pfo: any) => {
         setSelectedPfo(pfo);
-        setSelectedVendorId(pfo.vendor_id || null);
         setIsDrawerOpen(true);
         
         try {
             const res = await axios.get(`${API_URL}/planning/pfo/${pfo.id}`);
             setPfoDetails(res.data);
-            if (res.data?.vendor_id) {
-                setSelectedVendorId(res.data.vendor_id);
-            }
         } catch (e) {
-            setPfoDetails({ ...pfo, material_requirements: [] });
+            setPfoDetails({ ...pfo, material_requirements: [], milestones: [] });
         }
     };
 
@@ -104,12 +99,12 @@ const PlanningPage: React.FC = () => {
         if (!selectedPfo) return;
         setLoading(true);
         try {
-            await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/calculate-bom`);
-            message.success('Đã bóc tách BOM thành công!');
+            const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/calculate-bom`);
+            message.success(res.data.message || 'Đã bóc tách BOM thành công!');
             
             // Refresh details
-            const res = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}`);
-            setPfoDetails(res.data);
+            const updated = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}`);
+            setPfoDetails(updated.data);
             fetchData();
         } catch (e: any) { 
             message.error(e.response?.data?.message || 'Lỗi tính toán BOM'); 
@@ -117,21 +112,20 @@ const PlanningPage: React.FC = () => {
         setLoading(false);
     };
 
-    const handleAssignVendor = async () => {
-        if (!selectedPfo || !selectedVendorId) {
-            message.warning('Vui lòng chọn Nhà gia công');
-            return;
-        }
+    const handleSaveRouting = async (routingData: any[]) => {
+        if (!selectedPfo) return;
         setLoading(true);
         try {
-            await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/assign-vendor`, { vendor_id: selectedVendorId });
-            message.success('Đã gán Nhà gia công thành công!');
+            const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/process-routing`, {
+                routing: routingData
+            });
+            message.success(res.data.message || 'Đã lưu phân công xưởng gia công!');
             
-            const res = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}`);
-            setPfoDetails(res.data);
+            const updated = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}`);
+            setPfoDetails(updated.data);
             fetchData();
         } catch (e: any) {
-            message.error(e.response?.data?.message || 'Lỗi gán xưởng gia công');
+            message.error(e.response?.data?.message || 'Lỗi lưu phân công xưởng');
         }
         setLoading(false);
     };
@@ -141,7 +135,7 @@ const PlanningPage: React.FC = () => {
         setLoading(true);
         try {
             const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/generate-pos`);
-            message.success(res.data.message || 'Đã tạo Đơn mua hàng (PO)');
+            message.success(res.data.message || 'Đã phát hành các Đơn đặt hàng (PO)');
             fetchData();
         } catch (e: any) { 
             message.error(e.response?.data?.message || 'Lỗi tạo PO'); 
@@ -150,7 +144,7 @@ const PlanningPage: React.FC = () => {
     };
 
     return (
-        <div style={{ maxWidth: isMobile ? '100%' : '82%', margin: '0 auto', padding: isMobile ? '8px 4px' : '16px 0' }}>
+        <div style={{ maxWidth: isMobile ? '100%' : '85%', margin: '0 auto', padding: isMobile ? '8px 4px' : '16px 0' }}>
             {/* STATS CARDS */}
             <ControlTowerKPI stats={stats} />
 
@@ -225,16 +219,20 @@ const PlanningPage: React.FC = () => {
                 </Form>
             </Modal>
 
-            {/* PFO Detail Drawer */}
+            {/* PFO Detail Drawer - Expanded to 92% for spacious workflow */}
             <Drawer
                 title={
-                    <Space>
-                        <Text strong style={{ fontSize: 18 }}>Chi Tiết Lệnh SX: {selectedPfo?.code}</Text>
-                        <Tag color="blue">{pfoDetails?.status || selectedPfo?.status}</Tag>
+                    <Space size="large">
+                        <Text strong style={{ fontSize: 18, color: '#1d39c4' }}>
+                            📋 Chi Tiết Lệnh SX: {selectedPfo?.code}
+                        </Text>
+                        <Tag color="blue" style={{ fontSize: 13, padding: '2px 10px' }}>
+                            {pfoDetails?.status || selectedPfo?.status}
+                        </Tag>
                     </Space>
                 }
                 placement="right"
-                width={isMobile ? '100%' : 850}
+                width={isMobile ? '100%' : '92%'}
                 onClose={() => setIsDrawerOpen(false)}
                 open={isDrawerOpen}
                 extra={
@@ -247,67 +245,69 @@ const PlanningPage: React.FC = () => {
                         >
                             Tính Toán Lại BOM
                         </Button>
+                        <Button 
+                            type="primary" 
+                            ghost
+                            icon={<ShoppingCartOutlined />}
+                            onClick={handleGeneratePo}
+                            loading={loading}
+                        >
+                            Phát Hành Các PO (Gate 4)
+                        </Button>
                     </Space>
                 }
             >
                 {selectedPfo ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                        <div>
-                            <Title level={5} style={{ marginBottom: 12 }}>1. Thông tin chung</Title>
-                            <Card size="small" style={{ background: '#fafafa', borderRadius: 8 }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-                                    <p style={{ margin: 0 }}>
-                                        <b>Sales Order:</b> {pfoDetails?.sales_order?.order_code || selectedPfo?.sales_order_code || selectedPfo?.sales_order?.order_code || selectedPfo?.code?.replace('PFO-', '') || 'Chưa liên kết'}
-                                    </p>
-                                    <p style={{ margin: 0 }}>
-                                        <b>Khách hàng:</b> {pfoDetails?.sales_order?.customer_name || pfoDetails?.sales_order?.customer?.name || 'N/A'}
-                                    </p>
-                                    <p style={{ margin: 0 }}>
-                                        <b>Deadline:</b> {selectedPfo?.committed_finish_date ? dayjs(selectedPfo.committed_finish_date).format('DD/MM/YYYY') : 'N/A'}
-                                    </p>
-                                    <p style={{ margin: 0 }}>
-                                        <b>Tiến độ:</b> <Tag color="green">{selectedPfo?.progress || 0}%</Tag>
-                                    </p>
-                                </div>
-                            </Card>
-                        </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                        {/* 1. THÔNG TIN CHUNG */}
+                        <Card size="small" style={{ background: '#fafafa', borderRadius: 10, border: '1px solid #e8e8e8' }}>
+                            <Row gutter={[16, 8]}>
+                                <Col span={isMobile ? 24 : 6}>
+                                    <Text type="secondary">Mã Đơn Hàng (SO):</Text><br />
+                                    <Text strong style={{ fontSize: 15, color: '#1890ff' }}>
+                                        {pfoDetails?.sales_order?.order_code || selectedPfo?.sales_order_code || selectedPfo?.sales_order?.order_code || selectedPfo?.code?.replace('PFO-', '')}
+                                    </Text>
+                                </Col>
+                                <Col span={isMobile ? 24 : 6}>
+                                    <Text type="secondary">Khách Hàng:</Text><br />
+                                    <Text strong>
+                                        {pfoDetails?.sales_order?.customer_name || pfoDetails?.sales_order?.customer?.name || 'N/A'}
+                                    </Text>
+                                </Col>
+                                <Col span={isMobile ? 24 : 6}>
+                                    <Text type="secondary">Hạn Giao Hàng (Deadline):</Text><br />
+                                    <Text strong color="#cf1322">
+                                        {selectedPfo?.committed_finish_date ? dayjs(selectedPfo.committed_finish_date).format('DD/MM/YYYY') : 'N/A'}
+                                    </Text>
+                                </Col>
+                                <Col span={isMobile ? 24 : 6}>
+                                    <Text type="secondary">Tiến Độ Tổng:</Text><br />
+                                    <Tag color="green" style={{ fontSize: 14 }}>{selectedPfo?.progress || 0}%</Tag>
+                                </Col>
+                            </Row>
+                        </Card>
 
-                        <div>
-                            <Title level={5} style={{ marginBottom: 8 }}>2. Xưởng Gia Công (Gate 3)</Title>
-                            <Space wrap>
-                                <Select 
-                                    style={{ width: 260 }} 
-                                    placeholder="Chọn Nhà gia công" 
-                                    value={selectedVendorId}
-                                    onChange={setSelectedVendorId}
-                                >
-                                    {suppliers.map(s => (
-                                        <Option key={s.id} value={s.id}>{s.name} ({s.code || s.supplier_code})</Option>
-                                    ))}
-                                </Select>
-                                <Button 
-                                    type="primary" 
-                                    ghost
-                                    icon={<UserAddOutlined />}
-                                    onClick={handleAssignVendor}
-                                    loading={loading}
-                                >
-                                    Lưu Xưởng Gia Công
-                                </Button>
-                            </Space>
-                        </div>
-                        
-                        <Divider style={{ margin: '8px 0' }} />
+                        {/* 2. QUY TRÌNH GIA CÔNG ĐA CÔNG ĐOẠN (GATE 3 - MULTI-VENDOR ROUTING) */}
+                        <PfoProcessRouting 
+                            pfoId={selectedPfo.id}
+                            existingMilestones={pfoDetails?.milestones || []}
+                            suppliers={suppliers}
+                            loading={loading}
+                            onSaveRouting={handleSaveRouting}
+                        />
 
-                        <div>
-                            <Title level={5} style={{ marginBottom: 12 }}>3. Ma Trận Vật Tư (Material Matrix)</Title>
+                        {/* 3. MA TRẬN VẬT TƯ (GATE 2 - MATERIAL MATRIX) */}
+                        <Card size="small" style={{ borderRadius: 10, border: '1px solid #e8e8e8' }}>
+                            <Title level={5} style={{ marginBottom: 16, color: '#1d39c4' }}>
+                                3. Ma Trận Vật Tư & Phương Thức Cung Ứng (Material Matrix)
+                            </Title>
                             <MaterialMatrix 
                                 requirements={pfoDetails?.material_requirements || []} 
                                 loading={loading}
                                 onGeneratePo={handleGeneratePo}
                                 onCalculateBom={handleCalculateBom}
                             />
-                        </div>
+                        </Card>
                     </div>
                 ) : (
                     <div style={{ textAlign: 'center', padding: 50 }}>Loading...</div>

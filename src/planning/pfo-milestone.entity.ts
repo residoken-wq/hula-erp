@@ -1,14 +1,15 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { ProductionFulfillmentOrder } from './pfo.entity';
+import { Supplier } from '../suppliers/supplier.entity';
 
 export enum PfoMilestoneType {
   MATERIAL_RECEIVED = 'MATERIAL_RECEIVED',
-  CUTTING_STARTED = 'CUTTING_STARTED',
-  CUTTING_COMPLETED = 'CUTTING_COMPLETED',
-  SEWING_STARTED = 'SEWING_STARTED',
-  SEWING_COMPLETED = 'SEWING_COMPLETED',
-  ASSEMBLY_STARTED = 'ASSEMBLY_STARTED',
-  PRODUCTION_COMPLETED = 'PRODUCTION_COMPLETED',
+  SPLICING = 'SPLICING',             // Nối vải
+  QUILTING = 'QUILTING',             // Chần gòn
+  PRINTING = 'PRINTING',             // In ấn
+  EMBROIDERY = 'EMBROIDERY',         // Thêu
+  SEWING = 'SEWING',                 // May
+  PACKAGING = 'PACKAGING',           // Đóng gói
   INTERNAL_QC_COMPLETED = 'INTERNAL_QC_COMPLETED',
   READY_FOR_DISPATCH = 'READY_FOR_DISPATCH'
 }
@@ -37,6 +38,25 @@ export class PfoMilestone {
     enum: PfoMilestoneType
   })
   milestone_type: PfoMilestoneType;
+
+  @Column({ nullable: true })
+  step_name: string; // Tên công đoạn (Nối vải, Chần gòn, In, Thêu, May, Đóng gói)
+
+  @ManyToOne(() => Supplier, { nullable: true })
+  @JoinColumn({ name: 'vendor_id' })
+  vendor: Supplier;
+
+  @Column({ nullable: true })
+  vendor_id: number; // Nhà gia công riêng cho công đoạn này
+
+  @Column({ nullable: true })
+  vendor_name: string;
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  unit_price: number; // Đơn giá gia công công đoạn này
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  total_cost: number;
 
   @Column({ type: 'date', nullable: true })
   planned_date: Date;

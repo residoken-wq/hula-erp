@@ -9,6 +9,8 @@ export enum SupplyMethod {
 
 @Entity('pfo_material_requirements')
 export class PfoMaterialRequirement {
+  [key: string]: any;
+
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -37,6 +39,9 @@ export class PfoMaterialRequirement {
 
   @Column('float', { default: 0 })
   planned_quantity: number;
+
+  @Column('float', { default: 0 })
+  actual_order_quantity: number;
 
   @Column('float', { default: 0 })
   issued_quantity: number; // Qty issued by HULA to Subcontractor

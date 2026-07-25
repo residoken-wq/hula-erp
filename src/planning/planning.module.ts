@@ -17,16 +17,34 @@ import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { WorkOrder } from '../production/work-order.entity';
 import { WorkOrderStep } from '../production/work-order-step.entity';
+import { Product } from '../products/product.entity';
+import { BOM } from '../bom/bom.entity';
+import { ProductComponent } from '../products/product-component.entity';
+import { Material } from '../materials/material.entity';
 import { ProductsModule } from '../products/products.module';
 import { MaterialsModule } from '../materials/materials.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { SupplierStock } from '../inventory/entities/supplier-stock.entity';
 
-
-
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ProductionFulfillmentOrder, PfoMaterialRequirement, PfoMilestone, PfoQcRecord, SalesOrder, SalesOrderItem, PurchaseOrder, PurchaseOrderItem, WorkOrder, WorkOrderStep, SupplierStock]),
+    TypeOrmModule.forFeature([
+      ProductionFulfillmentOrder, 
+      PfoMaterialRequirement, 
+      PfoMilestone, 
+      PfoQcRecord, 
+      SalesOrder, 
+      SalesOrderItem, 
+      PurchaseOrder, 
+      PurchaseOrderItem, 
+      WorkOrder, 
+      WorkOrderStep, 
+      SupplierStock,
+      Product,
+      BOM,
+      ProductComponent,
+      Material
+    ]),
     ProductsModule,
     MaterialsModule,
     forwardRef(() => InventoryModule)

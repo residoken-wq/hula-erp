@@ -66,6 +66,11 @@ export class PlanningController {
     return this.sourcingSvc.assignVendor(id, vendorId);
   }
 
+  @Post('pfo/:id/process-routing')
+  updateProcessRouting(@Param('id') id: number, @Body('routing') routing: any[]) {
+    return this.sourcingSvc.updateProcessRouting(id, routing);
+  }
+
   @Post('pfo/:id/generate-pos')
   generatePos(@Param('id') id: number) {
     return this.sourcingSvc.generatePos(id);
