@@ -276,31 +276,33 @@ const CombosPage: React.FC = () => {
                                                 const info = productMap[sku] || { price: 0, cost: 0, unit: '' };
                                                 return (
                                                     <DraggableRow key={key} id={key.toString()}>
-                                                        <Row gutter={8} align="middle" style={{ marginBottom: 10, background: '#fafafa', padding: 8, borderRadius: 6, border: '1px solid #f0f0f0' }}>
-                                                            <Col span={1} style={{ textAlign: 'center', cursor: 'grab' }}>
-                                                                <MenuOutlined style={{ color: '#999' }} />
-                                                            </Col>
-                                                            <Col span={10}>
-                                                                <Form.Item {...restField} name={[name, 'sku']} noStyle rules={[{ required: true }]}>
-                                                                    <Select placeholder="Chọn sản phẩm con" options={products} showSearch optionFilterProp="label" style={{ width: '100%' }} />
-                                                                </Form.Item>
-                                                                <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
-                                                                    {canViewCost && <span>Giá vốn: {info.cost.toLocaleString()} | </span>} Giá bán lẻ: {info.price.toLocaleString()}
-                                                                    {info.customer_description && <div style={{ marginTop: 2, fontStyle: 'italic', color: '#666' }}>{info.customer_description}</div>}
-                                                                </div>
-                                                            </Col>
-                                                            <Col span={4}>
-                                                                <Form.Item {...restField} name={[name, 'quantity']} noStyle rules={[{ required: true }]}>
-                                                                    <InputNumber min={1} placeholder="SL" addonAfter={info.unit} style={{ width: '100%' }} />
-                                                                </Form.Item>
-                                                            </Col>
-                                                            <Col span={6} style={{ textAlign: 'right', color: '#555' }}>
-                                                                Thành tiền: <b>{(info.price * (form.getFieldValue(['items', name, 'quantity']) || 0)).toLocaleString()}</b>
-                                                            </Col>
-                                                            <Col span={3} style={{ textAlign: 'center' }}>
-                                                                <DeleteOutlined onClick={() => remove(name)} style={{ color: 'red', cursor: 'pointer' }} />
-                                                            </Col>
-                                                        </Row>
+                                                        {(listeners) => (
+                                                            <Row gutter={8} align="middle" style={{ marginBottom: 10, background: '#fafafa', padding: 8, borderRadius: 6, border: '1px solid #f0f0f0' }}>
+                                                                <Col span={1} style={{ textAlign: 'center', cursor: 'grab' }} {...listeners}>
+                                                                    <MenuOutlined style={{ color: '#999' }} />
+                                                                </Col>
+                                                                <Col span={10}>
+                                                                    <Form.Item {...restField} name={[name, 'sku']} noStyle rules={[{ required: true }]}>
+                                                                        <Select placeholder="Chọn sản phẩm con" options={products} showSearch optionFilterProp="label" style={{ width: '100%' }} />
+                                                                    </Form.Item>
+                                                                    <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
+                                                                        {canViewCost && <span>Giá vốn: {info.cost.toLocaleString()} | </span>} Giá bán lẻ: {info.price.toLocaleString()}
+                                                                        {info.customer_description && <div style={{ marginTop: 2, fontStyle: 'italic', color: '#666' }}>{info.customer_description}</div>}
+                                                                    </div>
+                                                                </Col>
+                                                                <Col span={4}>
+                                                                    <Form.Item {...restField} name={[name, 'quantity']} noStyle rules={[{ required: true }]}>
+                                                                        <InputNumber min={1} placeholder="SL" addonAfter={info.unit} style={{ width: '100%' }} />
+                                                                    </Form.Item>
+                                                                </Col>
+                                                                <Col span={6} style={{ textAlign: 'right', color: '#555' }}>
+                                                                    Thành tiền: <b>{(info.price * (form.getFieldValue(['items', name, 'quantity']) || 0)).toLocaleString()}</b>
+                                                                </Col>
+                                                                <Col span={3} style={{ textAlign: 'center' }}>
+                                                                    <DeleteOutlined onClick={() => remove(name)} style={{ color: 'red', cursor: 'pointer' }} />
+                                                                </Col>
+                                                            </Row>
+                                                        )}
                                                     </DraggableRow>
                                                 );
                                             })}

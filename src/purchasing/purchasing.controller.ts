@@ -28,6 +28,11 @@ export class PurchasingController {
   update(@Param('id') id: number, @Body() b: any) { return this.s.updatePO(id, b); }
 
   // --- FIX: THÊM DELETE ---
+  @Post('batch-delete')
+  batchDelete(@Body('ids') ids: number[]) {
+    return this.s.batchDelete(ids);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: number) {
     return this.s.remove(id);

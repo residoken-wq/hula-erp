@@ -19,6 +19,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
     const [shipItems, setShipItems] = useState<any[]>([]);
     const [editingDeliveryId, setEditingDeliveryId] = useState<number | null>(null);
     const [shipStatus, setShipStatus] = useState<string>('PENDING_EXPORT');
+    const [isDraft, setIsDraft] = useState<boolean>(false);
 
     // Additional Ship Info state
     const [shipDate, setShipDate] = useState<any>(dayjs());
@@ -114,12 +115,20 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         const price = Number(item.unit_price) || 0;
 
         let delivered = 0;
+        let pending = 0;
         history.forEach((d: any) => {
+            if (d.status === 'DRAFT') return; // Bỏ qua phiếu nháp
             const found = d.items?.find((di: any) => di.sku === item.sku);
-            if (found) delivered += Number(found.quantity);
+            if (found) {
+                if (d.status === 'SHIPPED' || d.status === 'COMPLETED') {
+                    delivered += Number(found.quantity);
+                } else { // PENDING_EXPORT or others
+                    pending += Number(found.quantity);
+                }
+            }
         });
 
-        const remaining = ordered - delivered;
+        const remaining = Math.max(0, ordered - delivered - pending);
 
         // Lookup stock from products list
         const productInfo = products.find((p: any) => p.value === item.sku);
@@ -152,12 +161,14 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         return {
             id: item.id,
             sku: item.sku,
-            stock, // <--- Add stock
+            stock,
             ordered,
             delivered,
+            pending,
             remaining,
             totalVal: ordered * price,
             deliveredVal: delivered * price,
+            pendingVal: pending * price,
             remainingVal: remaining * price,
             bookingStatus: item.booking_status || 'NONE',
             bookedQuantity: item.booked_quantity || 0,
@@ -190,12 +201,13 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
     const openCreateModal = () => {
         setEditingDeliveryId(null);
+        setIsDraft(false);
+        setShipStatus('PENDING_EXPORT');
         setShipItems(summaryData.map((d: any) => {
-            // Chỉ cho phép xuất nếu đã CONFIRMED Booking
             const canShip = d.bookingStatus === 'CONFIRMED' && d.remaining > 0;
             return {
                 sku: d.sku, 
-                max: canShip ? d.remaining : 0, 
+                max: d.remaining, 
                 quantity: canShip ? d.remaining : 0,
                 bookingStatus: d.bookingStatus
             };
@@ -219,6 +231,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
     const openEditModal = (delivery: any) => {
         setEditingDeliveryId(delivery.id);
+        setIsDraft(delivery.status === 'DRAFT');
+        setShipStatus(delivery.status || 'PENDING_EXPORT');
         setShipDate(dayjs(delivery.delivery_date));
         setShipAddress(delivery.delivery_address || '');
         setShipContactName(delivery.contact_name || '');
@@ -282,7 +296,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 attachments: attachments,
                 shipping_carrier: shippingCarrier,
                 tracking_code: trackingCode,
-                shipping_cost: shippingCost
+                shipping_cost: shippingCost,
+                status: isDraft ? 'DRAFT' : (editingDeliveryId ? shipStatus : 'PENDING_EXPORT')
             };
 
             if (editingDeliveryId) {
@@ -307,9 +322,11 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             // Fallback for color/variant if stored in order items
             const orderItem = order?.items?.find((oi: any) => oi.sku === di.sku);
 
+            const defaultName = product ? (product.name || product.label?.split(' - ')[1] || product.label) : di.sku;
             return {
                 index: idx + 1,
-                name: product ? (product.label || product.name) : di.sku, // Prefer product name, fallback SKU
+                name: orderItem?.vat_content || orderItem?.vat_description || defaultName,
+                sku: di.sku,
                 unit: product?.unit || 'Cái',
                 qty: di.quantity,
                 note: orderItem?.variant_color || di.note || '' // Try to show variant color/note
@@ -333,12 +350,13 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 <title>In Phiếu Xuất Kho - ${delivery.code}</title>
                 <style>
                     body { font-family: 'Times New Roman', Times, serif; padding: 20px; font-size: 14px; }
-                    .header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #0050b3; padding-bottom: 10px; }
+                    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #0050b3; padding-bottom: 10px; }
                     .company-info { width: 60%; }
                     .company-info h1 { margin: 0; color: #0050b3; font-size: 24px; text-transform: uppercase; }
                     .company-info p { margin: 2px 0; font-size: 13px; }
+                    .header-logo { width: 60%; text-align: left; }
                     .title-section { text-align: center; width: 40%; }
-                    .title-section h2 { margin: 10px 0 5px; font-size: 26px; text-transform: uppercase; }
+                    .title-section h2 { margin: 0 0 5px; font-size: 24px; text-transform: uppercase; }
                     .info-grid { margin-bottom: 20px; }
                     .info-row { display: flex; margin-bottom: 8px; }
                     .info-label { width: 130px; font-weight: bold; }
@@ -356,13 +374,13 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
             </head>
             <body>
                 <div class="header">
-                    <div class="header-logo" style="text-align:center;">
-                        <img src="${window.location.origin}/company_header.png" alt="Company Header" style="max-height: 100px; max-width: 100%;" />
+                    <div class="header-logo">
+                        <img src="${window.location.origin}/company_header.png" alt="Company Header" style="max-height: 80px; max-width: 100%;" />
                     </div>
                     <div class="title-section">
                         <h2>PHIẾU XUẤT KHO</h2>
-                        <div style="font-style:italic;">Ngày ${dayjs(delivery.delivery_date).format('DD')} tháng ${dayjs(delivery.delivery_date).format('MM')} năm ${dayjs(delivery.delivery_date).format('YYYY')}</div>
-                        <div style="margin-top:10px; text-align:right; font-size:12px; font-style:italic;">Số PXK: <b>${delivery.code}</b></div>
+                        <div style="font-style:italic; font-size: 14px;">Ngày ${dayjs(delivery.delivery_date).format('DD')} tháng ${dayjs(delivery.delivery_date).format('MM')} năm ${dayjs(delivery.delivery_date).format('YYYY')}</div>
+                        <div style="margin-top:5px; font-size:12px; font-style:italic;">Số PXK: <b>${delivery.code}</b></div>
                     </div>
                 </div>
 
@@ -401,7 +419,10 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                         ${printItems.map((item: any) => `
                         <tr>
                             <td>${item.index}</td>
-                            <td style="text-align:left; font-weight:bold;">${item.name}</td>
+                            <td style="text-align:left;">
+                                <div style="font-weight:bold;">${item.name}</div>
+                                <div style="font-size:12px; font-style:italic; color:#555;">${item.sku}</div>
+                            </td>
                             <td>${item.unit}</td>
                             <td>${item.qty}</td>
                             <td style="text-align:left;">${item.note}</td>
@@ -425,8 +446,9 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                     </div>
                 </div>
 
-                <div class="note-bottom">
-                    Quý khách vui lòng kiểm tra kỹ số lượng và chất lượng hàng hóa khi nhận hàng.
+                <div class="note-bottom" style="text-align: center; font-weight: bold;">
+                    Quý khách vui lòng ký nhận vào PXK này gửi lại cho NV giao hàng (TP. HCM) hoặc scan/chụp gửi xác nhận cho Hula (Ngoài TP.HCM).<br/>
+                    Đây là cơ sở để xác nhận KH đã nhận đủ số lượng và Hula tiếp nhận giải quyết các vấn đề về hàng hóa.
                 </div>
 
                 <script>
@@ -524,6 +546,7 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                             </span>
                         )},
                         { title: 'SL Đặt', dataIndex: 'ordered', align: 'center', width: 70 },
+                        { title: 'Chờ xuất', dataIndex: 'pending', align: 'center', width: 70, render: (v: any) => v > 0 ? <b style={{ color: '#faad14' }}>{v}</b> : <span style={{ color: '#ccc' }}>0</span> },
                         { title: 'Đã giao', dataIndex: 'delivered', align: 'center', width: 70, render: (v: any) => <b style={{ color: 'green' }}>{v}</b> },
                         { title: 'Còn lại', dataIndex: 'remaining', align: 'center', width: 70, render: (v: any) => v > 0 ? <b style={{ color: 'red' }}>{v}</b> : <CheckCircleOutlined style={{ color: 'green' }} /> },
 
@@ -534,11 +557,13 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                     summary={(pageData: readonly any[]) => {
                         let totalAmount = 0;
                         let totalDelivered = 0;
+                        let totalPending = 0;
                         let totalRemaining = 0;
 
                         pageData.forEach((item) => {
                             totalAmount += (item.totalVal || 0);
                             totalDelivered += (item.deliveredVal || 0);
+                            totalPending += (item.pendingVal || 0);
                             totalRemaining += (item.remainingVal || 0);
                         });
 
@@ -566,7 +591,9 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 {
                     title: 'Trạng thái', align: 'center', render: (r: any) => (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                            <Tag color={r.status === 'SHIPPED' ? 'green' : 'orange'}>{r.status === 'SHIPPED' ? 'Đã báo khách' : 'Đang giao'}</Tag>
+                            <Tag color={r.status === 'SHIPPED' ? 'green' : r.status === 'DRAFT' ? 'default' : 'orange'}>
+                                {r.status === 'SHIPPED' ? 'Đã báo khách' : r.status === 'DRAFT' ? 'Phiếu nháp' : 'Đang giao'}
+                            </Tag>
                             {r.email_sent && <span style={{ fontSize: 10, color: 'green' }}><CheckCircleOutlined /> Email: Sent</span>}
                         </div>
                     )
@@ -608,7 +635,20 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 },
                 {
                     title: '', width: 120, align: 'center', render: (_: any, r: any) => (
-                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
+                        <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap' }}>
+                            {r.status === 'DRAFT' && (
+                                <Tooltip title="Chuyển thành phiếu chính thức (Chờ xuất kho)">
+                                    <Button size="small" type="primary" style={{ background: '#52c41a', borderColor: '#52c41a' }} onClick={async () => {
+                                        try {
+                                            await api.put(`/sales/delivery/${r.id}`, { status: 'PENDING_EXPORT' });
+                                            message.success('Đã chuyển thành phiếu chính thức');
+                                            fetchHistory();
+                                        } catch (e: any) {
+                                            message.error(e.response?.data?.message || 'Không thể cập nhật trạng thái');
+                                        }
+                                    }}>Duyệt phiếu</Button>
+                                </Tooltip>
+                            )}
                             <Tooltip title="In Phiếu Xuất Kho">
                                 <Button size="small" icon={<PrinterOutlined />} onClick={() => handlePrint(r)} />
                             </Tooltip>
@@ -644,9 +684,36 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
 
             <Modal title={editingDeliveryId ? "Cập nhật Phiếu Xuất Kho" : "Tạo Phiếu Xuất Kho"} open={isModalOpen} onCancel={() => setIsModalOpen(false)} onOk={handleShip} width={600}>
                 {/* DATE SELECTION */}
-                <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontWeight: 500 }}>Ngày xuất kho:</div>
-                    <DatePicker format="DD/MM/YYYY" value={shipDate} onChange={setShipDate} style={{ width: '100%' }} />
+                <div style={{ display: 'flex', gap: 15, marginBottom: 10 }}>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500 }}>Loại phiếu:</div>
+                        <Select
+                            style={{ width: '100%' }}
+                            value={isDraft}
+                            onChange={(draft) => {
+                                setIsDraft(draft);
+                                if (!editingDeliveryId) {
+                                    setShipItems(summaryData.map((d: any) => {
+                                        const canShip = draft || (d.bookingStatus === 'CONFIRMED' && d.remaining > 0);
+                                        return {
+                                            sku: d.sku, 
+                                            max: d.remaining, 
+                                            quantity: canShip ? d.remaining : 0,
+                                            bookingStatus: d.bookingStatus
+                                        };
+                                    }));
+                                }
+                            }}
+                            options={[
+                                { value: false, label: 'Chính thức (Xuất kho)' },
+                                { value: true, label: 'Bản nháp (Chỉ in/gửi khách)' }
+                            ]}
+                        />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500 }}>Ngày xuất kho:</div>
+                        <DatePicker format="DD/MM/YYYY" value={shipDate} onChange={setShipDate} style={{ width: '100%' }} />
+                    </div>
                 </div>
 
                 {/* ADDRESS SELECTION */}
@@ -751,7 +818,8 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 </div>
 
                 <div style={{ fontWeight: 'bold', marginTop: 15, marginBottom: 5 }}>Danh sách xuất:</div>
-                <div style={{ fontSize: 12, color: 'red', marginBottom: 10, fontStyle: 'italic' }}>* Lưu ý: Chỉ được phép xuất kho các sản phẩm đã được duyệt giữ kho (Trạng thái: Sẵn sàng).</div>
+                {!isDraft && <div style={{ fontSize: 12, color: 'red', marginBottom: 10, fontStyle: 'italic' }}>* Lưu ý: Chỉ được phép xuất kho các sản phẩm đã được duyệt giữ kho (Trạng thái: Sẵn sàng).</div>}
+                {isDraft && <div style={{ fontSize: 12, color: '#1890ff', marginBottom: 10, fontStyle: 'italic' }}>* Đang tạo Phiếu Nháp: Có thể điền số lượng tự do không cần giữ kho. Tồn kho sẽ KHÔNG bị trừ.</div>}
                 <Table dataSource={shipItems} rowKey="sku" pagination={false} size="small" columns={[
                     { title: 'SKU', dataIndex: 'sku' },
                     { title: 'Trạng thái', width: 90, align: 'center', render: (r: any) => {
@@ -759,8 +827,16 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                         if (r.bookingStatus === 'TEMPORARY') return <Tag color="orange" style={{ margin: 0 }}>Chưa duyệt</Tag>;
                         return <Tag style={{ margin: 0 }}>Chưa giữ kho</Tag>;
                     }},
-                    { title: 'SL Còn', dataIndex: 'max' },
-                    { title: 'Giao lần này', render: (_: any, r: any, idx: number) => (<InputNumber max={r.max} min={0} value={r.quantity} disabled={r.bookingStatus !== 'CONFIRMED'} onChange={(v: any) => { const newItems = [...shipItems]; newItems[idx].quantity = v; setShipItems(newItems); }} />) }
+                    { title: 'SL Cần giao', dataIndex: 'max' },
+                    { title: 'Giao lần này', render: (_: any, r: any, idx: number) => (
+                        <InputNumber 
+                            max={r.max} 
+                            min={0} 
+                            value={r.quantity} 
+                            disabled={!isDraft && r.bookingStatus !== 'CONFIRMED'} 
+                            onChange={(v: any) => { const newItems = [...shipItems]; newItems[idx].quantity = v || 0; setShipItems(newItems); }} 
+                        />
+                    )}
                 ]} />
             </Modal>
 

@@ -41,6 +41,11 @@ export class ProductionController {
     return this.productionService.updateStepStatus(stepId, body.status, body);
   }
 
+  @Delete('steps/:stepId')
+  deleteStep(@Param('stepId') stepId: number) {
+    return this.productionService.deleteStep(stepId);
+  }
+
   // =============================================
   // --- OUTSOURCING ASSIGNMENT (Multi-Supplier) ---
   // =============================================

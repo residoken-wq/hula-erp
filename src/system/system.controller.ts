@@ -111,4 +111,11 @@ export class SystemController {
 
     @Post('about-config')
     saveAboutConfig(@Body() body: any) { return this.s.saveAboutConfig(body); }
+
+    // --- SO PROJECT TEMPLATE ---
+    @Get('so-project-template')
+    getSOProjectTemplate() { return this.s.getSOProjectTemplate(); }
+
+    @Post('so-project-template')
+    saveSOProjectTemplate(@Body() body: any) { return this.s.saveSOProjectTemplate(body); }
 }

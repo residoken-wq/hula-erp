@@ -63,7 +63,13 @@ export class MrpCalculationService {
                             const currentStock = stockMap.get(item.material_id);
                             item.available_stock = currentStock;
                             const gross = Number(item.gross_requirement) || 0;
-                            item.net_requirement = Math.max(0, gross - currentStock);
+                            const useStock = item.use_stock !== false;
+                            if (useStock) {
+                                const totalAvail = currentStock + (item.supplier_stock || 0);
+                                item.net_requirement = Math.max(0, gross - totalAvail);
+                            } else {
+                                item.net_requirement = gross;
+                            }
                         }
                         return item;
                     });
@@ -189,10 +195,10 @@ export class MrpCalculationService {
                     const currentWastage = materialWastageMap.get(bom.material_id) || 0;
                     if (wastage > currentWastage) materialWastageMap.set(bom.material_id, wastage);
 
-                    // --- MỚI: Ghi nhận chi tiết sử dụng NPL ---
                     const details = materialDetailsMap.get(bom.material_id) || [];
                     details.push({
                         product_name: productNameMap.get(sku) || sku,
+                        product_sku: sku,
                         qty_needed: qty,
                         bom_quantity: Number(bom.quantity),
                         waste_percent: wastage,

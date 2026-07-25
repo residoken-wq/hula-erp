@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Modal, Form, Select, Button, Checkbox, Row, Col, Input, Divider, Card, AutoComplete, message, Spin } from 'antd';
-import { PrinterOutlined, ReloadOutlined, SaveOutlined, FileSyncOutlined } from '@ant-design/icons';
+import { PrinterOutlined, ReloadOutlined, SaveOutlined, FileSyncOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import AttachmentUpload from '../common/AttachmentUpload';
 import api from '../../utils/api';
@@ -120,6 +120,7 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                 template_id: initialData.contract_template_id || (templates.length > 0 ? templates[0].id : undefined),
                 include_product_list: initialVars.include_product_list !== false,
                 sign_date: initialVars.sign_date ? dayjs(initialVars.sign_date) : dayjs(),
+                is_contract_visible: initialVars.is_contract_visible !== false,
                 ...initialVars
             });
             setTimeout(handleGeneratePreview, 100); // Initial preview
@@ -581,6 +582,9 @@ const ContractBuilderModal: React.FC<Props> = ({ open, onCancel, onSuccess, init
                             </Form.Item>
                             <Form.Item name="sign_date" label="Ngày Ký (Hiển thị)">
                                 <Input type="date" />
+                            </Form.Item>
+                            <Form.Item name="is_contract_visible" valuePropName="checked" style={{ marginBottom: 0 }}>
+                                <Checkbox>Hiển thị hợp đồng trên Portal Báo Giá / Khách Hàng</Checkbox>
                             </Form.Item>
                         </Card>
 

@@ -16,9 +16,11 @@ import { MaterialsModule } from '../materials/materials.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { SupplierStock } from '../inventory/entities/supplier-stock.entity';
 
+import { ProductionPlanHistory } from './production-plan-history.entity';
+
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ProductionPlan, SalesOrder, SalesOrderItem, PurchaseOrder, PurchaseOrderItem, WorkOrder, WorkOrderStep, SupplierStock]),
+    TypeOrmModule.forFeature([ProductionPlan, ProductionPlanHistory, SalesOrder, SalesOrderItem, PurchaseOrder, PurchaseOrderItem, WorkOrder, WorkOrderStep, SupplierStock]),
     ProductsModule,
     MaterialsModule,
     forwardRef(() => InventoryModule)

@@ -76,6 +76,9 @@ export class PurchaseOrder {
   @Column({ nullable: true })
   note: string;
 
+  @Column('decimal', { precision: 5, scale: 2, default: 0, nullable: true })
+  vat_rate: number;
+
   // --- MỚI: Thông tin vận chuyển NPL sang Gia công ---
   // Lưu dạng JSON: { sent_date: '...', vehicle: '...', status: 'SENT/RECEIVED', note: '...' }
   @Column({ type: 'jsonb', nullable: true })

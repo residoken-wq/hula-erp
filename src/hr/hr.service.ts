@@ -151,8 +151,23 @@ export class HrService implements OnModuleInit {
             return { message: 'Đang trong ca làm việc (chưa check-out)', attendance };
         }
 
+        const employee = await this.employeeRepo.findOne({
+            where: { id: employeeId },
+            relations: ['work_shift']
+        });
+
         const now = new Date();
-        const isLate = now.getHours() >= 9; // Late if after 9 AM
+        let isLate = now.getHours() >= 9; // Late if after 9 AM fallback
+
+        if (employee && employee.work_shift && employee.work_shift.start_time) {
+            const [hours, minutes] = employee.work_shift.start_time.split(':').map(Number);
+            const tolerance = employee.work_shift.late_tolerance_minutes || 0;
+            
+            const shiftStart = new Date();
+            shiftStart.setHours(hours, minutes + tolerance, 0, 0);
+
+            isLate = now.getTime() > shiftStart.getTime();
+        }
 
         const newAttendance = this.attendanceRepo.create({
             employee_id: employeeId,
@@ -385,15 +400,17 @@ export class HrService implements OnModuleInit {
 
         // Insurance calculations
         if (data.include_insurance !== false) {
-            // Company contributions (based on base_salary)
-            data.bhxh_company = Math.round(base * 0.175);
-            data.bhyt_company = Math.round(base * 0.03);
-            data.bhtn_company = Math.round(base * 0.01);
+            const insuranceBase = calcType === AttendanceCalcType.HOURLY ? data.actual_salary : base;
+
+            // Company contributions (based on insuranceBase)
+            data.bhxh_company = Math.round(insuranceBase * 0.175);
+            data.bhyt_company = Math.round(insuranceBase * 0.03);
+            data.bhtn_company = Math.round(insuranceBase * 0.01);
 
             // Employee contributions
-            data.bhxh_employee = Math.round(base * 0.08);
-            data.bhyt_employee = Math.round(base * 0.015);
-            data.bhtn_employee = Math.round(base * 0.01);
+            data.bhxh_employee = Math.round(insuranceBase * 0.08);
+            data.bhyt_employee = Math.round(insuranceBase * 0.015);
+            data.bhtn_employee = Math.round(insuranceBase * 0.01);
         } else {
             data.bhxh_company = 0;
             data.bhyt_company = 0;

@@ -5,7 +5,7 @@ import { MenuOutlined } from '@ant-design/icons';
 
 interface DraggableRowProps {
     id: string;
-    children: React.ReactNode;
+    children: React.ReactNode | ((listeners: any) => React.ReactNode);
 }
 
 const DraggableRow: React.FC<DraggableRowProps> = ({ id, children }) => {
@@ -21,7 +21,7 @@ const DraggableRow: React.FC<DraggableRowProps> = ({ id, children }) => {
 
     return (
         <div ref={setNodeRef} style={style} {...attributes}>
-            {children}
+            {typeof children === 'function' ? children(listeners) : children}
         </div>
     );
 };

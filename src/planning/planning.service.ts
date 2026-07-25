@@ -11,15 +11,20 @@ import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.en
 import { InventoryService } from '../inventory/inventory.service';
 import { MrpCalculationService } from './mrp-calculation.service';
 import { GanttService } from './gantt.service';
+import { WorkOrder, WorkOrderStatus } from '../production/work-order.entity';
+
+import { ProductionPlanHistory } from './production-plan-history.entity';
 
 @Injectable()
 export class PlanningService {
     constructor(
         @InjectRepository(ProductionPlan) private planRepo: Repository<ProductionPlan>,
+        @InjectRepository(ProductionPlanHistory) private historyRepo: Repository<ProductionPlanHistory>,
         @InjectRepository(SalesOrder) private orderRepo: Repository<SalesOrder>,
         @InjectRepository(SalesOrderItem) private orderItemRepo: Repository<SalesOrderItem>,
         @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
         @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
+        @InjectRepository(WorkOrder) private woRepo: Repository<WorkOrder>,
         private productsService: ProductsService,
         private materialsService: MaterialsService,
         @Inject(forwardRef(() => InventoryService)) private inventoryService: InventoryService,
@@ -168,11 +173,74 @@ export class PlanningService {
     async saveAnalysis(id: number, mrpData: any, outsourcingData: any, logisticsData: any) {
         const plan = await this.planRepo.findOneBy({ id });
         if (!plan) throw new NotFoundException();
+
+        // 1. Tạo bản ghi history trước khi lưu
+        const lastVersion = await this.historyRepo.findOne({
+            where: { plan_id: id },
+            order: { version: 'DESC' }
+        });
+        const currentVersion = lastVersion ? lastVersion.version + 1 : 1;
+        
+        const history = this.historyRepo.create({
+            plan_id: id,
+            version: currentVersion,
+            changes_summary: { type: 'MRP_SAVE', description: 'Lưu kết quả MRP / Phân bổ thủ công' },
+            snapshot_data: {
+                mrp_data: mrpData,
+                outsourcing_data: outsourcingData,
+                logistics_data: logisticsData,
+                gantt_config: plan.gantt_config
+            },
+            created_by: 'User' // Ideally from req.user
+        });
+        await this.historyRepo.save(history);
+
+        // 2. Cập nhật Kế hoạch
         plan.mrp_data = mrpData;
         plan.outsourcing_data = outsourcingData;
         if (logisticsData) plan.logistics_data = logisticsData;
         await this.planRepo.save(plan);
-        return { message: 'Đã lưu kết quả phân tích' };
+
+        // 3. Cập nhật tồn kho (reserved stock)
+        if (Array.isArray(mrpData)) {
+            const materialIds = mrpData.map(item => item.material_id).filter(Boolean);
+            if (materialIds.length > 0) {
+                await this.updateMaterialReservedStock(materialIds);
+            }
+        }
+
+        return { message: 'Đã lưu kết quả phân tích', version: currentVersion };
+    }
+
+    async updateMaterialReservedStock(materialIds: number[]) {
+        if (!materialIds.length) return;
+        const activePlans = await this.planRepo.find({
+            where: { status: In([PlanStatus.DRAFT, PlanStatus.CALCULATED, PlanStatus.HAS_PO_MATERIAL, PlanStatus.HAS_PO_OUTSOURCING, PlanStatus.IN_PRODUCTION]) }
+        });
+        
+        const reservedMap = new Map<number, number>();
+        materialIds.forEach(id => reservedMap.set(id, 0));
+
+        for (const p of activePlans) {
+            if (Array.isArray(p.mrp_data)) {
+                for (const item of p.mrp_data) {
+                    if (item.material_id && materialIds.includes(item.material_id)) {
+                        const useStock = item.use_stock !== false;
+                        if (useStock) {
+                            const gross = Number(item.gross_requirement) || 0;
+                            const net = Number(item.net_requirement) || 0;
+                            const reserved = Math.max(0, gross - net);
+                            const actualReserved = Math.min(reserved, Number(item.available_stock || 0));
+                            reservedMap.set(item.material_id, (reservedMap.get(item.material_id) || 0) + actualReserved);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (const [matId, reserved] of reservedMap.entries()) {
+            await this.materialsService.materialRepo.update(matId, { reserved_stock: reserved });
+        }
     }
 
     async invalidateAnalysisCache(planId: number) {
@@ -988,5 +1056,147 @@ export class PlanningService {
             mrp_summary,
             outsourcing_summary
         };
+    }
+
+    // --- MỚI: Version History, Production Status, Sync BOD ---
+    async getHistory(planId: number) {
+        return this.historyRepo.find({
+            where: { plan_id: planId },
+            order: { version: 'DESC' }
+        });
+    }
+
+    async getProductionStatus(planId: number) {
+        // Lấy WorkOrders của plan
+        const workOrders = await this.woRepo.find({
+            where: { plan_id: planId },
+            relations: ['steps', 'production_order']
+        });
+        
+        // Lấy POs
+        const pos = await this.poRepo.find({
+            where: { plan_id: planId },
+            relations: ['items']
+        });
+
+        const plan = await this.planRepo.findOne({
+            where: { id: planId },
+            relations: ['sales_orders']
+        });
+
+        return {
+            workOrders,
+            purchaseOrders: pos,
+            salesOrders: plan?.sales_orders || []
+        };
+    }
+
+    async initProduction(planId: number) {
+        const plan = await this.planRepo.findOne({
+            where: { id: planId },
+            relations: ['sales_orders', 'sales_orders.items', 'sales_orders.items.product']
+        });
+        if (!plan) throw new NotFoundException('Plan not found');
+
+        // Check if any WorkOrder already exists for this plan
+        const existingWos = await this.woRepo.find({ where: { plan_id: planId } });
+        if (existingWos.length > 0) {
+            return { message: 'Đã khởi tạo Lệnh sản xuất rồi' };
+        }
+
+        const defaultSteps = [
+            'Mua NPL', 'Nối vải', 'Chần gòn', 'Thêu', 'In ấn', 'Gia công May', 'Đóng gói', 'Giao hàng'
+        ];
+
+        let createdCount = 0;
+        for (const so of plan.sales_orders) {
+            for (const item of so.items) {
+                if (!item.product) continue;
+                
+                const routings = await this.productsService.getRoutings(item.product.id);
+                
+                let stepsToCreate = [];
+                if (routings && routings.length > 0) {
+                    stepsToCreate = routings.map((r: any, idx: number) => ({
+                        step_name: r.step_name || r.process?.name || `Step ${idx + 1}`,
+                        order_index: idx + 1,
+                        assigned_to: r.supplier?.name || null,
+                        supplier_id: r.supplier_id || null,
+                        status: 'PENDING'
+                    }));
+                } else {
+                    stepsToCreate = defaultSteps.map((name, idx) => ({
+                        step_name: name,
+                        order_index: idx + 1,
+                        status: 'PENDING'
+                    }));
+                }
+
+                const wo = this.woRepo.create({
+                    code: `WO-${plan.code}-${item.product.sku}`,
+                    product_sku: item.product.sku,
+                    quantity: Number(item.quantity),
+                    plan_id: planId,
+                    status: WorkOrderStatus.PENDING,
+                    steps: stepsToCreate
+                });
+                await this.woRepo.save(wo);
+                createdCount++;
+            }
+        }
+        
+        return { message: `Đã khởi tạo ${createdCount} Lệnh sản xuất`, planId };
+    }
+
+    async syncBodFollowUp(planId: number) {
+        const plan = await this.planRepo.findOne({
+            where: { id: planId },
+            relations: ['sales_orders']
+        });
+        if (!plan) throw new NotFoundException('Plan not found');
+
+        const { workOrders, purchaseOrders } = await this.getProductionStatus(planId);
+
+        let nplCheckboxes = [];
+        let prodCheckboxes = [];
+        let nplNote = '';
+        
+        const hasDeliveredMaterial = purchaseOrders.some(po => po.type === POType.MATERIAL && [POStatus.DELIVERED, POStatus.COMPLETED].includes(po.status));
+        if (hasDeliveredMaterial) {
+            nplCheckboxes.push('fabric');
+            nplCheckboxes.push('quilt'); // Giả sử vải và gòn chung
+            nplNote += ` Đã giao nguyên liệu (PO cập nhật: ${new Date().toLocaleDateString()}).`;
+        }
+
+        const hasCompletedWo = workOrders.some(wo => wo.status === WorkOrderStatus.COMPLETED);
+        const hasInProgressWo = workOrders.some(wo => wo.status === WorkOrderStatus.IN_PROGRESS);
+        
+        if (hasDeliveredMaterial) prodCheckboxes.push('fabric');
+        if (hasInProgressWo || hasCompletedWo) {
+            prodCheckboxes.push('process');
+        }
+
+        // Cập nhật lại vào các SalesOrder của KHSX này
+        for (const so of plan.sales_orders) {
+            const currentBod = so.bod_follow_up || {};
+            
+            // Lấy existing checkboxes và merge
+            const extNpl = currentBod.npl_checkboxes || [];
+            const extProd = currentBod.prod_checkboxes || [];
+            
+            const newNpl = Array.from(new Set([...extNpl, ...nplCheckboxes]));
+            const newProd = Array.from(new Set([...extProd, ...prodCheckboxes]));
+            
+            so.bod_follow_up = {
+                ...currentBod,
+                npl_checkboxes: newNpl,
+                prod_checkboxes: newProd,
+                npl_note: currentBod.npl_note ? currentBod.npl_note + nplNote : nplNote
+            };
+            
+            await this.orderRepo.save(so);
+        }
+
+        return { message: 'Đồng bộ BOD FollowUp thành công', planId };
     }
 }

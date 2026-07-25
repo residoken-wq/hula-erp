@@ -60,4 +60,25 @@ export class PlanningController {
   checkPlanStatus(@Param('id') id: number) {
     return this.s.checkAndUpdatePlanStatus(id);
   }
+
+  // --- MỚI: Version History, Production Status, Sync BOD ---
+  @Get(':id/history')
+  getHistory(@Param('id') id: number) {
+    return this.s.getHistory(id);
+  }
+
+  @Get(':id/production-status')
+  getProductionStatus(@Param('id') id: number) {
+    return this.s.getProductionStatus(id);
+  }
+
+  @Post(':id/init-production')
+  initProduction(@Param('id') id: number) {
+    return this.s.initProduction(id);
+  }
+
+  @Post(':id/sync-bod-followup')
+  syncBodFollowUp(@Param('id') id: number) {
+    return this.s.syncBodFollowUp(id);
+  }
 }

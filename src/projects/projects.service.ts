@@ -7,92 +7,8 @@ import { SalesOrder } from '../sales/sales-order.entity';
 import { Task, TaskStatus, TaskPriority } from '../tasks/task.entity';
 import { Transaction } from '../finance/transaction.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
-
-// 8 Milestones chuẩn cho Dự án Đơn hàng
-const SO_TEMPLATE_MILESTONES = [
-    {
-        title: 'Chốt đơn & Hợp đồng',
-        department: 'SALES',
-        sort_order: 1,
-        tasks: [
-            'Xác nhận đơn hàng (SO)',
-            'Ký hợp đồng',
-            'Thu đặt cọc',
-        ]
-    },
-    {
-        title: 'Thiết kế mẫu In/Thêu & Quản lý Gia công',
-        department: 'DESIGN',
-        sort_order: 2,
-        tasks: [
-            'Thiết kế mẫu in',
-            'Thiết kế mẫu thêu',
-            'Duyệt mẫu với khách hàng',
-            'Quản lý gia công In',
-            'Quản lý gia công Thêu',
-        ]
-    },
-    {
-        title: 'Lập kế hoạch SX',
-        department: 'PLANNING',
-        sort_order: 3,
-        tasks: [
-            'Chạy phân tích MRP',
-            'Xác nhận phương án vật tư',
-            'Tạo PO NPL & PO Gia công',
-        ]
-    },
-    {
-        title: 'Mua hàng NPL',
-        department: 'PURCHASING',
-        sort_order: 4,
-        tasks: [
-            'Đặt hàng NCC',
-            'Theo dõi tiến độ giao hàng NCC',
-            'Nhận hàng & Nhập kho NPL',
-        ]
-    },
-    {
-        title: 'Sản xuất & Gia công',
-        department: 'PRODUCTION',
-        sort_order: 5,
-        tasks: [
-            'Xuất NPL cho sản xuất',
-            'Theo dõi tiến độ sản xuất',
-            'Kiểm QC từng công đoạn',
-        ]
-    },
-    {
-        title: 'Kiểm tra & Đóng gói',
-        department: 'QC',
-        sort_order: 6,
-        tasks: [
-            'QC cuối (Final Inspection)',
-            'Đóng gói thành phẩm',
-            'Nhập kho Thành phẩm',
-        ]
-    },
-    {
-        title: 'Giao hàng',
-        department: 'LOGISTICS',
-        sort_order: 7,
-        tasks: [
-            'Soạn & Xuất kho',
-            'Vận chuyển / Bàn giao khách',
-            'Xác nhận khách nhận hàng',
-        ]
-    },
-    {
-        title: 'Thanh toán & Thanh lý',
-        department: 'FINANCE',
-        sort_order: 8,
-        tasks: [
-            'Thu thanh toán đợt cuối',
-            'Đối soát công nợ',
-            'Thanh lý hợp đồng',
-        ]
-    }
-];
+import { SystemConfig } from '../system/system-config.entity';
+import { DEFAULT_SO_PROJECT_TEMPLATE } from '../system/system.service';
 
 @Injectable()
 export class ProjectsService {
@@ -103,6 +19,7 @@ export class ProjectsService {
         @InjectRepository(Task) private taskRepo: Repository<Task>,
         @InjectRepository(Transaction) private transRepo: Repository<Transaction>,
         @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
+        @InjectRepository(SystemConfig) private configRepo: Repository<SystemConfig>,
     ) { }
 
     async findAll(user: any) {
@@ -228,8 +145,19 @@ export class ProjectsService {
 
         const savedProject = await this.repo.save(project);
 
-        // Create 8 template milestones + default tasks
-        for (const tmpl of SO_TEMPLATE_MILESTONES) {
+        // Fetch template from SystemConfig
+        const config = await this.configRepo.findOne({ where: { key: 'SO_PROJECT_TEMPLATE' } });
+        let templateMilestones = DEFAULT_SO_PROJECT_TEMPLATE;
+        if (config && config.value) {
+            try {
+                templateMilestones = JSON.parse(config.value);
+            } catch (e) {
+                console.error('Failed to parse SO_PROJECT_TEMPLATE', e);
+            }
+        }
+
+        // Create milestones + default tasks from template
+        for (const tmpl of templateMilestones) {
             const ms = this.milestoneRepo.create({
                 project_id: savedProject.id,
                 title: tmpl.title,

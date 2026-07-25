@@ -838,11 +838,17 @@ export class SalesService {
             }
         }
 
+        const isDraft = data.status === 'DRAFT';
         // --- Ràng buộc: CONFIRMED booking HOẶC tồn kho khả dụng đủ ---
         const errors: string[] = [];
         for (const reqItem of data.items || []) {
             const soItem = order.items.find(i => i.sku === reqItem.sku);
             if (!soItem) continue;
+
+            if (isDraft) {
+                // Phiếu nháp không cần kiểm tra tồn kho hoặc booking
+                continue;
+            }
 
             if (soItem.booking_status === BookingStatus.CONFIRMED) {
                 // Đã duyệt booking → cho phép xuất

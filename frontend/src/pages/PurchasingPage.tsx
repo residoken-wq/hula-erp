@@ -77,6 +77,17 @@ const PurchasingPage: React.FC = () => {
         } catch (e) { message.error('Lỗi xóa PO'); }
     };
 
+    const handleBatchDelete = async (ids: number[]) => {
+        try {
+            const res = await api.post(`/purchasing/batch-delete`, { ids });
+            message.success(`Đã xóa ${res.data?.deletedCount || 0} PO (DRAFT)`);
+            setSelectedMainRows([]);
+            setSelectedReqs([]);
+            fetchData();
+            if (activeTab.startsWith('REQ')) fetchRequirements();
+        } catch (e) { message.error('Lỗi xóa PO'); }
+    };
+
     const viewDetail = async (record: any) => {
         try {
             // FIX: Gọi API để lấy data enriched thay vì dùng record từ list
@@ -667,6 +678,11 @@ const PurchasingPage: React.FC = () => {
                         <Space>
                             {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedReqs.length === 0}>+ Tạo PO Gộp ({selectedReqs.length})</Button>}
                             {(activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') && <Button type="primary" onClick={handleCreatePooledPO} disabled={selectedMainRows.length === 0} icon={<LinkOutlined />}>Gộp PO ({selectedMainRows.length})</Button>}
+                            {(activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') && selectedMainRows.length > 0 && (
+                                <Popconfirm title={`Xóa ${selectedMainRows.length} PO đã chọn?`} onConfirm={() => handleBatchDelete(selectedMainRows.map(r => r.id))}>
+                                    <Button danger icon={<DeleteOutlined />}>Xóa PO ({selectedMainRows.length})</Button>
+                                </Popconfirm>
+                            )}
                             {activeTab === 'POOLED' && <Popconfirm title="Xóa tất cả PO Gộp?" onConfirm={async () => {
                                 await api.delete(`/purchasing/pooled/all`);
                                 message.success('Đã xóa dữ liệu gộp');
@@ -738,7 +754,16 @@ const PurchasingPage: React.FC = () => {
 
             {/* MODAL DETAIL */}
             <Modal
-                title={`Chi tiết: ${currentPO?.po_code}`}
+                title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 32 }}>
+                        <span>Chi tiết: {currentPO?.po_code}</span>
+                        {currentPO?.plan?.sales_orders?.length > 0 && (
+                            <span style={{ fontSize: 14, fontWeight: 'normal', color: '#666' }}>
+                                KH: {Array.from(new Set(currentPO.plan.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ')}
+                            </span>
+                        )}
+                    </div>
+                }
                 open={isDetailOpen}
                 onCancel={() => setIsDetailOpen(false)}
                 width={1200}
@@ -1375,16 +1400,38 @@ const PurchasingPage: React.FC = () => {
                                         { title: 'Sản phẩm / NPL', render: (r: any) => r.product?.name || r.material?.name || r.description },
                                         {
                                             title: 'Chọn Sơ đồ Thiết kế',
+                                            width: 500,
                                             render: (r: any, _: any, index: number) => (
                                                 <Select
                                                     showSearch
                                                     allowClear
                                                     placeholder="Chọn sơ đồ In/Thêu..."
-                                                    style={{ width: 300 }}
+                                                    style={{ width: '100%', minWidth: 400 }}
                                                     value={r.print_design_id || r.print_design?.id}
                                                     onChange={(val) => {
                                                         const newItems = [...editingItems];
                                                         newItems[index].print_design_id = val;
+                                                        
+                                                        // Nếu là PO_GC In, tự động cập nhật số lượng = số mét in theo sơ đồ
+                                                        if (currentPO?.type === 'OUTSOURCING' && val) {
+                                                            const pd = printDesigns.find(d => d.id === val);
+                                                            if (pd && pd.type === 'PRINT' && pd.tech_pack?.binsByFace) {
+                                                                let maxH = 0;
+                                                                Object.values(pd.tech_pack.binsByFace).forEach((bins: any) => {
+                                                                    if (Array.isArray(bins)) {
+                                                                        bins.forEach(b => {
+                                                                            if (b.h > maxH) maxH = b.h;
+                                                                        });
+                                                                    }
+                                                                });
+                                                                if (maxH > 0) {
+                                                                    // Quy đổi cm sang m nếu cần (các marker có h > 100 cm thường là đơn vị cm)
+                                                                    const meters = maxH > 100 ? maxH / 100 : maxH;
+                                                                    newItems[index].qty = Number(meters.toFixed(2));
+                                                                }
+                                                            }
+                                                        }
+                                                        
                                                         setEditingItems(newItems);
                                                     }}
                                                     options={printDesigns.map(pd => ({
