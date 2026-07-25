@@ -166,7 +166,8 @@ export class PlanningService {
 
     // --- Delegate to MrpCalculationService ---
     async calculateMaterialNeeds(planId: number, force: boolean = false) {
-        return this.mrpCalculationService.calculateMaterialNeeds(planId, force);
+        // return this.mrpCalculationService.calculateMaterialNeeds(planId, force);
+        throw new Error("Obsolete method");
     }
 
     async saveAnalysis(id: number, mrpData: any, outsourcingData: any, logisticsData: any) {
@@ -347,7 +348,8 @@ export class PlanningService {
 
     // --- Delegate to MrpCalculationService ---
     async syncPoPrices(planId: number) {
-        return this.mrpCalculationService.syncPoPrices(planId);
+        // return this.mrpCalculationService.syncPoPrices(planId);
+        throw new Error("Obsolete method");
     }
 
     // --- Delegate to GanttService ---
