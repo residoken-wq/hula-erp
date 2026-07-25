@@ -54,7 +54,7 @@ export class PurchaseOrder {
   @Column({ nullable: true })
   supplier_id: number;
 
-  @ManyToOne(() => ProductionFulfillmentOrder, { nullable: true })
+  @ManyToOne(() => ProductionFulfillmentOrder, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'pfo_id' })
   pfo: ProductionFulfillmentOrder;
 

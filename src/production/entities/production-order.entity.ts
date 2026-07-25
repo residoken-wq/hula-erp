@@ -19,7 +19,7 @@ export class ProductionOrder {
   product_id: number;
 
   // --- MỚI: Liên kết Kế hoạch SX ---
-  @ManyToOne(() => ProductionFulfillmentOrder, { nullable: true })
+  @ManyToOne(() => ProductionFulfillmentOrder, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'pfo_id' })
   pfo: ProductionFulfillmentOrder;
 
