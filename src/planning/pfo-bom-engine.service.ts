@@ -37,7 +37,7 @@ export class PfoBomEngineService {
 
         if (!pfo) throw new NotFoundException('Lệnh sản xuất (PFO) không tồn tại');
 
-        const materialMap = new Map<number, { qty: number; material?: Material; code?: string; name?: string }>();
+        const materialMap = new Map<number, { qty: number; material?: Material; code?: string; name?: string; details?: any[] }>();
         let totalOrderQuantity = 0;
 
         if (pfo.sales_order && pfo.sales_order.items) {
@@ -205,7 +205,7 @@ export class PfoBomEngineService {
                     actual_order_quantity: r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity),
                     supply_method: r.supply_method,
                     supplier_id: r.supplier_id
-                });
+                } as any);
             }
         }
         return { message: 'Đã lưu cấu hình vật tư' };
