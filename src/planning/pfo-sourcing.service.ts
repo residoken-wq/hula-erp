@@ -106,6 +106,19 @@ export class PfoSourcingService {
                 });
                 await this.poRepo.save(matPo);
 
+                // Extract first product color details from SO if available
+                let defaultFrontColor = '';
+                let defaultBackColor = '';
+                const firstSoItem = pfo.sales_order?.items?.[0];
+                if (firstSoItem?.product?.attributes) {
+                    let attr = firstSoItem.product.attributes;
+                    if (typeof attr === 'string') {
+                        try { attr = JSON.parse(attr); } catch (e) {}
+                    }
+                    defaultFrontColor = attr?.front_color || '';
+                    defaultBackColor = attr?.back_color || '';
+                }
+
                 const matItems = validReqs.map(r => {
                     const qty = r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity);
                     const price = Number(r.unit_price || 0);
@@ -114,6 +127,8 @@ export class PfoSourcingService {
                         pfo_id: pfoId,
                         material_id: r.material_id,
                         description: `${r.material_code} - ${r.material_name}`,
+                        front_color: defaultFrontColor,
+                        back_color: defaultBackColor,
                         quantity: qty,
                         unit_price: price,
                         subtotal: qty * price
@@ -130,6 +145,17 @@ export class PfoSourcingService {
 
         // 2. TẠO PO GIA CÔNG (SUBCONTRACT PO) TƯƠNG ỨNG TỪNG XƯỞNG/CÔNG ĐOẠN
         const milestonesWithVendor = (pfo.milestones || []).filter(m => m.vendor_id);
+        const firstSoItem = pfo.sales_order?.items?.[0];
+        let defaultFrontColor = '';
+        let defaultBackColor = '';
+        if (firstSoItem?.product?.attributes) {
+            let attr = firstSoItem.product.attributes;
+            if (typeof attr === 'string') {
+                try { attr = JSON.parse(attr); } catch (e) {}
+            }
+            defaultFrontColor = attr?.front_color || '';
+            defaultBackColor = attr?.back_color || '';
+        }
         
         if (milestonesWithVendor.length > 0) {
             // Gom công đoạn theo từng Vendor ID
@@ -159,6 +185,9 @@ export class PfoSourcingService {
                     return this.poItemRepo.create({
                         purchase_order: gcPo,
                         pfo_id: pfoId,
+                        product_id: firstSoItem?.product?.id,
+                        front_color: defaultFrontColor,
+                        back_color: defaultBackColor,
                         description: `Gia công: ${ms.step_name || ms.milestone_type}`,
                         quantity: qty,
                         unit_price: price,
@@ -186,15 +215,29 @@ export class PfoSourcingService {
             await this.poRepo.save(gcPo);
 
             if (pfo.sales_order && pfo.sales_order.items) {
-                const gcItems = pfo.sales_order.items.map(item => this.poItemRepo.create({
-                    purchase_order: gcPo,
-                    pfo_id: pfoId,
-                    product_id: item.product?.id,
-                    description: `Gia công may SP: ${item.sku}`,
-                    quantity: item.quantity,
-                    unit_price: 0,
-                    subtotal: 0
-                }));
+                const gcItems = pfo.sales_order.items.map(item => {
+                    let fColor = '';
+                    let bColor = '';
+                    if (item.product?.attributes) {
+                        let attr = item.product.attributes;
+                        if (typeof attr === 'string') {
+                            try { attr = JSON.parse(attr); } catch (e) {}
+                        }
+                        fColor = attr?.front_color || '';
+                        bColor = attr?.back_color || '';
+                    }
+                    return this.poItemRepo.create({
+                        purchase_order: gcPo,
+                        pfo_id: pfoId,
+                        product_id: item.product?.id,
+                        front_color: fColor,
+                        back_color: bColor,
+                        description: `Gia công may SP: ${item.sku}`,
+                        quantity: item.quantity,
+                        unit_price: 0,
+                        subtotal: 0
+                    });
+                });
                 await this.poItemRepo.save(gcItems);
             }
 

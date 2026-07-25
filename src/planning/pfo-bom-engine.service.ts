@@ -199,8 +199,13 @@ export class PfoBomEngineService {
         for (const [materialId, data] of materialMap.entries()) {
             let mat = data.material;
             if (!mat && materialId < 100) {
-                mat = await this.materialRepo.findOne({ where: { id: materialId } });
+                mat = await this.materialRepo.findOne({ where: { id: materialId }, relations: ['supplier_prices'] });
+            } else if (mat && (!mat.supplier_prices || mat.supplier_prices.length === 0)) {
+                const fullMat = await this.materialRepo.findOne({ where: { id: mat.id }, relations: ['supplier_prices'] });
+                if (fullMat) mat = fullMat;
             }
+
+            const defaultSupplierId = mat?.supplier_prices && mat.supplier_prices.length > 0 ? mat.supplier_prices[0].supplier_id : null;
 
             const req = this.materialReqRepo.create({
                 pfo_id: id,
@@ -211,6 +216,7 @@ export class PfoBomEngineService {
                 planned_quantity: Math.round(data.qty * 100) / 100,
                 actual_order_quantity: Math.round(data.qty * 100) / 100,
                 unit_price: Number(mat?.cost_price || mat?.cost_per_unit || (data as any).price || 0),
+                supplier_id: defaultSupplierId,
                 issued_quantity: 0,
                 bom_details: data.details || null
             });

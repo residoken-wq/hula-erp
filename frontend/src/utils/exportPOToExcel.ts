@@ -65,12 +65,13 @@ export const exportPOToExcel = async (
     // Dữ liệu bảng
     editingItems.forEach((item, index) => {
         const factor = item.material ? Number(item.material.conversion_factor || 1) : 1;
+        const convertedQty = factor > 1 ? Number((Number(item.quantity || 0) / factor).toFixed(2)) : Number(item.quantity || 0);
         const row = ws1.addRow([
             index + 1,
             item.description || item.material?.name || item.product?.name || '',
+            convertedQty,
             Number(item.quantity || 0),
-            Number(item.quantity || 0) * factor,
-            item.material?.purchase_unit || '',
+            item.material?.unit || '',
             Number(item.unit_price || 0),
             Number(item.subtotal || 0),
             item.note || ''

@@ -438,9 +438,22 @@ const PurchasingPage: React.FC = () => {
 
     // ----------------------------------------
 
+    const getCustomerName = (r: any) => {
+        const pfo = r.pfo || r.plan;
+        if (!pfo) return '-';
+        if (pfo.sales_order) {
+            return pfo.sales_order.customer?.name || pfo.sales_order.customer_name || '-';
+        }
+        if (pfo.sales_orders && pfo.sales_orders.length > 0) {
+            const names = Array.from(new Set(pfo.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean)));
+            return names.length > 0 ? names.join(', ') : '-';
+        }
+        return '-';
+    };
+
     const columns = [
         { title: 'Mã PO', dataIndex: 'po_code', render: (t: any, r: any) => <Space><a onClick={() => viewDetail(r)}><b>{t}</b></a>{r.parent_po_id && <Tooltip title="PO này đã được gộp chung"><Tag color="purple" style={{ margin: 0, fontSize: 10, lineHeight: '16px' }}>Đã gộp</Tag></Tooltip>}</Space> },
-        { title: 'Khách hàng', dataIndex: 'plan', render: (p: any) => p?.sales_orders?.length > 0 ? Array.from(new Set(p.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ') || '-' : '-' },
+        { title: 'Khách hàng', key: 'customer', render: (r: any) => getCustomerName(r) },
         { title: 'Loại', dataIndex: 'type', align: 'center' as const, width: 100, render: (t: string) => t === 'MATERIAL' ? <Tag color="blue">NPL</Tag> : t === 'POOLED' ? <Tag color="purple">Gộp</Tag> : <Tag color="orange">Gia công</Tag> },
         { title: 'Ngày', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YYYY') },
         { title: 'Đối tác', dataIndex: 'supplier', render: (s: any, r: any) => s?.name || (r.note?.split('NCC: ')[1] || '-') },
@@ -465,7 +478,7 @@ const PurchasingPage: React.FC = () => {
         const q = searchText.toLowerCase();
         const poMatch = d.po_code?.toLowerCase().includes(q);
         const supplierMatch = (d.supplier?.name || d.note?.split('NCC: ')[1] || '').toLowerCase().includes(q);
-        const customerNames = d.plan?.sales_orders?.map((so: any) => so?.customer?.name || so?.customer_name || '').join(' ') || '';
+        const customerNames = getCustomerName(d);
         const customerMatch = customerNames.toLowerCase().includes(q);
         return poMatch || supplierMatch || customerMatch;
     });
@@ -627,8 +640,8 @@ const PurchasingPage: React.FC = () => {
                 render: (r: any) => {
                     const factor = r.material ? Number(r.material.conversion_factor || 1) : 1;
                     const unit = r.material ? r.material.purchase_unit : '';
-                    const val = (r.quantity || 0) * factor;
-                    return r.material && factor !== 1 ? `${Number(val).toLocaleString()} ${unit}` : '-';
+                    const val = factor > 1 ? (r.quantity || 0) / factor : (r.quantity || 0);
+                    return r.material && factor > 1 && unit ? `${Number(val.toFixed(2)).toLocaleString()} ${unit}` : '-';
                 }
             },
             { title: 'Đơn giá (Gốc)', dataIndex: 'unit_price', align: 'right' as const, render: (v: number) => Number(v || 0).toLocaleString() },
@@ -713,7 +726,7 @@ const PurchasingPage: React.FC = () => {
                         }}
                         columns={[
                             { title: 'Mã PO', dataIndex: 'po_code', width: 150, render: (t: any, r: any) => <a onClick={() => viewDetail(r)}><b>{t}</b></a> },
-                            { title: 'Khách hàng', dataIndex: 'plan', render: (p: any) => p?.sales_orders?.length > 0 ? Array.from(new Set(p.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ') || '-' : '-' },
+                            { title: 'Khách hàng', key: 'customer', render: (r: any) => getCustomerName(r) },
                             { title: 'NCC', dataIndex: 'supplier', render: (s: any) => s?.name || '-' },
                             { title: 'Số mặt hàng', width: 100, align: 'center' as const, render: (r: any) => r.items?.length || 0 },
                             { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
@@ -757,9 +770,9 @@ const PurchasingPage: React.FC = () => {
                 title={
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 32 }}>
                         <span>Chi tiết: {currentPO?.po_code}</span>
-                        {currentPO?.plan?.sales_orders?.length > 0 && (
+                        {currentPO && getCustomerName(currentPO) !== '-' && (
                             <span style={{ fontSize: 14, fontWeight: 'normal', color: '#666' }}>
-                                KH: {Array.from(new Set(currentPO.plan.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ')}
+                                KH: {getCustomerName(currentPO)}
                             </span>
                         )}
                     </div>
@@ -1044,20 +1057,16 @@ const PurchasingPage: React.FC = () => {
                                     { title: 'Tổng (+Hao hụt) (Gốc)', width: 100, align: 'center', render: (r: any) => <b>{Number(r.total_quantity || r.quantity).toLocaleString()} {r.material?.unit}</b> },
                                     {
                                         title: 'SL Quy Đổi (Mua)', width: 110, render: (r: any, _: any, index: number) => {
-                                            // --- FIX: Logic tính SL Quy Đổi ---
-                                            // Theo yêu cầu: 1 ĐVT Gốc = [Hệ số] ĐVT Mua 
-                                            // Ví dụ: 1 mét vải viền (Gốc) = 0.053 mét vải lớn (Mua)
-                                            // => SL Mua = SL Gốc * Hệ số
                                             const factor = r.material ? Number(r.material.conversion_factor || 1) : 1;
                                             const unit = r.material ? r.material.purchase_unit : '';
 
-                                            const val = r.quantity * factor;
+                                            const val = factor > 1 ? Number(((r.quantity || 0) / factor).toFixed(2)) : (r.quantity || 0);
                                             return <InputNumber
                                                 value={val}
                                                 min={0}
                                                 style={{ width: '100%' }}
                                                 onChange={(v) => {
-                                                    const newQ = factor !== 0 ? Number(v) / factor : 0;
+                                                    const newQ = factor > 1 ? Number(v) * factor : Number(v);
                                                     const newItems = [...editingItems];
                                                     newItems[index].quantity = newQ;
                                                     // Note: Giữ nguyên logic subtotal = SL Gốc * Đơn giá (gốc)
