@@ -67,7 +67,7 @@ export class GanttService {
 
             // --- Delivery Warnings ---
             const deliveryWarnings: any[] = [];
-            for (const so of (plan.sales_orders || [])) {
+            for (const so of (plan.sales_order ? [plan.sales_order] : [])) {
                 if (so.delivery_date) {
                     const deliveryDate = new Date(so.delivery_date);
                     const diffMs = deliveryDate.getTime() - now.getTime();
@@ -85,7 +85,7 @@ export class GanttService {
 
             // --- Products & Steps ---
             const productMap = new Map<string, { sku: string; product_name: string; steps: any[] }>();
-            for (const so of (plan.sales_orders || [])) {
+            for (const so of (plan.sales_order ? [plan.sales_order] : [])) {
                 for (const item of (so.items || [])) {
                     if (!item.product) continue;
                     const sku = item.sku || item.product.sku;

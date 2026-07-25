@@ -701,17 +701,18 @@ export class InventoryService {
     if (totalNplCost > 0 && gi.pfo_id) {
       try {
         const plan = await this.planningService.findOne(gi.pfo_id);
-        if (plan && plan.sales_orders && plan.sales_orders.length > 0) {
+        if (plan && plan.sales_order) {
+          const salesOrders = [plan.sales_order];
           // Tính tổng số lượng sản phẩm của KHSX
           let totalPlanItems = 0;
-          plan.sales_orders.forEach(so => {
+          salesOrders.forEach(so => {
             so.items?.forEach(i => {
                totalPlanItems += Number(i.quantity || 0);
             });
           });
 
           const allocations = [];
-          plan.sales_orders.forEach(so => {
+          salesOrders.forEach(so => {
              let soItemsQty = 0;
              so.items?.forEach(i => { soItemsQty += Number(i.quantity || 0); });
              
@@ -719,7 +720,7 @@ export class InventoryService {
              if (totalPlanItems > 0) {
                 allocatedAmount = (soItemsQty / totalPlanItems) * totalNplCost;
              } else {
-                allocatedAmount = totalNplCost / plan.sales_orders.length; // fallback chia đều
+                allocatedAmount = totalNplCost / salesOrders.length; // fallback chia đều
              }
 
              if (allocatedAmount > 0) {
