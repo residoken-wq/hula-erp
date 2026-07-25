@@ -95,7 +95,7 @@ export class PfoDemandService {
         // AUTO-HEAL: Nếu pfo bị mất relation sales_order do lỗi lưu dữ liệu cũ, thử tìm lại qua mã PFO
         if (!pfo.sales_order && pfo.code.startsWith('PFO-')) {
             const orderCode = pfo.code.replace('PFO-', '');
-            const so = await this.pfoRepo.manager.findOne('SalesOrder', {
+            const so: any = await this.pfoRepo.manager.findOne('SalesOrder', {
                 where: { order_code: orderCode },
                 relations: ['customer', 'items', 'items.product']
             });
