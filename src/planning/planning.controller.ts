@@ -50,30 +50,31 @@ export class PlanningController {
 
   // --- PFO Detail ---
   @Get('pfo/:id')
-  getPfoDetails(@Param('id') id: number) {
-    return this.demandSvc.getPfoDetails(id);
+  getPfoDetails(@Param('id') id: string) {
+    return this.demandSvc.getPfoDetails(Number(id));
   }
 
   // --- PFO BOM APIs (Gate 2) ---
   @Post('pfo/:id/calculate-bom')
-  calculateBom(@Param('id') id: number) {
-    return this.bomSvc.calculateMaterialRequirements(id);
+  calculateBom(@Param('id') id: string) {
+    return this.bomSvc.calculateMaterialRequirements(Number(id));
   }
 
   // --- PFO SOURCING APIs (Gate 3, 4, 5) ---
   @Post('pfo/:id/assign-vendor')
-  assignVendor(@Param('id') id: number, @Body('vendor_id') vendorId: number) {
-    return this.sourcingSvc.assignVendor(id, vendorId);
+  assignVendor(@Param('id') id: string, @Body('vendor_id') vendorId: number) {
+    return this.sourcingSvc.assignVendor(Number(id), vendorId);
   }
 
   @Post('pfo/:id/process-routing')
-  updateProcessRouting(@Param('id') id: number, @Body('routing') routing: any[]) {
-    return this.sourcingSvc.updateProcessRouting(id, routing);
+  updateProcessRouting(@Param('id') id: string, @Body() body: any) {
+    const routingData = Array.isArray(body) ? body : (body?.routing || []);
+    return this.sourcingSvc.updateProcessRouting(Number(id), routingData);
   }
 
   @Post('pfo/:id/generate-pos')
-  generatePos(@Param('id') id: number) {
-    return this.sourcingSvc.generatePos(id);
+  generatePos(@Param('id') id: string) {
+    return this.sourcingSvc.generatePos(Number(id));
   }
 
   // --- PFO EXECUTION APIs (Gate 7-10) ---

@@ -23,6 +23,8 @@ export enum MilestoneStatus {
 
 @Entity('pfo_milestones')
 export class PfoMilestone {
+  [key: string]: any;
+
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -33,11 +35,8 @@ export class PfoMilestone {
   @Column()
   pfo_id: number;
 
-  @Column({
-    type: 'enum',
-    enum: PfoMilestoneType
-  })
-  milestone_type: PfoMilestoneType;
+  @Column({ nullable: true })
+  milestone_type: string;
 
   @Column({ nullable: true })
   step_name: string; // Tên công đoạn (Nối vải, Chần gòn, In, Thêu, May, Đóng gói)
@@ -65,11 +64,10 @@ export class PfoMilestone {
   actual_date: Date;
 
   @Column({
-    type: 'enum',
-    enum: MilestoneStatus,
+    type: 'varchar',
     default: MilestoneStatus.PENDING
   })
-  status: MilestoneStatus;
+  status: string;
 
   @Column('float', { default: 0 })
   planned_quantity: number;

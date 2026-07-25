@@ -102,9 +102,18 @@ const PlanningPage: React.FC = () => {
             const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/calculate-bom`);
             message.success(res.data.message || 'Đã bóc tách BOM thành công!');
             
-            // Refresh details
-            const updated = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}`);
-            setPfoDetails(updated.data);
+            const newReqs = res.data.requirements || [];
+            
+            try {
+                const updated = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}`);
+                if (updated?.data) {
+                    setPfoDetails(updated.data);
+                } else {
+                    setPfoDetails((prev: any) => ({ ...prev, material_requirements: newReqs }));
+                }
+            } catch {
+                setPfoDetails((prev: any) => ({ ...prev, material_requirements: newReqs }));
+            }
             fetchData();
         } catch (e: any) { 
             message.error(e.response?.data?.message || 'Lỗi tính toán BOM'); 

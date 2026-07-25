@@ -32,7 +32,8 @@ export class PfoSourcingService {
      * Cập nhật danh sách công đoạn & Nhà gia công tương ứng cho PFO (Gate 3 Multi-Vendor)
      */
     async updateProcessRouting(pfoId: number, routingData: { milestone_type: any; step_name: string; vendor_id?: number; vendor_name?: string; unit_price?: number }[]) {
-        const pfo = await this.pfoRepo.findOne({ where: { id: pfoId }, relations: ['milestones'] });
+        const id = Number(pfoId);
+        const pfo = await this.pfoRepo.findOne({ where: { id }, relations: ['milestones'] });
         if (!pfo) throw new NotFoundException('PFO không tồn tại');
 
         // Xóa milestones cũ nếu có
@@ -40,8 +41,9 @@ export class PfoSourcingService {
             await this.milestoneRepo.remove(pfo.milestones);
         }
 
-        const newMilestones = routingData.map(item => this.milestoneRepo.create({
-            pfo_id: pfoId,
+        const safeList = Array.isArray(routingData) ? routingData : [];
+        const newMilestones = safeList.map(item => this.milestoneRepo.create({
+            pfo_id: id,
             milestone_type: item.milestone_type,
             step_name: item.step_name,
             vendor_id: item.vendor_id || null,
