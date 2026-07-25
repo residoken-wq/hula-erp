@@ -57,6 +57,7 @@ export class PfoDemandService {
 
         const pfo = this.pfoRepo.create({
             code: data.code,
+            sales_order: { id: order.id } as any,
             sales_order_id: order.id,
             status: PfoStatus.DRAFT,
             planned_start_date: data.start_date ? new Date(data.start_date) : undefined,
@@ -76,10 +77,11 @@ export class PfoDemandService {
     }
 
     async getPfoDetails(id: number) {
-        const pfo = await this.pfoRepo.findOne({
+        let pfo = await this.pfoRepo.findOne({
             where: { id },
             relations: [
                 'sales_order',
+                'sales_order.customer',
                 'sales_order.items',
                 'sales_order.items.product',
                 'material_requirements',
@@ -89,6 +91,20 @@ export class PfoDemandService {
         });
 
         if (!pfo) throw new NotFoundException('PFO không tồn tại');
+
+        // AUTO-HEAL: Nếu pfo bị mất relation sales_order do lỗi lưu dữ liệu cũ, thử tìm lại qua mã PFO
+        if (!pfo.sales_order && pfo.code.startsWith('PFO-')) {
+            const orderCode = pfo.code.replace('PFO-', '');
+            const so = await this.pfoRepo.manager.findOne('SalesOrder', {
+                where: { order_code: orderCode },
+                relations: ['customer', 'items', 'items.product']
+            });
+            if (so) {
+                pfo.sales_order = so as any;
+                pfo.sales_order_id = so.id as any;
+                await this.pfoRepo.update(pfo.id, { sales_order_id: so.id });
+            }
+        }
         return pfo;
     }
 }

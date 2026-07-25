@@ -25,7 +25,7 @@ export class PfoBomEngineService {
      */
     async calculateMaterialRequirements(pfoId: number) {
         const id = Number(pfoId);
-        const pfo = await this.pfoRepo.findOne({
+        let pfo = await this.pfoRepo.findOne({
             where: { id },
             relations: [
                 'sales_order',
@@ -36,6 +36,21 @@ export class PfoBomEngineService {
         });
 
         if (!pfo) throw new NotFoundException('Lệnh sản xuất (PFO) không tồn tại');
+
+        // AUTO-HEAL: Nếu pfo bị mất relation sales_order do lỗi lưu dữ liệu cũ, thử tìm lại qua mã PFO
+        if (!pfo.sales_order && pfo.code.startsWith('PFO-')) {
+            const orderCode = pfo.code.replace('PFO-', '');
+            const so = await this.pfoRepo.manager.findOne('SalesOrder', {
+                where: { order_code: orderCode },
+                relations: ['items', 'items.product']
+            });
+            if (so) {
+                console.log(`[BOM-ENGINE] Auto-healed missing SalesOrder ${orderCode} for PFO ${pfo.id}`);
+                pfo.sales_order = so as any;
+                pfo.sales_order_id = so.id as any;
+                await this.pfoRepo.update(pfo.id, { sales_order_id: so.id });
+            }
+        }
 
         const materialMap = new Map<number, { qty: number; material?: Material; code?: string; name?: string; details?: any[] }>();
         let totalOrderQuantity = 0;
