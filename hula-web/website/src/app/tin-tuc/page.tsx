@@ -36,13 +36,7 @@ async function getSettings() {
 export default async function BlogsPage() {
     const [blogs, settings] = await Promise.all([fetchBlogs(), getSettings()]);
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('vi-VN', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        });
-    };
+
 
     return (
         <div className="min-h-screen bg-gray-50">

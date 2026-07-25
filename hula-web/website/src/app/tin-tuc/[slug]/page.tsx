@@ -159,13 +159,6 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
 
     const relatedBlogs = await getRelatedBlogs(blog.category, blog.slug);
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('vi-VN', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        });
-    };
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -300,7 +293,6 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                                     <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 line-clamp-2">
                                         {related.title}
                                     </h3>
-                                    <p className="text-sm text-gray-500 mt-1">{formatDate(related.published_at)}</p>
                                 </div>
                             </Link>
                         ))}
