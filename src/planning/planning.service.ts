@@ -151,15 +151,15 @@ export class PlanningService {
         return this.planRepo.findOne({
             where: { id },
             relations: [
-                'sales_orders',
-                'sales_orders.items',
-                'sales_orders.items.product',
-                'sales_orders.items.product.components',
-                'sales_orders.items.product.components.child_product',
-                'sales_orders.items.product.components.child_product.boms',
-                'sales_orders.items.product.components.child_product.boms.material',
-                'sales_orders.items.product.boms',
-                'sales_orders.items.product.boms.material'
+                'sales_order',
+                'sales_order.items',
+                'sales_order.items.product',
+                'sales_order.items.product.components',
+                'sales_order.items.product.components.child_product',
+                'sales_order.items.product.components.child_product.boms',
+                'sales_order.items.product.components.child_product.boms.material',
+                'sales_order.items.product.boms',
+                'sales_order.items.product.boms.material'
             ]
         });
     }
@@ -330,7 +330,7 @@ export class PlanningService {
     async findAll() { return this.planRepo.find({ order: { id: 'DESC' }, relations: ['sales_order', 'sales_order.customer'] }); }
 
     async deletePlan(id: number) {
-        const plan = await this.planRepo.findOne({ where: { id }, relations: ['sales_orders'] });
+        const plan = await this.planRepo.findOne({ where: { id }, relations: ['sales_order'] });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
 
         const existingPos = await this.poRepo.count({ where: { pfo_id: id } });
@@ -338,7 +338,7 @@ export class PlanningService {
             throw new BadRequestException('Không thể xóa kế hoạch đã tạo Đơn mua hàng (PO)');
         }
 
-        if (plan.sales_orders && plan.sales_orders.length > 0) {
+        if (plan.sales_order) {
             await this.orderRepo.update({ pfos: { id } }, { pfos: null });
         }
 
@@ -430,7 +430,7 @@ export class PlanningService {
     async confirmBookings(planId: number, itemIds?: number[]) {
         const plan = await this.planRepo.findOne({
             where: { id: planId },
-            relations: ['sales_orders', 'sales_orders.items', 'sales_orders.items.product']
+            relations: ['sales_order', 'sales_order.items', 'sales_order.items.product']
         });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
 
@@ -445,7 +445,7 @@ export class PlanningService {
         }
 
         let confirmedCount = 0;
-        for (const order of plan.sales_orders) {
+        for (const order of (plan.sales_order ? [plan.sales_order] : [])) {
             for (const item of order.items) {
                 if ((item as any).booking_status === 'TEMPORARY') {
                     // Nếu có truyền itemIds thì kiểm tra xem item.id có trong mảng không
@@ -525,9 +525,9 @@ export class PlanningService {
         const plan = await this.planRepo.findOne({
             where: { id: planId },
             relations: [
-                'sales_orders', 'sales_orders.items', 'sales_orders.items.product',
-                'sales_orders.items.product.components', 'sales_orders.items.product.components.child_product',
-                'sales_orders.customer'
+                'sales_order', 'sales_order.items', 'sales_order.items.product',
+                'sales_order.items.product.components', 'sales_order.items.product.components.child_product',
+                'sales_order.customer'
             ]
         });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
@@ -543,7 +543,7 @@ export class PlanningService {
         }
 
         const extractedItems: any[] = [];
-        for (const order of plan.sales_orders) {
+        for (const order of (plan.sales_order ? [plan.sales_order] : [])) {
             const customerName = order.customer_name || order.customer?.name || '';
             for (const item of order.items) {
                 const product = item.product;
@@ -900,7 +900,7 @@ export class PlanningService {
         let { from_date, to_date, customers } = query;
 
         const qb = this.planRepo.createQueryBuilder('p')
-            .leftJoinAndSelect('p.sales_orders', 'so')
+            .leftJoinAndSelect('p.sales_order', 'so')
             .leftJoinAndSelect('so.customer', 'c');
 
         if (from_date) {
@@ -916,11 +916,9 @@ export class PlanningService {
         // Lấy danh sách khách hàng unique có trong khoảng thời gian này
         const customerSet = new Set<string>();
         for (const p of allPlansInRange) {
-            if (p.sales_orders) {
-                for (const so of p.sales_orders) {
-                    const cName = so.customer_name || so.customer?.name;
-                    if (cName) customerSet.add(cName);
-                }
+            if (p.sales_order) {
+                const cName = p.sales_order.customer_name || p.sales_order.customer?.name;
+                if (cName) customerSet.add(cName);
             }
         }
         const customer_list = Array.from(customerSet).sort();
@@ -930,11 +928,9 @@ export class PlanningService {
         if (customers) {
             const customerArr = customers.split(',').map((c: string) => c.trim());
             plansToProcess = allPlansInRange.filter(p => {
-                if (!p.sales_orders) return false;
-                return p.sales_orders.some(so => {
-                    const cName = so.customer_name || so.customer?.name;
-                    return cName && customerArr.includes(cName);
-                });
+                if (!p.sales_order) return false;
+                const cName = p.sales_order.customer_name || p.sales_order.customer?.name;
+                return cName && customerArr.includes(cName);
             });
         }
 
@@ -1082,20 +1078,20 @@ export class PlanningService {
 
         const plan = await this.planRepo.findOne({
             where: { id: planId },
-            relations: ['sales_orders']
+            relations: ['sales_order']
         });
 
         return {
             workOrders,
             purchaseOrders: pos,
-            salesOrders: plan?.sales_orders || []
+            salesOrders: plan?.sales_order ? [plan.sales_order] : []
         };
     }
 
     async initProduction(planId: number) {
         const plan = await this.planRepo.findOne({
             where: { id: planId },
-            relations: ['sales_orders', 'sales_orders.items', 'sales_orders.items.product']
+            relations: ['sales_order', 'sales_order.items', 'sales_order.items.product']
         });
         if (!plan) throw new NotFoundException('Plan not found');
 
@@ -1110,7 +1106,7 @@ export class PlanningService {
         ];
 
         let createdCount = 0;
-        for (const so of plan.sales_orders) {
+        for (const so of (plan.sales_order ? [plan.sales_order] : [])) {
             for (const item of so.items) {
                 if (!item.product) continue;
                 
@@ -1152,7 +1148,7 @@ export class PlanningService {
     async syncBodFollowUp(planId: number) {
         const plan = await this.planRepo.findOne({
             where: { id: planId },
-            relations: ['sales_orders']
+            relations: ['sales_order']
         });
         if (!plan) throw new NotFoundException('Plan not found');
 
@@ -1178,7 +1174,7 @@ export class PlanningService {
         }
 
         // Cập nhật lại vào các SalesOrder của KHSX này
-        for (const so of plan.sales_orders) {
+        for (const so of (plan.sales_order ? [plan.sales_order] : [])) {
             const currentBod = so.bod_follow_up || {};
             
             // Lấy existing checkboxes và merge

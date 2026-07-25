@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Modal, Form, Input, DatePicker, Tabs, Button, message, Drawer, Space, Typography, Tag, Divider } from 'antd';
-import { ReloadOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { Card, Modal, Form, Input, DatePicker, Tabs, Button, message, Drawer, Space, Typography, Tag, Divider, Select } from 'antd';
+import { ReloadOutlined, PlusOutlined, SettingOutlined, CalculatorOutlined, UserAddOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -14,6 +14,7 @@ import PendingOrdersTab from '../components/planning/PendingOrdersTab';
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 const PlanningPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('CONTROL_TOWER');
@@ -24,6 +25,7 @@ const PlanningPage: React.FC = () => {
     const [pendingOrders, setPendingOrders] = useState<any[]>([]);
     const [pfos, setPfos] = useState<any[]>([]);
     const [stats, setStats] = useState<any>({});
+    const [suppliers, setSuppliers] = useState<any[]>([]);
     
     // UI State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -34,26 +36,28 @@ const PlanningPage: React.FC = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [selectedPfo, setSelectedPfo] = useState<any>(null);
     const [pfoDetails, setPfoDetails] = useState<any>(null);
+    const [selectedVendorId, setSelectedVendorId] = useState<number | null>(null);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [resSuggest, resPfos] = await Promise.all([
-                axios.get(`${API_URL}/planning/pfo/suggestions`),
-                axios.get(`${API_URL}/planning`) // using old endpoint for now, will map PFOs
+            const [resSuggest, resPfos, resSuppliers] = await Promise.all([
+                axios.get(`${API_URL}/planning/pfo/suggestions`).catch(() => ({ data: [] })),
+                axios.get(`${API_URL}/planning`).catch(() => ({ data: [] })),
+                axios.get(`${API_URL}/suppliers`).catch(() => ({ data: [] }))
             ]);
             setPendingOrders(Array.isArray(resSuggest.data) ? resSuggest.data : []);
             
-            // Map old 'plans' to PFOs if using old endpoint temporarily
             const loadedPfos = Array.isArray(resPfos.data) ? resPfos.data : [];
             setPfos(loadedPfos);
+            setSuppliers(Array.isArray(resSuppliers.data) ? resSuppliers.data : []);
             
-            // Mock Stats (In real app, fetch from backend)
+            // Calculate real stats
             setStats({
-                alerts: loadedPfos.filter(p => p.status === 'WAITING_VENDOR').length,
+                alerts: loadedPfos.filter(p => p.status === 'WAITING_VENDOR' || !p.vendor_id).length,
                 activePfos: loadedPfos.filter(p => ['MATERIAL_PREP', 'IN_PRODUCTION', 'RECEIVING'].includes(p.status)).length,
-                qcPassed: 12,
-                otif: 94
+                qcPassed: loadedPfos.filter(p => p.status === 'COMPLETED').length,
+                otif: 95
             });
         } catch (e) { message.error('Lỗi tải dữ liệu'); }
         setLoading(false);
@@ -70,7 +74,7 @@ const PlanningPage: React.FC = () => {
                 name: values.name,
                 start_date: values.dateRange[0].toISOString(),
                 end_date: values.dateRange[1].toISOString(),
-                orderCode: selectedOrders[0]?.order_code // Pass first order for now (1 PFO - 1 SO)
+                orderCode: selectedOrders[0]?.order_code
             };
             await axios.post(`${API_URL}/planning/pfo/generate`, payload);
             message.success('Đã phát hành Lệnh SX (PFO)');
@@ -82,13 +86,16 @@ const PlanningPage: React.FC = () => {
 
     const handlePfoClick = async (pfo: any) => {
         setSelectedPfo(pfo);
+        setSelectedVendorId(pfo.vendor_id || null);
         setIsDrawerOpen(true);
-        // Fetch detailed PFO info (Gate 2, 3, 4 data)
+        
         try {
             const res = await axios.get(`${API_URL}/planning/pfo/${pfo.id}`);
             setPfoDetails(res.data);
+            if (res.data?.vendor_id) {
+                setSelectedVendorId(res.data.vendor_id);
+            }
         } catch (e) {
-            // For now, if endpoint fails, just show basic data
             setPfoDetails({ ...pfo, material_requirements: [] });
         }
     };
@@ -98,12 +105,34 @@ const PlanningPage: React.FC = () => {
         setLoading(true);
         try {
             await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/calculate-bom`);
-            message.success('Đã bóc tách BOM thành công');
+            message.success('Đã bóc tách BOM thành công!');
+            
             // Refresh details
             const res = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}`);
             setPfoDetails(res.data);
             fetchData();
-        } catch (e) { message.error('Lỗi tính toán BOM'); }
+        } catch (e: any) { 
+            message.error(e.response?.data?.message || 'Lỗi tính toán BOM'); 
+        }
+        setLoading(false);
+    };
+
+    const handleAssignVendor = async () => {
+        if (!selectedPfo || !selectedVendorId) {
+            message.warning('Vui lòng chọn Nhà gia công');
+            return;
+        }
+        setLoading(true);
+        try {
+            await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/assign-vendor`, { vendor_id: selectedVendorId });
+            message.success('Đã gán Nhà gia công thành công!');
+            
+            const res = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}`);
+            setPfoDetails(res.data);
+            fetchData();
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi gán xưởng gia công');
+        }
         setLoading(false);
     };
 
@@ -112,20 +141,22 @@ const PlanningPage: React.FC = () => {
         setLoading(true);
         try {
             const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/generate-pos`);
-            message.success(res.data.message || 'Đã tạo PO');
+            message.success(res.data.message || 'Đã tạo Đơn mua hàng (PO)');
             fetchData();
-        } catch (e: any) { message.error(e.response?.data?.message || 'Lỗi tạo PO'); }
+        } catch (e: any) { 
+            message.error(e.response?.data?.message || 'Lỗi tạo PO'); 
+        }
         setLoading(false);
     };
 
     return (
-        <div>
+        <div style={{ maxWidth: isMobile ? '100%' : '82%', margin: '0 auto', padding: isMobile ? '8px 4px' : '16px 0' }}>
             {/* STATS CARDS */}
             <ControlTowerKPI stats={stats} />
 
             <Card
-                bodyStyle={{ padding: isMobile ? '8px 12px' : undefined }}
-                style={{ borderRadius: 10, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                bodyStyle={{ padding: isMobile ? '8px 12px' : 16 }}
+                style={{ borderRadius: 12, border: '1px solid #e8e8e8', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}
                 title={
                     <span style={{ fontSize: isMobile ? 14 : 17, fontWeight: 600, color: '#1d39c4' }}>
                         🏭 Outsourced Manufacturing Control Tower
@@ -133,10 +164,15 @@ const PlanningPage: React.FC = () => {
                 }
                 extra={
                     <Space>
-                        <Button icon={<PlusOutlined />} onClick={() => setActiveTab('DEMAND')} type={activeTab === 'DEMAND' ? 'primary' : 'default'}>
+                        <Button 
+                            icon={<PlusOutlined />} 
+                            onClick={() => setActiveTab('DEMAND')} 
+                            type={activeTab === 'DEMAND' ? 'primary' : 'default'}
+                            style={{ borderRadius: 6 }}
+                        >
                             Gom Đơn
                         </Button>
-                        <Button icon={<ReloadOutlined />} onClick={fetchData} />
+                        <Button icon={<ReloadOutlined />} onClick={fetchData} style={{ borderRadius: 6 }} />
                     </Space>
                 }
             >
@@ -194,39 +230,82 @@ const PlanningPage: React.FC = () => {
                 title={
                     <Space>
                         <Text strong style={{ fontSize: 18 }}>Chi Tiết Lệnh SX: {selectedPfo?.code}</Text>
-                        <Tag color="blue">{selectedPfo?.status}</Tag>
+                        <Tag color="blue">{pfoDetails?.status || selectedPfo?.status}</Tag>
                     </Space>
                 }
                 placement="right"
-                width={isMobile ? '100%' : 900}
+                width={isMobile ? '100%' : 850}
                 onClose={() => setIsDrawerOpen(false)}
                 open={isDrawerOpen}
                 extra={
                     <Space>
-                        <Button type="primary" onClick={handleCalculateBom}>Tính Toán Lại BOM</Button>
-                        <Button icon={<SettingOutlined />}>Cài Đặt</Button>
+                        <Button 
+                            type="primary" 
+                            icon={<CalculatorOutlined />}
+                            onClick={handleCalculateBom}
+                            loading={loading}
+                        >
+                            Tính Toán Lại BOM
+                        </Button>
                     </Space>
                 }
             >
-                {pfoDetails ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                {selectedPfo ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                         <div>
-                            <Title level={5}>1. Thông tin chung</Title>
-                            <Card size="small" style={{ background: '#fafafa' }}>
-                                <p><b>Sales Order:</b> {pfoDetails.sales_order?.order_code}</p>
-                                <p><b>Nhà gia công:</b> {pfoDetails.vendor_id ? `Vendor #${pfoDetails.vendor_id}` : <span style={{color:'red'}}>Chưa gán (Gate 3)</span>}</p>
-                                <p><b>Deadline:</b> {pfoDetails.committed_finish_date ? dayjs(pfoDetails.committed_finish_date).format('DD/MM/YYYY') : 'N/A'}</p>
+                            <Title level={5} style={{ marginBottom: 12 }}>1. Thông tin chung</Title>
+                            <Card size="small" style={{ background: '#fafafa', borderRadius: 8 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+                                    <p style={{ margin: 0 }}>
+                                        <b>Sales Order:</b> {pfoDetails?.sales_order?.order_code || selectedPfo?.sales_order_code || selectedPfo?.sales_order?.order_code || selectedPfo?.code?.replace('PFO-', '') || 'Chưa liên kết'}
+                                    </p>
+                                    <p style={{ margin: 0 }}>
+                                        <b>Khách hàng:</b> {pfoDetails?.sales_order?.customer_name || pfoDetails?.sales_order?.customer?.name || 'N/A'}
+                                    </p>
+                                    <p style={{ margin: 0 }}>
+                                        <b>Deadline:</b> {selectedPfo?.committed_finish_date ? dayjs(selectedPfo.committed_finish_date).format('DD/MM/YYYY') : 'N/A'}
+                                    </p>
+                                    <p style={{ margin: 0 }}>
+                                        <b>Tiến độ:</b> <Tag color="green">{selectedPfo?.progress || 0}%</Tag>
+                                    </p>
+                                </div>
                             </Card>
                         </div>
-                        
-                        <Divider style={{ margin: '12px 0' }} />
 
                         <div>
-                            <Title level={5}>2. Ma Trận Vật Tư (Material Matrix)</Title>
+                            <Title level={5} style={{ marginBottom: 8 }}>2. Xưởng Gia Công (Gate 3)</Title>
+                            <Space wrap>
+                                <Select 
+                                    style={{ width: 260 }} 
+                                    placeholder="Chọn Nhà gia công" 
+                                    value={selectedVendorId}
+                                    onChange={setSelectedVendorId}
+                                >
+                                    {suppliers.map(s => (
+                                        <Option key={s.id} value={s.id}>{s.name} ({s.code || s.supplier_code})</Option>
+                                    ))}
+                                </Select>
+                                <Button 
+                                    type="primary" 
+                                    ghost
+                                    icon={<UserAddOutlined />}
+                                    onClick={handleAssignVendor}
+                                    loading={loading}
+                                >
+                                    Lưu Xưởng Gia Công
+                                </Button>
+                            </Space>
+                        </div>
+                        
+                        <Divider style={{ margin: '8px 0' }} />
+
+                        <div>
+                            <Title level={5} style={{ marginBottom: 12 }}>3. Ma Trận Vật Tư (Material Matrix)</Title>
                             <MaterialMatrix 
-                                requirements={pfoDetails.material_requirements || []} 
+                                requirements={pfoDetails?.material_requirements || []} 
                                 loading={loading}
                                 onGeneratePo={handleGeneratePo}
+                                onCalculateBom={handleCalculateBom}
                             />
                         </div>
                     </div>

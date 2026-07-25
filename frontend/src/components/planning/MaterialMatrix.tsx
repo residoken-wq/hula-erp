@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Table, Tag, InputNumber, Button, Space, Typography, Tooltip, Select } from 'antd';
+import { Table, Tag, InputNumber, Button, Space, Typography, Tooltip, Select, Empty, Alert } from 'antd';
 import { 
     InfoCircleOutlined, 
     SaveOutlined,
     ShoppingCartOutlined,
-    SyncOutlined
+    CalculatorOutlined
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -15,9 +15,16 @@ interface MaterialMatrixProps {
     loading?: boolean;
     onSaveReqs?: (updatedReqs: any[]) => void;
     onGeneratePo?: () => void;
+    onCalculateBom?: () => void;
 }
 
-const MaterialMatrix: React.FC<MaterialMatrixProps> = ({ requirements, loading, onSaveReqs, onGeneratePo }) => {
+const MaterialMatrix: React.FC<MaterialMatrixProps> = ({ 
+    requirements, 
+    loading, 
+    onSaveReqs, 
+    onGeneratePo,
+    onCalculateBom 
+}) => {
     const [editableData, setEditableData] = useState<any[]>(requirements || []);
 
     // Sync state if props change
@@ -42,8 +49,8 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({ requirements, loading, 
             key: 'material_code',
             render: (text: string, record: any) => (
                 <Space direction="vertical" size={0}>
-                    <Text strong>{text}</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{record.material_name}</Text>
+                    <Text strong>{text || record.material?.code || `MAT-${record.id}`}</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{record.material_name || record.material?.name || 'Vật tư'}</Text>
                 </Space>
             )
         },
@@ -57,7 +64,7 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({ requirements, loading, 
             dataIndex: 'planned_quantity',
             key: 'planned_quantity',
             align: 'right' as const,
-            render: (val: number) => <Text strong>{Number(val).toLocaleString()}</Text>
+            render: (val: number) => <Text strong>{Number(val || 0).toLocaleString()}</Text>
         },
         {
             title: 'Tồn Kho Khả Dụng',
@@ -76,7 +83,7 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({ requirements, loading, 
             key: 'supply_method',
             render: (text: string, record: any) => (
                 <Select 
-                    value={text} 
+                    value={text || 'HULA_SUPPLIED'} 
                     onChange={(val) => handleFieldChange(record.id, 'supply_method', val)}
                     style={{ width: 140 }}
                     size="small"
@@ -91,7 +98,7 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({ requirements, loading, 
             key: 'actual_order_quantity',
             align: 'right' as const,
             render: (_: any, record: any) => {
-                const suggested = Math.max(0, record.planned_quantity - (record.available_stock || 0));
+                const suggested = Math.max(0, (record.planned_quantity || 0) - (record.available_stock || 0));
                 return (
                     <InputNumber 
                         size="small" 
@@ -106,16 +113,42 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({ requirements, loading, 
             title: 'Trạng Thái',
             key: 'status',
             render: (_: any, record: any) => {
-                if (record.issued_quantity >= record.planned_quantity) return <Tag color="success">Đã Xuất Đủ</Tag>;
+                if (record.issued_quantity >= record.planned_quantity && record.planned_quantity > 0) return <Tag color="success">Đã Xuất Đủ</Tag>;
                 if (record.supply_method === 'VENDOR_SUPPLIED') return <Tag color="warning">PO Xưởng</Tag>;
-                return <Tag color="processing">Chờ Mua</Tag>;
+                return <Tag color="processing">Chờ Cấp / Mua</Tag>;
             }
         }
     ];
 
+    if (!editableData || editableData.length === 0) {
+        return (
+            <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                <Alert 
+                    message="Chưa có dữ liệu vật tư (BOM)" 
+                    description="Lệnh sản xuất này chưa được bóc tách nhu cầu Nguyên phụ liệu. Hãy nhấn nút tính toán BOM bên dưới để hệ thống tự nổ BOM từ đơn hàng gốc."
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 16, textAlign: 'left', borderRadius: 8 }}
+                />
+                {onCalculateBom && (
+                    <Button 
+                        type="primary" 
+                        size="large"
+                        icon={<CalculatorOutlined />} 
+                        onClick={onCalculateBom}
+                        loading={loading}
+                        style={{ borderRadius: 8 }}
+                    >
+                        Tính Toán Lại BOM
+                    </Button>
+                )}
+            </div>
+        );
+    }
+
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <Text type="secondary">Phân tích nhu cầu vật tư (MRP) & Quyết định phương thức cung ứng</Text>
                 <Space>
                     <Button 
@@ -141,7 +174,7 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({ requirements, loading, 
                 pagination={false}
                 size="middle"
                 loading={loading}
-                scroll={{ y: 400 }}
+                scroll={{ y: 350 }}
             />
         </div>
     );
