@@ -9,7 +9,7 @@ import { ProductsService } from '../products/products.service';
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { PlanningService } from '../planning/planning.service'; // --- MỚI ---
 import { v4 as uuidv4 } from 'uuid';
-import { ProductionFulfillmentOrder } from '../planning/pfo.entity';
+import { ProductionFulfillmentOrder, PfoStatus } from '../planning/pfo.entity';
 
 @Injectable()
 export class PurchasingService {
@@ -451,7 +451,7 @@ export class PurchasingService {
             // 1. Load tất cả Plan đang ở trạng thái CALCULATED
             const plans = await this.planningService.findAll();
             console.log('Found plans:', plans.length);
-            const calcPlans = plans.filter(p => p.status === 'CALCULATED');
+            const calcPlans = plans.filter(p => p.status === PfoStatus.DRAFT);
             console.log('Calc plans:', calcPlans.length);
 
             // 2. Load tất cả Item đã đặt hàng (Active)

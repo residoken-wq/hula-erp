@@ -13,7 +13,7 @@ import { InventoryService } from '../inventory/inventory.service';
 import { GanttService } from './gantt.service';
 import { WorkOrder, WorkOrderStatus } from '../production/work-order.entity';
 
-// import { PfoQcRecord } from './production-plan-history.entity';
+import { PfoQcRecord } from './pfo-qc-record.entity';
 
 @Injectable()
 export class PlanningService {
@@ -144,7 +144,7 @@ export class PlanningService {
             code: data.code, name: data.name, start_date: data.start_date, end_date: data.end_date, status: PfoStatus.DRAFT
         });
         const saved = await this.planRepo.save(plan);
-        await this.orderRepo.update({ id: In(orders.map(o => o.id)) }, { status: SalesOrderStatus.PLANNED });
+        await this.orderRepo.update({ id: In(orders.map(o => o.id)) }, { status: SalesOrderStatus.PLANNED as any });
         return saved;
     }
 
@@ -215,7 +215,7 @@ export class PlanningService {
     async updateMaterialReservedStock(materialIds: number[]) {
         if (!materialIds.length) return;
         const activePlans = await this.planRepo.find({
-            where: { status: In([PfoStatus.DRAFT, PfoStatus.CALCULATED, PfoStatus.HAS_PO_MATERIAL, PfoStatus.HAS_PO_OUTSOURCING, PfoStatus.IN_PRODUCTION]) }
+            where: { status: In([PfoStatus.DRAFT, PfoStatus.DRAFT, PfoStatus.MATERIAL_PREP, PfoStatus.WAITING_VENDOR, PfoStatus.IN_PRODUCTION]) }
         });
         
         const reservedMap = new Map<number, number>();
@@ -315,10 +315,10 @@ export class PlanningService {
             if (plan) {
                 const hasOutsourcing = createdPos.some(c => c.includes('PO-GC'));
                 const hasMaterial = createdPos.some(c => c.includes('PO-NPL'));
-                if (hasOutsourcing && plan.status !== PfoStatus.HAS_PO_OUTSOURCING) {
-                    plan.status = PfoStatus.HAS_PO_OUTSOURCING;
-                } else if (hasMaterial && plan.status !== PfoStatus.HAS_PO_OUTSOURCING && plan.status !== PfoStatus.HAS_PO_MATERIAL) {
-                    plan.status = PfoStatus.HAS_PO_MATERIAL;
+                if (hasOutsourcing && plan.status !== PfoStatus.WAITING_VENDOR) {
+                    plan.status = PfoStatus.WAITING_VENDOR;
+                } else if (hasMaterial && plan.status !== PfoStatus.WAITING_VENDOR && plan.status !== PfoStatus.MATERIAL_PREP) {
+                    plan.status = PfoStatus.MATERIAL_PREP;
                 }
                 await this.planRepo.save(plan);
             }
@@ -411,12 +411,12 @@ export class PlanningService {
             );
 
             // Auto-transition logic
-            if (allPosDelivered && plan.status !== PfoStatus.COMPLETED) {
-                // Tất cả PO đã giao đủ → Có thể chuyển Plan sang COMPLETED
+            if (allPosDelivered && plan.status !== PfoStatus.READY_TO_SHIP) {
+                // Tất cả PO đã giao đủ → Có thể chuyển Plan sang READY_TO_SHIP
                 // Nhưng cần kiểm tra thêm ProductionOrder nếu có
-                plan.status = PfoStatus.COMPLETED;
+                plan.status = PfoStatus.READY_TO_SHIP;
                 await this.planRepo.save(plan);
-            } else if (anyPoOrdered && plan.status === PfoStatus.CALCULATED) {
+            } else if (anyPoOrdered && plan.status === PfoStatus.DRAFT) {
                 // Có ít nhất 1 PO đã order → Plan chuyển sang IN_PRODUCTION
                 plan.status = PfoStatus.IN_PRODUCTION;
                 await this.planRepo.save(plan);

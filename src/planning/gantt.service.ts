@@ -18,7 +18,7 @@ export class GanttService {
     // --- Gantt Chart: Lấy các kế hoạch chưa hoàn thiện kèm công đoạn sản phẩm ---
     async getGanttData() {
         const plans = await this.planRepo.find({
-            where: { status: In([PfoStatus.DRAFT, PfoStatus.CALCULATED, PfoStatus.IN_PRODUCTION]) },
+            where: { status: In([PfoStatus.DRAFT, PfoStatus.DRAFT, PfoStatus.IN_PRODUCTION]) },
             relations: [
                 'sales_orders',
                 'sales_orders.items',

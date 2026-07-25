@@ -109,7 +109,7 @@ export class PfoBomEngineService {
                 material_name: mat?.name || 'Unknown',
                 supply_method: SupplyMethod.HULA_SUPPLIED, // Mặc định HULA cấp phát, có thể sửa trên UI
                 planned_quantity: qty,
-                unit_price: mat?.base_price || 0
+                unit_price: mat?.cost_price || 0
             });
             requirements.push(req);
         }

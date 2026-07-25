@@ -1036,8 +1036,8 @@ export class SalesService {
         }
 
         // MỚI: Invalidate MRP cache của plan
-        if (order.pfo) {
-            await this.deliveryRepo.manager.update('ProductionFulfillmentOrder', order.pfos.id, {
+        if (order.pfos) {
+            await this.deliveryRepo.manager.update('ProductionFulfillmentOrder', order.pfos?.[0]?.id, {
                 mrp_data: null,
                 outsourcing_data: null,
                 logistics_data: null

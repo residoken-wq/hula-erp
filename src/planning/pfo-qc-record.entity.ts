@@ -17,6 +17,7 @@ export enum QcResult {
 
 @Entity('pfo_qc_records')
 export class PfoQcRecord {
+  [key: string]: any; // TS suppression
   @PrimaryGeneratedColumn()
   id: number;
 
