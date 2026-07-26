@@ -12,6 +12,7 @@ const { Option } = Select;
 
 interface MaterialMatrixProps {
     requirements: any[];
+    suppliers?: any[];
     loading?: boolean;
     onSaveReqs?: (updatedReqs: any[]) => void;
     onGeneratePo?: (reqs?: any[]) => void;
@@ -20,6 +21,7 @@ interface MaterialMatrixProps {
 
 const MaterialMatrix: React.FC<MaterialMatrixProps> = ({ 
     requirements, 
+    suppliers,
     loading, 
     onSaveReqs, 
     onGeneratePo,
@@ -67,7 +69,7 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
             render: (val: number) => <Text strong>{Number(val || 0).toLocaleString()}</Text>
         },
         {
-            title: 'Tồn Kho Khả Dụng',
+            title: 'Tồn Kho',
             dataIndex: 'available_stock',
             key: 'available_stock',
             align: 'right' as const,
@@ -94,6 +96,43 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
             )
         },
         {
+            title: 'Nhà Cung Cấp (NCC)',
+            dataIndex: 'supplier_id',
+            key: 'supplier_id',
+            render: (text: any, record: any) => (
+                <Select
+                    showSearch
+                    allowClear
+                    placeholder="Chọn NCC"
+                    optionFilterProp="children"
+                    value={record.supplier_id}
+                    onChange={(val) => handleFieldChange(record.id, 'supplier_id', val)}
+                    style={{ width: 160 }}
+                    size="small"
+                >
+                    {(suppliers || []).map(s => (
+                        <Option key={s.id} value={s.id}>{s.name || s.supplier_name}</Option>
+                    ))}
+                </Select>
+            )
+        },
+        {
+            title: 'Giá Tham Khảo',
+            dataIndex: 'unit_price',
+            key: 'unit_price',
+            align: 'right' as const,
+            render: (_: any, record: any) => (
+                <InputNumber 
+                    size="small" 
+                    value={record.unit_price}
+                    onChange={(val) => handleFieldChange(record.id, 'unit_price', val)}
+                    style={{ width: 100 }}
+                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    parser={value => value?.replace(/\$\s?|(,*)/g, '') as unknown as number}
+                />
+            )
+        },
+        {
             title: 'SL Thực Đặt',
             key: 'actual_order_quantity',
             align: 'right' as const,
@@ -104,9 +143,19 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
                         size="small" 
                         value={record.actual_order_quantity ?? suggested}
                         onChange={(val) => handleFieldChange(record.id, 'actual_order_quantity', val)}
-                        style={{ width: 100 }}
+                        style={{ width: 80 }}
                     />
                 );
+            }
+        },
+        {
+            title: 'Total',
+            key: 'total',
+            align: 'right' as const,
+            render: (_: any, record: any) => {
+                const qty = record.actual_order_quantity ?? Math.max(0, (record.planned_quantity || 0) - (record.available_stock || 0));
+                const price = record.unit_price || 0;
+                return <Text strong style={{ color: '#cf1322' }}>{(qty * price).toLocaleString()}</Text>;
             }
         },
         {

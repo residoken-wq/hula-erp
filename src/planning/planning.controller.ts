@@ -82,6 +82,11 @@ export class PlanningController {
     return this.sourcingSvc.generatePos(Number(id));
   }
 
+  @Get('pfo/:id/pos')
+  getPos(@Param('id') id: string) {
+    return this.sourcingSvc.getPos(Number(id));
+  }
+
   // --- PFO EXECUTION APIs (Gate 7-10) ---
   @Post('pfo/:id/milestone')
   updateMilestone(@Param('id') id: number, @Body() b: any) {

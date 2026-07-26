@@ -74,6 +74,9 @@ export class PfoSourcingService {
 
         if (!pfo) throw new NotFoundException('Lệnh SX (PFO) không tồn tại');
 
+        // Xóa các PO NPL & GC (nháp) cũ của PFO này trước khi tạo mới để tránh trùng lặp
+        await this.poRepo.delete({ pfo_id: pfoId, status: POStatus.DRAFT });
+
         const createdPos: string[] = [];
 
         // 1. TẠO PO NGUYÊN PHỤ LIỆU (PO NPL)
@@ -91,16 +94,18 @@ export class PfoSourcingService {
                 supplierGroups[suppId].push(req);
             }
 
-            for (const [suppId, reqs] of Object.entries(supplierGroups)) {
+            for (const [suppIdStr, reqs] of Object.entries(supplierGroups)) {
                 const validReqs = reqs.filter(r => (r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity)) > 0);
                 if (validReqs.length === 0) continue;
 
                 const poCode = `PO-NPL-PFO${pfoId}-${Math.floor(1000 + Math.random() * 9000)}`;
+                
+                const suppIdNum = suppIdStr !== 'GENERAL' ? Number(suppIdStr) : null;
                 const matPo = this.poRepo.create({
                     po_code: poCode,
                     type: POType.MATERIAL,
                     pfo_id: pfoId,
-                    supplier_id: suppId !== 'GENERAL' ? Number(suppId) : null,
+                    supplier_id: suppIdNum,
                     status: POStatus.DRAFT,
                     note: `Đơn mua Nguyên phụ liệu cấp phát cho PFO #${pfo.code}`
                 });
@@ -130,6 +135,8 @@ export class PfoSourcingService {
                         front_color: defaultFrontColor,
                         back_color: defaultBackColor,
                         quantity: qty,
+                        raw_quantity: qty,
+                        total_quantity: qty,
                         unit_price: price,
                         subtotal: qty * price
                     });
@@ -180,7 +187,7 @@ export class PfoSourcingService {
                 await this.poRepo.save(gcPo);
 
                 const gcItems = msList.map(ms => {
-                    const qty = Number(ms.planned_quantity || pfo.quantity || 1);
+                    const qty = Number(pfo.quantity || 1);
                     const price = Number(ms.unit_price || 0);
                     return this.poItemRepo.create({
                         purchase_order: gcPo,
@@ -190,6 +197,8 @@ export class PfoSourcingService {
                         back_color: defaultBackColor,
                         description: `Gia công: ${ms.step_name || ms.milestone_type}`,
                         quantity: qty,
+                        raw_quantity: qty,
+                        total_quantity: qty,
                         unit_price: price,
                         subtotal: qty * price
                     });
@@ -226,14 +235,18 @@ export class PfoSourcingService {
                         fColor = attr?.front_color || '';
                         bColor = attr?.back_color || '';
                     }
+
+                    const qty = Number(item.quantity || 1);
                     return this.poItemRepo.create({
                         purchase_order: gcPo,
                         pfo_id: pfoId,
                         product_id: item.product?.id,
                         front_color: fColor,
                         back_color: bColor,
-                        description: `Gia công may SP: ${item.sku}`,
-                        quantity: item.quantity,
+                        description: `Gia công tổng hợp SP: ${item.product?.name || item.product?.sku}`,
+                        quantity: qty,
+                        raw_quantity: qty,
+                        total_quantity: qty,
                         unit_price: 0,
                         subtotal: 0
                     });
@@ -244,13 +257,27 @@ export class PfoSourcingService {
             createdPos.push(gcPo.po_code);
         }
 
-        // Cập nhật trạng thái PFO
-        pfo.status = PfoStatus.MATERIAL_PREP;
-        await this.pfoRepo.save(pfo);
+        // Đổi trạng thái PFO sang WAITING_VENDOR nếu đang ở DRAFT
+        if (pfo.status === PfoStatus.DRAFT || pfo.status === PfoStatus.PENDING_APPROVAL) {
+            pfo.status = PfoStatus.WAITING_VENDOR;
+            await this.pfoRepo.save(pfo);
+        }
 
         return {
-            message: `Đã phát hành ${createdPos.length} Đơn đặt hàng (PO NPL & PO Gia công)`,
+            message: `Đã phát hành ${createdPos.length} Đơn đặt hàng (PO)`,
             pos: createdPos
+        };
+    }
+
+    async getPos(pfoId: number) {
+        const pos = await this.poRepo.find({
+            where: { pfo_id: pfoId },
+            relations: ['items', 'items.material', 'items.product', 'supplier'],
+            order: { created_at: 'DESC' }
+        });
+        return {
+            pos_npl: pos.filter(po => po.type === POType.MATERIAL),
+            pos_gc: pos.filter(po => po.type === POType.OUTSOURCING)
         };
     }
 }

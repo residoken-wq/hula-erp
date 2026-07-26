@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Card, Modal, Form, Input, DatePicker, Tabs, Button, message, Drawer, Space, Typography, Tag, Divider, Row, Col } from 'antd';
-import { ReloadOutlined, PlusOutlined, SettingOutlined, CalculatorOutlined, ShoppingCartOutlined } from '@ant-design/icons';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Card, Modal, Form, Input, DatePicker, Tabs, Button, message, Drawer, Space, Typography, Tag, Divider, Row, Col, Table, Statistic, Descriptions, Tooltip } from 'antd';
+import { ReloadOutlined, PlusOutlined, SettingOutlined, CalculatorOutlined, ShoppingCartOutlined, FileTextOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -12,6 +12,7 @@ import PfoKanbanBoard from '../components/planning/PfoKanbanBoard';
 import MaterialMatrix from '../components/planning/MaterialMatrix';
 import PfoProcessRouting from '../components/planning/PfoProcessRouting';
 import PendingOrdersTab from '../components/planning/PendingOrdersTab';
+import PfoDetailTabs from '../components/planning/PfoDetailTabs';
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
@@ -83,15 +84,25 @@ const PlanningPage: React.FC = () => {
         }
     };
 
+    const fetchPfoDetails = async (id: number) => {
+        try {
+            const res = await axios.get(`${API_URL}/planning/pfo/${id}`);
+            const poRes = await axios.get(`${API_URL}/planning/pfo/${id}/pos`).catch(() => ({ data: { pos_npl: [], pos_gc: [] } }));
+            return { ...res.data, pos: poRes.data };
+        } catch (e) {
+            return null;
+        }
+    };
+
     const handlePfoClick = async (pfo: any) => {
         setSelectedPfo(pfo);
         setIsDrawerOpen(true);
         
-        try {
-            const res = await axios.get(`${API_URL}/planning/pfo/${pfo.id}`);
-            setPfoDetails(res.data);
-        } catch (e) {
-            setPfoDetails({ ...pfo, material_requirements: [], milestones: [] });
+        const details = await fetchPfoDetails(pfo.id);
+        if (details) {
+            setPfoDetails(details);
+        } else {
+            setPfoDetails({ ...pfo, material_requirements: [], milestones: [], pos: { pos_npl: [], pos_gc: [] } });
         }
     };
 
@@ -104,14 +115,10 @@ const PlanningPage: React.FC = () => {
             
             const newReqs = res.data.requirements || [];
             
-            try {
-                const updated = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}`);
-                if (updated?.data) {
-                    setPfoDetails(updated.data);
-                } else {
-                    setPfoDetails((prev: any) => ({ ...prev, material_requirements: newReqs }));
-                }
-            } catch {
+            const details = await fetchPfoDetails(selectedPfo.id);
+            if (details) {
+                setPfoDetails(details);
+            } else {
                 setPfoDetails((prev: any) => ({ ...prev, material_requirements: newReqs }));
             }
             fetchData();
@@ -130,8 +137,8 @@ const PlanningPage: React.FC = () => {
             });
             message.success(res.data.message || 'Đã lưu phân công xưởng gia công!');
             
-            const updated = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}`);
-            setPfoDetails(updated.data);
+            const details = await fetchPfoDetails(selectedPfo.id);
+            if (details) setPfoDetails(details);
             fetchData();
         } catch (e: any) {
             message.error(e.response?.data?.message || 'Lỗi lưu phân công xưởng');
@@ -161,6 +168,9 @@ const PlanningPage: React.FC = () => {
             }
             const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/generate-pos`);
             message.success(res.data.message || 'Đã phát hành các Đơn đặt hàng (PO)');
+            
+            const details = await fetchPfoDetails(selectedPfo.id);
+            if (details) setPfoDetails(details);
             fetchData();
         } catch (e: any) { 
             message.error(e.response?.data?.message || 'Lỗi tạo PO'); 
@@ -286,58 +296,17 @@ const PlanningPage: React.FC = () => {
                 }
             >
                 {selectedPfo ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                        {/* 1. THÔNG TIN CHUNG */}
-                        <Card size="small" style={{ background: '#fafafa', borderRadius: 10, border: '1px solid #e8e8e8' }}>
-                            <Row gutter={[16, 8]}>
-                                <Col span={isMobile ? 24 : 6}>
-                                    <Text type="secondary">Mã Đơn Hàng (SO):</Text><br />
-                                    <Text strong style={{ fontSize: 15, color: '#1890ff' }}>
-                                        {pfoDetails?.sales_order?.order_code || selectedPfo?.sales_order_code || selectedPfo?.sales_order?.order_code || selectedPfo?.code?.replace('PFO-', '')}
-                                    </Text>
-                                </Col>
-                                <Col span={isMobile ? 24 : 6}>
-                                    <Text type="secondary">Khách Hàng:</Text><br />
-                                    <Text strong>
-                                        {pfoDetails?.sales_order?.customer_name || pfoDetails?.sales_order?.customer?.name || 'N/A'}
-                                    </Text>
-                                </Col>
-                                <Col span={isMobile ? 24 : 6}>
-                                    <Text type="secondary">Hạn Giao Hàng (Deadline):</Text><br />
-                                    <Text strong color="#cf1322">
-                                        {selectedPfo?.committed_finish_date ? dayjs(selectedPfo.committed_finish_date).format('DD/MM/YYYY') : 'N/A'}
-                                    </Text>
-                                </Col>
-                                <Col span={isMobile ? 24 : 6}>
-                                    <Text type="secondary">Tiến Độ Tổng:</Text><br />
-                                    <Tag color="green" style={{ fontSize: 14 }}>{selectedPfo?.progress || 0}%</Tag>
-                                </Col>
-                            </Row>
-                        </Card>
-
-                        {/* 2. QUY TRÌNH GIA CÔNG ĐA CÔNG ĐOẠN (GATE 3 - MULTI-VENDOR ROUTING) */}
-                        <PfoProcessRouting 
-                            pfoId={selectedPfo.id}
-                            existingMilestones={pfoDetails?.milestones || []}
-                            suppliers={suppliers}
-                            loading={loading}
-                            onSaveRouting={handleSaveRouting}
-                        />
-
-                        {/* 3. MA TRẬN VẬT TƯ (GATE 2 - MATERIAL MATRIX) */}
-                        <Card size="small" style={{ borderRadius: 10, border: '1px solid #e8e8e8' }}>
-                            <Title level={5} style={{ marginBottom: 16, color: '#1d39c4' }}>
-                                3. Ma Trận Vật Tư & Phương Thức Cung Ứng (Material Matrix)
-                            </Title>
-                            <MaterialMatrix 
-                                requirements={pfoDetails?.material_requirements || []} 
-                                loading={loading}
-                                onSaveReqs={handleSaveReqs}
-                                onGeneratePo={handleGeneratePo}
-                                onCalculateBom={handleCalculateBom}
-                            />
-                        </Card>
-                    </div>
+                    <PfoDetailTabs
+                        selectedPfo={selectedPfo}
+                        pfoDetails={pfoDetails}
+                        suppliers={suppliers}
+                        loading={loading}
+                        isMobile={isMobile}
+                        handleSaveRouting={handleSaveRouting}
+                        handleSaveReqs={handleSaveReqs}
+                        handleGeneratePo={handleGeneratePo}
+                        handleCalculateBom={handleCalculateBom}
+                    />
                 ) : (
                     <div style={{ textAlign: 'center', padding: 50 }}>Loading...</div>
                 )}

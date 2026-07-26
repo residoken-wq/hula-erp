@@ -84,6 +84,13 @@ export class PfoDemandService {
                 'sales_order.customer',
                 'sales_order.items',
                 'sales_order.items.product',
+                'sales_order.items.product.logistics',
+                'sales_order.items.product.boms',
+                'sales_order.items.product.boms.material',
+                'sales_order.items.product.components',
+                'sales_order.items.product.components.child_product',
+                'sales_order.items.product.components.child_product.boms',
+                'sales_order.items.product.components.child_product.boms.material',
                 'material_requirements',
                 'milestones',
                 'qc_records'
@@ -97,7 +104,18 @@ export class PfoDemandService {
             const orderCode = pfo.code.replace('PFO-', '');
             const so: any = await this.pfoRepo.manager.findOne('SalesOrder', {
                 where: { order_code: orderCode },
-                relations: ['customer', 'items', 'items.product']
+                relations: [
+                    'customer', 
+                    'items', 
+                    'items.product',
+                    'items.product.logistics',
+                    'items.product.boms',
+                    'items.product.boms.material',
+                    'items.product.components',
+                    'items.product.components.child_product',
+                    'items.product.components.child_product.boms',
+                    'items.product.components.child_product.boms.material'
+                ]
             });
             if (so) {
                 pfo.sales_order = so as any;

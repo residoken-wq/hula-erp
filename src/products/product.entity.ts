@@ -114,6 +114,10 @@ export class Product {
   @OneToMany('ProductComponent', (pc: any) => pc.parent_product)
   components: any[];
 
+  // --- MỚI: Relation với ProductLogistics ---
+  @OneToMany('ProductLogistics', (pl: any) => pl.product)
+  logistics: any[];
+
   // --- MỚI: Relation với BOM (Material) ---
   @OneToMany('BOM', (bom: any) => bom.product)
   boms: any[];
