@@ -30,7 +30,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
 
     const estimatedRoutingCost = useMemo(() => {
         if (!pfoDetails?.milestones) return 0;
-        return pfoDetails.milestones.reduce((sum: number, ms: any) => sum + (Number(selectedPfo?.quantity || 1) * Number(ms.unit_price || 0)), 0);
+        return pfoDetails.milestones.reduce((sum: number, ms: any) => sum + (Number(ms.planned_quantity || selectedPfo?.quantity || 1) * Number(ms.unit_price || 0)), 0);
     }, [pfoDetails, selectedPfo]);
 
     const estimatedLogisticCost = useMemo(() => {

@@ -6,6 +6,9 @@ import { PurchaseOrder, POType, POStatus } from '../purchasing/entities/purchase
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { PfoMaterialRequirement, SupplyMethod } from './pfo-material-requirement.entity';
 import { PfoMilestone } from './pfo-milestone.entity';
+import { Supplier } from '../suppliers/supplier.entity';
+import { GoodsIssue, GoodsIssueStatus, GoodsIssueType, GoodsIssueDeliveryMode } from '../inventory/entities/goods-issue.entity';
+import { GoodsIssueItem } from '../inventory/entities/goods-issue-item.entity';
 
 @Injectable()
 export class PfoSourcingService {
@@ -13,7 +16,10 @@ export class PfoSourcingService {
         @InjectRepository(ProductionFulfillmentOrder) private pfoRepo: Repository<ProductionFulfillmentOrder>,
         @InjectRepository(PurchaseOrder) private poRepo: Repository<PurchaseOrder>,
         @InjectRepository(PurchaseOrderItem) private poItemRepo: Repository<PurchaseOrderItem>,
+        @InjectRepository(PfoMaterialRequirement) private materialReqRepo: Repository<PfoMaterialRequirement>,
         @InjectRepository(PfoMilestone) private milestoneRepo: Repository<PfoMilestone>,
+        @InjectRepository(GoodsIssue) private goodsIssueRepo: Repository<GoodsIssue>,
+        @InjectRepository(GoodsIssueItem) private goodsIssueItemRepo: Repository<GoodsIssueItem>
     ) { }
 
     /**
@@ -78,11 +84,45 @@ export class PfoSourcingService {
         await this.poRepo.delete({ pfo_id: pfoId, status: POStatus.DRAFT });
 
         const createdPos: string[] = [];
+        let createdGoodsIssue: string | null = null;
 
-        // 1. TẠO PO NGUYÊN PHỤ LIỆU (PO NPL)
-        // Chỉ mua các NPL do HULA cấp phát (supply_method = HULA_SUPPLIED)
+        // 1. TẠO PHIẾU XUẤT KHO NPL TỪ TỒN KHO (Nếu có dùng tồn kho)
+        const inventoryReqs = (pfo.material_requirements || []).filter(
+            m => m.use_inventory === true && (m.planned_quantity - (m.actual_order_quantity ?? m.planned_quantity)) > 0
+        );
+
+        if (inventoryReqs.length > 0) {
+            // Delete old DRAFT issues for this PFO
+            await this.goodsIssueRepo.delete({ pfo_id: pfoId, status: GoodsIssueStatus.DRAFT });
+
+            const issueCode = `PXK-PFO${pfoId}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const goodsIssue = this.goodsIssueRepo.create({
+                code: issueCode,
+                type: GoodsIssueType.PRODUCTION,
+                delivery_mode: GoodsIssueDeliveryMode.PER_ORDER,
+                status: GoodsIssueStatus.DRAFT,
+                pfo_id: pfoId,
+                note: `Xuất kho nguyên phụ liệu cho Lệnh SX #${pfo.code}`
+            });
+            await this.goodsIssueRepo.save(goodsIssue);
+
+            const issueItems = inventoryReqs.map(r => {
+                const issueQty = r.planned_quantity - (r.actual_order_quantity ?? r.planned_quantity);
+                return this.goodsIssueItemRepo.create({
+                    issue: goodsIssue,
+                    material_id: r.material_id,
+                    quantity: issueQty,
+                    note: `Xuất tồn kho: ${r.material_code}`
+                });
+            });
+            await this.goodsIssueItemRepo.save(issueItems);
+            createdGoodsIssue = goodsIssue.code;
+        }
+
+        // 2. TẠO PO NGUYÊN PHỤ LIỆU (PO NPL)
+        // Chỉ mua các NPL do HULA cấp phát (supply_method = HULA_SUPPLIED) và số lượng cần mua > 0
         const hulaMaterials = (pfo.material_requirements || []).filter(
-            m => m.supply_method === SupplyMethod.HULA_SUPPLIED || !m.supply_method
+            m => (m.supply_method === SupplyMethod.HULA_SUPPLIED || !m.supply_method) && (m.actual_order_quantity ?? m.planned_quantity) > 0
         );
 
         if (hulaMaterials.length > 0) {
@@ -187,15 +227,16 @@ export class PfoSourcingService {
                 await this.poRepo.save(gcPo);
 
                 const gcItems = msList.map(ms => {
-                    const qty = Number(pfo.quantity || 1);
+                    const qty = Number(ms.planned_quantity || pfo.quantity || 1);
                     const price = Number(ms.unit_price || 0);
+                    const prodDesc = ms.product_name ? ` [${ms.product_name}]` : '';
                     return this.poItemRepo.create({
                         purchase_order: gcPo,
                         pfo_id: pfoId,
-                        product_id: firstSoItem?.product?.id,
+                        product_id: ms.product_id || firstSoItem?.product?.id,
                         front_color: defaultFrontColor,
                         back_color: defaultBackColor,
-                        description: `Gia công: ${ms.step_name || ms.milestone_type}`,
+                        description: `Gia công: ${ms.step_name || ms.milestone_type}${prodDesc}`,
                         quantity: qty,
                         raw_quantity: qty,
                         total_quantity: qty,

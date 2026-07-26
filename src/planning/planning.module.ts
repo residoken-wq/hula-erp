@@ -20,11 +20,14 @@ import { WorkOrderStep } from '../production/work-order-step.entity';
 import { Product } from '../products/product.entity';
 import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from '../products/product-component.entity';
+import { ProductRouting } from '../products/product-routing.entity';
 import { Material } from '../materials/material.entity';
 import { ProductsModule } from '../products/products.module';
 import { MaterialsModule } from '../materials/materials.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { SupplierStock } from '../inventory/entities/supplier-stock.entity';
+import { GoodsIssue } from '../inventory/entities/goods-issue.entity';
+import { GoodsIssueItem } from '../inventory/entities/goods-issue-item.entity';
 
 @Module({
   imports: [
@@ -43,7 +46,10 @@ import { SupplierStock } from '../inventory/entities/supplier-stock.entity';
       Product,
       BOM,
       ProductComponent,
-      Material
+      Material,
+      ProductRouting,
+      GoodsIssue,
+      GoodsIssueItem
     ]),
     ProductsModule,
     MaterialsModule,

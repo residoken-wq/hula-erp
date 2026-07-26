@@ -61,6 +61,13 @@ export class PfoMaterialRequirement {
   @Column({ nullable: true })
   supplier_id: number; // For vendor_supplied
 
+  // --- MỚI: Dùng tồn kho ---
+  @Column({ default: false })
+  use_inventory: boolean;
+
+  @Column('float', { default: 0 })
+  available_stock: number;
+
   @Column('text', { nullable: true })
   note: string;
 

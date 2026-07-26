@@ -41,6 +41,13 @@ export class PfoMilestone {
   @Column({ nullable: true })
   step_name: string; // Tên công đoạn (Nối vải, Chần gòn, In, Thêu, May, Đóng gói)
 
+  // --- MỚI: Liên kết với sản phẩm cụ thể ---
+  @Column({ nullable: true })
+  product_id: number;
+
+  @Column({ nullable: true })
+  product_name: string;
+
   @ManyToOne(() => Supplier, { nullable: true })
   @JoinColumn({ name: 'vendor_id' })
   vendor: Supplier;

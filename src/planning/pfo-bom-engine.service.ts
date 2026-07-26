@@ -6,7 +6,9 @@ import { PfoMaterialRequirement, SupplyMethod } from './pfo-material-requirement
 import { Product } from '../products/product.entity';
 import { BOM } from '../bom/bom.entity';
 import { ProductComponent } from '../products/product-component.entity';
+import { ProductRouting } from '../products/product-routing.entity';
 import { Material } from '../materials/material.entity';
+import { PfoMilestone } from './pfo-milestone.entity';
 
 @Injectable()
 export class PfoBomEngineService {
@@ -16,6 +18,8 @@ export class PfoBomEngineService {
         @InjectRepository(Product) private productRepo: Repository<Product>,
         @InjectRepository(BOM) private bomRepo: Repository<BOM>,
         @InjectRepository(ProductComponent) private componentRepo: Repository<ProductComponent>,
+        @InjectRepository(ProductRouting) private routingRepo: Repository<ProductRouting>,
+        @InjectRepository(PfoMilestone) private milestoneRepo: Repository<PfoMilestone>,
         @InjectRepository(Material) private materialRepo: Repository<Material>,
     ) { }
 
@@ -189,9 +193,55 @@ export class PfoBomEngineService {
             }
         }
 
-        // Xóa các yêu cầu vật tư cũ của PFO này
+        // Xóa các yêu cầu vật tư và milestones cũ của PFO này
         if (pfo.material_requirements && pfo.material_requirements.length > 0) {
             await this.materialReqRepo.remove(pfo.material_requirements);
+        }
+        
+        const oldMilestones = await this.milestoneRepo.find({ where: { pfo_id: id } });
+        if (oldMilestones.length > 0) {
+            await this.milestoneRepo.remove(oldMilestones);
+        }
+
+        // Tạo danh sách milestones mới từ ProductRouting
+        const newMilestones: PfoMilestone[] = [];
+        const processedProductIds = new Set<number>();
+
+        for (const item of pfo.sales_order.items) {
+            let product = item.product;
+            if (!product && item.sku) {
+                product = await this.productRepo.findOne({ where: { sku: item.sku } });
+            }
+            if (product && !processedProductIds.has(product.id)) {
+                processedProductIds.add(product.id);
+                
+                // Fetch product routings
+                const routings = await this.routingRepo.find({
+                    where: { product_id: product.id },
+                    relations: ['supplier'],
+                    order: { step_order: 'ASC' }
+                });
+
+                for (const routing of routings) {
+                    const milestone = this.milestoneRepo.create({
+                        pfo_id: id,
+                        product_id: product.id,
+                        product_name: product.name || product.sku,
+                        milestone_type: routing.step_name || 'GIA_CONG',
+                        step_name: routing.step_name,
+                        vendor_id: routing.supplier_id,
+                        vendor_name: routing.supplier?.name || routing.supplier?.supplier_name,
+                        unit_price: Number(routing.cost || 0),
+                        planned_quantity: Number(item.quantity || pfo.quantity || 1),
+                        status: 'PENDING'
+                    });
+                    newMilestones.push(milestone);
+                }
+            }
+        }
+        
+        if (newMilestones.length > 0) {
+            await this.milestoneRepo.save(newMilestones);
         }
 
         // Tạo danh sách PfoMaterialRequirement mới
@@ -218,6 +268,7 @@ export class PfoBomEngineService {
                 unit_price: Number(mat?.cost_price || mat?.cost_per_unit || (data as any).price || 0),
                 supplier_id: defaultSupplierId,
                 issued_quantity: 0,
+                available_stock: Number(mat?.quantity_in_stock || 0),
                 bom_details: data.details || null
             });
             requirements.push(req);
@@ -242,7 +293,9 @@ export class PfoBomEngineService {
                 await this.materialReqRepo.update(r.id, {
                     actual_order_quantity: r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity),
                     supply_method: r.supply_method,
-                    supplier_id: r.supplier_id
+                    supplier_id: r.supplier_id,
+                    use_inventory: r.use_inventory,
+                    unit_price: r.unit_price
                 } as any);
             }
         }

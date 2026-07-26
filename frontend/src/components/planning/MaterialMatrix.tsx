@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Tag, InputNumber, Button, Space, Typography, Tooltip, Select, Empty, Alert } from 'antd';
+import { Table, Tag, InputNumber, Button, Space, Typography, Tooltip, Select, Empty, Alert, Checkbox } from 'antd';
 import { 
     InfoCircleOutlined, 
     SaveOutlined,
@@ -37,7 +37,15 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
     const handleFieldChange = (id: number, field: string, value: any) => {
         const newData = editableData.map(item => {
             if (item.id === id) {
-                return { ...item, [field]: value };
+                const updatedItem = { ...item, [field]: value };
+                if (field === 'use_inventory') {
+                    if (value) {
+                        updatedItem.actual_order_quantity = Math.max(0, (item.planned_quantity || 0) - (item.available_stock || 0));
+                    } else {
+                        updatedItem.actual_order_quantity = item.planned_quantity || 0;
+                    }
+                }
+                return updatedItem;
             }
             return item;
         });
@@ -96,6 +104,19 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
             )
         },
         {
+            title: 'Dùng Tồn Kho',
+            dataIndex: 'use_inventory',
+            key: 'use_inventory',
+            align: 'center' as const,
+            render: (val: boolean, record: any) => (
+                <Checkbox 
+                    checked={val} 
+                    onChange={(e) => handleFieldChange(record.id, 'use_inventory', e.target.checked)}
+                    disabled={!record.available_stock || record.available_stock <= 0}
+                />
+            )
+        },
+        {
             title: 'Nhà Cung Cấp (NCC)',
             dataIndex: 'supplier_id',
             key: 'supplier_id',
@@ -137,7 +158,9 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
             key: 'actual_order_quantity',
             align: 'right' as const,
             render: (_: any, record: any) => {
-                const suggested = Math.max(0, (record.planned_quantity || 0) - (record.available_stock || 0));
+                const suggested = record.use_inventory 
+                    ? Math.max(0, (record.planned_quantity || 0) - (record.available_stock || 0))
+                    : (record.planned_quantity || 0);
                 return (
                     <InputNumber 
                         size="small" 
@@ -153,7 +176,10 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
             key: 'total',
             align: 'right' as const,
             render: (_: any, record: any) => {
-                const qty = record.actual_order_quantity ?? Math.max(0, (record.planned_quantity || 0) - (record.available_stock || 0));
+                const suggested = record.use_inventory 
+                    ? Math.max(0, (record.planned_quantity || 0) - (record.available_stock || 0))
+                    : (record.planned_quantity || 0);
+                const qty = record.actual_order_quantity ?? suggested;
                 const price = record.unit_price || 0;
                 return <Text strong style={{ color: '#cf1322' }}>{(qty * price).toLocaleString()}</Text>;
             }

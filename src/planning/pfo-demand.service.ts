@@ -92,7 +92,9 @@ export class PfoDemandService {
                 'sales_order.items.product.components.child_product.boms',
                 'sales_order.items.product.components.child_product.boms.material',
                 'material_requirements',
+                'material_requirements.material',
                 'milestones',
+                'milestones.vendor',
                 'qc_records'
             ]
         });
