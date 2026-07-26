@@ -21,8 +21,12 @@ export class PfoMaterialRequirement {
   @Column()
   pfo_id: number;
 
+  @ManyToOne('Material', { nullable: true })
+  @JoinColumn({ name: 'material_id' })
+  material: any;
+
   @Column({ nullable: true })
-  material_id: number; 
+  material_id: number;
 
   @Column({ nullable: true })
   material_code: string;
