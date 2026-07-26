@@ -230,7 +230,7 @@ export class PfoBomEngineService {
                         milestone_type: routing.step_name || 'GIA_CONG',
                         step_name: routing.step_name,
                         vendor_id: routing.supplier_id,
-                        vendor_name: routing.supplier?.name || routing.supplier?.supplier_name,
+                        vendor_name: routing.supplier?.name || '',
                         unit_price: Number(routing.cost || 0),
                         planned_quantity: Number(item.quantity || pfo.quantity || 1),
                         status: 'PENDING'
