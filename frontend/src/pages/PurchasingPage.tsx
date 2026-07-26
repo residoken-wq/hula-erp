@@ -735,6 +735,49 @@ const PurchasingPage: React.FC = () => {
                         ]}
                         expandable={{ expandedRowRender, rowExpandable: record => record.items && record.items.length > 0 }}
                     />
+                ) : (activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') ? (
+                    (() => {
+                        const supplierGroups: Record<string, any[]> = {};
+                        filteredData.forEach(d => {
+                            const supplierName = d.supplier?.name || (d.note?.split('NCC: ')[1]) || 'Chưa chỉ định NCC';
+                            if (!supplierGroups[supplierName]) supplierGroups[supplierName] = [];
+                            supplierGroups[supplierName].push(d);
+                        });
+                        const sortedSuppliers = Object.keys(supplierGroups).sort((a, b) => {
+                            if (a === 'Chưa chỉ định NCC') return 1;
+                            if (b === 'Chưa chỉ định NCC') return -1;
+                            return a.localeCompare(b);
+                        });
+                        if (sortedSuppliers.length === 0) return <Alert message="Không có dữ liệu PO nào cho tab này" type="info" />;
+                        return (
+                            <Tabs 
+                                tabPosition="top" 
+                                size="small" 
+                                type="card" 
+                                onChange={() => setSelectedMainRows([])}
+                                items={sortedSuppliers.map(supName => ({
+                                key: supName,
+                                label: `${supName} (${supplierGroups[supName].length})`,
+                                children: (
+                                    <Table
+                                        dataSource={supplierGroups[supName]}
+                                        columns={columns}
+                                        rowKey="id"
+                                        loading={loading}
+                                        expandable={{ expandedRowRender, rowExpandable: record => record.items && record.items.length > 0 }}
+                                        rowSelection={{
+                                            type: 'checkbox',
+                                            selectedRowKeys: selectedMainRows.map(r => r.id),
+                                            onChange: (_, rows) => setSelectedMainRows(rows),
+                                            getCheckboxProps: (record: any) => ({
+                                                disabled: record.status !== 'DRAFT' || record.type === 'POOLED',
+                                            }),
+                                        }}
+                                    />
+                                )
+                            }))} />
+                        );
+                    })()
                 ) : (
                     <Table
                         dataSource={filteredData}
@@ -742,14 +785,7 @@ const PurchasingPage: React.FC = () => {
                         rowKey="id"
                         loading={loading}
                         expandable={{ expandedRowRender, rowExpandable: record => record.items && record.items.length > 0 }}
-                        rowSelection={(activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') ? {
-                            type: 'checkbox',
-                            selectedRowKeys: selectedMainRows.map(r => r.id),
-                            onChange: (_, rows) => setSelectedMainRows(rows),
-                            getCheckboxProps: (record: any) => ({
-                                disabled: record.status !== 'DRAFT' || record.type === 'POOLED',
-                            }),
-                        } : undefined}
+                        rowSelection={undefined}
                     />
                 )}
             </Card>

@@ -255,7 +255,11 @@ export class PfoBomEngineService {
                 if (fullMat) mat = fullMat;
             }
 
-            const defaultSupplierId = mat?.supplier_prices && mat.supplier_prices.length > 0 ? mat.supplier_prices[0].supplier_id : null;
+            let defaultSupplierId = null;
+            if (mat?.supplier_prices && mat.supplier_prices.length > 0) {
+                const preferred = mat.supplier_prices.find(sp => sp.is_preferred);
+                defaultSupplierId = preferred ? preferred.supplier_id : mat.supplier_prices[0].supplier_id;
+            }
 
             const req = this.materialReqRepo.create({
                 pfo_id: id,
