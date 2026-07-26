@@ -199,7 +199,7 @@ const PlanningPage: React.FC = () => {
                             type={activeTab === 'DEMAND' ? 'primary' : 'default'}
                             style={{ borderRadius: 6 }}
                         >
-                            Gom Đơn
+                            Lập KHSX
                         </Button>
                         <Button icon={<ReloadOutlined />} onClick={fetchData} style={{ borderRadius: 6 }} />
                     </Space>
@@ -207,15 +207,8 @@ const PlanningPage: React.FC = () => {
             >
                 <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
                     {
-                        key: 'CONTROL_TOWER',
-                        label: 'Kanban Theo Dõi (PFO)',
-                        children: (
-                            <PfoKanbanBoard pfos={pfos} onPfoClick={handlePfoClick} />
-                        )
-                    },
-                    {
                         key: 'DEMAND',
-                        label: 'Gom Đơn & Phát Hành (Gate 1)',
+                        label: 'Danh sách cần lập KHSX',
                         children: (
                             <PendingOrdersTab
                                 pendingOrders={pendingOrders}
@@ -240,6 +233,13 @@ const PlanningPage: React.FC = () => {
                                 setLoading={setLoading}
                                 onRefresh={fetchData}
                             />
+                        )
+                    },
+                    {
+                        key: 'CONTROL_TOWER',
+                        label: 'Kanban Theo Dõi (PFO)',
+                        children: (
+                            <PfoKanbanBoard pfos={pfos} onPfoClick={handlePfoClick} />
                         )
                     }
                 ]} />
