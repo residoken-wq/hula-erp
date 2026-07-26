@@ -40,10 +40,15 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
                 const updatedItem = { ...item, [field]: value };
                 if (field === 'use_inventory') {
                     if (value) {
-                        updatedItem.actual_order_quantity = Math.max(0, (item.planned_quantity || 0) - (item.available_stock || 0));
+                        const ceilPlanned = Math.ceil(item.planned_quantity || 0);
+                        updatedItem.inventory_used_quantity = Math.min(ceilPlanned, item.available_stock || 0);
+                        updatedItem.actual_order_quantity = Math.max(0, (item.planned_quantity || 0) - updatedItem.inventory_used_quantity);
                     } else {
+                        updatedItem.inventory_used_quantity = 0;
                         updatedItem.actual_order_quantity = item.planned_quantity || 0;
                     }
+                } else if (field === 'inventory_used_quantity') {
+                    updatedItem.actual_order_quantity = Math.max(0, (item.planned_quantity || 0) - (value || 0));
                 }
                 return updatedItem;
             }
@@ -109,11 +114,23 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
             key: 'use_inventory',
             align: 'center' as const,
             render: (val: boolean, record: any) => (
-                <Checkbox 
-                    checked={val} 
-                    onChange={(e) => handleFieldChange(record.id, 'use_inventory', e.target.checked)}
-                    disabled={!record.available_stock || record.available_stock <= 0}
-                />
+                <Space>
+                    <Checkbox 
+                        checked={val} 
+                        onChange={(e) => handleFieldChange(record.id, 'use_inventory', e.target.checked)}
+                        disabled={!record.available_stock || record.available_stock <= 0}
+                    />
+                    {val && (
+                        <InputNumber
+                            size="small"
+                            value={record.inventory_used_quantity ?? 0}
+                            onChange={(v) => handleFieldChange(record.id, 'inventory_used_quantity', v)}
+                            style={{ width: 70 }}
+                            max={record.available_stock}
+                            min={0}
+                        />
+                    )}
+                </Space>
             )
         },
         {
@@ -159,7 +176,7 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
             align: 'right' as const,
             render: (_: any, record: any) => {
                 const suggested = record.use_inventory 
-                    ? Math.max(0, (record.planned_quantity || 0) - (record.available_stock || 0))
+                    ? Math.max(0, (record.planned_quantity || 0) - (record.inventory_used_quantity || 0))
                     : (record.planned_quantity || 0);
                 return (
                     <InputNumber 
@@ -177,7 +194,7 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
             align: 'right' as const,
             render: (_: any, record: any) => {
                 const suggested = record.use_inventory 
-                    ? Math.max(0, (record.planned_quantity || 0) - (record.available_stock || 0))
+                    ? Math.max(0, (record.planned_quantity || 0) - (record.inventory_used_quantity || 0))
                     : (record.planned_quantity || 0);
                 const qty = record.actual_order_quantity ?? suggested;
                 const price = record.unit_price || 0;

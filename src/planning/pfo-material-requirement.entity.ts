@@ -72,6 +72,9 @@ export class PfoMaterialRequirement {
   @Column('float', { default: 0 })
   available_stock: number;
 
+  @Column('float', { default: 0 })
+  inventory_used_quantity: number;
+
   @Column('text', { nullable: true })
   note: string;
 

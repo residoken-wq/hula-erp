@@ -88,7 +88,7 @@ export class PfoSourcingService {
 
         // 1. TẠO PHIẾU XUẤT KHO NPL TỪ TỒN KHO (Nếu có dùng tồn kho)
         const inventoryReqs = (pfo.material_requirements || []).filter(
-            m => m.use_inventory === true && (m.planned_quantity - (m.actual_order_quantity ?? m.planned_quantity)) > 0
+            m => m.use_inventory === true && m.inventory_used_quantity > 0
         );
 
         if (inventoryReqs.length > 0) {
@@ -107,7 +107,7 @@ export class PfoSourcingService {
             await this.goodsIssueRepo.save(goodsIssue);
 
             const issueItems = inventoryReqs.map(r => {
-                const issueQty = r.planned_quantity - (r.actual_order_quantity ?? r.planned_quantity);
+                const issueQty = r.inventory_used_quantity;
                 return this.goodsIssueItemRepo.create({
                     issue: goodsIssue,
                     material_id: r.material_id,

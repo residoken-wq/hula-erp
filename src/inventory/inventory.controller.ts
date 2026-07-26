@@ -139,8 +139,8 @@ export class InventoryController {
   }
 
   @Post('goods-issue/:id/confirm')
-  async confirmGoodsIssue(@Param('id') id: string, @Req() req: any) {
-    return this.inventoryService.confirmGoodsIssue(Number(id), req.user?.full_name || req.user?.username || 'System');
+  async confirmGoodsIssue(@Param('id') id: string, @Body('supplier_id') supplierId: string, @Req() req: any) {
+    return this.inventoryService.confirmGoodsIssue(Number(id), req.user?.full_name || req.user?.username || 'System', supplierId ? Number(supplierId) : undefined);
   }
 
   @Post('goods-issue/:id/delivered')

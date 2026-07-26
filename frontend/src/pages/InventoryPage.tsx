@@ -34,6 +34,8 @@ const InventoryPage: React.FC = () => {
     const [completedDeliveries, setCompletedDeliveries] = useState<any[]>([]); // <--- New State: Completed Export Deliveries
     const [shippingCarriers, setShippingCarriers] = useState<any[]>([]); // <--- Shipping Carriers
     const [goodsIssues, setGoodsIssues] = useState<any[]>([]); // <--- Phiếu Xuất NPL
+    const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [selectedSuppliers, setSelectedSuppliers] = useState<Record<string, number>>({});
 
     const [searchText, setSearchText] = useState('');
 
@@ -70,7 +72,7 @@ const InventoryPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [pRes, mRes, sRes, hRes, grRes, dRes, cdRes, cRes, giRes] = await Promise.all([
+            const [pRes, mRes, sRes, hRes, grRes, dRes, cdRes, cRes, giRes, supRes] = await Promise.all([
                 api.get('/products'),
                 api.get('/materials'),
                 api.get('/inventory/stocks'),
@@ -79,7 +81,8 @@ const InventoryPage: React.FC = () => {
                 api.get('/inventory/deliveries/pending'),
                 api.get('/inventory/deliveries/completed'),
                 api.get('/inventory/shipping-carriers'),
-                api.get('/inventory/goods-issue')
+                api.get('/inventory/goods-issue'),
+                api.get('/suppliers')
             ]);
             setProducts(pRes.data);
             setMaterials(mRes.data);
@@ -90,6 +93,7 @@ const InventoryPage: React.FC = () => {
             setCompletedDeliveries(cdRes.data || []);
             setShippingCarriers(cRes.data || []);
             setGoodsIssues(giRes.data || []);
+            setSuppliers(supRes.data || []);
         } catch (error) {
             message.error('Đã xảy ra lỗi khi tải dữ liệu');
         } finally {
@@ -602,7 +606,7 @@ const InventoryPage: React.FC = () => {
                     </Tabs.TabPane>
 
                     {/* TAB PHIẾU XUẤT NPL (GIA CÔNG) */}
-                    <Tabs.TabPane tab={<span><AppstoreOutlined /> Phiếu Xuất NPL (Gia Công)</span>} key="GOODS_ISSUE">
+                    <Tabs.TabPane tab={<span><AppstoreOutlined /> Phiếu Xuất NPL (Gia Công) {goodsIssues.filter(g => g.status === 'DRAFT').length > 0 && <Tag color="blue" style={{ borderRadius: 10, marginLeft: 4 }}>{goodsIssues.filter(g => g.status === 'DRAFT').length}</Tag>}</span>} key="GOODS_ISSUE">
                         <Table
                             dataSource={goodsIssues}
                             rowKey="id"
@@ -624,7 +628,25 @@ const InventoryPage: React.FC = () => {
                             columns={[
                                 { title: 'Mã PXK', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
                                 { title: 'PO / Plan', render: (r: any) => r.po_id ? <Tag color="blue">PO #{r.po_id}</Tag> : '-' },
-                                { title: 'Nhà Gia Công', render: (r: any) => r.supplier?.name || '-' },
+                                { title: 'Nhà Gia Công', render: (r: any) => {
+                                    if (r.status === 'DRAFT') {
+                                        return (
+                                            <Select 
+                                                size="small" 
+                                                style={{ width: 150 }} 
+                                                value={selectedSuppliers[r.id] || r.supplier_id} 
+                                                onChange={(val) => setSelectedSuppliers(prev => ({ ...prev, [r.id]: val }))}
+                                                placeholder="Chọn nhà gia công"
+                                                showSearch
+                                                optionFilterProp="children"
+                                                allowClear
+                                            >
+                                                {suppliers.map(s => <Option key={s.id} value={s.id}>{s.name || s.supplier_name}</Option>)}
+                                            </Select>
+                                        );
+                                    }
+                                    return r.supplier?.name || '-';
+                                } },
                                 { title: 'Loại', dataIndex: 'type', render: (t: any) => t === 'OUTSOURCING' ? <Tag color="orange">Gia công</Tag> : <Tag>{t}</Tag> },
                                 { title: 'Trạng thái', dataIndex: 'status', render: (t: any) => {
                                     if (t === 'DRAFT') return <Tag color="blue">Nháp</Tag>;
@@ -640,7 +662,8 @@ const InventoryPage: React.FC = () => {
                                             {r.status === 'DRAFT' && (
                                                 <Popconfirm title="Xác nhận xuất kho (trừ tồn kho và cộng tồn NCC)?" onConfirm={async () => {
                                                     try {
-                                                        await api.post(`/inventory/goods-issue/${r.id}/confirm`);
+                                                        const supId = selectedSuppliers[r.id] || r.supplier_id;
+                                                        await api.post(`/inventory/goods-issue/${r.id}/confirm`, { supplier_id: supId });
                                                         message.success('Đã xác nhận xuất kho!');
                                                         fetchData();
                                                     } catch (e: any) {

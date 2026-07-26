@@ -33,11 +33,20 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
         return pfoDetails.milestones.reduce((sum: number, ms: any) => sum + (Number(ms.planned_quantity || selectedPfo?.quantity || 1) * Number(ms.unit_price || 0)), 0);
     }, [pfoDetails, selectedPfo]);
 
+    // Helper for recursive logistics cost
+    const getLogisticsCost = (product: any): number => {
+        if (!product) return 0;
+        let cost = (product.logistics || []).reduce((acc: number, log: any) => acc + Number(log.cost || 0), 0);
+        if (product.product_type === 'COMBO' && product.components) {
+            cost += product.components.reduce((acc: number, comp: any) => acc + getLogisticsCost(comp.child_product) * Number(comp.quantity || 1), 0);
+        }
+        return cost;
+    };
+
     const estimatedLogisticCost = useMemo(() => {
         if (!pfoDetails?.sales_order?.items) return 0;
         return pfoDetails.sales_order.items.reduce((sum: number, item: any) => {
-            const logs = item.product?.logistics || [];
-            const itemLogCost = logs.reduce((acc: number, log: any) => acc + Number(log.cost || 0), 0);
+            const itemLogCost = getLogisticsCost(item.product);
             return sum + (itemLogCost * Number(item.quantity || 1));
         }, 0);
     }, [pfoDetails]);
@@ -50,7 +59,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
     const totalEstimatedCost = estimatedBomCost + estimatedRoutingCost + estimatedLogisticCost;
     const profitMargin = totalRevenue > 0 ? ((totalRevenue - totalEstimatedCost) / totalRevenue) * 100 : 0;
 
-    // 2. Calculate Actual Costs from POs
+    // 2. Calculate Actual Costs from POs and Inventory
     const actualNplCost = useMemo(() => {
         if (!pfoDetails?.pos?.pos_npl) return 0;
         return pfoDetails.pos.pos_npl
@@ -64,6 +73,18 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
             .filter((po: any) => po.status !== 'CANCELLED')
             .reduce((sum: number, po: any) => sum + Number(po.total_amount || 0), 0);
     }, [pfoDetails]);
+
+    const actualNplInventoryCost = useMemo(() => {
+        if (!pfoDetails?.material_requirements) return 0;
+        return pfoDetails.material_requirements
+            .filter((req: any) => req.use_inventory)
+            .reduce((sum: number, req: any) => sum + (Number(req.inventory_used_quantity || 0) * Number(req.unit_price || 0)), 0);
+    }, [pfoDetails]);
+
+    const actualLogisticCost = estimatedLogisticCost; // CP_VC currently uses estimated for actual as well unless PO logistics exist
+
+    const totalActualCost = actualNplCost + actualGcCost + actualNplInventoryCost + actualLogisticCost;
+    const actualProfitMargin = totalRevenue > 0 ? ((totalRevenue - totalActualCost) / totalRevenue) * 100 : 0;
 
     // 3. BOM Tree Data
     const bomTreeData = useMemo(() => {
@@ -170,7 +191,10 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                     <Card size="small" title={<Text strong style={{ color: '#389e0d' }}>Chi Phí Thực Tế (Từ PO)</Text>} style={{ borderRadius: 10, border: '1px solid #b7eb8f', background: '#f6ffed', height: '100%' }}>
                         <Row gutter={[16, 16]}>
                             <Col span={12}><Statistic title="CP NPL (PO)" value={actualNplCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
+                            <Col span={12}><Statistic title="CP NPL (Từ kho)" value={actualNplInventoryCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
                             <Col span={12}><Statistic title="CP Gia Công (PO)" value={actualGcCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
+                            <Col span={12}><Statistic title="CP Vận Chuyển" value={actualLogisticCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
+                            <Col span={12}><Statistic title="% Lợi Nhuận Thực Tế" value={actualProfitMargin} precision={2} suffix="%" valueStyle={{ fontSize: 16, color: actualProfitMargin < 0 ? '#cf1322' : '#389e0d' }} /></Col>
                         </Row>
                     </Card>
                 </Col>
@@ -229,15 +253,22 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                                 columns={[
                                     { title: 'Sản phẩm', dataIndex: 'product_name', key: 'product_name' },
                                     { title: 'Khoản mục', dataIndex: 'name', key: 'name' },
-                                    { title: 'Chi phí', dataIndex: 'cost', key: 'cost', render: (val: any) => `${Number(val).toLocaleString()} ₫` }
+                                    { title: 'Chi phí (1 SP)', dataIndex: 'cost', key: 'cost', render: (val: any) => `${Number(val).toLocaleString()} ₫` }
                                 ]} 
-                                dataSource={pfoDetails?.sales_order?.items?.flatMap((item: any) => 
-                                    (item.product?.logistics || []).map((log: any) => ({
-                                        ...log,
-                                        product_name: item.product?.name,
-                                        key: log.id
-                                    }))
-                                ) || []}
+                                dataSource={pfoDetails?.sales_order?.items?.flatMap((item: any) => {
+                                    const logs: any[] = [];
+                                    const extractLogs = (prod: any, prefix: string = '') => {
+                                        if (!prod) return;
+                                        (prod.logistics || []).forEach((log: any) => {
+                                            logs.push({ ...log, product_name: prefix + prod.name, key: `log-${log.id}-${prod.id}` });
+                                        });
+                                        if (prod.product_type === 'COMBO' && prod.components) {
+                                            prod.components.forEach((comp: any) => extractLogs(comp.child_product, `${prefix}${prod.name} > `));
+                                        }
+                                    };
+                                    extractLogs(item.product);
+                                    return logs;
+                                }) || []}
                                 size="small"
                                 pagination={false}
                             />

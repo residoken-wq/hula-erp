@@ -661,13 +661,18 @@ export class InventoryService {
     return gi;
   }
 
-  async confirmGoodsIssue(id: number, updated_by: string = 'System') {
+  async confirmGoodsIssue(id: number, updated_by: string = 'System', supplierId?: number) {
     const gi = await this.goodsIssueRepo.findOne({
       where: { id },
       relations: ['items', 'items.material']
     });
     if (!gi) throw new BadRequestException('Phiếu xuất kho không tồn tại');
     if (gi.status !== GoodsIssueStatus.DRAFT) throw new BadRequestException('Phiếu đã xử lý');
+
+    if (supplierId) {
+      gi.supplier_id = supplierId;
+      await this.goodsIssueRepo.save(gi);
+    }
 
     // Xuất kho thực tế từng NPL
     let totalNplCost = 0;
