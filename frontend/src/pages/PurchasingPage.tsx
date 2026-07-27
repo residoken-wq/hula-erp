@@ -717,7 +717,6 @@ const PurchasingPage: React.FC = () => {
                                 message.success('Đã xóa dữ liệu gộp');
                                 fetchData();
                             }}><Button danger>Xóa Data Gộp (Test)</Button></Popconfirm>}
-                        <Space style={{ flexWrap: 'wrap' }}>
                             <RangePicker onChange={(dates) => setDateRange(dates as any)} format="DD/MM/YYYY" allowClear style={{ width: 220 }} />
                             <Input prefix={<SearchOutlined />} placeholder="Tìm PO..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 160 }} allowClear />
                             <Button icon={<ReloadOutlined />} onClick={() => activeTab.startsWith('REQ') ? fetchRequirements() : fetchData()}>Làm mới</Button>
