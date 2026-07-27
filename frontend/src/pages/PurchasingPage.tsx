@@ -8,11 +8,15 @@ import OutsourcingMaterialIssueModal from '../components/purchasing/OutsourcingM
 import { handlePrintPO } from '../utils/printPurchasingTemplate';
 import { exportPOToExcel } from '../utils/exportPOToExcel';
 
+const { RangePicker } = DatePicker;
+
 const PurchasingPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('ALL');
     const [searchText, setSearchText] = useState('');
+    const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+    const [hideDelivered, setHideDelivered] = useState<boolean>(true);
     const isMobile = useMobile();
 
     // Detail Modal State
@@ -474,6 +478,18 @@ const PurchasingPage: React.FC = () => {
     const filteredData = data.filter((d: any) => {
         const tabMatch = activeTab === 'ALL' || d.type === activeTab;
         if (!tabMatch) return false;
+
+        if (dateRange && dateRange.length === 2) {
+            const poDate = dayjs(d.created_at || d.order_date);
+            if (poDate.isBefore(dateRange[0], 'day') || poDate.isAfter(dateRange[1], 'day')) {
+                return false;
+            }
+        }
+
+        if (hideDelivered && (activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING')) {
+            if (d.status === 'DELIVERED') return false;
+        }
+
         if (!searchText) return true;
         const q = searchText.toLowerCase();
         const poMatch = d.po_code?.toLowerCase().includes(q);
@@ -701,20 +717,29 @@ const PurchasingPage: React.FC = () => {
                                 message.success('Đã xóa dữ liệu gộp');
                                 fetchData();
                             }}><Button danger>Xóa Data Gộp (Test)</Button></Popconfirm>}
-                            <Input prefix={<SearchOutlined />} placeholder="Tìm PO..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 200 }} allowClear />
+                        <Space style={{ flexWrap: 'wrap' }}>
+                            <RangePicker onChange={(dates) => setDateRange(dates as any)} format="DD/MM/YYYY" allowClear style={{ width: 220 }} />
+                            <Input prefix={<SearchOutlined />} placeholder="Tìm PO..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 160 }} allowClear />
                             <Button icon={<ReloadOutlined />} onClick={() => activeTab.startsWith('REQ') ? fetchRequirements() : fetchData()}>Làm mới</Button>
                         </Space>
                     )
                 }
             >
-                <Tabs activeKey={activeTab} onChange={setActiveTab} size={isMobile ? 'small' : 'middle'} items={[
-                    { key: 'ALL', label: isMobile ? 'Tất cả' : 'Tất cả PO' },
-                    { key: 'MATERIAL', label: isMobile ? 'NPL' : 'Mua NPL' },
-                    { key: 'OUTSOURCING', label: isMobile ? 'GC' : 'Gia Công' },
-                    { key: 'POOLED', label: isMobile ? 'Gộp' : 'PO Gộp' },
-                    { key: 'REQ_NPL', label: isMobile ? 'NC NPL' : 'Tổng Hợp Nhu Cầu NPL' },
-                    { key: 'REQ_GC', label: isMobile ? 'NC GC' : 'Tổng Hợp Nhu Cầu GC' }
-                ]} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Tabs activeKey={activeTab} onChange={setActiveTab} size={isMobile ? 'small' : 'middle'} items={[
+                        { key: 'ALL', label: isMobile ? 'Tất cả' : 'Tất cả PO' },
+                        { key: 'MATERIAL', label: isMobile ? 'NPL' : 'Mua NPL' },
+                        { key: 'OUTSOURCING', label: isMobile ? 'GC' : 'Gia Công' },
+                        { key: 'POOLED', label: isMobile ? 'Gộp' : 'PO Gộp' },
+                        { key: 'REQ_NPL', label: isMobile ? 'NC NPL' : 'Tổng Hợp Nhu Cầu NPL' },
+                        { key: 'REQ_GC', label: isMobile ? 'NC GC' : 'Tổng Hợp Nhu Cầu GC' }
+                    ]} />
+                    {(activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') && (
+                        <div style={{ marginBottom: 16 }}>
+                            <Checkbox checked={hideDelivered} onChange={(e) => setHideDelivered(e.target.checked)}>Ẩn PO đã giao đủ</Checkbox>
+                        </div>
+                    )}
+                </div>
 
                 {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') ? (
                     <Table

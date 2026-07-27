@@ -195,13 +195,30 @@ export class PfoSourcingService {
         const firstSoItem = pfo.sales_order?.items?.[0];
         let defaultFrontColor = '';
         let defaultBackColor = '';
-        if (firstSoItem?.product?.attributes) {
-            let attr = firstSoItem.product.attributes;
-            if (typeof attr === 'string') {
-                try { attr = JSON.parse(attr); } catch (e) {}
+        
+        // Build map for all products in SO items
+        const soItemProductMap = new Map<number, { frontColor: string, backColor: string }>();
+        if (pfo.sales_order?.items) {
+            for (const item of pfo.sales_order.items) {
+                if (item.product?.id) {
+                    let frontColor = '';
+                    let backColor = '';
+                    if (item.product.attributes) {
+                        let attr = item.product.attributes;
+                        if (typeof attr === 'string') {
+                            try { attr = JSON.parse(attr); } catch (e) {}
+                        }
+                        frontColor = attr?.front_color || '';
+                        backColor = attr?.back_color || '';
+                    }
+                    soItemProductMap.set(item.product.id, { frontColor, backColor });
+                    
+                    if (item === firstSoItem) {
+                        defaultFrontColor = frontColor;
+                        defaultBackColor = backColor;
+                    }
+                }
             }
-            defaultFrontColor = attr?.front_color || '';
-            defaultBackColor = attr?.back_color || '';
         }
         
         if (milestonesWithVendor.length > 0) {
@@ -230,12 +247,16 @@ export class PfoSourcingService {
                     const qty = Number(ms.planned_quantity || pfo.quantity || 1);
                     const price = Number(ms.unit_price || 0);
                     const prodDesc = ms.product_name ? ` [${ms.product_name}]` : '';
+                    
+                    const prodId = ms.product_id || firstSoItem?.product?.id;
+                    const colors = soItemProductMap.get(prodId) || { frontColor: defaultFrontColor, backColor: defaultBackColor };
+
                     return this.poItemRepo.create({
                         purchase_order: gcPo,
                         pfo_id: pfoId,
-                        product_id: ms.product_id || firstSoItem?.product?.id,
-                        front_color: defaultFrontColor,
-                        back_color: defaultBackColor,
+                        product_id: prodId,
+                        front_color: colors.frontColor,
+                        back_color: colors.backColor,
                         description: `Gia công: ${ms.step_name || ms.milestone_type}${prodDesc}`,
                         quantity: qty,
                         raw_quantity: qty,

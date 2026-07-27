@@ -179,7 +179,7 @@ const PlanningPage: React.FC = () => {
     };
 
     return (
-        <div style={{ maxWidth: isMobile ? '100%' : '85%', margin: '0 auto', padding: isMobile ? '8px 4px' : '16px 0' }}>
+        <div style={{ maxWidth: isMobile ? '100%' : '95%', margin: '0 auto', padding: isMobile ? '8px 4px' : '16px 0' }}>
             {/* STATS CARDS */}
             <ControlTowerKPI stats={stats} />
 
