@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Modal, Input, Button, Spin, Empty, Space, Badge, Tag, message } from 'antd';
-import { CheckCircleFilled, PictureOutlined } from '@ant-design/icons';
+import { Modal, Input, Button, Spin, Empty, Space, Badge, Tag, message, Upload } from 'antd';
+import { CheckCircleFilled, PictureOutlined, UploadOutlined } from '@ant-design/icons';
 import { uploadApi } from '@/lib/api';
 import { resolveImageUrl } from '@/components/ImageUploader';
 
@@ -124,6 +124,31 @@ export default function ImageLibraryMultiPicker({ open, onCancel, onConfirm, max
                 <Button type="primary" size="large" onClick={loadFiles} loading={loading}>
                     Tải lại
                 </Button>
+                <Upload
+                    name="file"
+                    customRequest={async (options) => {
+                        try {
+                            const { file, onSuccess, onError } = options;
+                            const res = await uploadApi.image(file as File);
+                            if (res.data?.url) {
+                                message.success('Tải lên thành công');
+                                onSuccess?.(res.data);
+                                toggleSelect(res.data.url);
+                                loadFiles();
+                            } else {
+                                onError?.(new Error('Lỗi tải lên'));
+                                message.error('Tải lên thất bại');
+                            }
+                        } catch (e: any) {
+                            options.onError?.(e);
+                            message.error('Tải lên thất bại');
+                        }
+                    }}
+                    showUploadList={false}
+                    multiple
+                >
+                    <Button size="large" icon={<UploadOutlined />} type="default">Tải lên</Button>
+                </Upload>
                 {selected.length > 0 && (
                     <Button size="large" onClick={() => setSelected([])}>
                         Bỏ chọn tất cả
