@@ -1143,8 +1143,25 @@ const InventoryPage: React.FC = () => {
                         </Col>
                         <Col span={8}>
                             <Form.Item name="po_id" label="PO Gia công">
-                                <Select showSearch allowClear optionFilterProp="children" placeholder="Chọn PO">
-                                    {purchaseOrders.map(p => <Option key={p.id} value={p.id}>{p.order_code}</Option>)}
+                                <Select 
+                                    showSearch 
+                                    allowClear 
+                                    optionFilterProp="children" 
+                                    placeholder="Chọn PO"
+                                    onChange={(val) => {
+                                        if (val) {
+                                            const po = purchaseOrders.find(p => p.id === val);
+                                            if (po && po.supplier_id) {
+                                                editGiForm.setFieldsValue({ supplier_id: po.supplier_id });
+                                            }
+                                        }
+                                    }}
+                                >
+                                    {purchaseOrders.map(p => (
+                                        <Option key={p.id} value={p.id}>
+                                            {p.po_code} {p.supplier ? `- ${p.supplier.name || p.supplier.supplier_name}` : ''}
+                                        </Option>
+                                    ))}
                                 </Select>
                             </Form.Item>
                         </Col>
