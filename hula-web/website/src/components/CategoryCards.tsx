@@ -88,18 +88,10 @@ export default function CategoryCards({ categories, bgColor, textColor }: Catego
                             </div>
                         );
 
-                        if (hasBrochure) {
-                            return (
-                                <div key={index} onClick={() => setSelectedCat(cat)}>
-                                    {CardContent}
-                                </div>
-                            );
-                        }
-
                         return (
-                            <Link key={index} href={cat.slug || '/san-pham'}>
+                            <div key={index} onClick={() => setSelectedCat(cat)}>
                                 {CardContent}
-                            </Link>
+                            </div>
                         );
                     })}
                 </div>
