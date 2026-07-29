@@ -131,6 +131,16 @@ export class InventoryController {
     return this.inventoryService.updateGoodsIssue(Number(id), body);
   }
 
+  @Get('goods-issue/unlinked/:pfoId')
+  async getUnlinkedIssues(@Param('pfoId') pfoId: string) {
+    return this.inventoryService.getUnlinkedIssues(Number(pfoId));
+  }
+
+  @Post('goods-issue/:id/link-po')
+  async linkGoodsIssueToPo(@Param('id') id: string, @Body('po_id') poId: number) {
+    return this.inventoryService.linkGoodsIssueToPo(Number(id), poId);
+  }
+
   @Get('goods-issue')
   async getGoodsIssues(@Query('po_id') poId?: string, @Query('supplier_id') supplierId?: string) {
     const query: any = {};

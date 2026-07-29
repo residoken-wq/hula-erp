@@ -243,6 +243,34 @@ export class PlanningService {
         }
     }
 
+    async requestAdditionalMaterial(planId: number, data: { material_id: number; requested_qty: number; note?: string }) {
+        const plan = await this.planRepo.findOne({ where: { id: planId } });
+        if (!plan) throw new NotFoundException('Lệnh SX không tồn tại');
+
+        let mrpData: any[] = [];
+        if (typeof plan.mrp_data === 'string') {
+            try { mrpData = JSON.parse(plan.mrp_data); } catch (e) { }
+        } else if (Array.isArray(plan.mrp_data)) {
+            mrpData = plan.mrp_data;
+        }
+
+        const existingItem = mrpData.find(m => Number(m.material_id) === Number(data.material_id));
+        if (existingItem) {
+            // Tăng net_requirement để đẩy sang PO
+            existingItem.net_requirement = Number(existingItem.net_requirement || 0) + Number(data.requested_qty);
+            existingItem.gross_requirement = Number(existingItem.gross_requirement || 0) + Number(data.requested_qty);
+            if (data.note) {
+                existingItem.note = (existingItem.note ? existingItem.note + ' | ' : '') + `Bổ sung: ${data.requested_qty} - ${data.note}`;
+            }
+        } else {
+            throw new BadRequestException('NPL này không nằm trong định mức, không thể bổ sung theo cách này.');
+        }
+
+        plan.mrp_data = mrpData;
+        await this.planRepo.save(plan);
+        return { message: 'Đã cập nhật yêu cầu bổ sung NPL vào Lệnh SX', mrp_data: mrpData };
+    }
+
     async invalidateAnalysisCache(planId: number) {
         await this.planRepo.update(planId, {
             mrp_data: null,

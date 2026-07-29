@@ -21,10 +21,19 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
     const [vehicle, setVehicle] = useState('');
     const [note, setNote] = useState('');
 
+    const [unlinkedIssues, setUnlinkedIssues] = useState<any[]>([]);
+    const [selectedUnlinkedIssue, setSelectedUnlinkedIssue] = useState<number | null>(null);
+
+    const [requestModalVisible, setRequestModalVisible] = useState(false);
+    const [requestMaterial, setRequestMaterial] = useState<any>(null);
+    const [requestQty, setRequestQty] = useState<number>(0);
+    const [requestNote, setRequestNote] = useState<string>('');
+
     useEffect(() => {
         if (open && currentPO?.id) {
             fetchMaterials();
             fetchIssueHistory();
+            fetchUnlinkedIssues();
         }
     }, [open, currentPO?.id]);
 
@@ -40,6 +49,16 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
             const res = await api.get(`/inventory/goods-issue?po_id=${currentPO.id}`);
             setIssueHistory(Array.isArray(res.data) ? res.data : []);
         } catch (e) { console.error('Error fetching issue history', e); }
+    };
+
+    const fetchUnlinkedIssues = async () => {
+        try {
+            const pfoId = currentPO?.items?.[0]?.pfo_id || currentPO?.pfo_id;
+            if (pfoId) {
+                const res = await api.get(`/inventory/goods-issue/unlinked/${pfoId}`);
+                setUnlinkedIssues(Array.isArray(res.data) ? res.data : []);
+            }
+        } catch (e) { console.error('Error fetching unlinked issues', e); }
     };
 
     const handleCreateIssue = async () => {
@@ -101,6 +120,41 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
         } catch (e) { message.error('Lỗi xóa phiếu'); }
     };
 
+    const handleLinkIssue = async () => {
+        if (!selectedUnlinkedIssue) return message.warning('Vui lòng chọn phiếu xuất kho để liên kết');
+        setLoading(true);
+        try {
+            await api.post(`/inventory/goods-issue/${selectedUnlinkedIssue}/link-po`, { po_id: currentPO.id });
+            message.success('Đã liên kết phiếu xuất kho thành công');
+            setSelectedUnlinkedIssue(null);
+            fetchIssueHistory();
+            fetchUnlinkedIssues();
+            onRefresh?.();
+        } catch (e) {
+            message.error('Lỗi liên kết phiếu xuất kho');
+        }
+        setLoading(false);
+    };
+
+    const handleRequestMaterial = async () => {
+        if (!requestQty || requestQty <= 0) return message.warning('Vui lòng nhập số lượng hợp lệ');
+        const pfoId = currentPO?.items?.[0]?.pfo_id || currentPO?.pfo_id;
+        if (!pfoId) return message.error('Không tìm thấy thông tin Lệnh SX');
+
+        try {
+            await api.post(`/planning/pfo/${pfoId}/request-material`, {
+                material_id: requestMaterial.material_id,
+                requested_qty: requestQty,
+                note: requestNote
+            });
+            message.success('Đã gửi yêu cầu bổ sung NPL thành công');
+            setRequestModalVisible(false);
+            onRefresh?.();
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi khi gửi yêu cầu bổ sung');
+        }
+    };
+
     // Tổng đã xuất per material
     const totalIssued = new Map<number, number>();
     issueHistory.filter(gi => gi.status !== 'DRAFT' || true).forEach(gi => {
@@ -120,6 +174,23 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
             style={{ top: 20 }}
             footer={[
                 <Button key="close" onClick={onClose}>Đóng</Button>,
+                <Select
+                    key="link-select"
+                    placeholder="Chọn PXK đã tạo sẵn..."
+                    style={{ width: 250, textAlign: 'left', marginLeft: 8 }}
+                    allowClear
+                    value={selectedUnlinkedIssue}
+                    onChange={setSelectedUnlinkedIssue}
+                >
+                    {unlinkedIssues.map(gi => (
+                        <Select.Option key={gi.id} value={gi.id}>
+                            {gi.code} ({gi.items?.length || 0} NPL)
+                        </Select.Option>
+                    ))}
+                </Select>,
+                <Button key="link-btn" onClick={handleLinkIssue} loading={loading} disabled={!selectedUnlinkedIssue}>
+                    Liên kết phiếu
+                </Button>,
                 <Button key="create" type="primary" onClick={handleCreateIssue} loading={loading} icon={<PlusOutlined />}>
                     Tạo Phiếu Xuất Kho
                 </Button>
@@ -177,7 +248,21 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                             );
                         }
                     },
-                    { title: 'Tồn Kho', dataIndex: 'stock', width: 80, align: 'right' as const, render: (v: number) => <span style={{ color: Number(v) < 0 ? 'red' : 'green' }}>{Number(v || 0).toLocaleString('vi-VN')}</span> },
+                    {
+                        title: 'Tồn Kho', dataIndex: 'stock', width: 100, align: 'right' as const, render: (v: number, r: any) => (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                <span style={{ color: Number(v) < 0 ? 'red' : 'green' }}>{Number(v || 0).toLocaleString('vi-VN')}</span>
+                                {Number(v || 0) < Number(r.quantity || 0) && (
+                                    <Button type="link" size="small" style={{ padding: 0, fontSize: 11 }} onClick={() => {
+                                        setRequestMaterial(r);
+                                        setRequestQty(0);
+                                        setRequestNote('');
+                                        setRequestModalVisible(true);
+                                    }}>Y/c bổ sung</Button>
+                                )}
+                            </div>
+                        )
+                    },
                     {
                         title: 'Xuất lần này', width: 120, align: 'center' as const,
                         render: (_: any, r: any, idx: number) => (
@@ -276,6 +361,27 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                     ]}
                 />
             )}
+            <Modal
+                title="Yêu cầu bổ sung NPL"
+                open={requestModalVisible}
+                onOk={handleRequestMaterial}
+                onCancel={() => setRequestModalVisible(false)}
+                okText="Gửi yêu cầu"
+                cancelText="Hủy"
+                destroyOnClose
+            >
+                <div style={{ marginBottom: 16 }}>
+                    <b>Nguyên phụ liệu: </b> {requestMaterial?.name} ({requestMaterial?.code})
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                    <b>Số lượng cần bổ sung:</b>
+                    <InputNumber style={{ width: '100%', marginTop: 8 }} min={1} value={requestQty} onChange={(val) => setRequestQty(Number(val))} />
+                </div>
+                <div>
+                    <b>Ghi chú/Lý do:</b>
+                    <Input.TextArea style={{ width: '100%', marginTop: 8 }} rows={3} value={requestNote} onChange={(e) => setRequestNote(e.target.value)} />
+                </div>
+            </Modal>
         </Modal>
     );
 };

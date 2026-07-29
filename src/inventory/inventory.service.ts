@@ -691,6 +691,26 @@ export class InventoryService {
     });
   }
 
+  async getUnlinkedIssues(pfoId: number) {
+    return this.goodsIssueRepo.find({
+      where: {
+        pfo_id: pfoId,
+        po_id: IsNull(),
+        type: 'OUTSOURCING',
+        status: In([GoodsIssueStatus.DRAFT, GoodsIssueStatus.CONFIRMED])
+      },
+      relations: ['items', 'items.material'],
+      order: { created_at: 'DESC' }
+    });
+  }
+
+  async linkGoodsIssueToPo(id: number, poId: number) {
+    const gi = await this.goodsIssueRepo.findOne({ where: { id } });
+    if (!gi) throw new BadRequestException('Phiếu xuất kho không tồn tại');
+    gi.po_id = poId;
+    return this.goodsIssueRepo.save(gi);
+  }
+
   async getGoodsIssueDetail(id: number) {
     const gi = await this.goodsIssueRepo.findOne({
       where: { id },
