@@ -97,8 +97,8 @@ const InventoryPage: React.FC = () => {
                 api.get('/inventory/shipping-carriers'),
                 api.get('/inventory/goods-issue'),
                 api.get('/suppliers'),
-                api.get('/purchasing/orders'),
-                api.get('/planning/pfo')
+                api.get('/purchasing'),
+                api.get('/planning')
             ]);
             setProducts(pRes.data);
             setMaterials(mRes.data);
