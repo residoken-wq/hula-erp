@@ -14,6 +14,8 @@ import {
 } from '@ant-design/icons';
 import { systemApi, blogsApi, websiteProjectsApi } from '@/lib/api';
 import ImageUploader from '@/components/ImageUploader';
+import ImageLibraryMultiPicker from '@/components/ImageLibraryMultiPicker';
+import { resolveImageUrl } from '@/components/ImageUploader';
 import dynamic from 'next/dynamic';
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
@@ -78,6 +80,8 @@ interface CategoryItem {
     title: string;
     image_url: string;
     slug: string;
+    brochure_images?: string[];
+    projects?: number[];
 }
 
 interface Milestone {
@@ -156,6 +160,7 @@ export default function AppearancePage() {
 
     // --- NEW: Featured Projects ---
     const [projectOptions, setProjectOptions] = useState<{ label: string, value: number }[]>([]);
+    const [openImagePickerFor, setOpenImagePickerFor] = useState<number | null>(null);
 
     // --- Nguồn Blog ---
     const [blogOptions, setBlogOptions] = useState<{ label: string, value: string }[]>([]);
@@ -548,9 +553,39 @@ export default function AppearancePage() {
                                         </div>
                                     </div>
                                 </div>
+                                <Divider style={{ margin: '16px 0' }} />
+                                <div>
+                                    <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 8 }}>E-Brochure (Lật trang - Max 15 hình)</label>
+                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                                        {cat.brochure_images?.map((url, imgIndex) => (
+                                            <div key={imgIndex} style={{ position: 'relative', width: 60, height: 60, border: '1px solid #ddd', borderRadius: 4, overflow: 'hidden' }}>
+                                                <img src={resolveImageUrl(url)} alt="brochure" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <Button size="small" type="primary" danger icon={<DeleteOutlined />} 
+                                                    style={{ position: 'absolute', top: 0, right: 0, padding: '0 4px', height: 20, fontSize: 10, minWidth: 20, borderRadius: '0 0 0 4px' }}
+                                                    onClick={() => setCategories(prev => prev.map((c, i) => i === idx ? { ...c, brochure_images: c.brochure_images?.filter((_, ji) => ji !== imgIndex) } : c))}
+                                                />
+                                            </div>
+                                        ))}
+                                        <Button type="dashed" style={{ width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setOpenImagePickerFor(idx)}>
+                                            <PlusOutlined />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div style={{ marginTop: 12 }}>
+                                    <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>Dự án liên quan (Footer Flipbook)</label>
+                                    <Select
+                                        mode="multiple"
+                                        allowClear
+                                        style={{ width: '100%' }}
+                                        placeholder="Chọn dự án liên quan"
+                                        options={projectOptions}
+                                        value={cat.projects}
+                                        onChange={(val) => setCategories(prev => prev.map((c, i) => i === idx ? { ...c, projects: val } : c))}
+                                    />
+                                </div>
                             </div>
                         ))}
-                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setCategories(prev => [...prev, { id: Date.now().toString(), icon: '📦', title: '', slug: '', image_url: '' }])}>Thêm danh mục</Button>
+                        <Button type="dashed" block size="small" icon={<PlusOutlined />} onClick={() => setCategories(prev => [...prev, { id: Date.now().toString(), icon: '📦', title: '', slug: '', image_url: '', brochure_images: [], projects: [] }])}>Thêm danh mục</Button>
                     </>
                 );
 
