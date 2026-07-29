@@ -661,7 +661,7 @@ export class InventoryService {
     return gi;
   }
 
-  async confirmGoodsIssue(id: number, updated_by: string = 'System', supplierId?: number) {
+  async confirmGoodsIssue(id: number, updated_by: string = 'System', body?: any) {
     const gi = await this.goodsIssueRepo.findOne({
       where: { id },
       relations: ['items', 'items.material']
@@ -669,8 +669,20 @@ export class InventoryService {
     if (!gi) throw new BadRequestException('Phiếu xuất kho không tồn tại');
     if (gi.status !== GoodsIssueStatus.DRAFT) throw new BadRequestException('Phiếu đã xử lý');
 
-    if (supplierId) {
-      gi.supplier_id = supplierId;
+    // Cập nhật số lượng và nhà gia công cho từng item
+    if (body?.items && body.items.length > 0) {
+      for (const inputItem of body.items) {
+        const matchedItem = gi.items.find(i => i.id === inputItem.id);
+        if (matchedItem) {
+          if (inputItem.quantity !== undefined) matchedItem.quantity = inputItem.quantity;
+          if (inputItem.supplier_id !== undefined) matchedItem.supplier_id = inputItem.supplier_id;
+          await this.giItemRepo.save(matchedItem);
+        }
+      }
+    }
+
+    if (body?.supplier_id) {
+      gi.supplier_id = body.supplier_id;
       await this.goodsIssueRepo.save(gi);
     }
 
@@ -689,9 +701,10 @@ export class InventoryService {
         );
 
         // [MỚI] Tự động cộng Tồn kho NPL cho NCC khi xuất kho giao NCC
-        if (gi.supplier_id && gi.type === 'OUTSOURCING') {
+        const actualSupplierId = item.supplier_id || gi.supplier_id;
+        if (actualSupplierId && gi.type === 'OUTSOURCING') {
           await this.adjustSupplierStock(
-            gi.supplier_id,
+            actualSupplierId,
             item.material_id,
             Number(item.quantity),
             SupplierTransactionType.RECEIVE_NPL,

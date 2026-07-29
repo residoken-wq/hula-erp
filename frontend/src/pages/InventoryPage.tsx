@@ -62,6 +62,12 @@ const InventoryPage: React.FC = () => {
     const [confirmReceiptForm] = Form.useForm();
     const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
 
+    // --- CONFIRM GOODS ISSUE MODAL STATE ---
+    const [isConfirmGiModalOpen, setIsConfirmGiModalOpen] = useState(false);
+    const [selectedGiForConfirm, setSelectedGiForConfirm] = useState<any>(null);
+    const [confirmGiItems, setConfirmGiItems] = useState<any[]>([]);
+    const [bulkSupplierId, setBulkSupplierId] = useState<number | null>(null);
+
     const [form] = Form.useForm();
 
 
@@ -241,6 +247,35 @@ const InventoryPage: React.FC = () => {
             fetchData();
         } catch (e) {
             message.error('Lỗi xác nhận xuất kho');
+        }
+    };
+
+    const openConfirmGiModal = (record: any) => {
+        setSelectedGiForConfirm(record);
+        setConfirmGiItems(record.items.map((i: any) => ({
+            id: i.id,
+            material_id: i.material_id,
+            material: i.material,
+            original_quantity: i.quantity,
+            quantity: i.quantity,
+            supplier_id: i.supplier_id || record.supplier_id || null
+        })));
+        setBulkSupplierId(record.supplier_id || null);
+        setIsConfirmGiModalOpen(true);
+    };
+
+    const handleConfirmGiSubmit = async () => {
+        if (!selectedGiForConfirm) return;
+        try {
+            await api.post(`/inventory/goods-issue/${selectedGiForConfirm.id}/confirm`, {
+                supplier_id: bulkSupplierId,
+                items: confirmGiItems
+            });
+            message.success('Đã xác nhận xuất kho!');
+            setIsConfirmGiModalOpen(false);
+            fetchData();
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi xác nhận xuất kho');
         }
     };
 
@@ -660,18 +695,7 @@ const InventoryPage: React.FC = () => {
                                     title: 'Thao tác', render: (r: any) => (
                                         <Space>
                                             {r.status === 'DRAFT' && (
-                                                <Popconfirm title="Xác nhận xuất kho (trừ tồn kho và cộng tồn NCC)?" onConfirm={async () => {
-                                                    try {
-                                                        const supId = selectedSuppliers[r.id] || r.supplier_id;
-                                                        await api.post(`/inventory/goods-issue/${r.id}/confirm`, { supplier_id: supId });
-                                                        message.success('Đã xác nhận xuất kho!');
-                                                        fetchData();
-                                                    } catch (e: any) {
-                                                        message.error(e.response?.data?.message || 'Lỗi xác nhận xuất kho');
-                                                    }
-                                                }}>
-                                                    <Button type="primary" size="small" icon={<CheckCircleOutlined />}>Xác nhận xuất</Button>
-                                                </Popconfirm>
+                                                <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => openConfirmGiModal(r)}>Xác nhận xuất</Button>
                                             )}
                                             {r.status === 'CONFIRMED' && (
                                                 <Popconfirm title="Đã giao đến NCC thành công?" onConfirm={async () => {
@@ -963,6 +987,89 @@ const InventoryPage: React.FC = () => {
                         />
                     )}
                 </Form>
+            </Modal>
+
+            {/* MODAL XÁC NHẬN XUẤT NPL */}
+            <Modal
+                title={`Xác nhận xuất kho NPL - ${selectedGiForConfirm?.code || ''}`}
+                open={isConfirmGiModalOpen}
+                onCancel={() => setIsConfirmGiModalOpen(false)}
+                onOk={handleConfirmGiSubmit}
+                width={900}
+                okText="Xác nhận"
+                cancelText="Hủy"
+            >
+                <div style={{ marginBottom: 16 }}>
+                    <span style={{ marginRight: 8, fontWeight: 'bold' }}>Gán nhanh nhà gia công:</span>
+                    <Select
+                        style={{ width: 250 }}
+                        placeholder="Chọn nhà gia công chung"
+                        allowClear
+                        showSearch
+                        optionFilterProp="children"
+                        value={bulkSupplierId}
+                        onChange={(val) => {
+                            setBulkSupplierId(val);
+                            setConfirmGiItems(prev => prev.map(item => ({ ...item, supplier_id: val })));
+                        }}
+                    >
+                        {suppliers.map(s => <Option key={s.id} value={s.id}>{s.name || s.supplier_name}</Option>)}
+                    </Select>
+                </div>
+                <Table
+                    dataSource={confirmGiItems}
+                    rowKey="id"
+                    size="small"
+                    pagination={false}
+                    columns={[
+                        { title: 'Tên NPL', dataIndex: ['material', 'name'] },
+                        { title: 'Mã NPL', dataIndex: ['material', 'code'] },
+                        { title: 'SL Yêu cầu', dataIndex: 'original_quantity', render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
+                        {
+                            title: 'Tồn kho',
+                            render: (_: any, r: any) => {
+                                const mat = materials.find(m => m.id === r.material_id);
+                                return <b>{mat ? Number(mat.quantity_in_stock || 0).toLocaleString() : '-'}</b>;
+                            }
+                        },
+                        {
+                            title: 'Thực cấp',
+                            width: 120,
+                            render: (_: any, r: any, index: number) => (
+                                <InputNumber
+                                    min={0}
+                                    value={r.quantity}
+                                    onChange={(val) => {
+                                        const newItems = [...confirmGiItems];
+                                        newItems[index].quantity = val || 0;
+                                        setConfirmGiItems(newItems);
+                                    }}
+                                />
+                            )
+                        },
+                        {
+                            title: 'Nhà gia công',
+                            width: 250,
+                            render: (_: any, r: any, index: number) => (
+                                <Select
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn NGC"
+                                    allowClear
+                                    showSearch
+                                    optionFilterProp="children"
+                                    value={r.supplier_id}
+                                    onChange={(val) => {
+                                        const newItems = [...confirmGiItems];
+                                        newItems[index].supplier_id = val;
+                                        setConfirmGiItems(newItems);
+                                    }}
+                                >
+                                    {suppliers.map(s => <Option key={s.id} value={s.id}>{s.name || s.supplier_name}</Option>)}
+                                </Select>
+                            )
+                        }
+                    ]}
+                />
             </Modal>
         </div>
     );

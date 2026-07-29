@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { GoodsIssue } from './goods-issue.entity';
 import { Material } from '../../materials/material.entity';
+import { Supplier } from '../../suppliers/supplier.entity';
 
 @Entity('goods_issue_items')
 export class GoodsIssueItem {
@@ -20,6 +21,14 @@ export class GoodsIssueItem {
 
     @Column({ nullable: true })
     material_id: number;
+
+    // Phân bổ nhà gia công từng NPL
+    @ManyToOne(() => Supplier, { nullable: true })
+    @JoinColumn({ name: 'supplier_id' })
+    supplier: Supplier;
+
+    @Column({ nullable: true })
+    supplier_id: number;
 
     @Column('decimal', { precision: 15, scale: 2 })
     quantity: number;
