@@ -125,6 +125,12 @@ export class InventoryController {
     return this.inventoryService.createGoodsIssue(body);
   }
 
+  @Put('goods-issue/:id')
+  @RequirePermission('INVENTORY', 'can_create')
+  async updateGoodsIssue(@Param('id') id: string, @Body() body: any) {
+    return this.inventoryService.updateGoodsIssue(Number(id), body);
+  }
+
   @Get('goods-issue')
   async getGoodsIssues(@Query('po_id') poId?: string, @Query('supplier_id') supplierId?: string) {
     const query: any = {};

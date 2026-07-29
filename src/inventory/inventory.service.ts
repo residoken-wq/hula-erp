@@ -640,6 +640,42 @@ export class InventoryService {
     return this.goodsIssueRepo.findOne({ where: { id: saved.id }, relations: ['items', 'items.material', 'supplier'] });
   }
 
+  async updateGoodsIssue(id: number, data: any) {
+    const gi = await this.goodsIssueRepo.findOne({ where: { id }, relations: ['items'] });
+    if (!gi) throw new BadRequestException('Phiếu xuất kho không tồn tại');
+    if (gi.status !== GoodsIssueStatus.DRAFT) throw new BadRequestException('Chỉ được sửa phiếu nháp');
+
+    if (data.note !== undefined) gi.note = data.note;
+    if (data.vehicle !== undefined) gi.vehicle = data.vehicle;
+    if (data.supplier_id !== undefined) gi.supplier_id = data.supplier_id;
+    if (data.type !== undefined) gi.type = data.type;
+    if (data.delivery_mode !== undefined) gi.delivery_mode = data.delivery_mode;
+    if (data.issue_date !== undefined) gi.issue_date = data.issue_date;
+
+    await this.goodsIssueRepo.save(gi);
+
+    if (data.items) {
+      // Xóa hết item cũ
+      if (gi.items && gi.items.length > 0) {
+        await this.giItemRepo.remove(gi.items);
+      }
+      // Tạo lại item mới
+      for (const item of data.items) {
+        const giItem = this.giItemRepo.create({
+          issue_id: gi.id,
+          material_id: item.material_id,
+          quantity: Number(item.quantity),
+          material_category: item.material_category || null,
+          note: item.note || null,
+          supplier_id: item.supplier_id || null
+        });
+        await this.giItemRepo.save(giItem);
+      }
+    }
+
+    return this.goodsIssueRepo.findOne({ where: { id }, relations: ['items', 'items.material', 'supplier'] });
+  }
+
   async getGoodsIssues(query?: { po_id?: number; supplier_id?: number }) {
     const where: any = {};
     if (query?.po_id) where.po_id = query.po_id;
