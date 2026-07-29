@@ -35,6 +35,8 @@ const InventoryPage: React.FC = () => {
     const [shippingCarriers, setShippingCarriers] = useState<any[]>([]); // <--- Shipping Carriers
     const [goodsIssues, setGoodsIssues] = useState<any[]>([]); // <--- Phiếu Xuất NPL
     const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]); // <--- POs
+    const [productionPlans, setProductionPlans] = useState<any[]>([]); // <--- PFOs
     const [selectedSuppliers, setSelectedSuppliers] = useState<Record<string, number>>({});
 
     const [searchText, setSearchText] = useState('');
@@ -72,6 +74,7 @@ const InventoryPage: React.FC = () => {
     const [isEditGiModalOpen, setIsEditGiModalOpen] = useState(false);
     const [selectedGiForEdit, setSelectedGiForEdit] = useState<any>(null);
     const [editGiItems, setEditGiItems] = useState<any[]>([]);
+    const [editGiForm] = Form.useForm();
 
     const [form] = Form.useForm();
 
@@ -83,7 +86,7 @@ const InventoryPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [pRes, mRes, sRes, hRes, grRes, dRes, cdRes, cRes, giRes, supRes] = await Promise.all([
+            const [pRes, mRes, sRes, hRes, grRes, dRes, cdRes, cRes, giRes, supRes, poRes, pfoRes] = await Promise.all([
                 api.get('/products'),
                 api.get('/materials'),
                 api.get('/inventory/stocks'),
@@ -93,7 +96,9 @@ const InventoryPage: React.FC = () => {
                 api.get('/inventory/deliveries/completed'),
                 api.get('/inventory/shipping-carriers'),
                 api.get('/inventory/goods-issue'),
-                api.get('/suppliers')
+                api.get('/suppliers'),
+                api.get('/purchasing/orders'),
+                api.get('/planning/pfo')
             ]);
             setProducts(pRes.data);
             setMaterials(mRes.data);
@@ -105,6 +110,8 @@ const InventoryPage: React.FC = () => {
             setShippingCarriers(cRes.data || []);
             setGoodsIssues(giRes.data || []);
             setSuppliers(supRes.data || []);
+            setPurchaseOrders(poRes.data || []);
+            setProductionPlans(pfoRes.data || []);
         } catch (error) {
             message.error('Đã xảy ra lỗi khi tải dữ liệu');
         } finally {
@@ -295,13 +302,22 @@ const InventoryPage: React.FC = () => {
             note: i.note,
             supplier_id: i.supplier_id || record.supplier_id || null
         })));
+        editGiForm.setFieldsValue({
+            pfo_id: record.pfo_id,
+            po_id: record.po_id,
+            supplier_id: record.supplier_id,
+            note: record.note,
+            vehicle: record.vehicle
+        });
         setIsEditGiModalOpen(true);
     };
 
     const handleEditGiSubmit = async () => {
         if (!selectedGiForEdit) return;
         try {
+            const values = await editGiForm.validateFields();
             await api.put(`/inventory/goods-issue/${selectedGiForEdit.id}`, {
+                ...values,
                 items: editGiItems
             });
             message.success('Đã cập nhật Phiếu xuất kho!');
@@ -728,11 +744,9 @@ const InventoryPage: React.FC = () => {
                                     title: 'Thao tác', render: (r: any) => (
                                         <Space>
                                             {r.status === 'DRAFT' && (
-                                                <>
-                                                    <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => openConfirmGiModal(r)}>Xác nhận xuất</Button>
-                                                    <Button size="small" icon={<EditOutlined />} onClick={() => openEditGiModal(r)}>Sửa</Button>
-                                                </>
+                                                <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => openConfirmGiModal(r)}>Xác nhận xuất</Button>
                                             )}
+                                            <Button size="small" icon={<EditOutlined />} onClick={() => openEditGiModal(r)}>Sửa</Button>
                                             {r.status === 'CONFIRMED' && (
                                                 <Popconfirm title="Đã giao đến NCC thành công?" onConfirm={async () => {
                                                     try {
@@ -1114,35 +1128,75 @@ const InventoryPage: React.FC = () => {
                 open={isEditGiModalOpen}
                 onCancel={() => setIsEditGiModalOpen(false)}
                 onOk={handleEditGiSubmit}
-                width={800}
+                width={900}
                 okText="Lưu thay đổi"
                 cancelText="Hủy"
             >
-                <div style={{ marginBottom: 16 }}>
-                    <Select
-                        showSearch
-                        style={{ width: 300, marginRight: 8 }}
-                        placeholder="Thêm NPL vào phiếu..."
-                        optionFilterProp="children"
-                        onChange={(val) => {
-                            const mat = materials.find(m => m.id === val);
-                            if (mat) {
-                                setEditGiItems([...editGiItems, {
-                                    key: `new_${Date.now()}`,
-                                    material_id: mat.id,
-                                    material: mat,
-                                    quantity: 1,
-                                    note: ''
-                                }]);
-                            }
-                        }}
-                        value={null}
-                    >
-                        {materials.map(m => (
-                            <Option key={m.id} value={m.id}>{m.code} - {m.name}</Option>
-                        ))}
-                    </Select>
-                </div>
+                <Form form={editGiForm} layout="vertical">
+                    <Row gutter={16}>
+                        <Col span={8}>
+                            <Form.Item name="pfo_id" label="Lệnh SX (PFO)">
+                                <Select showSearch allowClear optionFilterProp="children" placeholder="Chọn Lệnh SX">
+                                    {productionPlans.map(p => <Option key={p.id} value={p.id}>{p.code}</Option>)}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                            <Form.Item name="po_id" label="PO Gia công">
+                                <Select showSearch allowClear optionFilterProp="children" placeholder="Chọn PO">
+                                    {purchaseOrders.map(p => <Option key={p.id} value={p.id}>{p.order_code}</Option>)}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                            <Form.Item name="supplier_id" label="Nhà Gia công (Mặc định)">
+                                <Select showSearch allowClear optionFilterProp="children" placeholder="Chọn NGC">
+                                    {suppliers.map(s => <Option key={s.id} value={s.id}>{s.name || s.supplier_name}</Option>)}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="note" label="Ghi chú">
+                                <Input.TextArea rows={2} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="vehicle" label="Phương tiện/Biển số">
+                                <Input />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </Form>
+                
+                {selectedGiForEdit?.status === 'DRAFT' ? (
+                    <div style={{ marginBottom: 16 }}>
+                        <Select
+                            showSearch
+                            style={{ width: 300, marginRight: 8 }}
+                            placeholder="Thêm NPL vào phiếu..."
+                            optionFilterProp="children"
+                            onChange={(val) => {
+                                const mat = materials.find(m => m.id === val);
+                                if (mat) {
+                                    setEditGiItems([...editGiItems, {
+                                        key: `new_${Date.now()}`,
+                                        material_id: mat.id,
+                                        material: mat,
+                                        quantity: 1,
+                                        note: ''
+                                    }]);
+                                }
+                            }}
+                            value={null}
+                        >
+                            {materials.map(m => (
+                                <Option key={m.id} value={m.id}>{m.code} - {m.name}</Option>
+                            ))}
+                        </Select>
+                    </div>
+                ) : (
+                    <Alert type="warning" message="Phiếu đã chốt, không thể thay đổi danh sách vật tư và số lượng" style={{ marginBottom: 16 }} />
+                )}
                 <Table
                     dataSource={editGiItems}
                     rowKey="key"
@@ -1159,6 +1213,7 @@ const InventoryPage: React.FC = () => {
                                     min={0.01}
                                     step={0.01}
                                     value={r.quantity}
+                                    disabled={selectedGiForEdit?.status !== 'DRAFT'}
                                     onChange={(val) => {
                                         const newItems = [...editGiItems];
                                         newItems[index].quantity = val || 0;
@@ -1175,6 +1230,7 @@ const InventoryPage: React.FC = () => {
                                     danger
                                     size="small"
                                     icon={<DeleteOutlined />}
+                                    disabled={selectedGiForEdit?.status !== 'DRAFT'}
                                     onClick={() => {
                                         const newItems = [...editGiItems];
                                         newItems.splice(index, 1);

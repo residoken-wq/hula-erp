@@ -643,18 +643,21 @@ export class InventoryService {
   async updateGoodsIssue(id: number, data: any) {
     const gi = await this.goodsIssueRepo.findOne({ where: { id }, relations: ['items'] });
     if (!gi) throw new BadRequestException('Phiếu xuất kho không tồn tại');
-    if (gi.status !== GoodsIssueStatus.DRAFT) throw new BadRequestException('Chỉ được sửa phiếu nháp');
 
+    // Có thể cập nhật metadata cho mọi trạng thái
     if (data.note !== undefined) gi.note = data.note;
     if (data.vehicle !== undefined) gi.vehicle = data.vehicle;
     if (data.supplier_id !== undefined) gi.supplier_id = data.supplier_id;
+    if (data.pfo_id !== undefined) gi.pfo_id = data.pfo_id;
+    if (data.po_id !== undefined) gi.po_id = data.po_id;
     if (data.type !== undefined) gi.type = data.type;
     if (data.delivery_mode !== undefined) gi.delivery_mode = data.delivery_mode;
     if (data.issue_date !== undefined) gi.issue_date = data.issue_date;
 
     await this.goodsIssueRepo.save(gi);
 
-    if (data.items) {
+    // CHỈ CHO PHÉP sửa danh sách NPL nếu phiếu còn nháp
+    if (data.items && gi.status === GoodsIssueStatus.DRAFT) {
       // Xóa hết item cũ
       if (gi.items && gi.items.length > 0) {
         await this.giItemRepo.remove(gi.items);
