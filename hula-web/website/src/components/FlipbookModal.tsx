@@ -29,7 +29,7 @@ export default function FlipbookModal({ isOpen, onClose, images, projects }: Fli
 
     useEffect(() => {
         if (isOpen && projects && projects.length > 0) {
-            const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com/api') + '/projects?limit=100';
+            const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://erp.nemmamnon.com/api') + '/public/projects?limit=100';
             fetch(apiUrl)
                 .then(res => res.json())
                 .then(data => {
@@ -68,15 +68,15 @@ export default function FlipbookModal({ isOpen, onClose, images, projects }: Fli
             {/* Flipbook Container */}
             <div className="flex-1 w-full max-w-6xl flex flex-col items-center justify-center relative">
                 {images && images.length > 0 ? (
-                    <div className="relative w-full max-w-4xl flex items-center justify-center mt-4">
+                    <div className="relative w-full max-w-[1024px] flex items-center justify-center mt-4">
                         <HTMLFlipBook 
-                            width={800} 
-                            height={800} 
+                            width={1024} 
+                            height={1024} 
                             size="stretch"
                             minWidth={300}
-                            maxWidth={1000}
+                            maxWidth={1024}
                             minHeight={300}
-                            maxHeight={1000}
+                            maxHeight={1024}
                             maxShadowOpacity={0.5}
                             showCover={true}
                             mobileScrollSupport={true}
