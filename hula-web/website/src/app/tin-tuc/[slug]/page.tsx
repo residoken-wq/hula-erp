@@ -290,9 +290,9 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
                                     )}
                                 </div>
                                 <div className="p-4">
-                                    <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 line-clamp-2">
+                                    <h5 className="font-semibold text-gray-900 group-hover:text-primary-600 line-clamp-2">
                                         {related.title}
-                                    </h3>
+                                    </h5>
                                 </div>
                             </Link>
                         ))}
