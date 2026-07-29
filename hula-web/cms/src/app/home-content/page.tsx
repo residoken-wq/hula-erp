@@ -5,6 +5,8 @@ import AdminLayout from '@/components/AdminLayout';
 import { Form, Input, InputNumber, Switch, Button, message, Spin, Collapse, Row, Col, Divider, Space, Radio, Select, Rate, Card, Tooltip, Tabs, Modal } from 'antd';
 import { SaveOutlined, PlusOutlined, DeleteOutlined, SettingOutlined, DesktopOutlined, HomeOutlined, BgColorsOutlined, EyeOutlined, MobileOutlined, LinkOutlined, GlobalOutlined, ClockCircleOutlined, ToolOutlined, RightOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 import ImageUploader from '@/components/ImageUploader';
+import ImageLibraryMultiPicker from '@/components/ImageLibraryMultiPicker';
+import { resolveImageUrl } from '@/components/ImageUploader';
 import { systemApi, websiteProjectsApi } from '@/lib/api';
 import { List } from 'antd';
 
@@ -38,6 +40,8 @@ interface CategoryItem {
     title: string;
     image_url: string;
     slug: string;
+    brochure_images?: string[];
+    projects?: number[];
 }
 
 interface Milestone {
@@ -139,6 +143,7 @@ export default function HomeContentPage() {
 
     // --- NEW: Featured Projects ---
     const [projectOptions, setProjectOptions] = useState<{label: string, value: number}[]>([]);
+    const [openImagePickerFor, setOpenImagePickerFor] = useState<number | null>(null);
 
     // --- NEW: Footer ---
     const [footerQuickLinks, setFooterQuickLinks] = useState<FooterLink[]>([
@@ -391,16 +396,58 @@ export default function HomeContentPage() {
                                 </div>
                             </div>
                             <div style={{ marginTop: 12 }}>
-                                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>Hình ảnh (tùy chọn, thay thế icon)</label>
+                                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>Hình ảnh đại diện (tùy chọn, thay thế icon)</label>
                                 <ImageUploader simple value={cat.image_url} onChange={(val: any) => setCategories(prev => prev.map((c: CategoryItem, i: number) => i === index ? { ...c, image_url: typeof val === 'string' ? val : val?.url || '' } : c))} hint="📐 Vuông 400x400px" />
+                            </div>
+                            <Divider style={{ margin: '16px 0' }} />
+                            <div>
+                                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 8 }}>E-Brochure (Lật trang - Max 15 hình)</label>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                                    {cat.brochure_images?.map((url, imgIndex) => (
+                                        <div key={imgIndex} style={{ position: 'relative', width: 60, height: 60, border: '1px solid #ddd', borderRadius: 4, overflow: 'hidden' }}>
+                                            <img src={resolveImageUrl(url)} alt="brochure" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <Button size="small" type="primary" danger icon={<DeleteOutlined />} 
+                                                style={{ position: 'absolute', top: 0, right: 0, padding: '0 4px', height: 20, fontSize: 10, minWidth: 20, borderRadius: '0 0 0 4px' }}
+                                                onClick={() => setCategories(prev => prev.map((c, i) => i === index ? { ...c, brochure_images: c.brochure_images?.filter((_, ji) => ji !== imgIndex) } : c))}
+                                            />
+                                        </div>
+                                    ))}
+                                    <Button type="dashed" style={{ width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setOpenImagePickerFor(index)}>
+                                        <PlusOutlined />
+                                    </Button>
+                                </div>
+                            </div>
+                            <div style={{ marginTop: 12 }}>
+                                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>Dự án liên quan (Footer Flipbook)</label>
+                                <Select
+                                    mode="multiple"
+                                    allowClear
+                                    style={{ width: '100%' }}
+                                    placeholder="Chọn dự án liên quan"
+                                    options={projectOptions}
+                                    value={cat.projects}
+                                    onChange={(val) => setCategories(prev => prev.map((c, i) => i === index ? { ...c, projects: val } : c))}
+                                />
                             </div>
                         </div>
                     ))}
                     {categories.length < 8 && (
-                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setCategories(prev => [...prev, { id: Date.now().toString(), icon: '📦', title: '', image_url: '', slug: '' }])}>
+                        <Button type="dashed" block icon={<PlusOutlined />} onClick={() => setCategories(prev => [...prev, { id: Date.now().toString(), icon: '📦', title: '', image_url: '', slug: '', brochure_images: [], projects: [] }])}>
                             Thêm danh mục ({categories.length}/8)
                         </Button>
                     )}
+                    
+                    <ImageLibraryMultiPicker
+                        open={openImagePickerFor !== null}
+                        max={15 - (openImagePickerFor !== null ? (categories[openImagePickerFor]?.brochure_images?.length || 0) : 0)}
+                        onCancel={() => setOpenImagePickerFor(null)}
+                        onConfirm={(urls) => {
+                            if (openImagePickerFor !== null) {
+                                setCategories(prev => prev.map((c, i) => i === openImagePickerFor ? { ...c, brochure_images: [...(c.brochure_images || []), ...urls].slice(0, 15) } : c));
+                                setOpenImagePickerFor(null);
+                            }
+                        }}
+                    />
                 </div>
             ),
         },
