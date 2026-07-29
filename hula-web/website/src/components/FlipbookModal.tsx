@@ -142,6 +142,7 @@ export default function FlipbookModal({ isOpen, onClose, images, projects }: Fli
                                         alt={p.title} 
                                         fill 
                                         className="object-cover group-hover:scale-110 transition-transform duration-500" 
+                                        unoptimized
                                     />
                                 </div>
                                 <h5 className="text-white text-xs md:text-sm font-medium line-clamp-2 group-hover:text-primary-400 transition-colors">
