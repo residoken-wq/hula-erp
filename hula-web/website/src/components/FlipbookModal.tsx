@@ -24,7 +24,7 @@ interface FlipbookModalProps {
 export default function FlipbookModal({ isOpen, onClose, images, projects }: FlipbookModalProps) {
     const [page, setPage] = useState(0);
     const bookRef = useRef<any>(null);
-    const [playFlip] = useSound('/sounds/page-flip.mp3', { volume: 0.5 });
+    const [playFlip] = useSound('/page-flip.mp3', { volume: 0.5 });
     const [projectDetails, setProjectDetails] = useState<Project[]>([]);
 
     useEffect(() => {
@@ -78,7 +78,7 @@ export default function FlipbookModal({ isOpen, onClose, images, projects }: Fli
                             minHeight={300}
                             maxHeight={1024}
                             maxShadowOpacity={0.5}
-                            showCover={true}
+                            showCover={false}
                             mobileScrollSupport={true}
                             onFlip={onFlip}
                             className="flipbook-wrapper mx-auto"
