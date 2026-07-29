@@ -555,10 +555,34 @@ export default function AppearancePage() {
                                 </div>
                                 <Divider style={{ margin: '16px 0' }} />
                                 <div>
-                                    <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 8 }}>E-Brochure (Lật trang - Max 15 hình)</label>
+                                    <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 8 }}>E-Brochure (Lật trang - Max 15 hình) <span style={{ color: '#888', fontWeight: 'normal' }}>(Kéo thả để sắp xếp)</span></label>
                                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                                         {cat.brochure_images?.map((url, imgIndex) => (
-                                            <div key={imgIndex} style={{ position: 'relative', width: 60, height: 60, border: '1px solid #ddd', borderRadius: 4, overflow: 'hidden' }}>
+                                            <div 
+                                                key={url + imgIndex} 
+                                                draggable 
+                                                onDragStart={(e) => {
+                                                    e.dataTransfer.setData('text/plain', `${idx}-${imgIndex}`);
+                                                }}
+                                                onDragOver={(e) => e.preventDefault()}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    const data = e.dataTransfer.getData('text/plain');
+                                                    if (!data) return;
+                                                    const [dragCatIdx, dragImgIdx] = data.split('-').map(Number);
+                                                    if (dragCatIdx !== idx || dragImgIdx === imgIndex) return;
+                                                    
+                                                    setCategories(prev => {
+                                                        const newCats = [...prev];
+                                                        const newImages = [...(newCats[idx].brochure_images || [])];
+                                                        const [dragged] = newImages.splice(dragImgIdx, 1);
+                                                        newImages.splice(imgIndex, 0, dragged);
+                                                        newCats[idx] = { ...newCats[idx], brochure_images: newImages };
+                                                        return newCats;
+                                                    });
+                                                }}
+                                                style={{ position: 'relative', width: 60, height: 60, border: '1px solid #ddd', borderRadius: 4, overflow: 'hidden', cursor: 'grab' }}
+                                            >
                                                 <img src={resolveImageUrl(url)} alt="brochure" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 <Button size="small" type="primary" danger icon={<DeleteOutlined />} 
                                                     style={{ position: 'absolute', top: 0, right: 0, padding: '0 4px', height: 20, fontSize: 10, minWidth: 20, borderRadius: '0 0 0 4px' }}
