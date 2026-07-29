@@ -1327,6 +1327,18 @@ export default function AppearancePage() {
                     Lưu tất cả thay đổi
                 </Button>
             </div>
+
+            <ImageLibraryMultiPicker
+                open={openImagePickerFor !== null}
+                max={15 - (openImagePickerFor !== null ? (categories[openImagePickerFor]?.brochure_images?.length || 0) : 0)}
+                onCancel={() => setOpenImagePickerFor(null)}
+                onConfirm={(urls: string[]) => {
+                    if (openImagePickerFor !== null) {
+                        setCategories(prev => prev.map((c, i) => i === openImagePickerFor ? { ...c, brochure_images: [...(c.brochure_images || []), ...urls].slice(0, 15) } : c));
+                        setOpenImagePickerFor(null);
+                    }
+                }}
+            />
         </AdminLayout>
     );
 }
