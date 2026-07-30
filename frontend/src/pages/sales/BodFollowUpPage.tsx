@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Tag, Tooltip, Progress, Drawer, Button, Form, Checkbox, message, Space, Card, Typography, Input, DatePicker, Select, Tabs, Statistic } from 'antd';
-import { EditOutlined, SearchOutlined, CalendarOutlined } from '@ant-design/icons';
+import { EditOutlined, SearchOutlined, CalendarOutlined, DownloadOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import RichTextEditor from '../../components/common/RichTextEditor';
 import useMobile from '../../hooks/useMobile';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 dayjs.extend(isBetween);
 
@@ -397,6 +399,118 @@ export default function BodFollowUpPage() {
         }
     ];
 
+    const handleExportExcel = async () => {
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('BOD_FollowUp');
+
+        // Định dạng cột (Header + Độ rộng)
+        sheet.columns = [
+            { header: 'Mã Đơn', key: 'order_code', width: 15 },
+            { header: 'Khách Hàng', key: 'customer', width: 25 },
+            { header: 'Ngày Tạo', key: 'created_date', width: 15 },
+            { header: 'Ngày Cọc', key: 'deposit_date', width: 15 },
+            { header: 'Ngày Giao', key: 'delivery_date', width: 15 },
+            { header: 'Doanh Thu', key: 'revenue', width: 15 },
+            { header: 'Đã Thu', key: 'paid', width: 15 },
+            { header: 'Còn Lại', key: 'remain', width: 15 },
+            { header: 'Trạng Thái', key: 'status', width: 15 },
+            { header: 'Thanh Toán (%)', key: 'payment_pct', width: 15 },
+            { header: 'Công Nợ', key: 'debt', width: 30 },
+            { header: 'Chăm sóc', key: 'care', width: 30 },
+            { header: 'THIẾT KẾ (Làm túi)', key: 'design', width: 35 },
+            { header: 'NGUYÊN PHỤ LIỆU', key: 'npl', width: 35 },
+            { header: 'SẢN XUẤT', key: 'production', width: 35 },
+            { header: 'Chụp mẫu', key: 'photo', width: 30 },
+            { header: 'Giao hàng', key: 'delivery', width: 30 },
+            { header: 'Khác', key: 'other', width: 30 },
+            { header: 'Khác 2', key: 'other2', width: 30 },
+        ];
+
+        // Format header row
+        sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1890FF' } };
+        sheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+        const getStatusLabel = (t: string) => {
+            if (t === 'LEAD') return 'Lead';
+            if (t === 'QUOTATION') return 'Báo Giá';
+            if (t === 'SO_PENDING') return 'Mới/Chưa cọc';
+            if (t === 'SAMPLE_APPROVED') return 'Đã Duyệt';
+            if (t === 'DEPOSITED') return 'Đã Cọc';
+            if (t === 'IN_PRODUCTION') return 'Đang SX';
+            if (t === 'MANUFACTURING_COMPLETED') return 'Xong SX';
+            if (t === 'DELIVERED') return 'Đã Giao';
+            return t || '';
+        };
+
+        const getPlainText = (htmlStr: string) => htmlStr ? htmlStr.replace(/<[^>]*>?/gm, '') : '';
+
+        // Đổ dữ liệu
+        filteredData.forEach(r => {
+            const fup = r.bod_follow_up || {};
+            const total = Number(r.total_amount) || 0;
+            const paid = Number(r.paid_amount) || 0;
+            const remain = total - paid;
+            const pct = total > 0 ? Math.min(Math.round((paid / total) * 100), 100) : 0;
+
+            const designCbs = (fup.design_checkboxes || []) as string[];
+            const designLabels: any = { 'design': 'Design', 'approve': 'Duyệt in', 'print': 'Đặt in', 'sew': 'Đạt may' };
+            const designStr = (designCbs.length > 0 ? `[${designCbs.map(x => designLabels[x] || x).join(', ')}] ` : '') + getPlainText(fup.design_note);
+
+            const nplCbs = (fup.npl_checkboxes || []) as string[];
+            const nplLabels: any = { 'fabric': 'Vải', 'quilt': 'Gòn', 'accessories': 'Phụ kiện' };
+            const nplStr = (nplCbs.length > 0 ? `[${nplCbs.map(x => nplLabels[x] || x).join(', ')}] ` : '') + getPlainText(fup.npl_note);
+
+            const prodCbs = (fup.prod_checkboxes || []) as string[];
+            const prodLabels: any = { 'fabric': 'Lấy vải', 'quilt': 'Chần gòn', 'embroider': 'Thêu', 'process': 'Gia công' };
+            const prodStr = (prodCbs.length > 0 ? `[${prodCbs.map(x => prodLabels[x] || x).join(', ')}] ` : '') + getPlainText(fup.prod_note);
+
+            const row = sheet.addRow({
+                order_code: r.order_code,
+                customer: r.customer?.name || r.customer_name || 'Khách lẻ',
+                created_date: r.order_date || r.created_at ? dayjs(r.order_date || r.created_at).format('DD/MM/YYYY') : '',
+                deposit_date: r.deposit_date ? dayjs(r.deposit_date).format('DD/MM/YYYY') : '',
+                delivery_date: r.delivery_date ? dayjs(r.delivery_date).format('DD/MM/YYYY') : '',
+                revenue: total,
+                paid: paid,
+                remain: remain,
+                status: getStatusLabel(r.status),
+                payment_pct: `${pct}%`,
+                debt: getPlainText(fup.debt_note),
+                care: getPlainText(fup.care_note),
+                design: designStr,
+                npl: nplStr,
+                production: prodStr,
+                photo: getPlainText(fup.photo_note),
+                delivery: getPlainText(fup.delivery_note),
+                other: getPlainText(fup.other_note),
+                other2: getPlainText(fup.other2_note),
+            });
+
+            // Format cell text wrap and alignments
+            row.alignment = { vertical: 'middle', wrapText: true };
+            row.getCell('revenue').numFmt = '#,##0';
+            row.getCell('paid').numFmt = '#,##0';
+            row.getCell('remain').numFmt = '#,##0';
+        });
+
+        // Add border for all cells
+        sheet.eachRow((row) => {
+            row.eachCell((cell) => {
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            });
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `BOD_FollowUp_${dayjs().format('YYYYMMDD_HHmm')}.xlsx`);
+    };
+
     const drawerTitleMap: Record<string, string> = {
         'care': 'Cập nhật Chăm sóc khách hàng',
         'design': 'Cập nhật Tiến độ Thiết kế & Làm túi',
@@ -488,9 +602,12 @@ export default function BodFollowUpPage() {
             </div>
 
             <Card bodyStyle={{ padding: '16px 24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', marginBottom: 16, gap: 12 }}>
                     <Title level={4} style={{ margin: 0, color: '#fa8c16' }}>BOD Follow Up: Tiến độ Công việc</Title>
-                    <Input prefix={<SearchOutlined />} placeholder="Tìm mã, tên khách..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 250 }} />
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <Input prefix={<SearchOutlined />} placeholder="Tìm mã, tên khách..." value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: isMobile ? '100%' : 250 }} />
+                        <Button icon={<DownloadOutlined />} onClick={handleExportExcel} type="primary" style={{ width: isMobile ? '100%' : 'auto' }}>Xuất Excel</Button>
+                    </div>
                 </div>
 
                 <Tabs
