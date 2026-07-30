@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, IsNull } from 'typeorm';
 import { StockHistory } from './stock-history.entity';
 import { InventoryStock } from './inventory-stock.entity';
 import { GoodsReceipt, GoodsReceiptStatus } from './entities/goods-receipt.entity';
@@ -13,7 +13,7 @@ import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { SalesDelivery } from '../sales/sales-delivery.entity';
 import { ProductsService } from '../products/products.service';
-import { GoodsIssue, GoodsIssueStatus } from './entities/goods-issue.entity';
+import { GoodsIssue, GoodsIssueStatus, GoodsIssueType } from './entities/goods-issue.entity';
 import { GoodsIssueItem } from './entities/goods-issue-item.entity';
 import { SupplierStock } from './entities/supplier-stock.entity';
 import { SupplierTransaction, SupplierTransactionType } from './entities/supplier-transaction.entity';
@@ -696,7 +696,7 @@ export class InventoryService {
       where: {
         pfo_id: pfoId,
         po_id: IsNull(),
-        type: 'OUTSOURCING',
+        type: GoodsIssueType.OUTSOURCING,
         status: In([GoodsIssueStatus.DRAFT, GoodsIssueStatus.CONFIRMED])
       },
       relations: ['items', 'items.material'],
