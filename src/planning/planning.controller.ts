@@ -34,8 +34,12 @@ export class PlanningController {
   }
 
   @Post('pfo/generate')
-  generatePfo(@Body() b: any) {
-    return this.demandSvc.generatePfo(b);
+  async generatePfo(@Body() b: any) {
+    const pfo = await this.demandSvc.generatePfo(b);
+    if (pfo && pfo.id) {
+        await this.bomSvc.calculateMaterialRequirements(pfo.id);
+    }
+    return pfo;
   }
 
   // --- PFO EXECUTION APIs (Gate 6) - static path ---
