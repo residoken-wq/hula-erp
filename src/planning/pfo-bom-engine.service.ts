@@ -90,12 +90,13 @@ export class PfoBomEngineService {
 
                     const pType = targetProd.product_type ? targetProd.product_type.toUpperCase() : 'STANDARD';
 
-                    // 1. Nổ components nếu là COMBO hoặc SEMI_FINISHED
-                    if (pType === 'COMBO' || pType === 'SEMI_FINISHED') {
-                        const components = await this.componentRepo.find({
-                            where: { parent_product: { id: targetProd.id } },
-                            relations: ['child_product']
-                        });
+                    // 1. Nổ components nếu có (hỗ trợ COMBO, SEMI_FINISHED hoặc sản phẩm bị cấu hình thiếu product_type nhưng có component)
+                    const components = await this.componentRepo.find({
+                        where: { parent_product: { id: targetProd.id } },
+                        relations: ['child_product']
+                    });
+
+                    if (components && components.length > 0) {
                         for (const comp of components) {
                             if (comp.child_product) {
                                 queue.push({
@@ -120,7 +121,8 @@ export class PfoBomEngineService {
                         }
                     }
 
-                    // 3. Nếu là STANDARD hoặc SEMI_FINISHED -> Nổ vật tư NPL
+                    // 3. Nếu KHÔNG phải COMBO -> Nổ vật tư NPL
+                    // (Lưu ý: Nếu một sản phẩm vừa có component vừa có BOM vật tư riêng thì BOM vật tư vẫn được nổ nếu nó ko phải là 'COMBO' thuần túy)
                     if (pType !== 'COMBO') {
                         const boms = await this.bomRepo.find({
                             where: { product_id: targetProd.id },
@@ -129,6 +131,7 @@ export class PfoBomEngineService {
 
                         for (const bom of boms) {
                             if (!bom.material_id) continue;
+
                             
                             const rawQty = current.multiplier * Number(bom.quantity || 0);
                             const waste = Number(bom.waste_percent || 0);
@@ -236,11 +239,12 @@ export class PfoBomEngineService {
                         const tp = await this.productRepo.findOne({ where: { id: curr.productId } });
                         if (!tp) continue;
                         
-                        if (tp.product_type && tp.product_type.toUpperCase() === 'COMBO') {
-                            const comps = await this.componentRepo.find({
-                                where: { parent_product: { id: tp.id } },
-                                relations: ['child_product']
-                            });
+                        const comps = await this.componentRepo.find({
+                            where: { parent_product: { id: tp.id } },
+                            relations: ['child_product']
+                        });
+
+                        if (comps && comps.length > 0) {
                             for (const c of comps) {
                                 if (c.child_product) {
                                     q.push({

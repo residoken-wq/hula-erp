@@ -89,6 +89,7 @@ export class PfoDemandService {
                 'sales_order.items.product.boms.material',
                 'sales_order.items.product.components',
                 'sales_order.items.product.components.child_product',
+                'sales_order.items.product.components.child_product.logistics',
                 'sales_order.items.product.components.child_product.boms',
                 'sales_order.items.product.components.child_product.boms.material',
                 'material_requirements',
@@ -115,6 +116,7 @@ export class PfoDemandService {
                     'items.product.boms.material',
                     'items.product.components',
                     'items.product.components.child_product',
+                    'items.product.components.child_product.logistics',
                     'items.product.components.child_product.boms',
                     'items.product.components.child_product.boms.material'
                 ]
