@@ -264,7 +264,7 @@ export class PurchasingService {
         }
     }
 
-    // --- TÍNH TOÁN NPL CẦN THIẾT CHO ĐƠN GIA CÔNG ---
+    // --- TÍNH TOÁN NPL VÀ BTP CẦN THIẾT CHO ĐƠN GIA CÔNG ---
     async getOutsourcingMaterials(poId: number) {
         const po = await this.poRepo.findOne({ where: { id: poId }, relations: ['items', 'items.product'] });
         if (!po || po.type !== POType.OUTSOURCING) return [];
@@ -277,10 +277,11 @@ export class PurchasingService {
             }
         }
 
-        const materialNeeds = new Map<number, any>();
+        const materialNeeds = new Map<string, any>();
 
         for (const item of po.items) {
             if (item.product_id && item.product?.sku) {
+                // 1. Lấy Vật tư NPL (từ BOM)
                 const boms = await this.productsService.getBomByProductSku(item.product.sku);
                 for (const bom of boms) {
                     if (bom.material) {
@@ -293,12 +294,14 @@ export class PurchasingService {
                             reserved_for_plan = true;
                         }
 
-                        if (materialNeeds.has(matId)) {
-                            const exist = materialNeeds.get(matId);
+                        const key = `MAT_${matId}`;
+                        if (materialNeeds.has(key)) {
+                            const exist = materialNeeds.get(key);
                             exist.quantity += needQty;
                             if (reserved_for_plan) exist.reserved_for_plan = true;
                         } else {
-                            materialNeeds.set(matId, {
+                            materialNeeds.set(key, {
+                                type: 'MATERIAL',
                                 material_id: matId,
                                 code: bom.material.code,
                                 name: bom.material.name,
@@ -306,6 +309,36 @@ export class PurchasingService {
                                 quantity: needQty,
                                 stock: Number(bom.material.quantity_in_stock || 0),
                                 reserved_for_plan: reserved_for_plan
+                            });
+                        }
+                    }
+                }
+
+                // 2. Lấy Bán Thành Phẩm (từ Components)
+                const components = await this.poRepo.manager.find('ProductComponent', {
+                    where: { parent_product: { id: item.product_id } },
+                    relations: ['child_product']
+                }) as any[];
+                
+                for (const comp of components) {
+                    if (comp.child_product && comp.child_product.product_type === 'SEMI_FINISHED') {
+                        const prodId = comp.child_product.id;
+                        const needQty = Number(comp.quantity) * Number(item.quantity);
+                        
+                        const key = `PROD_${prodId}`;
+                        if (materialNeeds.has(key)) {
+                            const exist = materialNeeds.get(key);
+                            exist.quantity += needQty;
+                        } else {
+                            materialNeeds.set(key, {
+                                type: 'SEMI_FINISHED',
+                                product_id: prodId,
+                                code: comp.child_product.sku,
+                                name: comp.child_product.name,
+                                unit: comp.child_product.unit,
+                                quantity: needQty,
+                                stock: Number(comp.child_product.quantity_in_stock || 0),
+                                reserved_for_plan: false
                             });
                         }
                     }

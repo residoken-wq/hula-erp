@@ -76,7 +76,8 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                 vehicle,
                 note: note || `Xuất NPL cho GC ${currentPO.po_code}`,
                 items: validItems.map(m => ({
-                    material_id: m.material_id,
+                    material_id: m.type === 'SEMI_FINISHED' ? null : m.material_id,
+                    product_id: m.type === 'SEMI_FINISHED' ? m.product_id : null,
                     quantity: Number(m.issue_qty),
                     material_category: m.material_category || (m.is_fabric ? 'FABRIC' : 'ACCESSORY'),
                     note: m.item_note
@@ -155,12 +156,12 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
         }
     };
 
-    // Tổng đã xuất per material
-    const totalIssued = new Map<number, number>();
+    const totalIssued = new Map<string, number>();
     issueHistory.filter(gi => gi.status !== 'DRAFT' || true).forEach(gi => {
         gi.items?.forEach((item: any) => {
-            if (item.material_id) {
-                totalIssued.set(item.material_id, (totalIssued.get(item.material_id) || 0) + Number(item.quantity));
+            if (item.material_id || item.product_id) {
+                const key = item.product_id ? `PROD_${item.product_id}` : `MAT_${item.material_id}`;
+                totalIssued.set(key, (totalIssued.get(key) || 0) + Number(item.quantity));
             }
         });
     });
@@ -200,12 +201,22 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
             <Divider orientation="left" style={{ margin: '0 0 12px 0', fontSize: 13 }}>NPL cần giao cho Gia Công</Divider>
             <Table
                 dataSource={materials}
-                rowKey="material_id"
+                rowKey={(r) => r.type === 'SEMI_FINISHED' ? `PROD_${r.product_id}` : `MAT_${r.material_id}`}
                 pagination={false}
                 size="small"
                 columns={[
-                    { title: 'Mã NPL', dataIndex: 'code', width: 100, render: (t: any) => <Tag>{t || '-'}</Tag> },
-                    { title: 'Tên Nguyên Liệu', dataIndex: 'name', ellipsis: true },
+                    { 
+                        title: 'Mã', 
+                        dataIndex: 'code', 
+                        width: 120, 
+                        render: (t: any, r: any) => (
+                            <Space>
+                                <Tag color={r.type === 'SEMI_FINISHED' ? 'purple' : 'default'}>{t || '-'}</Tag>
+                                {r.type === 'SEMI_FINISHED' && <Tag color="magenta" style={{ margin: 0, padding: '0 4px', fontSize: 10 }}>BTP</Tag>}
+                            </Space>
+                        ) 
+                    },
+                    { title: 'Tên Nguyên Liệu / BTP', dataIndex: 'name', ellipsis: true },
                     { title: 'ĐVT', dataIndex: 'unit', width: 60, align: 'center' as const },
                     {
                         title: 'Loại', width: 100, align: 'center' as const,
@@ -233,7 +244,8 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                     {
                         title: 'Đã Xuất', width: 140, align: 'center' as const,
                         render: (_: any, r: any) => {
-                            const issued = totalIssued.get(r.material_id) || 0;
+                            const key = r.product_id ? `PROD_${r.product_id}` : `MAT_${r.material_id}`;
+                            const issued = totalIssued.get(key) || 0;
                             const needed = Number(r.quantity || 0);
                             const percent = needed > 0 ? Math.round((issued / needed) * 100) : 0;
                             
@@ -265,20 +277,28 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                     },
                     {
                         title: 'Xuất lần này', width: 120, align: 'center' as const,
-                        render: (_: any, r: any, idx: number) => (
-                            <InputNumber
-                                size="small"
-                                min={0}
-                                placeholder="0"
-                                style={{ width: 100 }}
-                                value={r.issue_qty}
-                                onChange={(val) => {
-                                    const newList = [...materials];
-                                    newList[idx].issue_qty = val;
-                                    setMaterials(newList);
-                                }}
-                            />
-                        )
+                        render: (_: any, r: any, idx: number) => {
+                            const key = r.type === 'SEMI_FINISHED' ? `PROD_${r.product_id}` : `MAT_${r.material_id}`;
+                            const issued = totalIssued.get(key) || 0;
+                            const needed = Number(r.quantity || 0);
+                            let remain = needed - issued;
+                            if (remain < 0) remain = 0;
+
+                            return (
+                                <InputNumber
+                                    size="small"
+                                    min={0}
+                                    placeholder={remain.toString()}
+                                    style={{ width: 100 }}
+                                    value={r.issue_qty}
+                                    onChange={(val) => {
+                                        const newList = [...materials];
+                                        newList[idx].issue_qty = val;
+                                        setMaterials(newList);
+                                    }}
+                                />
+                            );
+                        }
                     }
                 ]}
             />

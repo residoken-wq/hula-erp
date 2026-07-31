@@ -22,6 +22,13 @@ export class GoodsIssueItem {
     @Column({ nullable: true })
     material_id: number;
 
+    @ManyToOne('Product', { nullable: true })
+    @JoinColumn({ name: 'product_id' })
+    product: any;
+
+    @Column({ nullable: true })
+    product_id: number;
+
     // Phân bổ nhà gia công từng NPL
     @ManyToOne(() => Supplier, { nullable: true })
     @JoinColumn({ name: 'supplier_id' })

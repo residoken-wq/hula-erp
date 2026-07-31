@@ -56,30 +56,26 @@ export class PfoBomEngineService {
             }
         }
 
-        const materialMap = new Map<number, { qty: number; material?: Material; code?: string; name?: string; details?: any[] }>();
+        const materialMap = new Map<number, { qty: number; material?: any; code?: string; name?: string; details?: any[] }>();
+        const productReqMap = new Map<number, { qty: number; product: Product; details: any[] }>();
+
         let totalOrderQuantity = 0;
 
         if (pfo.sales_order && pfo.sales_order.items) {
             console.log(`[BOM-ENGINE] Found ${pfo.sales_order.items.length} items in SO`);
             for (const item of pfo.sales_order.items) {
-                const orderQty = Number(item.quantity) || 0;
-                if (orderQty <= 0) continue;
-                totalOrderQuantity += orderQty;
-
-                // Lấy product từ relation hoặc query theo sku
                 let product = item.product;
                 if (!product && item.sku) {
                     product = await this.productRepo.findOne({ where: { sku: item.sku } });
                 }
-
-                if (!product) {
-                    console.log(`[BOM-ENGINE] No product found for SKU: ${item.sku}`);
-                    continue;
-                }
-
+                
+                if (!product) continue;
+                
+                const orderQty = Number(item.quantity || pfo.quantity || 1);
+                totalOrderQuantity += orderQty;
                 console.log(`[BOM-ENGINE] Processing product ${product.id} - ${product.sku} - ${product.product_type}`);
 
-                // Queue nổ BOM (hỗ trợ đệ quy Combo)
+                // Queue nổ BOM (hỗ trợ đệ quy Combo và BTP)
                 const queue: { productId: number; multiplier: number }[] = [
                     { productId: product.id, multiplier: orderQty }
                 ];
@@ -92,14 +88,14 @@ export class PfoBomEngineService {
                     const targetProd = await this.productRepo.findOne({ where: { id: current.productId } });
                     if (!targetProd) continue;
 
-                    // 1. Kiểm tra nếu là COMBO -> Nổ ra các sản phẩm con
-                    if (targetProd.product_type === 'COMBO') {
-                        console.log(`[BOM-ENGINE] Product ${targetProd.id} is COMBO. Exploding children...`);
+                    const pType = targetProd.product_type ? targetProd.product_type.toUpperCase() : 'STANDARD';
+
+                    // 1. Nổ components nếu là COMBO hoặc SEMI_FINISHED
+                    if (pType === 'COMBO' || pType === 'SEMI_FINISHED') {
                         const components = await this.componentRepo.find({
                             where: { parent_product: { id: targetProd.id } },
                             relations: ['child_product']
                         });
-
                         for (const comp of components) {
                             if (comp.child_product) {
                                 queue.push({
@@ -108,14 +104,28 @@ export class PfoBomEngineService {
                                 });
                             }
                         }
-                    } else {
-                        // 2. Nếu là STANDARD -> Lấy định mức vật tư BOM
-                        console.log(`[BOM-ENGINE] Product ${targetProd.id} is STANDARD. Fetching BOMs...`);
+                    }
+
+                    // 2. Nếu là SEMI_FINISHED -> Ghi nhận nhu cầu Bán Thành Phẩm
+                    if (pType === 'SEMI_FINISHED') {
+                        const existingProd = productReqMap.get(targetProd.id);
+                        if (existingProd) {
+                            existingProd.qty += current.multiplier;
+                        } else {
+                            productReqMap.set(targetProd.id, {
+                                qty: current.multiplier,
+                                product: targetProd,
+                                details: [{ order_quantity: current.multiplier, total: current.multiplier }]
+                            });
+                        }
+                    }
+
+                    // 3. Nếu là STANDARD hoặc SEMI_FINISHED -> Nổ vật tư NPL
+                    if (pType !== 'COMBO') {
                         const boms = await this.bomRepo.find({
                             where: { product_id: targetProd.id },
                             relations: ['material']
                         });
-                        console.log(`[BOM-ENGINE] Found ${boms.length} BOM items for product ${targetProd.id}`);
 
                         for (const bom of boms) {
                             if (!bom.material_id) continue;
@@ -151,7 +161,7 @@ export class PfoBomEngineService {
         }
 
         // FALLBACK: Nếu Sản phẩm trong DB chưa được khai báo BOM chi tiết -> Tự động sinh danh mục NPL định mức chuẩn cho PFO
-        if (materialMap.size === 0) {
+        if (materialMap.size === 0 && productReqMap.size === 0) {
             console.log(`[BOM-ENGINE] No BOMs found in materialMap. Falling back to default materials.`);
             const fallbackQty = totalOrderQuantity > 0 ? totalOrderQuantity : (pfo.quantity || 1);
             
@@ -205,38 +215,76 @@ export class PfoBomEngineService {
 
         // Tạo danh sách milestones mới từ ProductRouting
         const newMilestones: PfoMilestone[] = [];
-        const processedProductIds = new Set<number>();
+        const processedProducts = new Map<number, { product: Product; qty: number }>();
 
-        for (const item of pfo.sales_order.items) {
-            let product = item.product;
-            if (!product && item.sku) {
-                product = await this.productRepo.findOne({ where: { sku: item.sku } });
-            }
-            if (product && !processedProductIds.has(product.id)) {
-                processedProductIds.add(product.id);
-                
-                // Fetch product routings
-                const routings = await this.routingRepo.find({
-                    where: { product_id: product.id },
-                    relations: ['supplier'],
-                    order: { step_order: 'ASC' }
-                });
-
-                for (const routing of routings) {
-                    const milestone = this.milestoneRepo.create({
-                        pfo_id: id,
-                        product_id: product.id,
-                        product_name: product.name || product.sku,
-                        milestone_type: routing.step_name || 'GIA_CONG',
-                        step_name: routing.step_name,
-                        vendor_id: routing.supplier_id,
-                        vendor_name: routing.supplier?.name || '',
-                        unit_price: Number(routing.cost || 0),
-                        planned_quantity: Number(item.quantity || pfo.quantity || 1),
-                        status: 'PENDING'
-                    });
-                    newMilestones.push(milestone);
+        if (pfo.sales_order && pfo.sales_order.items) {
+            for (const item of pfo.sales_order.items) {
+                let product = item.product;
+                if (!product && item.sku) {
+                    product = await this.productRepo.findOne({ where: { sku: item.sku } });
                 }
+                
+                if (product) {
+                    const q: { productId: number; multiplier: number }[] = [
+                        { productId: product.id, multiplier: Number(item.quantity || pfo.quantity || 1) }
+                    ];
+                    let safety = 0;
+                    while (q.length > 0 && safety++ < 500) {
+                        const curr = q.shift();
+                        if (!curr) break;
+                        
+                        const tp = await this.productRepo.findOne({ where: { id: curr.productId } });
+                        if (!tp) continue;
+                        
+                        if (tp.product_type && tp.product_type.toUpperCase() === 'COMBO') {
+                            const comps = await this.componentRepo.find({
+                                where: { parent_product: { id: tp.id } },
+                                relations: ['child_product']
+                            });
+                            for (const c of comps) {
+                                if (c.child_product) {
+                                    q.push({
+                                        productId: c.child_product.id,
+                                        multiplier: curr.multiplier * (Number(c.quantity) || 1)
+                                    });
+                                }
+                            }
+                        } else {
+                            // STANDARD product - Add to map
+                            const existing = processedProducts.get(tp.id);
+                            if (existing) {
+                                existing.qty += curr.multiplier;
+                            } else {
+                                processedProducts.set(tp.id, { product: tp, qty: curr.multiplier });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for (const [prodId, data] of processedProducts.entries()) {
+            const product = data.product;
+            const routings = await this.routingRepo.find({
+                where: { product_id: product.id },
+                relations: ['supplier'],
+                order: { step_order: 'ASC' }
+            });
+
+            for (const routing of routings) {
+                const milestone = this.milestoneRepo.create({
+                    pfo_id: id,
+                    product_id: product.id,
+                    product_name: product.name || product.sku,
+                    milestone_type: routing.step_name || 'GIA_CONG',
+                    step_name: routing.step_name,
+                    vendor_id: routing.supplier_id,
+                    vendor_name: routing.supplier?.name || '',
+                    unit_price: Number(routing.cost || 0),
+                    planned_quantity: data.qty,
+                    status: 'PENDING'
+                });
+                newMilestones.push(milestone);
             }
         }
         
@@ -273,6 +321,25 @@ export class PfoBomEngineService {
                 supplier_id: defaultSupplierId,
                 issued_quantity: 0,
                 available_stock: Number(mat?.quantity_in_stock || 0),
+                bom_details: data.details || null
+            });
+            requirements.push(req);
+        }
+
+        for (const [productId, data] of productReqMap.entries()) {
+            const prod = data.product;
+            const req = this.materialReqRepo.create({
+                pfo_id: id,
+                product_id: productId,
+                material_code: prod.sku,
+                material_name: prod.name,
+                supply_method: SupplyMethod.HULA_SUPPLIED,
+                planned_quantity: Math.round(data.qty * 100) / 100,
+                actual_order_quantity: Math.round(data.qty * 100) / 100,
+                unit_price: Number(prod.cost_price || prod.base_price || 0),
+                supplier_id: null,
+                issued_quantity: 0,
+                available_stock: Number(prod.quantity_in_stock || 0),
                 bom_details: data.details || null
             });
             requirements.push(req);
