@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Tag, Tooltip, Progress, Drawer, Button, Form, Checkbox, message, Space, Card, Typography, Input, DatePicker, Select, Tabs, Statistic } from 'antd';
-import { EditOutlined, SearchOutlined, CalendarOutlined, DownloadOutlined } from '@ant-design/icons';
+import { EditOutlined, SearchOutlined, CalendarOutlined, DownloadOutlined, ProfileOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -23,6 +23,10 @@ export default function BodFollowUpPage() {
     const isMobile = useMobile();
     const [ordersData, setOrdersData] = useState<any[]>([]);
     const [leadsData, setLeadsData] = useState<any[]>([]);
+    const [pfos, setPfos] = useState<any[]>([]);
+
+    const [loadingPfo, setLoadingPfo] = useState(false);
+    const [pfoBodDetails, setPfoBodDetails] = useState<any>(null);
 
     const [loading, setLoading] = useState(false);
     const [searchText, setSearchText] = useState('');
@@ -71,13 +75,16 @@ export default function BodFollowUpPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [resSales, resCust] = await Promise.all([
+            const [resSales, resCust, resPfos] = await Promise.all([
                 api.get('/sales').catch(() => ({ data: [] })),
-                api.get('/customers').catch(() => ({ data: [] }))
+                api.get('/customers').catch(() => ({ data: [] })),
+                api.get('/planning').catch(() => ({ data: [] }))
             ]);
 
             const salesArr = Array.isArray(resSales.data) ? resSales.data : [];
             const custArr = Array.isArray(resCust.data) ? resCust.data : [];
+            const pfosArr = Array.isArray(resPfos.data) ? resPfos.data : [];
+            setPfos(pfosArr);
 
             // Orders Tab Data
             const activeOrders = salesArr.filter(o => VALID_STATUSES.includes(o.status));
@@ -160,6 +167,29 @@ export default function BodFollowUpPage() {
         setCurrentColumn(colKey);
 
         const fup = order.bod_follow_up || {};
+
+        if (['npl', 'production'].includes(colKey)) {
+            const relatedPfo = pfos.find((p: any) => p.sales_order_id === order.id || p.sales_order_code === order.order_code);
+            if (relatedPfo) {
+                setLoadingPfo(true);
+                Promise.all([
+                    api.get(`/planning/pfo/${relatedPfo.id}`).catch(() => ({ data: null })),
+                    api.get(`/planning/pfo/${relatedPfo.id}/pos`).catch(() => ({ data: { pos_npl: [], pos_gc: [] } })),
+                    api.get(`/planning/pfo/${relatedPfo.id}/pxks`).catch(() => ({ data: { pxk_npl: [], pxk_gc: [] } }))
+                ]).then(([res, poRes, pxkRes]) => {
+                    if (res.data) {
+                        setPfoBodDetails({ ...res.data, pos: poRes.data, pxks: pxkRes.data });
+                    } else {
+                        setPfoBodDetails(null);
+                    }
+                    setLoadingPfo(false);
+                });
+            } else {
+                setPfoBodDetails(null);
+            }
+        } else {
+            setPfoBodDetails(null);
+        }
 
         switch (colKey) {
             case 'design':
@@ -648,7 +678,7 @@ export default function BodFollowUpPage() {
 
             <Drawer
                 title={drawerTitleMap[currentColumn || 'other']}
-                width={isMobile ? '100%' : 500}
+                width={isMobile ? '100%' : 700}
                 open={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
                 extra={<Button type="primary" onClick={() => form.submit()}>Lưu thông tin</Button>}
@@ -707,6 +737,117 @@ export default function BodFollowUpPage() {
                         <RichTextEditor />
                     </Form.Item>
                 </Form>
+
+                {/* Phần hiển thị chi tiết PFO nếu có */}
+                {(currentColumn === 'npl' || currentColumn === 'production') && loadingPfo && (
+                    <div style={{ textAlign: 'center', marginTop: 24 }}><Typography.Text type="secondary">Đang tải dữ liệu từ Lệnh SX...</Typography.Text></div>
+                )}
+                
+                {currentColumn === 'npl' && !loadingPfo && pfoBodDetails && (
+                    <Card size="small" title={<><ProfileOutlined /> Thông tin Lệnh SX (PFO) - NPL</>} style={{ marginTop: 16 }}>
+                        <Tabs items={[
+                            {
+                                key: 'PO_NPL',
+                                label: 'PO_NPL',
+                                children: (
+                                    <Table 
+                                        columns={[
+                                            { title: 'Mã PO', dataIndex: 'po_code', key: 'po_code' },
+                                            { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (val: string) => <Tag color="blue">{val}</Tag> },
+                                            { title: 'Nhà cung cấp', dataIndex: ['supplier', 'name'], key: 'supplier' },
+                                            { title: 'Tổng tiền', dataIndex: 'total_amount', key: 'total_amount', render: (val: any) => <b>{Number(val).toLocaleString()} ₫</b> }
+                                        ]}
+                                        dataSource={pfoBodDetails.pos?.pos_npl || []} 
+                                        size="small" 
+                                        rowKey="id"
+                                        expandable={{ 
+                                            expandedRowRender: (record: any) => {
+                                                if (!record.items || record.items.length === 0) return <Typography.Text type="secondary" style={{ marginLeft: 32 }}>Không có chi tiết</Typography.Text>;
+                                                return <Table columns={[{ title: 'Vật tư / SP', dataIndex: 'product_name', key: 'product_name', render: (val: any, rec: any) => val || rec.material?.name || rec.product?.name || 'N/A' }, { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (val: any) => Number(val || 0).toLocaleString() }, { title: 'Đơn giá', dataIndex: 'unit_price', key: 'unit_price', align: 'right' as const, render: (val: any) => `${Number(val || 0).toLocaleString()} ₫` }, { title: 'Thành tiền', dataIndex: 'total_price', key: 'total_price', align: 'right' as const, render: (val: any, rec: any) => `${(Number(rec.quantity || 0) * Number(rec.unit_price || 0)).toLocaleString()} ₫` }]} dataSource={record.items} pagination={false} size="small" rowKey="id" bordered />;
+                                            }
+                                        }}
+                                    />
+                                )
+                            },
+                            {
+                                key: 'PXK_NPL',
+                                label: 'PXK NPL',
+                                children: (
+                                    <Table 
+                                        columns={[
+                                            { title: 'Mã PXK', dataIndex: 'code', key: 'code', render: (val: any, record: any) => record.pxk_code || record.code || val || 'N/A' },
+                                            { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (val: string) => <Tag color="orange">{val || 'N/A'}</Tag> },
+                                            { title: 'Ngày xuất', dataIndex: 'issue_date', key: 'issue_date', render: (val: any, record: any) => val ? dayjs(val).format('DD/MM/YYYY') : (record?.created_at ? dayjs(record.created_at).format('DD/MM/YYYY') : '-') },
+                                            { title: 'Nguồn', key: 'source', render: (_: any, record: any) => record.from_inventory ? <Tag color="green">Từ Tồn Kho</Tag> : (record.supplier?.name || <Tag>Khác</Tag>) }
+                                        ]}
+                                        dataSource={pfoBodDetails.pxks?.pxk_npl || []} 
+                                        size="small" 
+                                        rowKey="id"
+                                        expandable={{ 
+                                            expandedRowRender: (record: any) => {
+                                                if (!record.items || record.items.length === 0) return <Typography.Text type="secondary" style={{ marginLeft: 32 }}>Không có chi tiết</Typography.Text>;
+                                                return <Table columns={[{ title: 'Vật tư / SP', dataIndex: 'product_name', key: 'product_name', render: (val: any, rec: any) => val || rec.material?.name || rec.product?.name || 'N/A' }, { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (val: any) => Number(val || 0).toLocaleString() }, { title: 'Đơn giá', dataIndex: 'unit_price', key: 'unit_price', align: 'right' as const, render: (val: any) => `${Number(val || 0).toLocaleString()} ₫` }, { title: 'Thành tiền', dataIndex: 'total_price', key: 'total_price', align: 'right' as const, render: (val: any, rec: any) => `${(Number(rec.quantity || 0) * Number(rec.unit_price || 0)).toLocaleString()} ₫` }]} dataSource={record.items} pagination={false} size="small" rowKey="id" bordered />;
+                                            }
+                                        }}
+                                    />
+                                )
+                            }
+                        ]} />
+                    </Card>
+                )}
+
+                {currentColumn === 'production' && !loadingPfo && pfoBodDetails && (
+                    <Card size="small" title={<><ProfileOutlined /> Thông tin Lệnh SX (PFO) - Gia Công</>} style={{ marginTop: 16 }}>
+                        <Tabs items={[
+                            {
+                                key: 'PO_GC',
+                                label: 'PO_GC',
+                                children: (
+                                    <Table 
+                                        columns={[
+                                            { title: 'Mã PO', dataIndex: 'po_code', key: 'po_code' },
+                                            { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (val: string) => <Tag color="blue">{val}</Tag> },
+                                            { title: 'Nhà cung cấp', dataIndex: ['supplier', 'name'], key: 'supplier' },
+                                            { title: 'Tổng tiền', dataIndex: 'total_amount', key: 'total_amount', render: (val: any) => <b>{Number(val).toLocaleString()} ₫</b> }
+                                        ]}
+                                        dataSource={pfoBodDetails.pos?.pos_gc || []} 
+                                        size="small" 
+                                        rowKey="id"
+                                        expandable={{ 
+                                            expandedRowRender: (record: any) => {
+                                                if (!record.items || record.items.length === 0) return <Typography.Text type="secondary" style={{ marginLeft: 32 }}>Không có chi tiết</Typography.Text>;
+                                                return <Table columns={[{ title: 'Vật tư / SP', dataIndex: 'product_name', key: 'product_name', render: (val: any, rec: any) => val || rec.material?.name || rec.product?.name || 'N/A' }, { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (val: any) => Number(val || 0).toLocaleString() }, { title: 'Đơn giá', dataIndex: 'unit_price', key: 'unit_price', align: 'right' as const, render: (val: any) => `${Number(val || 0).toLocaleString()} ₫` }, { title: 'Thành tiền', dataIndex: 'total_price', key: 'total_price', align: 'right' as const, render: (val: any, rec: any) => `${(Number(rec.quantity || 0) * Number(rec.unit_price || 0)).toLocaleString()} ₫` }]} dataSource={record.items} pagination={false} size="small" rowKey="id" bordered />;
+                                            }
+                                        }}
+                                    />
+                                )
+                            },
+                            {
+                                key: 'PXK_GC',
+                                label: 'PXK GC',
+                                children: (
+                                    <Table 
+                                        columns={[
+                                            { title: 'Mã PXK', dataIndex: 'code', key: 'code', render: (val: any, record: any) => record.pxk_code || record.code || val || 'N/A' },
+                                            { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (val: string) => <Tag color="orange">{val || 'N/A'}</Tag> },
+                                            { title: 'Ngày xuất', dataIndex: 'issue_date', key: 'issue_date', render: (val: any, record: any) => val ? dayjs(val).format('DD/MM/YYYY') : (record?.created_at ? dayjs(record.created_at).format('DD/MM/YYYY') : '-') },
+                                            { title: 'Nguồn', key: 'source', render: (_: any, record: any) => record.from_inventory ? <Tag color="green">Từ Tồn Kho</Tag> : (record.supplier?.name || <Tag>Khác</Tag>) }
+                                        ]}
+                                        dataSource={pfoBodDetails.pxks?.pxk_gc || []} 
+                                        size="small" 
+                                        rowKey="id"
+                                        expandable={{ 
+                                            expandedRowRender: (record: any) => {
+                                                if (!record.items || record.items.length === 0) return <Typography.Text type="secondary" style={{ marginLeft: 32 }}>Không có chi tiết</Typography.Text>;
+                                                return <Table columns={[{ title: 'Vật tư / SP', dataIndex: 'product_name', key: 'product_name', render: (val: any, rec: any) => val || rec.material?.name || rec.product?.name || 'N/A' }, { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (val: any) => Number(val || 0).toLocaleString() }, { title: 'Đơn giá', dataIndex: 'unit_price', key: 'unit_price', align: 'right' as const, render: (val: any) => `${Number(val || 0).toLocaleString()} ₫` }, { title: 'Thành tiền', dataIndex: 'total_price', key: 'total_price', align: 'right' as const, render: (val: any, rec: any) => `${(Number(rec.quantity || 0) * Number(rec.unit_price || 0)).toLocaleString()} ₫` }]} dataSource={record.items} pagination={false} size="small" rowKey="id" bordered />;
+                                            }
+                                        }}
+                                    />
+                                )
+                            }
+                        ]} />
+                    </Card>
+                )}
             </Drawer>
         </div>
     );

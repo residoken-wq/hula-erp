@@ -88,13 +88,15 @@ const PlanningPage: React.FC = () => {
         try {
             const res = await axios.get(`${API_URL}/planning/pfo/${id}`);
             const poRes = await axios.get(`${API_URL}/planning/pfo/${id}/pos`).catch(() => ({ data: { pos_npl: [], pos_gc: [] } }));
-            return { ...res.data, pos: poRes.data };
+            const pxkRes = await axios.get(`${API_URL}/planning/pfo/${id}/pxks`).catch(() => ({ data: { pxk_npl: [], pxk_gc: [] } }));
+            return { ...res.data, pos: poRes.data, pxks: pxkRes.data };
         } catch (e) {
             return null;
         }
     };
 
     const handlePfoClick = async (pfo: any) => {
+        setLoading(true);
         setSelectedPfo(pfo);
         setIsDrawerOpen(true);
         
@@ -102,8 +104,9 @@ const PlanningPage: React.FC = () => {
         if (details) {
             setPfoDetails(details);
         } else {
-            setPfoDetails({ ...pfo, material_requirements: [], milestones: [], pos: { pos_npl: [], pos_gc: [] } });
+            setPfoDetails({ ...pfo, material_requirements: [], milestones: [], pos: { pos_npl: [], pos_gc: [] }, pxks: { pxk_npl: [], pxk_gc: [] } });
         }
+        setLoading(false);
     };
 
     const handleCalculateBom = async () => {

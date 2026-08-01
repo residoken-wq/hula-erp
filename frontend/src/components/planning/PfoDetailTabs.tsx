@@ -145,6 +145,28 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
         { title: 'Tổng tiền', dataIndex: 'total_amount', key: 'total_amount', render: (val: any) => <b>{Number(val).toLocaleString()} ₫</b> }
     ];
 
+    const columnsPxk = [
+        { title: 'Mã PXK / Phiếu', dataIndex: 'code', key: 'code', render: (val: any, record: any) => record.pxk_code || record.code || val || 'N/A' },
+        { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (val: string) => <Tag color="orange">{val || 'N/A'}</Tag> },
+        { title: 'Ngày xuất', dataIndex: 'issue_date', key: 'issue_date', render: (val: any) => val ? dayjs(val).format('DD/MM/YYYY') : (record?.created_at ? dayjs(record.created_at).format('DD/MM/YYYY') : '-') },
+        { title: 'Nguồn', key: 'source', render: (_: any, record: any) => record.from_inventory ? <Tag color="green">Từ Tồn Kho</Tag> : (record.supplier?.name || <Tag>Khác</Tag>) }
+    ];
+
+    const expandedRowRenderItems = (record: any) => {
+        if (!record.items || record.items.length === 0) return <Text type="secondary" style={{ marginLeft: 32 }}>Không có chi tiết</Text>;
+        const itemCols = [
+            { title: 'Vật tư / SP', dataIndex: 'product_name', key: 'product_name', render: (val: any, rec: any) => val || rec.material?.name || rec.product?.name || 'N/A' },
+            { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (val: any) => Number(val || 0).toLocaleString() },
+            { title: 'Đơn giá', dataIndex: 'unit_price', key: 'unit_price', align: 'right' as const, render: (val: any) => `${Number(val || 0).toLocaleString()} ₫` },
+            { title: 'Thành tiền', dataIndex: 'total_price', key: 'total_price', align: 'right' as const, render: (val: any, rec: any) => `${(Number(rec.quantity || 0) * Number(rec.unit_price || 0)).toLocaleString()} ₫` }
+        ];
+        return (
+            <div style={{ padding: '8px 24px', backgroundColor: '#fcfcfc', border: '1px dashed #d9d9d9', borderRadius: 6, margin: '8px 16px' }}>
+                <Table columns={itemCols} dataSource={record.items} pagination={false} size="small" rowKey="id" bordered />
+            </div>
+        );
+    };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {/* THÔNG TIN CHUNG */}
@@ -301,6 +323,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                                 dataSource={pfoDetails?.pos?.pos_npl || []} 
                                 size="small" 
                                 rowKey="id"
+                                expandable={{ expandedRowRender: expandedRowRenderItems }}
                             />
                         )
                     },
@@ -313,6 +336,33 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                                 dataSource={pfoDetails?.pos?.pos_gc || []} 
                                 size="small" 
                                 rowKey="id"
+                                expandable={{ expandedRowRender: expandedRowRenderItems }}
+                            />
+                        )
+                    },
+                    {
+                        key: 'PXK_NPL',
+                        label: 'PXK NPL',
+                        children: (
+                            <Table 
+                                columns={columnsPxk} 
+                                dataSource={pfoDetails?.pxks?.pxk_npl || []} 
+                                size="small" 
+                                rowKey="id"
+                                expandable={{ expandedRowRender: expandedRowRenderItems }}
+                            />
+                        )
+                    },
+                    {
+                        key: 'PXK_GC',
+                        label: 'PXK GC',
+                        children: (
+                            <Table 
+                                columns={columnsPxk} 
+                                dataSource={pfoDetails?.pxks?.pxk_gc || []} 
+                                size="small" 
+                                rowKey="id"
+                                expandable={{ expandedRowRender: expandedRowRenderItems }}
                             />
                         )
                     }
