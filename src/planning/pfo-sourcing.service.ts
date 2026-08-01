@@ -342,4 +342,16 @@ export class PfoSourcingService {
             pos_gc: pos.filter(po => po.type === POType.OUTSOURCING)
         };
     }
+
+    async getPxks(pfoId: number) {
+        const pxks = await this.goodsIssueRepo.find({
+            where: { pfo_id: pfoId },
+            relations: ['items', 'items.material', 'items.product'],
+            order: { created_at: 'DESC' }
+        });
+        return {
+            pxk_npl: pxks.filter(pxk => pxk.type === GoodsIssueType.PRODUCTION || !pxk.type),
+            pxk_gc: pxks.filter(pxk => pxk.type === GoodsIssueType.OUTSOURCING) // if there is such a type, or empty
+        };
+    }
 }

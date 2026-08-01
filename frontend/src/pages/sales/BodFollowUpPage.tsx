@@ -553,6 +553,95 @@ export default function BodFollowUpPage() {
         'other2': 'Cập nhật Ghi chú chung 2'
     }
 
+    const renderMobileView = () => {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {filteredData.map(r => {
+                    const total = Number(r.total_amount) || 0;
+                    const paid = Number(r.paid_amount) || 0;
+                    const remain = total - paid;
+                    const pct = total > 0 ? Math.min(Math.round((paid / total) * 100), 100) : 0;
+                    
+                    let statusColor = 'default';
+                    let statusLabel = r.status;
+                    if (r.status === 'LEAD') { statusColor = 'geekblue'; statusLabel = 'Lead'; }
+                    if (r.status === 'QUOTATION') { statusColor = 'orange'; statusLabel = 'Báo Giá'; }
+                    if (r.status === 'SO_PENDING') { statusColor = 'processing'; statusLabel = 'Mới/Chưa cọc'; }
+                    if (r.status === 'SAMPLE_APPROVED') { statusColor = 'cyan'; statusLabel = 'Đã Duyệt'; }
+                    if (r.status === 'DEPOSITED') { statusColor = 'purple'; statusLabel = 'Đã Cọc'; }
+                    if (r.status === 'IN_PRODUCTION') { statusColor = 'blue'; statusLabel = 'Đang SX'; }
+                    if (r.status === 'MANUFACTURING_COMPLETED') { statusColor = 'gold'; statusLabel = 'Xong SX'; }
+                    if (r.status === 'DELIVERED') { statusColor = 'geekblue'; statusLabel = 'Đã Giao'; }
+
+                    const followUpItems = [
+                        { key: 'debt', label: 'Công Nợ' },
+                        { key: 'care', label: 'Chăm sóc' },
+                        { key: 'design', label: 'Thiết kế & Túi' },
+                        { key: 'npl', label: 'Nguyên Phụ Liệu' },
+                        { key: 'production', label: 'Sản xuất' },
+                        { key: 'photo', label: 'Chụp mẫu' },
+                        { key: 'delivery', label: 'Giao hàng' },
+                        { key: 'other', label: 'Khác' },
+                        { key: 'other2', label: 'Khác 2' }
+                    ];
+
+                    let linkPath = `/orders?order=${r.id}`;
+                    if (r.is_customer_record) {
+                        linkPath = `/sales?customer=${r.id}`;
+                    }
+
+                    return (
+                        <Card key={r.is_customer_record ? `cust_${r.id}` : `sale_${r.id}`} bodyStyle={{ padding: '16px' }} style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                <a href={linkPath} target="_blank" rel="noreferrer" style={{ fontSize: 16, fontWeight: 700, color: '#1890ff' }}>
+                                    {r.order_code}
+                                </a>
+                                <Tag color={statusColor} style={{ margin: 0 }}>{statusLabel}</Tag>
+                            </div>
+                            
+                            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 12, color: '#333' }}>
+                                {r.customer?.name || r.customer_name || 'Khách lẻ'}
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16, background: '#fafafa', padding: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}>
+                                <div>
+                                    <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 2 }}>Doanh thu</div>
+                                    <div style={{ fontWeight: 600, color: '#cf1322' }}>{total.toLocaleString()} đ</div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 2 }}>Đã thu ({pct}%)</div>
+                                    <div style={{ fontWeight: 600, color: '#389e0d' }}>{paid.toLocaleString()} đ</div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 2 }}>Còn lại</div>
+                                    <div style={{ fontWeight: 600, color: remain > 0 ? '#fa541c' : '#8c8c8c' }}>{remain.toLocaleString()} đ</div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 2 }}>Ngày giao</div>
+                                    <div style={{ fontWeight: 600, color: '#1890ff' }}>{r.delivery_date ? dayjs(r.delivery_date).format('DD/MM/YYYY') : '-'}</div>
+                                </div>
+                            </div>
+
+                            <div style={{ fontWeight: 600, color: '#595959', marginBottom: 8, fontSize: 14 }}>
+                                Tương tác & Follow-up:
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                {followUpItems.map(item => (
+                                    <div key={item.key} style={{ border: '1px solid #d9d9d9', borderRadius: 6, padding: '8px', background: '#fff' }}>
+                                        <div style={{ fontSize: 11, color: '#8c8c8c', marginBottom: 4, fontWeight: 700, textTransform: 'uppercase' }}>
+                                            {item.label}
+                                        </div>
+                                        {renderCell(r, item.key as FollowUpKey, item.label)}
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    );
+                })}
+            </div>
+        );
+    };
+
     return (
         <div>
             <div style={{ marginBottom: 16 }}>
@@ -663,17 +752,19 @@ export default function BodFollowUpPage() {
                     </Card>
                 </div>
 
-                <Table
-                    columns={columns}
-                    dataSource={filteredData}
-                    rowKey={(r) => r.is_customer_record ? `cust_${r.id}` : `sale_${r.id}`}
-                    loading={loading}
-                    scroll={{ x: 2600 }}
-                    sticky={true}
-                    size="middle"
-                    bordered
-                    pagination={{ pageSize: 20 }}
-                />
+                {isMobile ? renderMobileView() : (
+                    <Table
+                        columns={columns}
+                        dataSource={filteredData}
+                        rowKey={(r) => r.is_customer_record ? `cust_${r.id}` : `sale_${r.id}`}
+                        loading={loading}
+                        scroll={{ x: 2600 }}
+                        sticky={true}
+                        size="middle"
+                        bordered
+                        pagination={{ pageSize: 20 }}
+                    />
+                )}
             </Card>
 
             <Drawer
