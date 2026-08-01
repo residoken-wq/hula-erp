@@ -148,7 +148,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
     const columnsPxk = [
         { title: 'Mã PXK / Phiếu', dataIndex: 'code', key: 'code', render: (val: any, record: any) => record.pxk_code || record.code || val || 'N/A' },
         { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (val: string) => <Tag color="orange">{val || 'N/A'}</Tag> },
-        { title: 'Ngày xuất', dataIndex: 'issue_date', key: 'issue_date', render: (val: any) => val ? dayjs(val).format('DD/MM/YYYY') : (record?.created_at ? dayjs(record.created_at).format('DD/MM/YYYY') : '-') },
+        { title: 'Ngày xuất', dataIndex: 'issue_date', key: 'issue_date', render: (val: any, record: any) => val ? dayjs(val).format('DD/MM/YYYY') : (record?.created_at ? dayjs(record.created_at).format('DD/MM/YYYY') : '-') },
         { title: 'Nguồn', key: 'source', render: (_: any, record: any) => record.from_inventory ? <Tag color="green">Từ Tồn Kho</Tag> : (record.supplier?.name || <Tag>Khác</Tag>) }
     ];
 
