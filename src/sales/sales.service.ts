@@ -643,6 +643,11 @@ export class SalesService {
         comment.content = content;
         return this.commentRepo.save(comment);
     }
+    
+    async getActivities(orderId: number) {
+        return this.systemService.getActivityLogsForEntity('sales_orders', String(orderId));
+    }
+    
     async convertQuoteToSo(id: number, accepted: boolean) {
         const order = await this.orderRepo.findOne({ where: { id } });
         if (!order) throw new NotFoundException();

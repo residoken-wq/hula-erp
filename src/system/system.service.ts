@@ -216,6 +216,13 @@ export class SystemService {
         });
     }
 
+    async getActivityLogsForEntity(module: string, entityId: string) {
+        return this.logRepo.find({
+            where: { module: module.toUpperCase(), entity_id: String(entityId) },
+            order: { timestamp: 'DESC' }
+        });
+    }
+
     // --- API KEY MANAGEMENT ---
     async generateApiToken(name: string, permissions: string[] = []) {
         const rawToken = crypto.randomBytes(32).toString('hex');

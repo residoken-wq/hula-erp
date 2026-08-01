@@ -120,6 +120,11 @@ export class SalesController {
         return this.s.softDeleteComment(id, body?.deletedBy || 'Khách hàng');
     }
 
+    @Get(':id/activities')
+    getActivities(@Param('id') id: number) {
+        return this.s.getActivities(id);
+    }
+
     @Get(':id/deliveries')
     getDeliveries(@Param('id') id: number) { return this.s.getDeliveryHistory(id); }
 

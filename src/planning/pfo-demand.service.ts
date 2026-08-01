@@ -226,4 +226,36 @@ export class PfoDemandService {
         }
         return pfo;
     }
+
+    async deletePfo(id: number) {
+        const pfo = await this.pfoRepo.findOne({ where: { id }, relations: ['sales_order'] });
+        if (!pfo) throw new NotFoundException('PFO không tồn tại');
+
+        // Check if there are generated POs (Purchase Orders or Subcontract POs)
+        const poCount = await this.pfoRepo.manager.count('PurchaseOrder', { where: { pfo_id: id } });
+        if (poCount > 0) {
+            throw new BadRequestException('Không thể xóa Lệnh SX vì đã có PO (Đơn mua hàng/gia công) được tạo. Vui lòng xóa hoặc hủy các PO trước.');
+        }
+
+        // Check if there are Goods Issues (Phiếu xuất kho)
+        const issueCount = await this.pfoRepo.manager.count('GoodsIssue', { where: { pfo_id: id } });
+        if (issueCount > 0) {
+            throw new BadRequestException('Không thể xóa Lệnh SX vì đã có Phiếu xuất kho được tạo. Vui lòng xóa các Phiếu xuất kho trước.');
+        }
+
+        const so = pfo.sales_order;
+        if (so) {
+            // Revert Sales Order status to SO_PENDING to show back in the planning list
+            so.status = SalesOrderStatus.SO_PENDING;
+            await this.orderRepo.save(so);
+        }
+
+        // Manually delete related entities to avoid foreign key constraints issues if cascade is not set
+        await this.pfoRepo.manager.delete('PfoMaterialRequirement', { pfo_id: id });
+        await this.pfoRepo.manager.delete('PfoMilestone', { pfo_id: id });
+        await this.pfoRepo.manager.delete('PfoQcRecord', { pfo_id: id });
+
+        await this.pfoRepo.remove(pfo);
+        return { message: 'Đã xóa Lệnh SX thành công' };
+    }
 }

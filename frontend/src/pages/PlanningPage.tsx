@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card, Modal, Form, Input, DatePicker, Tabs, Button, message, Drawer, Space, Typography, Tag, Divider, Row, Col, Table, Statistic, Descriptions, Tooltip } from 'antd';
-import { ReloadOutlined, PlusOutlined, SettingOutlined, CalculatorOutlined, ShoppingCartOutlined, FileTextOutlined } from '@ant-design/icons';
+import { ReloadOutlined, PlusOutlined, SettingOutlined, CalculatorOutlined, ShoppingCartOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
@@ -181,6 +181,31 @@ const PlanningPage: React.FC = () => {
         setLoading(false);
     };
 
+    const handleDeletePfo = () => {
+        if (!selectedPfo) return;
+        Modal.confirm({
+            title: 'Xóa Lệnh Sản Xuất (PFO)?',
+            content: 'Bạn có chắc chắn muốn xóa Lệnh Sản Xuất này? Nếu đã có PO được tạo, bạn phải hủy các PO đó trước. Hành động này sẽ chuyển Đơn hàng trở lại trạng thái chờ lập KHSX.',
+            okText: 'Xóa Lệnh',
+            okType: 'danger',
+            cancelText: 'Hủy',
+            onOk: async () => {
+                setLoading(true);
+                try {
+                    const res = await axios.delete(`${API_URL}/planning/pfo/${selectedPfo.id}`);
+                    message.success(res.data.message || 'Đã xóa Lệnh Sản Xuất');
+                    setIsDrawerOpen(false);
+                    setSelectedPfo(null);
+                    setPfoDetails(null);
+                    fetchData();
+                } catch (e: any) {
+                    message.error(e.response?.data?.message || 'Không thể xóa Lệnh Sản Xuất');
+                }
+                setLoading(false);
+            }
+        });
+    };
+
     return (
         <div style={{ maxWidth: isMobile ? '100%' : '95%', margin: '0 auto', padding: isMobile ? '8px 4px' : '16px 0' }}>
             {/* STATS CARDS */}
@@ -278,6 +303,14 @@ const PlanningPage: React.FC = () => {
                 open={isDrawerOpen}
                 extra={
                     <Space>
+                        <Button 
+                            danger 
+                            icon={<DeleteOutlined />}
+                            onClick={handleDeletePfo}
+                            loading={loading}
+                        >
+                            Xóa Lệnh
+                        </Button>
                         <Button 
                             type="primary" 
                             icon={<CalculatorOutlined />}
