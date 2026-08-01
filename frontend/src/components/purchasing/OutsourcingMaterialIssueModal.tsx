@@ -171,31 +171,37 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
             title={<span><CarOutlined style={{ color: '#fa8c16', marginRight: 8 }} />Xuất Kho NPL Gia Công — {currentPO?.po_code}</span>}
             open={open}
             onCancel={onClose}
-            width={1100}
+            width={1200}
             style={{ top: 20 }}
-            footer={[
-                <Button key="close" onClick={onClose}>Đóng</Button>,
-                <Select
-                    key="link-select"
-                    placeholder="Chọn PXK đã tạo sẵn..."
-                    style={{ width: 250, textAlign: 'left', marginLeft: 8 }}
-                    allowClear
-                    value={selectedUnlinkedIssue}
-                    onChange={setSelectedUnlinkedIssue}
-                >
-                    {unlinkedIssues.map(gi => (
-                        <Select.Option key={gi.id} value={gi.id}>
-                            {gi.code} ({gi.items?.length || 0} NPL)
-                        </Select.Option>
-                    ))}
-                </Select>,
-                <Button key="link-btn" onClick={handleLinkIssue} loading={loading} disabled={!selectedUnlinkedIssue}>
-                    Liên kết phiếu
-                </Button>,
-                <Button key="create" type="primary" onClick={handleCreateIssue} loading={loading} icon={<PlusOutlined />}>
-                    Tạo Phiếu Xuất Kho
-                </Button>
-            ]}
+            footer={
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Select
+                            key="link-select"
+                            placeholder="Hoặc chọn PXK cũ để liên kết..."
+                            style={{ width: 280, textAlign: 'left' }}
+                            allowClear
+                            value={selectedUnlinkedIssue}
+                            onChange={setSelectedUnlinkedIssue}
+                        >
+                            {unlinkedIssues.map(gi => (
+                                <Select.Option key={gi.id} value={gi.id}>
+                                    {gi.code} ({gi.items?.length || 0} NPL)
+                                </Select.Option>
+                            ))}
+                        </Select>
+                        <Button key="link-btn" onClick={handleLinkIssue} loading={loading} disabled={!selectedUnlinkedIssue}>
+                            Liên kết
+                        </Button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <Button key="close" onClick={onClose} size="large">Đóng</Button>
+                        <Button key="create" type="primary" onClick={handleCreateIssue} loading={loading} icon={<PlusOutlined />} size="large">
+                            Tạo Phiếu Xuất Kho
+                        </Button>
+                    </div>
+                </div>
+            }
         >
             {/* 1. Danh sách NPL cần giao */}
             <Divider orientation="left" style={{ margin: '0 0 12px 0', fontSize: 13 }}>NPL cần giao cho Gia Công</Divider>
@@ -203,26 +209,37 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                 dataSource={materials}
                 rowKey={(r) => r.type === 'SEMI_FINISHED' ? `PROD_${r.product_id}` : `MAT_${r.material_id}`}
                 pagination={false}
-                size="small"
+                size="middle"
+                rowClassName={(r) => r.issue_qty && r.issue_qty > 0 ? 'highlight-row' : ''}
                 columns={[
                     { 
                         title: 'Mã', 
                         dataIndex: 'code', 
-                        width: 120, 
+                        width: 160, 
                         render: (t: any, r: any) => (
-                            <Space>
-                                <Tag color={r.type === 'SEMI_FINISHED' ? 'purple' : 'default'}>{t || '-'}</Tag>
+                            <Space wrap>
+                                <Tag color={r.type === 'SEMI_FINISHED' ? 'purple' : 'geekblue'} style={{ fontWeight: 500 }}>{t || '-'}</Tag>
                                 {r.type === 'SEMI_FINISHED' && <Tag color="magenta" style={{ margin: 0, padding: '0 4px', fontSize: 10 }}>BTP</Tag>}
                             </Space>
                         ) 
                     },
-                    { title: 'Tên Nguyên Liệu / BTP', dataIndex: 'name', ellipsis: true },
+                    { 
+                        title: 'Tên Nguyên Liệu / BTP', 
+                        dataIndex: 'name', 
+                        ellipsis: true,
+                        render: (text: string, r: any) => {
+                            let icon = '📦';
+                            if (r.type === 'SEMI_FINISHED') icon = '📦';
+                            else if (r.is_fabric || r.material_category === 'FABRIC') icon = '🧵';
+                            else icon = '🔩';
+                            return <span style={{ fontWeight: 500 }}>{icon} {text}</span>;
+                        }
+                    },
                     { title: 'ĐVT', dataIndex: 'unit', width: 60, align: 'center' as const },
                     {
-                        title: 'Loại', width: 100, align: 'center' as const,
+                        title: 'Loại', width: 140, align: 'center' as const,
                         render: (_: any, r: any, idx: number) => (
                             <Select
-                                size="small"
                                 value={r.material_category || (r.is_fabric ? 'FABRIC' : 'ACCESSORY')}
                                 onChange={(v) => {
                                     const newList = [...materials];
@@ -233,7 +250,9 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                                     { value: 'FABRIC', label: '🧵 Vải' },
                                     { value: 'ACCESSORY', label: '🔩 Phụ kiện' }
                                 ]}
-                                style={{ width: 90 }}
+                                style={{ width: 120 }}
+                                bordered={false}
+                                className="bg-gray-50 rounded"
                             />
                         )
                     },
@@ -242,7 +261,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                         render: (v: number) => <b style={{ color: '#1890ff' }}>{Number(v || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}</b>
                     },
                     {
-                        title: 'Đã Xuất', width: 140, align: 'center' as const,
+                        title: 'Đã Xuất', width: 150, align: 'center' as const,
                         render: (_: any, r: any) => {
                             const key = r.product_id ? `PROD_${r.product_id}` : `MAT_${r.material_id}`;
                             const issued = totalIssued.get(key) || 0;
@@ -251,32 +270,34 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                             
                             return (
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <span style={{ color: issued > 0 ? '#52c41a' : '#999', fontWeight: 'bold' }}>
+                                    <span style={{ color: issued > 0 ? (percent >= 100 ? '#52c41a' : '#fa8c16') : '#999', fontWeight: 'bold' }}>
                                         {Number(issued).toLocaleString('vi-VN')}
                                     </span>
-                                    <Progress percent={percent > 100 ? 100 : percent} size="small" showInfo={false} status={percent >= 100 ? 'success' : 'active'} style={{ margin: 0, width: 80 }} />
-                                    <span style={{ fontSize: 10, color: '#888' }}>{percent}%</span>
+                                    <Progress percent={percent > 100 ? 100 : percent} size="small" showInfo={false} strokeColor={percent >= 100 ? '#52c41a' : '#fa8c16'} style={{ margin: 0, width: 90 }} />
+                                    <span style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{percent}%</span>
                                 </div>
                             );
                         }
                     },
                     {
-                        title: 'Tồn Kho', dataIndex: 'stock', width: 100, align: 'right' as const, render: (v: number, r: any) => (
+                        title: 'Tồn Kho', dataIndex: 'stock', width: 110, align: 'right' as const, render: (v: number, r: any) => (
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                <span style={{ color: Number(v) < 0 ? 'red' : 'green' }}>{Number(v || 0).toLocaleString('vi-VN')}</span>
+                                <span style={{ color: Number(v) < 0 ? '#cf1322' : '#389e0d', fontWeight: 600, fontSize: 14 }}>
+                                    {Number(v || 0).toLocaleString('vi-VN')}
+                                </span>
                                 {Number(v || 0) < Number(r.quantity || 0) && (
-                                    <Button type="link" size="small" style={{ padding: 0, fontSize: 11 }} onClick={() => {
+                                    <Button type="primary" danger size="small" style={{ padding: '0 8px', fontSize: 11, marginTop: 4, borderRadius: 4 }} onClick={() => {
                                         setRequestMaterial(r);
                                         setRequestQty(0);
                                         setRequestNote('');
                                         setRequestModalVisible(true);
-                                    }}>Y/c bổ sung</Button>
+                                    }}>⚠️ Y/c bổ sung</Button>
                                 )}
                             </div>
                         )
                     },
                     {
-                        title: 'Xuất lần này', width: 120, align: 'center' as const,
+                        title: 'Xuất lần này', width: 160, align: 'center' as const,
                         render: (_: any, r: any, idx: number) => {
                             const key = r.type === 'SEMI_FINISHED' ? `PROD_${r.product_id}` : `MAT_${r.material_id}`;
                             const issued = totalIssued.get(key) || 0;
@@ -284,19 +305,31 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                             let remain = needed - issued;
                             if (remain < 0) remain = 0;
 
+                            const isHighlight = r.issue_qty > 0;
+
                             return (
-                                <InputNumber
-                                    size="small"
-                                    min={0}
-                                    placeholder={remain.toString()}
-                                    style={{ width: 100 }}
-                                    value={r.issue_qty}
-                                    onChange={(val) => {
-                                        const newList = [...materials];
-                                        newList[idx].issue_qty = val;
-                                        setMaterials(newList);
-                                    }}
-                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: isHighlight ? '#e6f7ff' : 'transparent', padding: '4px 8px', borderRadius: 6, border: isHighlight ? '1px solid #91d5ff' : '1px solid transparent' }}>
+                                    <InputNumber
+                                        min={0}
+                                        placeholder={remain.toString()}
+                                        style={{ width: 80, borderColor: isHighlight ? '#1890ff' : undefined }}
+                                        value={r.issue_qty}
+                                        onChange={(val) => {
+                                            const newList = [...materials];
+                                            newList[idx].issue_qty = val;
+                                            setMaterials(newList);
+                                        }}
+                                    />
+                                    {remain > 0 && (!r.issue_qty || r.issue_qty < remain) && (
+                                        <Button type="text" size="small" style={{ color: '#1890ff', padding: 0, fontSize: 12, minWidth: 28, fontWeight: 500 }} onClick={() => {
+                                            const newList = [...materials];
+                                            newList[idx].issue_qty = remain;
+                                            setMaterials(newList);
+                                        }}>
+                                            Max
+                                        </Button>
+                                    )}
+                                </div>
                             );
                         }
                     }

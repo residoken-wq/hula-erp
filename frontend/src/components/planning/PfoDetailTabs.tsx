@@ -178,23 +178,41 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
             {/* DỰ TÍNH CHI PHÍ & CHI PHÍ THỰC TẾ */}
             <Row gutter={[16, 16]}>
                 <Col span={isMobile ? 24 : 12}>
-                    <Card size="small" title={<Text strong style={{ color: '#fa8c16' }}>Dự Tính Chi Phí Theo BOM</Text>} style={{ borderRadius: 10, border: '1px solid #ffd591', background: '#fff7e6' }}>
+                    <Card size="small" title={
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text strong style={{ color: '#fa8c16' }}>Dự Tính Chi Phí Theo BOM</Text>
+                            <div style={{ textAlign: 'right', fontWeight: 'normal' }}>
+                                <Text type="secondary" style={{ fontSize: 12 }}>Tổng CP: </Text><Text strong>{totalEstimatedCost.toLocaleString('vi-VN')} ₫</Text>
+                                <Divider type="vertical" />
+                                <Text type="secondary" style={{ fontSize: 12 }}>Lợi nhuận: </Text><Text strong style={{ color: (totalRevenue - totalEstimatedCost) < 0 ? '#cf1322' : '#3f8600' }}>{(totalRevenue - totalEstimatedCost).toLocaleString('vi-VN')} ₫</Text>
+                            </div>
+                        </div>
+                    } style={{ borderRadius: 10, border: '1px solid #ffd591', background: '#fff7e6' }}>
                         <Row gutter={[16, 16]}>
-                            <Col span={12}><Statistic title="CP NPL" value={estimatedBomCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
-                            <Col span={12}><Statistic title="CP Gia Công" value={estimatedRoutingCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
-                            <Col span={12}><Statistic title="CP Vận Chuyển (CP_VC)" value={estimatedLogisticCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
-                            <Col span={12}><Statistic title="% Lợi Nhuận" value={profitMargin} precision={2} suffix="%" valueStyle={{ fontSize: 16, color: profitMargin < 0 ? '#cf1322' : '#3f8600' }} /></Col>
+                            <Col span={isMobile ? 12 : 8}><Statistic title="CP NPL" value={estimatedBomCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
+                            <Col span={isMobile ? 12 : 8}><Statistic title="CP Gia Công" value={estimatedRoutingCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
+                            <Col span={isMobile ? 12 : 8}><Statistic title="CP Vận Chuyển (CP_VC)" value={estimatedLogisticCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
+                            <Col span={isMobile ? 12 : 8}><Statistic title="% Lợi Nhuận" value={profitMargin} precision={2} suffix="%" valueStyle={{ fontSize: 16, color: profitMargin < 0 ? '#cf1322' : '#3f8600' }} /></Col>
                         </Row>
                     </Card>
                 </Col>
                 <Col span={isMobile ? 24 : 12}>
-                    <Card size="small" title={<Text strong style={{ color: '#389e0d' }}>Chi Phí Thực Tế (Từ PO)</Text>} style={{ borderRadius: 10, border: '1px solid #b7eb8f', background: '#f6ffed', height: '100%' }}>
+                    <Card size="small" title={
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text strong style={{ color: '#389e0d' }}>Chi Phí Thực Tế (Từ PO)</Text>
+                            <div style={{ textAlign: 'right', fontWeight: 'normal' }}>
+                                <Text type="secondary" style={{ fontSize: 12 }}>Tổng CP: </Text><Text strong>{totalActualCost.toLocaleString('vi-VN')} ₫</Text>
+                                <Divider type="vertical" />
+                                <Text type="secondary" style={{ fontSize: 12 }}>Lợi nhuận: </Text><Text strong style={{ color: (totalRevenue - totalActualCost) < 0 ? '#cf1322' : '#389e0d' }}>{(totalRevenue - totalActualCost).toLocaleString('vi-VN')} ₫</Text>
+                            </div>
+                        </div>
+                    } style={{ borderRadius: 10, border: '1px solid #b7eb8f', background: '#f6ffed', height: '100%' }}>
                         <Row gutter={[16, 16]}>
-                            <Col span={12}><Statistic title="CP NPL (PO)" value={actualNplCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
-                            <Col span={12}><Statistic title="CP NPL (Từ kho)" value={actualNplInventoryCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
-                            <Col span={12}><Statistic title="CP Gia Công (PO)" value={actualGcCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
-                            <Col span={12}><Statistic title="CP Vận Chuyển" value={actualLogisticCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
-                            <Col span={12}><Statistic title="% Lợi Nhuận Thực Tế" value={actualProfitMargin} precision={2} suffix="%" valueStyle={{ fontSize: 16, color: actualProfitMargin < 0 ? '#cf1322' : '#389e0d' }} /></Col>
+                            <Col span={isMobile ? 12 : 8}><Statistic title="CP NPL (PO)" value={actualNplCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
+                            <Col span={isMobile ? 12 : 8}><Statistic title="CP NPL (Từ kho)" value={actualNplInventoryCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
+                            <Col span={isMobile ? 12 : 8}><Statistic title="CP Gia Công (PO)" value={actualGcCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
+                            <Col span={isMobile ? 12 : 8}><Statistic title="CP Vận Chuyển" value={actualLogisticCost} suffix="₫" valueStyle={{ fontSize: 16 }} /></Col>
+                            <Col span={isMobile ? 12 : 8}><Statistic title="% Lợi Nhuận Thực Tế" value={actualProfitMargin} precision={2} suffix="%" valueStyle={{ fontSize: 16, color: actualProfitMargin < 0 ? '#cf1322' : '#389e0d' }} /></Col>
                         </Row>
                     </Card>
                 </Col>
