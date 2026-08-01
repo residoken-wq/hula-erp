@@ -175,7 +175,7 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
             if (!product) return;
             const qty = Number(item.quantity) || 1;
 
-            if (product.type === 'COMBO' && product.components) {
+            if (product.components && product.components.length > 0) {
                 product.components.forEach((comp: any) => {
                     const child = comp.child_product;
                     if (child) {
