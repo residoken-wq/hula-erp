@@ -369,8 +369,9 @@ export class PfoBomEngineService {
                     actual_order_quantity: r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity),
                     supply_method: r.supply_method,
                     supplier_id: r.supplier_id,
-                    use_inventory: r.use_inventory,
-                    unit_price: r.unit_price
+                    use_inventory: Boolean(r.use_inventory),
+                    inventory_used_quantity: Number(r.inventory_used_quantity || 0),
+                    unit_price: Number(r.unit_price || 0)
                 } as any);
             }
         }
