@@ -42,6 +42,14 @@ export class PfoExecutionService {
             await this.pfoRepo.save(req.pfo);
         }
 
+        // Tự động chốt (confirm) các booking tạm thời của đơn hàng liên quan khi KHSX bắt đầu xuất kho/sản xuất
+        if (req.pfo.sales_order_id) {
+            await this.reqRepo.manager.update('SalesOrderItem', 
+                { order_id: req.pfo.sales_order_id, booking_status: 'TEMPORARY' }, 
+                { booking_status: 'CONFIRMED', booking_expires_at: null }
+            );
+        }
+
         return req;
     }
 

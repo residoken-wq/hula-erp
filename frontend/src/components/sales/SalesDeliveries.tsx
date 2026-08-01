@@ -135,11 +135,12 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
         const isCombo = productInfo?.type === 'COMBO';
         const totalStock = productInfo ? Number(productInfo.quantity_in_stock || 0) : 0;
         const bookingStock = productInfo ? Number(productInfo.approved_booking_stock || 0) : 0;
-        const stock = Math.max(0, totalStock - bookingStock);
+        let stock = Math.max(0, totalStock - bookingStock);
 
         // Build combo children with individual stock info
         let comboChildren: any[] = [];
         if (isCombo && comboComponentsMap[item.sku]) {
+            let minAvailableCombo = Infinity;
             comboChildren = comboComponentsMap[item.sku].map((comp: any) => {
                 const childProduct = products.find((p: any) => p.value === comp.child_product?.sku);
                 const childTotalStock = childProduct ? Number(childProduct.quantity_in_stock || 0) : 0;
@@ -147,6 +148,10 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                 const childAvailable = Math.max(0, childTotalStock - childBookingStock);
                 const qtyPerCombo = Number(comp.quantity) || 1;
                 const totalNeeded = remaining * qtyPerCombo;
+                
+                const possibleCombo = Math.floor(childAvailable / qtyPerCombo);
+                if (possibleCombo < minAvailableCombo) minAvailableCombo = possibleCombo;
+
                 return {
                     sku: comp.child_product?.sku || '',
                     name: comp.child_product?.name || '',
@@ -156,7 +161,14 @@ const SalesDeliveries: React.FC<Props> = ({ order, products, customers = [], onS
                     sufficient: childAvailable >= totalNeeded
                 };
             });
+            
+            if (minAvailableCombo !== Infinity) {
+                stock = minAvailableCombo;
+            } else {
+                stock = 0;
+            }
         }
+
 
         return {
             id: item.id,

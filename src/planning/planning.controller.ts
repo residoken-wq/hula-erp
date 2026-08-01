@@ -24,6 +24,7 @@ export class PlanningController {
   @Get('suggestion') getSuggestion() { return this.planningSvc.getSuggestion(); }
   @Get('booking-stats') getBookingStats(@Query('month') month?: string, @Query('year') year?: string) { return this.planningSvc.getBookingStats(month, year); }
   @Get('bookings') getAllBookings() { return this.planningSvc.getAllBookings(); }
+  @Get('bookings/:sku') getBookingsBySku(@Param('sku') sku: string) { return this.planningSvc.getBookingsBySku(sku); }
   @Get('gantt') getGantt() { return this.planningSvc.getGanttData(); }
   @Post('sync-booking-stock') syncBookingStock() { return this.planningSvc.syncBookingStock(); }
 
