@@ -60,6 +60,7 @@ export class PfoSourcingService {
 
         await this.milestoneRepo.save(newMilestones);
 
+        pfo.milestones = newMilestones;
         pfo.status = PfoStatus.WAITING_VENDOR;
         await this.pfoRepo.save(pfo);
 
