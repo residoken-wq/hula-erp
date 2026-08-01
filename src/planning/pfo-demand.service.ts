@@ -1,16 +1,20 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { ProductionFulfillmentOrder, PfoStatus } from './pfo.entity';
 import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
 import { SalesOrderItem } from '../sales/sales-order-item.entity';
+import { InventoryService } from '../inventory/inventory.service';
+import { ProductsService } from '../products/products.service';
 
 @Injectable()
 export class PfoDemandService {
     constructor(
         @InjectRepository(ProductionFulfillmentOrder) private pfoRepo: Repository<ProductionFulfillmentOrder>,
         @InjectRepository(SalesOrder) private orderRepo: Repository<SalesOrder>,
-        @InjectRepository(SalesOrderItem) private orderItemRepo: Repository<SalesOrderItem>
+        @InjectRepository(SalesOrderItem) private orderItemRepo: Repository<SalesOrderItem>,
+        @Inject(forwardRef(() => InventoryService)) private inventoryService: InventoryService,
+        private productsService: ProductsService
     ) { }
 
     /**
@@ -23,12 +27,105 @@ export class PfoDemandService {
             where: {
                 status: In([SalesOrderStatus.SO_PENDING, SalesOrderStatus.SAMPLE_APPROVED, SalesOrderStatus.DEPOSITED]),
             },
-            relations: ['customer', 'items', 'items.product', 'pfos'],
+            relations: ['customer', 'items', 'items.product', 'pfos', 'deliveries'],
             order: { delivery_date: 'ASC' }
         });
 
         // Filter orders that haven't been fully planned
-        return orders.filter(o => !o.pfos || o.pfos.length === 0);
+        const filteredOrders = orders.filter(o => !o.pfos || o.pfos.length === 0);
+
+        const stocks = await this.inventoryService.getAllStocks();
+        const stockMap = new Map<string, number>();
+        // Build stock map for ALL warehouses (excluding KHO_MAU)
+        const stockMapAll = new Map<string, number>();
+
+        stocks.forEach(s => {
+            if (s.item_type === 'PRODUCT' && s.warehouse_code === 'KHO_TP') {
+                const key = String(s.item_id);
+                stockMap.set(key, (stockMap.get(key) || 0) + Number(s.quantity));
+            }
+            if (s.item_type === 'PRODUCT' && s.warehouse_code !== 'KHO_MAU') {
+                const key = String(s.item_id);
+                stockMapAll.set(key, (stockMapAll.get(key) || 0) + Number(s.quantity));
+            }
+        });
+
+        const enrichedOrders = [];
+        for (const o of filteredOrders) {
+            let canFulfill = true;
+            let totalItems = 0;
+
+            const enrichedItems = [];
+            for (const item of o.items) {
+                let stock = 0;
+                let totalStock = 0;
+                let availableStock = 0;
+                const product = item.product;
+                const approvedBooking = Number(product?.approved_booking_stock || 0);
+                const bookingStock = Number(product?.booking_stock || 0);
+                
+                if (product) {
+                    if (product.product_type === 'COMBO') {
+                        const components = await this.productsService.getComboComponents(product.sku);
+                        if (components && components.length > 0) {
+                            let minStockTp = Infinity;
+                            let minStockAll = Infinity;
+                            let minAvailableAll = Infinity;
+                            for (const c of components) {
+                                if (c.child_product) {
+                                    const childId = String(c.child_product.id);
+                                    const childStockTp = stockMap.get(childId) || 0;
+                                    const childStockAll = stockMapAll.get(childId) || 0;
+                                    const childApproved = Number(c.child_product.approved_booking_stock || 0);
+                                    const childAvailable = Math.max(0, childStockAll - childApproved);
+                                    
+                                    const reqQty = Number(c.quantity) || 1;
+                                    
+                                    const possibleTp = Math.floor(childStockTp / reqQty);
+                                    const possibleAll = Math.floor(childStockAll / reqQty);
+                                    const possibleAvailable = Math.floor(childAvailable / reqQty);
+                                    
+                                    if (possibleTp < minStockTp) minStockTp = possibleTp;
+                                    if (possibleAll < minStockAll) minStockAll = possibleAll;
+                                    if (possibleAvailable < minAvailableAll) minAvailableAll = possibleAvailable;
+                                }
+                            }
+                            stock = minStockTp === Infinity ? 0 : minStockTp;
+                            totalStock = minStockAll === Infinity ? 0 : minStockAll;
+                            availableStock = minAvailableAll === Infinity ? 0 : minAvailableAll;
+                        }
+                    } else {
+                        stock = stockMap.get(String(product.id)) || 0;
+                        totalStock = stockMapAll.get(String(product.id)) || 0;
+                        availableStock = Math.max(0, totalStock - approvedBooking);
+                    }
+                }
+                totalItems++;
+                if (availableStock < Number(item.quantity)) canFulfill = false;
+                
+                enrichedItems.push({
+                    ...item,
+                    available_stock_tp: stock,
+                    total_stock: totalStock,
+                    approved_booking_stock: approvedBooking,
+                    booking_stock: bookingStock,
+                    available_stock: availableStock,
+                });
+            }
+
+            if (!o.customer_name && o.customer) {
+                o.customer_name = o.customer.name;
+            }
+            const has_pending_export = o.deliveries && o.deliveries.some((d: any) => d.status === 'PENDING_EXPORT');
+            enrichedOrders.push({ 
+                ...o, 
+                items: enrichedItems, 
+                can_fulfill_stock: (totalItems > 0 && canFulfill),
+                has_pending_export 
+            });
+        }
+
+        return enrichedOrders;
     }
 
     /**
