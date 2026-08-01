@@ -804,6 +804,30 @@ export class PlanningService {
                 updated++;
             }
         }
+
+        // [MỚI] Tự động Fix các Booking tạm thời bị kẹt khi KHSX đã xuất NPL (dành cho các dữ liệu cũ trước khi có bản vá)
+        try {
+            await this.planRepo.manager.query(`
+                UPDATE sales_order_items i
+                SET booking_status = 'CONFIRMED'
+                FROM production_fulfillment_orders p
+                JOIN goods_issues gi ON gi.pfo_id = p.id
+                WHERE i.order_id = p.sales_order_id
+                  AND gi.status IN ('CONFIRMED', 'DELIVERED')
+                  AND i.booking_status = 'TEMPORARY'
+            `);
+            await this.planRepo.manager.query(`
+                UPDATE production_fulfillment_orders p
+                SET status = 'IN_PRODUCTION'
+                FROM goods_issues gi
+                WHERE gi.pfo_id = p.id 
+                  AND gi.status IN ('CONFIRMED', 'DELIVERED')
+                  AND p.status IN ('DRAFT', 'PENDING_APPROVAL', 'WAITING_VENDOR', 'MATERIAL_PREP')
+            `);
+        } catch (e) {
+            console.error('Error auto-fixing stuck bookings:', e);
+        }
+
         return { message: `Đã đồng bộ lại tồn kho booking cho ${updated} sản phẩm`, updated };
     }
 

@@ -825,7 +825,25 @@ export class InventoryService {
     // ----------------------------------------
 
     gi.status = GoodsIssueStatus.CONFIRMED;
-    return this.goodsIssueRepo.save(gi);
+    const saved = await this.goodsIssueRepo.save(gi);
+
+    // [AUTO-UPDATE PFO] Cập nhật KHSX sang IN_PRODUCTION và tự động duyệt Booking tạm thời
+    if (gi.pfo_id) {
+      try {
+        await this.goodsIssueRepo.manager.update('ProductionFulfillmentOrder', gi.pfo_id, { status: 'IN_PRODUCTION' });
+        const pfo: any = await this.goodsIssueRepo.manager.findOne('ProductionFulfillmentOrder', { where: { id: gi.pfo_id } });
+        if (pfo && pfo.sales_order_id) {
+            await this.goodsIssueRepo.manager.update('SalesOrderItem', 
+                { order_id: pfo.sales_order_id, booking_status: 'TEMPORARY' }, 
+                { booking_status: 'CONFIRMED', booking_expires_at: null }
+            );
+        }
+      } catch (err) {
+        console.error('Error auto-updating PFO and bookings on material issue:', err);
+      }
+    }
+
+    return saved;
   }
 
   async markGoodsIssueDelivered(id: number) {

@@ -16,6 +16,7 @@ import RevisionHistoryModal from './sales/RevisionHistoryModal';
 import QuotationHistoryTab from './sales/QuotationHistoryTab';
 import SampleImagesTab from './sales/SampleImagesTab';
 import ContractBuilderModal from './sales/ContractBuilderModal';
+import SalesActivityLogsTab from './sales/SalesActivityLogsTab';
 import useMobile from '../hooks/useMobile';
 
 const { Option } = Select;
@@ -1218,6 +1219,9 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                         </Tabs.TabPane>
                         <Tabs.TabPane tab={isMobile ? '8. BG' : '8. Lịch sử Báo giá'} key="quotation_history">
                             <QuotationHistoryTab revisions={revisions} products={products} customers={customers} />
+                        </Tabs.TabPane>
+                        <Tabs.TabPane tab={isMobile ? '9. LS' : '9. Lịch sử hoạt động'} key="activity_logs">
+                            <SalesActivityLogsTab orderId={initialData.id} />
                         </Tabs.TabPane>
                     </>
                 )}
