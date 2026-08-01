@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Select, InputNumber, Button, Tag, Space, Typography, Card, Divider } from 'antd';
-import { SaveOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Table, Select, InputNumber, Button, Tag, Space, Typography, Card, Divider, Input, Popconfirm } from 'antd';
+import { SaveOutlined, CheckCircleOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -8,13 +8,16 @@ const { Option } = Select;
 interface PfoProcessRoutingProps {
     pfoId: number;
     existingMilestones?: any[];
+    salesOrderItems?: any[];
     suppliers: any[];
     loading?: boolean;
     onSaveRouting: (routingData: any[]) => void;
 }
 
 const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
+    pfoId,
     existingMilestones = [],
+    salesOrderItems = [],
     suppliers = [],
     loading,
     onSaveRouting
@@ -22,36 +25,44 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
     const [routingRows, setRoutingRows] = useState<any[]>([]);
 
     useEffect(() => {
-        // Map existing milestones directly since they are now generated from product routings
         setRoutingRows([...existingMilestones]);
     }, [existingMilestones]);
 
-    const handleVendorChange = (id: number, vendorId: number) => {
+    const handleVendorChange = (id: string | number, vendorId: number) => {
         const vendorObj = suppliers.find(s => s.id === vendorId);
-        const newRows = routingRows.map(row => {
-            if (row.id === id) {
-                return {
-                    ...row,
-                    vendor_id: vendorId,
-                    vendor_name: vendorObj ? vendorObj.name : ''
-                };
-            }
-            return row;
-        });
-        setRoutingRows(newRows);
+        setRoutingRows(rows => rows.map(row => 
+            row.id === id ? { ...row, vendor_id: vendorId, vendor_name: vendorObj ? vendorObj.name : '' } : row
+        ));
     };
 
-    const handlePriceChange = (id: number, price: number | null) => {
-        const newRows = routingRows.map(row => {
-            if (row.id === id) {
-                return {
-                    ...row,
-                    unit_price: price || 0
-                };
-            }
-            return row;
-        });
-        setRoutingRows(newRows);
+    const handlePriceChange = (id: string | number, price: number | null) => {
+        setRoutingRows(rows => rows.map(row => 
+            row.id === id ? { ...row, unit_price: price || 0 } : row
+        ));
+    };
+
+    const handleStepNameChange = (id: string | number, name: string) => {
+        setRoutingRows(rows => rows.map(row => 
+            row.id === id ? { ...row, step_name: name } : row
+        ));
+    };
+
+    const handleAddRow = (productId: number, productName: string, plannedQuantity: number) => {
+        const newRow = {
+            id: `temp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            pfo_id: pfoId,
+            product_id: productId,
+            product_name: productName,
+            step_name: 'Gia công',
+            vendor_id: null,
+            planned_quantity: plannedQuantity,
+            unit_price: 0
+        };
+        setRoutingRows(rows => [...rows, newRow]);
+    };
+
+    const handleDeleteRow = (id: string | number) => {
+        setRoutingRows(rows => rows.filter(r => r.id !== id));
     };
 
     const columns = [
@@ -60,7 +71,14 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
             dataIndex: 'step_name',
             key: 'step_name',
             width: 220,
-            render: (text: string) => <Text strong style={{ fontSize: 13, color: '#1f1f1f' }}>{text}</Text>
+            render: (text: string, record: any) => (
+                <Input 
+                    value={text} 
+                    onChange={e => handleStepNameChange(record.id, e.target.value)} 
+                    placeholder="Tên công đoạn..."
+                    style={{ fontWeight: 500 }}
+                />
+            )
         },
         {
             title: 'Nhà Gia Công (Xưởng Phụ Trách)',
@@ -113,6 +131,17 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
             )
         },
         {
+            title: 'Thành Tiền',
+            key: 'total',
+            width: 140,
+            align: 'right' as const,
+            render: (_: any, record: any) => (
+                <Text strong style={{ color: '#096dd9' }}>
+                    {(Number(record.unit_price || 0) * Number(record.planned_quantity || 0)).toLocaleString()} ₫
+                </Text>
+            )
+        },
+        {
             title: 'Trạng Thái',
             key: 'status',
             width: 130,
@@ -122,25 +151,69 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
             ) : (
                 <Tag color="default">Chưa gán xưởng</Tag>
             )
+        },
+        {
+            title: '',
+            key: 'action',
+            width: 50,
+            align: 'center' as const,
+            render: (_: any, record: any) => (
+                <Popconfirm title="Xóa công đoạn này?" onConfirm={() => handleDeleteRow(record.id)}>
+                    <Button type="text" danger icon={<DeleteOutlined />} size="small" />
+                </Popconfirm>
+            )
         }
     ];
 
-    // Group rows by product
+    // Group rows by product using salesOrderItems as skeleton
     const groupedRows = useMemo(() => {
-        const groups: { [key: number]: any[] } = {};
-        const noProduct: any[] = [];
+        const groups: { [key: number]: { productName: string, plannedQuantity: number, rows: any[] } } = {};
+        
+        // 1. Map expected products from sales order items
+        (salesOrderItems || []).forEach((item: any) => {
+            const product = item.product;
+            if (!product) return;
+            const qty = Number(item.quantity) || 1;
 
+            if (product.type === 'COMBO' && product.components) {
+                product.components.forEach((comp: any) => {
+                    const child = comp.child_product;
+                    if (child) {
+                        groups[child.id] = {
+                            productName: child.name || child.sku,
+                            plannedQuantity: qty * (Number(comp.quantity) || 1),
+                            rows: []
+                        };
+                    }
+                });
+            } else {
+                groups[product.id] = {
+                    productName: product.name || product.sku,
+                    plannedQuantity: qty,
+                    rows: []
+                };
+            }
+        });
+
+        // 2. Map existing routing rows into groups
+        const noProduct: any[] = [];
         routingRows.forEach(row => {
             if (row.product_id) {
-                if (!groups[row.product_id]) groups[row.product_id] = [];
-                groups[row.product_id].push(row);
+                if (!groups[row.product_id]) {
+                    groups[row.product_id] = {
+                        productName: row.product_name || `Sản phẩm #${row.product_id}`,
+                        plannedQuantity: row.planned_quantity || 0,
+                        rows: []
+                    };
+                }
+                groups[row.product_id].rows.push(row);
             } else {
                 noProduct.push(row);
             }
         });
 
         return { groups, noProduct };
-    }, [routingRows]);
+    }, [routingRows, salesOrderItems]);
 
     return (
         <Card size="small" style={{ borderRadius: 10, background: '#fafafa', border: '1px solid #e8e8e8' }}>
@@ -165,21 +238,31 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
             </div>
 
             {Object.keys(groupedRows.groups).map(productIdStr => {
-                const rows = groupedRows.groups[Number(productIdStr)];
-                const productName = rows[0]?.product_name || `Sản phẩm #${productIdStr}`;
+                const productId = Number(productIdStr);
+                const group = groupedRows.groups[productId];
+                
                 return (
-                    <div key={productIdStr} style={{ marginBottom: 24 }}>
-                        <Divider orientation="left" style={{ margin: '12px 0' }}>
-                            <Text strong style={{ color: '#096dd9' }}>{productName}</Text>
-                        </Divider>
+                    <div key={productId} style={{ marginBottom: 24 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <Text strong style={{ color: '#096dd9', fontSize: 14 }}>📦 {group.productName}</Text>
+                            <Button 
+                                type="dashed" 
+                                size="small" 
+                                icon={<PlusOutlined />} 
+                                onClick={() => handleAddRow(productId, group.productName, group.plannedQuantity)}
+                            >
+                                Thêm công đoạn
+                            </Button>
+                        </div>
                         <Table
-                            dataSource={rows}
+                            dataSource={group.rows}
                             columns={columns}
                             rowKey="id"
                             pagination={false}
                             size="small"
                             bordered
                             style={{ background: '#fff' }}
+                            locale={{ emptyText: 'Chưa có công đoạn gia công nào' }}
                         />
                     </div>
                 );
@@ -188,7 +271,7 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
             {groupedRows.noProduct.length > 0 && (
                 <div style={{ marginBottom: 24 }}>
                     <Divider orientation="left" style={{ margin: '12px 0' }}>
-                        <Text strong style={{ color: '#096dd9' }}>Công Đoạn Chung (Không gắn sản phẩm cụ thể)</Text>
+                        <Text strong style={{ color: '#fa8c16' }}>⚠️ Công Đoạn Khác (Không thuộc SP nào)</Text>
                     </Divider>
                     <Table
                         dataSource={groupedRows.noProduct}

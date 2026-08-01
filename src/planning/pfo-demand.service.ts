@@ -179,16 +179,6 @@ export class PfoDemandService {
             relations: [
                 'sales_order',
                 'sales_order.customer',
-                'sales_order.items',
-                'sales_order.items.product',
-                'sales_order.items.product.logistics',
-                'sales_order.items.product.boms',
-                'sales_order.items.product.boms.material',
-                'sales_order.items.product.components',
-                'sales_order.items.product.components.child_product',
-                'sales_order.items.product.components.child_product.logistics',
-                'sales_order.items.product.components.child_product.boms',
-                'sales_order.items.product.components.child_product.boms.material',
                 'material_requirements',
                 'material_requirements.material',
                 'milestones',
@@ -196,6 +186,27 @@ export class PfoDemandService {
                 'qc_records'
             ]
         });
+
+        if (pfo && pfo.sales_order) {
+            const so = await this.pfoRepo.manager.findOne('SalesOrder', {
+                where: { id: pfo.sales_order.id },
+                relations: [
+                    'items',
+                    'items.product',
+                    'items.product.logistics',
+                    'items.product.boms',
+                    'items.product.boms.material',
+                    'items.product.components',
+                    'items.product.components.child_product',
+                    'items.product.components.child_product.logistics',
+                    'items.product.components.child_product.boms',
+                    'items.product.components.child_product.boms.material'
+                ]
+            });
+            if (so) {
+                pfo.sales_order.items = (so as any).items;
+            }
+        }
 
         if (!pfo) throw new NotFoundException('PFO không tồn tại');
 

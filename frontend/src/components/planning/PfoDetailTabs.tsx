@@ -249,7 +249,8 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                         children: (
                             <PfoProcessRouting 
                                 pfoId={selectedPfo.id}
-                                existingMilestones={pfoDetails?.milestones || []}
+                                existingMilestones={pfoDetails?.milestones || selectedPfo?.milestones || []}
+                                salesOrderItems={pfoDetails?.sales_order?.items || []}
                                 suppliers={suppliers}
                                 loading={loading}
                                 onSaveRouting={handleSaveRouting}
