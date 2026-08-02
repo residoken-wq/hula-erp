@@ -97,6 +97,11 @@ export class PurchaseOrder {
   semi_finished_products: any[];
   // --------------------------------------------------
 
+  // --- MỚI: Danh sách NPL bị loại bỏ không giao cho xưởng này ---
+  @Column({ type: 'jsonb', nullable: true })
+  excluded_outsourcing_materials: string[];
+  // ---------------------------------------------------------------
+
   // --- MỚI: Pooled PO Relations ---
   @Column({ nullable: true })
   parent_po_id: number;

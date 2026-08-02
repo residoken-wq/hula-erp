@@ -687,7 +687,19 @@ export class InventoryService {
 
     return this.goodsIssueRepo.find({
       where,
-      relations: ['items', 'items.material', 'supplier', 'purchase_order'],
+      relations: [
+        'items', 
+        'items.material', 
+        'supplier', 
+        'purchase_order', 
+        'purchase_order.pfo', 
+        'purchase_order.pfo.sales_order', 
+        'purchase_order.pfo.sales_order.customer', 
+        'purchase_order.child_pos', 
+        'purchase_order.child_pos.pfo', 
+        'purchase_order.child_pos.pfo.sales_order', 
+        'purchase_order.child_pos.pfo.sales_order.customer'
+      ],
       order: { created_at: 'DESC' }
     });
   }

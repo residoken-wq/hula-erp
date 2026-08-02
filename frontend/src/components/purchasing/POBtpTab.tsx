@@ -23,6 +23,8 @@ export interface SemiFinishedProduct {
     product_name?: string;
     output_quantity: number;
     unit: string;
+    target_po_id?: number | null;
+    target_po_code?: string;
     target_vendor_id?: number | null;
     target_vendor_name?: string;
     note?: string;
@@ -34,6 +36,8 @@ interface POBtpTabProps {
     currentPO: any;
     suppliers: any[];
     products: any[];
+    planProducts?: any[];
+    purchaseOrders?: any[];
     onSave?: (btpList: SemiFinishedProduct[]) => void;
 }
 
@@ -47,10 +51,38 @@ const COMMON_UNITS = [
     { value: 'con', label: 'Con' }
 ];
 
-export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, products, onSave }) => {
+export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, products, planProducts = [], purchaseOrders = [], onSave }) => {
     const [btpList, setBtpList] = useState<SemiFinishedProduct[]>([]);
     const [availableMaterials, setAvailableMaterials] = useState<any[]>([]);
     const [saving, setSaving] = useState(false);
+
+    // List of candidate products that this PO / KHSX produces
+    const candidateProducts: any[] = React.useMemo(() => {
+        const map = new Map<number, any>();
+        if (currentPO?.items && Array.isArray(currentPO.items)) {
+            for (const item of currentPO.items) {
+                if (item.product) map.set(item.product.id, item.product);
+                else if (item.product_id) map.set(item.product_id, { id: item.product_id, name: item.product_name || item.name, sku: item.sku });
+            }
+        }
+        if (Array.isArray(planProducts)) {
+            for (const prod of planProducts) {
+                if (prod && prod.id && !map.has(prod.id)) map.set(prod.id, prod);
+            }
+        }
+        if (map.size === 0 && Array.isArray(products)) {
+            for (const prod of products) {
+                if (prod && prod.id) map.set(prod.id, prod);
+            }
+        }
+        return Array.from(map.values());
+    }, [currentPO, planProducts, products]);
+
+    // List of sibling PO_GCs in the same KHSX (or all other PO_GCs)
+    const siblingPOs: any[] = React.useMemo(() => {
+        if (!Array.isArray(purchaseOrders)) return [];
+        return purchaseOrders.filter(p => p.type === 'OUTSOURCING' && p.id !== currentPO?.id);
+    }, [purchaseOrders, currentPO?.id]);
 
     useEffect(() => {
         if (currentPO) {
@@ -75,7 +107,7 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
     }, [currentPO?.id]);
 
     const handleAddBtp = () => {
-        const firstProduct = currentPO?.items?.[0]?.product;
+        const firstProduct = candidateProducts?.[0];
         const newBtp: SemiFinishedProduct = {
             id: `BTP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
             btp_code: `BTP-GC-${currentPO?.po_code ? currentPO.po_code.replace('PO-', '') : Date.now().toString().slice(-4)}`,
@@ -84,6 +116,8 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
             product_name: firstProduct?.name || '',
             output_quantity: Number(currentPO?.items?.[0]?.quantity || 1),
             unit: 'm',
+            target_po_id: null,
+            target_po_code: '',
             target_vendor_id: null,
             target_vendor_name: '',
             note: '',
@@ -100,7 +134,7 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
             id: `BTP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
             btp_code: `${itemToClone.btp_code || 'BTP'}-COPY`,
             btp_name: `${itemToClone.btp_name} (Bản sao)`,
-            components: itemToClone.components.map(c => ({ ...c, id: `COMP_${Date.now()}_${Math.floor(Math.random() * 1000)}` }))
+            components: (itemToClone.components || []).map(c => ({ ...c, id: `COMP_${Date.now()}_${Math.floor(Math.random() * 1000)}` }))
         };
         const newList = [...btpList];
         newList.splice(index + 1, 0, cloned);
@@ -124,7 +158,7 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
             newList[index].target_vendor_name = supp?.name || '';
         }
         if (field === 'product_id') {
-            const prod = products.find(p => p.id === value);
+            const prod = candidateProducts.find(p => p.id === value) || products.find(p => p.id === value);
             newList[index].product_name = prod?.name || '';
         }
 
@@ -285,9 +319,14 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                                 <Tag color="blue" style={{ fontSize: 12 }}>
                                     Đầu ra: <b>{btp.output_quantity || 0} {btp.unit}</b>
                                 </Tag>
-                                {btp.target_vendor_name && (
+                                {btp.product_name && (
+                                    <Tag color="geekblue" style={{ fontSize: 12 }}>
+                                        🎯 Cho SP: <b>{btp.product_name}</b>
+                                    </Tag>
+                                )}
+                                {(btp.target_po_code || btp.target_vendor_name) && (
                                     <Tag color="cyan" style={{ fontSize: 12 }}>
-                                        <ArrowRightOutlined /> Giao sang: <b>{btp.target_vendor_name}</b>
+                                        <ArrowRightOutlined /> Giao sang: <b>{btp.target_po_code ? `${btp.target_po_code} — ` : ''}{btp.target_vendor_name}</b>
                                     </Tag>
                                 )}
                             </Space>
@@ -305,7 +344,7 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                     >
                         {/* 1. Thông tin tổng quan BTP */}
                         <Row gutter={[16, 12]}>
-                            <Col xs={24} sm={12} md={8}>
+                            <Col xs={24} sm={12} md={7}>
                                 <label style={{ fontSize: 12, color: '#666', fontWeight: 600, display: 'block', marginBottom: 4 }}>
                                     Tên Bán Thành Phẩm (BTP) <span style={{ color: 'red' }}>*</span>:
                                 </label>
@@ -328,7 +367,30 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                                 />
                             </Col>
 
-                            <Col xs={12} sm={6} md={3}>
+                            <Col xs={24} sm={12} md={5}>
+                                <label style={{ fontSize: 12, color: '#1890ff', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                                    🎯 Sản phẩm sử dụng BTP này:
+                                </label>
+                                <Select
+                                    showSearch
+                                    allowClear
+                                    placeholder="Chọn sản phẩm hoàn thiện..."
+                                    style={{ width: '100%' }}
+                                    value={btp.product_id || undefined}
+                                    onChange={(val) => {
+                                        const prod = candidateProducts.find(p => p.id === val);
+                                        handleUpdateBtp(btpIndex, 'product_id', val || null);
+                                        handleUpdateBtp(btpIndex, 'product_name', prod?.name || prod?.product_name || '');
+                                    }}
+                                    options={candidateProducts.map(p => ({
+                                        label: `${p.sku ? `[${p.sku}] ` : ''}${p.name || p.product_name || 'SP'}`,
+                                        value: p.id
+                                    }))}
+                                    optionFilterProp="label"
+                                />
+                            </Col>
+
+                            <Col xs={12} sm={6} md={4}>
                                 <label style={{ fontSize: 12, color: '#666', fontWeight: 600, display: 'block', marginBottom: 4 }}>
                                     SL Đầu ra <span style={{ color: 'red' }}>*</span>:
                                 </label>
@@ -341,7 +403,7 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                                 />
                             </Col>
 
-                            <Col xs={12} sm={6} md={3}>
+                            <Col xs={12} sm={6} md={4}>
                                 <label style={{ fontSize: 12, color: '#666', fontWeight: 600, display: 'block', marginBottom: 4 }}>
                                     Đơn vị tính:
                                 </label>
@@ -353,18 +415,61 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                                 />
                             </Col>
 
-                            <Col xs={24} sm={12} md={6}>
-                                <label style={{ fontSize: 12, color: '#666', fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                                    Xưởng nhận tiếp theo (NGC đích):
+                            <Col xs={24} sm={24} md={24}>
+                                <label style={{ fontSize: 12, color: '#722ed1', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                                    🏭 PO_GC nhận tiếp theo trong KHSX (Hoặc Xưởng / NGC đích):
                                 </label>
                                 <Select
                                     showSearch
                                     allowClear
-                                    placeholder="Chọn xưởng / NGC nhận BTP..."
+                                    placeholder="Chọn PO Gia công tiếp theo hoặc NCC nhận BTP..."
                                     style={{ width: '100%' }}
-                                    value={btp.target_vendor_id || undefined}
-                                    onChange={val => handleUpdateBtp(btpIndex, 'target_vendor_id', val || null)}
-                                    options={suppliers.map(s => ({ label: `🏭 ${s.name}`, value: s.id }))}
+                                    value={btp.target_po_id ? `PO_${btp.target_po_id}` : (btp.target_vendor_id ? `SUPP_${btp.target_vendor_id}` : undefined)}
+                                    onChange={(val) => {
+                                        if (!val) {
+                                            const newList = [...btpList];
+                                            newList[btpIndex].target_po_id = null;
+                                            newList[btpIndex].target_po_code = '';
+                                            newList[btpIndex].target_vendor_id = null;
+                                            newList[btpIndex].target_vendor_name = '';
+                                            setBtpList(newList);
+                                            return;
+                                        }
+                                        const strVal = String(val);
+                                        const newList = [...btpList];
+                                        if (strVal.startsWith('PO_')) {
+                                            const poId = Number(strVal.replace('PO_', ''));
+                                            const foundPo = siblingPOs.find(p => p.id === poId);
+                                            newList[btpIndex].target_po_id = poId;
+                                            newList[btpIndex].target_po_code = foundPo?.po_code || '';
+                                            newList[btpIndex].target_vendor_id = foundPo?.supplier_id || foundPo?.supplier?.id || null;
+                                            newList[btpIndex].target_vendor_name = foundPo?.supplier?.name || foundPo?.supplier_name || '';
+                                        } else if (strVal.startsWith('SUPP_')) {
+                                            const suppId = Number(strVal.replace('SUPP_', ''));
+                                            const foundSupp = suppliers.find(s => s.id === suppId);
+                                            newList[btpIndex].target_po_id = null;
+                                            newList[btpIndex].target_po_code = '';
+                                            newList[btpIndex].target_vendor_id = suppId;
+                                            newList[btpIndex].target_vendor_name = foundSupp?.name || '';
+                                        }
+                                        setBtpList(newList);
+                                    }}
+                                    options={[
+                                        ...(siblingPOs.length > 0 ? [{
+                                            label: '--- Các PO Gia Công Khác Trong KHSX ---',
+                                            options: siblingPOs.map(p => ({
+                                                label: `🏭 ${p.po_code} - ${p.supplier?.name || p.supplier_name || 'Chưa gán NGC'}${p.note ? ` (${p.note})` : ''}`,
+                                                value: `PO_${p.id}`
+                                            }))
+                                        }] : []),
+                                        {
+                                            label: '--- Hoặc Chọn Trực Tiếp Nhà Gia Công ---',
+                                            options: suppliers.map(s => ({
+                                                label: `🏢 ${s.name}`,
+                                                value: `SUPP_${s.id}`
+                                            }))
+                                        }
+                                    ]}
                                     optionFilterProp="label"
                                 />
                             </Col>
@@ -392,11 +497,16 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                             <span style={{ color: '#531dab', fontWeight: 700, background: '#efdbff', padding: '2px 8px', borderRadius: 4, border: '1px solid #d3adf7' }}>
                                 {outputSummary}
                             </span>
-                            {btp.target_vendor_name && (
+                            {btp.product_name && (
+                                <Tag color="geekblue" style={{ margin: 0, fontWeight: 600 }}>
+                                    🎯 Cho: {btp.product_name}
+                                </Tag>
+                            )}
+                            {(btp.target_po_code || btp.target_vendor_name) && (
                                 <>
                                     <ArrowRightOutlined style={{ color: '#13c2c2', fontSize: 16 }} />
                                     <Tag color="cyan" style={{ margin: 0, fontWeight: 600 }}>
-                                        Xuất sang: {btp.target_vendor_name}
+                                        Xuất sang: {btp.target_po_code ? `${btp.target_po_code} — ` : ''}{btp.target_vendor_name}
                                     </Tag>
                                 </>
                             )}

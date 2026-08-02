@@ -262,6 +262,37 @@ const InventoryPage: React.FC = () => {
         }
     };
 
+    const getGiCustomerName = (gi: any) => {
+        if (!gi) return '';
+        // 1. Từ PFO
+        const pfoId = gi.pfo_id || gi.plan_id;
+        if (pfoId) {
+            const pfo = productionPlans.find(p => p.id === pfoId);
+            if (pfo?.sales_order?.customer?.name) return pfo.sales_order.customer.name;
+            if (pfo?.sales_order?.customer_name) return pfo.sales_order.customer_name;
+        }
+        // 2. Từ PO
+        const poId = gi.po_id;
+        if (poId) {
+            const po = purchaseOrders.find(p => p.id === poId);
+            if (po?.pfo?.sales_order?.customer?.name) return po.pfo.sales_order.customer.name;
+            if (po?.pfo?.sales_order?.customer_name) return po.pfo.sales_order.customer_name;
+            if (po?.type === 'POOLED' && po.child_pos?.length > 0) {
+                const names = new Set<string>();
+                po.child_pos.forEach((c: any) => {
+                    const n = c.pfo?.sales_order?.customer?.name || c.pfo?.sales_order?.customer_name;
+                    if (n) names.add(n);
+                });
+                if (names.size > 0) return Array.from(names).join(', ');
+            }
+        }
+        // 3. Trực tiếp từ relation nếu có
+        if (gi.purchase_order?.pfo?.sales_order?.customer?.name) {
+            return gi.purchase_order.pfo.sales_order.customer.name;
+        }
+        return '';
+    };
+
     const openConfirmGiModal = (record: any) => {
         setSelectedGiForConfirm(record);
         setConfirmGiItems(record.items.map((i: any) => ({
@@ -1058,7 +1089,16 @@ const InventoryPage: React.FC = () => {
 
             {/* MODAL XÁC NHẬN XUẤT NPL */}
             <Modal
-                title={`Xác nhận xuất kho NPL - ${selectedGiForConfirm?.code || ''}`}
+                title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 32 }}>
+                        <span>Xác nhận xuất kho NPL - {selectedGiForConfirm?.code || ''}</span>
+                        {getGiCustomerName(selectedGiForConfirm) && (
+                            <span style={{ fontSize: 14, fontWeight: 'normal', color: '#666' }}>
+                                KH: <b style={{ color: '#1890ff' }}>{getGiCustomerName(selectedGiForConfirm)}</b>
+                            </span>
+                        )}
+                    </div>
+                }
                 open={isConfirmGiModalOpen}
                 onCancel={() => setIsConfirmGiModalOpen(false)}
                 onOk={handleConfirmGiSubmit}
@@ -1141,7 +1181,30 @@ const InventoryPage: React.FC = () => {
 
             {/* MODAL SỬA PHIẾU XUẤT NPL */}
             <Modal
-                title={`Sửa phiếu xuất kho NPL - ${selectedGiForEdit?.code || ''}`}
+                title={
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 32 }}>
+                        <span>Sửa phiếu xuất kho NPL - {selectedGiForEdit?.code || ''}</span>
+                        {(() => {
+                            const currentPfoId = editGiForm.getFieldValue('pfo_id');
+                            const currentPoId = editGiForm.getFieldValue('po_id');
+                            let custName = '';
+                            if (currentPfoId) {
+                                const pfo = productionPlans.find(p => p.id === currentPfoId);
+                                custName = pfo?.sales_order?.customer?.name || pfo?.sales_order?.customer_name || '';
+                            }
+                            if (!custName && currentPoId) {
+                                const po = purchaseOrders.find(p => p.id === currentPoId);
+                                custName = po?.pfo?.sales_order?.customer?.name || po?.pfo?.sales_order?.customer_name || '';
+                            }
+                            if (!custName) custName = getGiCustomerName(selectedGiForEdit);
+                            return custName ? (
+                                <span style={{ fontSize: 14, fontWeight: 'normal', color: '#666' }}>
+                                    KH: <b style={{ color: '#1890ff' }}>{custName}</b>
+                                </span>
+                            ) : null;
+                        })()}
+                    </div>
+                }
                 open={isEditGiModalOpen}
                 onCancel={() => setIsEditGiModalOpen(false)}
                 onOk={handleEditGiSubmit}
@@ -1154,9 +1217,18 @@ const InventoryPage: React.FC = () => {
                         <Col span={8}>
                             <Form.Item name="pfo_id" label="Lệnh SX (PFO)">
                                 <Select showSearch allowClear optionFilterProp="children" placeholder="Chọn Lệnh SX">
-                                    {productionPlans.map(p => <Option key={p.id} value={p.id}>{p.code}</Option>)}
+                                    {productionPlans.map(p => {
+                                        const custName = p.sales_order?.customer?.name || p.sales_order?.customer_name || '';
+                                        return <Option key={p.id} value={p.id}>{p.code}{custName ? ` - ${custName}` : ''}</Option>;
+                                    })}
                                 </Select>
                             </Form.Item>
+                            {(() => {
+                                const selectedPfoId = editGiForm.getFieldValue('pfo_id');
+                                const selectedPfo = selectedPfoId ? productionPlans.find(p => p.id === selectedPfoId) : null;
+                                const custName = selectedPfo?.sales_order?.customer?.name || selectedPfo?.sales_order?.customer_name;
+                                return custName ? <div style={{ marginTop: -16, marginBottom: 8, fontSize: 12, color: '#1890ff' }}>KH: <b>{custName}</b></div> : null;
+                            })()}
                         </Col>
                         <Col span={8}>
                             <Form.Item name="po_id" label="PO Gia công">
@@ -1174,13 +1246,22 @@ const InventoryPage: React.FC = () => {
                                         }
                                     }}
                                 >
-                                    {purchaseOrders.map(p => (
-                                        <Option key={p.id} value={p.id}>
-                                            {p.po_code} {p.supplier ? `- ${p.supplier.name || p.supplier.supplier_name}` : ''}
-                                        </Option>
-                                    ))}
+                                    {purchaseOrders.map(p => {
+                                        const custName = p.pfo?.sales_order?.customer?.name || p.pfo?.sales_order?.customer_name || '';
+                                        return (
+                                            <Option key={p.id} value={p.id}>
+                                                {p.po_code} {p.supplier ? `- ${p.supplier.name || p.supplier.supplier_name}` : ''}{custName ? ` (${custName})` : ''}
+                                            </Option>
+                                        );
+                                    })}
                                 </Select>
                             </Form.Item>
+                            {(() => {
+                                const selectedPoId = editGiForm.getFieldValue('po_id');
+                                const selectedPo = selectedPoId ? purchaseOrders.find(p => p.id === selectedPoId) : null;
+                                const custName = selectedPo?.pfo?.sales_order?.customer?.name || selectedPo?.pfo?.sales_order?.customer_name;
+                                return custName ? <div style={{ marginTop: -16, marginBottom: 8, fontSize: 12, color: '#1890ff' }}>KH: <b>{custName}</b></div> : null;
+                            })()}
                         </Col>
                         <Col span={8}>
                             <Form.Item name="supplier_id" label="Nhà Gia công (Mặc định)">

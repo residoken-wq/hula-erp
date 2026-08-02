@@ -137,6 +137,73 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
         setLoading(false);
     };
 
+    const getMaterialKey = (r: any) => {
+        if (r.key) return r.key;
+        if (r.type === 'SEMI_FINISHED') {
+            return r.product_id ? `PROD_${r.product_id}` : `BTP_${r.code || r.name}`;
+        }
+        return `MAT_${r.material_id}`;
+    };
+
+    const handleDeleteMaterial = async (record: any) => {
+        const key = getMaterialKey(record);
+        const updated = materials.filter(m => getMaterialKey(m) !== key);
+        setMaterials(updated);
+
+        try {
+            const currentExcluded = Array.isArray(currentPO?.excluded_outsourcing_materials) ? [...currentPO.excluded_outsourcing_materials] : [];
+            if (!currentExcluded.includes(key)) currentExcluded.push(key);
+            if (record.material_id && !currentExcluded.includes(`MAT_${record.material_id}`)) {
+                currentExcluded.push(`MAT_${record.material_id}`);
+            }
+            if (currentPO) currentPO.excluded_outsourcing_materials = currentExcluded;
+            await api.put(`/purchasing/${currentPO.id}`, { excluded_outsourcing_materials: currentExcluded });
+            message.success(`Đã xóa [${record.name}] khỏi danh sách giao cho nhà GC`);
+            onRefresh?.();
+        } catch (e) {
+            console.error('Error saving excluded materials:', e);
+            message.error('Lỗi khi lưu danh sách loại bỏ');
+        }
+    };
+
+    const handleFilterMixedInBtp = async () => {
+        const mixedItems = materials.filter(m => m.mixed_in_btp);
+        if (mixedItems.length === 0) {
+            return message.info('Không có NPL nào thuộc công thức phối trộn BTP');
+        }
+
+        const currentExcluded = Array.isArray(currentPO?.excluded_outsourcing_materials) ? [...currentPO.excluded_outsourcing_materials] : [];
+        mixedItems.forEach(m => {
+            const k = getMaterialKey(m);
+            if (!currentExcluded.includes(k)) currentExcluded.push(k);
+            if (m.material_id && !currentExcluded.includes(`MAT_${m.material_id}`)) {
+                currentExcluded.push(`MAT_${m.material_id}`);
+            }
+        });
+
+        if (currentPO) currentPO.excluded_outsourcing_materials = currentExcluded;
+        try {
+            await api.put(`/purchasing/${currentPO.id}`, { excluded_outsourcing_materials: currentExcluded });
+            setMaterials(materials.filter(m => !m.mixed_in_btp));
+            message.success(`Đã loại bỏ ${mixedItems.length} NPL đã được phối vào BTP`);
+            onRefresh?.();
+        } catch (e) {
+            message.error('Lỗi khi lọc NPL BTP');
+        }
+    };
+
+    const handleResetExcludedMaterials = async () => {
+        try {
+            if (currentPO) currentPO.excluded_outsourcing_materials = [];
+            await api.put(`/purchasing/${currentPO.id}`, { excluded_outsourcing_materials: [] });
+            await fetchMaterials();
+            message.info('Đã khôi phục toàn bộ danh sách NPL gốc');
+            onRefresh?.();
+        } catch (e) {
+            message.error('Lỗi khi khôi phục NPL');
+        }
+    };
+
     const handleRequestMaterial = async () => {
         if (!requestQty || requestQty <= 0) return message.warning('Vui lòng nhập số lượng hợp lệ');
         const pfoId = currentPO?.items?.[0]?.pfo_id || currentPO?.pfo_id;
@@ -166,9 +233,45 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
         });
     });
 
+    const getCustomerName = (r: any) => {
+        if (!r) return '';
+        const pfo = r.pfo || r.plan;
+        if (pfo) {
+            if (pfo.sales_order) {
+                const name = pfo.sales_order.customer?.name || pfo.sales_order.customer_name;
+                if (name) return name;
+            }
+            if (pfo.sales_orders && pfo.sales_orders.length > 0) {
+                const names = Array.from(new Set(pfo.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean)));
+                if (names.length > 0) return names.join(', ');
+            }
+        }
+        if (r.type === 'POOLED' && r.child_pos && r.child_pos.length > 0) {
+            const names = new Set<string>();
+            for (const child of r.child_pos) {
+                const childPfo = child.pfo || child.plan;
+                if (childPfo?.sales_order) {
+                    const n = childPfo.sales_order.customer?.name || childPfo.sales_order.customer_name;
+                    if (n) names.add(n);
+                }
+            }
+            if (names.size > 0) return Array.from(names).join(', ');
+        }
+        return '';
+    };
+
     return (
         <Modal
-            title={<span><CarOutlined style={{ color: '#fa8c16', marginRight: 8 }} />Xuất Kho NPL Gia Công — {currentPO?.po_code}</span>}
+            title={
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 32 }}>
+                    <span><CarOutlined style={{ color: '#fa8c16', marginRight: 8 }} />Xuất Kho NPL Gia Công — {currentPO?.po_code}</span>
+                    {getCustomerName(currentPO) && (
+                        <span style={{ fontSize: 14, fontWeight: 'normal', color: '#666' }}>
+                            KH: <b style={{ color: '#1890ff' }}>{getCustomerName(currentPO)}</b>
+                        </span>
+                    )}
+                </div>
+            }
             open={open}
             onCancel={onClose}
             width={1200}
@@ -204,10 +307,37 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
             }
         >
             {/* 1. Danh sách NPL cần giao */}
-            <Divider orientation="left" style={{ margin: '0 0 12px 0', fontSize: 13 }}>NPL cần giao cho Gia Công</Divider>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 10px 0' }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: '#333' }}>
+                    📦 NPL cần giao cho Gia Công ({materials.length}):
+                </div>
+                <Space size={8}>
+                    {materials.some(m => m.mixed_in_btp) && (
+                        <Button
+                            size="small"
+                            type="primary"
+                            ghost
+                            onClick={handleFilterMixedInBtp}
+                            style={{ borderColor: '#722ed1', color: '#722ed1', fontSize: 12, fontWeight: 500 }}
+                        >
+                            🧹 Lọc bỏ {materials.filter(m => m.mixed_in_btp).length} NPL đã phối vào BTP
+                        </Button>
+                    )}
+                    {Array.isArray(currentPO?.excluded_outsourcing_materials) && currentPO.excluded_outsourcing_materials.length > 0 && (
+                        <Button
+                            size="small"
+                            onClick={handleResetExcludedMaterials}
+                            style={{ fontSize: 12 }}
+                        >
+                            ↺ Khôi phục danh sách gốc ({currentPO.excluded_outsourcing_materials.length} đã xóa)
+                        </Button>
+                    )}
+                </Space>
+            </div>
+
             <Table
                 dataSource={materials}
-                rowKey={(r) => r.type === 'SEMI_FINISHED' ? (r.product_id ? `PROD_${r.product_id}` : `BTP_${r.code || r.name}`) : `MAT_${r.material_id}`}
+                rowKey={(r) => getMaterialKey(r)}
                 pagination={false}
                 size="middle"
                 rowClassName={(r) => r.issue_qty && r.issue_qty > 0 ? 'highlight-row' : ''}
@@ -215,7 +345,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                     { 
                         title: 'Mã', 
                         dataIndex: 'code', 
-                        width: 160, 
+                        width: 150, 
                         render: (t: any, r: any) => (
                             <Space wrap>
                                 <Tag color={r.type === 'SEMI_FINISHED' ? 'purple' : 'geekblue'} style={{ fontWeight: 500 }}>{t || '-'}</Tag>
@@ -245,13 +375,20 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                                             ⚗️ Phối trộn: {r.formula_desc}
                                         </div>
                                     )}
+                                    {r.mixed_in_btp && (
+                                        <div style={{ marginTop: 2 }}>
+                                            <Tag color="orange" style={{ fontSize: 11, padding: '0 4px', margin: 0 }}>
+                                                ⚠️ Đã phối trong BTP: {(r.used_in_btp_names || []).join(', ')}
+                                            </Tag>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         }
                     },
                     { title: 'ĐVT', dataIndex: 'unit', width: 60, align: 'center' as const },
                     {
-                        title: 'Loại', width: 140, align: 'center' as const,
+                        title: 'Loại', width: 130, align: 'center' as const,
                         render: (_: any, r: any, idx: number) => (
                             <Select
                                 value={r.material_category || (r.is_fabric ? 'FABRIC' : 'ACCESSORY')}
@@ -264,18 +401,18 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                                     { value: 'FABRIC', label: '🧵 Vải' },
                                     { value: 'ACCESSORY', label: '🔩 Phụ kiện' }
                                 ]}
-                                style={{ width: 120 }}
+                                style={{ width: 115 }}
                                 bordered={false}
                                 className="bg-gray-50 rounded"
                             />
                         )
                     },
                     {
-                        title: 'Cần (ĐM)', dataIndex: 'quantity', width: 100, align: 'right' as const,
+                        title: 'Cần (ĐM)', dataIndex: 'quantity', width: 95, align: 'right' as const,
                         render: (v: number) => <b style={{ color: '#1890ff' }}>{Number(v || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}</b>
                     },
                     {
-                        title: 'Đã Xuất', width: 150, align: 'center' as const,
+                        title: 'Đã Xuất', width: 130, align: 'center' as const,
                         render: (_: any, r: any) => {
                             const key = r.product_id ? `PROD_${r.product_id}` : `MAT_${r.material_id}`;
                             const issued = totalIssued.get(key) || 0;
@@ -287,7 +424,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                                     <span style={{ color: issued > 0 ? (percent >= 100 ? '#52c41a' : '#fa8c16') : '#999', fontWeight: 'bold' }}>
                                         {Number(issued).toLocaleString('vi-VN')}
                                     </span>
-                                    <Progress percent={percent > 100 ? 100 : percent} size="small" showInfo={false} strokeColor={percent >= 100 ? '#52c41a' : '#fa8c16'} style={{ margin: 0, width: 90 }} />
+                                    <Progress percent={percent > 100 ? 100 : percent} size="small" showInfo={false} strokeColor={percent >= 100 ? '#52c41a' : '#fa8c16'} style={{ margin: 0, width: 80 }} />
                                     <span style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{percent}%</span>
                                 </div>
                             );
@@ -311,7 +448,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                         )
                     },
                     {
-                        title: 'Xuất lần này', width: 160, align: 'center' as const,
+                        title: 'Xuất lần này', width: 150, align: 'center' as const,
                         render: (_: any, r: any, idx: number) => {
                             const key = r.type === 'SEMI_FINISHED' ? `PROD_${r.product_id}` : `MAT_${r.material_id}`;
                             const issued = totalIssued.get(key) || 0;
@@ -322,11 +459,11 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                             const isHighlight = r.issue_qty > 0;
 
                             return (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: isHighlight ? '#e6f7ff' : 'transparent', padding: '4px 8px', borderRadius: 6, border: isHighlight ? '1px solid #91d5ff' : '1px solid transparent' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: isHighlight ? '#e6f7ff' : 'transparent', padding: '4px 6px', borderRadius: 6, border: isHighlight ? '1px solid #91d5ff' : '1px solid transparent' }}>
                                     <InputNumber
                                         min={0}
                                         placeholder={remain.toString()}
-                                        style={{ width: 80, borderColor: isHighlight ? '#1890ff' : undefined }}
+                                        style={{ width: 75, borderColor: isHighlight ? '#1890ff' : undefined }}
                                         value={r.issue_qty}
                                         onChange={(val) => {
                                             const newList = [...materials];
@@ -335,7 +472,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                                         }}
                                     />
                                     {remain > 0 && (!r.issue_qty || r.issue_qty < remain) && (
-                                        <Button type="text" size="small" style={{ color: '#1890ff', padding: 0, fontSize: 12, minWidth: 28, fontWeight: 500 }} onClick={() => {
+                                        <Button type="text" size="small" style={{ color: '#1890ff', padding: 0, fontSize: 12, minWidth: 26, fontWeight: 500 }} onClick={() => {
                                             const newList = [...materials];
                                             newList[idx].issue_qty = remain;
                                             setMaterials(newList);
@@ -346,6 +483,28 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                                 </div>
                             );
                         }
+                    },
+                    {
+                        title: '',
+                        width: 44,
+                        align: 'center' as const,
+                        render: (_: any, r: any) => (
+                            <Popconfirm
+                                title="Xóa NPL này?"
+                                description="NPL này sẽ không được giao cho nhà GC trong PO này."
+                                onConfirm={() => handleDeleteMaterial(r)}
+                                okText="Xóa"
+                                cancelText="Hủy"
+                            >
+                                <Button
+                                    type="text"
+                                    danger
+                                    size="small"
+                                    icon={<DeleteOutlined />}
+                                    title="Xóa NPL không giao cho nhà GC này"
+                                />
+                            </Popconfirm>
+                        )
                     }
                 ]}
             />

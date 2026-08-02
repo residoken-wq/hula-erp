@@ -70,7 +70,7 @@ export class PurchasingService {
     async getPODetail(id: number) {
         const po = await this.poRepo.findOne({ 
             where: { id }, 
-            relations: ['supplier', 'parent_po', 'child_pos', 'items', 'items.material', 'items.product', 'items.product.routings', 'items.product.routings.process', 'items.print_design'] 
+            relations: ['supplier', 'parent_po', 'child_pos', 'child_pos.pfo', 'child_pos.pfo.sales_order', 'child_pos.pfo.sales_order.customer', 'pfo', 'pfo.sales_order', 'pfo.sales_order.customer', 'items', 'items.material', 'items.product', 'items.product.routings', 'items.product.routings.process', 'items.print_design'] 
         });
         if (!po || !po.items) return po;
 
@@ -280,6 +280,7 @@ export class PurchasingService {
         if (data.delivery_info) po.delivery_info = data.delivery_info;
         if (data.packing_list_details) po.packing_list_details = data.packing_list_details;
         if (data.semi_finished_products !== undefined) po.semi_finished_products = data.semi_finished_products;
+        if (data.excluded_outsourcing_materials !== undefined) po.excluded_outsourcing_materials = data.excluded_outsourcing_materials;
         if (data.status) po.status = data.status;
         if (data.note !== undefined) po.note = data.note; // Update General Note
         if (data.supplier_id) po.supplier = { id: data.supplier_id } as any; // Update Supplier relation
@@ -470,35 +471,79 @@ export class PurchasingService {
         }
 
         // 3. Lấy Bán Thành Phẩm được phối trộn & tạo ra từ các PO Gia công khác của cùng Lệnh SX (PFO)
+        const btpMaterialMap = new Map<number | string, string[]>();
+
         if (po.pfo_id) {
             const siblingPos = await this.poRepo.find({
                 where: { pfo_id: po.pfo_id, type: POType.OUTSOURCING }
             });
             for (const sib of siblingPos) {
-                if (sib.id !== po.id && Array.isArray(sib.semi_finished_products)) {
+                if (Array.isArray(sib.semi_finished_products)) {
                     for (const btp of sib.semi_finished_products) {
-                        if (!btp.target_vendor_id || Number(btp.target_vendor_id) === Number(po.supplier_id)) {
-                            const btpKey = `BTP_RECIPE_${sib.id}_${btp.id || btp.btp_name}`;
-                            materialNeeds.set(btpKey, {
-                                type: 'SEMI_FINISHED',
-                                product_id: btp.product_id || null,
-                                code: btp.btp_code || `BTP-GC-${sib.id}`,
-                                name: btp.btp_name || btp.name || 'Bán thành phẩm gia công',
-                                unit: btp.unit || 'm',
-                                quantity: Number(btp.output_quantity || btp.quantity || 0),
-                                stock: Number(btp.output_quantity || btp.quantity || 0),
-                                reserved_for_plan: true,
-                                from_po_code: sib.po_code,
-                                from_stage: sib.note,
-                                formula_desc: Array.isArray(btp.components) ? btp.components.map((c: any) => `${c.quantity} ${c.unit || ''} ${c.material_name || ''}`).join(' + ') : ''
-                            });
+                        // Track components mixed into BTP
+                        if (Array.isArray(btp.components)) {
+                            for (const comp of btp.components) {
+                                const cKey = comp.material_id || comp.material_code || comp.material_name;
+                                if (cKey) {
+                                    const existing = btpMaterialMap.get(cKey) || [];
+                                    existing.push(btp.btp_name || btp.btp_code || 'BTP');
+                                    btpMaterialMap.set(cKey, existing);
+                                }
+                            }
+                        }
+
+                        // Nếu BTP này được tạo từ PO khác và chuyển sang PO này (hoặc NCC này)
+                        if (sib.id !== po.id) {
+                            const isMatch = (!btp.target_po_id && !btp.target_vendor_id) ||
+                                            (btp.target_po_id && Number(btp.target_po_id) === Number(po.id)) ||
+                                            (btp.target_vendor_id && Number(btp.target_vendor_id) === Number(po.supplier_id));
+
+                            if (isMatch) {
+                                const btpKey = `BTP_RECIPE_${sib.id}_${btp.id || btp.btp_name}`;
+                                materialNeeds.set(btpKey, {
+                                    key: btpKey,
+                                    type: 'SEMI_FINISHED',
+                                    product_id: btp.product_id || null,
+                                    code: btp.btp_code || `BTP-GC-${sib.id}`,
+                                    name: btp.btp_name || btp.name || 'Bán thành phẩm gia công',
+                                    unit: btp.unit || 'm',
+                                    quantity: Number(btp.output_quantity || btp.quantity || 0),
+                                    stock: Number(btp.output_quantity || btp.quantity || 0),
+                                    reserved_for_plan: true,
+                                    from_po_id: sib.id,
+                                    from_po_code: sib.po_code,
+                                    from_stage: sib.note,
+                                    formula_desc: Array.isArray(btp.components) ? btp.components.map((c: any) => `${c.quantity} ${c.unit || ''} ${c.material_name || ''}`).join(' + ') : ''
+                                });
+                            }
                         }
                     }
                 }
             }
         }
 
-        return Array.from(materialNeeds.values());
+        // Đánh dấu NPL nào đã được phối trộn trong BTP và gắn key định danh
+        const result: any[] = [];
+        const excludedList = Array.isArray(po.excluded_outsourcing_materials) ? po.excluded_outsourcing_materials : [];
+
+        for (const [key, item] of materialNeeds.entries()) {
+            item.key = key;
+            const matId = item.material_id;
+            if (matId && btpMaterialMap.has(matId)) {
+                item.mixed_in_btp = true;
+                item.used_in_btp_names = btpMaterialMap.get(matId);
+            } else if (item.code && btpMaterialMap.has(item.code)) {
+                item.mixed_in_btp = true;
+                item.used_in_btp_names = btpMaterialMap.get(item.code);
+            }
+
+            // Kiểm tra danh sách loại bỏ của PO này
+            if (!excludedList.includes(key) && !(matId && excludedList.includes(`MAT_${matId}`)) && !(item.product_id && excludedList.includes(`PROD_${item.product_id}`))) {
+                result.push(item);
+            }
+        }
+
+        return result;
     }
     // ------------------------------------------------------
 
@@ -877,7 +922,7 @@ export class PurchasingService {
     async getPooledAggregate(pooledId: number) {
         const po = await this.poRepo.findOne({
             where: { id: pooledId },
-            relations: ['child_pos', 'child_pos.items', 'child_pos.items.material', 'child_pos.items.product', 'supplier']
+            relations: ['child_pos', 'child_pos.items', 'child_pos.items.material', 'child_pos.items.product', 'child_pos.pfo', 'child_pos.pfo.sales_order', 'child_pos.pfo.sales_order.customer', 'supplier']
         });
 
         if (!po) throw new NotFoundException('Không tìm thấy PO');

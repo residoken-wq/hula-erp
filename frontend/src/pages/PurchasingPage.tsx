@@ -547,14 +547,30 @@ const PurchasingPage: React.FC = () => {
     // ----------------------------------------
 
     const getCustomerName = (r: any) => {
+        // Normal PO: check pfo.sales_order.customer
         const pfo = r.pfo || r.plan;
-        if (!pfo) return '-';
-        if (pfo.sales_order) {
-            return pfo.sales_order.customer?.name || pfo.sales_order.customer_name || '-';
+        if (pfo) {
+            if (pfo.sales_order) {
+                const name = pfo.sales_order.customer?.name || pfo.sales_order.customer_name;
+                if (name) return name;
+            }
+            if (pfo.sales_orders && pfo.sales_orders.length > 0) {
+                const names = Array.from(new Set(pfo.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean)));
+                if (names.length > 0) return names.join(', ');
+            }
         }
-        if (pfo.sales_orders && pfo.sales_orders.length > 0) {
-            const names = Array.from(new Set(pfo.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean)));
-            return names.length > 0 ? names.join(', ') : '-';
+
+        // POOLED PO: aggregate customer names from child POs
+        if (r.type === 'POOLED' && r.child_pos && r.child_pos.length > 0) {
+            const names = new Set<string>();
+            for (const child of r.child_pos) {
+                const childPfo = child.pfo || child.plan;
+                if (childPfo?.sales_order) {
+                    const n = childPfo.sales_order.customer?.name || childPfo.sales_order.customer_name;
+                    if (n) names.add(n);
+                }
+            }
+            if (names.size > 0) return Array.from(names).join(', ');
         }
         return '-';
     };
@@ -1699,6 +1715,8 @@ const PurchasingPage: React.FC = () => {
                                 currentPO={currentPO}
                                 suppliers={suppliers}
                                 products={products}
+                                planProducts={planProducts}
+                                purchaseOrders={purchaseOrders}
                                 onSave={(btpList) => {
                                     setCurrentPO((prev: any) => ({ ...prev, semi_finished_products: btpList }));
                                     fetchData();
