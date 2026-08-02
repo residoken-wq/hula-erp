@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Tag, Statistic, Radio, Divider, Space, Badge, Checkbox, Popconfirm, DatePicker, Alert } from 'antd';
+import { Table, Button, message, Card, Modal, Form, Input, Select, InputNumber, Row, Col, Tabs, Tag, Statistic, Radio, Divider, Space, Badge, Checkbox, Popconfirm, DatePicker, Alert, Tooltip } from 'antd';
 import {
     ReloadOutlined, SwapOutlined, HistoryOutlined,
     AppstoreOutlined, ArrowUpOutlined, ArrowDownOutlined,
@@ -291,6 +291,125 @@ const InventoryPage: React.FC = () => {
             return gi.purchase_order.pfo.sales_order.customer.name;
         }
         return '';
+    };
+
+    // --- HELPER LẤY THÔNG TIN QUẢN LÝ GIAO HÀNG & MA TRẬN CHO PHIẾU NHẬP KHO ---
+    const getReceiptCustomerName = (receipt: any) => {
+        if (!receipt) return '';
+        const po = receipt.purchase_order || purchaseOrders.find(p => p.id === receipt.po_id);
+        if (!po) return '';
+        const pfo = po.pfo || po.plan;
+        if (pfo) {
+            if (pfo.sales_order?.customer?.name) return pfo.sales_order.customer.name;
+            if (pfo.sales_order?.customer_name) return pfo.sales_order.customer_name;
+            if (pfo.sales_orders && pfo.sales_orders.length > 0) {
+                const names = Array.from(new Set(pfo.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean)));
+                if (names.length > 0) return names.join(', ');
+            }
+        }
+        if (po.type === 'POOLED' && po.child_pos && po.child_pos.length > 0) {
+            const names = new Set<string>();
+            po.child_pos.forEach((c: any) => {
+                const n = c.pfo?.sales_order?.customer?.name || c.pfo?.sales_order?.customer_name;
+                if (n) names.add(n);
+            });
+            if (names.size > 0) return Array.from(names).join(', ');
+        }
+        return '';
+    };
+
+    const getReceiptSupplierName = (receipt: any) => {
+        const po = receipt.purchase_order || purchaseOrders.find(p => p.id === receipt.po_id);
+        if (!po) return '';
+        return po.supplier?.name || po.supplier_name || (po.note?.split('NCC: ')[1] || '');
+    };
+
+    const getReceiptItemDeliveryInfo = (receipt: any, item: any, idx?: number) => {
+        const po = receipt.purchase_order || purchaseOrders.find(p => p.id === receipt.po_id);
+        const packingListDetails: any[] = po?.packing_list_details || [];
+        const poItems: any[] = po?.items || [];
+
+        // Tìm PO item tương ứng
+        let matchedPoItem = null;
+        if (item.po_item_id) {
+            matchedPoItem = poItems.find(pi => pi.id === item.po_item_id);
+        }
+        if (!matchedPoItem) {
+            matchedPoItem = poItems.find(pi => 
+                (item.material_id && (pi.material_id === item.material_id || pi.material?.id === item.material_id)) ||
+                (item.product_id && (pi.product_id === item.product_id || pi.product?.id === item.product_id)) ||
+                (item.material?.name && (pi.material?.name === item.material.name || pi.description === item.material.name))
+            );
+        }
+
+        // Tìm dòng trong packing_list_details (Quản lý giao hàng của PO)
+        let matchedPacking: any = null;
+        if (packingListDetails.length > 0) {
+            matchedPacking = packingListDetails.find((p: any) => {
+                if (item.material_id && p.material_id && Number(p.material_id) === Number(item.material_id)) return true;
+                const matName = (item.material?.name || item.product?.name || '').toLowerCase().trim();
+                const pMatName = (p.material_name || '').toLowerCase().trim();
+                if (matName && pMatName && (matName === pMatName || matName.includes(pMatName) || pMatName.includes(matName))) return true;
+                return false;
+            });
+            if (!matchedPacking && idx !== undefined && packingListDetails[idx]) {
+                matchedPacking = packingListDetails[idx];
+            }
+        }
+
+        // 1. Số lượng Định Mức (ĐM)
+        const normQty = matchedPacking?.quantity !== undefined && matchedPacking?.quantity !== null && matchedPacking?.quantity !== ''
+            ? Number(matchedPacking.quantity) 
+            : (matchedPoItem?.quantity ? Number(matchedPoItem.quantity) : Number(item.quantity || 0));
+
+        // 2. Số lượng Đặt (Tổng N1..border hoặc theo PO item)
+        let orderQty = 0;
+        if (matchedPacking) {
+            const matrixOrderTotal = 
+                Number(matchedPacking.n1 || 0) + Number(matchedPacking.n2 || 0) +
+                Number(matchedPacking.c1 || 0) + Number(matchedPacking.c2 || 0) +
+                Number(matchedPacking.g1 || 0) + Number(matchedPacking.g2 || 0) +
+                Number(matchedPacking.odd || 0) + Number(matchedPacking.border || 0);
+            orderQty = matrixOrderTotal > 0 ? matrixOrderTotal : (Number(matchedPacking.quantity) || Number(matchedPoItem?.quantity) || Number(item.quantity || 0));
+        } else if (matchedPoItem) {
+            orderQty = Number(matchedPoItem.quantity || 0);
+        } else {
+            orderQty = Number(item.quantity || 0);
+        }
+
+        // 3. Số lượng Giao (Trong phiếu này)
+        const deliveryQty = Number(item.quantity || 0);
+
+        // 4. Ma trận chi tiết
+        const pData = item.packing_data || {};
+        const matrix = {
+            n1: { order: matchedPacking?.n1 ?? null, delivery: pData.n1 !== undefined ? pData.n1 : (matchedPacking?.n1_input ?? null) },
+            n2: { order: matchedPacking?.n2 ?? null, delivery: pData.n2 !== undefined ? pData.n2 : (matchedPacking?.n2_input ?? null) },
+            c1: { order: matchedPacking?.c1 ?? null, delivery: pData.c1 !== undefined ? pData.c1 : (matchedPacking?.c1_input ?? null) },
+            c2: { order: matchedPacking?.c2 ?? null, delivery: pData.c2 !== undefined ? pData.c2 : (matchedPacking?.c2_input ?? null) },
+            g1: { order: matchedPacking?.g1 ?? null, delivery: pData.g1 !== undefined ? pData.g1 : (matchedPacking?.g1_input ?? null) },
+            g2: { order: matchedPacking?.g2 ?? null, delivery: pData.g2 !== undefined ? pData.g2 : (matchedPacking?.g2_input ?? null) },
+            odd: { order: matchedPacking?.odd ?? null, delivery: pData.odd !== undefined ? pData.odd : (matchedPacking?.odd_input ?? null) },
+            border: { order: matchedPacking?.border ?? null, delivery: pData.border !== undefined ? pData.border : (matchedPacking?.border_input ?? null) },
+        };
+
+        const hasMatrixData = Boolean(
+            matchedPacking?.n1 || matchedPacking?.n2 || matchedPacking?.c1 || matchedPacking?.c2 ||
+            matchedPacking?.g1 || matchedPacking?.g2 || matchedPacking?.odd || matchedPacking?.border ||
+            pData.n1 !== undefined || pData.n2 !== undefined || pData.c1 !== undefined || pData.c2 !== undefined ||
+            pData.g1 !== undefined || pData.g2 !== undefined || pData.odd !== undefined || pData.border !== undefined
+        );
+
+        return {
+            matchedPoItem,
+            matchedPacking,
+            normQty,
+            orderQty,
+            deliveryQty,
+            matrix,
+            hasMatrixData,
+            poFormCode: matchedPacking?.po_form_code || (idx !== undefined ? idx + 1 : 1)
+        };
     };
 
     const openConfirmGiModal = (record: any) => {
@@ -822,26 +941,338 @@ const InventoryPage: React.FC = () => {
                             rowKey="id"
                             size="small"
                             expandable={{
+                                defaultExpandAllRows: true,
                                 expandedRowRender: record => (
-                                    <Table
-                                        dataSource={record.items}
-                                        size="small"
-                                        pagination={false}
-                                        columns={[
-                                            { title: 'Vật tư / SP', render: (r: any) => r.material?.name || r.product?.name || '-' },
-                                            { title: 'Mã', render: (r: any) => r.material?.code || r.product?.sku || r.product?.code || '-' },
-                                            { title: 'Số lượng dự kiến', dataIndex: 'quantity', render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
-                                        ]}
-                                    />
+                                    <div style={{ margin: '6px 0', background: '#fafafa', padding: '10px 14px', borderRadius: 6, border: '1px solid #e8e8e8' }}>
+                                        <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontWeight: 600, color: '#1890ff', fontSize: 13 }}>
+                                                📋 Chi tiết hàng hóa & Quản lý giao hàng theo PO (Ma trận Cây / Cuộn / Kiện):
+                                            </span>
+                                        </div>
+                                        <Table
+                                            dataSource={record.items}
+                                            rowKey="id"
+                                            size="small"
+                                            pagination={false}
+                                            scroll={{ x: 1100 }}
+                                            columns={[
+                                                { 
+                                                    title: 'Mã PO Form', 
+                                                    width: 80, 
+                                                    align: 'center', 
+                                                    render: (_: any, item: any, idx: number) => {
+                                                        const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                        return <b>{info.poFormCode}</b>;
+                                                    } 
+                                                },
+                                                { 
+                                                    title: 'Tên NPL / Sản phẩm', 
+                                                    width: 220,
+                                                    render: (_: any, item: any) => {
+                                                        const name = item.material?.name || item.product?.name || item.material?.code || item.product?.sku || '-';
+                                                        const unit = item.material?.unit || item.product?.unit || '';
+                                                        return (
+                                                            <div>
+                                                                <span style={{ fontWeight: 600 }}>{name}</span>
+                                                                {unit && <Tag color="default" style={{ marginLeft: 6, fontSize: 11 }}>{unit}</Tag>}
+                                                            </div>
+                                                        );
+                                                    } 
+                                                },
+                                                { 
+                                                    title: 'Mã NPL / SKU', 
+                                                    width: 140,
+                                                    render: (_: any, item: any) => item.material?.code || item.product?.sku || item.product?.code || '-' 
+                                                },
+                                                { 
+                                                    title: 'Tổng SL ĐM', 
+                                                    width: 90, 
+                                                    align: 'right', 
+                                                    render: (_: any, item: any, idx: number) => {
+                                                        const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                        return <b>{info.normQty > 0 ? info.normQty.toLocaleString() : '-'}</b>;
+                                                    } 
+                                                },
+                                                { 
+                                                    title: 'Tổng SL đặt', 
+                                                    width: 90, 
+                                                    align: 'right', 
+                                                    render: (_: any, item: any, idx: number) => {
+                                                        const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                        return <b style={{ color: '#1890ff' }}>{info.orderQty > 0 ? info.orderQty.toLocaleString() : '-'}</b>;
+                                                    } 
+                                                },
+                                                { 
+                                                    title: 'Tổng SL giao', 
+                                                    width: 90, 
+                                                    align: 'right', 
+                                                    render: (_: any, item: any, idx: number) => {
+                                                        const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                        return <b style={{ color: '#52c41a', fontSize: 13 }}>{info.deliveryQty.toLocaleString()}</b>;
+                                                    } 
+                                                },
+                                                {
+                                                    title: 'N1',
+                                                    children: [
+                                                        { 
+                                                            title: 'Đặt', 
+                                                            width: 50, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                return info.matrix.n1.order !== null && info.matrix.n1.order !== undefined && info.matrix.n1.order !== '' ? info.matrix.n1.order : '-';
+                                                            } 
+                                                        },
+                                                        { 
+                                                            title: 'Giao', 
+                                                            width: 55, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                const val = info.matrix.n1.delivery;
+                                                                return val !== null && val !== undefined && val !== '' ? <b style={{ color: '#52c41a' }}>{val}</b> : <span style={{ color: '#bfbfbf' }}>0</span>;
+                                                            } 
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    title: 'N2',
+                                                    children: [
+                                                        { 
+                                                            title: 'Đặt', 
+                                                            width: 50, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                return info.matrix.n2.order !== null && info.matrix.n2.order !== undefined && info.matrix.n2.order !== '' ? info.matrix.n2.order : '-';
+                                                            } 
+                                                        },
+                                                        { 
+                                                            title: 'Giao', 
+                                                            width: 55, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                const val = info.matrix.n2.delivery;
+                                                                return val !== null && val !== undefined && val !== '' ? <b style={{ color: '#52c41a' }}>{val}</b> : <span style={{ color: '#bfbfbf' }}>0</span>;
+                                                            } 
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    title: 'C1',
+                                                    children: [
+                                                        { 
+                                                            title: 'Đặt', 
+                                                            width: 50, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                return info.matrix.c1.order !== null && info.matrix.c1.order !== undefined && info.matrix.c1.order !== '' ? info.matrix.c1.order : '-';
+                                                            } 
+                                                        },
+                                                        { 
+                                                            title: 'Giao', 
+                                                            width: 55, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                const val = info.matrix.c1.delivery;
+                                                                return val !== null && val !== undefined && val !== '' ? <b style={{ color: '#52c41a' }}>{val}</b> : <span style={{ color: '#bfbfbf' }}>0</span>;
+                                                            } 
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    title: 'C2',
+                                                    children: [
+                                                        { 
+                                                            title: 'Đặt', 
+                                                            width: 50, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                return info.matrix.c2.order !== null && info.matrix.c2.order !== undefined && info.matrix.c2.order !== '' ? info.matrix.c2.order : '-';
+                                                            } 
+                                                        },
+                                                        { 
+                                                            title: 'Giao', 
+                                                            width: 55, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                const val = info.matrix.c2.delivery;
+                                                                return val !== null && val !== undefined && val !== '' ? <b style={{ color: '#52c41a' }}>{val}</b> : <span style={{ color: '#bfbfbf' }}>0</span>;
+                                                            } 
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    title: 'G1',
+                                                    children: [
+                                                        { 
+                                                            title: 'Đặt', 
+                                                            width: 50, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                return info.matrix.g1.order !== null && info.matrix.g1.order !== undefined && info.matrix.g1.order !== '' ? info.matrix.g1.order : '-';
+                                                            } 
+                                                        },
+                                                        { 
+                                                            title: 'Giao', 
+                                                            width: 55, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                const val = info.matrix.g1.delivery;
+                                                                return val !== null && val !== undefined && val !== '' ? <b style={{ color: '#52c41a' }}>{val}</b> : <span style={{ color: '#bfbfbf' }}>0</span>;
+                                                            } 
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    title: 'G2',
+                                                    children: [
+                                                        { 
+                                                            title: 'Đặt', 
+                                                            width: 50, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                return info.matrix.g2.order !== null && info.matrix.g2.order !== undefined && info.matrix.g2.order !== '' ? info.matrix.g2.order : '-';
+                                                            } 
+                                                        },
+                                                        { 
+                                                            title: 'Giao', 
+                                                            width: 55, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                const val = info.matrix.g2.delivery;
+                                                                return val !== null && val !== undefined && val !== '' ? <b style={{ color: '#52c41a' }}>{val}</b> : <span style={{ color: '#bfbfbf' }}>0</span>;
+                                                            } 
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    title: 'Kiện lẻ',
+                                                    children: [
+                                                        { 
+                                                            title: 'Đặt', 
+                                                            width: 50, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                return info.matrix.odd.order !== null && info.matrix.odd.order !== undefined && info.matrix.odd.order !== '' ? info.matrix.odd.order : '-';
+                                                            } 
+                                                        },
+                                                        { 
+                                                            title: 'Giao', 
+                                                            width: 55, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                const val = info.matrix.odd.delivery;
+                                                                return val !== null && val !== undefined && val !== '' ? <b style={{ color: '#52c41a' }}>{val}</b> : <span style={{ color: '#bfbfbf' }}>0</span>;
+                                                            } 
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    title: 'Kiện viền',
+                                                    children: [
+                                                        { 
+                                                            title: 'Đặt', 
+                                                            width: 50, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                return info.matrix.border.order !== null && info.matrix.border.order !== undefined && info.matrix.border.order !== '' ? info.matrix.border.order : '-';
+                                                            } 
+                                                        },
+                                                        { 
+                                                            title: 'Giao', 
+                                                            width: 55, 
+                                                            align: 'center', 
+                                                            render: (_: any, item: any, idx: number) => {
+                                                                const info = getReceiptItemDeliveryInfo(record, item, idx);
+                                                                const val = info.matrix.border.delivery;
+                                                                return val !== null && val !== undefined && val !== '' ? <b style={{ color: '#52c41a' }}>{val}</b> : <span style={{ color: '#bfbfbf' }}>0</span>;
+                                                            } 
+                                                        }
+                                                    ]
+                                                }
+                                            ]}
+                                        />
+                                    </div>
                                 )
                             }}
                             columns={[
-                                { title: 'Mã Phiếu', dataIndex: 'code', render: (t: any) => <b>{t}</b> },
-                                { title: 'PO Liên Quan', render: (r: any) => r.purchase_order?.po_code || '-' },
-                                { title: 'Ngày tạo', dataIndex: 'created_at', render: (t: any) => dayjs(t).format('DD/MM/YY HH:mm') },
-                                { title: 'Ghi chú', dataIndex: 'note' },
+                                { 
+                                    title: 'Mã Phiếu', 
+                                    dataIndex: 'code', 
+                                    width: 170,
+                                    render: (t: any) => <b style={{ color: '#1890ff' }}>{t}</b> 
+                                },
+                                { 
+                                    title: 'PO Liên Quan & Đối Tác', 
+                                    width: 280,
+                                    render: (r: any) => {
+                                        const custName = getReceiptCustomerName(r);
+                                        const suppName = getReceiptSupplierName(r);
+                                        const poCode = r.purchase_order?.po_code || (r.po_id ? `PO #${r.po_id}` : '-');
+                                        return (
+                                            <div>
+                                                <div>
+                                                    <Tag color="blue" style={{ fontWeight: 600 }}>{poCode}</Tag>
+                                                    {suppName && <span style={{ color: '#555', fontSize: 12 }}>🏭 {suppName}</span>}
+                                                </div>
+                                                {custName && (
+                                                    <div style={{ marginTop: 2, fontSize: 12, color: '#722ed1' }}>
+                                                        👤 KH: <b>{custName}</b>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    }
+                                },
                                 {
-                                    title: 'Thao tác', render: (r: any) => (
+                                    title: 'Tổng SL Đặt (PO)',
+                                    width: 130,
+                                    align: 'right',
+                                    render: (r: any) => {
+                                        const totalOrder = (r.items || []).reduce((acc: number, item: any, idx: number) => {
+                                            const info = getReceiptItemDeliveryInfo(r, item, idx);
+                                            return acc + Number(info.orderQty || 0);
+                                        }, 0);
+                                        return <b style={{ color: '#1890ff' }}>{totalOrder > 0 ? totalOrder.toLocaleString() : '-'}</b>;
+                                    }
+                                },
+                                {
+                                    title: 'Tổng SL Giao (PNK)',
+                                    width: 140,
+                                    align: 'right',
+                                    render: (r: any) => {
+                                        const totalDelivery = (r.items || []).reduce((acc: number, item: any) => acc + Number(item.quantity || 0), 0);
+                                        return <b style={{ color: '#52c41a', fontSize: 13 }}>{totalDelivery.toLocaleString()}</b>;
+                                    }
+                                },
+                                { 
+                                    title: 'Ngày tạo', 
+                                    dataIndex: 'created_at', 
+                                    width: 130,
+                                    render: (t: any) => dayjs(t).format('DD/MM/YY HH:mm') 
+                                },
+                                { 
+                                    title: 'Ghi chú', 
+                                    dataIndex: 'note',
+                                    render: (t: string) => t || '-'
+                                },
+                                {
+                                    title: 'Thao tác', 
+                                    width: 170,
+                                    render: (r: any) => (
                                         <Space>
                                             <Button type="primary" size="small" icon={<CheckCircleOutlined />} onClick={() => openConfirmReceiptModal(r)}>Nhập Kho</Button>
                                             <Popconfirm title="Bạn có chắc chắn muốn hủy phiếu nhập này?" onConfirm={() => handleDeleteReceipt(r.id)}>
@@ -1065,9 +1496,52 @@ const InventoryPage: React.FC = () => {
                             size="small"
                             pagination={false}
                             columns={[
-                                { title: 'Vật tư / SP', render: (r: any) => r.material?.name || r.product?.name || '-' },
+                                { 
+                                    title: 'Vật tư / SP', 
+                                    render: (r: any) => {
+                                        const name = r.material?.name || r.product?.name || '-';
+                                        const unit = r.material?.unit || r.product?.unit || '';
+                                        return (
+                                            <div>
+                                                <b>{name}</b>
+                                                {unit && <Tag style={{ marginLeft: 6, fontSize: 11 }}>{unit}</Tag>}
+                                            </div>
+                                        );
+                                    } 
+                                },
                                 { title: 'Mã', render: (r: any) => r.material?.code || r.product?.sku || r.product?.code || '-' },
-                                { title: 'Số lượng PO (Dự kiến)', dataIndex: 'quantity', align: 'center', render: (v: number) => <Tag color="blue">{Number(v).toLocaleString()}</Tag> },
+                                {
+                                    title: 'Tổng SL Đặt',
+                                    align: 'right',
+                                    render: (_: any, r: any, idx: number) => {
+                                        const info = getReceiptItemDeliveryInfo(selectedReceipt, r, idx);
+                                        return <b style={{ color: '#1890ff' }}>{info.orderQty > 0 ? info.orderQty.toLocaleString() : '-'}</b>;
+                                    }
+                                },
+                                { 
+                                    title: 'SL Giao (PNK)', 
+                                    dataIndex: 'quantity', 
+                                    align: 'right', 
+                                    render: (v: number) => <b style={{ color: '#52c41a' }}>{Number(v).toLocaleString()}</b> 
+                                },
+                                {
+                                    title: 'Ma trận Giao hàng',
+                                    render: (_: any, r: any, idx: number) => {
+                                        const info = getReceiptItemDeliveryInfo(selectedReceipt, r, idx);
+                                        const m = info.matrix;
+                                        const parts: string[] = [];
+                                        if (m.n1.delivery) parts.push(`N1: ${m.n1.delivery}`);
+                                        if (m.n2.delivery) parts.push(`N2: ${m.n2.delivery}`);
+                                        if (m.c1.delivery) parts.push(`C1: ${m.c1.delivery}`);
+                                        if (m.c2.delivery) parts.push(`C2: ${m.c2.delivery}`);
+                                        if (m.g1.delivery) parts.push(`G1: ${m.g1.delivery}`);
+                                        if (m.g2.delivery) parts.push(`G2: ${m.g2.delivery}`);
+                                        if (m.odd.delivery) parts.push(`Kiện lẻ: ${m.odd.delivery}`);
+                                        if (m.border.delivery) parts.push(`Kiện viền: ${m.border.delivery}`);
+                                        if (parts.length === 0) return <span style={{ color: '#bfbfbf' }}>-</span>;
+                                        return <Tag color="green">{parts.join(', ')}</Tag>;
+                                    }
+                                },
                                 {
                                     title: 'SỐ LƯỢNG THỰC NHẬN',
                                     align: 'center',
@@ -1077,7 +1551,7 @@ const InventoryPage: React.FC = () => {
                                             noStyle
                                             rules={[{ required: true, message: 'Nhập số lượng' }]}
                                         >
-                                            <InputNumber min={0} style={{ width: 100 }} />
+                                            <InputNumber min={0} style={{ width: 110, fontWeight: 600 }} />
                                         </Form.Item>
                                     )
                                 }

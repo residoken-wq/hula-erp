@@ -278,7 +278,8 @@ export class InventoryService {
           material_id: item.material_id,
           product_id: item.product_id,
           po_item_id: item.po_item_id,
-          quantity: item.quantity
+          quantity: item.quantity,
+          packing_data: item.packing_data || null
         });
         await this.receiptItemRepo.save(rItem);
       }
@@ -290,7 +291,20 @@ export class InventoryService {
   async getPendingReceipts() {
     return this.receiptRepo.find({
       where: { status: GoodsReceiptStatus.DRAFT },
-      relations: ['items', 'items.material', 'items.product', 'purchase_order', 'purchase_order.supplier'],
+      relations: [
+        'items',
+        'items.material',
+        'items.product',
+        'items.po_item',
+        'purchase_order',
+        'purchase_order.supplier',
+        'purchase_order.items',
+        'purchase_order.items.material',
+        'purchase_order.items.product',
+        'purchase_order.pfo',
+        'purchase_order.pfo.sales_order',
+        'purchase_order.pfo.sales_order.customer'
+      ],
       order: { created_at: 'DESC' }
     });
   }

@@ -334,6 +334,9 @@ export class PfoSourcingService {
                     const preservedParentId = draftParentPoMap.get(gcKey) || null;
                     const preservedBtp = draftBtpMap.get(gcKey) || null;
 
+                    const uniqueSteps = Array.from(new Set(msList.map(m => m.step_name || m.milestone_type).filter(Boolean)));
+                    const stageDesc = uniqueSteps.length > 0 ? `(${uniqueSteps.join(', ')})` : '';
+
                     const gcPo = this.poRepo.create({
                         po_code: poCode,
                         type: POType.OUTSOURCING,
@@ -342,7 +345,7 @@ export class PfoSourcingService {
                         parent_po_id: preservedParentId,
                         semi_finished_products: preservedBtp,
                         status: POStatus.DRAFT,
-                        note: `Đơn gia công cho Xưởng #${vendorId} (${msList.map(m => m.step_name || m.milestone_type).join(', ')})`
+                        note: stageDesc
                     });
                     await this.poRepo.save(gcPo);
 

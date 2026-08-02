@@ -84,6 +84,85 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
         return purchaseOrders.filter(p => p.type === 'OUTSOURCING' && p.id !== currentPO?.id);
     }, [purchaseOrders, currentPO?.id]);
 
+    // Helper to get Customer Name from a PO
+    const getPoCustomerName = (p: any) => {
+        if (!p) return '';
+        const pfo = p.pfo || p.plan;
+        if (pfo) {
+            if (pfo.sales_order) {
+                const name = pfo.sales_order.customer?.name || pfo.sales_order.customer_name;
+                if (name) return name;
+            }
+            if (pfo.sales_orders && pfo.sales_orders.length > 0) {
+                const names = Array.from(new Set(pfo.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean)));
+                if (names.length > 0) return names.join(', ');
+            }
+        }
+        if (p.type === 'POOLED' && p.child_pos && p.child_pos.length > 0) {
+            const names = new Set<string>();
+            for (const child of p.child_pos) {
+                const childPfo = child.pfo || child.plan;
+                if (childPfo?.sales_order) {
+                    const n = childPfo.sales_order.customer?.name || childPfo.sales_order.customer_name;
+                    if (n) names.add(n);
+                }
+            }
+            if (names.size > 0) return Array.from(names).join(', ');
+        }
+        return '';
+    };
+
+    // Helper to clean and deduplicate stage names from PO note or items (remove ID/Xưởng #... and deduplicate stages)
+    const getPoStagesDesc = (p: any) => {
+        if (!p) return '';
+        const rawNote = p.note || '';
+        const stages = new Set<string>();
+
+        if (rawNote) {
+            // Loại bỏ "Đơn gia công cho Xưởng #..." hoặc "Xưởng #..."
+            let cleaned = rawNote.replace(/Đơn gia công cho Xưởng\s*#?\d+/gi, '').trim();
+            cleaned = cleaned.replace(/Xưởng\s*#?\d+/gi, '').trim();
+            cleaned = cleaned.replace(/^\(+/, '').replace(/\)+$/, '').trim();
+
+            cleaned.split(',').forEach((s: string) => {
+                let part = s.trim();
+                part = part.replace(/^[\(\[\{]+/, '').replace(/[\)\]\}]+$/, '').trim();
+                if (part && !part.startsWith('#')) {
+                    stages.add(part);
+                }
+            });
+        }
+
+        if (stages.size === 0 && Array.isArray(p.items)) {
+            for (const item of p.items) {
+                if (item.description) {
+                    const match = item.description.match(/Gia công:\s*([^\[\n]+)/);
+                    if (match && match[1]) {
+                        stages.add(match[1].trim());
+                    }
+                }
+            }
+        }
+
+        const uniqueList = Array.from(stages).filter(Boolean);
+        return uniqueList.length > 0 ? `(${uniqueList.join(', ')})` : '';
+    };
+
+    // Format option label for sibling PO: Mã PO - Tên KH - Tên Nhà GC (Công đoạn)
+    const formatPoOptionLabel = (p: any) => {
+        const poCode = p.po_code || '';
+        const custName = getPoCustomerName(p);
+        const vendorName = p.supplier?.name || p.supplier_name || 'Chưa gán NGC';
+        const stagesDesc = getPoStagesDesc(p);
+
+        const parts = [poCode];
+        if (custName) parts.push(custName);
+        parts.push(vendorName);
+
+        const mainText = parts.join(' - ');
+        return `🏭 ${mainText}${stagesDesc ? ` ${stagesDesc}` : ''}`;
+    };
+
     useEffect(() => {
         if (currentPO) {
             // Load existing BTP list from PO
@@ -326,7 +405,18 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                                 )}
                                 {(btp.target_po_code || btp.target_vendor_name) && (
                                     <Tag color="cyan" style={{ fontSize: 12 }}>
-                                        <ArrowRightOutlined /> Giao sang: <b>{btp.target_po_code ? `${btp.target_po_code} — ` : ''}{btp.target_vendor_name}</b>
+                                        <ArrowRightOutlined /> Giao sang: <b>
+                                            {(() => {
+                                                if (btp.target_po_id) {
+                                                    const targetPo = siblingPOs.find(p => p.id === btp.target_po_id);
+                                                    if (targetPo) {
+                                                        const cust = getPoCustomerName(targetPo);
+                                                        return `${targetPo.po_code}${cust ? ` - ${cust}` : ''} - ${targetPo.supplier?.name || targetPo.supplier_name || btp.target_vendor_name || 'NGC'}`;
+                                                    }
+                                                }
+                                                return btp.target_po_code ? `${btp.target_po_code} — ${btp.target_vendor_name}` : btp.target_vendor_name;
+                                            })()}
+                                        </b>
                                     </Tag>
                                 )}
                             </Space>
@@ -458,7 +548,7 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                                         ...(siblingPOs.length > 0 ? [{
                                             label: '--- Các PO Gia Công Khác Trong KHSX ---',
                                             options: siblingPOs.map(p => ({
-                                                label: `🏭 ${p.po_code} - ${p.supplier?.name || p.supplier_name || 'Chưa gán NGC'}${p.note ? ` (${p.note})` : ''}`,
+                                                label: formatPoOptionLabel(p),
                                                 value: `PO_${p.id}`
                                             }))
                                         }] : []),
