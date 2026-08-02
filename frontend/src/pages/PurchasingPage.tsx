@@ -111,23 +111,56 @@ const PurchasingPage: React.FC = () => {
     const buildSyncedPackingList = (
         savedPacking: any[] | undefined,
         items: any[],
-        childAggregatedPacking?: any[]
+        childAggregatedPacking?: any[],
+        isPooled?: boolean
     ) => {
-        const savedMap = new Map<string, any>();
-        (savedPacking || []).forEach((p: any) => {
-            const nameKey = (p.material_name || '').trim().toLowerCase();
-            const idKey = p.material_id ? `id-${p.material_id}` : null;
-            if (nameKey) savedMap.set(nameKey, p);
-            if (idKey) savedMap.set(idKey, p);
-        });
+        // Helper gộp các item trùng vật tư bằng cách cộng dồn các thông số đóng gói
+        const aggregateArray = (list: any[]) => {
+            const map = new Map<string, any>();
+            (list || []).forEach((p: any, idx: number) => {
+                const nameKey = (p.material_name || '').trim().toLowerCase();
+                const idKey = p.material_id ? `id-${p.material_id}` : null;
+                const primaryKey = idKey || nameKey;
+                if (!primaryKey) return;
 
-        const childMap = new Map<string, any>();
-        (childAggregatedPacking || []).forEach((p: any) => {
-            const nameKey = (p.material_name || '').trim().toLowerCase();
-            const idKey = p.material_id ? `id-${p.material_id}` : null;
-            if (nameKey) childMap.set(nameKey, p);
-            if (idKey) childMap.set(idKey, p);
-        });
+                let existing = (idKey && map.get(idKey)) || (nameKey && map.get(nameKey));
+                if (!existing) {
+                    existing = {
+                        ...p,
+                        id: p.id || (Date.now() + idx),
+                        material_name: p.material_name,
+                        material_id: p.material_id || null,
+                        n1: p.n1 ? String(p.n1) : '',
+                        n2: p.n2 ? String(p.n2) : '',
+                        c1: p.c1 ? String(p.c1) : '',
+                        c2: p.c2 ? String(p.c2) : '',
+                        g1: p.g1 ? String(p.g1) : '',
+                        g2: p.g2 ? String(p.g2) : '',
+                        odd: p.odd ? String(p.odd) : '',
+                        border: p.border ? String(p.border) : '',
+                        note: p.note || ''
+                    };
+                    if (idKey) map.set(idKey, existing);
+                    if (nameKey) map.set(nameKey, existing);
+                } else {
+                    if (p.n1) existing.n1 = String((Number(existing.n1) || 0) + Number(p.n1));
+                    if (p.n2) existing.n2 = String((Number(existing.n2) || 0) + Number(p.n2));
+                    if (p.c1) existing.c1 = String((Number(existing.c1) || 0) + Number(p.c1));
+                    if (p.c2) existing.c2 = String((Number(existing.c2) || 0) + Number(p.c2));
+                    if (p.g1) existing.g1 = String((Number(existing.g1) || 0) + Number(p.g1));
+                    if (p.g2) existing.g2 = String((Number(existing.g2) || 0) + Number(p.g2));
+                    if (p.odd) existing.odd = String((Number(existing.odd) || 0) + Number(p.odd));
+                    if (p.border) existing.border = String((Number(existing.border) || 0) + Number(p.border));
+                    if (p.note && (!existing.note || !existing.note.includes(p.note))) {
+                        existing.note = existing.note ? `${existing.note}; ${p.note}` : p.note;
+                    }
+                }
+            });
+            return map;
+        };
+
+        const savedMap = aggregateArray(savedPacking || []);
+        const childMap = aggregateArray(childAggregatedPacking || []);
 
         return (items || []).map((item: any, idx: number) => {
             const matName = (item.material?.name || item.description || item.reference_name || item.sku || '-').trim();
@@ -135,26 +168,20 @@ const PurchasingPage: React.FC = () => {
             const nameKey = matName.toLowerCase();
             const idKey = matId ? `id-${matId}` : null;
 
-            const saved = (idKey && savedMap.get(idKey)) || savedMap.get(nameKey);
-            const child = (idKey && childMap.get(idKey)) || childMap.get(nameKey);
+            const saved = (idKey && savedMap.get(idKey)) || (nameKey && savedMap.get(nameKey));
+            const child = (idKey && childMap.get(idKey)) || (nameKey && childMap.get(nameKey));
 
-            if (saved) {
+            // Đối với PO Gộp, ưu tiên childMap (tổng hợp đầy đủ từ tất cả PO con) nếu có
+            const source = isPooled ? (child || saved) : (saved || child);
+
+            if (source) {
                 return {
-                    ...saved,
-                    id: saved.id || (Date.now() + idx),
-                    po_form_code: saved.po_form_code !== undefined ? saved.po_form_code : (idx + 1),
-                    material_name: matName || saved.material_name,
-                    material_id: matId || saved.material_id,
-                    quantity: item.quantity !== undefined ? item.quantity : saved.quantity
-                };
-            } else if (child) {
-                return {
-                    ...child,
-                    id: Date.now() + idx,
-                    po_form_code: child.po_form_code !== undefined ? child.po_form_code : (idx + 1),
-                    material_name: matName || child.material_name,
-                    material_id: matId || child.material_id,
-                    quantity: item.quantity
+                    ...source,
+                    id: source.id || (Date.now() + idx),
+                    po_form_code: source.po_form_code !== undefined ? source.po_form_code : (idx + 1),
+                    material_name: matName || source.material_name,
+                    material_id: matId || source.material_id,
+                    quantity: item.quantity !== undefined ? item.quantity : source.quantity
                 };
             } else {
                 return {
@@ -334,7 +361,8 @@ const PurchasingPage: React.FC = () => {
                     const syncedPacking = buildSyncedPackingList(
                         poDetail.packing_list_details,
                         aggItems,
-                        aggData?.aggregated_packing_list
+                        aggData?.aggregated_packing_list,
+                        true // isPooled
                     );
                     setPackingList(syncedPacking);
                 } catch (e) {

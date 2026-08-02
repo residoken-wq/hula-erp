@@ -799,12 +799,54 @@ export class PurchasingService {
         const totalAmount = childPos.reduce((sum, p) => sum + Number(p.total_amount || 0), 0);
 
         // --- MỚI: Merge các tab data từ child POs ---
-        const allPackingList = childPos.reduce((acc, p) => {
-            if (p.packing_list_details && Array.isArray(p.packing_list_details)) {
-                return acc.concat(p.packing_list_details);
+        const mergedPackingMap = new Map<string, any>();
+        let formCodeCounter = 1;
+        for (const child of childPos) {
+            if (Array.isArray(child.packing_list_details)) {
+                for (const p of child.packing_list_details) {
+                    const nameKey = (p.material_name || '').trim().toLowerCase();
+                    const idKey = p.material_id ? `id-${p.material_id}` : null;
+                    const primaryKey = idKey || nameKey;
+                    if (!primaryKey) continue;
+
+                    let existing = (idKey && mergedPackingMap.get(idKey)) || (nameKey && mergedPackingMap.get(nameKey));
+                    if (!existing) {
+                        existing = {
+                            id: Date.now() + Math.random(),
+                            po_form_code: formCodeCounter++,
+                            material_name: p.material_name,
+                            material_id: p.material_id || null,
+                            quantity: Number(p.quantity || 0),
+                            n1: p.n1 ? String(p.n1) : '',
+                            n2: p.n2 ? String(p.n2) : '',
+                            c1: p.c1 ? String(p.c1) : '',
+                            c2: p.c2 ? String(p.c2) : '',
+                            g1: p.g1 ? String(p.g1) : '',
+                            g2: p.g2 ? String(p.g2) : '',
+                            odd: p.odd ? String(p.odd) : '',
+                            border: p.border ? String(p.border) : '',
+                            note: p.note || ''
+                        };
+                        if (idKey) mergedPackingMap.set(idKey, existing);
+                        if (nameKey) mergedPackingMap.set(nameKey, existing);
+                    } else {
+                        existing.quantity = Number(existing.quantity || 0) + Number(p.quantity || 0);
+                        if (p.n1) existing.n1 = String((Number(existing.n1) || 0) + Number(p.n1));
+                        if (p.n2) existing.n2 = String((Number(existing.n2) || 0) + Number(p.n2));
+                        if (p.c1) existing.c1 = String((Number(existing.c1) || 0) + Number(p.c1));
+                        if (p.c2) existing.c2 = String((Number(existing.c2) || 0) + Number(p.c2));
+                        if (p.g1) existing.g1 = String((Number(existing.g1) || 0) + Number(p.g1));
+                        if (p.g2) existing.g2 = String((Number(existing.g2) || 0) + Number(p.g2));
+                        if (p.odd) existing.odd = String((Number(existing.odd) || 0) + Number(p.odd));
+                        if (p.border) existing.border = String((Number(existing.border) || 0) + Number(p.border));
+                        if (p.note && (!existing.note || !existing.note.includes(p.note))) {
+                            existing.note = existing.note ? `${existing.note}; ${p.note}` : p.note;
+                        }
+                    }
+                }
             }
-            return acc;
-        }, [] as any[]);
+        }
+        const mergedPackingList = Array.from(new Set(mergedPackingMap.values()));
 
         // Lấy thông tin giao hàng từ PO con đầu tiên có dữ liệu
         const firstDeliveryInfo = childPos.find(p => p.delivery_info)?.delivery_info;
@@ -817,7 +859,7 @@ export class PurchasingService {
             supplier_id: dto.supplier_id,
             status: 'DRAFT' as any,
             total_amount: totalAmount,
-            packing_list_details: allPackingList.length > 0 ? allPackingList : null,
+            packing_list_details: mergedPackingList.length > 0 ? mergedPackingList : null,
             delivery_info: firstDeliveryInfo || null,
             outsourcing_delivery_info: firstOutsourcingDeliveryInfo || null,
             note: `Gộp ${childPos.length} PO: ${childPos.map(p => p.po_code).join(', ')}`
@@ -904,36 +946,53 @@ export class PurchasingService {
 
         // Tự động tổng hợp chi tiết đóng gói (packing_list_details) từ các PO con
         const childPackingMap = new Map<string, any>();
+        let packIdx = 1;
         for (const childPO of (po.child_pos || [])) {
             if (Array.isArray(childPO.packing_list_details)) {
                 for (const p of childPO.packing_list_details) {
-                    const matKey = (p.material_name || '').trim().toLowerCase();
-                    if (!matKey) continue;
-                    if (!childPackingMap.has(matKey)) {
-                        childPackingMap.set(matKey, {
+                    const nameKey = (p.material_name || '').trim().toLowerCase();
+                    const idKey = p.material_id ? `id-${p.material_id}` : null;
+                    const primaryKey = idKey || nameKey;
+                    if (!primaryKey) continue;
+
+                    let cp = (idKey && childPackingMap.get(idKey)) || (nameKey && childPackingMap.get(nameKey));
+                    if (!cp) {
+                        cp = {
                             id: Date.now() + Math.random(),
-                            po_form_code: p.po_form_code || '',
+                            po_form_code: packIdx++,
                             material_name: p.material_name,
                             material_id: p.material_id || null,
-                            quantity: 0,
-                            n1: '', n2: '', c1: '', c2: '', g1: '', g2: '', odd: '', border: '', note: ''
-                        });
-                    }
-                    const cp = childPackingMap.get(matKey);
-                    if (p.n1) cp.n1 = String((Number(cp.n1) || 0) + Number(p.n1));
-                    if (p.n2) cp.n2 = String((Number(cp.n2) || 0) + Number(p.n2));
-                    if (p.c1) cp.c1 = String((Number(cp.c1) || 0) + Number(p.c1));
-                    if (p.c2) cp.c2 = String((Number(cp.c2) || 0) + Number(p.c2));
-                    if (p.g1) cp.g1 = String((Number(cp.g1) || 0) + Number(p.g1));
-                    if (p.g2) cp.g2 = String((Number(cp.g2) || 0) + Number(p.g2));
-                    if (p.odd) cp.odd = String((Number(cp.odd) || 0) + Number(p.odd));
-                    if (p.border) cp.border = String((Number(cp.border) || 0) + Number(p.border));
-                    if (p.note && !cp.note.includes(p.note)) {
-                        cp.note = cp.note ? `${cp.note}; ${p.note}` : p.note;
+                            quantity: Number(p.quantity || 0),
+                            n1: p.n1 ? String(p.n1) : '',
+                            n2: p.n2 ? String(p.n2) : '',
+                            c1: p.c1 ? String(p.c1) : '',
+                            c2: p.c2 ? String(p.c2) : '',
+                            g1: p.g1 ? String(p.g1) : '',
+                            g2: p.g2 ? String(p.g2) : '',
+                            odd: p.odd ? String(p.odd) : '',
+                            border: p.border ? String(p.border) : '',
+                            note: p.note || ''
+                        };
+                        if (idKey) childPackingMap.set(idKey, cp);
+                        if (nameKey) childPackingMap.set(nameKey, cp);
+                    } else {
+                        cp.quantity = Number(cp.quantity || 0) + Number(p.quantity || 0);
+                        if (p.n1) cp.n1 = String((Number(cp.n1) || 0) + Number(p.n1));
+                        if (p.n2) cp.n2 = String((Number(cp.n2) || 0) + Number(p.n2));
+                        if (p.c1) cp.c1 = String((Number(cp.c1) || 0) + Number(p.c1));
+                        if (p.c2) cp.c2 = String((Number(cp.c2) || 0) + Number(p.c2));
+                        if (p.g1) cp.g1 = String((Number(cp.g1) || 0) + Number(p.g1));
+                        if (p.g2) cp.g2 = String((Number(cp.g2) || 0) + Number(p.g2));
+                        if (p.odd) cp.odd = String((Number(cp.odd) || 0) + Number(p.odd));
+                        if (p.border) cp.border = String((Number(cp.border) || 0) + Number(p.border));
+                        if (p.note && (!cp.note || !cp.note.includes(p.note))) {
+                            cp.note = cp.note ? `${cp.note}; ${p.note}` : p.note;
+                        }
                     }
                 }
             }
         }
+        const aggregatedPackingList = Array.from(new Set(childPackingMap.values()));
 
         return {
             pooled_po: {
@@ -946,7 +1005,7 @@ export class PurchasingService {
                 packing_list_details: po.packing_list_details
             },
             aggregated_items: Array.from(itemMap.values()),
-            aggregated_packing_list: Array.from(childPackingMap.values())
+            aggregated_packing_list: aggregatedPackingList
         };
     }
     // ----------------------------

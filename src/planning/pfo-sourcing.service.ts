@@ -439,16 +439,60 @@ export class PfoSourcingService {
                 const childPos = await this.poRepo.find({ where: { parent_po_id: parentId } });
                 if (childPos.length > 0) {
                     const total = childPos.reduce((s, c) => s + Number(c.total_amount || 0), 0);
-                    const allPackingList = childPos.reduce((acc, p) => {
-                        if (p.packing_list_details && Array.isArray(p.packing_list_details)) {
-                            return acc.concat(p.packing_list_details);
+                    
+                    // Gộp packing_list_details từ các PO con, dedup theo material_id/name
+                    const packMap = new Map<string, any>();
+                    let packIdx = 1;
+                    for (const child of childPos) {
+                        if (Array.isArray(child.packing_list_details)) {
+                            for (const p of child.packing_list_details) {
+                                const nameKey = (p.material_name || '').trim().toLowerCase();
+                                const idKey = p.material_id ? `id-${p.material_id}` : null;
+                                const primaryKey = idKey || nameKey;
+                                if (!primaryKey) continue;
+
+                                let existing = (idKey && packMap.get(idKey)) || (nameKey && packMap.get(nameKey));
+                                if (!existing) {
+                                    existing = {
+                                        id: Date.now() + Math.random(),
+                                        po_form_code: packIdx++,
+                                        material_name: p.material_name,
+                                        material_id: p.material_id || null,
+                                        quantity: Number(p.quantity || 0),
+                                        n1: p.n1 ? String(p.n1) : '',
+                                        n2: p.n2 ? String(p.n2) : '',
+                                        c1: p.c1 ? String(p.c1) : '',
+                                        c2: p.c2 ? String(p.c2) : '',
+                                        g1: p.g1 ? String(p.g1) : '',
+                                        g2: p.g2 ? String(p.g2) : '',
+                                        odd: p.odd ? String(p.odd) : '',
+                                        border: p.border ? String(p.border) : '',
+                                        note: p.note || ''
+                                    };
+                                    if (idKey) packMap.set(idKey, existing);
+                                    if (nameKey) packMap.set(nameKey, existing);
+                                } else {
+                                    existing.quantity = Number(existing.quantity || 0) + Number(p.quantity || 0);
+                                    if (p.n1) existing.n1 = String((Number(existing.n1) || 0) + Number(p.n1));
+                                    if (p.n2) existing.n2 = String((Number(existing.n2) || 0) + Number(p.n2));
+                                    if (p.c1) existing.c1 = String((Number(existing.c1) || 0) + Number(p.c1));
+                                    if (p.c2) existing.c2 = String((Number(existing.c2) || 0) + Number(p.c2));
+                                    if (p.g1) existing.g1 = String((Number(existing.g1) || 0) + Number(p.g1));
+                                    if (p.g2) existing.g2 = String((Number(existing.g2) || 0) + Number(p.g2));
+                                    if (p.odd) existing.odd = String((Number(existing.odd) || 0) + Number(p.odd));
+                                    if (p.border) existing.border = String((Number(existing.border) || 0) + Number(p.border));
+                                    if (p.note && (!existing.note || !existing.note.includes(p.note))) {
+                                        existing.note = existing.note ? `${existing.note}; ${p.note}` : p.note;
+                                    }
+                                }
+                            }
                         }
-                        return acc;
-                    }, [] as any[]);
+                    }
+                    const mergedPacking = Array.from(new Set(packMap.values()));
 
                     await this.poRepo.update(parentId, {
                         total_amount: total,
-                        packing_list_details: allPackingList.length > 0 ? allPackingList : null,
+                        packing_list_details: mergedPacking.length > 0 ? mergedPacking : null,
                         note: `Gộp ${childPos.length} PO: ${childPos.map(p => p.po_code).join(', ')}`
                     });
                 }
