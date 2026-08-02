@@ -1189,37 +1189,42 @@ ${activeEntityContext}
 ${knowledgeContext}
 
 CRITICAL RULES & OPERATIONAL PRINCIPLES:
-1. ALWAYS EXECUTE TOOLS IMMEDIATELY. DO NOT ASK CONFIRMATION IN TEXT.
+1. ENTITY RECOGNITION (CRUCIAL):
+   - Any phrase with "Trường...", "Mầm non...", "Công ty...", "TNHH...", "Doanh nghiệp...", "Khách hàng...", "Anh/Chị..." is ALWAYS A CUSTOMER (Khách hàng).
+   - NEVER treat schools, companies, or partners as physical products!
+   - When asked to analyze or summarize a school, company, or customer, you MUST call \`get_customer_360_profile\` with { query: "name" }.
+
+2. ALWAYS EXECUTE TOOLS IMMEDIATELY. DO NOT ASK CONFIRMATION IN TEXT.
    - When the user asks for ANY customer summary, order details, inventory status, financial report, or task list (e.g. "tổng hợp thông tin trường mầm non Trí Đức plus", "phân tích khách hàng...", "tồn kho...", "báo cáo tài chính..."), you MUST IMMEDIATELY INVOKE the appropriate tool function call.
    - NEVER generate conversational text asking "Bạn có muốn tôi tìm kiếm không?", "Bạn có đồng ý để tôi tra cứu không?", "Bạn có cần HulaBot hỗ trợ gì không?".
    - NEVER hesitate or ask permission in text. Just directly call the tool!
 
-2. UNDERSTANDING USER CONFIRMATIONS / FOLLOW-UP REPLIES:
+3. UNDERSTANDING USER CONFIRMATIONS / FOLLOW-UP REPLIES:
    - When the user says "có", "yes", "ok", "đồng ý", "làm đi", "tiếp tục", "phân tích đi":
      Look at the previous conversation history, extract what customer/order/analysis was mentioned, and IMMEDIATELY INVOKE the tool for that entity!
 
-3. TOOL SELECTION MAP:
+4. TOOL SELECTION MAP:
    - To summarize/analyze a Customer: Call \`get_customer_360_profile\` with { query: "customer name" } or { customerId: number }.
    - To inspect a Sales Order: Call \`get_sales_order_360_profile\` with { orderCodeOrId: "SO..." }.
-   - To inspect Products / Stock: Call \`get_product_360_profile\` or \`check_stock\`.
+   - To inspect Products / Stock: Call \`get_product_360_profile\` or \`check_stock\` ONLY for physical items (nệm, gối, ga, vải, chỉ, v.v.).
    - To analyze Finances / Debt: Call \`get_finance_and_debt_analytics\` with { month: number, year: number }.
    - To check Production / MRP: Call \`check_mrp_status\`.
    - To check Tasks / Assignments: Call \`check_tasks\`.
 
-4. EXECUTIVE REPORT FORMATTING:
+5. EXECUTIVE REPORT FORMATTING:
    - Once tool data is returned, structure your final Vietnamese answer with professional Markdown:
      - 📊 **Tóm Tắt Tổng Quan (Executive Summary)**
      - 📈 **Khung Chỉ Số Chính (Key KPIs)**: Doanh thu LTV, Công nợ hiện tại, Số đơn hàng, Trạng thái
      - 📋 **Bảng Biểu Chi Tiết**: Dùng markdown tables để hiển thị đơn hàng/sản phẩm với số tiền format VND (ví dụ: 15.000.000 đ)
      - 💡 **Nhận Định & Khuyến Nghị Tiếp Theo (Actionable Insights)**: Cảnh báo nợ quá hạn, đề xuất chăm sóc, gợi ý cross-sell/up-sell.
-5. Base all answers strictly on actual retrieved ERP data.` }]
+6. Base all answers strictly on actual retrieved ERP data.` }]
         };
 
         const tools = [{
             functionDeclarations: [
                 {
                     name: "get_customer_360_profile",
-                    description: "Lấy toàn bộ hồ sơ 360 độ của khách hàng (Doanh thu trọn đời LTV, công nợ, lịch sử đơn hàng, top sản phẩm mua nhiều nhất, ghi chú CRM). Hãy gọi tool này ngay khi người dùng yêu cầu tổng hợp thông tin hoặc phân tích khách hàng.",
+                    description: "Lấy toàn bộ hồ sơ 360 độ của khách hàng (Doanh thu trọn đời LTV, công nợ, lịch sử đơn hàng, top sản phẩm mua nhiều nhất, ghi chú CRM). Hãy gọi tool này ngay khi người dùng yêu cầu tổng hợp thông tin hoặc phân tích trường mầm non, công ty, khách hàng.",
                     parameters: {
                         type: "OBJECT",
                         properties: {
@@ -1252,7 +1257,7 @@ CRITICAL RULES & OPERATIONAL PRINCIPLES:
                 },
                 {
                     name: "get_product_360_profile",
-                    description: "Lấy thông tin chi tiết sản phẩm (tồn kho, giá vốn, giá bán, quy cách)",
+                    description: "Lấy thông tin chi tiết sản phẩm vật tư, thành phẩm, hàng hóa (tồn kho, giá vốn, giá bán, quy cách). CHỈ DÙNG CHO SẢN PHẨM/VẬT TƯ, KHÔNG DÙNG CHO KHÁCH HÀNG HAY TRƯỜNG HỌC.",
                     parameters: {
                         type: "OBJECT",
                         properties: {
@@ -1315,9 +1320,42 @@ CRITICAL RULES & OPERATIONAL PRINCIPLES:
             modelName = await this.getBestModel(apiKey);
         } catch (e) {}
 
-        // Ensure user message is at the end of contents
-        if (contents.length === 0 || contents[contents.length - 1].role === 'model') {
-            contents.push({ role: 'user', parts: [{ text: message || 'Tiếp tục xử lý' }] });
+        // --- DIRECT EXECUTION OF PRE-APPROVED PERMISSIONS ---
+        if (approvedPermission && approvedPermission.toolName) {
+            const funcName = approvedPermission.toolName;
+            const args = approvedPermission.args || {};
+
+            if (onStatus) {
+                onStatus(this.getToolStatusText(funcName, args));
+            }
+
+            const toolResult = await this.handleAiToolCall(funcName, args, userId);
+
+            // Ensure last user message exists
+            if (contents.length === 0 || contents[contents.length - 1].role === 'model') {
+                contents.push({ role: 'user', parts: [{ text: message || `Phân tích dữ liệu 360 cho ${args?.query || args?.customerName || funcName}` }] });
+            }
+
+            // Append model's tool call & function response directly
+            contents.push({
+                role: 'model',
+                parts: [{ functionCall: { name: funcName, args: args } }]
+            });
+
+            contents.push({
+                role: 'function',
+                parts: [{
+                    functionResponse: {
+                        name: funcName,
+                        response: { result: toolResult }
+                    }
+                }]
+            });
+        } else {
+            // Ensure user message is at the end of contents
+            if (contents.length === 0 || contents[contents.length - 1].role === 'model') {
+                contents.push({ role: 'user', parts: [{ text: message || 'Tiếp tục xử lý' }] });
+            }
         }
 
         // --- AGENTIC REACT LOOP (Max 5 iterations) ---

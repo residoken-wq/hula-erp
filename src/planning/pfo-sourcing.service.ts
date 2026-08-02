@@ -86,11 +86,23 @@ export class PfoSourcingService {
         if (!pfo) throw new NotFoundException('Lệnh SX (PFO) không tồn tại');
 
         try {
-            // 1. Xóa an toàn các PO NPL & GC (nháp DRAFT) cũ của PFO này để tránh lỗi Foreign Key Constraint
+            // 1. Lưu lại quan hệ PO Gộp (parent_po_id) & BTP (semi_finished_products) nếu PO cũ đã có
             const existingDraftPos = await this.poRepo.find({
                 where: { pfo_id: id, status: POStatus.DRAFT }
             });
+            const draftParentPoMap = new Map<string, number>();
+            const draftBtpMap = new Map<string, any[]>();
             if (existingDraftPos.length > 0) {
+                for (const p of existingDraftPos) {
+                    const key = `${p.type}_${p.supplier_id || 'GENERAL'}`;
+                    if (p.parent_po_id) {
+                        draftParentPoMap.set(key, p.parent_po_id);
+                    }
+                    if (p.semi_finished_products && p.semi_finished_products.length > 0) {
+                        draftBtpMap.set(key, p.semi_finished_products);
+                    }
+                }
+
                 const poIds = existingDraftPos.map(p => p.id);
                 try {
                     await this.goodsIssueRepo.createQueryBuilder()
@@ -100,16 +112,6 @@ export class PfoSourcingService {
                         .execute();
                 } catch (e) {
                     console.warn('[generatePos] Could not unlink goods_issues:', e);
-                }
-
-                try {
-                    await this.poRepo.createQueryBuilder()
-                        .update()
-                        .set({ parent_po_id: () => 'NULL' })
-                        .where('parent_po_id IN (:...poIds)', { poIds })
-                        .execute();
-                } catch (e) {
-                    console.warn('[generatePos] Could not unlink parent_po_id:', e);
                 }
 
                 await this.poItemRepo.createQueryBuilder()
@@ -193,11 +195,15 @@ export class PfoSourcingService {
                     const poCode = `PO-NPL-PFO${id}-${suppIdStr !== 'GENERAL' ? `S${suppIdStr}-` : ''}${timestamp}${rand}`;
                     
                     const suppIdNum = (suppIdStr !== 'GENERAL' && Number(suppIdStr) > 0) ? Number(suppIdStr) : null;
+                    const suppKey = `${POType.MATERIAL}_${suppIdNum || 'GENERAL'}`;
+                    const preservedParentId = draftParentPoMap.get(suppKey) || null;
+
                     const matPo = this.poRepo.create({
                         po_code: poCode,
                         type: POType.MATERIAL,
                         pfo_id: id,
                         supplier_id: suppIdNum,
+                        parent_po_id: preservedParentId,
                         status: POStatus.DRAFT,
                         note: `Đơn mua Nguyên phụ liệu cấp phát cho PFO #${pfo.code || id}`
                     });
@@ -291,11 +297,17 @@ export class PfoSourcingService {
                     const rand = Math.floor(100 + Math.random() * 900);
                     const poCode = `PO-GC-PFO${id}-V${vendorId}-${timestamp}${rand}`;
                     
+                    const gcKey = `${POType.OUTSOURCING}_${vendorId}`;
+                    const preservedParentId = draftParentPoMap.get(gcKey) || null;
+                    const preservedBtp = draftBtpMap.get(gcKey) || null;
+
                     const gcPo = this.poRepo.create({
                         po_code: poCode,
                         type: POType.OUTSOURCING,
                         pfo_id: id,
                         supplier_id: vendorId,
+                        parent_po_id: preservedParentId,
+                        semi_finished_products: preservedBtp,
                         status: POStatus.DRAFT,
                         note: `Đơn gia công cho Xưởng #${vendorId} (${msList.map(m => m.step_name || m.milestone_type).join(', ')})`
                     });
@@ -336,11 +348,18 @@ export class PfoSourcingService {
                 const timestamp = Date.now().toString().slice(-4);
                 const rand = Math.floor(100 + Math.random() * 900);
                 const poCode = `PO-GC-PFO${id}-${timestamp}${rand}`;
+                const vendorId = Number(pfo.vendor_id);
+                const gcKey = `${POType.OUTSOURCING}_${vendorId}`;
+                const preservedParentId = draftParentPoMap.get(gcKey) || null;
+                const preservedBtp = draftBtpMap.get(gcKey) || null;
+
                 const gcPo = this.poRepo.create({
                     po_code: poCode,
                     type: POType.OUTSOURCING,
                     pfo_id: id,
-                    supplier_id: Number(pfo.vendor_id),
+                    supplier_id: vendorId,
+                    parent_po_id: preservedParentId,
+                    semi_finished_products: preservedBtp,
                     status: POStatus.DRAFT,
                     note: `Đơn gia công tổng cho PFO #${pfo.code || id}`
                 });
@@ -379,6 +398,27 @@ export class PfoSourcingService {
                 }
 
                 createdPos.push(gcPo.po_code);
+            }
+
+            // 5. TỰ ĐỘNG CẬP NHẬT LẠI TỔNG TIỀN VÀ THÔNG TIN CÁC PO GỘP (POOLED POS)
+            const affectedParentIds = Array.from(new Set(Array.from(draftParentPoMap.values()).filter(Boolean)));
+            for (const parentId of affectedParentIds) {
+                const childPos = await this.poRepo.find({ where: { parent_po_id: parentId } });
+                if (childPos.length > 0) {
+                    const total = childPos.reduce((s, c) => s + Number(c.total_amount || 0), 0);
+                    const allPackingList = childPos.reduce((acc, p) => {
+                        if (p.packing_list_details && Array.isArray(p.packing_list_details)) {
+                            return acc.concat(p.packing_list_details);
+                        }
+                        return acc;
+                    }, [] as any[]);
+
+                    await this.poRepo.update(parentId, {
+                        total_amount: total,
+                        packing_list_details: allPackingList.length > 0 ? allPackingList : null,
+                        note: `Gộp ${childPos.length} PO: ${childPos.map(p => p.po_code).join(', ')}`
+                    });
+                }
             }
 
             // Đổi trạng thái PFO sang WAITING_VENDOR nếu đang ở DRAFT

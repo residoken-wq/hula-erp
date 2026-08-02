@@ -91,6 +91,10 @@ export class PurchaseOrder {
   @Column({ type: 'jsonb', nullable: true })
   packing_list_details: any[]; // Array of rows
   // --------------------------------------------------
+
+  // --- MỚI: Bán thành phẩm tạo ra từ PO Gia công (Tab Bán thành phẩm) ---
+  @Column({ type: 'jsonb', nullable: true })
+  semi_finished_products: any[];
   // --------------------------------------------------
 
   // --- MỚI: Pooled PO Relations ---

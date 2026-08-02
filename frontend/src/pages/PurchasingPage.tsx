@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import useMobile from '../hooks/useMobile';
 import OutsourcingMaterialIssueModal from '../components/purchasing/OutsourcingMaterialIssueModal';
 import POPayments from '../components/purchasing/POPayments';
+import POBtpTab from '../components/purchasing/POBtpTab';
 import { handlePrintPO } from '../utils/printPurchasingTemplate';
 import { exportPOToExcel } from '../utils/exportPOToExcel';
 
@@ -1650,6 +1651,31 @@ const PurchasingPage: React.FC = () => {
                                     <Alert message="Chưa có thông tin sơ đồ nào trong đơn hàng này." type="info" />
                                 )}
                             </div>
+                        )
+                    }] : []),
+                    // --- MỚI: Tab Bán Thành Phẩm cho PO Gia công (OUTSOURCING) ---
+                    ...(currentPO?.type === 'OUTSOURCING' ? [{
+                        key: 'btp_tab',
+                        label: (
+                            <span>
+                                🧩 Bán thành phẩm
+                                {Array.isArray(currentPO?.semi_finished_products) && currentPO.semi_finished_products.length > 0 && (
+                                    <Tag color="purple" style={{ marginLeft: 6 }}>
+                                        {currentPO.semi_finished_products.length}
+                                    </Tag>
+                                )}
+                            </span>
+                        ),
+                        children: (
+                            <POBtpTab
+                                currentPO={currentPO}
+                                suppliers={suppliers}
+                                products={products}
+                                onSave={(btpList) => {
+                                    setCurrentPO((prev: any) => ({ ...prev, semi_finished_products: btpList }));
+                                    fetchData();
+                                }}
+                            />
                         )
                     }] : []),
                     // --- MỚI: Tab Lịch sử thanh toán ---

@@ -279,6 +279,7 @@ export class PurchasingService {
         if (data.outsourcing_delivery_info) po.outsourcing_delivery_info = data.outsourcing_delivery_info;
         if (data.delivery_info) po.delivery_info = data.delivery_info;
         if (data.packing_list_details) po.packing_list_details = data.packing_list_details;
+        if (data.semi_finished_products !== undefined) po.semi_finished_products = data.semi_finished_products;
         if (data.status) po.status = data.status;
         if (data.note !== undefined) po.note = data.note; // Update General Note
         if (data.supplier_id) po.supplier = { id: data.supplier_id } as any; // Update Supplier relation
@@ -467,6 +468,36 @@ export class PurchasingService {
                 }
             }
         }
+
+        // 3. Lấy Bán Thành Phẩm được phối trộn & tạo ra từ các PO Gia công khác của cùng Lệnh SX (PFO)
+        if (po.pfo_id) {
+            const siblingPos = await this.poRepo.find({
+                where: { pfo_id: po.pfo_id, type: POType.OUTSOURCING }
+            });
+            for (const sib of siblingPos) {
+                if (sib.id !== po.id && Array.isArray(sib.semi_finished_products)) {
+                    for (const btp of sib.semi_finished_products) {
+                        if (!btp.target_vendor_id || Number(btp.target_vendor_id) === Number(po.supplier_id)) {
+                            const btpKey = `BTP_RECIPE_${sib.id}_${btp.id || btp.btp_name}`;
+                            materialNeeds.set(btpKey, {
+                                type: 'SEMI_FINISHED',
+                                product_id: btp.product_id || null,
+                                code: btp.btp_code || `BTP-GC-${sib.id}`,
+                                name: btp.btp_name || btp.name || 'Bán thành phẩm gia công',
+                                unit: btp.unit || 'm',
+                                quantity: Number(btp.output_quantity || btp.quantity || 0),
+                                stock: Number(btp.output_quantity || btp.quantity || 0),
+                                reserved_for_plan: true,
+                                from_po_code: sib.po_code,
+                                from_stage: sib.note,
+                                formula_desc: Array.isArray(btp.components) ? btp.components.map((c: any) => `${c.quantity} ${c.unit || ''} ${c.material_name || ''}`).join(' + ') : ''
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
         return Array.from(materialNeeds.values());
     }
     // ------------------------------------------------------

@@ -124,11 +124,16 @@ export class CustomersService {
         const query = this.customerRepo.createQueryBuilder('customer');
         if (searchQuery) {
             const cleanQuery = searchQuery.trim();
-            query.where('(LOWER(customer.name) LIKE LOWER(:q) OR LOWER(customer.phone) LIKE LOWER(:q) OR LOWER(customer.code) LIKE LOWER(:q))', { q: `%${cleanQuery}%` });
+            // Loại bỏ các cụm từ lệnh phổ biến của AI trước khi tìm kiếm
+            const strippedQuery = cleanQuery
+                .replace(/^(tổng hợp thông tin|phân tích thông tin|phân tích hồ sơ|phân tích|hồ sơ|thông tin về|thông tin|tìm kiếm|tra cứu)\s+/i, '')
+                .trim();
+
+            query.where('(LOWER(customer.name) LIKE LOWER(:q) OR LOWER(customer.phone) LIKE LOWER(:q) OR LOWER(customer.code) LIKE LOWER(:q))', { q: `%${strippedQuery}%` });
 
             // Tách các từ khóa có nghĩa (loại bỏ tiền tố trường, mầm non, cty...)
-            const stopWords = ['trường', 'mầm', 'non', 'công', 'ty', 'tnhh', 'cp', 'khách', 'hàng', 'anh', 'chị', 'tổng', 'hợp', 'thông', 'tin'];
-            const tokens = cleanQuery.split(/\s+/).filter(w => w.length >= 2 && !stopWords.includes(w.toLowerCase()));
+            const stopWords = ['trường', 'mầm', 'non', 'công', 'ty', 'tnhh', 'cp', 'khách', 'hàng', 'anh', 'chị', 'tổng', 'hợp', 'thông', 'tin', 'cho', 'về'];
+            const tokens = strippedQuery.split(/\s+/).filter(w => w.length >= 2 && !stopWords.includes(w.toLowerCase()));
 
             if (tokens.length > 0) {
                 tokens.forEach((token, idx) => {

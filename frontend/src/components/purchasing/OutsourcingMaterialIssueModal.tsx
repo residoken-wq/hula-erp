@@ -207,7 +207,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
             <Divider orientation="left" style={{ margin: '0 0 12px 0', fontSize: 13 }}>NPL cần giao cho Gia Công</Divider>
             <Table
                 dataSource={materials}
-                rowKey={(r) => r.type === 'SEMI_FINISHED' ? `PROD_${r.product_id}` : `MAT_${r.material_id}`}
+                rowKey={(r) => r.type === 'SEMI_FINISHED' ? (r.product_id ? `PROD_${r.product_id}` : `BTP_${r.code || r.name}`) : `MAT_${r.material_id}`}
                 pagination={false}
                 size="middle"
                 rowClassName={(r) => r.issue_qty && r.issue_qty > 0 ? 'highlight-row' : ''}
@@ -229,10 +229,24 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                         ellipsis: true,
                         render: (text: string, r: any) => {
                             let icon = '📦';
-                            if (r.type === 'SEMI_FINISHED') icon = '📦';
+                            if (r.type === 'SEMI_FINISHED') icon = '🧩';
                             else if (r.is_fabric || r.material_category === 'FABRIC') icon = '🧵';
                             else icon = '🔩';
-                            return <span style={{ fontWeight: 500 }}>{icon} {text}</span>;
+                            return (
+                                <div>
+                                    <span style={{ fontWeight: 600, color: r.type === 'SEMI_FINISHED' ? '#531dab' : undefined }}>{icon} {text}</span>
+                                    {r.from_po_code && (
+                                        <div style={{ fontSize: 11, color: '#722ed1', marginTop: 2 }}>
+                                            <i>Từ công đoạn trước: {r.from_po_code} {r.from_stage ? `(${r.from_stage})` : ''}</i>
+                                        </div>
+                                    )}
+                                    {r.formula_desc && (
+                                        <div style={{ fontSize: 11, color: '#888' }}>
+                                            ⚗️ Phối trộn: {r.formula_desc}
+                                        </div>
+                                    )}
+                                </div>
+                            );
                         }
                     },
                     { title: 'ĐVT', dataIndex: 'unit', width: 60, align: 'center' as const },
