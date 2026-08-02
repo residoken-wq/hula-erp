@@ -330,6 +330,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                                 suppliers={suppliers}
                                 loading={loading}
                                 onSaveRouting={handleSaveRouting}
+                                onGeneratePo={handleGeneratePo}
                             />
                         )
                     },

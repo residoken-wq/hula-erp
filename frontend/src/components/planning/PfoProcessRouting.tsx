@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Select, InputNumber, Button, Tag, Space, Typography, Card, Divider, Input, Popconfirm } from 'antd';
-import { SaveOutlined, CheckCircleOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { SaveOutlined, CheckCircleOutlined, PlusOutlined, DeleteOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -12,6 +12,7 @@ interface PfoProcessRoutingProps {
     suppliers: any[];
     loading?: boolean;
     onSaveRouting: (routingData: any[]) => void;
+    onGeneratePo?: () => void;
 }
 
 const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
@@ -20,7 +21,8 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
     salesOrderItems = [],
     suppliers = [],
     loading,
-    onSaveRouting
+    onSaveRouting,
+    onGeneratePo
 }) => {
     const [routingRows, setRoutingRows] = useState<any[]>([]);
 
@@ -226,15 +228,30 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
                         Phân công xưởng cho từng công đoạn của từng sản phẩm.
                     </div>
                 </div>
-                <Button
-                    type="primary"
-                    icon={<SaveOutlined />}
-                    loading={loading}
-                    onClick={() => onSaveRouting(routingRows)}
-                    style={{ borderRadius: 6 }}
-                >
-                    Lưu Phân Công
-                </Button>
+                <Space>
+                    <Button
+                        icon={<SaveOutlined />}
+                        loading={loading}
+                        onClick={() => onSaveRouting(routingRows)}
+                        style={{ borderRadius: 6 }}
+                    >
+                        Lưu Phân Công
+                    </Button>
+                    {onGeneratePo && (
+                        <Button
+                            type="primary"
+                            icon={<ShoppingCartOutlined />}
+                            loading={loading}
+                            onClick={async () => {
+                                await onSaveRouting(routingRows);
+                                onGeneratePo();
+                            }}
+                            style={{ borderRadius: 6, background: '#52c41a', borderColor: '#52c41a' }}
+                        >
+                            Lưu & Phát Hành PO (Gate 4)
+                        </Button>
+                    )}
+                </Space>
             </div>
 
             {Object.keys(groupedRows.groups).map(productIdStr => {

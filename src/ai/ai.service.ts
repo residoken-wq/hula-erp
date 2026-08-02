@@ -816,17 +816,28 @@ You MUST return ONLY a valid JSON object in this structure:
     async handleGetCustomer360Profile(args: any): Promise<any> {
         try {
             let customer: any = null;
-            if (args.customerId) {
-                customer = await this.customersService.findOne(Number(args.customerId));
-            } else if (args.query) {
-                const list = await this.customersService.searchCustomersAdvanced(args.query);
+            let searchKey = '';
+
+            if (typeof args === 'number') {
+                customer = await this.customersService.findOne(args);
+            } else if (typeof args === 'string') {
+                searchKey = args;
+            } else if (args) {
+                if (args.customerId) {
+                    customer = await this.customersService.findOne(Number(args.customerId));
+                }
+                searchKey = args.query || args.customerName || args.name || args.keyword || '';
+            }
+
+            if (!customer && searchKey) {
+                const list = await this.customersService.searchCustomersAdvanced(searchKey);
                 if (list && list.length > 0) {
                     customer = await this.customersService.findOne(list[0].id);
                 }
             }
 
             if (!customer) {
-                return { error: `Không tìm thấy khách hàng khớp với thông tin yêu cầu.` };
+                return { error: `Không tìm thấy khách hàng khớp với thông tin "${searchKey || args?.customerId || ''}". Vui lòng kiểm tra lại tên hoặc mã khách hàng.` };
             }
 
             // 1. Get customer orders with payment amounts
@@ -1177,18 +1188,26 @@ ${activeEntityContext}
 
 ${knowledgeContext}
 
-ROLE & OPERATIONAL PRINCIPLES:
-1. Speak natural, professional Vietnamese.
-2. AGENTIC REASONING & MULTI-STEP INVESTIGATION:
-   - When asked to analyze, summarize, or investigate a customer, order, product, or financial status, perform a multi-step investigation using the available tools.
-   - For customer analysis: If you don't have the customer ID yet, first call \`search_customer\`. Then call \`get_customer_360_profile\` with their customerId to gather complete order history, lifetime revenue (LTV), debt, purchased products, and CRM notes.
-   - For order analysis: Call \`get_sales_order_360_profile\` to see exact items, payment details, and fulfillment status.
-   - For product inquiries: Call \`get_product_360_profile\` or \`check_stock\`.
-   - For finance/debt questions: Call \`get_finance_and_debt_analytics\`.
-3. HUMAN-IN-THE-LOOP / PERMISSION CONFIRMATION:
-   - Deep customer 360 profiling and financial data analysis require user permission. The system automatically prompts the user when needed.
+CRITICAL RULES & OPERATIONAL PRINCIPLES:
+1. ALWAYS EXECUTE TOOLS IMMEDIATELY. DO NOT ASK CONFIRMATION IN TEXT.
+   - When the user asks for ANY customer summary, order details, inventory status, financial report, or task list (e.g. "tổng hợp thông tin trường mầm non Trí Đức plus", "phân tích khách hàng...", "tồn kho...", "báo cáo tài chính..."), you MUST IMMEDIATELY INVOKE the appropriate tool function call.
+   - NEVER generate conversational text asking "Bạn có muốn tôi tìm kiếm không?", "Bạn có đồng ý để tôi tra cứu không?", "Bạn có cần HulaBot hỗ trợ gì không?".
+   - NEVER hesitate or ask permission in text. Just directly call the tool!
+
+2. UNDERSTANDING USER CONFIRMATIONS / FOLLOW-UP REPLIES:
+   - When the user says "có", "yes", "ok", "đồng ý", "làm đi", "tiếp tục", "phân tích đi":
+     Look at the previous conversation history, extract what customer/order/analysis was mentioned, and IMMEDIATELY INVOKE the tool for that entity!
+
+3. TOOL SELECTION MAP:
+   - To summarize/analyze a Customer: Call \`get_customer_360_profile\` with { query: "customer name" } or { customerId: number }.
+   - To inspect a Sales Order: Call \`get_sales_order_360_profile\` with { orderCodeOrId: "SO..." }.
+   - To inspect Products / Stock: Call \`get_product_360_profile\` or \`check_stock\`.
+   - To analyze Finances / Debt: Call \`get_finance_and_debt_analytics\` with { month: number, year: number }.
+   - To check Production / MRP: Call \`check_mrp_status\`.
+   - To check Tasks / Assignments: Call \`check_tasks\`.
+
 4. EXECUTIVE REPORT FORMATTING:
-   - Structure your analytical answers beautifully using Markdown:
+   - Once tool data is returned, structure your final Vietnamese answer with professional Markdown:
      - 📊 **Tóm Tắt Tổng Quan (Executive Summary)**
      - 📈 **Khung Chỉ Số Chính (Key KPIs)**: Doanh thu LTV, Công nợ hiện tại, Số đơn hàng, Trạng thái
      - 📋 **Bảng Biểu Chi Tiết**: Dùng markdown tables để hiển thị đơn hàng/sản phẩm với số tiền format VND (ví dụ: 15.000.000 đ)
@@ -1199,25 +1218,25 @@ ROLE & OPERATIONAL PRINCIPLES:
         const tools = [{
             functionDeclarations: [
                 {
+                    name: "get_customer_360_profile",
+                    description: "Lấy toàn bộ hồ sơ 360 độ của khách hàng (Doanh thu trọn đời LTV, công nợ, lịch sử đơn hàng, top sản phẩm mua nhiều nhất, ghi chú CRM). Hãy gọi tool này ngay khi người dùng yêu cầu tổng hợp thông tin hoặc phân tích khách hàng.",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {
+                            query: { type: "STRING", description: "Tên hoặc từ khóa tìm kiếm khách hàng (ví dụ: 'Trường mầm non Trí Đức Plus', 'Đức Trí')" },
+                            customerId: { type: "INTEGER", description: "ID của khách hàng trong hệ thống (nếu đã biết)" }
+                        }
+                    }
+                },
+                {
                     name: "search_customer",
-                    description: "Tìm kiếm nhanh khách hàng theo tên, số điện thoại, hoặc mã khách hàng",
+                    description: "Tìm kiếm nhanh danh sách khách hàng theo tên, số điện thoại, hoặc mã khách hàng",
                     parameters: {
                         type: "OBJECT",
                         properties: {
                             query: { type: "STRING", description: "Tên, số điện thoại hoặc mã khách hàng cần tìm" }
                         },
                         required: ["query"]
-                    }
-                },
-                {
-                    name: "get_customer_360_profile",
-                    description: "Lấy toàn bộ hồ sơ 360 độ của khách hàng (Doanh thu trọn đời LTV, công nợ, lịch sử đơn hàng, top sản phẩm mua nhiều nhất, ghi chú CRM chăm sóc).",
-                    parameters: {
-                        type: "OBJECT",
-                        properties: {
-                            customerId: { type: "INTEGER", description: "ID của khách hàng trong hệ thống" },
-                            customerName: { type: "STRING", description: "Tên khách hàng (nếu có)" }
-                        }
                     }
                 },
                 {
@@ -1315,7 +1334,16 @@ ROLE & OPERATIONAL PRINCIPLES:
                 generateRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ systemInstruction, contents, tools }),
+                    body: JSON.stringify({
+                        systemInstruction,
+                        contents,
+                        tools,
+                        toolConfig: {
+                            functionCallingConfig: {
+                                mode: 'AUTO'
+                            }
+                        }
+                    }),
                     signal: AbortSignal.timeout(45000)
                 });
             } catch (e) {
@@ -1342,10 +1370,11 @@ ROLE & OPERATIONAL PRINCIPLES:
                 const args = functionCall.args || {};
 
                 // Check Sensitive Tool Permissions (Human-in-the-loop)
-                const isApproved = approvedPermission && (
+                const isAffirmative = /^(có|yes|ok|đồng ý|uh|được|làm đi|phân tích đi|tiếp tục|xác nhận|chấp nhận)$/i.test(message?.trim() || '');
+                const isApproved = (approvedPermission && (
                     approvedPermission.approved === true ||
                     approvedPermission.toolName === funcName
-                );
+                )) || isAffirmative;
 
                 if (this.isSensitiveTool(funcName) && !isApproved) {
                     const permInfo = this.getPermissionDescription(funcName, args);

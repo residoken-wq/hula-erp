@@ -123,7 +123,19 @@ export class CustomersService {
     async searchCustomersAdvanced(searchQuery: string) {
         const query = this.customerRepo.createQueryBuilder('customer');
         if (searchQuery) {
-            query.where('(LOWER(customer.name) LIKE LOWER(:q) OR LOWER(customer.phone) LIKE LOWER(:q) OR LOWER(customer.code) LIKE LOWER(:q))', { q: `%${searchQuery}%` });
+            const cleanQuery = searchQuery.trim();
+            query.where('(LOWER(customer.name) LIKE LOWER(:q) OR LOWER(customer.phone) LIKE LOWER(:q) OR LOWER(customer.code) LIKE LOWER(:q))', { q: `%${cleanQuery}%` });
+
+            // Tách các từ khóa có nghĩa (loại bỏ tiền tố trường, mầm non, cty...)
+            const stopWords = ['trường', 'mầm', 'non', 'công', 'ty', 'tnhh', 'cp', 'khách', 'hàng', 'anh', 'chị', 'tổng', 'hợp', 'thông', 'tin'];
+            const tokens = cleanQuery.split(/\s+/).filter(w => w.length >= 2 && !stopWords.includes(w.toLowerCase()));
+
+            if (tokens.length > 0) {
+                tokens.forEach((token, idx) => {
+                    query.orWhere(`LOWER(customer.name) LIKE LOWER(:t_${idx})`, { [`t_${idx}`]: `%${token}%` });
+                    query.orWhere(`LOWER(customer.code) LIKE LOWER(:t_${idx})`, { [`t_${idx}`]: `%${token}%` });
+                });
+            }
         }
         query.orderBy('customer.id', 'DESC');
         query.take(10); // Limit to 10 for AI
