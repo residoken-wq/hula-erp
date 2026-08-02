@@ -840,12 +840,48 @@ You MUST return ONLY a valid JSON object in this structure:
                 return { error: `Không tìm thấy khách hàng khớp với thông tin "${searchKey || args?.customerId || ''}". Vui lòng kiểm tra lại tên hoặc mã khách hàng.` };
             }
 
-            // 1. Get customer orders with payment amounts
+            // 1. Get customer orders with payment amounts & items
             let orders: any[] = [];
             try {
+                // Thử lấy qua customersService trước
                 orders = await this.customersService.getOrders(customer.id);
             } catch (e) {
                 orders = [];
+            }
+
+            // Nếu danh sách đơn rỗng, tìm trực tiếp qua Sales Order Repository (theo ID hoặc Tên khách)
+            if (!orders || orders.length === 0) {
+                try {
+                    const directOrders = await this.salesService.orderRepo.find({
+                        where: [
+                            { customer_id: customer.id },
+                            { customer: { id: customer.id } },
+                            { customer_name: customer.name }
+                        ],
+                        relations: ['items', 'items.product'],
+                        order: { order_date: 'DESC' }
+                    });
+
+                    orders = await Promise.all(directOrders.map(async (order: any) => {
+                        let paid = 0;
+                        try {
+                            const payments = await this.salesService['transRepo'].find({
+                                where: [
+                                    { reference_code: order.order_code, type: 'INCOME' },
+                                    { reference_code: order.order_code, reference_type: 'SALES' }
+                                ]
+                            });
+                            paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+                        } catch (err) {
+                            paid = Number(order.paid_amount || 0);
+                        }
+                        return {
+                            ...order,
+                            total_amount: Number(order.total_amount || 0),
+                            paid_amount: paid
+                        };
+                    }));
+                } catch (err) {}
             }
 
             // 2. Compute KPIs

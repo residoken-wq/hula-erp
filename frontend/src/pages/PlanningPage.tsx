@@ -342,6 +342,12 @@ const PlanningPage: React.FC = () => {
                         handleSaveReqs={handleSaveReqs}
                         handleGeneratePo={handleGeneratePo}
                         handleCalculateBom={handleCalculateBom}
+                        onRefreshDetails={async () => {
+                            if (selectedPfo?.id) {
+                                const details = await fetchPfoDetails(selectedPfo.id);
+                                if (details) setPfoDetails(details);
+                            }
+                        }}
                     />
                 ) : (
                     <div style={{ textAlign: 'center', padding: 50 }}>Loading...</div>

@@ -119,35 +119,67 @@ export class CustomersService {
         }));
     }
 
-    // --- ADVANCED SEARCH FOR AI ---
+    // --- ADVANCED SEARCH FOR AI (VỚI THUẬT TOÁN TÍNH ĐIỂM RELEVANCE SCORE) ---
     async searchCustomersAdvanced(searchQuery: string) {
-        const query = this.customerRepo.createQueryBuilder('customer');
-        if (searchQuery) {
-            const cleanQuery = searchQuery.trim();
-            // Loại bỏ các cụm từ lệnh phổ biến của AI trước khi tìm kiếm
-            const strippedQuery = cleanQuery
-                .replace(/^(tổng hợp thông tin|phân tích thông tin|phân tích hồ sơ|phân tích|hồ sơ|thông tin về|thông tin|tìm kiếm|tra cứu)\s+/i, '')
-                .trim();
-
-            query.where('(LOWER(customer.name) LIKE LOWER(:q) OR LOWER(customer.phone) LIKE LOWER(:q) OR LOWER(customer.code) LIKE LOWER(:q))', { q: `%${strippedQuery}%` });
-
-            // Tách các từ khóa có nghĩa (loại bỏ tiền tố trường, mầm non, cty...)
-            const stopWords = ['trường', 'mầm', 'non', 'công', 'ty', 'tnhh', 'cp', 'khách', 'hàng', 'anh', 'chị', 'tổng', 'hợp', 'thông', 'tin', 'cho', 'về'];
-            const tokens = strippedQuery.split(/\s+/).filter(w => w.length >= 2 && !stopWords.includes(w.toLowerCase()));
-
-            if (tokens.length > 0) {
-                tokens.forEach((token, idx) => {
-                    query.orWhere(`LOWER(customer.name) LIKE LOWER(:t_${idx})`, { [`t_${idx}`]: `%${token}%` });
-                    query.orWhere(`LOWER(customer.code) LIKE LOWER(:t_${idx})`, { [`t_${idx}`]: `%${token}%` });
-                });
-            }
+        if (!searchQuery || searchQuery.trim() === '') {
+            return this.customerRepo.find({ order: { id: 'DESC' }, take: 10 });
         }
-        query.orderBy('customer.id', 'DESC');
-        query.take(10); // Limit to 10 for AI
-        return query.getMany();
+
+        const cleanQuery = searchQuery.trim();
+        // Loại bỏ các cụm từ lệnh phổ biến của AI trước khi tìm kiếm
+        const strippedQuery = cleanQuery
+            .replace(/^(tổng hợp thông tin|phân tích thông tin|phân tích hồ sơ|phân tích|hồ sơ|thông tin về|thông tin|tìm kiếm|tra cứu)\s+/i, '')
+            .trim();
+
+        const stopWords = ['trường', 'mầm', 'non', 'công', 'ty', 'tnhh', 'cp', 'khách', 'hàng', 'anh', 'chị', 'tổng', 'hợp', 'thông', 'tin', 'cho', 'về'];
+        const tokens = strippedQuery.toLowerCase().split(/\s+/).filter(w => w.length >= 2 && !stopWords.includes(w));
+
+        // 1. Tìm kiếm tập hợp khách hàng ứng viên
+        const query = this.customerRepo.createQueryBuilder('customer');
+        query.where('(LOWER(customer.name) LIKE LOWER(:q) OR LOWER(customer.phone) LIKE LOWER(:q) OR LOWER(customer.code) LIKE LOWER(:q))', { q: `%${strippedQuery}%` });
+
+        if (tokens.length > 0) {
+            tokens.forEach((token, idx) => {
+                query.orWhere(`LOWER(customer.name) LIKE LOWER(:t_${idx})`, { [`t_${idx}`]: `%${token}%` });
+                query.orWhere(`LOWER(customer.code) LIKE LOWER(:t_${idx})`, { [`t_${idx}`]: `%${token}%` });
+            });
+        }
+
+        const candidates = await query.take(30).getMany();
+
+        // 2. Chấm điểm độ trùng khớp (Relevance Scoring)
+        const searchLower = strippedQuery.toLowerCase();
+        const scored = candidates.map(c => {
+            const nameLower = (c.name || '').toLowerCase();
+            const codeLower = (c.code || '').toLowerCase();
+            let score = 0;
+
+            // Khớp chính xác tên hoặc mã
+            if (nameLower === searchLower || codeLower === searchLower) score += 1000;
+            // Tên chứa toàn bộ cụm tìm kiếm
+            if (nameLower.includes(searchLower)) score += 500;
+
+            // Đếm số từ khóa (tokens) khớp
+            let matchedTokenCount = 0;
+            tokens.forEach(t => {
+                if (nameLower.includes(t) || codeLower.includes(t)) {
+                    score += 50;
+                    matchedTokenCount++;
+                }
+            });
+
+            // Thưởng lớn nếu khớp TẤT CẢ các từ khóa
+            if (tokens.length > 0 && matchedTokenCount === tokens.length) {
+                score += 200;
+            }
+
+            return { customer: c, score };
+        });
+
+        // Sắp xếp điểm cao nhất lên đầu
+        scored.sort((a, b) => b.score - a.score || b.customer.id - a.customer.id);
+        return scored.map(s => s.customer).slice(0, 10);
     }
-
-
 
     async findOne(id: number) {
         return this.customerRepo.findOne({
@@ -156,24 +188,40 @@ export class CustomersService {
         });
     }
 
-    // --- API MỚI: LẤY LỊCH SỬ MUA HÀNG ---
+    // --- LẤY LỊCH SỬ MUA HÀNG VỚI ĐẦY ĐỦ ITEMS & THANH TOÁN ---
     async getOrders(id: number) {
         const customer = await this.customerRepo.findOne({
             where: { id },
-            relations: ['orders'] // Load quan hệ SalesOrder
+            relations: ['orders', 'orders.items', 'orders.items.product']
         });
         if (!customer) throw new NotFoundException('Khách hàng không tồn tại');
 
-        // Calculate Paid Amount for each order
-        const ordersWithPayment = await Promise.all(customer.orders.map(async (order: any) => {
-            const payments = await this.transRepo.find({ where: { reference_code: order.order_code, reference_type: 'SALES' } });
-            const paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-            return { ...order, paid_amount: paid };
+        const orderList = customer.orders || [];
+
+        // Tính tiền đã thanh toán từ bảng Transaction cho từng đơn
+        const ordersWithPayment = await Promise.all(orderList.map(async (order: any) => {
+            let paid = 0;
+            try {
+                const payments = await this.transRepo.find({
+                    where: [
+                        { reference_code: order.order_code, type: 'INCOME' },
+                        { reference_code: order.order_code, reference_type: 'SALES' }
+                    ]
+                });
+                paid = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+            } catch (e) {
+                paid = 0;
+            }
+            return {
+                ...order,
+                total_amount: Number(order.total_amount || 0),
+                paid_amount: paid
+            };
         }));
 
         // Sắp xếp đơn mới nhất lên đầu
         return ordersWithPayment.sort((a: any, b: any) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            new Date(b.created_at || b.order_date).getTime() - new Date(a.created_at || a.order_date).getTime()
         );
     }
     // --------------------------------------

@@ -855,10 +855,29 @@ export class InventoryService {
   }
 
   async deleteGoodsIssue(id: number) {
-    const gi = await this.goodsIssueRepo.findOne({ where: { id } });
+    const gi = await this.goodsIssueRepo.findOne({ 
+      where: { id },
+      relations: ['items', 'items.material']
+    });
     if (!gi) throw new BadRequestException('Phiếu xuất kho không tồn tại');
-    if (gi.status !== GoodsIssueStatus.DRAFT) throw new BadRequestException('Chỉ xóa được phiếu nháp');
+
+    // Nếu phiếu đã xác nhận xuất kho hoặc đã giao mà bị xóa (vd: do trùng lặp), hoàn trả lại số lượng tồn kho
+    if (gi.status === GoodsIssueStatus.CONFIRMED || gi.status === GoodsIssueStatus.DELIVERED) {
+      for (const item of (gi.items || [])) {
+        if (item.material_id) {
+          const mat = await this.materialRepo.findOne({ where: { id: item.material_id } });
+          if (mat) {
+            mat.quantity_in_stock = Number(mat.quantity_in_stock || 0) + Number(item.quantity || 0);
+            await this.materialRepo.save(mat);
+          }
+        }
+      }
+    }
+
+    if (gi.items && gi.items.length > 0) {
+      await this.giItemRepo.delete({ issue_id: id });
+    }
     await this.goodsIssueRepo.delete(id);
-    return { success: true };
+    return { success: true, message: 'Đã xóa phiếu xuất kho' };
   }
 }

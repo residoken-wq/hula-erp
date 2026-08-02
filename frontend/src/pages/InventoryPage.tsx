@@ -760,6 +760,23 @@ const InventoryPage: React.FC = () => {
                                                     <Button style={{backgroundColor:'#52c41a', color:'#fff'}} size="small" icon={<CarOutlined />}>Đã giao NCC</Button>
                                                 </Popconfirm>
                                             )}
+                                            <Popconfirm
+                                                title="Xóa phiếu xuất kho này? (Nếu phiếu bị trùng hoặc không dùng)"
+                                                okText="Xóa"
+                                                cancelText="Hủy"
+                                                okButtonProps={{ danger: true }}
+                                                onConfirm={async () => {
+                                                    try {
+                                                        await api.delete(`/inventory/goods-issue/${r.id}`);
+                                                        message.success('Đã xóa phiếu xuất kho thành công');
+                                                        fetchData();
+                                                    } catch (e: any) {
+                                                        message.error(e.response?.data?.message || 'Lỗi xóa phiếu xuất kho');
+                                                    }
+                                                }}
+                                            >
+                                                <Button size="small" danger icon={<DeleteOutlined />}>Xóa</Button>
+                                            </Popconfirm>
                                         </Space>
                                     )
                                 }

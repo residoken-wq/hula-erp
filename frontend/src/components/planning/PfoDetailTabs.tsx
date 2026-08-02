@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
-import { Card, Row, Col, Typography, Tag, Tabs, Table, Statistic, Divider } from 'antd';
+import { Card, Row, Col, Typography, Tag, Tabs, Table, Statistic, Divider, Button, Popconfirm, message } from 'antd';
+import { DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import api from '../../utils/api';
 import MaterialMatrix from './MaterialMatrix';
 import PfoProcessRouting from './PfoProcessRouting';
 import PfoGanttChart from './PfoGanttChart';
@@ -18,11 +20,13 @@ interface PfoDetailTabsProps {
     handleSaveReqs: (reqs: any[]) => void;
     handleGeneratePo: (reqs?: any[]) => void;
     handleCalculateBom: () => void;
+    onRefreshDetails?: () => void;
 }
 
 const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
     selectedPfo, pfoDetails, suppliers, loading, isMobile,
-    handleSaveRouting, handleSaveReqs, handleGeneratePo, handleCalculateBom
+    handleSaveRouting, handleSaveReqs, handleGeneratePo, handleCalculateBom,
+    onRefreshDetails
 }) => {
     // 1. Calculate Estimated Costs
     const estimatedBomCost = useMemo(() => {
@@ -185,10 +189,38 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
     ];
 
     const columnsPxk = [
-        { title: 'Mã PXK / Phiếu', dataIndex: 'code', key: 'code', render: (val: any, record: any) => record.pxk_code || record.code || val || 'N/A' },
-        { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (val: string) => <Tag color="orange">{val || 'N/A'}</Tag> },
+        { title: 'Mã PXK / Phiếu', dataIndex: 'code', key: 'code', render: (val: any, record: any) => <b>{record.pxk_code || record.code || val || 'N/A'}</b> },
+        { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (val: string) => {
+            if (val === 'DRAFT') return <Tag color="blue">Nháp</Tag>;
+            if (val === 'CONFIRMED') return <Tag color="orange">Đã duyệt (Chờ giao)</Tag>;
+            if (val === 'DELIVERED') return <Tag color="green">Đã nhận (NCC)</Tag>;
+            return <Tag color="orange">{val || 'N/A'}</Tag>;
+        }},
         { title: 'Ngày giao (Xuất)', dataIndex: 'issue_date', key: 'issue_date', render: (val: any, record: any) => val ? dayjs(val).format('DD/MM/YYYY') : (record?.created_at ? dayjs(record.created_at).format('DD/MM/YYYY') : '-') },
-        { title: 'Nhà GC / Nơi nhận', key: 'supplier', render: (_: any, record: any) => record.supplier?.name ? <Text strong>{record.supplier.name}</Text> : (record.from_inventory ? <Tag color="green">Từ Tồn Kho</Tag> : <Tag>Khác</Tag>) }
+        { title: 'Nhà GC / Nơi nhận', key: 'supplier', render: (_: any, record: any) => record.supplier?.name ? <Text strong>{record.supplier.name}</Text> : (record.from_inventory ? <Tag color="green">Từ Tồn Kho</Tag> : <Tag>Khác</Tag>) },
+        {
+            title: 'Thao tác',
+            key: 'action',
+            render: (_: any, record: any) => (
+                <Popconfirm
+                    title="Xóa phiếu xuất kho này? (Nếu phiếu bị trùng hoặc không dùng)"
+                    okText="Xóa"
+                    cancelText="Hủy"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={async () => {
+                        try {
+                            await api.delete(`/inventory/goods-issue/${record.id}`);
+                            message.success('Đã xóa phiếu xuất kho thành công');
+                            onRefreshDetails?.();
+                        } catch (e: any) {
+                            message.error(e.response?.data?.message || 'Lỗi xóa phiếu xuất kho');
+                        }
+                    }}
+                >
+                    <Button size="small" danger icon={<DeleteOutlined />}>Xóa</Button>
+                </Popconfirm>
+            )
+        }
     ];
 
     const expandedRowRenderItems = (record: any) => {

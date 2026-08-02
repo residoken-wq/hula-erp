@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { ProductionFulfillmentOrder, PfoStatus } from './pfo.entity';
 import { PurchaseOrder, POType, POStatus } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
@@ -129,45 +129,78 @@ export class PfoSourcingService {
                 m => m.use_inventory === true && Number(m.inventory_used_quantity || 0) > 0
             );
 
+            // Dọn dẹp các PXK DRAFT cũ của PFO này
+            const existingDraftIssues = await this.goodsIssueRepo.find({
+                where: { pfo_id: id, status: GoodsIssueStatus.DRAFT }
+            });
+            if (existingDraftIssues.length > 0) {
+                const issueIds = existingDraftIssues.map(i => i.id);
+                await this.goodsIssueItemRepo.createQueryBuilder()
+                    .delete()
+                    .where('issue_id IN (:...issueIds)', { issueIds })
+                    .execute();
+                await this.goodsIssueRepo.delete(issueIds);
+            }
+
             if (inventoryReqs.length > 0) {
-                // Delete old DRAFT issues for this PFO an toàn
-                const existingDraftIssues = await this.goodsIssueRepo.find({
-                    where: { pfo_id: id, status: GoodsIssueStatus.DRAFT }
+                // Kiểm tra các PXK ĐÃ XÁC NHẬN / ĐÃ GIAO (non-draft) của PFO này để tránh tạo trùng
+                const confirmedIssues = await this.goodsIssueRepo.find({
+                    where: {
+                        pfo_id: id,
+                        status: In([GoodsIssueStatus.CONFIRMED, GoodsIssueStatus.DELIVERED])
+                    },
+                    relations: ['items']
                 });
-                if (existingDraftIssues.length > 0) {
-                    const issueIds = existingDraftIssues.map(i => i.id);
-                    await this.goodsIssueItemRepo.createQueryBuilder()
-                        .delete()
-                        .where('issue_id IN (:...issueIds)', { issueIds })
-                        .execute();
-                    await this.goodsIssueRepo.delete(issueIds);
+
+                const alreadyIssuedMap = new Map<number, number>();
+                for (const ci of confirmedIssues) {
+                    for (const item of (ci.items || [])) {
+                        if (item.material_id) {
+                            alreadyIssuedMap.set(
+                                item.material_id, 
+                                (alreadyIssuedMap.get(item.material_id) || 0) + Number(item.quantity || 0)
+                            );
+                        }
+                    }
                 }
 
-                const timestamp = Date.now().toString().slice(-4);
-                const rand = Math.floor(100 + Math.random() * 900);
-                const issueCode = `PXK-PFO${id}-${timestamp}${rand}`;
-                const goodsIssue = this.goodsIssueRepo.create({
-                    code: issueCode,
-                    type: GoodsIssueType.PRODUCTION,
-                    delivery_mode: GoodsIssueDeliveryMode.PER_ORDER,
-                    status: GoodsIssueStatus.DRAFT,
-                    pfo_id: id,
-                    note: `Xuất kho nguyên phụ liệu cho Lệnh SX #${pfo.code || id}`
-                });
-                await this.goodsIssueRepo.save(goodsIssue);
+                // Chỉ tạo PXK cho phần số lượng NPL tồn kho CHƯA ĐƯỢC XUẤT
+                const unissuedInventoryReqs = inventoryReqs.map(r => {
+                    const totalNeeded = Number(r.inventory_used_quantity || 0);
+                    const alreadyIssued = alreadyIssuedMap.get(r.material_id) || 0;
+                    const remainingQty = Math.max(0, totalNeeded - alreadyIssued);
+                    return {
+                        ...r,
+                        unissued_qty: remainingQty
+                    };
+                }).filter(r => r.unissued_qty > 0);
 
-                const issueItems = inventoryReqs.map(r => {
-                    const issueQty = Number(r.inventory_used_quantity || 0);
-                    return this.goodsIssueItemRepo.create({
-                        issue: goodsIssue,
-                        issue_id: goodsIssue.id,
-                        material_id: r.material_id,
-                        quantity: issueQty,
-                        note: `Xuất tồn kho: ${r.material_code || r.material_name || ''}`
+                if (unissuedInventoryReqs.length > 0) {
+                    const timestamp = Date.now().toString().slice(-4);
+                    const rand = Math.floor(100 + Math.random() * 900);
+                    const issueCode = `PXK-PFO${id}-${timestamp}${rand}`;
+                    const goodsIssue = this.goodsIssueRepo.create({
+                        code: issueCode,
+                        type: GoodsIssueType.PRODUCTION,
+                        delivery_mode: GoodsIssueDeliveryMode.PER_ORDER,
+                        status: GoodsIssueStatus.DRAFT,
+                        pfo_id: id,
+                        note: `Xuất kho nguyên phụ liệu cho Lệnh SX #${pfo.code || id}`
                     });
-                });
-                await this.goodsIssueItemRepo.save(issueItems);
-                createdGoodsIssue = goodsIssue.code;
+                    await this.goodsIssueRepo.save(goodsIssue);
+
+                    const issueItems = unissuedInventoryReqs.map(r => {
+                        return this.goodsIssueItemRepo.create({
+                            issue: goodsIssue,
+                            issue_id: goodsIssue.id,
+                            material_id: r.material_id,
+                            quantity: r.unissued_qty,
+                            note: `Xuất tồn kho: ${r.material_code || r.material_name || ''}`
+                        });
+                    });
+                    await this.goodsIssueItemRepo.save(issueItems);
+                    createdGoodsIssue = goodsIssue.code;
+                }
             }
 
             // 3. TẠO PO NGUYÊN PHỤ LIỆU (PO NPL)

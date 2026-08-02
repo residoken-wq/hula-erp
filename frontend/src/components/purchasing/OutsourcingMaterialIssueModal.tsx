@@ -410,18 +410,16 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                             render: (r: any) => (
                                 <Space size={4}>
                                     {r.status === 'DRAFT' && (
-                                        <>
-                                            <Popconfirm title="Xác nhận xuất kho? Tồn kho sẽ bị trừ." onConfirm={() => handleConfirmIssue(r.id)}>
-                                                <Button size="small" type="primary" icon={<CheckCircleOutlined />}>Xuất</Button>
-                                            </Popconfirm>
-                                            <Popconfirm title="Xóa phiếu?" onConfirm={() => handleDeleteIssue(r.id)}>
-                                                <Button size="small" danger icon={<DeleteOutlined />} />
-                                            </Popconfirm>
-                                        </>
+                                        <Popconfirm title="Xác nhận xuất kho? Tồn kho sẽ bị trừ." onConfirm={() => handleConfirmIssue(r.id)}>
+                                            <Button size="small" type="primary" icon={<CheckCircleOutlined />}>Xuất</Button>
+                                        </Popconfirm>
                                     )}
                                     {r.status === 'CONFIRMED' && (
                                         <Button size="small" icon={<SendOutlined />} onClick={() => handleMarkDelivered(r.id)}>Đã giao</Button>
                                     )}
+                                    <Popconfirm title="Xóa phiếu xuất kho này?" okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }} onConfirm={() => handleDeleteIssue(r.id)}>
+                                        <Button size="small" danger icon={<DeleteOutlined />} />
+                                    </Popconfirm>
                                 </Space>
                             )
                         }
