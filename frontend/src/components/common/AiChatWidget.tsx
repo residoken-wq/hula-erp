@@ -12,7 +12,9 @@ import {
     CheckOutlined,
     CloseOutlined,
     CopyOutlined,
-    ClearOutlined
+    ClearOutlined,
+    FullscreenOutlined,
+    FullscreenExitOutlined
 } from '@ant-design/icons';
 import { API_URL } from '../../config';
 
@@ -201,6 +203,33 @@ const AiChatWidget: React.FC = () => {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
+
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [drawerWidth, setDrawerWidth] = useState<string | number>(() => {
+        if (typeof window !== 'undefined') {
+            if (window.innerWidth >= 992) return '50vw';
+            if (window.innerWidth >= 640) return '75vw';
+            return '100vw';
+        }
+        return '50vw';
+    });
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (isExpanded) {
+                setDrawerWidth('90vw');
+            } else if (window.innerWidth >= 992) {
+                setDrawerWidth('50vw'); // 50% width trên Desktop
+            } else if (window.innerWidth >= 640) {
+                setDrawerWidth('75vw');
+            } else {
+                setDrawerWidth('100vw');
+            }
+        };
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [isExpanded]);
 
     useEffect(() => {
         scrollToBottom();
@@ -477,20 +506,30 @@ const AiChatWidget: React.FC = () => {
                                 <div style={{ fontSize: 11, color: '#64748b', fontWeight: 400 }}>Smart ERP Business Intelligence</div>
                             </div>
                         </div>
-                        <Button 
-                            type="text" 
-                            size="small" 
-                            icon={<ClearOutlined />} 
-                            onClick={handleClearChat}
-                            title="Xóa đoạn chat"
-                            style={{ color: '#64748b' }}
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Button 
+                                type="text" 
+                                size="small" 
+                                icon={isExpanded ? <FullscreenExitOutlined /> : <FullscreenOutlined />} 
+                                onClick={() => setIsExpanded(!isExpanded)}
+                                title={isExpanded ? "Thu về 50% màn hình" : "Mở rộng 90% màn hình"}
+                                style={{ color: '#64748b' }}
+                            />
+                            <Button 
+                                type="text" 
+                                size="small" 
+                                icon={<ClearOutlined />} 
+                                onClick={handleClearChat}
+                                title="Xóa đoạn chat"
+                                style={{ color: '#64748b' }}
+                            />
+                        </div>
                     </div>
                 }
                 placement="right"
                 onClose={() => setOpen(false)}
                 open={open}
-                width={window.innerWidth > 900 ? 520 : (window.innerWidth > 600 ? 420 : 350)}
+                width={drawerWidth}
                 bodyStyle={{ padding: 0, display: 'flex', flexDirection: 'column', background: '#f8fafc' }}
                 mask={false}
             >

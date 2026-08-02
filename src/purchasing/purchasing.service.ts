@@ -525,10 +525,21 @@ export class PurchasingService {
         // Đánh dấu NPL nào đã được phối trộn trong BTP và gắn key định danh
         const result: any[] = [];
         const excludedList = Array.isArray(po.excluded_outsourcing_materials) ? po.excluded_outsourcing_materials : [];
+        const savedCategories = po.outsourcing_delivery_info?.material_categories || {};
 
         for (const [key, item] of materialNeeds.entries()) {
             item.key = key;
             const matId = item.material_id;
+
+            // Áp dụng Loại NPL đã lưu (nếu có)
+            if (savedCategories[key]) {
+                item.material_category = savedCategories[key];
+            } else if (matId && savedCategories[`MAT_${matId}`]) {
+                item.material_category = savedCategories[`MAT_${matId}`];
+            } else if (item.product_id && savedCategories[`PROD_${item.product_id}`]) {
+                item.material_category = savedCategories[`PROD_${item.product_id}`];
+            }
+
             if (matId && btpMaterialMap.has(matId)) {
                 item.mixed_in_btp = true;
                 item.used_in_btp_names = btpMaterialMap.get(matId);

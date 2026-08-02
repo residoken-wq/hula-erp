@@ -267,7 +267,7 @@ const PlanningPage: React.FC = () => {
                         key: 'CONTROL_TOWER',
                         label: 'Kanban Theo Dõi (PFO)',
                         children: (
-                            <PfoKanbanBoard pfos={pfos} onPfoClick={handlePfoClick} />
+                            <PfoKanbanBoard pfos={pfos} onPfoClick={handlePfoClick} onRefresh={fetchData} />
                         )
                     }
                 ]} />

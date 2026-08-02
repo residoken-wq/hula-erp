@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Table, Tag, Button, Space, InputNumber, Input, Select, DatePicker, Divider, message, Popconfirm, Empty, Progress } from 'antd';
-import { CarOutlined, PlusOutlined, CheckCircleOutlined, DeleteOutlined, SendOutlined } from '@ant-design/icons';
+import { CarOutlined, PlusOutlined, CheckCircleOutlined, DeleteOutlined, SendOutlined, SaveOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 
@@ -31,6 +31,17 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
 
     useEffect(() => {
         if (open && currentPO?.id) {
+            // Restore delivery info if previously saved
+            const savedDelivery = currentPO.outsourcing_delivery_info || currentPO.delivery_info;
+            if (savedDelivery) {
+                setDeliveryMode(savedDelivery.delivery_mode || 'PER_ORDER');
+                setVehicle(savedDelivery.vehicle || '');
+                setNote(savedDelivery.note || '');
+            } else {
+                setDeliveryMode('PER_ORDER');
+                setVehicle('');
+                setNote('');
+            }
             fetchMaterials();
             fetchIssueHistory();
             fetchUnlinkedIssues();
@@ -40,8 +51,59 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
     const fetchMaterials = async () => {
         try {
             const res = await api.get(`/purchasing/${currentPO.id}/outsourcing-materials`);
-            setMaterials(res.data.map((m: any) => ({ ...m, issue_qty: 0 })));
+            const savedCategories = currentPO.outsourcing_delivery_info?.material_categories || {};
+            setMaterials(res.data.map((m: any) => {
+                const key = getMaterialKey(m);
+                const savedCat = savedCategories[key] || (m.material_id && savedCategories[`MAT_${m.material_id}`]);
+                return {
+                    ...m,
+                    material_category: savedCat || m.material_category || (m.is_fabric ? 'FABRIC' : 'ACCESSORY'),
+                    issue_qty: 0
+                };
+            }));
         } catch (e) { message.error('Lỗi tải thông tin NPL'); }
+    };
+
+    const handleSaveConfig = async () => {
+        if (!currentPO?.id) return;
+        setLoading(true);
+        try {
+            const categoryMap: Record<string, string> = {};
+            materials.forEach(m => {
+                const k = getMaterialKey(m);
+                const cat = m.material_category || (m.is_fabric ? 'FABRIC' : 'ACCESSORY');
+                categoryMap[k] = cat;
+                if (m.material_id) {
+                    categoryMap[`MAT_${m.material_id}`] = cat;
+                }
+            });
+
+            const deliveryInfo = {
+                ...(currentPO.outsourcing_delivery_info || {}),
+                delivery_mode: deliveryMode,
+                vehicle: vehicle,
+                note: note,
+                material_categories: categoryMap,
+                updated_at: new Date().toISOString()
+            };
+
+            await api.put(`/purchasing/${currentPO.id}`, {
+                outsourcing_delivery_info: deliveryInfo,
+                excluded_outsourcing_materials: currentPO.excluded_outsourcing_materials || []
+            });
+
+            if (currentPO) {
+                currentPO.outsourcing_delivery_info = deliveryInfo;
+            }
+
+            message.success('Đã lưu cấu hình xuất kho NPL thành công!');
+            onRefresh?.();
+        } catch (e: any) {
+            console.error('Error saving outsourcing config:', e);
+            message.error(e.response?.data?.message || 'Lỗi khi lưu cấu hình xuất kho');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const fetchIssueHistory = async () => {
@@ -63,16 +125,36 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
 
     const handleCreateIssue = async () => {
         const validItems = materials.filter(m => Number(m.issue_qty || 0) > 0);
-        if (validItems.length === 0) return message.warning('Vui lòng nhập số lượng NPL cần xuất');
+        if (validItems.length === 0) return message.warning('Vui lòng nhập số lượng NPL cần xuất (cột Xuất lần này > 0)');
 
         setLoading(true);
         try {
+            // Tự động lưu kèm thông tin cấu hình và phân loại NPL mới nhất
+            const categoryMap: Record<string, string> = {};
+            materials.forEach(m => {
+                const k = getMaterialKey(m);
+                const cat = m.material_category || (m.is_fabric ? 'FABRIC' : 'ACCESSORY');
+                categoryMap[k] = cat;
+                if (m.material_id) {
+                    categoryMap[`MAT_${m.material_id}`] = cat;
+                }
+            });
+            const deliveryInfo = {
+                ...(currentPO.outsourcing_delivery_info || {}),
+                delivery_mode: deliveryMode,
+                vehicle: vehicle,
+                note: note,
+                material_categories: categoryMap,
+                updated_at: new Date().toISOString()
+            };
+            api.put(`/purchasing/${currentPO.id}`, { outsourcing_delivery_info: deliveryInfo }).catch(() => {});
+
             await api.post(`/inventory/goods-issue`, {
                 type: 'OUTSOURCING',
                 delivery_mode: deliveryMode,
                 po_id: currentPO.id,
                 supplier_id: currentPO.supplier?.id,
-                plan_id: currentPO.items?.[0]?.plan_id,
+                plan_id: currentPO.items?.[0]?.pfo_id || currentPO.pfo_id || currentPO.items?.[0]?.plan_id,
                 vehicle,
                 note: note || `Xuất NPL cho GC ${currentPO.po_code}`,
                 items: validItems.map(m => ({
@@ -83,7 +165,7 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                     note: m.item_note
                 }))
             });
-            message.success('Đã tạo phiếu xuất kho NPL');
+            message.success('Đã tạo phiếu xuất kho NPL thành công');
             // Reset inputs
             setMaterials(prev => prev.map(m => ({ ...m, issue_qty: 0, item_note: '' })));
             setVehicle('');
@@ -299,6 +381,16 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                         <Button key="close" onClick={onClose} size="large">Đóng</Button>
+                        <Button 
+                            key="save" 
+                            icon={<SaveOutlined />} 
+                            onClick={handleSaveConfig} 
+                            loading={loading} 
+                            size="large"
+                            style={{ borderColor: '#1890ff', color: '#1890ff', fontWeight: 500 }}
+                        >
+                            Lưu Cấu Hình
+                        </Button>
                         <Button key="create" type="primary" onClick={handleCreateIssue} loading={loading} icon={<PlusOutlined />} size="large">
                             Tạo Phiếu Xuất Kho
                         </Button>
@@ -312,6 +404,17 @@ const OutsourcingMaterialIssueModal: React.FC<OutsourcingMaterialIssueModalProps
                     📦 NPL cần giao cho Gia Công ({materials.length}):
                 </div>
                 <Space size={8}>
+                    <Button
+                        size="small"
+                        icon={<SaveOutlined />}
+                        type="primary"
+                        ghost
+                        onClick={handleSaveConfig}
+                        loading={loading}
+                        style={{ fontSize: 12 }}
+                    >
+                        Lưu cấu hình NPL
+                    </Button>
                     {materials.some(m => m.mixed_in_btp) && (
                         <Button
                             size="small"

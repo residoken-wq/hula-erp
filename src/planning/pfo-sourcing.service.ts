@@ -498,9 +498,9 @@ export class PfoSourcingService {
                 }
             }
 
-            // Đổi trạng thái PFO sang WAITING_VENDOR nếu đang ở DRAFT
-            if (pfo.status === PfoStatus.DRAFT || pfo.status === PfoStatus.PENDING_APPROVAL) {
-                pfo.status = PfoStatus.WAITING_VENDOR;
+            // Đổi trạng thái PFO sang MATERIAL_PREP (Chuẩn bị NPL) khi đã phát hành POs & PXKs
+            if (pfo.status === PfoStatus.DRAFT || pfo.status === PfoStatus.PENDING_APPROVAL || pfo.status === PfoStatus.WAITING_VENDOR) {
+                pfo.status = PfoStatus.MATERIAL_PREP;
                 await this.pfoRepo.save(pfo);
             }
 

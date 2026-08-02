@@ -1716,7 +1716,7 @@ const PurchasingPage: React.FC = () => {
                                 suppliers={suppliers}
                                 products={products}
                                 planProducts={planProducts}
-                                purchaseOrders={purchaseOrders}
+                                purchaseOrders={data}
                                 onSave={(btpList) => {
                                     setCurrentPO((prev: any) => ({ ...prev, semi_finished_products: btpList }));
                                     fetchData();

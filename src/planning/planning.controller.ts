@@ -64,6 +64,11 @@ export class PlanningController {
     return this.demandSvc.deletePfo(Number(id));
   }
 
+  @Put('pfo/:id/status')
+  updatePfoStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.planningSvc.updatePfoStatus(Number(id), status);
+  }
+
   // --- PFO BOM APIs (Gate 2) ---
   @Post('pfo/:id/calculate-bom')
   calculateBom(@Param('id') id: string) {

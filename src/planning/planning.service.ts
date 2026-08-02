@@ -355,7 +355,22 @@ export class PlanningService {
         return { message: `Đã tạo ${createdPos.length} Đơn đặt hàng`, pos: createdPos };
     }
 
-    async findAll() { return this.planRepo.find({ order: { id: 'DESC' }, relations: ['sales_order', 'sales_order.customer'] }); }
+    async findAll() { 
+        const pfos = await this.planRepo.find({ 
+            order: { id: 'DESC' }, 
+            relations: ['sales_order', 'sales_order.customer', 'milestones', 'material_requirements'] 
+        }); 
+
+        return pfos.map(pfo => {
+            if (!pfo.vendor_name && pfo.milestones && pfo.milestones.length > 0) {
+                const vendorNames = Array.from(new Set(pfo.milestones.map(m => m.vendor_name).filter(Boolean)));
+                if (vendorNames.length > 0) {
+                    pfo.vendor_name = vendorNames.join(', ');
+                }
+            }
+            return pfo;
+        });
+    }
 
     async deletePlan(id: number) {
         const plan = await this.planRepo.findOne({ where: { id }, relations: ['sales_order'] });
@@ -395,28 +410,11 @@ export class PlanningService {
 
     // Cập nhật status plan thủ công
     async updatePfoStatus(planId: number, status: string) {
-        const plan = await this.planRepo.findOne({ where: { id: planId } });
+        const plan = await this.planRepo.findOne({ 
+            where: { id: planId },
+            relations: ['sales_order', 'sales_order.customer', 'milestones', 'material_requirements']
+        });
         if (!plan) throw new NotFoundException('Kế hoạch không tồn tại');
-
-        // Validate transition - cho phép linh hoạt theo yêu cầu
-        const validTransitions: Record<string, string[]> = {
-            'DRAFT': ['CALCULATED', 'DONE'],
-            'CALCULATED': ['HAS_PO_MATERIAL', 'HAS_PO_OUTSOURCING', 'IN_PRODUCTION', 'STOCK_RECEIVED', 'DONE'],
-            'HAS_PO_MATERIAL': ['HAS_PO_OUTSOURCING', 'IN_PRODUCTION', 'STOCK_RECEIVED', 'DONE'],
-            'HAS_PO_OUTSOURCING': ['HAS_PO_MATERIAL', 'IN_PRODUCTION', 'STOCK_RECEIVED', 'DONE'],
-            'IN_PRODUCTION': ['STOCK_RECEIVED', 'COMPLETED', 'DONE'],
-            'STOCK_RECEIVED': ['DELIVERED_TO_CUSTOMER', 'DONE'],
-            'DELIVERED_TO_CUSTOMER': ['DONE'],
-            'COMPLETED': ['IN_PRODUCTION', 'DONE'],
-            'DONE': ['DRAFT', 'CALCULATED', 'STOCK_RECEIVED'] // Allow reopen
-        };
-
-        const allowed = validTransitions[plan.status] || [];
-        if (!allowed.includes(status) && status !== plan.status) {
-            // Cho phép bypass nếu admin chủ động chuyển, hoặc bỏ warning nếu muốn linh hoạt tối đa.
-            // Ở đây tạm nới lỏng hoặc cho phép tất cả để user tự do chuyển
-            // throw new BadRequestException(`Không thể chuyển từ ${plan.status} sang ${status}`);
-        }
 
         plan.status = status as PfoStatus;
         return this.planRepo.save(plan);
