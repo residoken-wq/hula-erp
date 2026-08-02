@@ -12,6 +12,7 @@ import { Supplier } from '../suppliers/supplier.entity';
 import { PurchaseOrder } from '../purchasing/entities/purchase-order.entity';
 import { PurchaseOrderItem } from '../purchasing/entities/purchase-order-item.entity';
 import { SalesDelivery } from '../sales/sales-delivery.entity';
+import { SalesOrderItem, BookingStatus } from '../sales/sales-order-item.entity';
 import { ProductsService } from '../products/products.service';
 import { GoodsIssue, GoodsIssueStatus, GoodsIssueType } from './entities/goods-issue.entity';
 import { GoodsIssueItem } from './entities/goods-issue-item.entity';
@@ -833,9 +834,9 @@ export class InventoryService {
         await this.goodsIssueRepo.manager.update('ProductionFulfillmentOrder', gi.pfo_id, { status: 'IN_PRODUCTION' });
         const pfo: any = await this.goodsIssueRepo.manager.findOne('ProductionFulfillmentOrder', { where: { id: gi.pfo_id } });
         if (pfo && pfo.sales_order_id) {
-            await this.goodsIssueRepo.manager.update('SalesOrderItem', 
-                { order_id: pfo.sales_order_id, booking_status: 'TEMPORARY' }, 
-                { booking_status: 'CONFIRMED', booking_expires_at: null }
+            await this.goodsIssueRepo.manager.update(SalesOrderItem, 
+                { order_id: pfo.sales_order_id, booking_status: BookingStatus.TEMPORARY }, 
+                { booking_status: BookingStatus.CONFIRMED, booking_expires_at: null }
             );
         }
       } catch (err) {

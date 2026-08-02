@@ -24,6 +24,9 @@ export class PurchasingController {
   @Get(':id')
   findOne(@Param('id') id: number) { return this.s.getPODetail(id); }
 
+  @Get(':id/payment-history')
+  getPaymentHistory(@Param('id') id: number) { return this.s.getPOPaymentHistory(id); }
+
   @Put(':id')
   update(@Param('id') id: number, @Body() b: any) { return this.s.updatePO(id, b); }
 

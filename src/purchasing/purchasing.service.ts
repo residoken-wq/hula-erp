@@ -10,6 +10,7 @@ import { SuppliersService } from '../suppliers/suppliers.service';
 import { PlanningService } from '../planning/planning.service'; // --- MỚI ---
 import { v4 as uuidv4 } from 'uuid';
 import { ProductionFulfillmentOrder, PfoStatus } from '../planning/pfo.entity';
+import { Transaction } from '../finance/transaction.entity';
 
 @Injectable()
 export class PurchasingService {
@@ -67,7 +68,10 @@ export class PurchasingService {
     }
 
     async getPODetail(id: number) {
-        const po = await this.poRepo.findOne({ where: { id }, relations: ['supplier', 'items', 'items.material', 'items.product', 'items.product.routings', 'items.product.routings.process'] });
+        const po = await this.poRepo.findOne({ 
+            where: { id }, 
+            relations: ['supplier', 'parent_po', 'child_pos', 'items', 'items.material', 'items.product', 'items.product.routings', 'items.product.routings.process', 'items.print_design'] 
+        });
         if (!po || !po.items) return po;
 
         // --- MỚI: Recover Missing Product (Legacy Data Fix) ---
@@ -163,6 +167,110 @@ export class PurchasingService {
         return po;
     }
 
+    async getPOPaymentHistory(poId: number) {
+        const po = await this.poRepo.findOne({
+            where: { id: poId },
+            relations: ['parent_po', 'child_pos']
+        });
+        if (!po) throw new NotFoundException('Không tìm thấy đơn hàng (PO)');
+
+        // 1. Giao dịch trực tiếp liên quan đến PO này
+        const directTrans = await this.poRepo.manager.createQueryBuilder(Transaction, 't')
+            .where('t.reference_code = :poCode', { poCode: po.po_code })
+            .orWhere(`t.allocations::text LIKE :poCodeLike`, { poCodeLike: `%"${po.po_code}"%` })
+            .orWhere(`t.allocations::text LIKE :poIdLike`, { poIdLike: `%"po_id":${po.id}%` })
+            .orderBy('t.date', 'DESC')
+            .addOrderBy('t.id', 'DESC')
+            .getMany();
+
+        const results: any[] = directTrans.map(t => {
+            let allocAmount = Number(t.amount || 0);
+            if (t.allocations && Array.isArray(t.allocations)) {
+                const matchAlloc = t.allocations.find((a: any) => a.poCode === po.po_code || a.po_id === po.id);
+                if (matchAlloc) allocAmount = Number(matchAlloc.amount || 0);
+            }
+            return {
+                ...t,
+                source: 'DIRECT',
+                source_label: 'Trực tiếp',
+                allocated_amount: allocAmount
+            };
+        });
+
+        // 2. Nếu PO này là con của PO Gộp (POOLED PO)
+        if (po.parent_po_id || po.parent_po) {
+            const parentPo = po.parent_po || await this.poRepo.findOne({ where: { id: po.parent_po_id } });
+            if (parentPo) {
+                const parentTrans = await this.poRepo.manager.createQueryBuilder(Transaction, 't')
+                    .where('t.reference_code = :parentCode', { parentCode: parentPo.po_code })
+                    .orWhere(`t.allocations::text LIKE :parentCodeLike`, { parentCodeLike: `%"${parentPo.po_code}"%` })
+                    .orderBy('t.date', 'DESC')
+                    .addOrderBy('t.id', 'DESC')
+                    .getMany();
+
+                const parentTotal = Number(parentPo.total_amount || 0);
+                const poTotal = Number(po.total_amount || 0);
+                const ratio = parentTotal > 0 ? (poTotal / parentTotal) : 0;
+
+                for (const pt of parentTrans) {
+                    if (!results.some(r => r.id === pt.id)) {
+                        let allocatedForThis = Math.round(Number(pt.amount || 0) * ratio);
+                        if (pt.allocations && Array.isArray(pt.allocations)) {
+                            const matchAlloc = pt.allocations.find((a: any) => a.poCode === po.po_code || a.po_id === po.id);
+                            if (matchAlloc) {
+                                allocatedForThis = Number(matchAlloc.amount || 0);
+                            }
+                        }
+                        results.push({
+                            ...pt,
+                            source: 'POOLED',
+                            source_label: `Từ PO Gộp [${parentPo.po_code}]`,
+                            parent_po_code: parentPo.po_code,
+                            parent_total_amount: parentTotal,
+                            child_total_amount: poTotal,
+                            allocated_amount: allocatedForThis
+                        });
+                    }
+                }
+            }
+        }
+
+        // 3. Nếu PO này LÀ một PO Gộp
+        if (po.type === POType.POOLED && po.child_pos && po.child_pos.length > 0) {
+            for (const child of po.child_pos) {
+                const childTrans = await this.poRepo.manager.createQueryBuilder(Transaction, 't')
+                    .where('t.reference_code = :childCode', { childCode: child.po_code })
+                    .orderBy('t.date', 'DESC')
+                    .getMany();
+
+                for (const ct of childTrans) {
+                    if (!results.some(r => r.id === ct.id)) {
+                        results.push({
+                            ...ct,
+                            source: 'CHILD_PO',
+                            source_label: `Từ PO con [${child.po_code}]`,
+                            child_po_code: child.po_code,
+                            allocated_amount: Number(ct.amount || 0)
+                        });
+                    }
+                }
+            }
+        }
+
+        // Sắp xếp lại theo ngày
+        results.sort((a, b) => new Date(b.date || b.created_at).getTime() - new Date(a.date || a.created_at).getTime());
+
+        return {
+            po_id: po.id,
+            po_code: po.po_code,
+            type: po.type,
+            total_amount: Number(po.total_amount || 0),
+            paid_amount: Number(po.paid_amount || 0),
+            parent_po: po.parent_po ? { id: po.parent_po.id, po_code: po.parent_po.po_code, total_amount: Number(po.parent_po.total_amount || 0), paid_amount: Number(po.parent_po.paid_amount || 0) } : null,
+            child_pos: po.child_pos?.map((c: any) => ({ id: c.id, po_code: c.po_code, total_amount: Number(c.total_amount || 0), paid_amount: Number(c.paid_amount || 0) })) || [],
+            history: results
+        };
+    }
 
     async updatePO(id: number, data: any) {
         const po = await this.poRepo.findOne({ where: { id }, relations: ['items'] });
@@ -241,26 +349,40 @@ export class PurchasingService {
     }
 
     async updatePayment(poCode: string, amount: number) {
-        const po = await this.poRepo.findOne({ where: { po_code: poCode } });
+        const po = await this.poRepo.findOne({ where: { po_code: poCode }, relations: ['child_pos', 'parent_po'] });
         if (po) {
-            po.paid_amount = Number(po.paid_amount || 0) + Number(amount);
+            po.paid_amount = Math.max(0, Number(po.paid_amount || 0) + Number(amount));
             await this.poRepo.save(po);
+
+            // Nếu đây là PO Gộp, tự động phân bổ tỷ lệ cho các PO con
+            if (po.type === POType.POOLED && po.child_pos && po.child_pos.length > 0) {
+                const totalAmount = Number(po.total_amount || 0);
+                for (const child of po.child_pos) {
+                    const ratio = totalAmount > 0 ? (Number(child.total_amount || 0) / totalAmount) : (1 / po.child_pos.length);
+                    const childAdd = Math.round(Number(amount) * ratio);
+                    child.paid_amount = Math.max(0, Number(child.paid_amount || 0) + childAdd);
+                    await this.poRepo.save(child);
+                }
+            }
         }
     }
 
     async updatePaymentById(id: number, amount: number) {
-        const po = await this.poRepo.findOne({ where: { id } });
+        const po = await this.poRepo.findOne({ where: { id }, relations: ['child_pos', 'parent_po'] });
         if (po) {
-            po.paid_amount = Number(po.paid_amount || 0) + Number(amount);
-
-            // Auto Update Status
-            if (po.paid_amount >= po.total_amount) {
-                // Determine logic: keep existing status or move to COMPLETED?
-                // Usually COMPLETED implies both received and paid.
-                // For now, let's strictly handle payment amount.
-            }
-
+            po.paid_amount = Math.max(0, Number(po.paid_amount || 0) + Number(amount));
             await this.poRepo.save(po);
+
+            // Nếu đây là PO Gộp, tự động phân bổ tỷ lệ cho các PO con
+            if (po.type === POType.POOLED && po.child_pos && po.child_pos.length > 0) {
+                const totalAmount = Number(po.total_amount || 0);
+                for (const child of po.child_pos) {
+                    const ratio = totalAmount > 0 ? (Number(child.total_amount || 0) / totalAmount) : (1 / po.child_pos.length);
+                    const childAdd = Math.round(Number(amount) * ratio);
+                    child.paid_amount = Math.max(0, Number(child.paid_amount || 0) + childAdd);
+                    await this.poRepo.save(child);
+                }
+            }
         }
     }
 

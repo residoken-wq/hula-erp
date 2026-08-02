@@ -77,44 +77,53 @@ export class FinanceService {
     // --- CẬP NHẬT: THANH TOÁN PO (CHI TIỀN) ---
     async createPOPayment(data: any) {
         // Hỗ trợ truyền mảng poCode hoặc string
-        const poCodes = Array.isArray(data.poCode) ? data.poCode : [data.poCode];
+        const poCodes = Array.isArray(data.poCode) ? data.poCode : [data.poCode].filter(Boolean);
         
         let supplierId = data.supplier_id || null;
-        if (!supplierId && poCodes.length > 0) {
-            // Lấy PO đầu tiên để suy ra supplier nếu chưa có
-            // Lưu ý: createPOPayment cũ frontend có thể pass ID thay vì Code, vì vậy kiểm tra logic
+        let partnerName = data.partnerName || null;
+        if (poCodes.length > 0) {
             const po = await this.purchasingService.getPOByCode(String(poCodes[0]));
-            if (po) supplierId = po.supplier_id;
+            if (po) {
+                if (!supplierId) supplierId = po.supplier_id;
+                if (!partnerName && po.supplier) partnerName = po.supplier.name;
+            }
         }
+
+        const isSingle = poCodes.length === 1;
+        const refCode = isSingle ? String(poCodes[0]) : (data.reference_code || `BULK-PO-${Date.now()}`);
+        const allocations = data.allocations || (isSingle ? [{ poCode: String(poCodes[0]), amount: Number(data.amount) }] : null);
 
         return this.createBulkPoPayment({
             supplier_id: supplierId,
-            po_ids: poCodes, // Mảng IDs hoặc Codes
+            po_ids: poCodes,
+            reference_code: refCode,
             amount: data.amount,
             note: data.note,
             date: data.date,
             vatCode: data.vatCode,
             vatUrl: data.vatUrl,
-            partnerName: data.partnerName,
-            allocations: data.allocations || null,
+            attachments: data.attachments || [],
+            partnerName: partnerName,
+            allocations: allocations,
         });
     }
 
     async createBulkPoPayment(data: any) {
-        // data: { po_ids: any[], amount: number, note: string, date: Date, vatCode, vatUrl, partnerName, supplier_id, allocations: any[] }
+        // data: { po_ids: any[], reference_code?: string, amount: number, note: string, date: Date, vatCode, vatUrl, attachments?: string[], partnerName, supplier_id, allocations: any[] }
 
         // 1. Create Transaction
         const trans = this.transRepo.create({
             date: data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             type: 'EXPENSE',
             amount: Number(data.amount),
-            reference_code: `BULK-PO-${Date.now()}`,
+            reference_code: data.reference_code || `BULK-PO-${Date.now()}`,
             reference_type: 'PURCHASE',
             description: data.note || `Thanh toán công nợ NCC`,
             partner_name: data.partnerName,
             supplier_id: data.supplier_id,
             vat_invoice_code: data.vatCode,
             vat_invoice_url: data.vatUrl,
+            attachments: data.attachments || null,
             allocations: data.allocations || null,
         });
         const savedTrans = await this.transRepo.save(trans);
@@ -128,6 +137,13 @@ export class FinanceService {
                 } else if (alloc.poCode) {
                     await this.purchasingService.updatePayment(alloc.poCode, Number(alloc.amount));
                 }
+            }
+        } else if (data.po_ids && Array.isArray(data.po_ids) && data.po_ids.length === 1) {
+            const singleRef = data.po_ids[0];
+            if (typeof singleRef === 'number' || /^\d+$/.test(singleRef)) {
+                await this.purchasingService.updatePaymentById(Number(singleRef), Number(data.amount));
+            } else {
+                await this.purchasingService.updatePayment(String(singleRef), Number(data.amount));
             }
         }
 

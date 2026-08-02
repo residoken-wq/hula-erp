@@ -5,6 +5,7 @@ import api from '../utils/api';
 import dayjs from 'dayjs';
 import useMobile from '../hooks/useMobile';
 import OutsourcingMaterialIssueModal from '../components/purchasing/OutsourcingMaterialIssueModal';
+import POPayments from '../components/purchasing/POPayments';
 import { handlePrintPO } from '../utils/printPurchasingTemplate';
 import { exportPOToExcel } from '../utils/exportPOToExcel';
 
@@ -92,9 +93,131 @@ const PurchasingPage: React.FC = () => {
         } catch (e) { message.error('Lỗi xóa PO'); }
     };
 
+    // --- HÀM TẢI THÔNG TIN SẢN PHẨM & ĐỊNH MỨC NPL TỪ KẾ HOẠCH (PFO) ---
+    const loadPlanProductsData = async (pfoIds: number[], targetMaterialIds: Set<number>, targetMaterialNames: Set<string>) => {
+        if (!pfoIds || pfoIds.length === 0) return [];
+        try {
+            const prods = new Map<string, any>();
+
+            const addProductToMap = (product: any, qty: number) => {
+                if (!product) return;
+                const isCombo = product.product_type === 'COMBO' || (product.components && product.components.length > 0);
+
+                if (isCombo && product.components && product.components.length > 0) {
+                    product.components.forEach((comp: any) => {
+                        if (comp.child_product) {
+                            addProductToMap(comp.child_product, qty * Number(comp.quantity || 1));
+                        }
+                    });
+                } else {
+                    const sku = product.sku || product.name;
+                    if (!prods.has(sku)) {
+                        prods.set(sku, {
+                            sku: product.sku || sku,
+                            name: product.name || sku,
+                            quantity: 0,
+                            product: product
+                        });
+                    }
+                    const p = prods.get(sku);
+                    p.quantity += Number(qty || 0);
+                }
+            };
+
+            for (const pfoId of pfoIds) {
+                let pfoData: any = null;
+                try {
+                    const res = await api.get(`/planning/pfo/${pfoId}`);
+                    pfoData = res.data;
+                } catch (e) {
+                    try {
+                        const res = await api.get(`/planning/${pfoId}`);
+                        pfoData = res.data;
+                    } catch (err) {
+                        console.error('Error fetching PFO', pfoId, err);
+                    }
+                }
+
+                if (pfoData) {
+                    // Trích xuất Sales Orders
+                    const salesOrders = Array.isArray(pfoData.sales_orders)
+                        ? pfoData.sales_orders
+                        : (pfoData.sales_order ? [pfoData.sales_order] : []);
+
+                    salesOrders.forEach((so: any) => {
+                        const itemsList = so.items || [];
+                        itemsList.forEach((soItem: any) => {
+                            let prod = soItem.product;
+                            if (!prod && soItem.sku && products.length > 0) {
+                                prod = products.find(p => p.sku === soItem.sku);
+                            }
+                            if (prod) {
+                                addProductToMap(prod, Number(soItem.quantity || 0));
+                            } else {
+                                const sku = soItem.sku || soItem.product_name || 'SP';
+                                if (!prods.has(sku)) {
+                                    prods.set(sku, {
+                                        sku: soItem.sku || sku,
+                                        name: soItem.product_name || soItem.name || sku,
+                                        quantity: 0,
+                                        product: null
+                                    });
+                                }
+                                prods.get(sku).quantity += Number(soItem.quantity || 0);
+                            }
+                        });
+                    });
+                }
+            }
+
+            // Tính toán định mức BOM NPL cho từng sản phẩm
+            const finalProducts = Array.from(prods.values()).map((p: any) => {
+                let unitNorm = 0;
+                let materials: any[] = [];
+                const prodObj = p.product || products.find(prod => prod.sku === p.sku);
+
+                if (prodObj && prodObj.boms && Array.isArray(prodObj.boms)) {
+                    prodObj.boms.forEach((bom: any) => {
+                        const matId = Number(bom.material?.id || bom.material_id || 0);
+                        const matName = (bom.material?.name || '').toLowerCase().trim();
+                        const matCode = bom.material?.code || bom.material_code || '';
+
+                        const isMatch = targetMaterialIds.size === 0 || 
+                            targetMaterialIds.has(matId) || 
+                            (matName && targetMaterialNames.has(matName));
+
+                        if (isMatch) {
+                            const qty = Number(bom.quantity || 0);
+                            unitNorm += qty;
+                            materials.push({
+                                key: bom.id || `${p.sku}-${matId || matName}`,
+                                material_name: bom.material?.name || bom.material_name || matName || 'NPL',
+                                material_code: matCode,
+                                unit_norm: qty,
+                                total_norm: qty * Number(p.quantity || 0)
+                            });
+                        }
+                    });
+                }
+
+                return {
+                    ...p,
+                    unit_norm: unitNorm > 0 ? unitNorm : 0,
+                    total_norm: (unitNorm > 0 ? unitNorm : 0) * Number(p.quantity || 0),
+                    materials
+                };
+            });
+
+            return finalProducts;
+        } catch (err) {
+            console.error('Error in loadPlanProductsData:', err);
+            return [];
+        }
+    };
+
     const viewDetail = async (record: any) => {
         try {
-            // FIX: Gọi API để lấy data enriched thay vì dùng record từ list
+            // Gọi API để lấy data enriched thay vì dùng record từ list
             const res = await api.get(`/purchasing/${record.id}`);
             const poDetail = res.data;
 
@@ -106,7 +229,6 @@ const PurchasingPage: React.FC = () => {
                 try {
                     const aggRes = await api.get(`/purchasing/pooled/${poDetail.id}/aggregate`);
                     aggData = aggRes.data;
-                    // Chuyển aggregated_items thành format tương thích editingItems
                     const aggItems = (aggData.aggregated_items || []).map((item: any, idx: number) => ({
                         id: `agg-${idx}`,
                         material: item.material_id ? { 
@@ -131,7 +253,7 @@ const PurchasingPage: React.FC = () => {
                         wastage_rate: 0,
                     }));
                     setEditingItems(aggItems);
-                    // FIX: Auto-generate packingList từ aggregated items cho POOLED PO
+
                     if (poDetail.packing_list_details && poDetail.packing_list_details.length > 0) {
                         setPackingList(poDetail.packing_list_details);
                     } else {
@@ -154,80 +276,27 @@ const PurchasingPage: React.FC = () => {
 
                 // Fetch Plan Products for pooled
                 setPlanProducts([]);
+                const pfoIds = new Set<number>();
+                const targetMaterialIds = new Set<number>();
+                const targetMaterialNames = new Set<string>();
+
                 if (aggData && aggData.pooled_po?.child_pos) {
-                    const planIds = new Set<number>();
-                    const targetMaterialIds = new Set<number>();
                     aggData.pooled_po.child_pos.forEach((child: any) => {
+                        if (child.pfo_id) pfoIds.add(child.pfo_id);
                         child.items?.forEach((item: any) => {
-                            if (item.plan_id) planIds.add(item.plan_id);
-                            if (item.material?.id) targetMaterialIds.add(item.material.id);
+                            if (item.pfo_id) pfoIds.add(item.pfo_id);
+                            if (item.plan_id) pfoIds.add(item.plan_id);
+                            if (item.material_id) targetMaterialIds.add(Number(item.material_id));
+                            if (item.material?.id) targetMaterialIds.add(Number(item.material.id));
+                            const name = item.material?.name || item.description || item.reference_name;
+                            if (name) targetMaterialNames.add(name.toLowerCase().trim());
                         });
                     });
+                }
 
-                    if (planIds.size > 0) {
-                        try {
-                            const prods = new Map();
-                            const addProductToMap = (product: any, qty: number) => {
-                                const isCombo = product.product_type === 'COMBO' || (product.components && product.components.length > 0);
-                                if (isCombo && product.components && product.components.length > 0) {
-                                    product.components.forEach((comp: any) => {
-                                        if (comp.child_product) addProductToMap(comp.child_product, qty * Number(comp.quantity));
-                                    });
-                                } else {
-                                    if (!prods.has(product.sku)) {
-                                        prods.set(product.sku, { sku: product.sku, name: product.name, quantity: 0, product: product });
-                                    }
-                                    prods.get(product.sku).quantity += Number(qty);
-                                }
-                            };
-
-                            for (const planId of Array.from(planIds)) {
-                                const pRes = await api.get(`/planning/${planId}`);
-                                const plan = pRes.data;
-                                if (plan && plan.sales_orders) {
-                                    plan.sales_orders.forEach((so: any) => {
-                                        so.items?.forEach((item: any) => {
-                                            if (item.product) {
-                                                addProductToMap(item.product, Number(item.quantity));
-                                            } else {
-                                                if (!prods.has(item.sku)) prods.set(item.sku, { sku: item.sku, name: item.product_name, quantity: 0 });
-                                                prods.get(item.sku).quantity += Number(item.quantity);
-                                            }
-                                        });
-                                    });
-                                }
-                            }
-
-                            const finalProducts = Array.from(prods.values()).map((p: any) => {
-                                let unitNorm = 0;
-                                let materials: any[] = [];
-                                if (p.product && p.product.boms) {
-                                    p.product.boms.forEach((bom: any) => {
-                                        if (bom.material && targetMaterialIds.has(bom.material.id)) {
-                                            unitNorm += Number(bom.quantity || 0);
-                                            materials.push({
-                                                key: bom.material.id,
-                                                material_name: bom.material.name,
-                                                material_code: bom.material.code,
-                                                unit_norm: Number(bom.quantity || 0),
-                                                total_norm: Number(bom.quantity || 0) * p.quantity
-                                            });
-                                        }
-                                    });
-                                }
-                                return {
-                                    ...p,
-                                    unit_norm: unitNorm > 0 ? unitNorm : 0,
-                                    total_norm: (unitNorm > 0 ? unitNorm : 0) * p.quantity,
-                                    materials
-                                };
-                            });
-
-                            setPlanProducts(finalProducts);
-                        } catch (e) {
-                            console.error('Error fetching plan products for pooled', e);
-                        }
-                    }
+                if (pfoIds.size > 0) {
+                    const finalProds = await loadPlanProductsData(Array.from(pfoIds), targetMaterialIds, targetMaterialNames);
+                    setPlanProducts(finalProds);
                 }
 
                 fetchDeliveryMatrix(poDetail.id);
@@ -241,7 +310,6 @@ const PurchasingPage: React.FC = () => {
             if (poDetail.packing_list_details && poDetail.packing_list_details.length > 0) {
                 setPackingList(poDetail.packing_list_details);
             } else {
-                // Auto generate rows from unique Materials in PO Items
                 const uniqueMaterials = new Map();
                 if (poDetail.items) {
                     poDetail.items.forEach((item: any) => {
@@ -260,105 +328,58 @@ const PurchasingPage: React.FC = () => {
             }
             setIsDetailOpen(true);
 
-            // Fetch Plan Products
+            // Fetch Plan Products for Normal PO
             setPlanProducts([]);
-            if (poDetail.items && poDetail.items.length > 0 && poDetail.items[0].plan_id) {
-                const planId = poDetail.items[0].plan_id;
-                // Identify target material IDs from PO
-                const targetMaterialIds = new Set(poDetail.items.map((i: any) => i.material?.id).filter(Boolean));
+            const pfoIds = new Set<number>();
+            if (poDetail.pfo_id) pfoIds.add(poDetail.pfo_id);
 
-                try {
-                    const pRes = await api.get(`/planning/${planId}`);
-                    const plan = pRes.data;
-                    // Extract unique products from sales orders
-                    const prods = new Map();
-                    const addProductToMap = (product: any, qty: number) => {
-                        const isCombo = product.product_type === 'COMBO' || (product.components && product.components.length > 0);
+            // Thu thập từ items
+            if (poDetail.items && poDetail.items.length > 0) {
+                poDetail.items.forEach((i: any) => {
+                    if (i.pfo_id) pfoIds.add(i.pfo_id);
+                    if (i.plan_id) pfoIds.add(i.plan_id);
+                });
+            }
 
-                        if (isCombo && product.components && product.components.length > 0) {
-                            product.components.forEach((comp: any) => {
-                                if (comp.child_product) {
-                                    addProductToMap(comp.child_product, qty * Number(comp.quantity));
-                                }
-                            });
-                        } else {
-                            if (!prods.has(product.sku)) {
-                                prods.set(product.sku, {
-                                    sku: product.sku,
-                                    name: product.name,
-                                    quantity: 0,
-                                    product: product
-                                });
-                            }
-                            const p = prods.get(product.sku);
-                            p.quantity += Number(qty);
-                        }
-                    };
+            // Fallback: Tìm ID trong mã PO (VD: PO-NPL-PFO6-6446 -> PFO 6)
+            if (pfoIds.size === 0 && poDetail.po_code) {
+                const match = poDetail.po_code.match(/PFO(\d+)/i);
+                if (match && match[1]) {
+                    pfoIds.add(Number(match[1]));
+                }
+            }
 
-                    if (plan && plan.sales_orders) {
-                        plan.sales_orders.forEach((so: any) => {
-                            so.items?.forEach((item: any) => {
-                                if (item.product) {
-                                    addProductToMap(item.product, Number(item.quantity));
-                                } else {
-                                    if (!prods.has(item.sku)) prods.set(item.sku, { sku: item.sku, name: item.product_name, quantity: 0 });
-                                    prods.get(item.sku).quantity += Number(item.quantity);
-                                }
-                            });
-                        });
-                    }
+            const targetMaterialIds = new Set<number>(
+                (poDetail.items || []).map((i: any) => Number(i.material_id || i.material?.id)).filter(Boolean)
+            );
+            const targetMaterialNames = new Set<string>(
+                (poDetail.items || []).map((i: any) => (i.material?.name || i.description || i.reference_name || '').toLowerCase().trim()).filter(Boolean)
+            );
 
-                    // Calculate Norms for each aggregated product
-                    const finalProducts = Array.from(prods.values()).map((p: any) => {
-                        let unitNorm = 0;
-                        let materials: any[] = [];
-                        if (p.product && p.product.boms) {
-                            p.product.boms.forEach((bom: any) => {
-                                if (bom.material && targetMaterialIds.has(bom.material.id)) {
-                                    unitNorm += Number(bom.quantity || 0);
-                                    materials.push({
-                                        key: bom.material.id,
-                                        material_name: bom.material.name,
-                                        material_code: bom.material.code,
-                                        unit_norm: Number(bom.quantity || 0),
-                                        total_norm: Number(bom.quantity || 0) * p.quantity
-                                    });
-                                }
-                            });
-                        }
-                        return {
-                            ...p,
-                            unit_norm: unitNorm > 0 ? unitNorm : 0,
-                            total_norm: (unitNorm > 0 ? unitNorm : 0) * p.quantity,
-                            materials
-                        };
-                    });
+            if (pfoIds.size > 0) {
+                const finalProds = await loadPlanProductsData(Array.from(pfoIds), targetMaterialIds, targetMaterialNames);
+                setPlanProducts(finalProds);
 
-                    setPlanProducts(finalProducts);
-
-                    // --- MỚI: Fallback enrich PO Items from Plan Products ---
-                    // If backend recovery failed, we try to match SKU here
-                    const newEditingItems = [...poDetail.items]; // Re-clone from source to be safe
-                    let hasUpdate = false;
-                    newEditingItems.forEach((item: any) => {
-                        if (!item.product && item.description) {
-                            const match = item.description.match(/\(([^)]+)\)\s*$/);
-                            if (match && match[1]) {
-                                const sku = match[1].trim();
-                                const found = finalProducts.find(p => p.sku === sku);
-                                if (found && found.product) {
-                                    item.product = found.product;
-                                    item.product_id = found.product.id;
-                                    hasUpdate = true;
-                                }
+                // Fallback enrich PO Items from Plan Products nếu bị thiếu
+                const newEditingItems = (poDetail.items || []).map((i: any) => ({ ...i }));
+                let hasUpdate = false;
+                newEditingItems.forEach((item: any) => {
+                    if (!item.product && item.description) {
+                        const match = item.description.match(/\(([^)]+)\)\s*$/);
+                        if (match && match[1]) {
+                            const sku = match[1].trim();
+                            const found = finalProds.find(p => p.sku === sku);
+                            if (found && found.product) {
+                                item.product = found.product;
+                                item.product_id = found.product.id;
+                                hasUpdate = true;
                             }
                         }
-                    });
-                    if (hasUpdate) {
-                        setEditingItems(newEditingItems);
                     }
-                    // --------------------------------------------------------
-                } catch (e) { console.error('Error fetching plan', e); }
+                });
+                if (hasUpdate) {
+                    setEditingItems(newEditingItems);
+                }
             }
 
             // Fetch Delivery Matrix Progress
@@ -1577,7 +1598,34 @@ const PurchasingPage: React.FC = () => {
                                 )}
                             </div>
                         )
-                    }] : [])
+                    }] : []),
+                    // --- MỚI: Tab Lịch sử thanh toán ---
+                    {
+                        key: 'payment_history_tab',
+                        label: (
+                            <span>
+                                💰 Lịch sử thanh toán
+                                {Number(currentPO?.paid_amount || 0) > 0 && (
+                                    <Tag color="green" style={{ marginLeft: 6 }}>
+                                        {Number(currentPO.paid_amount).toLocaleString()} ₫
+                                    </Tag>
+                                )}
+                            </span>
+                        ),
+                        children: (
+                            <POPayments
+                                po={currentPO}
+                                onSuccess={() => {
+                                    fetchData();
+                                    if (currentPO?.id) {
+                                        api.get(`/purchasing/${currentPO.id}`).then(res => {
+                                            setCurrentPO(res.data);
+                                        }).catch(console.error);
+                                    }
+                                }}
+                            />
+                        )
+                    }
                 ]}
                 />
             </Modal>

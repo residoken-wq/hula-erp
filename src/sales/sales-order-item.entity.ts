@@ -21,18 +21,19 @@ export class SalesOrderItem {
   @JoinColumn({ name: 'order_id' })
   order: SalesOrder;
 
+  @Column({ nullable: true })
+  order_id: number;
+
   @Column()
   sku: string;
 
   // --- QUAN TRỌNG: Relation với Product ---
   @ManyToOne(() => Product, { nullable: true })
   @JoinColumn({ name: 'product_id', referencedColumnName: 'id' })
-  // Lưu ý: Nếu DB bạn chưa có cột product_id, hãy dùng referencedColumnName='sku' và joinColumn name='sku' nếu cần, 
-  // nhưng chuẩn nhất là mapping qua ID hoặc SKU nếu Entity Product dùng SKU làm khóa chính.
-  // Ở đây giả sử ta map lỏng qua SKU bằng cách join thủ công trong Service,
-  // NHƯNG để TypeORM relations hoạt động, ta cần định nghĩa nó.
-  // NẾU KHÔNG THỂ SỬA DB, HÃY DÙNG CÁCH DƯỚI:
   product: Product;
+
+  @Column({ nullable: true })
+  product_id: number;
   // ----------------------------------------
 
   @Column('text', { nullable: true })
