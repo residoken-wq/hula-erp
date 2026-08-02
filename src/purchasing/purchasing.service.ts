@@ -871,6 +871,39 @@ export class PurchasingService {
             agg.remaining = agg.total_ordered - agg.total_delivered;
         }
 
+        // Tự động tổng hợp chi tiết đóng gói (packing_list_details) từ các PO con
+        const childPackingMap = new Map<string, any>();
+        for (const childPO of (po.child_pos || [])) {
+            if (Array.isArray(childPO.packing_list_details)) {
+                for (const p of childPO.packing_list_details) {
+                    const matKey = (p.material_name || '').trim().toLowerCase();
+                    if (!matKey) continue;
+                    if (!childPackingMap.has(matKey)) {
+                        childPackingMap.set(matKey, {
+                            id: Date.now() + Math.random(),
+                            po_form_code: p.po_form_code || '',
+                            material_name: p.material_name,
+                            material_id: p.material_id || null,
+                            quantity: 0,
+                            n1: '', n2: '', c1: '', c2: '', g1: '', g2: '', odd: '', border: '', note: ''
+                        });
+                    }
+                    const cp = childPackingMap.get(matKey);
+                    if (p.n1) cp.n1 = String((Number(cp.n1) || 0) + Number(p.n1));
+                    if (p.n2) cp.n2 = String((Number(cp.n2) || 0) + Number(p.n2));
+                    if (p.c1) cp.c1 = String((Number(cp.c1) || 0) + Number(p.c1));
+                    if (p.c2) cp.c2 = String((Number(cp.c2) || 0) + Number(p.c2));
+                    if (p.g1) cp.g1 = String((Number(cp.g1) || 0) + Number(p.g1));
+                    if (p.g2) cp.g2 = String((Number(cp.g2) || 0) + Number(p.g2));
+                    if (p.odd) cp.odd = String((Number(cp.odd) || 0) + Number(p.odd));
+                    if (p.border) cp.border = String((Number(cp.border) || 0) + Number(p.border));
+                    if (p.note && !cp.note.includes(p.note)) {
+                        cp.note = cp.note ? `${cp.note}; ${p.note}` : p.note;
+                    }
+                }
+            }
+        }
+
         return {
             pooled_po: {
                 id: po.id,
@@ -878,9 +911,11 @@ export class PurchasingService {
                 supplier: po.supplier,
                 total_amount: po.total_amount,
                 child_count: po.child_pos?.length || 0,
-                child_pos: po.child_pos
+                child_pos: po.child_pos,
+                packing_list_details: po.packing_list_details
             },
-            aggregated_items: Array.from(itemMap.values())
+            aggregated_items: Array.from(itemMap.values()),
+            aggregated_packing_list: Array.from(childPackingMap.values())
         };
     }
     // ----------------------------

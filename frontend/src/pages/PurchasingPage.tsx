@@ -93,6 +93,81 @@ const PurchasingPage: React.FC = () => {
         } catch (e) { message.error('Lỗi xóa PO'); }
     };
 
+    // Helper function tìm item NPL tương ứng trong editingItems một cách chính xác
+    const findMatchingPOItem = (items: any[], row: any) => {
+        if (!items || !row) return null;
+        const rName = (row.material_name || '').trim().toLowerCase();
+        const rId = row.material_id;
+        return items.find((i: any) => {
+            const iId = i.material_id || i.material?.id;
+            if (rId && iId && Number(rId) === Number(iId)) return true;
+            const iName = (i.material?.name || i.description || i.reference_name || i.sku || '').trim().toLowerCase();
+            return iName && (iName === rName || (rName && (iName.includes(rName) || rName.includes(iName))));
+        });
+    };
+
+    // Helper function đồng bộ Packing List với tất cả Items trong PO (Đơn thường & PO Gộp)
+    const buildSyncedPackingList = (
+        savedPacking: any[] | undefined,
+        items: any[],
+        childAggregatedPacking?: any[]
+    ) => {
+        const savedMap = new Map<string, any>();
+        (savedPacking || []).forEach((p: any) => {
+            const nameKey = (p.material_name || '').trim().toLowerCase();
+            const idKey = p.material_id ? `id-${p.material_id}` : null;
+            if (nameKey) savedMap.set(nameKey, p);
+            if (idKey) savedMap.set(idKey, p);
+        });
+
+        const childMap = new Map<string, any>();
+        (childAggregatedPacking || []).forEach((p: any) => {
+            const nameKey = (p.material_name || '').trim().toLowerCase();
+            const idKey = p.material_id ? `id-${p.material_id}` : null;
+            if (nameKey) childMap.set(nameKey, p);
+            if (idKey) childMap.set(idKey, p);
+        });
+
+        return (items || []).map((item: any, idx: number) => {
+            const matName = (item.material?.name || item.description || item.reference_name || item.sku || '-').trim();
+            const matId = item.material_id || item.material?.id || null;
+            const nameKey = matName.toLowerCase();
+            const idKey = matId ? `id-${matId}` : null;
+
+            const saved = (idKey && savedMap.get(idKey)) || savedMap.get(nameKey);
+            const child = (idKey && childMap.get(idKey)) || childMap.get(nameKey);
+
+            if (saved) {
+                return {
+                    ...saved,
+                    id: saved.id || (Date.now() + idx),
+                    po_form_code: saved.po_form_code !== undefined ? saved.po_form_code : (idx + 1),
+                    material_name: matName || saved.material_name,
+                    material_id: matId || saved.material_id,
+                    quantity: item.quantity !== undefined ? item.quantity : saved.quantity
+                };
+            } else if (child) {
+                return {
+                    ...child,
+                    id: Date.now() + idx,
+                    po_form_code: child.po_form_code !== undefined ? child.po_form_code : (idx + 1),
+                    material_name: matName || child.material_name,
+                    material_id: matId || child.material_id,
+                    quantity: item.quantity
+                };
+            } else {
+                return {
+                    id: Date.now() + idx,
+                    po_form_code: idx + 1,
+                    material_name: matName,
+                    material_id: matId,
+                    quantity: item.quantity,
+                    n1: '', n2: '', c1: '', c2: '', g1: '', g2: '', odd: '', border: '', note: ''
+                };
+            }
+        });
+    };
+
     // --- HÀM TẢI THÔNG TIN SẢN PHẨM & ĐỊNH MỨC NPL TỪ KẾ HOẠCH (PFO) ---
     const loadPlanProductsData = async (pfoIds: number[], targetMaterialIds: Set<number>, targetMaterialNames: Set<string>) => {
         if (!pfoIds || pfoIds.length === 0) return [];
@@ -254,19 +329,13 @@ const PurchasingPage: React.FC = () => {
                     }));
                     setEditingItems(aggItems);
 
-                    if (poDetail.packing_list_details && poDetail.packing_list_details.length > 0) {
-                        setPackingList(poDetail.packing_list_details);
-                    } else {
-                        const generatedPacking = aggItems.map((item: any, idx: number) => ({
-                            id: Date.now() + idx,
-                            po_form_code: '',
-                            material_name: item.material?.name || item.description || '-',
-                            material_id: item.material_id || null,
-                            quantity: item.quantity,
-                            n1: '', n2: '', c1: '', c2: '', g1: '', g2: '', odd: '', border: '', note: ''
-                        }));
-                        setPackingList(generatedPacking);
-                    }
+                    // Đồng bộ packing list cho PO Gộp: lấy từ chính PO hoặc fallback từ các PO con
+                    const syncedPacking = buildSyncedPackingList(
+                        poDetail.packing_list_details,
+                        aggItems,
+                        aggData?.aggregated_packing_list
+                    );
+                    setPackingList(syncedPacking);
                 } catch (e) {
                     console.error('Error fetching pooled aggregate', e);
                     setEditingItems([]);
@@ -304,28 +373,15 @@ const PurchasingPage: React.FC = () => {
             }
 
             // Clone items for editing (Normal PO)
-            setEditingItems(poDetail.items ? poDetail.items.map((i: any) => ({ ...i })) : []);
+            const normalItems = poDetail.items ? poDetail.items.map((i: any) => ({ ...i })) : [];
+            setEditingItems(normalItems);
 
-            // Set packing list: If empty, auto-generate from Items
-            if (poDetail.packing_list_details && poDetail.packing_list_details.length > 0) {
-                setPackingList(poDetail.packing_list_details);
-            } else {
-                const uniqueMaterials = new Map();
-                if (poDetail.items) {
-                    poDetail.items.forEach((item: any) => {
-                        const matName = item.material?.name || item.reference_name || item.sku;
-                        if (!uniqueMaterials.has(matName)) {
-                            uniqueMaterials.set(matName, {
-                                id: Date.now() + Math.random(),
-                                po_form_code: '',
-                                material_name: matName,
-                                n1: '', n2: '', c1: '', c2: '', g1: '', g2: '', odd: '', border: '', note: ''
-                            });
-                        }
-                    });
-                }
-                setPackingList(Array.from(uniqueMaterials.values()));
-            }
+            // Đồng bộ packing list cho Normal PO: đảm bảo luôn có đủ tất cả NPL
+            const syncedPacking = buildSyncedPackingList(
+                poDetail.packing_list_details,
+                normalItems
+            );
+            setPackingList(syncedPacking);
             setIsDetailOpen(true);
 
             // Fetch Plan Products for Normal PO
@@ -432,9 +488,7 @@ const PurchasingPage: React.FC = () => {
             await api.post(`/inventory/goods-receipt/draft`, {
                 po_id: currentPO.id,
                 items: validRows.map(r => {
-                    // Find matching PO Item ID
-                    // FIX: Dùng editingItems thay vì currentPO.items để hỗ trợ POOLED PO
-                    const poItem = editingItems?.find((i: any) => (i.material?.name || i.description || i.reference_name || i.sku) === r.material_name);
+                    const poItem = findMatchingPOItem(editingItems, r);
                     const totalQty =
                         Number(r.n1_input || 0) + Number(r.n2_input || 0) +
                         Number(r.c1_input || 0) + Number(r.c2_input || 0) +
@@ -442,8 +496,8 @@ const PurchasingPage: React.FC = () => {
                         Number(r.odd_input || 0) + Number(r.border_input || 0);
 
                     return {
-                        po_item_id: poItem?.id, // Might be undefined if name mismatch, assume matching
-                        material_id: poItem?.material?.id,
+                        po_item_id: poItem?.id,
+                        material_id: poItem?.material?.id || poItem?.material_id || r.material_id,
                         quantity: totalQty,
                         packing_data: {
                             n1: Number(r.n1_input || 0), n2: Number(r.n2_input || 0),
@@ -1218,10 +1272,9 @@ const PurchasingPage: React.FC = () => {
                                         },
                                         {
                                             title: 'Tổng SL', width: 100, align: 'right', render: (t, r, idx) => {
-                                                // Find matching item in PO items to get quantity
-                                                // FIX: Dùng editingItems thay vì currentPO.items để hỗ trợ POOLED PO
-                                                const matchingItem = editingItems?.find((i: any) => (i.material?.name || i.description || i.reference_name || i.sku) === r.material_name);
-                                                return <b>{matchingItem ? Number(matchingItem.quantity).toLocaleString() : '-'}</b>;
+                                                const matchingItem = findMatchingPOItem(editingItems, r);
+                                                const qty = matchingItem ? Number(matchingItem.quantity) : (r.quantity ? Number(r.quantity) : 0);
+                                                return <b>{qty > 0 ? qty.toLocaleString() : '-'}</b>;
                                             }
                                         },
                                         {
@@ -1363,9 +1416,9 @@ const PurchasingPage: React.FC = () => {
                                         { title: 'Tên NPL', dataIndex: 'material_name', width: 200 },
                                         {
                                             title: 'Tổng SL ĐM', width: 80, align: 'right', render: (t, r, idx) => {
-                                                // FIX: Dùng editingItems thay vì currentPO.items để hỗ trợ POOLED PO
-                                                const matchingItem = editingItems?.find((i: any) => (i.material?.name || i.description || i.reference_name || i.sku) === r.material_name);
-                                                return <b>{matchingItem ? Number(matchingItem.quantity).toLocaleString() : '-'}</b>;
+                                                const matchingItem = findMatchingPOItem(editingItems, r);
+                                                const qty = matchingItem ? Number(matchingItem.quantity) : (r.quantity ? Number(r.quantity) : 0);
+                                                return <b>{qty > 0 ? qty.toLocaleString() : '-'}</b>;
                                             }
                                         },
                                         {
