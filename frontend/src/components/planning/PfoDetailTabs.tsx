@@ -3,6 +3,8 @@ import { Card, Row, Col, Typography, Tag, Tabs, Table, Statistic, Divider } from
 import dayjs from 'dayjs';
 import MaterialMatrix from './MaterialMatrix';
 import PfoProcessRouting from './PfoProcessRouting';
+import PfoGanttChart from './PfoGanttChart';
+import PfoSummaryDashboard from './PfoSummaryDashboard';
 
 const { Title, Text } = Typography;
 
@@ -86,6 +88,43 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
     const totalActualCost = actualNplCost + actualGcCost + actualNplInventoryCost + actualLogisticCost;
     const actualProfitMargin = totalRevenue > 0 ? ((totalRevenue - totalActualCost) / totalRevenue) * 100 : 0;
 
+    // 2.5 Calculate Progress
+    const progressData = useMemo(() => {
+        // NPL Progress: items ordered vs items required
+        let nplRequired = 0;
+        let nplOrdered = 0;
+        if (pfoDetails?.material_requirements) {
+            nplRequired = pfoDetails.material_requirements.length;
+        }
+        if (pfoDetails?.pos?.pos_npl) {
+            // Count unique materials in PO NPLs
+            const orderedMaterials = new Set();
+            pfoDetails.pos.pos_npl.forEach((po: any) => {
+                if (po.status !== 'CANCELLED' && po.items) {
+                    po.items.forEach((item: any) => {
+                        if (item.material_id) orderedMaterials.add(item.material_id);
+                    });
+                }
+            });
+            nplOrdered = orderedMaterials.size;
+        }
+        const nplProgress = nplRequired > 0 ? Math.round((nplOrdered / nplRequired) * 100) : 0;
+
+        // GC Progress: milestones completed vs total
+        let gcTotal = 0;
+        let gcCompleted = 0;
+        if (pfoDetails?.milestones) {
+            gcTotal = pfoDetails.milestones.length;
+            gcCompleted = pfoDetails.milestones.filter((m: any) => m.status === 'COMPLETED').length;
+        }
+        const gcProgress = gcTotal > 0 ? Math.round((gcCompleted / gcTotal) * 100) : 0;
+
+        // Total Progress: simple average or weighted. Using average for now.
+        const totalProgress = Math.round((nplProgress + gcProgress) / 2);
+
+        return { nplProgress, gcProgress, totalProgress, nplOrdered, nplRequired };
+    }, [pfoDetails]);
+
     // 3. BOM Tree Data
     const bomTreeData = useMemo(() => {
         if (!pfoDetails?.sales_order?.items) return [];
@@ -148,8 +187,8 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
     const columnsPxk = [
         { title: 'Mã PXK / Phiếu', dataIndex: 'code', key: 'code', render: (val: any, record: any) => record.pxk_code || record.code || val || 'N/A' },
         { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (val: string) => <Tag color="orange">{val || 'N/A'}</Tag> },
-        { title: 'Ngày xuất', dataIndex: 'issue_date', key: 'issue_date', render: (val: any, record: any) => val ? dayjs(val).format('DD/MM/YYYY') : (record?.created_at ? dayjs(record.created_at).format('DD/MM/YYYY') : '-') },
-        { title: 'Nguồn', key: 'source', render: (_: any, record: any) => record.from_inventory ? <Tag color="green">Từ Tồn Kho</Tag> : (record.supplier?.name || <Tag>Khác</Tag>) }
+        { title: 'Ngày giao (Xuất)', dataIndex: 'issue_date', key: 'issue_date', render: (val: any, record: any) => val ? dayjs(val).format('DD/MM/YYYY') : (record?.created_at ? dayjs(record.created_at).format('DD/MM/YYYY') : '-') },
+        { title: 'Nhà GC / Nơi nhận', key: 'supplier', render: (_: any, record: any) => record.supplier?.name ? <Text strong>{record.supplier.name}</Text> : (record.from_inventory ? <Tag color="green">Từ Tồn Kho</Tag> : <Tag>Khác</Tag>) }
     ];
 
     const expandedRowRenderItems = (record: any) => {
@@ -157,8 +196,14 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
         const itemCols = [
             { title: 'Vật tư / SP', dataIndex: 'product_name', key: 'product_name', render: (val: any, rec: any) => val || rec.material?.name || rec.product?.name || 'N/A' },
             { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (val: any) => Number(val || 0).toLocaleString() },
-            { title: 'Đơn giá', dataIndex: 'unit_price', key: 'unit_price', align: 'right' as const, render: (val: any) => `${Number(val || 0).toLocaleString()} ₫` },
-            { title: 'Thành tiền', dataIndex: 'total_price', key: 'total_price', align: 'right' as const, render: (val: any, rec: any) => `${(Number(rec.quantity || 0) * Number(rec.unit_price || 0)).toLocaleString()} ₫` }
+            { title: 'Đơn giá', dataIndex: 'unit_price', key: 'unit_price', align: 'right' as const, render: (val: any, rec: any) => {
+                const price = Number(val || rec.material?.unit_price || rec.product?.unit_price || 0);
+                return `${price.toLocaleString()} ₫`;
+            }},
+            { title: 'Thành tiền', dataIndex: 'total_price', key: 'total_price', align: 'right' as const, render: (val: any, rec: any) => {
+                const price = Number(rec.unit_price || rec.material?.unit_price || rec.product?.unit_price || 0);
+                return `${(Number(rec.quantity || 0) * price).toLocaleString()} ₫`;
+            }}
         ];
         return (
             <div style={{ padding: '8px 24px', backgroundColor: '#fcfcfc', border: '1px dashed #d9d9d9', borderRadius: 6, margin: '8px 16px' }}>
@@ -172,27 +217,35 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
             {/* THÔNG TIN CHUNG */}
             <Card size="small" style={{ background: '#fafafa', borderRadius: 10, border: '1px solid #e8e8e8' }}>
                 <Row gutter={[16, 8]}>
-                    <Col span={isMobile ? 24 : 6}>
+                    <Col span={isMobile ? 24 : 4}>
                         <Text type="secondary">Mã Đơn Hàng (SO):</Text><br />
                         <Text strong style={{ fontSize: 15, color: '#1890ff' }}>
                             {pfoDetails?.sales_order?.order_code || selectedPfo?.sales_order_code || selectedPfo?.code?.replace('PFO-', '')}
                         </Text>
                     </Col>
-                    <Col span={isMobile ? 24 : 6}>
+                    <Col span={isMobile ? 24 : 4}>
                         <Text type="secondary">Khách Hàng:</Text><br />
                         <Text strong>
                             {pfoDetails?.sales_order?.customer_name || pfoDetails?.sales_order?.customer?.name || 'N/A'}
                         </Text>
                     </Col>
-                    <Col span={isMobile ? 24 : 6}>
-                        <Text type="secondary">Hạn Giao Hàng (Deadline):</Text><br />
+                    <Col span={isMobile ? 24 : 4}>
+                        <Text type="secondary">Hạn Giao Hàng:</Text><br />
                         <Text strong style={{ color: '#cf1322' }}>
                             {selectedPfo?.committed_finish_date ? dayjs(selectedPfo.committed_finish_date).format('DD/MM/YYYY') : 'N/A'}
                         </Text>
                     </Col>
-                    <Col span={isMobile ? 24 : 6}>
+                    <Col span={isMobile ? 24 : 4}>
+                        <Text type="secondary">Tiến Độ Mua NPL:</Text><br />
+                        <Tag color="geekblue" style={{ fontSize: 14 }}>{progressData.nplOrdered} / {progressData.nplRequired} ({progressData.nplProgress}%)</Tag>
+                    </Col>
+                    <Col span={isMobile ? 24 : 4}>
+                        <Text type="secondary">Tiến Độ Gia Công:</Text><br />
+                        <Tag color="purple" style={{ fontSize: 14 }}>{progressData.gcProgress}%</Tag>
+                    </Col>
+                    <Col span={isMobile ? 24 : 4}>
                         <Text type="secondary">Tiến Độ Tổng:</Text><br />
-                        <Tag color="green" style={{ fontSize: 14 }}>{selectedPfo?.progress || 0}%</Tag>
+                        <Tag color="green" style={{ fontSize: 14 }}>{progressData.totalProgress}%</Tag>
                     </Col>
                 </Row>
             </Card>
@@ -243,6 +296,29 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
             {/* TABS */}
             <Card size="small" style={{ borderRadius: 10, border: '1px solid #e8e8e8' }}>
                 <Tabs items={[
+                    {
+                        key: 'SUMMARY',
+                        label: 'AI Summary',
+                        children: (
+                            <PfoSummaryDashboard 
+                                pfoDetails={pfoDetails} 
+                                selectedPfo={selectedPfo}
+                                progressData={progressData}
+                                totalEstimatedCost={totalEstimatedCost}
+                                totalActualCost={totalActualCost}
+                            />
+                        )
+                    },
+                    {
+                        key: 'TIMELINE',
+                        label: 'Gantt Chart',
+                        children: (
+                            <PfoGanttChart 
+                                selectedPfo={selectedPfo}
+                                pfoDetails={pfoDetails}
+                            />
+                        )
+                    },
                     {
                         key: 'ROUTING',
                         label: 'Quy trình gia công',

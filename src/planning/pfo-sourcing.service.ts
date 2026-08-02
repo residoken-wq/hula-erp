@@ -350,7 +350,7 @@ export class PfoSourcingService {
     async getPxks(pfoId: number) {
         const pxks = await this.goodsIssueRepo.find({
             where: { pfo_id: pfoId },
-            relations: ['items', 'items.material', 'items.product'],
+            relations: ['items', 'items.material', 'items.product', 'supplier'],
             order: { created_at: 'DESC' }
         });
         return {
