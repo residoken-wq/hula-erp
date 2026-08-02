@@ -29,7 +29,7 @@ export class AiController {
     @Post('chat-stream')
     async chatStream(@Body() body: any, @Req() req: any, @Res() res: Response) {
         const userId = req.user.id.toString();
-        const { message, contextUrl } = body;
+        const { message, contextUrl, activeContext, approvedPermission } = body;
 
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
@@ -39,12 +39,17 @@ export class AiController {
             await this.aiService.handleChatStream(
                 userId, 
                 message, 
-                contextUrl, 
+                contextUrl,
+                activeContext,
+                approvedPermission,
                 (chunk: string) => {
                     res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
                 },
                 (status: string) => {
                     res.write(`data: ${JSON.stringify({ status })}\n\n`);
+                },
+                (permissionRequest: any) => {
+                    res.write(`data: ${JSON.stringify({ permission_request: permissionRequest })}\n\n`);
                 }
             );
             res.write(`data: [DONE]\n\n`);

@@ -70,16 +70,20 @@ const PfoSummaryDashboard: React.FC<PfoSummaryDashboardProps> = ({
     }, [totalEstimatedCost, totalActualCost]);
 
     const pieConfig = {
-        appendPadding: 10,
         data: costData,
         angleField: 'value',
         colorField: 'type',
         radius: 0.8,
         label: {
-            type: 'outer',
-            content: '{name} {percentage}',
+            text: (d: any) => `${d.type}: ${Number(d.value || 0).toLocaleString('vi-VN')} ₫`,
+            position: 'outside',
         },
-        interactions: [{ type: 'element-active' }],
+        legend: {
+            color: {
+                title: false,
+                position: 'bottom',
+            },
+        },
     };
 
     return (

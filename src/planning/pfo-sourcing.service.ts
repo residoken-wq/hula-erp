@@ -50,12 +50,12 @@ export class PfoSourcingService {
         const safeList = Array.isArray(routingData) ? routingData : [];
         const newMilestones = safeList.map(item => this.milestoneRepo.create({
             pfo_id: id,
-            milestone_type: item.milestone_type,
-            step_name: item.step_name,
-            vendor_id: item.vendor_id || null,
+            milestone_type: item.milestone_type || item.step_name || 'OUTSOURCING',
+            step_name: item.step_name || item.milestone_type || 'Gia công',
+            vendor_id: item.vendor_id ? Number(item.vendor_id) : null,
             vendor_name: item.vendor_name || null,
             unit_price: Number(item.unit_price || 0),
-            product_id: item.product_id || null,
+            product_id: item.product_id ? Number(item.product_id) : null,
             product_name: item.product_name || null,
             planned_quantity: Number(item.planned_quantity || pfo.quantity || 1),
             total_cost: Number(item.unit_price || 0) * Number(item.planned_quantity || pfo.quantity || 1)
@@ -77,56 +77,81 @@ export class PfoSourcingService {
      * Gate 4 & 5: Sinh PO Mua Nguyên Phụ Liệu (PO NPL) & PO Gia Công Đa Xưởng (Subcontract PO)
      */
     async generatePos(pfoId: number) {
+        const id = Number(pfoId);
         const pfo = await this.pfoRepo.findOne({
-            where: { id: pfoId },
+            where: { id },
             relations: ['material_requirements', 'milestones', 'sales_order', 'sales_order.items', 'sales_order.items.product']
         });
 
         if (!pfo) throw new NotFoundException('Lệnh SX (PFO) không tồn tại');
 
-        // Xóa các PO NPL & GC (nháp) cũ của PFO này trước khi tạo mới để tránh trùng lặp
-        await this.poRepo.delete({ pfo_id: pfoId, status: POStatus.DRAFT });
+        // 1. Xóa an toàn các PO NPL & GC (nháp DRAFT) cũ của PFO này để tránh lỗi Foreign Key Constraint
+        const existingDraftPos = await this.poRepo.find({
+            where: { pfo_id: id, status: POStatus.DRAFT }
+        });
+        if (existingDraftPos.length > 0) {
+            const poIds = existingDraftPos.map(p => p.id);
+            await this.poItemRepo.createQueryBuilder()
+                .delete()
+                .where('purchase_order_id IN (:...poIds) OR po_id IN (:...poIds)', { poIds })
+                .execute();
+            await this.poRepo.delete(poIds);
+        }
 
         const createdPos: string[] = [];
         let createdGoodsIssue: string | null = null;
 
-        // 1. TẠO PHIẾU XUẤT KHO NPL TỪ TỒN KHO (Nếu có dùng tồn kho)
+        // 2. TẠO PHIẾU XUẤT KHO NPL TỪ TỒN KHO (Nếu có dùng tồn kho)
         const inventoryReqs = (pfo.material_requirements || []).filter(
-            m => m.use_inventory === true && m.inventory_used_quantity > 0
+            m => m.use_inventory === true && Number(m.inventory_used_quantity || 0) > 0
         );
 
         if (inventoryReqs.length > 0) {
-            // Delete old DRAFT issues for this PFO
-            await this.goodsIssueRepo.delete({ pfo_id: pfoId, status: GoodsIssueStatus.DRAFT });
+            // Delete old DRAFT issues for this PFO an toàn
+            const existingDraftIssues = await this.goodsIssueRepo.find({
+                where: { pfo_id: id, status: GoodsIssueStatus.DRAFT }
+            });
+            if (existingDraftIssues.length > 0) {
+                const issueIds = existingDraftIssues.map(i => i.id);
+                await this.goodsIssueItemRepo.createQueryBuilder()
+                    .delete()
+                    .where('issue_id IN (:...issueIds)', { issueIds })
+                    .execute();
+                await this.goodsIssueRepo.delete(issueIds);
+            }
 
-            const issueCode = `PXK-PFO${pfoId}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const timestamp = Date.now().toString().slice(-4);
+            const rand = Math.floor(100 + Math.random() * 900);
+            const issueCode = `PXK-PFO${id}-${timestamp}${rand}`;
             const goodsIssue = this.goodsIssueRepo.create({
                 code: issueCode,
                 type: GoodsIssueType.PRODUCTION,
                 delivery_mode: GoodsIssueDeliveryMode.PER_ORDER,
                 status: GoodsIssueStatus.DRAFT,
-                pfo_id: pfoId,
+                pfo_id: id,
                 note: `Xuất kho nguyên phụ liệu cho Lệnh SX #${pfo.code}`
             });
             await this.goodsIssueRepo.save(goodsIssue);
 
             const issueItems = inventoryReqs.map(r => {
-                const issueQty = r.inventory_used_quantity;
+                const issueQty = Number(r.inventory_used_quantity || 0);
                 return this.goodsIssueItemRepo.create({
                     issue: goodsIssue,
+                    issue_id: goodsIssue.id,
                     material_id: r.material_id,
                     quantity: issueQty,
-                    note: `Xuất tồn kho: ${r.material_code}`
+                    note: `Xuất tồn kho: ${r.material_code || r.material_name || ''}`
                 });
             });
             await this.goodsIssueItemRepo.save(issueItems);
             createdGoodsIssue = goodsIssue.code;
         }
 
-        // 2. TẠO PO NGUYÊN PHỤ LIỆU (PO NPL)
+        // 3. TẠO PO NGUYÊN PHỤ LIỆU (PO NPL)
         // Chỉ mua các NPL do HULA cấp phát (supply_method = HULA_SUPPLIED) và số lượng cần mua > 0
         const hulaMaterials = (pfo.material_requirements || []).filter(
-            m => (m.supply_method === SupplyMethod.HULA_SUPPLIED || !m.supply_method) && (m.actual_order_quantity ?? m.planned_quantity) > 0
+            m => (m.supply_method === SupplyMethod.HULA_SUPPLIED || !m.supply_method) && 
+                 (m.actual_order_quantity !== undefined ? Number(m.actual_order_quantity) : Number(m.planned_quantity || 0)) > 0
         );
 
         if (hulaMaterials.length > 0) {
@@ -139,16 +164,18 @@ export class PfoSourcingService {
             }
 
             for (const [suppIdStr, reqs] of Object.entries(supplierGroups)) {
-                const validReqs = reqs.filter(r => (r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity)) > 0);
+                const validReqs = reqs.filter(r => (r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity || 0)) > 0);
                 if (validReqs.length === 0) continue;
 
-                const poCode = `PO-NPL-PFO${pfoId}-${Math.floor(1000 + Math.random() * 9000)}`;
+                const timestamp = Date.now().toString().slice(-4);
+                const rand = Math.floor(100 + Math.random() * 900);
+                const poCode = `PO-NPL-PFO${id}-${suppIdStr !== 'GENERAL' ? `S${suppIdStr}-` : ''}${timestamp}${rand}`;
                 
                 const suppIdNum = suppIdStr !== 'GENERAL' ? Number(suppIdStr) : null;
                 const matPo = this.poRepo.create({
                     po_code: poCode,
                     type: POType.MATERIAL,
-                    pfo_id: pfoId,
+                    pfo_id: id,
                     supplier_id: suppIdNum,
                     status: POStatus.DRAFT,
                     note: `Đơn mua Nguyên phụ liệu cấp phát cho PFO #${pfo.code}`
@@ -169,13 +196,13 @@ export class PfoSourcingService {
                 }
 
                 const matItems = validReqs.map(r => {
-                    const qty = r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity);
+                    const qty = r.actual_order_quantity !== undefined ? Number(r.actual_order_quantity) : Number(r.planned_quantity || 0);
                     const price = Number(r.unit_price || 0);
                     return this.poItemRepo.create({
                         purchase_order: matPo,
-                        pfo_id: pfoId,
+                        pfo_id: id,
                         material_id: r.material_id,
-                        description: `${r.material_code} - ${r.material_name}`,
+                        description: `${r.material_code || ''} - ${r.material_name || ''}`.trim(),
                         front_color: defaultFrontColor,
                         back_color: defaultBackColor,
                         quantity: qty,
@@ -194,7 +221,7 @@ export class PfoSourcingService {
             }
         }
 
-        // 2. TẠO PO GIA CÔNG (SUBCONTRACT PO) TƯƠNG ỨNG TỪNG XƯỞNG/CÔNG ĐOẠN
+        // 4. TẠO PO GIA CÔNG (SUBCONTRACT PO) TƯƠNG ỨNG TỪNG XƯỞNG/CÔNG ĐOẠN
         const milestonesWithVendor = (pfo.milestones || []).filter(m => m.vendor_id);
         const firstSoItem = pfo.sales_order?.items?.[0];
         let defaultFrontColor = '';
@@ -229,18 +256,21 @@ export class PfoSourcingService {
             // Gom công đoạn theo từng Vendor ID
             const vendorGroups: { [key: number]: PfoMilestone[] } = {};
             for (const ms of milestonesWithVendor) {
-                if (!vendorGroups[ms.vendor_id]) vendorGroups[ms.vendor_id] = [];
-                vendorGroups[ms.vendor_id].push(ms);
+                const vId = Number(ms.vendor_id);
+                if (!vendorGroups[vId]) vendorGroups[vId] = [];
+                vendorGroups[vId].push(ms);
             }
 
             for (const [vendorIdStr, msList] of Object.entries(vendorGroups)) {
                 const vendorId = Number(vendorIdStr);
-                const poCode = `PO-GC-PFO${pfoId}-V${vendorId}-${Math.floor(1000 + Math.random() * 9000)}`;
+                const timestamp = Date.now().toString().slice(-4);
+                const rand = Math.floor(100 + Math.random() * 900);
+                const poCode = `PO-GC-PFO${id}-V${vendorId}-${timestamp}${rand}`;
                 
                 const gcPo = this.poRepo.create({
                     po_code: poCode,
                     type: POType.OUTSOURCING,
-                    pfo_id: pfoId,
+                    pfo_id: id,
                     supplier_id: vendorId,
                     status: POStatus.DRAFT,
                     note: `Đơn gia công cho Xưởng #${vendorId} (${msList.map(m => m.step_name || m.milestone_type).join(', ')})`
@@ -252,16 +282,16 @@ export class PfoSourcingService {
                     const price = Number(ms.unit_price || 0);
                     const prodDesc = ms.product_name ? ` [${ms.product_name}]` : '';
                     
-                    const prodId = ms.product_id || firstSoItem?.product?.id;
-                    const colors = soItemProductMap.get(prodId) || { frontColor: defaultFrontColor, backColor: defaultBackColor };
+                    const prodId = ms.product_id ? Number(ms.product_id) : (firstSoItem?.product?.id || null);
+                    const colors = (prodId ? soItemProductMap.get(prodId) : null) || { frontColor: defaultFrontColor, backColor: defaultBackColor };
 
                     return this.poItemRepo.create({
                         purchase_order: gcPo,
-                        pfo_id: pfoId,
+                        pfo_id: id,
                         product_id: prodId,
                         front_color: colors.frontColor,
                         back_color: colors.backColor,
-                        description: `Gia công: ${ms.step_name || ms.milestone_type}${prodDesc}`,
+                        description: `Gia công: ${ms.step_name || ms.milestone_type || 'Gia công'}${prodDesc}`,
                         quantity: qty,
                         raw_quantity: qty,
                         total_quantity: qty,
@@ -278,11 +308,13 @@ export class PfoSourcingService {
             }
         } else if (pfo.vendor_id) {
             // Nếu chưa chia mốc nhưng có vendor_id chung -> Tạo 1 Subcontract PO tổng
-            const poCode = `PO-GC-PFO${pfoId}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const timestamp = Date.now().toString().slice(-4);
+            const rand = Math.floor(100 + Math.random() * 900);
+            const poCode = `PO-GC-PFO${id}-${timestamp}${rand}`;
             const gcPo = this.poRepo.create({
                 po_code: poCode,
                 type: POType.OUTSOURCING,
-                pfo_id: pfoId,
+                pfo_id: id,
                 supplier_id: pfo.vendor_id,
                 status: POStatus.DRAFT,
                 note: `Đơn gia công tổng cho PFO #${pfo.code}`
@@ -305,11 +337,11 @@ export class PfoSourcingService {
                     const qty = Number(item.quantity || 1);
                     return this.poItemRepo.create({
                         purchase_order: gcPo,
-                        pfo_id: pfoId,
+                        pfo_id: id,
                         product_id: item.product?.id,
                         front_color: fColor,
                         back_color: bColor,
-                        description: `Gia công tổng hợp SP: ${item.product?.name || item.product?.sku}`,
+                        description: `Gia công tổng hợp SP: ${item.product?.name || item.product?.sku || ''}`,
                         quantity: qty,
                         raw_quantity: qty,
                         total_quantity: qty,

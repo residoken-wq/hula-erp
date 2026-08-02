@@ -760,89 +760,373 @@ You MUST return ONLY a valid JSON object in this structure:
         }
     }
 
-    // --- NEW STREAMING & FUNCTION CALLING IMPLEMENTATION ---
-    async handleAiToolCall(functionName: string, args: any): Promise<any> {
+    // --- HELPER: GET SENSITIVE TOOLS & PERMISSION DESCRIPTIONS ---
+    private isSensitiveTool(toolName: string): boolean {
+        const SENSITIVE_TOOLS = ['get_customer_360_profile', 'get_finance_and_debt_analytics', 'execute_smart_action'];
+        return SENSITIVE_TOOLS.includes(toolName);
+    }
+
+    private getPermissionDescription(toolName: string, args: any): { title: string; description: string; scope: string } {
+        if (toolName === 'get_customer_360_profile') {
+            const name = args.customerName || args.query || (args.customerId ? `ID: ${args.customerId}` : 'Khách hàng');
+            return {
+                title: 'Yêu cầu quyền truy cập Dữ liệu Khách hàng 360°',
+                description: `AI cần đọc toàn bộ lịch sử đơn hàng, dòng tiền và công nợ của ${name} để phân tích.`,
+                scope: 'Đọc hồ sơ khách hàng, 10 đơn hàng gần nhất, công nợ và lịch sử chăm sóc CRM.'
+            };
+        }
+        if (toolName === 'get_finance_and_debt_analytics') {
+            const timeDesc = args.month && args.month > 0 ? `tháng ${args.month}/${args.year || new Date().getFullYear()}` : `năm ${args.year || new Date().getFullYear()}`;
+            return {
+                title: 'Yêu cầu quyền truy cập Báo cáo Tài chính & Sổ nợ',
+                description: `AI cần truy xuất báo cáo doanh thu, chi phí, lợi nhuận và danh sách công nợ quá hạn ${timeDesc}.`,
+                scope: 'Đọc sổ thu chi kế toán, tổng hợp công nợ khách hàng và phân tích biên lợi nhuận.'
+            };
+        }
+        if (toolName === 'execute_smart_action') {
+            return {
+                title: 'Yêu cầu quyền Thực thi Hành động vào Hệ thống',
+                description: `AI yêu cầu thực hiện hành động: ${args.actionType || 'Cập nhật dữ liệu'}`,
+                scope: `Thực hiện ghi dữ liệu mới vào cơ sở dữ liệu: ${JSON.stringify(args.payload || {})}`
+            };
+        }
+        return {
+            title: 'Yêu cầu quyền truy cập dữ liệu',
+            description: `AI cần quyền truy cập dữ liệu để thực thi công cụ ${toolName}`,
+            scope: 'Đọc dữ liệu nội bộ ERP'
+        };
+    }
+
+    private getToolStatusText(toolName: string, args: any): string {
+        const toolMap: Record<string, string> = {
+            'search_customer': `🔍 Đang tìm kiếm thông tin khách hàng "${args?.query || ''}"...`,
+            'get_customer_360_profile': `📊 Đang tổng hợp hồ sơ 360°, đơn hàng & công nợ...`,
+            'get_sales_order_360_profile': `📦 Đang truy xuất chi tiết đơn hàng "${args?.orderCodeOrId || args?.query || ''}"...`,
+            'get_product_360_profile': `🏷️ Đang kiểm tra thông tin & tồn kho sản phẩm "${args?.skuOrName || args?.query || ''}"...`,
+            'check_stock': `📦 Đang kiểm tra dữ liệu tồn kho...`,
+            'get_finance_and_debt_analytics': `💰 Đang phân tích số liệu tài chính & công nợ...`,
+            'check_mrp_status': `⚙️ Đang phân tích kế hoạch sản xuất MRP...`,
+            'check_tasks': `📋 Đang kiểm tra danh sách công việc...`,
+            'execute_smart_action': `⚡ Đang chuẩn bị thực thi hành động...`
+        };
+        return toolMap[toolName] || `Đang xử lý nghiệp vụ (${toolName})...`;
+    }
+
+    // --- DEEP ERP 360° TOOL HANDLERS ---
+    async handleGetCustomer360Profile(args: any): Promise<any> {
         try {
+            let customer: any = null;
+            if (args.customerId) {
+                customer = await this.customersService.findOne(Number(args.customerId));
+            } else if (args.query) {
+                const list = await this.customersService.searchCustomersAdvanced(args.query);
+                if (list && list.length > 0) {
+                    customer = await this.customersService.findOne(list[0].id);
+                }
+            }
+
+            if (!customer) {
+                return { error: `Không tìm thấy khách hàng khớp với thông tin yêu cầu.` };
+            }
+
+            // 1. Get customer orders with payment amounts
+            let orders: any[] = [];
+            try {
+                orders = await this.customersService.getOrders(customer.id);
+            } catch (e) {
+                orders = [];
+            }
+
+            // 2. Compute KPIs
+            const validOrders = orders.filter(o => o.status !== 'CANCELLED' && o.status !== 'QUOTATION');
+            const totalOrdersCount = validOrders.length;
+            const totalLifetimeRevenue = validOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+            const totalPaidAmount = validOrders.reduce((sum, o) => sum + Number(o.paid_amount || 0), 0);
+            const currentDebt = totalLifetimeRevenue - totalPaidAmount;
+
+            // 3. Aggregate top purchased products
+            const productStats: Record<string, { sku: string; name: string; quantity: number; totalSpent: number }> = {};
+            for (const order of validOrders) {
+                if (order.items && Array.isArray(order.items)) {
+                    for (const item of order.items) {
+                        const sku = item.product?.sku || item.sku || 'N/A';
+                        const name = item.product?.name || item.product_name || 'Sản phẩm';
+                        const qty = Number(item.quantity || 0);
+                        const total = Number(item.total_price || (item.unit_price * qty) || 0);
+
+                        if (!productStats[sku]) {
+                            productStats[sku] = { sku, name, quantity: 0, totalSpent: 0 };
+                        }
+                        productStats[sku].quantity += qty;
+                        productStats[sku].totalSpent += total;
+                    }
+                }
+            }
+            const topProducts = Object.values(productStats).sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 5);
+
+            // 4. Get recent CRM notes / comments
+            let recentComments: any[] = [];
+            try {
+                recentComments = await this.customersService.getComments(customer.id);
+            } catch (e) {}
+
+            return {
+                customer_profile: {
+                    id: customer.id,
+                    code: customer.code,
+                    name: customer.name,
+                    phone: customer.phone || 'Chưa có',
+                    email: customer.email || 'Chưa có',
+                    address: customer.address || 'Chưa có',
+                    tax_code: customer.tax_code || 'N/A',
+                    type: customer.type,
+                    lead_status: customer.lead_status,
+                    credit_limit: customer.credit_limit || 0,
+                    assigned_to: customer.assigned_to?.full_name || 'Chưa gán',
+                    contacts: (customer.contacts || []).map((c: any) => ({ name: c.name, phone: c.phone, role: c.role, email: c.email }))
+                },
+                financial_and_sales_kpis: {
+                    total_orders: totalOrdersCount,
+                    total_lifetime_revenue: totalLifetimeRevenue,
+                    total_paid: totalPaidAmount,
+                    current_debt: currentDebt,
+                    average_order_value: totalOrdersCount > 0 ? Math.round(totalLifetimeRevenue / totalOrdersCount) : 0,
+                    last_order_date: orders.length > 0 ? (orders[0].order_date || orders[0].created_at) : null
+                },
+                recent_orders_sample: orders.slice(0, 8).map(o => ({
+                    order_code: o.order_code,
+                    date: o.order_date || o.created_at,
+                    total_amount: Number(o.total_amount || 0),
+                    paid_amount: Number(o.paid_amount || 0),
+                    remaining_debt: Number(o.total_amount || 0) - Number(o.paid_amount || 0),
+                    status: o.status,
+                    payment_status: o.payment_status,
+                    delivery_date: o.delivery_date
+                })),
+                top_purchased_products: topProducts,
+                recent_crm_notes: recentComments.slice(0, 5).map(c => ({
+                    author: c.author_name || c.user_name || 'Nhân viên',
+                    content: c.content,
+                    created_at: c.created_at,
+                    source: c.source
+                }))
+            };
+        } catch (e) {
+            return { error: `Lỗi tổng hợp hồ sơ 360: ${e.message}` };
+        }
+    }
+
+    async handleGetSalesOrder360(orderCodeOrId: string | number): Promise<any> {
+        try {
+            const order = await this.salesService.findOne(orderCodeOrId);
+            if (!order) return { error: `Không tìm thấy đơn hàng "${orderCodeOrId}".` };
+
+            return {
+                order_code: order.order_code,
+                customer_name: order.customer?.name,
+                customer_phone: order.customer?.phone,
+                order_date: order.order_date,
+                delivery_date: order.delivery_date,
+                status: order.status,
+                payment_status: order.payment_status,
+                total_amount: Number(order.total_amount || 0),
+                paid_amount: Number(order.paid_amount || 0),
+                remaining_debt: Number(order.total_amount || 0) - Number(order.paid_amount || 0),
+                items: (order.items || []).map((item: any) => ({
+                    sku: item.product?.sku || item.sku,
+                    name: item.product?.name || item.product_name,
+                    quantity: Number(item.quantity || 0),
+                    unit_price: Number(item.unit_price || 0),
+                    total_price: Number(item.total_price || 0),
+                    booked_quantity: Number(item.booked_quantity || 0)
+                })),
+                assigned_to: order.assigned_to?.full_name || 'N/A',
+                note: order.note
+            };
+        } catch (e) {
+            return { error: `Lỗi đọc chi tiết đơn hàng: ${e.message}` };
+        }
+    }
+
+    async handleGetProduct360(skuOrName: string): Promise<any> {
+        try {
+            const products = await this.productsService.searchProducts(skuOrName);
+            if (!products || products.length === 0) return { error: `Không tìm thấy sản phẩm khớp với "${skuOrName}".` };
+            const p = products[0];
+            return {
+                id: p.id,
+                sku: p.sku,
+                name: p.name,
+                product_type: p.product_type,
+                unit: p.unit,
+                base_price: Number(p.base_price || 0),
+                cost_price: Number(p.cost_price || 0),
+                quantity_in_stock: Number(p.quantity_in_stock || 0),
+                booking_stock: Number(p.booking_stock || 0),
+                approved_booking_stock: Number(p.approved_booking_stock || 0),
+                is_active: p.is_active
+            };
+        } catch (e) {
+            return { error: `Lỗi đọc thông tin sản phẩm: ${e.message}` };
+        }
+    }
+
+    async handleGetFinanceDebtAnalytics(args: any): Promise<any> {
+        try {
+            const y = args.year || new Date().getFullYear();
+            const m = args.month !== undefined ? args.month : new Date().getMonth() + 1;
+
+            let summary: any = null;
+            if (m === 0) {
+                let totalIncome = 0; let totalExpense = 0; let totalProfit = 0;
+                for (let month = 1; month <= 12; month++) {
+                    const dateStr = `${y}-${String(month).padStart(2, '0')}`;
+                    try {
+                        const rep = await this.financeService.getFinancialReport(dateStr);
+                        totalIncome += rep.summary.income || 0;
+                        totalExpense += rep.summary.expense || 0;
+                        totalProfit += rep.summary.profit || 0;
+                    } catch (e) {}
+                }
+                summary = { year: y, totalIncome, totalExpense, totalProfit };
+            } else {
+                const dateStr = `${y}-${String(m).padStart(2, '0')}`;
+                try {
+                    const rep = await this.financeService.getFinancialReport(dateStr);
+                    summary = { month: m, year: y, income: rep.summary.income, expense: rep.summary.expense, profit: rep.summary.profit };
+                } catch (e) {
+                    summary = { month: m, year: y, error: "Chưa có dữ liệu" };
+                }
+            }
+
+            const unpaidOrders = await this.salesService.findOrdersByFilters({
+                year: y,
+                month: m > 0 ? m : undefined,
+                paymentStatus: 'UNPAID'
+            });
+
+            const overdueSummary = unpaidOrders.slice(0, 10).map(o => ({
+                order_code: o.order_code,
+                customer_name: o.customer?.name,
+                customer_phone: o.customer?.phone,
+                total_amount: Number(o.total_amount || 0),
+                paid_amount: Number(o.paid_amount || 0),
+                remaining_debt: Number(o.total_amount || 0) - Number(o.paid_amount || 0),
+                order_date: o.order_date,
+                delivery_date: o.delivery_date
+            }));
+
+            return {
+                financial_summary: summary,
+                overdue_orders_sample: overdueSummary,
+                total_unpaid_orders_count: unpaidOrders.length
+            };
+        } catch (e) {
+            return { error: `Lỗi phân tích tài chính & công nợ: ${e.message}` };
+        }
+    }
+
+    async handleAiToolCall(functionName: string, args: any, userId?: string): Promise<any> {
+        try {
+            if (functionName === 'search_customer') {
+                const customers = await this.customersService.searchCustomersAdvanced(args.query);
+                return customers.slice(0, 5).map(c => ({
+                    id: c.id,
+                    code: c.code,
+                    name: c.name,
+                    phone: c.phone,
+                    email: c.email,
+                    type: c.type,
+                    lead_status: c.lead_status
+                }));
+            }
+
+            if (functionName === 'get_customer_360_profile') {
+                return await this.handleGetCustomer360Profile(args);
+            }
+
+            if (functionName === 'get_sales_order_360_profile') {
+                return await this.handleGetSalesOrder360(args.orderCodeOrId);
+            }
+
+            if (functionName === 'get_product_360_profile') {
+                return await this.handleGetProduct360(args.skuOrName);
+            }
+
             if (functionName === 'check_stock') {
                 const products = await this.productsService.searchProducts(args.query);
                 return products.map(p => ({ name: p.name, sku: p.sku, stock: p.quantity_in_stock, unit: p.unit }));
             }
-            if (functionName === 'check_finance') {
-                const m = args.month || new Date().getMonth() + 1;
-                const y = args.year || new Date().getFullYear();
-                if (m === 0) {
-                    let totalIncome = 0; let totalExpense = 0; let totalProfit = 0;
-                    for (let month = 1; month <= 12; month++) {
-                        const dateStr = `${y}-${String(month).padStart(2, '0')}`;
-                        try {
-                            const rep = await this.financeService.getFinancialReport(dateStr);
-                            totalIncome += rep.summary.income || 0;
-                            totalExpense += rep.summary.expense || 0;
-                            totalProfit += rep.summary.profit || 0;
-                        } catch (e) {}
-                    }
-                    return { year: y, totalIncome, totalExpense, totalProfit };
-                } else {
-                    const dateStr = `${y}-${String(m).padStart(2, '0')}`;
-                    try {
-                        const rep = await this.financeService.getFinancialReport(dateStr);
-                        return { month: m, year: y, income: rep.summary.income, profit: rep.summary.profit };
-                    } catch (e) {
-                        return { error: "Không có dữ liệu tháng này" };
-                    }
-                }
+
+            if (functionName === 'get_finance_and_debt_analytics') {
+                return await this.handleGetFinanceDebtAnalytics(args);
             }
-            if (functionName === 'check_order') {
-                const orders = await this.salesService.findOrdersByFilters({ customerName: args.query });
-                return orders.slice(0, 5).map(o => ({ code: o.order_code, customer: o.customer?.name, total: o.total_amount, status: o.status }));
-            }
-            if (functionName === 'query_orders_advanced') {
-                const orders = await this.salesService.findOrdersByFilters({
-                    month: args.month,
-                    year: args.year || new Date().getFullYear(),
-                    paymentStatus: args.paymentStatus,
-                    status: args.status
-                });
-                return orders.slice(0, 10).map((o: any) => ({
-                    code: o.order_code,
-                    customer: o.customer?.name,
-                    total: o.total_amount,
-                    paid: o.paid_amount,
-                    remaining: (o.total_amount || 0) - (o.paid_amount || 0),
-                    payment_status: o.payment_status
-                }));
-            }
-            if (functionName === 'get_product_info') {
-                const p = await this.productsService.findOneBySku(args.sku);
-                if (!p) return { error: "Not found" };
-                return { name: p.name, type: p.product_type, price: p.base_price, stock: p.quantity_in_stock };
-            }
-            if (functionName === 'search_customer') {
-                const customers = await this.customersService.searchCustomersAdvanced(args.query);
-                return customers.slice(0, 5).map(c => ({ name: c.name, phone: c.phone, email: c.email }));
-            }
-            if (functionName === 'check_mrp') {
+
+            if (functionName === 'check_mrp_status') {
                 try {
                     const sugg = await this.planningService.getSuggestion();
-                    return sugg.slice(0, 5).map(o => ({ order: o.order_code, customer: o.customer?.name, delivery_date: o.delivery_date }));
+                    return sugg.slice(0, 8).map(o => ({ order: o.order_code, customer: o.customer?.name, delivery_date: o.delivery_date }));
                 } catch(e) {
                     return { error: e.message };
                 }
             }
+
             if (functionName === 'check_tasks') {
                 const all = await this.tasksService.findAll();
                 return all.filter((t: any) =>
-                    t.title?.toLowerCase().includes(args.query.toLowerCase()) ||
+                    !args.query || t.title?.toLowerCase().includes(args.query.toLowerCase()) ||
                     t.assignee?.full_name?.toLowerCase().includes(args.query.toLowerCase())
-                ).slice(0, 5).map(t => ({ title: t.title, assignee: t.assignee?.full_name, status: t.status, due: t.due_date }));
+                ).slice(0, 8).map(t => ({ title: t.title, assignee: t.assignee?.full_name, status: t.status, due: t.due_date }));
             }
-            return { error: "Tool not found" };
+
+            if (functionName === 'execute_smart_action') {
+                if (args.actionType === 'CREATE_TASK') {
+                    let assigneeId = null;
+                    if (args.payload?.assignee_name) {
+                        const allUsers = await this.usersService.getAllUsers();
+                        const user = allUsers.find(u => u.full_name?.toLowerCase().includes(args.payload.assignee_name.toLowerCase()));
+                        if (user) assigneeId = user.id;
+                    }
+                    const newTask = await this.tasksService.create({
+                        title: args.payload.title,
+                        description: args.payload.description || 'Tạo bởi Hula AI Assistant',
+                        status: 'TODO',
+                        priority: args.payload.priority || 'MEDIUM',
+                        assignee_id: assigneeId,
+                        due_date: args.payload.due_date || new Date(Date.now() + 86400000)
+                    });
+                    return { success: true, message: `Đã tạo công việc thành công (ID: ${newTask.id})` };
+                }
+                if (args.actionType === 'CREATE_LEAD') {
+                    const code = `LEAD-${Date.now().toString().slice(-6)}`;
+                    await this.customersService.create({
+                        code,
+                        name: args.payload.name,
+                        phone: args.payload.phone,
+                        type: 'LEAD',
+                        lead_status: 'NEW'
+                    });
+                    return { success: true, message: `Đã tạo Lead mới: ${args.payload.name}` };
+                }
+            }
+
+            return { error: `Tool ${functionName} not found` };
         } catch (e) {
             return { error: e.message };
         }
     }
 
-    async handleChatStream(userId: string, message: string, contextUrl: string, onChunk: (text: string) => void, onStatus?: (status: string) => void) {
+    // --- AGENTIC REACT STREAMING & PERMISSION-GATED CHAT ---
+    async handleChatStream(
+        userId: string,
+        message: string,
+        contextUrl: string,
+        activeContext: any,
+        approvedPermission: any,
+        onChunk: (text: string) => void,
+        onStatus?: (status: string) => void,
+        onPermissionRequest?: (permission: any) => void
+    ) {
         let apiKey = this.configService.get<string>('GEMINI_API_KEY');
         if (!apiKey) {
             onChunk("AI Service is not configured (Missing GEMINI_API_KEY).");
@@ -850,22 +1134,22 @@ You MUST return ONLY a valid JSON object in this structure:
         }
         apiKey = apiKey.trim();
 
-        // 1. Save user message to DB
-        const userMsg = this.aiMessageRepo.create({ user_id: userId, role: 'user', content: message });
-        await this.aiMessageRepo.save(userMsg);
+        // 1. Save user message to DB (if not just approving a permission)
+        if (message && message.trim() !== '') {
+            const userMsg = this.aiMessageRepo.create({ user_id: userId, role: 'user', content: message });
+            await this.aiMessageRepo.save(userMsg);
+        }
 
-        // 2. Load history (last 10 messages)
+        // 2. Load recent history (last 10 messages)
         const history = await this.aiMessageRepo.find({ where: { user_id: userId }, order: { id: 'ASC' }, take: 10 });
 
-        // Format contents for Gemini - Ensure alternating roles and valid content
         const validHistory = history.filter(h => h.content && h.content.trim() !== '');
         const contents: any[] = [];
         let lastRole = '';
-        
+
         for (const h of validHistory) {
             const role = h.role === 'assistant' || h.role === 'model' ? 'model' : 'user';
-            if (role === lastRole) {
-                // If consecutive same role, append to the last one
+            if (role === lastRole && contents.length > 0) {
                 contents[contents.length - 1].parts[0].text += '\n\n' + h.content;
             } else {
                 contents.push({
@@ -875,80 +1159,134 @@ You MUST return ONLY a valid JSON object in this structure:
                 lastRole = role;
             }
         }
-        
-        // Ensure the last message is from user
-        if (contents.length > 0 && contents[contents.length - 1].role === 'model') {
-             // Gemini requires the final message to be from user before model responds
-             // If for some reason it's model, just ignore it or push a dummy user msg
-             contents.push({ role: 'user', parts: [{ text: 'Tiếp tục' }]});
+
+        // Contextual awareness prompt
+        let activeEntityContext = '';
+        if (activeContext) {
+            activeEntityContext = `\nACTIVE SCREEN CONTEXT: User is currently on page "${contextUrl}". Active entity data: ${JSON.stringify(activeContext)}`;
         }
 
         const now = new Date();
         const knowledgeContext = this.aiKnowledgeService.getKnowledgeContext();
 
         const systemInstruction = {
-            parts: [{ text: `You are HulaBot, an intelligent, helpful, and natural-sounding assistant for the Hula ERP system in Vietnam.
-Current date: ${now.toISOString().split('T')[0]}
-Current Page URL User is viewing: ${contextUrl || 'Unknown'}
+            parts: [{ text: `You are HulaBot, an expert Enterprise ERP AI Copilot & Business Analyst for Hula ERP in Vietnam.
+Current date: ${now.toISOString().split('T')[0]} (Năm: ${now.getFullYear()}, Tháng: ${now.getMonth() + 1})
+Current Page URL: ${contextUrl || 'Unknown'}
+${activeEntityContext}
 
 ${knowledgeContext}
 
-CRITICAL RULES:
-- Always respond in Vietnamese naturally and politely.
-- Use markdown for formatting (bold, lists, etc) to make the response easy to read.
-- You can ONLY read data using the provided tools. You CANNOT create or update data.
-- If you use tools to fetch data, summarize the data nicely for the user in a conversational tone. Do not just spit out raw JSON.` }]
+ROLE & OPERATIONAL PRINCIPLES:
+1. Speak natural, professional Vietnamese.
+2. AGENTIC REASONING & MULTI-STEP INVESTIGATION:
+   - When asked to analyze, summarize, or investigate a customer, order, product, or financial status, perform a multi-step investigation using the available tools.
+   - For customer analysis: If you don't have the customer ID yet, first call \`search_customer\`. Then call \`get_customer_360_profile\` with their customerId to gather complete order history, lifetime revenue (LTV), debt, purchased products, and CRM notes.
+   - For order analysis: Call \`get_sales_order_360_profile\` to see exact items, payment details, and fulfillment status.
+   - For product inquiries: Call \`get_product_360_profile\` or \`check_stock\`.
+   - For finance/debt questions: Call \`get_finance_and_debt_analytics\`.
+3. HUMAN-IN-THE-LOOP / PERMISSION CONFIRMATION:
+   - Deep customer 360 profiling and financial data analysis require user permission. The system automatically prompts the user when needed.
+4. EXECUTIVE REPORT FORMATTING:
+   - Structure your analytical answers beautifully using Markdown:
+     - 📊 **Tóm Tắt Tổng Quan (Executive Summary)**
+     - 📈 **Khung Chỉ Số Chính (Key KPIs)**: Doanh thu LTV, Công nợ hiện tại, Số đơn hàng, Trạng thái
+     - 📋 **Bảng Biểu Chi Tiết**: Dùng markdown tables để hiển thị đơn hàng/sản phẩm với số tiền format VND (ví dụ: 15.000.000 đ)
+     - 💡 **Nhận Định & Khuyến Nghị Tiếp Theo (Actionable Insights)**: Cảnh báo nợ quá hạn, đề xuất chăm sóc, gợi ý cross-sell/up-sell.
+5. Base all answers strictly on actual retrieved ERP data.` }]
         };
 
         const tools = [{
             functionDeclarations: [
                 {
-                    name: "check_stock",
-                    description: "Tìm kiếm sản phẩm và kiểm tra tồn kho",
-                    parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
-                },
-                {
-                    name: "check_finance",
-                    description: "Kiểm tra doanh thu/tài chính. Nếu hỏi cả năm, truyền month=0.",
-                    parameters: { type: "OBJECT", properties: { month: { type: "INTEGER" }, year: { type: "INTEGER" } }, required: ["year"] }
-                },
-                {
-                    name: "check_order",
-                    description: "Tìm kiếm đơn hàng theo tên khách hoặc mã",
-                    parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
-                },
-                {
-                    name: "query_orders_advanced",
-                    description: "Lọc đơn hàng nâng cao theo tháng, trạng thái thanh toán (UNPAID, PAID, PARTIAL_PAID), trạng thái đơn.",
-                    parameters: { 
-                        type: "OBJECT", 
-                        properties: { 
-                            month: { type: "INTEGER" }, 
-                            year: { type: "INTEGER" }, 
-                            paymentStatus: { type: "STRING" }, 
-                            status: { type: "STRING" } 
-                        } 
+                    name: "search_customer",
+                    description: "Tìm kiếm nhanh khách hàng theo tên, số điện thoại, hoặc mã khách hàng",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {
+                            query: { type: "STRING", description: "Tên, số điện thoại hoặc mã khách hàng cần tìm" }
+                        },
+                        required: ["query"]
                     }
                 },
                 {
-                    name: "get_product_info",
-                    description: "Lấy thông tin chi tiết 1 sản phẩm theo SKU",
-                    parameters: { type: "OBJECT", properties: { sku: { type: "STRING" } }, required: ["sku"] }
+                    name: "get_customer_360_profile",
+                    description: "Lấy toàn bộ hồ sơ 360 độ của khách hàng (Doanh thu trọn đời LTV, công nợ, lịch sử đơn hàng, top sản phẩm mua nhiều nhất, ghi chú CRM chăm sóc).",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {
+                            customerId: { type: "INTEGER", description: "ID của khách hàng trong hệ thống" },
+                            customerName: { type: "STRING", description: "Tên khách hàng (nếu có)" }
+                        }
+                    }
                 },
                 {
-                    name: "search_customer",
-                    description: "Tìm khách hàng theo tên/sđt",
-                    parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
+                    name: "get_sales_order_360_profile",
+                    description: "Lấy chi tiết đơn hàng (mã đơn, khách hàng, ngày giao, danh sách sản phẩm, giá bán, thanh toán, công nợ đơn)",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {
+                            orderCodeOrId: { type: "STRING", description: "Mã đơn hàng SO hoặc ID đơn" }
+                        },
+                        required: ["orderCodeOrId"]
+                    }
                 },
                 {
-                    name: "check_mrp",
-                    description: "Kiểm tra kế hoạch sản xuất MRP",
+                    name: "get_product_360_profile",
+                    description: "Lấy thông tin chi tiết sản phẩm (tồn kho, giá vốn, giá bán, quy cách)",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {
+                            skuOrName: { type: "STRING", description: "Mã SKU hoặc tên sản phẩm" }
+                        },
+                        required: ["skuOrName"]
+                    }
+                },
+                {
+                    name: "check_stock",
+                    description: "Kiểm tra tồn kho nhanh sản phẩm theo từ khóa",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: { query: { type: "STRING", description: "Tên hoặc mã SKU" } },
+                        required: ["query"]
+                    }
+                },
+                {
+                    name: "get_finance_and_debt_analytics",
+                    description: "Phân tích tài chính, doanh thu, chi phí, lợi nhuận và danh sách nợ quá hạn theo tháng hoặc cả năm (tháng=0)",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {
+                            month: { type: "INTEGER", description: "Tháng (1-12, hoặc 0 nếu cả năm)" },
+                            year: { type: "INTEGER", description: "Năm cần phân tích" }
+                        },
+                        required: ["year"]
+                    }
+                },
+                {
+                    name: "check_mrp_status",
+                    description: "Kiểm tra kế hoạch sản xuất MRP, các đơn hàng cần lập kế hoạch sản xuất",
                     parameters: { type: "OBJECT", properties: {} }
                 },
                 {
                     name: "check_tasks",
-                    description: "Kiểm tra danh sách công việc",
-                    parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] }
+                    description: "Kiểm tra danh sách công việc và phân công nhiệm vụ",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: { query: { type: "STRING", description: "Từ khóa công việc hoặc tên nhân viên" } }
+                    }
+                },
+                {
+                    name: "execute_smart_action",
+                    description: "Thực thi các hành động ghi dữ liệu vào hệ thống (Tạo task, tạo lead mới, thêm ghi chú)",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {
+                            actionType: { type: "STRING", enum: ["CREATE_TASK", "CREATE_LEAD"], description: "Loại hành động" },
+                            payload: { type: "OBJECT", description: "Tham số chi tiết của hành động" }
+                        },
+                        required: ["actionType", "payload"]
+                    }
                 }
             ]
         }];
@@ -958,130 +1296,110 @@ CRITICAL RULES:
             modelName = await this.getBestModel(apiKey);
         } catch (e) {}
 
-        // Step 1: Call non-streaming to check for tool calls
-        let generateRes;
-        try {
-            if (onStatus) onStatus('Đang phân tích yêu cầu...');
-            generateRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ systemInstruction, contents, tools }),
-                signal: AbortSignal.timeout(30000)
-            });
-        } catch (e) {
-            onChunk("Lỗi kết nối AI (Network).");
-            return;
+        // Ensure user message is at the end of contents
+        if (contents.length === 0 || contents[contents.length - 1].role === 'model') {
+            contents.push({ role: 'user', parts: [{ text: message || 'Tiếp tục xử lý' }] });
         }
 
-        const data = await generateRes.json();
-        if (data.error) {
-            onChunk(`Lỗi AI API: ${data.error.message}`);
-            return;
-        }
-
-        const candidate = data.candidates?.[0];
-        if (!candidate) {
-            onChunk("AI không trả về kết quả.");
-            return;
-        }
-
-        let finalContents = [...contents];
-        const functionCall = candidate.content?.parts?.find((p: any) => p.functionCall)?.functionCall;
-
-        if (functionCall) {
-            const funcName = functionCall.name;
-            const args = functionCall.args;
-            
-            if (onStatus) {
-                 const toolNames: Record<string, string> = {
-                     'check_stock': 'Đang kiểm tra tồn kho...',
-                     'check_finance': 'Đang truy xuất dữ liệu tài chính...',
-                     'check_order': 'Đang tìm kiếm đơn hàng...',
-                     'query_orders_advanced': 'Đang lọc dữ liệu đơn hàng...',
-                     'get_product_info': 'Đang lấy thông tin sản phẩm...',
-                     'search_customer': 'Đang tìm kiếm thông tin khách hàng...',
-                     'check_mrp': 'Đang phân tích kế hoạch sản xuất...',
-                     'check_tasks': 'Đang kiểm tra danh sách công việc...'
-                 };
-                 onStatus(toolNames[funcName] || `Đang xử lý nghiệp vụ (${funcName})...`);
-            }
-
-            // Execute tool
-            const result = await this.handleAiToolCall(funcName, args);
-            
-            if (onStatus) {
-                 onStatus('Đang tổng hợp câu trả lời...');
-            }
-            
-            // Append the function call message from model
-            finalContents.push({ role: 'model', parts: [{ functionCall }] });
-            
-            // Append the function response
-            finalContents.push({
-                role: 'function',
-                parts: [{ functionResponse: { name: funcName, response: { result } } }]
-            });
-        } else {
-            // No function call, just return the text
-            const text = candidate.content?.parts?.[0]?.text;
-            if (text) {
-                onChunk(text);
-                const aiMsg = this.aiMessageRepo.create({ user_id: userId, role: 'model', content: text });
-                await this.aiMessageRepo.save(aiMsg);
-            } else {
-                const reason = candidate.finishReason || 'Unknown';
-                onChunk(`[Hệ thống AI không thể trả lời yêu cầu này. Lý do: ${reason}]`);
-            }
-            return;
-        }
-
-        // Step 2: Stream final response if function was called
+        // --- AGENTIC REACT LOOP (Max 5 iterations) ---
+        const MAX_ITERATIONS = 5;
+        let iteration = 0;
         let finalResponseText = "";
-        try {
-            const streamRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:streamGenerateContent?alt=sse&key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ systemInstruction, contents: finalContents }),
-                signal: AbortSignal.timeout(60000)
-            });
 
-            if (!streamRes.ok) {
-                const err = await streamRes.text();
-                onChunk(`Lỗi kết nối Stream: ${err}`);
+        while (iteration < MAX_ITERATIONS) {
+            iteration++;
+            if (onStatus) onStatus(iteration === 1 ? 'Đang phân tích yêu cầu...' : 'Đang suy luận bước tiếp theo...');
+
+            let generateRes: any;
+            try {
+                generateRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ systemInstruction, contents, tools }),
+                    signal: AbortSignal.timeout(45000)
+                });
+            } catch (e) {
+                onChunk("Lỗi kết nối AI (Network timeout).");
                 return;
             }
 
-            const reader = streamRes.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            let buffer = "";
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || ""; // Keep the incomplete line in buffer
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const dataStr = line.replace('data: ', '').trim();
-                        if (dataStr === '[DONE]') continue;
-                        try {
-                            const parsed = JSON.parse(dataStr);
-                            const textChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                            if (textChunk) {
-                                finalResponseText += textChunk;
-                                onChunk(textChunk);
-                            }
-                        } catch (e) {
-                            // ignore parse error for incomplete JSON in SSE
-                        }
-                    }
-                }
+            const data = await generateRes.json();
+            if (data.error) {
+                onChunk(`Lỗi AI API: ${data.error.message}`);
+                return;
             }
-        } catch (e) {
-            onChunk(`\n(Lỗi Stream: ${e.message})`);
+
+            const candidate = data.candidates?.[0];
+            if (!candidate) {
+                onChunk("AI không trả về kết quả.");
+                return;
+            }
+
+            const functionCall = candidate.content?.parts?.find((p: any) => p.functionCall)?.functionCall;
+
+            if (functionCall) {
+                const funcName = functionCall.name;
+                const args = functionCall.args || {};
+
+                // Check Sensitive Tool Permissions (Human-in-the-loop)
+                const isApproved = approvedPermission && (
+                    approvedPermission.approved === true ||
+                    approvedPermission.toolName === funcName
+                );
+
+                if (this.isSensitiveTool(funcName) && !isApproved) {
+                    const permInfo = this.getPermissionDescription(funcName, args);
+                    if (onPermissionRequest) {
+                        onPermissionRequest({
+                            requestId: `perm_${Date.now()}`,
+                            toolName: funcName,
+                            args: args,
+                            title: permInfo.title,
+                            description: permInfo.description,
+                            scope: permInfo.scope
+                        });
+                    }
+                    // Wait for user approval, finish turn
+                    return;
+                }
+
+                // User approved or Safe tool -> Execute
+                if (onStatus) {
+                    onStatus(this.getToolStatusText(funcName, args));
+                }
+
+                const toolResult = await this.handleAiToolCall(funcName, args, userId);
+
+                // Append model's tool call & function response to contents
+                contents.push({
+                    role: 'model',
+                    parts: [{ functionCall }]
+                });
+
+                contents.push({
+                    role: 'function',
+                    parts: [{
+                        functionResponse: {
+                            name: funcName,
+                            response: { result: toolResult }
+                        }
+                    }]
+                });
+
+                // Continue loop to let Gemini inspect the result
+                continue;
+            } else {
+                // Final answer reached!
+                const text = candidate.content?.parts?.map((p: any) => p.text).filter(Boolean).join('\n') || "";
+                if (text) {
+                    finalResponseText = text;
+                    onChunk(text);
+                } else {
+                    const reason = candidate.finishReason || 'Unknown';
+                    onChunk(`[Hệ thống AI không thể hoàn thành yêu cầu. Lý do: ${reason}]`);
+                }
+                break;
+            }
         }
 
         // Save AI response to DB
@@ -1091,3 +1409,4 @@ CRITICAL RULES:
         }
     }
 }
+
