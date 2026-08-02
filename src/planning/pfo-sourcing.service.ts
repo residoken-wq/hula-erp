@@ -93,7 +93,7 @@ export class PfoSourcingService {
             const poIds = existingDraftPos.map(p => p.id);
             await this.poItemRepo.createQueryBuilder()
                 .delete()
-                .where('purchase_order_id IN (:...poIds) OR po_id IN (:...poIds)', { poIds })
+                .where('po_id IN (:...poIds)', { poIds })
                 .execute();
             await this.poRepo.delete(poIds);
         }
