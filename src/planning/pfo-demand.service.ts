@@ -276,7 +276,7 @@ export class PfoDemandService {
     async getNplDemandDashboard() {
         const pmrs = await this.pfoRepo.manager.find('PfoMaterialRequirement', {
             where: { material_id: Not(IsNull()) },
-            relations: ['material', 'pfo', 'pfo.sales_order']
+            relations: ['material', 'pfo', 'pfo.sales_order', 'pfo.sales_order.customer']
         });
 
         const poItems = await this.pfoRepo.manager.find('PurchaseOrderItem', {
@@ -349,7 +349,7 @@ export class PfoDemandService {
     async getGcDemandDashboard() {
         const pmrs = await this.pfoRepo.manager.find('PfoMaterialRequirement', {
             where: { product_id: Not(IsNull()) },
-            relations: ['product', 'pfo', 'pfo.sales_order']
+            relations: ['product', 'pfo', 'pfo.sales_order', 'pfo.sales_order.customer']
         });
 
         const poItems = await this.pfoRepo.manager.find('PurchaseOrderItem', {

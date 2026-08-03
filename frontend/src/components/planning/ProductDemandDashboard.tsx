@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Tag, message } from 'antd';
+import { Table, Button, Tag, message, Input } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { API_URL } from '../../config';
@@ -11,6 +11,7 @@ interface Props {
 const ProductDemandDashboard: React.FC<Props> = ({ isMobile }) => {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [searchText, setSearchText] = useState('');
 
     const fetchData = async () => {
         setLoading(true);
@@ -26,6 +27,17 @@ const ProductDemandDashboard: React.FC<Props> = ({ isMobile }) => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const filteredData = data.filter(item => {
+        if (!searchText) return true;
+        const lowerSearch = searchText.toLowerCase();
+        const matchProd = (item.product_sku && item.product_sku.toLowerCase().includes(lowerSearch)) || 
+                          (item.product_name && item.product_name.toLowerCase().includes(lowerSearch));
+        const matchCustomer = item.details && item.details.some((d: any) => d.customer_name && d.customer_name.toLowerCase().includes(lowerSearch));
+        return matchProd || matchCustomer;
+    });
+
+    const totalAmountSum = filteredData.reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
 
     const columns = [
         {
@@ -51,7 +63,12 @@ const ProductDemandDashboard: React.FC<Props> = ({ isMobile }) => {
             render: (val: number) => <b>{val?.toLocaleString()}</b>,
         },
         {
-            title: 'Thành Tiền',
+            title: (
+                <div>
+                    Thành Tiền<br/>
+                    <span style={{ color: '#cf1322', fontSize: 12 }}>Tổng: {totalAmountSum.toLocaleString(undefined, { style: 'currency', currency: 'VND' })}</span>
+                </div>
+            ),
             dataIndex: 'total_amount',
             key: 'total_amount',
             render: (val: number) => <b>{val ? val.toLocaleString(undefined, { style: 'currency', currency: 'VND' }) : 0}</b>,
@@ -97,12 +114,19 @@ const ProductDemandDashboard: React.FC<Props> = ({ isMobile }) => {
 
     return (
         <div>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Input.Search 
+                    placeholder="Tìm theo SP, mã, khách hàng..." 
+                    allowClear 
+                    onSearch={setSearchText} 
+                    onChange={e => setSearchText(e.target.value)}
+                    style={{ width: isMobile ? '100%' : 300 }}
+                />
                 <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Làm mới</Button>
             </div>
             <Table
                 columns={columns}
-                dataSource={data}
+                dataSource={filteredData}
                 rowKey="product_id"
                 loading={loading}
                 expandable={{ expandedRowRender }}
