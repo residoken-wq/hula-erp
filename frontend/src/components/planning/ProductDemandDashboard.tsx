@@ -38,6 +38,7 @@ const ProductDemandDashboard: React.FC<Props> = ({ isMobile }) => {
     });
 
     const totalAmountSum = filteredData.reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
+    const totalPlannedSum = filteredData.reduce((acc, curr) => acc + (Number(curr.total_planned) || 0), 0);
 
     const columns = [
         {
@@ -57,7 +58,12 @@ const ProductDemandDashboard: React.FC<Props> = ({ isMobile }) => {
             key: 'product_unit',
         },
         {
-            title: 'Tổng Cần Đặt',
+            title: (
+                <div>
+                    Tổng Cần Đặt<br/>
+                    <span style={{ color: '#cf1322', fontSize: 12 }}>Tổng: {totalPlannedSum.toLocaleString()}</span>
+                </div>
+            ),
             dataIndex: 'total_planned',
             key: 'total_planned',
             render: (val: number) => <b>{val?.toLocaleString()}</b>,
