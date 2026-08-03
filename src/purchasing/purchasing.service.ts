@@ -60,7 +60,7 @@ export class PurchasingService {
     }
 
     async getAllPOs() {
-        return this.poRepo.find({ relations: ['supplier', 'items', 'items.material', 'pfo', 'pfo.sales_order', 'pfo.sales_order.customer'], order: { created_at: 'DESC' } });
+        return this.poRepo.find({ relations: ['supplier', 'items', 'items.material', 'items.product', 'items.print_design', 'pfo', 'pfo.sales_order', 'pfo.sales_order.customer'], order: { created_at: 'DESC' } });
     }
 
     async getPOByCode(code: string) {

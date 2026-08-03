@@ -1571,51 +1571,58 @@ const PurchasingPage: React.FC = () => {
                             </div>
                         )
                     }] : []),
-                    // --- MỚI: Tab Thiết kế & In ấn cho Gia công ---
-                    ...(currentPO?.type === 'OUTSOURCING' ? [{
-                        key: '5', label: 'Thiết kế & In ấn', children: (
+                    // --- MỚI: Tab Thiết kế & In ấn cho Gia công, PO NPL và PO Gộp ---
+                    {
+                        key: 'design_tab',
+                        label: 'Thiết kế & In ấn',
+                        children: (
                             <div>
                                 <div style={{ marginBottom: 16 }}>
-                                    <b>Cập nhật Thiết kế cho Sản phẩm Gia công:</b>
-                                    <p style={{ color: '#888' }}>Liên kết mẫu in ấn/thêu để xưởng gia công biết cần in mẫu nào lên sản phẩm (dành riêng cho PO Gia công có công đoạn In/Thêu).</p>
+                                    <b>Cập nhật Thiết kế cho NPL / Sản phẩm:</b>
+                                    <p style={{ color: '#888' }}>Liên kết mẫu in ấn/thêu/sơ đồ rập để quản lý quy cách sản xuất, định mức khổ vải và số mét in ấn theo sơ đồ.</p>
                                 </div>
                                 <Table
                                     dataSource={editingItems}
-                                    rowKey="id"
+                                    rowKey={(r, idx) => r.id || idx}
                                     pagination={false}
                                     size="small"
                                     columns={[
                                         { title: 'Sản phẩm / NPL', render: (r: any) => r.product?.name || r.material?.name || r.description },
                                         {
-                                            title: 'Chọn Sơ đồ Thiết kế',
+                                            title: 'Chọn Sơ đồ Thiết kế / Rập',
                                             width: 500,
                                             render: (r: any, _: any, index: number) => (
                                                 <Select
                                                     showSearch
                                                     allowClear
-                                                    placeholder="Chọn sơ đồ In/Thêu..."
+                                                    placeholder="Chọn sơ đồ In/Thêu/Rập..."
                                                     style={{ width: '100%', minWidth: 400 }}
                                                     value={r.print_design_id || r.print_design?.id}
                                                     onChange={(val) => {
                                                         const newItems = [...editingItems];
                                                         newItems[index].print_design_id = val;
+                                                        const foundDesign = printDesigns.find(d => d.id === val);
+                                                        newItems[index].print_design = foundDesign;
                                                         
-                                                        // Nếu là PO_GC In, tự động cập nhật số lượng = số mét in theo sơ đồ
-                                                        if (currentPO?.type === 'OUTSOURCING' && val) {
-                                                            const pd = printDesigns.find(d => d.id === val);
-                                                            if (pd && pd.type === 'PRINT' && pd.tech_pack?.binsByFace) {
+                                                        // Tự động tính toán số mét in/cắt theo sơ đồ nếu có
+                                                        if (val && foundDesign) {
+                                                            const pd = foundDesign;
+                                                            if (pd.type === 'PRINT' && pd.tech_pack?.binsByFace) {
                                                                 let maxH = 0;
                                                                 Object.values(pd.tech_pack.binsByFace).forEach((bins: any) => {
                                                                     if (Array.isArray(bins)) {
-                                                                        bins.forEach(b => {
+                                                                        bins.forEach((b: any) => {
                                                                             if (b.h > maxH) maxH = b.h;
                                                                         });
                                                                     }
                                                                 });
                                                                 if (maxH > 0) {
-                                                                    // Quy đổi cm sang m nếu cần (các marker có h > 100 cm thường là đơn vị cm)
+                                                                    // Quy đổi cm sang m nếu cần
                                                                     const meters = maxH > 100 ? maxH / 100 : maxH;
-                                                                    newItems[index].qty = Number(meters.toFixed(2));
+                                                                    if (currentPO?.type === 'OUTSOURCING' || newItems[index].material?.unit?.toLowerCase().includes('m') || !newItems[index].material) {
+                                                                        newItems[index].quantity = Number(meters.toFixed(2));
+                                                                        newItems[index].qty = Number(meters.toFixed(2));
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -1631,21 +1638,22 @@ const PurchasingPage: React.FC = () => {
                                             )
                                         },
                                         {
-                                            title: 'Trạng thái Mẫu (Demo)',
+                                            title: 'Trạng thái Sơ đồ',
                                             render: (r: any) => {
-                                                if (!r.print_design_id && !r.print_design) return '-';
-                                                return <Tag color="default">Chưa có mẫu</Tag>;
-                                                // TODO: Fetch and link samples correctly in the future
+                                                if (!r.print_design_id && !r.print_design) return <Tag color="default">Chưa liên kết</Tag>;
+                                                return <Tag color="blue">Đã liên kết sơ đồ</Tag>;
                                             }
                                         }
                                     ]}
                                 />
                             </div>
                         )
-                    }] : []),
-                    // --- MỚI: Tab Sơ đồ cho Gia công và Gộp ---
-                    ...(currentPO?.type === 'OUTSOURCING' || currentPO?.type === 'POOLED' ? [{
-                        key: 'sodo_tab', label: 'Sơ đồ', children: (
+                    },
+                    // --- MỚI: Tab Sơ đồ rập cho Gia công, PO NPL và PO Gộp ---
+                    {
+                        key: 'sodo_tab',
+                        label: 'Sơ đồ rập',
+                        children: (
                             <div style={{ maxHeight: 600, overflowY: 'auto' }}>
                                 {editingItems.filter((i: any) => i.print_design?.tech_pack?.resultsByFace).map((item: any, idx: number) => {
                                     const faces = item.print_design.tech_pack.faces || [];
@@ -1677,9 +1685,9 @@ const PurchasingPage: React.FC = () => {
                                                 pagination={false}
                                                 dataSource={dataSource}
                                                 columns={[
-                                                    { title: 'Nội dung in', dataIndex: 'name', render: (t: string) => <b>{t}</b> },
+                                                    { title: 'Nội dung in / Rập', dataIndex: 'name', render: (t: string) => <b>{t}</b> },
                                                     { title: 'Số lượng SP', dataIndex: 'productQuantity', render: (v: number) => <b>{v || '-'}</b> },
-                                                    { title: 'Số lần in', dataIndex: 'runs', render: (v: number, r: any) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+1 (lượt cuối)</small></span> : v },
+                                                    { title: 'Số lần in / cắt', dataIndex: 'runs', render: (v: number, r: any) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+1 (lượt cuối)</small></span> : v },
                                                     { title: 'Số con/file', dataIndex: 'qtyPerFile', render: (v: number, r: any) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+ {r.remainderQty} (lượt cuối)</small></span> : v },
                                                     { title: 'Tổng mét vải (m)', dataIndex: 'totalQty', render: (v: number) => v || '-' },
                                                     { title: 'Khổ (cm)', dataIndex: 'width' },
@@ -1692,11 +1700,11 @@ const PurchasingPage: React.FC = () => {
                                     );
                                 })}
                                 {editingItems.filter((i: any) => i.print_design?.tech_pack?.resultsByFace).length === 0 && (
-                                    <Alert message="Chưa có thông tin sơ đồ nào trong đơn hàng này." type="info" />
+                                    <Alert message="Chưa có thông tin sơ đồ rập nào được liên kết trong đơn hàng này. Bạn có thể liên kết Sơ đồ tại tab 'Thiết kế & In ấn'." type="info" showIcon />
                                 )}
                             </div>
                         )
-                    }] : []),
+                    },
                     // --- MỚI: Tab Bán Thành Phẩm cho PO Gia công (OUTSOURCING) ---
                     ...(currentPO?.type === 'OUTSOURCING' ? [{
                         key: 'btp_tab',
