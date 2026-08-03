@@ -300,6 +300,7 @@ export class PfoDemandService {
                      material_name: req.material?.name,
                      material_unit: req.material?.unit,
                      total_planned: 0,
+                     total_amount: 0,
                      inventory_used: 0,
                      po_draft: 0,
                      ngc_delivered: 0,
@@ -309,6 +310,7 @@ export class PfoDemandService {
              
              const stats = dashboardMap.get(matId);
              stats.total_planned += Number(req.planned_quantity || 0);
+             stats.total_amount += Number(req.planned_quantity || 0) * Number(req.unit_price || 0);
              
              stats.details.push({
                  pfo_id: req.pfo?.id,
@@ -316,7 +318,8 @@ export class PfoDemandService {
                  sales_order_id: req.pfo?.sales_order?.id,
                  sales_order_code: req.pfo?.sales_order?.order_code,
                  customer_name: req.pfo?.sales_order?.customer_name || req.pfo?.sales_order?.customer?.name,
-                 planned_quantity: Number(req.planned_quantity || 0)
+                 planned_quantity: Number(req.planned_quantity || 0),
+                 total_amount: Number(req.planned_quantity || 0) * Number(req.unit_price || 0)
              });
         }
         
@@ -370,6 +373,7 @@ export class PfoDemandService {
                      product_name: req.product?.name,
                      product_unit: req.product?.unit || 'Cái',
                      total_planned: 0,
+                     total_amount: 0,
                      inventory_used: 0,
                      po_draft: 0,
                      ngc_delivered: 0,
@@ -379,6 +383,7 @@ export class PfoDemandService {
              
              const stats = dashboardMap.get(prodId);
              stats.total_planned += Number(req.planned_quantity || 0);
+             stats.total_amount += Number(req.planned_quantity || 0) * Number(req.unit_price || 0);
              
              stats.details.push({
                  pfo_id: req.pfo?.id,
@@ -386,7 +391,8 @@ export class PfoDemandService {
                  sales_order_id: req.pfo?.sales_order?.id,
                  sales_order_code: req.pfo?.sales_order?.order_code,
                  customer_name: req.pfo?.sales_order?.customer_name || req.pfo?.sales_order?.customer?.name,
-                 planned_quantity: Number(req.planned_quantity || 0)
+                 planned_quantity: Number(req.planned_quantity || 0),
+                 total_amount: Number(req.planned_quantity || 0) * Number(req.unit_price || 0)
              });
         }
         

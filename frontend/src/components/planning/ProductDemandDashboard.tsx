@@ -51,6 +51,12 @@ const ProductDemandDashboard: React.FC<Props> = ({ isMobile }) => {
             render: (val: number) => <b>{val?.toLocaleString()}</b>,
         },
         {
+            title: 'Thành Tiền',
+            dataIndex: 'total_amount',
+            key: 'total_amount',
+            render: (val: number) => <b>{val ? val.toLocaleString(undefined, { style: 'currency', currency: 'VND' }) : 0}</b>,
+        },
+        {
             title: 'Đã Dùng Tồn Kho',
             dataIndex: 'inventory_used',
             key: 'inventory_used',
@@ -84,6 +90,7 @@ const ProductDemandDashboard: React.FC<Props> = ({ isMobile }) => {
             { title: 'Đơn Hàng (SO)', dataIndex: 'sales_order_code', key: 'sales_order_code' },
             { title: 'Khách Hàng', dataIndex: 'customer_name', key: 'customer_name' },
             { title: 'Nhu Cầu', dataIndex: 'planned_quantity', key: 'planned_quantity', render: (val: number) => val?.toLocaleString() },
+            { title: 'Thành Tiền', dataIndex: 'total_amount', key: 'total_amount', render: (val: number) => val ? val.toLocaleString(undefined, { style: 'currency', currency: 'VND' }) : 0 },
         ];
         return <Table columns={expandedColumns} dataSource={record.details} pagination={false} rowKey="pfo_id" size="small" />;
     };
