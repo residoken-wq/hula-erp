@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Not, IsNull } from 'typeorm';
 import { ProductionFulfillmentOrder, PfoStatus } from './pfo.entity';
 import { SalesOrder, SalesOrderStatus } from '../sales/sales-order.entity';
 import { SalesOrderItem } from '../sales/sales-order-item.entity';
@@ -268,5 +268,145 @@ export class PfoDemandService {
 
         await this.pfoRepo.remove(pfo);
         return { message: 'Đã xóa Lệnh SX thành công' };
+    }
+
+    /**
+     * Nhu cầu NPL Dashboard
+     */
+    async getNplDemandDashboard() {
+        const pmrs = await this.pfoRepo.manager.find('PfoMaterialRequirement', {
+            where: { material_id: Not(IsNull()) },
+            relations: ['material', 'pfo', 'pfo.sales_order']
+        });
+
+        const poItems = await this.pfoRepo.manager.find('PurchaseOrderItem', {
+            where: { purchase_order: { status: 'DRAFT' } },
+            relations: ['purchase_order']
+        });
+
+        const giItems = await this.pfoRepo.manager.find('GoodsIssueItem', {
+            where: { issue: { status: In(['CONFIRMED', 'DELIVERED']) } },
+            relations: ['issue']
+        });
+
+        const dashboardMap = new Map();
+        
+        for (const req of (pmrs as any[])) {
+             const matId = req.material_id;
+             if (!dashboardMap.has(matId)) {
+                 dashboardMap.set(matId, {
+                     material_id: matId,
+                     material_code: req.material?.code,
+                     material_name: req.material?.name,
+                     material_unit: req.material?.unit,
+                     total_planned: 0,
+                     inventory_used: 0,
+                     po_draft: 0,
+                     ngc_delivered: 0,
+                     details: []
+                 });
+             }
+             
+             const stats = dashboardMap.get(matId);
+             stats.total_planned += Number(req.planned_quantity || 0);
+             
+             stats.details.push({
+                 pfo_id: req.pfo?.id,
+                 pfo_code: req.pfo?.code,
+                 sales_order_id: req.pfo?.sales_order?.id,
+                 sales_order_code: req.pfo?.sales_order?.order_code,
+                 customer_name: req.pfo?.sales_order?.customer_name || req.pfo?.sales_order?.customer?.name,
+                 planned_quantity: Number(req.planned_quantity || 0)
+             });
+        }
+        
+        for (const poi of (poItems as any[])) {
+            if (poi.material_id && dashboardMap.has(poi.material_id)) {
+                dashboardMap.get(poi.material_id).po_draft += Number(poi.quantity || 0);
+            }
+        }
+        
+        for (const gii of (giItems as any[])) {
+            if (gii.material_id && dashboardMap.has(gii.material_id)) {
+                const stats = dashboardMap.get(gii.material_id);
+                if (gii.issue?.type === 'OUTSOURCING') {
+                    stats.ngc_delivered += Number(gii.quantity || 0);
+                } else if (gii.issue?.type === 'PRODUCTION' || !gii.issue?.type) {
+                    stats.inventory_used += Number(gii.quantity || 0);
+                }
+            }
+        }
+
+        return Array.from(dashboardMap.values());
+    }
+
+    /**
+     * Nhu cầu GC Dashboard
+     */
+    async getGcDemandDashboard() {
+        const pmrs = await this.pfoRepo.manager.find('PfoMaterialRequirement', {
+            where: { product_id: Not(IsNull()) },
+            relations: ['product', 'pfo', 'pfo.sales_order']
+        });
+
+        const poItems = await this.pfoRepo.manager.find('PurchaseOrderItem', {
+            where: { purchase_order: { status: 'DRAFT' } },
+            relations: ['purchase_order']
+        });
+
+        const giItems = await this.pfoRepo.manager.find('GoodsIssueItem', {
+            where: { issue: { status: In(['CONFIRMED', 'DELIVERED']) } },
+            relations: ['issue']
+        });
+
+        const dashboardMap = new Map();
+        
+        for (const req of (pmrs as any[])) {
+             const prodId = req.product_id;
+             if (!dashboardMap.has(prodId)) {
+                 dashboardMap.set(prodId, {
+                     product_id: prodId,
+                     product_sku: req.product?.sku,
+                     product_name: req.product?.name,
+                     product_unit: req.product?.unit || 'Cái',
+                     total_planned: 0,
+                     inventory_used: 0,
+                     po_draft: 0,
+                     ngc_delivered: 0,
+                     details: []
+                 });
+             }
+             
+             const stats = dashboardMap.get(prodId);
+             stats.total_planned += Number(req.planned_quantity || 0);
+             
+             stats.details.push({
+                 pfo_id: req.pfo?.id,
+                 pfo_code: req.pfo?.code,
+                 sales_order_id: req.pfo?.sales_order?.id,
+                 sales_order_code: req.pfo?.sales_order?.order_code,
+                 customer_name: req.pfo?.sales_order?.customer_name || req.pfo?.sales_order?.customer?.name,
+                 planned_quantity: Number(req.planned_quantity || 0)
+             });
+        }
+        
+        for (const poi of (poItems as any[])) {
+            if (poi.product_id && dashboardMap.has(poi.product_id)) {
+                dashboardMap.get(poi.product_id).po_draft += Number(poi.quantity || 0);
+            }
+        }
+        
+        for (const gii of (giItems as any[])) {
+            if (gii.product_id && dashboardMap.has(gii.product_id)) {
+                const stats = dashboardMap.get(gii.product_id);
+                if (gii.issue?.type === 'OUTSOURCING') {
+                    stats.ngc_delivered += Number(gii.quantity || 0);
+                } else if (gii.issue?.type === 'PRODUCTION' || !gii.issue?.type) {
+                    stats.inventory_used += Number(gii.quantity || 0);
+                }
+            }
+        }
+
+        return Array.from(dashboardMap.values());
     }
 }

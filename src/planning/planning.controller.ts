@@ -29,6 +29,16 @@ export class PlanningController {
   @Post('sync-booking-stock') syncBookingStock() { return this.planningSvc.syncBookingStock(); }
 
   // --- PFO DEMAND APIs (Gate 1) ---
+  @Get('demand/npl')
+  getNplDemand() {
+    return this.demandSvc.getNplDemandDashboard();
+  }
+
+  @Get('demand/gc')
+  getGcDemand() {
+    return this.demandSvc.getGcDemandDashboard();
+  }
+
   @Get('pfo/suggestions')
   getPfoSuggestions() {
     return this.demandSvc.getDemandSuggestions();

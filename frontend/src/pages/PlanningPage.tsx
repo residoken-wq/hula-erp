@@ -13,6 +13,8 @@ import MaterialMatrix from '../components/planning/MaterialMatrix';
 import PfoProcessRouting from '../components/planning/PfoProcessRouting';
 import PendingOrdersTab from '../components/planning/PendingOrdersTab';
 import PfoDetailTabs from '../components/planning/PfoDetailTabs';
+import MaterialDemandDashboard from '../components/planning/MaterialDemandDashboard';
+import ProductDemandDashboard from '../components/planning/ProductDemandDashboard';
 
 const { RangePicker } = DatePicker;
 const { Title, Text } = Typography;
@@ -268,6 +270,20 @@ const PlanningPage: React.FC = () => {
                         label: 'Kanban Theo Dõi (PFO)',
                         children: (
                             <PfoKanbanBoard pfos={pfos} onPfoClick={handlePfoClick} onRefresh={fetchData} />
+                        )
+                    },
+                    {
+                        key: 'MATERIAL_DEMAND',
+                        label: 'Nhu cầu NPL',
+                        children: (
+                            <MaterialDemandDashboard isMobile={isMobile} />
+                        )
+                    },
+                    {
+                        key: 'PRODUCT_DEMAND',
+                        label: 'Nhu cầu GC',
+                        children: (
+                            <ProductDemandDashboard isMobile={isMobile} />
                         )
                     }
                 ]} />
