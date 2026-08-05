@@ -1062,9 +1062,11 @@ const ProductsPage: React.FC = () => {
 
                                     <Col span={8}>
                                         <Divider orientation="left">Thông tin Giá & Tồn</Divider>
-                                        <Form.Item name="image_url" label="Link hình ảnh (Google Drive)" tooltip="Paste link chia sẻ (Public) từ Google Drive. Hệ thống sẽ tự tạo thumbnail.">
-                                            <div style={{ display: 'flex', gap: 8 }}>
-                                                <Input prefix={<LinkOutlined />} placeholder="https://drive.google.com/..." />
+                                        <Form.Item label="Link hình ảnh (Google Drive)" tooltip="Paste link chia sẻ (Public) từ Google Drive. Hệ thống sẽ tự tạo thumbnail.">
+                                            <Space.Compact style={{ width: '100%' }}>
+                                                <Form.Item name="image_url" noStyle>
+                                                    <Input prefix={<LinkOutlined />} placeholder="https://drive.google.com/..." allowClear />
+                                                </Form.Item>
                                                 <Button icon={<FolderOpenOutlined />} onClick={async () => {
                                                     try {
                                                         const res = await api.get(`/system/config/SALES_SHARED_DRIVE_LINK`);
@@ -1075,7 +1077,7 @@ const ProductsPage: React.FC = () => {
                                                         window.open('https://drive.google.com/drive/u/0/', '_blank');
                                                     }
                                                 }}>Mở Kho Ảnh</Button>
-                                            </div>
+                                            </Space.Compact>
                                         </Form.Item>
 
                                         <Form.Item shouldUpdate={(prev, curr) => prev.image_url !== curr.image_url}>
