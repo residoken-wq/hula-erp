@@ -344,16 +344,26 @@ export class PfoDemandService {
     }
 
     /**
-     * Nhu cầu GC Dashboard
+     * Nhu cầu GC Dashboard (Gia công / Sản xuất)
      */
     async getGcDemandDashboard() {
-        const pmrs = await this.pfoRepo.manager.find('PfoMaterialRequirement', {
-            where: { product_id: Not(IsNull()) },
-            relations: ['product', 'pfo', 'pfo.sales_order', 'pfo.sales_order.customer']
+        const pfos = await this.pfoRepo.find({
+            where: { status: Not(PfoStatus.CLOSED) },
+            relations: [
+                'sales_order',
+                'sales_order.customer',
+                'sales_order.items',
+                'sales_order.items.product',
+                'sales_order.items.product.category_link',
+                'material_requirements',
+                'material_requirements.product',
+                'material_requirements.product.category_link'
+            ],
+            order: { id: 'DESC' }
         });
 
         const poItems = await this.pfoRepo.manager.find('PurchaseOrderItem', {
-            where: { purchase_order: { status: 'DRAFT' } },
+            where: { purchase_order: { status: In(['DRAFT', 'ORDERED']) } },
             relations: ['purchase_order']
         });
 
@@ -363,45 +373,107 @@ export class PfoDemandService {
         });
 
         const dashboardMap = new Map();
-        
-        for (const req of (pmrs as any[])) {
-             const prodId = req.product_id;
-             if (!dashboardMap.has(prodId)) {
-                 dashboardMap.set(prodId, {
-                     product_id: prodId,
-                     product_sku: req.product?.sku,
-                     product_name: req.product?.name,
-                     product_unit: req.product?.unit || 'Cái',
-                     total_planned: 0,
-                     total_amount: 0,
-                     inventory_used: 0,
-                     po_draft: 0,
-                     ngc_delivered: 0,
-                     details: []
-                 });
-             }
-             
-             const stats = dashboardMap.get(prodId);
-             stats.total_planned += Number(req.planned_quantity || 0);
-             stats.total_amount += Number(req.planned_quantity || 0) * Number(req.unit_price || 0);
-             
-             stats.details.push({
-                 pfo_id: req.pfo?.id,
-                 pfo_code: req.pfo?.code,
-                 sales_order_id: req.pfo?.sales_order?.id,
-                 sales_order_code: req.pfo?.sales_order?.order_code,
-                 customer_name: req.pfo?.sales_order?.customer_name || req.pfo?.sales_order?.customer?.name,
-                 planned_quantity: Number(req.planned_quantity || 0),
-                 total_amount: Number(req.planned_quantity || 0) * Number(req.unit_price || 0)
-             });
+
+        for (const pfo of (pfos as any[])) {
+            // 1. Nhu cầu sản phẩm gia công từ Đơn hàng (SO Items) của Lệnh SX (PFO)
+            if (pfo.sales_order && pfo.sales_order.items && pfo.sales_order.items.length > 0) {
+                for (const item of pfo.sales_order.items) {
+                    const prod = item.product;
+                    if (!prod) continue;
+                    const prodId = prod.id;
+                    const plannedQty = Number(item.quantity || pfo.quantity || 1);
+                    const unitPrice = Number(prod.cost_price || prod.base_price || item.unit_price || item.price || 0);
+                    const totalAmount = plannedQty * unitPrice;
+
+                    if (!dashboardMap.has(prodId)) {
+                        dashboardMap.set(prodId, {
+                            product_id: prodId,
+                            product_sku: prod.sku,
+                            product_name: prod.name,
+                            product_unit: prod.unit || 'Cái',
+                            category_id: prod.category_id || prod.category_link?.id || null,
+                            category_name: prod.category_link?.name || prod.category || 'Khác',
+                            product_type: prod.product_type || 'STANDARD',
+                            total_planned: 0,
+                            total_amount: 0,
+                            inventory_used: 0,
+                            po_draft: 0,
+                            ngc_delivered: 0,
+                            details: []
+                        });
+                    }
+
+                    const stats = dashboardMap.get(prodId);
+                    stats.total_planned += plannedQty;
+                    stats.total_amount += totalAmount;
+                    stats.details.push({
+                        pfo_id: pfo.id,
+                        pfo_code: pfo.code,
+                        sales_order_id: pfo.sales_order?.id,
+                        sales_order_code: pfo.sales_order?.order_code,
+                        customer_name: pfo.sales_order?.customer_name || pfo.sales_order?.customer?.name || 'Khách vãng lai',
+                        planned_quantity: plannedQty,
+                        unit_price: unitPrice,
+                        total_amount: totalAmount
+                    });
+                }
+            }
+
+            // 2. Nhu cầu Bán Thành Phẩm (BTP) nổ từ BOM trong Lệnh SX
+            if (pfo.material_requirements && pfo.material_requirements.length > 0) {
+                for (const req of pfo.material_requirements) {
+                    if (req.product_id && req.product) {
+                        const prod = req.product;
+                        const prodId = prod.id;
+                        const plannedQty = Number(req.planned_quantity || 0);
+                        const unitPrice = Number(req.unit_price || prod.cost_price || prod.base_price || 0);
+                        const totalAmount = plannedQty * unitPrice;
+
+                        if (!dashboardMap.has(prodId)) {
+                            dashboardMap.set(prodId, {
+                                product_id: prodId,
+                                product_sku: prod.sku,
+                                product_name: prod.name,
+                                product_unit: prod.unit || 'Cái',
+                                category_id: prod.category_id || prod.category_link?.id || null,
+                                category_name: prod.category_link?.name || prod.category || 'Bán thành phẩm',
+                                product_type: prod.product_type || 'SEMI_FINISHED',
+                                total_planned: 0,
+                                total_amount: 0,
+                                inventory_used: 0,
+                                po_draft: 0,
+                                ngc_delivered: 0,
+                                details: []
+                            });
+                        }
+
+                        const stats = dashboardMap.get(prodId);
+                        const alreadyInDetails = stats.details.some((d: any) => d.pfo_id === pfo.id);
+                        if (!alreadyInDetails) {
+                            stats.total_planned += plannedQty;
+                            stats.total_amount += totalAmount;
+                            stats.details.push({
+                                pfo_id: pfo.id,
+                                pfo_code: pfo.code,
+                                sales_order_id: pfo.sales_order?.id,
+                                sales_order_code: pfo.sales_order?.order_code,
+                                customer_name: pfo.sales_order?.customer_name || pfo.sales_order?.customer?.name || 'Khách vãng lai',
+                                planned_quantity: plannedQty,
+                                unit_price: unitPrice,
+                                total_amount: totalAmount
+                            });
+                        }
+                    }
+                }
+            }
         }
-        
+
         for (const poi of (poItems as any[])) {
             if (poi.product_id && dashboardMap.has(poi.product_id)) {
                 dashboardMap.get(poi.product_id).po_draft += Number(poi.quantity || 0);
             }
         }
-        
+
         for (const gii of (giItems as any[])) {
             if (gii.product_id && dashboardMap.has(gii.product_id)) {
                 const stats = dashboardMap.get(gii.product_id);
