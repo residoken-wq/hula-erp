@@ -9,6 +9,7 @@ import { CustomerCredit, CreditTransactionType } from './customer-credit.entity'
 import { Transaction } from '../finance/transaction.entity';
 import { SalesComment } from '../sales/sales-comment.entity';
 import { SalesOrder } from '../sales/sales-order.entity';
+import { ProductionFulfillmentOrder } from '../planning/pfo.entity';
 import { PortalSession } from '../public/entities/portal-session.entity';
 import * as crypto from 'crypto';
 
@@ -408,5 +409,200 @@ export class CustomersService {
             where: { customer_id: customerId },
             order: { created_at: 'DESC' }
         });
+    }
+
+    // --- CUSTOMER 360 PORTRAIT: GET ALL DATA (BG, SO, PFO, CRM) ---
+    async getPortrait360Data(customerId: number) {
+        const customer = await this.customerRepo.findOne({
+            where: { id: customerId },
+            relations: ['parent', 'children', 'contacts', 'assigned_to', 'orders', 'orders.items', 'orders.items.product']
+        });
+        if (!customer) throw new NotFoundException('Khách hàng không tồn tại');
+
+        const allOrders = customer.orders || [];
+
+        // 1. Split into BG (Quotations) and SO (Sales Orders)
+        const quotations: any[] = [];
+        const salesOrders: any[] = [];
+
+        // Fetch payments for all orders
+        const orderIds = allOrders.map(o => o.id);
+        const orderCodes = allOrders.map(o => o.order_code).filter(Boolean);
+
+        let payments: Transaction[] = [];
+        if (orderCodes.length > 0) {
+            try {
+                payments = await this.transRepo.createQueryBuilder('t')
+                    .where('t.reference_code IN (:...orderCodes)', { orderCodes })
+                    .getMany();
+            } catch (e) {
+                payments = [];
+            }
+        }
+
+        const paymentMap = new Map<string, number>();
+        payments.forEach(p => {
+            if (p.type === 'INCOME' || p.reference_type === 'SALES') {
+                const current = paymentMap.get(p.reference_code) || 0;
+                paymentMap.set(p.reference_code, current + Number(p.amount || 0));
+            }
+        });
+
+        // Tally products purchased
+        const productStatsMap = new Map<string, { product_id: number; name: string; sku: string; quantity: number; subtotal: number }>();
+
+        allOrders.forEach(o => {
+            const totalAmount = Number(o.total_amount || 0);
+            const paidAmount = paymentMap.get(o.order_code) || 0;
+            const remainingDebt = Math.max(0, totalAmount - paidAmount);
+
+            const enrichedOrder = {
+                id: o.id,
+                order_code: o.order_code,
+                order_date: o.order_date || o.created_at,
+                status: o.status,
+                total_amount: totalAmount,
+                paid_amount: paidAmount,
+                remaining_debt: remainingDebt,
+                delivery_date: o.delivery_date,
+                shipping_address: o.shipping_address,
+                notes: o.notes,
+                items: (o.items || []).map((item: any) => {
+                    const prodName = item.product_name_real || item.product?.name || item.sku || 'Sản phẩm';
+                    const sku = item.sku || item.product?.code || '';
+                    const qty = Number(item.quantity || 0);
+                    const subtotal = Number(item.subtotal || (item.unit_price * qty) || 0);
+
+                    // Track if in actual SO
+                    if (o.status !== 'QUOTATION' && o.status !== 'CANCELLED') {
+                        const key = sku || prodName;
+                        const existing = productStatsMap.get(key) || { product_id: item.product_id, name: prodName, sku, quantity: 0, subtotal: 0 };
+                        existing.quantity += qty;
+                        existing.subtotal += subtotal;
+                        productStatsMap.set(key, existing);
+                    }
+
+                    return {
+                        id: item.id,
+                        product_id: item.product_id,
+                        product_name: prodName,
+                        sku: sku,
+                        quantity: qty,
+                        unit_price: Number(item.unit_price || 0),
+                        subtotal: subtotal
+                    };
+                })
+            };
+
+            if (o.status === 'QUOTATION' || o.order_code?.startsWith('BG-')) {
+                quotations.push(enrichedOrder);
+            } else {
+                salesOrders.push(enrichedOrder);
+            }
+        });
+
+        // 2. Fetch PFOs
+        let pfos: any[] = [];
+        if (orderIds.length > 0) {
+            try {
+                pfos = await this.customerRepo.manager.getRepository(ProductionFulfillmentOrder)
+                    .createQueryBuilder('pfo')
+                    .where('pfo.sales_order_id IN (:...orderIds)', { orderIds })
+                    .orderBy('pfo.id', 'DESC')
+                    .getMany();
+            } catch (e) {
+                pfos = [];
+            }
+        }
+
+        // 3. Fetch Direct Comments
+        let directComments: any[] = [];
+        try {
+            directComments = await this.commentRepo.find({
+                where: { customer_id: customerId },
+                order: { created_at: 'DESC' },
+                take: 15
+            });
+        } catch (e) {
+            directComments = [];
+        }
+
+        // Top products sorted by revenue
+        const topProducts = Array.from(productStatsMap.values()).sort((a, b) => b.subtotal - a.subtotal);
+
+        // Calculate summary metrics
+        const totalQuotationCount = quotations.length;
+        const totalQuotationValue = quotations.reduce((sum, q) => sum + q.total_amount, 0);
+
+        const totalOrdersCount = salesOrders.filter(s => s.status !== 'CANCELLED').length;
+        const totalRevenue = salesOrders.filter(s => s.status !== 'CANCELLED').reduce((sum, s) => sum + s.total_amount, 0);
+        const totalPaid = salesOrders.filter(s => s.status !== 'CANCELLED').reduce((sum, s) => sum + s.paid_amount, 0);
+        const totalDebt = Math.max(0, totalRevenue - totalPaid);
+
+        const winRate = (totalQuotationCount + totalOrdersCount) > 0 
+            ? Math.round((totalOrdersCount / (totalQuotationCount + totalOrdersCount)) * 100) 
+            : 0;
+        const avgOrderValue = totalOrdersCount > 0 ? Math.round(totalRevenue / totalOrdersCount) : 0;
+
+        const pfoSummary = {
+            total: pfos.length,
+            in_production: pfos.filter(p => ['IN_PRODUCTION', 'MATERIAL_PREP', 'QC'].includes(p.status)).length,
+            completed: pfos.filter(p => ['READY_TO_SHIP', 'RECEIVING', 'RECONCILIATION', 'CLOSED'].includes(p.status)).length,
+            risk_count: pfos.filter(p => p.risk_status === 'AMBER' || p.risk_status === 'RED').length
+        };
+
+        return {
+            customer: {
+                id: customer.id,
+                code: customer.code,
+                name: customer.name,
+                type: customer.type,
+                lead_status: customer.lead_status,
+                lead_source: customer.lead_source,
+                potential_value: customer.potential_value,
+                phone: customer.phone,
+                email: customer.email,
+                address: customer.address,
+                province: customer.province,
+                tax_code: customer.tax_code,
+                credit_limit: customer.credit_limit,
+                credit_balance: customer.credit_balance,
+                portrait_notes: customer.portrait_notes || '',
+                assigned_to: customer.assigned_to ? {
+                    id: customer.assigned_to.id,
+                    name: customer.assigned_to.full_name || customer.assigned_to.username
+                } : null,
+                contacts: (customer.contacts || []).map(c => ({
+                    id: c.id,
+                    full_name: c.full_name,
+                    job_title: c.job_title,
+                    phone: c.phone
+                }))
+            },
+            summary: {
+                total_quotations: totalQuotationCount,
+                total_quotations_amount: totalQuotationValue,
+                total_orders: totalOrdersCount,
+                total_revenue: totalRevenue,
+                total_paid: totalPaid,
+                total_debt: totalDebt,
+                win_rate: winRate,
+                avg_order_value: avgOrderValue,
+                pfo_summary: pfoSummary,
+                top_products: topProducts.slice(0, 5)
+            },
+            quotations: quotations.slice(0, 20),
+            sales_orders: salesOrders.slice(0, 20),
+            pfos: pfos.slice(0, 20),
+            comments: directComments
+        };
+    }
+
+    async updatePortraitNotes(customerId: number, notes: string) {
+        const customer = await this.customerRepo.findOne({ where: { id: customerId } });
+        if (!customer) throw new NotFoundException('Khách hàng không tồn tại');
+        customer.portrait_notes = notes;
+        await this.customerRepo.save(customer);
+        return { success: true, message: 'Đã lưu ghi chú chân dung 360', portrait_notes: customer.portrait_notes };
     }
 }

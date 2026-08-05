@@ -655,6 +655,152 @@ Chỉ trả về nội dung gợi ý, không giải thích thêm.`;
         }
     }
 
+    // --- CUSTOMER 360: AI COMPREHENSIVE SUMMARIZE (BG, SO, PFO, CRM) ---
+    async summarizeCustomer360(customerId: number) {
+        const data = await this.customersService.getPortrait360Data(customerId);
+        if (!data || !data.customer) {
+            throw new Error('Không tìm thấy thông tin khách hàng');
+        }
+
+        const { customer, summary, quotations, sales_orders, pfos, comments } = data;
+
+        // Build quotation text
+        const quotationsText = quotations.length > 0
+            ? quotations.slice(0, 10).map((q: any) => 
+                `- Báo giá #${q.order_code} (${new Date(q.order_date).toLocaleDateString('vi-VN')}): ${this.formatMoney(q.total_amount)} VNĐ [Trạng thái: ${q.status}]`
+              ).join('\n')
+            : 'Chưa có lịch sử Báo giá (BG).';
+
+        // Build sales order text
+        const ordersText = sales_orders.length > 0
+            ? sales_orders.slice(0, 10).map((s: any) => {
+                const itemSummary = (s.items || []).map((i: any) => `${i.product_name} (SL: ${i.quantity})`).join(', ');
+                return `- Đơn hàng #${s.order_code} (${new Date(s.order_date).toLocaleDateString('vi-VN')}): Tổng ${this.formatMoney(s.total_amount)} VNĐ, Đã TT: ${this.formatMoney(s.paid_amount)} VNĐ, Nợ: ${this.formatMoney(s.remaining_debt)} VNĐ [TT: ${s.status}] -> Mặt hàng: ${itemSummary || 'N/A'}`;
+              }).join('\n')
+            : 'Chưa có đơn hàng chính thức (SO).';
+
+        // Build PFO text
+        const pfosText = pfos.length > 0
+            ? pfos.slice(0, 10).map((p: any) => 
+                `- Lệnh SX #${p.code} (Gắn đơn SO ID: ${p.sales_order_id}): SL: ${p.quantity}, Trạng thái: ${p.status}, Rủi ro: ${p.risk_status || 'GREEN'}`
+              ).join('\n')
+            : 'Chưa có kế hoạch / lệnh sản xuất (PFO).';
+
+        // Build comments text
+        const commentsText = comments.length > 0
+            ? comments.slice(0, 8).map((c: any) => 
+                `[${new Date(c.created_at).toLocaleDateString('vi-VN')} - ${c.sender_name || 'NV'}]: ${c.content.replace(/<[^>]+>/g, '')}`
+              ).join('\n')
+            : 'Chưa có ghi chú trao đổi.';
+
+        // Build top products
+        const topProductsText = summary.top_products.length > 0
+            ? summary.top_products.map((p: any) => `- ${p.name}: Tổng SL ${p.quantity}, Doanh thu ${this.formatMoney(p.subtotal)} VNĐ`).join('\n')
+            : 'Chưa có dữ liệu mua sản phẩm.';
+
+        const prompt = `Bạn là Giám đốc Chăm sóc Khách hàng & Phân tích Dữ liệu Doanh nghiệp ERP cao cấp (Senior CRM & AI Analyst).
+Nhiệm vụ của bạn là tổng hợp và phân tích bức tranh "CHÂN DUNG KHÁCH HÀNG 360°" toàn diện dựa trên dữ liệu thực tế từ hệ thống ERP: Báo giá (BG), Đơn hàng (SO), Kế hoạch sản xuất (PFO), Lịch sử chăm sóc và Ghi chú nội bộ.
+
+===============================
+DỮ LIỆU KHÁCH HÀNG TỪ HỆ THỐNG:
+===============================
+1. HỒ SƠ CƠ BẢN:
+- Tên khách hàng: ${customer.name} (Mã: ${customer.code})
+- Phân loại: ${customer.type === 'CUSTOMER' ? 'Khách hàng chính thức' : 'Lead / Khách hàng tiềm năng'}
+- Trạng thái Lead: ${customer.lead_status || 'N/A'} | Nguồn: ${customer.lead_source || 'N/A'}
+- Giá trị dự kiến: ${this.formatMoney(customer.potential_value || 0)} VNĐ
+- Địa chỉ: ${customer.address || ''} ${customer.province ? `(${customer.province})` : ''}
+- Người phụ trách: ${customer.assigned_to?.name || 'Chưa phân công'}
+- Hạn mức nợ: ${this.formatMoney(customer.credit_limit || 0)} VNĐ
+
+2. TỔNG QUAN CHỈ SỐ KINH DOANH (RFM & CONVERSION):
+- Tổng số Báo giá (BG) đã gửi: ${summary.total_quotations} (Tổng giá trị: ${this.formatMoney(summary.total_quotations_amount)} VNĐ)
+- Tổng số Đơn hàng (SO) đã chốt: ${summary.total_orders} (Doanh thu lũy kế: ${this.formatMoney(summary.total_revenue)} VNĐ)
+- Đã thanh toán: ${this.formatMoney(summary.total_paid)} VNĐ | Công nợ hiện tại: ${this.formatMoney(summary.total_debt)} VNĐ
+- Tỷ lệ chốt đơn (Win rate BG -> SO): ${summary.win_rate}%
+- Giá trị trung bình mỗi đơn (AOV): ${this.formatMoney(summary.avg_order_value)} VNĐ
+
+3. TOP SẢN PHẨM KHÁCH HÀNG HAY ĐẶT:
+${topProductsText}
+
+4. LỊCH SỬ BÁO GIÁ (BG):
+${quotationsText}
+
+5. LỊCH SỬ ĐƠN HÀNG (SO):
+${ordersText}
+
+6. TÌNH HÌNH THỰC HIỆN SẢN XUẤT (PFO):
+- Tổng số PFO: ${summary.pfo_summary.total} (Đang sản xuất/Gia công: ${summary.pfo_summary.in_production}, Đã hoàn thành: ${summary.pfo_summary.completed}, Rủi ro/Chậm trễ: ${summary.pfo_summary.risk_count})
+Chi tiết:
+${pfosText}
+
+7. LỊCH SỬ TRAO ĐỔI / CHĂM SÓC (CRM):
+${commentsText}
+
+8. GHI CHÚ ĐẶC THÙ ĐÃ LƯU TRƯỚC ĐÓ:
+${customer.portrait_notes ? customer.portrait_notes.replace(/<[^>]+>/g, '') : 'Chưa có ghi chú.'}
+
+===============================
+YÊU CẦU ĐẦU RA BẢN TỔNG HỢP 360°:
+===============================
+Hãy lập bản phân tích Chân dung 360° khách hàng bằng Tiếng Việt rõ ràng, súc tích, chuyên nghiệp, sử dụng định dạng Markdown đẹp mắt với các icon và tiêu đề theo đúng 5 phần sau:
+
+### 1. 🌟 Tổng quan & Phân khúc Khách hàng (Customer Persona)
+- Đánh giá vị thế & phân loại khách hàng (VIP / Khách hàng thân thiết / Tiềm năng cao / Cần phục hồi / Mới tiếp cận).
+- Tóm tắt nhanh quy mô doanh thu, tỷ lệ chốt và mức độ gắn bó.
+
+### 2. 📊 Phân tích Báo giá (BG) & Hành vi Đơn hàng (SO)
+- Nhận xét về tỷ lệ chuyển đổi từ Báo giá sang Đơn hàng thực tế.
+- Nhận diện các dòng sản phẩm chủ lực mà khách hàng ưa chuộng và chu kỳ đặt hàng (đều đặn, theo đợt vụ mùa hay phát sinh đột xuất).
+
+### 3. 🏭 Tiến độ & Vận hành Sản xuất (PFO Health)
+- Đánh giá khả năng đáp ứng đơn hàng và tiến độ thực hiện các lệnh sản xuất (PFO) cho khách hàng này.
+- Có đơn nào gặp rủi ro chậm tiến độ hoặc yêu cầu gia công đặc biệt cần lưu ý không?
+
+### 4. ⚠️ Đánh giá Rủi ro & Điểm Nhạy cảm
+- Tình trạng công nợ so với hạn mức tín dụng.
+- Các yêu cầu kỹ thuật khắt khe, thói quen giao nhận, hoặc phản hồi của khách trong quá khứ cần chú ý để tránh sai sót.
+
+### 5. 🚀 Khuyến nghị Hành động Tiếp theo (Next Best Actions)
+- Đề xuất 2-3 hành động cụ thể ngay cho nhân viên Kinh doanh (Sales) và Chăm sóc Khách hàng (CSKH) để gia tăng doanh số, chốt các báo giá mở, hoặc cải thiện trải nghiệm khách hàng.`;
+
+        let summaryText = '';
+        try {
+            summaryText = await this.callGemini(prompt);
+        } catch (e) {
+            console.error('Error calling Gemini for 360 summary:', e);
+            // Fallback statistical summary if AI service is not reachable
+            summaryText = `### 1. 🌟 Tổng quan & Phân khúc Khách hàng
+- **Khách hàng:** **${customer.name}** (${customer.code}) - ${customer.type === 'CUSTOMER' ? 'Khách hàng chính thức' : 'Khách hàng tiềm năng (Lead)'}.
+- **Tổng doanh thu:** **${this.formatMoney(summary.total_revenue)} VNĐ** qua **${summary.total_orders}** đơn hàng SO.
+- **Tỷ lệ chuyển đổi BG -> SO:** **${summary.win_rate}%** (${summary.total_quotations} Báo giá đã gửi).
+
+### 2. 📊 Phân tích Báo giá (BG) & Đơn hàng (SO)
+- **Giá trị trung bình đơn hàng (AOV):** **${this.formatMoney(summary.avg_order_value)} VNĐ/đơn**.
+- **Sản phẩm chủ lực:** ${summary.top_products.map((p: any) => `${p.name} (SL: ${p.quantity})`).join(', ') || 'Chưa có thông tin'}.
+
+### 3. 🏭 Tiến độ Sản xuất (PFO)
+- **Tổng lệnh sản xuất (PFO):** **${summary.pfo_summary.total}** lệnh.
+- Đang gia công/sản xuất: **${summary.pfo_summary.in_production}** | Đã hoàn tất: **${summary.pfo_summary.completed}** | Cảnh báo rủi ro: **${summary.pfo_summary.risk_count}**.
+
+### 4. ⚠️ Đánh giá Công nợ & Rủi ro
+- **Đã thanh toán:** ${this.formatMoney(summary.total_paid)} VNĐ (${summary.total_revenue > 0 ? Math.round((summary.total_paid / summary.total_revenue) * 100) : 100}%).
+- **Công nợ hiện tại:** **${this.formatMoney(summary.total_debt)} VNĐ** (Hạn mức cho phép: ${this.formatMoney(customer.credit_limit || 0)} VNĐ).
+
+### 5. 🚀 Khuyến nghị Hành động
+- Kiểm tra lại các báo giá đang chờ phê duyệt để liên hệ thúc đẩy chốt đơn.
+- Phối hợp xưởng sản xuất theo dõi tiến độ các PFO đang chạy để bàn giao đúng hẹn.`;
+        }
+
+        return {
+            customer_id: customerId,
+            customer_name: customer.name,
+            summary: summaryText.trim(),
+            generated_at: new Date().toISOString(),
+            raw_data: data
+        };
+    }
+
     // --- RECRUITMENT: AI EVALUATION ---
     async evaluateAssessment(prompt: string): Promise<any> {
         try {

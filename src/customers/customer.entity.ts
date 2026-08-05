@@ -87,6 +87,11 @@ export class Customer {
   @Column('jsonb', { nullable: true })
   bod_follow_up: any;
 
+  // --- GHI CHÚ CHÂN DUNG 360 (CKEditor HTML) ---
+  @Column({ type: 'text', nullable: true })
+  portrait_notes: string;
+  // ----------------------------------------------
+
   @Column({ nullable: true })
   tax_code: string;
 

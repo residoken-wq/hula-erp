@@ -65,6 +65,11 @@ export class AiController {
         return this.aiService.suggestReply(body);
     }
 
+    @Post('customer-360-summary')
+    async summarizeCustomer360(@Body('customerId') customerId: number) {
+        return this.aiService.summarizeCustomer360(customerId);
+    }
+
     @Post('feedback')
     async submitFeedback(@Body() body: any, @Req() req: any) {
         const userId = req.user.id.toString();

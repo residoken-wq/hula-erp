@@ -1,11 +1,16 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox, DatePicker, Dropdown } from 'antd';
+import { Table, Button, message, Card, Modal, Form, Input, Select, Tag, Popconfirm, Row, Col, Divider, Tabs, InputNumber, Tooltip, Space, Badge, Checkbox, DatePicker, Dropdown, Slider, Popover, Alert } from 'antd';
 import type { MenuProps } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined, EyeOutlined, PrinterOutlined, StarOutlined, StarFilled } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, DollarOutlined, ExperimentOutlined, AppstoreOutlined, BuildOutlined, SettingOutlined, SyncOutlined, LinkOutlined, TagOutlined, FileTextOutlined, SendOutlined, ForkOutlined, ScissorOutlined, FolderOpenOutlined, EyeOutlined, PrinterOutlined, StarOutlined, StarFilled, BranchesOutlined, WarningOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import api from '../utils/api';
 import useMobile from '../hooks/useMobile';
 import usePermission from '../hooks/usePermission';
+import {
+    findDuplicateProductGroups,
+    findSimilarProducts,
+    calculateNameSimilarity
+} from '../utils/stringSimilarity';
 
 // --- IMPORTS CÁC COMPONENT ĐÃ TÁCH ---
 import ProductBOMTab from '../components/products/ProductBOMTab';
@@ -19,6 +24,47 @@ import ProductSemiFinishedTab from '../components/products/ProductSemiFinishedTa
 const { TextArea } = Input;
 const { Option } = Select;
 
+// Sub-component cảnh báo tên sản phẩm trùng lặp trong Form
+const SimilarNameWarning: React.FC<{
+    form: any;
+    editingItem: any;
+    data: any[];
+}> = ({ form, editingItem, data }) => {
+    const productName = Form.useWatch('name', form);
+
+    const similarList = useMemo(() => {
+        if (!productName || typeof productName !== 'string' || productName.trim().length < 3) return [];
+        return findSimilarProducts(
+            { id: editingItem?.id, sku: editingItem?.sku, name: productName },
+            data,
+            { threshold: 0.5 }
+        ).slice(0, 5);
+    }, [productName, editingItem, data]);
+
+    if (similarList.length === 0) return null;
+
+    return (
+        <div style={{ marginTop: 6, marginBottom: 8, padding: '8px 12px', background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 6, fontSize: 12 }}>
+            <div style={{ color: '#d46b08', fontWeight: 'bold', marginBottom: 4 }}>
+                <WarningOutlined style={{ marginRight: 6 }} />
+                Phát hiện {similarList.length} sản phẩm đã có tên gần giống (≥50%):
+            </div>
+            <div style={{ maxHeight: 120, overflowY: 'auto' }}>
+                {similarList.map((m: any) => (
+                    <div key={m.product.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 0', borderBottom: '1px dashed #fff1b8' }}>
+                        <span style={{ color: '#262626' }}>
+                            • <b>{m.product.sku}</b>: {m.product.name}
+                        </span>
+                        <Tag color={m.similarity >= 0.8 ? 'red' : m.similarity >= 0.6 ? 'orange' : 'blue'} style={{ fontSize: 10, margin: 0 }}>
+                            {(m.similarity * 100).toFixed(0)}%
+                        </Tag>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 const ProductsPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -31,6 +77,13 @@ const ProductsPage: React.FC = () => {
     const [filterMonth, setFilterMonth] = useState<string | null>(null); // YYYY-MM
     const [bookingStats, setBookingStats] = useState<any>({});
     const [statsLoading, setStatsLoading] = useState(false);
+
+    // Duplicate Filter State
+    const [duplicateFilterActive, setDuplicateFilterActive] = useState<boolean>(false);
+    const [duplicateThreshold, setDuplicateThreshold] = useState<number>(50); // % (30 -> 100)
+    const [duplicateSameCategoryOnly, setDuplicateSameCategoryOnly] = useState<boolean>(false);
+    const [similarModalTarget, setSimilarModalTarget] = useState<any | null>(null);
+    const [similarModalThreshold, setSimilarModalThreshold] = useState<number>(50);
 
     // UI State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -285,6 +338,32 @@ const ProductsPage: React.FC = () => {
     // --- FILTER VARIANT VS BASE ---
     const [viewMode, setViewMode] = useState('MAIN'); // 'MAIN' | 'SEMI' | 'FLAGGED'
 
+    // Kết quả phát hiện sản phẩm trùng lặp
+    const duplicateDetectionResult = useMemo(() => {
+        let candidates = data;
+        if (viewMode === 'MAIN') {
+            candidates = candidates.filter(d => d.product_type !== 'SEMI_FINISHED');
+        } else if (viewMode === 'SEMI') {
+            candidates = candidates.filter(d => d.product_type === 'SEMI_FINISHED');
+        } else if (viewMode === 'FLAGGED') {
+            candidates = candidates.filter(d => d.is_flagged === true);
+        }
+
+        return findDuplicateProductGroups(candidates, {
+            threshold: duplicateThreshold / 100,
+            sameCategoryOnly: duplicateSameCategoryOnly
+        });
+    }, [data, viewMode, duplicateThreshold, duplicateSameCategoryOnly]);
+
+    // Map tra cứu nhanh thông tin trùng cho từng sản phẩm
+    const duplicateInfoMap = useMemo(() => {
+        const map = new Map<number, any>();
+        duplicateDetectionResult.duplicateProducts.forEach(p => {
+            map.set(p.id, p);
+        });
+        return map;
+    }, [duplicateDetectionResult]);
+
     const filteredData = useMemo(() => {
         let list = data;
 
@@ -297,19 +376,40 @@ const ProductsPage: React.FC = () => {
             list = list.filter(d => d.is_flagged === true);
         }
 
-        // 2. Filter by Category
+        // 2. Filter by Duplicate Detection Mode
+        if (duplicateFilterActive) {
+            list = duplicateDetectionResult.duplicateProducts;
+        } else {
+            // Gắn thông tin trùng lặp nếu có để hiển thị hover popover
+            list = list.map(item => {
+                const dup = duplicateInfoMap.get(item.id);
+                if (dup) {
+                    return {
+                        ...item,
+                        duplicateGroupId: dup.duplicateGroupId,
+                        duplicateGroupLabel: dup.duplicateGroupLabel,
+                        duplicateGroupColor: dup.duplicateGroupColor,
+                        duplicateMatches: dup.duplicateMatches,
+                        maxSimilarity: dup.maxSimilarity
+                    };
+                }
+                return item;
+            });
+        }
+
+        // 3. Filter by Category
         if (filterCategory) {
             list = list.filter(d => d.category_id === filterCategory);
         }
 
-        // 3. Filter by Type
+        // 4. Filter by Type
         if (filterType === 'STANDARD') {
             list = list.filter(d => d.product_type !== 'COMBO');
         } else if (filterType === 'COMBO') {
             list = list.filter(d => d.product_type === 'COMBO');
         }
 
-        // 4. Filter by Search
+        // 5. Filter by Search
         if (searchText) {
             const lower = searchText.toLowerCase();
             list = list.filter(d =>
@@ -334,7 +434,7 @@ const ProductsPage: React.FC = () => {
         }
 
         return list;
-    }, [data, searchText, viewMode, filterCategory, filterType, filterMonth, bookingStats]);
+    }, [data, searchText, viewMode, filterCategory, filterType, filterMonth, bookingStats, duplicateFilterActive, duplicateDetectionResult, duplicateInfoMap]);
 
 
     // Helper to extract ID from Drive Link and return thumbnail URL
@@ -390,7 +490,62 @@ const ProductsPage: React.FC = () => {
         },
         {
             title: 'Tên Sản Phẩm', dataIndex: 'name',
-            render: (t: any) => (<Space size={4}><TagOutlined /> {t}</Space>),
+            render: (t: any, r: any) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <Space size={4}>
+                        <TagOutlined /> <b>{t}</b>
+                    </Space>
+                    {r.duplicateMatches && r.duplicateMatches.length > 0 && (
+                        <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap', marginTop: 2 }}>
+                            {r.duplicateGroupLabel && (
+                                <Tag color={r.duplicateGroupColor || 'blue'} style={{ fontSize: 11, padding: '0 4px', margin: 0 }}>
+                                    {r.duplicateGroupLabel}
+                                </Tag>
+                            )}
+                            <Popover
+                                placement="right"
+                                title={<span style={{ fontWeight: 'bold' }}>Sản phẩm tương tự với &quot;{r.sku}&quot; (≥{duplicateThreshold}%)</span>}
+                                content={
+                                    <div style={{ maxWidth: 440, maxHeight: 260, overflowY: 'auto' }}>
+                                        <Table
+                                            size="small"
+                                            pagination={false}
+                                            dataSource={r.duplicateMatches}
+                                            rowKey={(m: any) => m.product?.id || m.product?.sku}
+                                            columns={[
+                                                { title: 'SKU', dataIndex: ['product', 'sku'], width: 100, render: (sku: string) => <b>{sku}</b> },
+                                                { title: 'Tên sản phẩm', dataIndex: ['product', 'name'] },
+                                                {
+                                                    title: 'Độ giống', dataIndex: 'similarity', width: 85, align: 'right' as const,
+                                                    render: (sim: number) => (
+                                                        <Tag color={sim >= 0.8 ? 'red' : sim >= 0.6 ? 'orange' : 'blue'}>
+                                                            {(sim * 100).toFixed(0)}%
+                                                        </Tag>
+                                                    )
+                                                },
+                                                {
+                                                    title: '', key: 'act', width: 55, align: 'center' as const,
+                                                    render: (_: any, m: any) => (
+                                                        <Button size="small" type="link" icon={<EditOutlined />} onClick={() => openEdit(m.product)}>Sửa</Button>
+                                                    )
+                                                }
+                                            ]}
+                                        />
+                                    </div>
+                                }
+                                trigger="hover"
+                            >
+                                <Tag 
+                                    color={r.maxSimilarity >= 0.8 ? 'red' : r.maxSimilarity >= 0.6 ? 'orange' : 'cyan'} 
+                                    style={{ cursor: 'pointer', fontSize: 11, padding: '0 4px', margin: 0 }}
+                                >
+                                    Trùng {(r.maxSimilarity * 100).toFixed(0)}% ({r.duplicateMatches.length} SP)
+                                </Tag>
+                            </Popover>
+                        </div>
+                    )}
+                </div>
+            ),
             sorter: (a: any, b: any) => (a.name || '').localeCompare(b.name || '')
         },
         {
@@ -483,9 +638,17 @@ const ProductsPage: React.FC = () => {
             sorter: (a: any, b: any) => (Number(a.quantity_in_stock || 0) - Number(a.display_approved_booking_stock || 0)) - (Number(b.quantity_in_stock || 0) - Number(b.display_approved_booking_stock || 0))
         },
         {
-            title: '', key: 'action', width: 160, align: 'center' as const,
+            title: '', key: 'action', width: 190, align: 'center' as const,
             render: (_: any, r: any) => (
                 <Space size="small">
+                    <Tooltip title="Tìm sản phẩm có tên tương tự">
+                        <Button 
+                            icon={<BranchesOutlined />} 
+                            size="small" 
+                            style={{ color: '#fa8c16' }}
+                            onClick={() => { setSimilarModalTarget(r); setSimilarModalThreshold(50); }} 
+                        />
+                    </Tooltip>
                     {canCreate && (
                         <Tooltip title="Tạo Biến thể mới từ Sản phẩm này">
                             <Button icon={<ForkOutlined />} size="small" type="default" onClick={() => openCreateVariant(r)} />
@@ -679,6 +842,14 @@ const ProductsPage: React.FC = () => {
                 isMobile ? (
                     <Space size={4}>
                         <Input placeholder="Tìm..." prefix={<SearchOutlined />} value={searchText} onChange={e => setSearchText(e.target.value)} style={{ width: 120 }} allowClear />
+                        <Tooltip title={duplicateFilterActive ? "Tắt lọc trùng" : "Lọc trùng tên SP"}>
+                            <Button 
+                                type={duplicateFilterActive ? 'primary' : 'default'} 
+                                danger={duplicateFilterActive} 
+                                icon={<BranchesOutlined />} 
+                                onClick={() => setDuplicateFilterActive(!duplicateFilterActive)} 
+                            />
+                        </Tooltip>
                         <Dropdown menu={printMenuProps} placement="bottomRight" trigger={['click']}>
                             <Button icon={<PrinterOutlined />} />
                         </Dropdown>
@@ -686,6 +857,27 @@ const ProductsPage: React.FC = () => {
                     </Space>
                 ) : (
                     <Space wrap style={{ rowGap: 10 }}>
+                        <Button
+                            type={duplicateFilterActive ? 'primary' : 'default'}
+                            danger={duplicateFilterActive}
+                            icon={<BranchesOutlined />}
+                            onClick={() => setDuplicateFilterActive(!duplicateFilterActive)}
+                            style={{ fontWeight: duplicateFilterActive ? 'bold' : 'normal' }}
+                        >
+                            {duplicateFilterActive ? 'Đang lọc trùng' : 'Lọc trùng tên SP'}
+                            {duplicateDetectionResult.totalDuplicates > 0 && (
+                                <Badge
+                                    count={duplicateDetectionResult.totalDuplicates}
+                                    overflowCount={999}
+                                    style={{
+                                        backgroundColor: duplicateFilterActive ? '#fff' : '#f5222d',
+                                        color: duplicateFilterActive ? '#ff4d4f' : '#fff',
+                                        marginLeft: 6,
+                                        boxShadow: 'none'
+                                    }}
+                                />
+                            )}
+                        </Button>
                         <Select
                             placeholder="Danh mục"
                             allowClear
@@ -728,6 +920,99 @@ const ProductsPage: React.FC = () => {
                 )
             }
         >
+            {duplicateFilterActive && (
+                <Card 
+                    size="small" 
+                    style={{ 
+                        marginBottom: 16, 
+                        background: '#fffbe6', 
+                        borderColor: '#ffe58f',
+                        borderRadius: 8,
+                        boxShadow: '0 2px 8px rgba(250, 140, 22, 0.15)'
+                    }}
+                >
+                    <Row gutter={[16, 12]} align="middle">
+                        <Col xs={24} md={10}>
+                            <Space align="center" style={{ width: '100%', flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                                    <BranchesOutlined style={{ color: '#fa8c16', marginRight: 4 }} />
+                                    Ngưỡng tương đồng:
+                                </span>
+                                <Slider
+                                    min={30}
+                                    max={100}
+                                    step={5}
+                                    value={duplicateThreshold}
+                                    onChange={setDuplicateThreshold}
+                                    style={{ width: 140, display: 'inline-block', margin: '0 8px' }}
+                                />
+                                <InputNumber
+                                    min={30}
+                                    max={100}
+                                    step={5}
+                                    value={duplicateThreshold}
+                                    onChange={v => setDuplicateThreshold(v || 50)}
+                                    formatter={v => `${v}%`}
+                                    parser={v => Number(v?.replace('%', '') || 50)}
+                                    style={{ width: 75 }}
+                                    size="small"
+                                />
+                            </Space>
+                        </Col>
+                        <Col xs={24} md={8}>
+                            <Space size={4} wrap>
+                                <span style={{ fontSize: 12, color: '#8c8c8c', marginRight: 4 }}>Chọn nhanh:</span>
+                                {[50, 60, 70, 80, 90, 100].map(val => (
+                                    <Tag.CheckableTag
+                                        key={val}
+                                        checked={duplicateThreshold === val}
+                                        onChange={() => setDuplicateThreshold(val)}
+                                        style={{ 
+                                            border: duplicateThreshold === val ? '1px solid #fa8c16' : '1px solid #d9d9d9',
+                                            background: duplicateThreshold === val ? '#fa8c16' : '#fff',
+                                            color: duplicateThreshold === val ? '#fff' : '#595959',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {val === 100 ? '100% (Tuyệt đối)' : `${val}%`}
+                                    </Tag.CheckableTag>
+                                ))}
+                            </Space>
+                        </Col>
+                        <Col xs={24} md={6} style={{ textAlign: isMobile ? 'left' : 'right' }}>
+                            <Space>
+                                <Checkbox
+                                    checked={duplicateSameCategoryOnly}
+                                    onChange={e => setDuplicateSameCategoryOnly(e.target.checked)}
+                                >
+                                    Cùng danh mục
+                                </Checkbox>
+                                <Button 
+                                    size="small" 
+                                    icon={<CloseCircleOutlined />} 
+                                    onClick={() => setDuplicateFilterActive(false)}
+                                >
+                                    Tắt lọc
+                                </Button>
+                            </Space>
+                        </Col>
+                        <Col span={24}>
+                            <Alert
+                                type={duplicateDetectionResult.totalDuplicates > 0 ? "warning" : "info"}
+                                showIcon
+                                message={
+                                    <span>
+                                        Phát hiện <b>{duplicateDetectionResult.totalDuplicates}</b> sản phẩm thuộc <b>{duplicateDetectionResult.totalGroups}</b> nhóm có tên tương tự nhau (Độ tương đồng ≥ <b>{duplicateThreshold}%</b>).
+                                        {duplicateDetectionResult.totalDuplicates > 0 && " Các sản phẩm cùng nhóm được tự động gom cạnh nhau để tiện đối chiếu."}
+                                    </span>
+                                }
+                                style={{ padding: '6px 12px' }}
+                            />
+                        </Col>
+                    </Row>
+                </Card>
+            )}
+
             <Tabs
                 activeKey={viewMode}
                 onChange={setViewMode}
@@ -767,6 +1052,7 @@ const ProductsPage: React.FC = () => {
                                     <Col span={8}>
                                         <Form.Item name="sku" label="Mã Sản Phẩm (SKU)" rules={[{ required: true }]}><Input /></Form.Item>
                                         <Form.Item name="name" label="Tên Sản Phẩm" rules={[{ required: true }]}><Input /></Form.Item>
+                                        <SimilarNameWarning form={form} editingItem={editingItem} data={data} />
                                         <Row gutter={16}>
                                             <Col span={12}><Form.Item name="unit" label="ĐVT"><Input /></Form.Item></Col>
                                             <Col span={12}><Form.Item name="is_active" label="Trạng thái"><Select><Option value={true}>Hoạt động</Option><Option value={false}>Ngừng bán</Option></Select></Form.Item></Col>
@@ -1010,6 +1296,131 @@ const ProductsPage: React.FC = () => {
                         { title: 'NV Sale', dataIndex: 'assigned_to_name' },
                     ]}
                 />
+            </Modal>
+
+            {/* Modal Tìm kiếm Sản phẩm có tên tương tự */}
+            <Modal
+                title={
+                    <Space>
+                        <BranchesOutlined style={{ color: '#fa8c16' }} />
+                        <span>Sản phẩm có tên tương tự với: <b>[{similarModalTarget?.sku}] {similarModalTarget?.name}</b></span>
+                    </Space>
+                }
+                open={!!similarModalTarget}
+                onCancel={() => setSimilarModalTarget(null)}
+                footer={[
+                    <Button key="close" type="primary" onClick={() => setSimilarModalTarget(null)}>
+                        Đóng
+                    </Button>
+                ]}
+                width={950}
+            >
+                {similarModalTarget && (
+                    <div>
+                        <Row gutter={[16, 12]} align="middle" style={{ marginBottom: 16, background: '#f5f5f5', padding: '10px 14px', borderRadius: 6 }}>
+                            <Col xs={24} md={12}>
+                                <Space align="center" style={{ width: '100%', flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: 'bold' }}>Ngưỡng tương đồng:</span>
+                                    <Slider
+                                        min={30}
+                                        max={100}
+                                        step={5}
+                                        value={similarModalThreshold}
+                                        onChange={setSimilarModalThreshold}
+                                        style={{ width: 140, display: 'inline-block', margin: '0 8px' }}
+                                    />
+                                    <Tag color="blue">{similarModalThreshold}%</Tag>
+                                </Space>
+                            </Col>
+                            <Col xs={24} md={12} style={{ textAlign: isMobile ? 'left' : 'right' }}>
+                                <Space size={4} wrap>
+                                    {[50, 60, 70, 80, 90, 100].map(val => (
+                                        <Tag.CheckableTag
+                                            key={val}
+                                            checked={similarModalThreshold === val}
+                                            onChange={() => setSimilarModalThreshold(val)}
+                                        >
+                                            {val === 100 ? '100%' : `${val}%`}
+                                        </Tag.CheckableTag>
+                                    ))}
+                                </Space>
+                            </Col>
+                        </Row>
+
+                        {(() => {
+                            const matches = findSimilarProducts(
+                                similarModalTarget,
+                                data,
+                                { threshold: similarModalThreshold / 100 }
+                            );
+
+                            return (
+                                <>
+                                    <div style={{ marginBottom: 8, color: '#595959', fontSize: 13 }}>
+                                        Tìm thấy <b>{matches.length}</b> sản phẩm có tên tương đồng (≥ {similarModalThreshold}%):
+                                    </div>
+                                    <Table
+                                        dataSource={matches}
+                                        rowKey={(m: any) => m.product?.id || m.product?.sku}
+                                        size="small"
+                                        pagination={{ pageSize: 10 }}
+                                        columns={[
+                                            {
+                                                title: 'Ảnh', dataIndex: ['product', 'image_url'], width: 60, align: 'center' as const,
+                                                render: (link: string) => {
+                                                    const src = getGoogleDriveImageUrl(link);
+                                                    return src ? <img src={src} alt="sp" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4 }} /> : <FileTextOutlined style={{ color: '#ccc' }} />;
+                                                }
+                                            },
+                                            {
+                                                title: 'Mã (SKU)', dataIndex: ['product', 'sku'], width: 130,
+                                                render: (sku: string) => <b>{sku}</b>
+                                            },
+                                            {
+                                                title: 'Tên Sản Phẩm', dataIndex: ['product', 'name']
+                                            },
+                                            {
+                                                title: 'Phân loại', dataIndex: ['product', 'category_id'], width: 140,
+                                                render: (catId: number) => <Tag color="blue">{getCategoryName(catId)}</Tag>
+                                            },
+                                            {
+                                                title: 'Giá bán', dataIndex: ['product', 'base_price'], width: 105, align: 'right' as const,
+                                                render: (v: number) => <span style={{ color: 'green', fontWeight: 'bold' }}>{Number(v || 0).toLocaleString()} ₫</span>
+                                            },
+                                            {
+                                                title: 'Tồn kho', dataIndex: ['product', 'quantity_in_stock'], width: 85, align: 'right' as const,
+                                                render: (v: number) => Number(v || 0).toLocaleString()
+                                            },
+                                            {
+                                                title: 'Độ giống', dataIndex: 'similarity', width: 95, align: 'center' as const,
+                                                render: (sim: number) => (
+                                                    <Tag color={sim >= 0.8 ? 'red' : sim >= 0.6 ? 'orange' : 'cyan'} style={{ fontWeight: 'bold' }}>
+                                                        {(sim * 100).toFixed(0)}%
+                                                    </Tag>
+                                                )
+                                            },
+                                            {
+                                                title: 'Thao tác', key: 'action', width: 85, align: 'center' as const,
+                                                render: (_: any, m: any) => (
+                                                    <Button
+                                                        size="small"
+                                                        icon={<EditOutlined />}
+                                                        onClick={() => {
+                                                            setSimilarModalTarget(null);
+                                                            openEdit(m.product);
+                                                        }}
+                                                    >
+                                                        Sửa
+                                                    </Button>
+                                                )
+                                            }
+                                        ]}
+                                    />
+                                </>
+                            );
+                        })()}
+                    </div>
+                )}
             </Modal>
         </Card>
     );

@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Table, Button, message, Card, Modal, Form, Input, InputNumber, Popconfirm, Space, Tag, Row, Col, Select, Tabs, Divider, DatePicker, Statistic, Tooltip } from 'antd';
-import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined, AuditOutlined, MinusCircleOutlined, BranchesOutlined, HistoryOutlined, DollarOutlined, MessageOutlined } from '@ant-design/icons';
+import { ReloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SearchOutlined, AuditOutlined, MinusCircleOutlined, BranchesOutlined, HistoryOutlined, DollarOutlined, MessageOutlined, RobotOutlined } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import LeadCarePanel from '../components/crm/LeadCarePanel';
+import CustomerPortrait360Tab from '../components/crm/CustomerPortrait360Tab';
 import useMobile from '../hooks/useMobile';
 import usePermission from '../hooks/usePermission';
 
@@ -22,6 +23,7 @@ const CustomersPage: React.FC = () => {
     // State Modal
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
+    const [activeTabKey, setActiveTabKey] = useState('1');
 
     // State History Orders
     const [historyOrders, setHistoryOrders] = useState<any[]>([]);
@@ -172,19 +174,35 @@ const CustomersPage: React.FC = () => {
             render: (u: any) => u ? <Tag color="blue">{u.full_name || u.username}</Tag> : '-'
         },
         {
-            title: '', key: 'action', width: 120, align: 'right' as const,
+            title: '', key: 'action', width: 140, align: 'right' as const,
             render: (_: any, r: any) => (
                 <Space>
+                    <Tooltip title="Chân dung 360°">
+                        <Button
+                            icon={<RobotOutlined style={{ color: '#722ed1' }} />}
+                            size="small"
+                            onClick={() => {
+                                setEditingItem(r);
+                                form.setFieldsValue({
+                                    ...r,
+                                    assigned_to_id: r.assigned_to?.id
+                                });
+                                setActiveTabKey('7');
+                                setIsModalOpen(true);
+                                fetchOrders(r.id);
+                            }}
+                        />
+                    </Tooltip>
                     <Tooltip title="View Portal (Impersonate)">
                         <Button icon={<UserOutlined />} size="small" onClick={() => handleImpersonate(r.id)} />
                     </Tooltip>
                     {canUpdate && <Button icon={<EditOutlined />} size="small" onClick={() => {
                         setEditingItem(r);
-                        setEditingItem(r);
                         form.setFieldsValue({
                             ...r,
                             assigned_to_id: r.assigned_to?.id // Map assigned user
                         });
+                        setActiveTabKey('1');
                         setIsModalOpen(true);
                         fetchOrders(r.id); // Load lịch sử mua hàng
                     }} />}
@@ -210,12 +228,12 @@ const CustomersPage: React.FC = () => {
                 extra={
                     isMobile ? (
                         <Space size={4}>
-                            {canCreate && <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }} />}
+                            {canCreate && <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setActiveTabKey('1'); setIsModalOpen(true); setHistoryOrders([]); }} />}
                             <Button icon={<ReloadOutlined />} onClick={fetchData} />
                         </Space>
                     ) : (
                         <Space>
-                            {canCreate && <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setIsModalOpen(true); setHistoryOrders([]); }}>Thêm Mới</Button>}
+                            {canCreate && <Button icon={<PlusOutlined />} type="primary" onClick={() => { setEditingItem(null); form.resetFields(); setActiveTabKey('1'); setIsModalOpen(true); setHistoryOrders([]); }}>Thêm Mới</Button>}
                             <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
                         </Space>
                     )
@@ -232,11 +250,11 @@ const CustomersPage: React.FC = () => {
                 open={isModalOpen}
                 onCancel={() => setIsModalOpen(false)}
                 onOk={() => form.submit()}
-                width={800}
+                width={1150}
                 style={{ top: 20 }}
             >
                 <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ type: 'LEAD', credit_limit: 0 }}>
-                    <Tabs defaultActiveKey="1" items={[
+                    <Tabs activeKey={activeTabKey} onChange={setActiveTabKey} items={[
                         {
                             key: '1', label: 'Thông tin khách hàng',
                             children: (
@@ -361,6 +379,16 @@ const CustomersPage: React.FC = () => {
                                     <LeadCarePanel customerId={editingItem.id} customerName={editingItem.name} />
                                 ) : (
                                     <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>Chọn khách hàng để xem</div>
+                                )
+                            )
+                        },
+                        {
+                            key: '7', label: <span style={{ color: '#722ed1', fontWeight: 600 }}><RobotOutlined /> Chân dung 360°</span>,
+                            children: (
+                                editingItem ? (
+                                    <CustomerPortrait360Tab customerId={editingItem.id} customerName={editingItem.name} />
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>Chọn khách hàng để xem Chân dung 360°</div>
                                 )
                             )
                         }

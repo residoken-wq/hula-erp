@@ -254,8 +254,8 @@ const PortalQuotePage: React.FC = () => {
             </thead>
             <tbody>
                 ${(data.items || []).map((item: any) => {
-                    const productName = item.product_name_real || item.product?.name || item.sku;
-                    return `
+                const productName = item.product_name_real || item.product?.name || item.sku;
+                return `
                     <tr>
                         <td style="padding: 5px 0; vertical-align: top;">
                             <div style="max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${productName}</div>
@@ -265,7 +265,7 @@ const PortalQuotePage: React.FC = () => {
                         <td style="text-align: right; vertical-align: top; padding-top: 5px;">${Number(item.subtotal).toLocaleString('vi-VN')}</td>
                     </tr>
                     `;
-                }).join('')}
+            }).join('')}
             </tbody>
         </table>
         <div>================================</div>
@@ -313,7 +313,7 @@ const PortalQuotePage: React.FC = () => {
 
 
         // Terms content
-        const termsHtml = data.terms_content 
+        const termsHtml = data.terms_content
             ? data.terms_content.split('\n').map((line: string) => `<div>${line}</div>`).join('')
             : '';
 
@@ -433,7 +433,7 @@ const PortalQuotePage: React.FC = () => {
             <div class="party-box party-a">
                 <div class="party-label">Bên bán</div>
                 <div class="party-row"><b>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</b></div>
-                <div class="party-row">📍 74/21/24 Nguyễn Khuyến, Phường Bình Thạnh, TP. Hồ Chí Minh</div>
+                <div class="party-row">📍 74/21/24 Nguyễn Khuyến, P. Bình Thạnh, TP. HCM, VN</div>
                 <div class="party-row">📞 0983.882210 - 0983.796654</div>
                 <div class="party-row">MST: <b>0311.874.522</b></div>
                 <div class="party-row">Email: <b>nemmanonhula@gmail.com</b></div>
@@ -469,65 +469,65 @@ const PortalQuotePage: React.FC = () => {
             </thead>
             <tbody>
                 ${(data.items || []).map((item: any, idx: number) => {
-                    const imgUrl = item.image_url || item.sample_image || item.product?.image_url;
-                    let imgSrc = '';
-                    if (imgUrl) {
-                        if (imgUrl.includes('drive.google.com')) {
-                            const match = imgUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                            if (match && match[1]) imgSrc = 'https://drive.google.com/thumbnail?id=' + match[1] + '&sz=w200';
-                            else imgSrc = imgUrl;
-                        } else if (imgUrl.startsWith('http') || imgUrl.startsWith('data:')) {
-                            imgSrc = imgUrl;
-                        } else {
-                            imgSrc = window.location.origin + imgUrl;
+            const imgUrl = item.image_url || item.sample_image || item.product?.image_url;
+            let imgSrc = '';
+            if (imgUrl) {
+                if (imgUrl.includes('drive.google.com')) {
+                    const match = imgUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                    if (match && match[1]) imgSrc = 'https://drive.google.com/thumbnail?id=' + match[1] + '&sz=w200';
+                    else imgSrc = imgUrl;
+                } else if (imgUrl.startsWith('http') || imgUrl.startsWith('data:')) {
+                    imgSrc = imgUrl;
+                } else {
+                    imgSrc = window.location.origin + imgUrl;
+                }
+            }
+            const productName = item.product_name_real || item.product?.name || item.sku;
+            const vatContent = item.vat_content || '';
+            const customerDesc = item.product?.customer_description || '';
+            let descLines = '';
+            if (customerDesc) {
+                descLines = customerDesc.split('\n').map((line: string, idx: number) => {
+                    const cleanLine = line.trim();
+                    if (!cleanLine) return '';
+
+                    const comboMatch = cleanLine.match(/^•\s*(.*?)\s*\(x([\d\.]+)\)(?:\s*-\s*(.*))?$/);
+                    if (comboMatch) {
+                        const [_, name, qty, trailingDesc] = comboMatch;
+                        let res = idx > 0 ? '<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #ddd;"></div>' : '';
+                        if (trailingDesc) {
+                            res += '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + trailingDesc + '</div>';
                         }
-                    }
-                    const productName = item.product_name_real || item.product?.name || item.sku;
-                    const vatContent = item.vat_content || '';
-                    const customerDesc = item.product?.customer_description || '';
-                    let descLines = '';
-                    if (customerDesc) {
-                        descLines = customerDesc.split('\n').map((line: string, idx: number) => {
-                            const cleanLine = line.trim();
-                            if (!cleanLine) return '';
-
-                            const comboMatch = cleanLine.match(/^•\s*(.*?)\s*\(x([\d\.]+)\)(?:\s*-\s*(.*))?$/);
-                            if (comboMatch) {
-                                const [_, name, qty, trailingDesc] = comboMatch;
-                                let res = idx > 0 ? '<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #ddd;"></div>' : '';
-                                if (trailingDesc) {
-                                    res += '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + trailingDesc + '</div>';
-                                }
-                                return res;
-                            }
-
-                            return '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + cleanLine.replace(/^[•-]\s*/, '') + '</div>';
-                        }).join('');
-                    }
-                    const imgCell = imgSrc ? '<img src="' + imgSrc + '" style="width:65px;height:65px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display=\'none\'" />' : '<span style="color:#ccc;font-size:10px;">-</span>';
-                    const colorLine = item.variant_color ? '<div style="font-size:10px;color:#888;">Màu: ' + item.variant_color + '</div>' : '';
-
-                    let priceRangesHtml = '';
-                    if (data.status === 'QUOTATION' && item.price_ranges && Array.isArray(item.price_ranges) && item.price_ranges.length > 0) {
-                        const rangeText = item.price_ranges.map((r: any) => r.quantity + ' cái: ' + Number(r.unit_price).toLocaleString() + 'đ/cái').join(' | ');
-                        priceRangesHtml = '<div style="margin-top:6px;padding:4px 6px;background:#fffbe6;border:1px dashed #ffe58f;border-radius:4px;font-size:10px;color:#d46b08;"><span style="font-weight:600;">🏷️ Tùy chọn mua nhiều:</span><br/>' + rangeText + '</div>';
+                        return res;
                     }
 
-                    return '<tr>'
-                        + '<td style="text-align:center;font-weight:600;">' + (idx + 1) + '</td>'
-                        + '<td style="text-align:center;padding:4px;">' + imgCell + '</td>'
-                        + '<td style="text-align:left;padding:6px 8px;">'
-                        +   '<div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-bottom:2px;">' + (vatContent || productName) + '</div>'
-                        +   (vatContent ? '<div style="font-style:italic;font-size:10px;color:#555;">' + productName + '</div>' : '')
-                        +   colorLine
-                        + '</td>'
-                        + '<td style="text-align:left;padding:6px 8px;font-size:11px;color:#555;line-height:1.5;">' + descLines + priceRangesHtml + '</td>'
-                        + '<td style="text-align:center;font-weight:bold;">' + (item.product?.unit || 'Cái') + '</td>'
-                        + '<td style="text-align:center;font-weight:700;font-size:13px;">' + Number(item.quantity) + '</td>'
-                        + '<td style="text-align:right;padding-right:8px;font-weight:bold;">' + Number(item.unit_price).toLocaleString() + '</td>'
-                        + '<td style="text-align:right;padding-right:8px;font-weight:700;">' + Number(item.subtotal).toLocaleString() + '</td>'
-                        + '</tr>';
-                }).join('')}
+                    return '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + cleanLine.replace(/^[•-]\s*/, '') + '</div>';
+                }).join('');
+            }
+            const imgCell = imgSrc ? '<img src="' + imgSrc + '" style="width:65px;height:65px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display=\'none\'" />' : '<span style="color:#ccc;font-size:10px;">-</span>';
+            const colorLine = item.variant_color ? '<div style="font-size:10px;color:#888;">Màu: ' + item.variant_color + '</div>' : '';
+
+            let priceRangesHtml = '';
+            if (data.status === 'QUOTATION' && item.price_ranges && Array.isArray(item.price_ranges) && item.price_ranges.length > 0) {
+                const rangeText = item.price_ranges.map((r: any) => r.quantity + ' cái: ' + Number(r.unit_price).toLocaleString() + 'đ/cái').join(' | ');
+                priceRangesHtml = '<div style="margin-top:6px;padding:4px 6px;background:#fffbe6;border:1px dashed #ffe58f;border-radius:4px;font-size:10px;color:#d46b08;"><span style="font-weight:600;">🏷️ Tùy chọn mua nhiều:</span><br/>' + rangeText + '</div>';
+            }
+
+            return '<tr>'
+                + '<td style="text-align:center;font-weight:600;">' + (idx + 1) + '</td>'
+                + '<td style="text-align:center;padding:4px;">' + imgCell + '</td>'
+                + '<td style="text-align:left;padding:6px 8px;">'
+                + '<div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-bottom:2px;">' + (vatContent || productName) + '</div>'
+                + (vatContent ? '<div style="font-style:italic;font-size:10px;color:#555;">' + productName + '</div>' : '')
+                + colorLine
+                + '</td>'
+                + '<td style="text-align:left;padding:6px 8px;font-size:11px;color:#555;line-height:1.5;">' + descLines + priceRangesHtml + '</td>'
+                + '<td style="text-align:center;font-weight:bold;">' + (item.product?.unit || 'Cái') + '</td>'
+                + '<td style="text-align:center;font-weight:700;font-size:13px;">' + Number(item.quantity) + '</td>'
+                + '<td style="text-align:right;padding-right:8px;font-weight:bold;">' + Number(item.unit_price).toLocaleString() + '</td>'
+                + '<td style="text-align:right;padding-right:8px;font-weight:700;">' + Number(item.subtotal).toLocaleString() + '</td>'
+                + '</tr>';
+        }).join('')}
                 <!-- SUMMARY -->
                 <tr>
                     <td colspan="4" style="border:none;"></td>
@@ -1342,9 +1342,9 @@ const PortalQuotePage: React.FC = () => {
                 {data.contract_html && data.contract_status !== 'DRAFT' && data.contract_variables?.is_contract_visible !== false && (
                     <Row gutter={24} style={{ marginBottom: 24 }}>
                         <Col span={24}>
-                            <Card 
-                                title={<span style={{ fontWeight: 700, fontSize: 16 }}><SolutionOutlined /> Nội Dung Hợp Đồng / Biên Bản</span>} 
-                                bordered={false} 
+                            <Card
+                                title={<span style={{ fontWeight: 700, fontSize: 16 }}><SolutionOutlined /> Nội Dung Hợp Đồng / Biên Bản</span>}
+                                bordered={false}
                                 style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: 12 }}
                                 extra={
                                     <Button type="primary" icon={<SendOutlined />} onClick={() => {
@@ -1355,11 +1355,11 @@ const PortalQuotePage: React.FC = () => {
                                     </Button>
                                 }
                             >
-                                <div style={{ 
-                                    background: '#fff', 
-                                    padding: isMobile ? '15px' : '40px 60px', 
-                                    maxHeight: '600px', 
-                                    overflowY: 'auto', 
+                                <div style={{
+                                    background: '#fff',
+                                    padding: isMobile ? '15px' : '40px 60px',
+                                    maxHeight: '600px',
+                                    overflowY: 'auto',
                                     border: '1px solid #d9d9d9',
                                     borderRadius: 8,
                                     fontFamily: '"Times New Roman", Times, serif',
@@ -1532,7 +1532,7 @@ const PortalQuotePage: React.FC = () => {
                                     const depositAmount = Number(data.deposit_amount) || 0;
                                     const paidAmount = Number(data.paid_amount) || 0;
                                     const remaining = totalAmount - paidAmount;
-                                    
+
                                     let qrAmount = totalAmount;
                                     if (depositAmount > 0 && paidAmount === 0) {
                                         qrAmount = depositAmount;

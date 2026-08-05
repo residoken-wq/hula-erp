@@ -58,4 +58,15 @@ export class CustomersController {
   addCredit(@Param('id') id: number, @Body() body: any) {
     return this.s.addCredit(id, body.amount, body.type, body.note, body.reference_code);
   }
+
+  // --- CUSTOMER 360 PORTRAIT ---
+  @Get(':id/portrait-360')
+  getPortrait360(@Param('id') id: number) {
+    return this.s.getPortrait360Data(id);
+  }
+
+  @Put(':id/portrait-notes')
+  updatePortraitNotes(@Param('id') id: number, @Body('notes') notes: string) {
+    return this.s.updatePortraitNotes(id, notes || '');
+  }
 }

@@ -191,8 +191,8 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
             id: `BTP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
             btp_code: `BTP-GC-${currentPO?.po_code ? currentPO.po_code.replace('PO-', '') : Date.now().toString().slice(-4)}`,
             btp_name: '',
-            product_id: firstProduct?.id || null,
-            product_name: firstProduct?.name || '',
+            product_id: firstProduct?.id ? Number(firstProduct.id) : null,
+            product_name: firstProduct?.name || firstProduct?.product_name || '',
             output_quantity: Number(currentPO?.items?.[0]?.quantity || 1),
             unit: 'm',
             target_po_id: null,
@@ -203,86 +203,103 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
             status: 'DRAFT',
             components: []
         };
-        setBtpList([...btpList, newBtp]);
+        setBtpList(prev => [...prev, newBtp]);
     };
 
     const handleCloneBtp = (index: number) => {
-        const itemToClone = btpList[index];
-        const cloned: SemiFinishedProduct = {
-            ...itemToClone,
-            id: `BTP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-            btp_code: `${itemToClone.btp_code || 'BTP'}-COPY`,
-            btp_name: `${itemToClone.btp_name} (Bản sao)`,
-            components: (itemToClone.components || []).map(c => ({ ...c, id: `COMP_${Date.now()}_${Math.floor(Math.random() * 1000)}` }))
-        };
-        const newList = [...btpList];
-        newList.splice(index + 1, 0, cloned);
-        setBtpList(newList);
+        setBtpList(prev => {
+            const itemToClone = prev[index];
+            if (!itemToClone) return prev;
+            const cloned: SemiFinishedProduct = {
+                ...itemToClone,
+                id: `BTP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                btp_code: `${itemToClone.btp_code || 'BTP'}-COPY`,
+                btp_name: `${itemToClone.btp_name} (Bản sao)`,
+                components: (itemToClone.components || []).map(c => ({ ...c, id: `COMP_${Date.now()}_${Math.floor(Math.random() * 1000)}` }))
+            };
+            const newList = [...prev];
+            newList.splice(index + 1, 0, cloned);
+            return newList;
+        });
         message.success('Đã nhân bản BTP');
     };
 
     const handleDeleteBtp = (index: number) => {
-        const newList = [...btpList];
-        newList.splice(index, 1);
-        setBtpList(newList);
+        setBtpList(prev => {
+            const newList = [...prev];
+            newList.splice(index, 1);
+            return newList;
+        });
         message.info('Đã xóa BTP');
     };
 
     const handleUpdateBtp = (index: number, field: keyof SemiFinishedProduct, value: any) => {
-        const newList = [...btpList];
-        newList[index] = { ...newList[index], [field]: value };
-        
-        if (field === 'target_vendor_id') {
-            const supp = suppliers.find(s => s.id === value);
-            newList[index].target_vendor_name = supp?.name || '';
-        }
-        if (field === 'product_id') {
-            const prod = candidateProducts.find(p => p.id === value) || products.find(p => p.id === value);
-            newList[index].product_name = prod?.name || '';
-        }
+        setBtpList(prev => {
+            const newList = [...prev];
+            if (!newList[index]) return prev;
+            newList[index] = { ...newList[index], [field]: value };
+            
+            if (field === 'target_vendor_id') {
+                const supp = suppliers.find(s => Number(s.id) === Number(value));
+                newList[index].target_vendor_name = supp?.name || '';
+            }
+            if (field === 'product_id') {
+                const prod = candidateProducts.find(p => Number(p.id) === Number(value)) || products.find(p => Number(p.id) === Number(value));
+                newList[index].product_name = prod?.name || prod?.product_name || '';
+            }
 
-        setBtpList(newList);
+            return newList;
+        });
     };
 
     const handleAddComponent = (btpIndex: number, materialOption?: any) => {
-        const newList = [...btpList];
-        const newComp: BtpComponent = {
-            id: `COMP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-            material_id: materialOption?.material_id || null,
-            material_code: materialOption?.code || '',
-            material_name: materialOption?.name || '',
-            quantity: 1,
-            unit: materialOption?.unit || 'm',
-            note: ''
-        };
-        newList[btpIndex].components = [...(newList[btpIndex].components || []), newComp];
-        setBtpList(newList);
+        setBtpList(prev => {
+            const newList = [...prev];
+            if (!newList[btpIndex]) return prev;
+            const newComp: BtpComponent = {
+                id: `COMP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                material_id: materialOption?.material_id || null,
+                material_code: materialOption?.code || '',
+                material_name: materialOption?.name || '',
+                quantity: 1,
+                unit: materialOption?.unit || 'm',
+                note: ''
+            };
+            newList[btpIndex].components = [...(newList[btpIndex].components || []), newComp];
+            return newList;
+        });
     };
 
     const handleUpdateComponent = (btpIndex: number, compIndex: number, field: keyof BtpComponent, value: any) => {
-        const newList = [...btpList];
-        const components = [...newList[btpIndex].components];
-        components[compIndex] = { ...components[compIndex], [field]: value };
+        setBtpList(prev => {
+            const newList = [...prev];
+            if (!newList[btpIndex] || !newList[btpIndex].components?.[compIndex]) return prev;
+            const components = [...newList[btpIndex].components];
+            components[compIndex] = { ...components[compIndex], [field]: value };
 
-        if (field === 'material_id') {
-            const mat = availableMaterials.find(m => m.material_id === value);
-            if (mat) {
-                components[compIndex].material_code = mat.code;
-                components[compIndex].material_name = mat.name;
-                components[compIndex].unit = mat.unit || components[compIndex].unit;
+            if (field === 'material_id') {
+                const mat = availableMaterials.find(m => Number(m.material_id) === Number(value));
+                if (mat) {
+                    components[compIndex].material_code = mat.code;
+                    components[compIndex].material_name = mat.name;
+                    components[compIndex].unit = mat.unit || components[compIndex].unit;
+                }
             }
-        }
 
-        newList[btpIndex].components = components;
-        setBtpList(newList);
+            newList[btpIndex].components = components;
+            return newList;
+        });
     };
 
     const handleDeleteComponent = (btpIndex: number, compIndex: number) => {
-        const newList = [...btpList];
-        const components = [...newList[btpIndex].components];
-        components.splice(compIndex, 1);
-        newList[btpIndex].components = components;
-        setBtpList(newList);
+        setBtpList(prev => {
+            const newList = [...prev];
+            if (!newList[btpIndex] || !newList[btpIndex].components) return prev;
+            const components = [...newList[btpIndex].components];
+            components.splice(compIndex, 1);
+            newList[btpIndex].components = components;
+            return newList;
+        });
     };
 
     const handleSaveBtpList = async () => {
@@ -306,19 +323,22 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
         if (availableMaterials.length === 0) {
             return message.warning('Chưa có danh sách NPL cấp phát từ PO/Kế hoạch');
         }
-        const newList = [...btpList];
-        const newComponents = availableMaterials.map(m => ({
-            id: `COMP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-            material_id: m.material_id || null,
-            material_code: m.code || '',
-            material_name: m.name || '',
-            quantity: Number(m.quantity || 1),
-            unit: m.unit || 'm',
-            note: ''
-        }));
-        newList[btpIndex].components = newComponents;
-        setBtpList(newList);
-        message.success(`Đã tự động điền ${newComponents.length} NPL từ kế hoạch`);
+        setBtpList(prev => {
+            const newList = [...prev];
+            if (!newList[btpIndex]) return prev;
+            const newComponents = availableMaterials.map(m => ({
+                id: `COMP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                material_id: m.material_id ? Number(m.material_id) : null,
+                material_code: m.code || '',
+                material_name: m.name || '',
+                quantity: Number(m.quantity || 1),
+                unit: m.unit || 'm',
+                note: ''
+            }));
+            newList[btpIndex].components = newComponents;
+            return newList;
+        });
+        message.success(`Đã tự động điền ${availableMaterials.length} NPL từ kế hoạch`);
     };
 
     return (
@@ -466,15 +486,26 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                                     allowClear
                                     placeholder="Chọn sản phẩm hoàn thiện..."
                                     style={{ width: '100%' }}
-                                    value={btp.product_id || undefined}
+                                    value={btp.product_id ? Number(btp.product_id) : undefined}
                                     onChange={(val) => {
-                                        const prod = candidateProducts.find(p => p.id === val);
-                                        handleUpdateBtp(btpIndex, 'product_id', val || null);
-                                        handleUpdateBtp(btpIndex, 'product_name', prod?.name || prod?.product_name || '');
+                                        const prodId = val != null ? Number(val) : null;
+                                        const prod = candidateProducts.find(p => Number(p.id) === Number(val)) || products.find(p => Number(p.id) === Number(val));
+                                        const prodName = prod?.name || prod?.product_name || '';
+                                        
+                                        setBtpList(prev => {
+                                            const newList = [...prev];
+                                            if (!newList[btpIndex]) return prev;
+                                            newList[btpIndex] = {
+                                                ...newList[btpIndex],
+                                                product_id: prodId,
+                                                product_name: prodName
+                                            };
+                                            return newList;
+                                        });
                                     }}
                                     options={candidateProducts.map(p => ({
                                         label: `${p.sku ? `[${p.sku}] ` : ''}${p.name || p.product_name || 'SP'}`,
-                                        value: p.id
+                                        value: Number(p.id)
                                     }))}
                                     optionFilterProp="label"
                                 />
@@ -516,33 +547,34 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                                     style={{ width: '100%' }}
                                     value={btp.target_po_id ? `PO_${btp.target_po_id}` : (btp.target_vendor_id ? `SUPP_${btp.target_vendor_id}` : undefined)}
                                     onChange={(val) => {
-                                        if (!val) {
-                                            const newList = [...btpList];
-                                            newList[btpIndex].target_po_id = null;
-                                            newList[btpIndex].target_po_code = '';
-                                            newList[btpIndex].target_vendor_id = null;
-                                            newList[btpIndex].target_vendor_name = '';
-                                            setBtpList(newList);
-                                            return;
-                                        }
-                                        const strVal = String(val);
-                                        const newList = [...btpList];
-                                        if (strVal.startsWith('PO_')) {
-                                            const poId = Number(strVal.replace('PO_', ''));
-                                            const foundPo = siblingPOs.find(p => p.id === poId);
-                                            newList[btpIndex].target_po_id = poId;
-                                            newList[btpIndex].target_po_code = foundPo?.po_code || '';
-                                            newList[btpIndex].target_vendor_id = foundPo?.supplier_id || foundPo?.supplier?.id || null;
-                                            newList[btpIndex].target_vendor_name = foundPo?.supplier?.name || foundPo?.supplier_name || '';
-                                        } else if (strVal.startsWith('SUPP_')) {
-                                            const suppId = Number(strVal.replace('SUPP_', ''));
-                                            const foundSupp = suppliers.find(s => s.id === suppId);
-                                            newList[btpIndex].target_po_id = null;
-                                            newList[btpIndex].target_po_code = '';
-                                            newList[btpIndex].target_vendor_id = suppId;
-                                            newList[btpIndex].target_vendor_name = foundSupp?.name || '';
-                                        }
-                                        setBtpList(newList);
+                                        setBtpList(prev => {
+                                            const newList = [...prev];
+                                            if (!newList[btpIndex]) return prev;
+                                            if (!val) {
+                                                newList[btpIndex].target_po_id = null;
+                                                newList[btpIndex].target_po_code = '';
+                                                newList[btpIndex].target_vendor_id = null;
+                                                newList[btpIndex].target_vendor_name = '';
+                                                return newList;
+                                            }
+                                            const strVal = String(val);
+                                            if (strVal.startsWith('PO_')) {
+                                                const poId = Number(strVal.replace('PO_', ''));
+                                                const foundPo = siblingPOs.find(p => Number(p.id) === poId);
+                                                newList[btpIndex].target_po_id = poId;
+                                                newList[btpIndex].target_po_code = foundPo?.po_code || '';
+                                                newList[btpIndex].target_vendor_id = foundPo?.supplier_id || foundPo?.supplier?.id || null;
+                                                newList[btpIndex].target_vendor_name = foundPo?.supplier?.name || foundPo?.supplier_name || '';
+                                            } else if (strVal.startsWith('SUPP_')) {
+                                                const suppId = Number(strVal.replace('SUPP_', ''));
+                                                const foundSupp = suppliers.find(s => Number(s.id) === suppId);
+                                                newList[btpIndex].target_po_id = null;
+                                                newList[btpIndex].target_po_code = '';
+                                                newList[btpIndex].target_vendor_id = suppId;
+                                                newList[btpIndex].target_vendor_name = foundSupp?.name || '';
+                                            }
+                                            return newList;
+                                        });
                                     }}
                                     options={[
                                         ...(siblingPOs.length > 0 ? [{
