@@ -180,7 +180,7 @@ const PortalQuotePage: React.FC = () => {
     };
 
     // --- PRINT ORDER: A4 Portrait XÁC NHẬN ĐƠN ĐẶT HÀNG ---
-    const handlePrintOrder = (mode: 'standard' | 'retail' | 'pos' = 'standard') => {
+    const handlePrintOrder = (mode: 'standard' | 'b2b_no_total' | 'retail' | 'pos' = 'standard') => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
 
@@ -349,7 +349,7 @@ const PortalQuotePage: React.FC = () => {
         .party-box { flex: 1; padding: 10px 12px; border-radius: 6px; font-size: 12px; line-height: 1.6; }
         .party-a { background: #f0f5ff; border: 1px solid #adc6ff; }
         .party-b { background: #fff7e6; border: 1px solid #ffd591; }
-        .party-label { font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1); }
+        .party-label { font-weight: 800; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(0,0,0,0.1); }
         .party-a .party-label { color: #0050b3; }
         .party-b .party-label { color: #d46b08; }
         .party-row { margin-bottom: 2px; }
@@ -446,7 +446,7 @@ const PortalQuotePage: React.FC = () => {
                 <div class="party-row">📞 ${customerPhone || data.receiver_phone || '...'}</div>
                 ${vatTax ? `<div class="party-row" style="margin-bottom: 5px;">MST: <b>${vatTax}</b></div>` : ''}
                 ${data.contact_name ? `<div class="party-row" style="margin-bottom: 5px;"><b>Người liên hệ:</b> ${data.contact_name} ${data.contact_phone ? `- ${data.contact_phone}` : ''}</div>` : ''}
-                ${data.shipping_address ? `<div class="party-row" style="margin-bottom: 5px; white-space: pre-wrap;"><b>Địa chỉ giao hàng:</b><br />${data.shipping_address}</div>` : ''}
+                <div class="party-row" style="margin-bottom: 5px; white-space: pre-wrap;"><b>Địa chỉ giao hàng:</b><br />${data.shipping_address || '...'}</div>
                 ${(data.receiver_name || data.receiver_phone) ? `<div class="party-row"><b>Người nhận:</b> ${data.receiver_name || customerName} ${data.receiver_phone ? `- ${data.receiver_phone}` : ''}</div>` : ''}
             </div>
         </div>
@@ -529,6 +529,7 @@ const PortalQuotePage: React.FC = () => {
                 + '</tr>';
         }).join('')}
                 <!-- SUMMARY -->
+                ${mode === 'b2b_no_total' ? '' : `
                 <tr>
                     <td colspan="4" style="border:none;"></td>
                     <td colspan="3" class="summary-label">Tổng tiền hàng:</td>
@@ -547,6 +548,7 @@ const PortalQuotePage: React.FC = () => {
                     <td class="summary-value">${total.toLocaleString()} ₫</td>
                 </tr>
                 ${paidAmount > 0 ? '<tr><td colspan="4" style="border:none;"></td><td colspan="3" class="summary-label" style="color:#52c41a;">Đã thanh toán:</td><td class="summary-value" style="color:#52c41a;">' + paidAmount.toLocaleString() + ' ₫</td></tr><tr><td colspan="4" style="border:none;"></td><td colspan="3" class="summary-label" style="color:#cf1322;font-weight:700;">Còn lại cần thanh toán:</td><td class="summary-value" style="color:#cf1322;font-weight:800;font-size:14px;">' + remaining.toLocaleString() + ' ₫</td></tr>' : ''}
+                `}
             </tbody>
         </table>
 
@@ -557,7 +559,7 @@ const PortalQuotePage: React.FC = () => {
             <div class="terms-box">
                 ${termsHtml ? '<div class="terms-title">Điều khoản & Quy định</div><div style="white-space:pre-line;color:#555;">' + data.terms_content + '</div>' : ''}
             </div>
-            ${isOrder ? `
+            ${(isOrder && mode !== 'b2b_no_total') ? `
             <div class="payment-horizontal">
                 <div style="display: flex; flex-direction: column; flex: 1;">
                     <div class="payment-amounts">
@@ -953,6 +955,7 @@ const PortalQuotePage: React.FC = () => {
                                 <Dropdown menu={{
                                     items: [
                                         { key: 'standard', label: 'Mẫu công ty (B2B)', onClick: () => handlePrintOrder('standard') },
+                                        { key: 'b2b_no_total', label: 'Mẫu B2B (Không tổng tiền)', onClick: () => handlePrintOrder('b2b_no_total') },
                                         { key: 'retail', label: 'Mẫu khách lẻ (Rút gọn)', onClick: () => handlePrintOrder('retail') },
                                         { key: 'pos', label: 'Mẫu POS (Hóa đơn dọc)', onClick: () => handlePrintOrder('pos') }
                                     ]
