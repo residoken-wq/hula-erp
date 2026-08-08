@@ -170,6 +170,83 @@ const PendingOrdersTab: React.FC<PendingOrdersTabProps> = ({
                 rowKey="id"
                 pagination={false}
                 size="small"
+                expandable={{
+                    expandedRowRender: (item: any) => {
+                        if (!item.combo_components || item.combo_components.length === 0) return null;
+                        return (
+                            <div style={{ margin: '8px 16px', padding: '12px 16px', background: '#fafafa', borderRadius: 8, border: '1px dashed #d9d9d9' }}>
+                                <div style={{ marginBottom: 8, fontSize: 13, color: '#595959' }}>
+                                    <InfoCircleOutlined style={{ marginRight: 6 }} />
+                                    <b>Thành phần Combo:</b> Dùng để xem chi tiết tồn kho các sản phẩm con phục vụ việc duyệt book hàng
+                                </div>
+                                <Table
+                                    dataSource={item.combo_components}
+                                    rowKey={(r) => r.child_product?.sku || r.sku || Math.random().toString()}
+                                    pagination={false}
+                                    size="small"
+                                    columns={[
+                                        {
+                                            title: 'Sản phẩm con', dataIndex: ['child_product', 'name'],
+                                            render: (t: any, r: any) => (
+                                                <span>
+                                                    <b style={{ color: '#531dab' }}>{r.child_product?.sku || r.sku}</b>
+                                                    <span style={{ color: '#666', marginLeft: 6 }}>{t || r.child_product?.name || r.name}</span>
+                                                </span>
+                                            )
+                                        },
+                                        {
+                                            title: 'SL Cần', align: 'center' as const, width: 80,
+                                            render: (_: any, r: any) => {
+                                                const qtyPerCombo = Number(r.quantity || 1);
+                                                const totalNeeded = qtyPerCombo * Number(item.quantity || 0);
+                                                return <b>{totalNeeded.toLocaleString()}</b>;
+                                            }
+                                        },
+                                        {
+                                            title: 'TK Thực tế', align: 'center' as const, width: 100,
+                                            render: (_: any, r: any) => <span style={{ fontWeight: 500 }}>{Number(r.child_product?.quantity_in_stock || 0).toLocaleString()}</span>
+                                        },
+                                        {
+                                            title: 'Booking đã duyệt', align: 'center' as const, width: 130,
+                                            render: (_: any, r: any) => {
+                                                const v = Number(r.child_product?.approved_booking_stock || 0);
+                                                return v > 0 ? <Tag color="orange">{v.toLocaleString()}</Tag> : <span style={{ color: '#bbb' }}>0</span>;
+                                            }
+                                        },
+                                        {
+                                            title: 'TK Khả dụng', align: 'center' as const, width: 120,
+                                            render: (_: any, r: any) => {
+                                                const available = Math.max(0, Number(r.child_product?.quantity_in_stock || 0) - Number(r.child_product?.approved_booking_stock || 0));
+                                                const needed = Number(r.quantity || 1) * Number(item.quantity || 0);
+                                                const sufficient = available >= needed;
+                                                return (
+                                                    <span style={{ fontWeight: 'bold', color: sufficient ? '#52c41a' : '#f5222d' }}>
+                                                        {available.toLocaleString()}
+                                                        {sufficient
+                                                            ? <CheckCircleOutlined style={{ marginLeft: 4, fontSize: 12 }} />
+                                                            : <WarningOutlined style={{ marginLeft: 4, fontSize: 12 }} />
+                                                        }
+                                                    </span>
+                                                );
+                                            }
+                                        },
+                                        {
+                                            title: 'Đánh giá', align: 'center' as const, width: 110,
+                                            render: (_: any, r: any) => {
+                                                const available = Math.max(0, Number(r.child_product?.quantity_in_stock || 0) - Number(r.child_product?.approved_booking_stock || 0));
+                                                const needed = Number(r.quantity || 1) * Number(item.quantity || 0);
+                                                if (item.booking_status === 'CONFIRMED') return <Tag color="green" icon={<CheckCircleOutlined />}>Sẵn sàng</Tag>;
+                                                if (available >= needed) return <Tag color="cyan" icon={<CheckCircleOutlined />}>Đủ kho</Tag>;
+                                                return <Tag color="red" icon={<WarningOutlined />}>Thiếu {(needed - available).toLocaleString()}</Tag>;
+                                            }
+                                        }
+                                    ]}
+                                />
+                            </div>
+                        );
+                    },
+                    rowExpandable: (item: any) => item.combo_components && item.combo_components.length > 0
+                }}
                 columns={[
                     {
                         title: 'Sản phẩm', dataIndex: ['product', 'name'], width: '25%',
