@@ -1485,7 +1485,9 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                         if (!stats) return null;
                                         
                                         const manualLength = printOverrides[face.id]?.length ?? (stats.length / 100);
-                                        const manualRuns = printOverrides[face.id]?.runs ?? (manualLength > 0 ? (stats.totalQty / manualLength) : 0);
+                                        const defaultRuns = stats.runs + (stats.remainderQty > 0 ? 1 : 0);
+                                        const manualRuns = printOverrides[face.id]?.runs ?? defaultRuns;
+                                        const calculatedExpected = Number((manualRuns * manualLength).toFixed(2));
 
                                         return {
                                             key: face.id,
@@ -1493,7 +1495,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                                             runs: manualRuns,
                                             width: stats.width,
                                             length: manualLength,
-                                            expectedTotalLength: stats.totalQty,
+                                            expectedTotalLength: calculatedExpected,
                                             faceId: face.id
                                         };
                                     }).filter(Boolean)}
