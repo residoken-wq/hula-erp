@@ -732,17 +732,43 @@ const PurchasingPage: React.FC = () => {
 
     const handleCreateReceipt = async () => {
         if (!currentPO) return;
-        // FIX: Dùng editingItems thay vì currentPO.items để hỗ trợ POOLED PO
-        const items = editingItems?.length > 0 ? editingItems : (currentPO.items || []);
-        if (items.length === 0) return message.warning('Không có hàng hóa nào');
+        
+        let receiptItems = [];
+
+        // Ưu tiên nhập kho Bán Thành Phẩm nếu PO là loại Gia Công và có cấu hình BTP
+        if (currentPO.type === 'OUTSOURCING' && currentPO.semi_finished_products) {
+            let btpList = [];
+            try {
+                btpList = typeof currentPO.semi_finished_products === 'string' 
+                    ? JSON.parse(currentPO.semi_finished_products) 
+                    : currentPO.semi_finished_products;
+            } catch (e) {}
+
+            if (Array.isArray(btpList) && btpList.length > 0) {
+                receiptItems = btpList.map((btp: any) => ({
+                    product_id: btp.product_id,
+                    quantity: btp.output_quantity !== undefined ? btp.output_quantity : (btp.quantity || 1)
+                }));
+            }
+        }
+
+        // Nếu không có BTP, thì lấy theo danh sách items của PO
+        if (receiptItems.length === 0) {
+            const items = editingItems?.length > 0 ? editingItems : (currentPO.items || []);
+            if (items.length === 0) return message.warning('Không có hàng hóa nào');
+            
+            receiptItems = items.map((i: any) => ({
+                po_item_id: i.id,
+                material_id: i.material?.id || i.material_id,
+                product_id: i.product?.id || i.product_id,
+                quantity: i.quantity
+            }));
+        }
+
         try {
             await api.post(`/inventory/goods-receipt/draft`, {
                 po_id: currentPO.id,
-                items: items.map((i: any) => ({
-                    po_item_id: i.id,
-                    material_id: i.material?.id || i.material_id,
-                    quantity: i.quantity
-                })),
+                items: receiptItems,
                 note: `Nhập kho từ PO ${currentPO.po_code}`
             });
             message.success('Đã tạo phiếu nhập kho nháp');
