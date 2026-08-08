@@ -420,6 +420,16 @@ export class PlanningService {
         return this.planRepo.save(plan);
     }
 
+    async updatePfoQuantity(id: number, quantity: number) {
+        const pfo = await this.planRepo.findOne({ where: { id } });
+        if (!pfo) throw new NotFoundException('PFO không tồn tại');
+        
+        pfo.quantity = quantity;
+        await this.planRepo.save(pfo);
+
+        return { message: 'Cập nhật số lượng KHSX thành công', pfo };
+    }
+
     // Auto-detect plan status từ PO statuses
     async checkAndUpdatePfoStatus(planId: number) {
         try {

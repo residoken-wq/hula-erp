@@ -384,15 +384,40 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                         key: 'BOM',
                         label: 'Thông tin BOM',
                         children: (
-                            <Table 
-                                columns={columnsBom} 
-                                dataSource={bomTreeData} 
-                                size="small" 
-                                pagination={false}
-                                expandable={{
-                                    defaultExpandAllRows: true
-                                }}
-                            />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                <Card size="small" style={{ background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 8 }}>
+                                    <Space>
+                                        <Text strong>Số lượng sản xuất (KHSX):</Text>
+                                        <InputNumber 
+                                            min={1} 
+                                            value={pfoDetails?.quantity || 1} 
+                                            onChange={async (val) => {
+                                                if (!val) return;
+                                                try {
+                                                    await api.put(`/planning/pfo/${selectedPfo.id}/quantity`, { quantity: val });
+                                                    message.success('Cập nhật số lượng KHSX thành công!');
+                                                    onRefreshDetails?.();
+                                                } catch (e: any) {
+                                                    message.error('Lỗi cập nhật số lượng KHSX');
+                                                }
+                                            }}
+                                            style={{ width: 100 }}
+                                        />
+                                        <Text type="secondary" style={{ fontSize: 12 }}>
+                                            *(Nhập số lượng thực tế cần sản xuất (bao gồm rủi ro/hao hụt) để tính BOM theo KHSX)
+                                        </Text>
+                                    </Space>
+                                </Card>
+                                <Table 
+                                    columns={columnsBom} 
+                                    dataSource={bomTreeData} 
+                                    size="small" 
+                                    pagination={false}
+                                    expandable={{
+                                        defaultExpandAllRows: true
+                                    }}
+                                />
+                            </div>
                         )
                     },
                     {

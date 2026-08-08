@@ -79,6 +79,11 @@ export class PlanningController {
     return this.planningSvc.updatePfoStatus(Number(id), status);
   }
 
+  @Put('pfo/:id/quantity')
+  updatePfoQuantity(@Param('id') id: string, @Body('quantity') quantity: number) {
+    return this.planningSvc.updatePfoQuantity(Number(id), quantity);
+  }
+
   // --- PFO BOM APIs (Gate 2) ---
   @Get('pfo/:id/preview-btp')
   previewBtpRequirements(@Param('id') id: string, @Query('usePfoQty') usePfoQty?: string) {
