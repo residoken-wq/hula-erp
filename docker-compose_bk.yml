@@ -61,7 +61,6 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: production # Use Production Stage (Nginx)
-    image: ghcr.io/residoken-wq/hula-erp-frontend:latest
     container_name: hula_frontend
     restart: always
     expose:
@@ -75,6 +74,7 @@ services:
 
 volumes:
   postgres_data:
+
 
 networks:
   default:
