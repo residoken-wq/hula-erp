@@ -494,7 +494,7 @@ export class CustomersService {
                 })
             };
 
-            if (o.status === 'QUOTATION' || o.order_code?.startsWith('BG-')) {
+            if (o.status === 'QUOTATION' || (o.status === 'CANCELLED' && o.order_code?.startsWith('BG-'))) {
                 quotations.push(enrichedOrder);
             } else {
                 salesOrders.push(enrichedOrder);

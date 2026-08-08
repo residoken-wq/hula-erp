@@ -624,6 +624,16 @@ const PurchasingPage: React.FC = () => {
     const [selectedReqs, setSelectedReqs] = useState<any[]>([]);
     const [selectedMainRows, setSelectedMainRows] = useState<any[]>([]); // Chọn PO trên tab chính để gộp
 
+    const filteredRequirements = requirements.filter((r: any) => {
+        if (!searchText) return true;
+        const q = searchText.toLowerCase();
+        const poMatch = r.po_code?.toLowerCase().includes(q);
+        const supplierMatch = (r.supplier?.name || r.note?.split('NCC: ')[1] || '').toLowerCase().includes(q);
+        const customerNames = getCustomerName(r);
+        const customerMatch = customerNames.toLowerCase().includes(q);
+        return poMatch || supplierMatch || customerMatch;
+    });
+
     const fetchRequirements = async () => {
         try {
             // Lấy danh sách PO có thể gộp (chưa có parent_po_id, status=DRAFT)
@@ -861,24 +871,75 @@ const PurchasingPage: React.FC = () => {
                 </div>
 
                 {(activeTab === 'REQ_NPL' || activeTab === 'REQ_GC') ? (
-                    <Table
-                        dataSource={requirements}
-                        rowKey="id"
-                        rowSelection={{
-                            type: 'checkbox',
-                            onChange: (_, rows) => setSelectedReqs(rows)
-                        }}
-                        columns={[
-                            { title: 'Mã PO', dataIndex: 'po_code', width: 150, render: (t: any, r: any) => <a onClick={() => viewDetail(r)}><b>{t}</b></a> },
+                    (() => {
+                        const supplierGroups: Record<string, any[]> = {};
+                        let totalOverallAmount = 0;
+                        filteredRequirements.forEach(d => {
+                            const supplierName = d.supplier?.name || (d.note?.split('NCC: ')[1]) || 'Chưa chỉ định NCC';
+                            if (!supplierGroups[supplierName]) supplierGroups[supplierName] = [];
+                            supplierGroups[supplierName].push(d);
+                            totalOverallAmount += (Number(d.total_amount) || 0);
+                        });
+                        const sortedSuppliers = Object.keys(supplierGroups).sort((a, b) => {
+                            if (a === 'Chưa chỉ định NCC') return 1;
+                            if (b === 'Chưa chỉ định NCC') return -1;
+                            return a.localeCompare(b);
+                        });
+                        
+                        const reqColumns = [
+                            { title: 'Mã PO', dataIndex: 'po_code', width: 150, render: (t: any, r: any) => <a onClick={() => viewDetail(r)}><Tag color="blue"><b>{t}</b></Tag></a> },
                             { title: 'Khách hàng', key: 'customer', render: (r: any) => getCustomerName(r) },
-                            { title: 'NCC', dataIndex: 'supplier', render: (s: any) => s?.name || '-' },
+                            { title: 'NCC', dataIndex: 'supplier', render: (s: any) => <Tag color="purple">{s?.name || '-'}</Tag> },
                             { title: 'Số mặt hàng', width: 100, align: 'center' as const, render: (r: any) => r.items?.length || 0 },
-                            { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b>{Number(v).toLocaleString()}</b> },
+                            { title: 'Tổng tiền', dataIndex: 'total_amount', align: 'right' as const, render: (v: number) => <b>{Number(v).toLocaleString(undefined, { style: 'currency', currency: 'VND' })}</b> },
                             { title: 'Trạng thái', dataIndex: 'status', width: 100, align: 'center' as const, render: (t: string) => <Tag color={t === 'COMPLETED' ? 'green' : t === 'DELIVERED' ? 'cyan' : t === 'PARTIAL_DELIVERED' ? 'orange' : t === 'ORDERED' ? 'blue' : 'default'}>{t === 'PARTIAL_DELIVERED' ? 'Giao 1 phần' : t === 'DELIVERED' ? 'Đã giao đủ' : t}</Tag> },
                             { title: 'Ngày tạo', dataIndex: 'created_at', width: 100, align: 'right' as const, render: (t: any) => dayjs(t).format('DD/MM/YY') }
-                        ]}
-                        expandable={{ expandedRowRender, rowExpandable: record => record.items && record.items.length > 0 }}
-                    />
+                        ];
+
+                        if (sortedSuppliers.length === 0) return <Alert message="Không có dữ liệu tổng hợp nhu cầu" type="info" />;
+                        
+                        return (
+                            <div>
+                                <div style={{ marginBottom: 16, fontWeight: 600, fontSize: 14, color: '#cf1322' }}>
+                                    Tổng cộng tất cả: {totalOverallAmount.toLocaleString(undefined, { style: 'currency', currency: 'VND' })}
+                                </div>
+                                <Tabs 
+                                    tabPosition="top" 
+                                    size="small" 
+                                    type="card" 
+                                    onChange={() => setSelectedReqs([])}
+                                    items={sortedSuppliers.map(supName => {
+                                        const totalAmount = supplierGroups[supName].reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
+                                        return {
+                                            key: supName,
+                                            label: (
+                                                <div>
+                                                    <div>{supName} ({supplierGroups[supName].length})</div>
+                                                    <div style={{ fontSize: 11, color: '#cf1322', marginTop: 2 }}>
+                                                        {totalAmount.toLocaleString(undefined, { style: 'currency', currency: 'VND' })}
+                                                    </div>
+                                                </div>
+                                            ),
+                                            children: (
+                                                <Table
+                                                    dataSource={supplierGroups[supName]}
+                                                    columns={reqColumns}
+                                                    rowKey="id"
+                                                    loading={loading}
+                                                    rowSelection={{
+                                                        type: 'checkbox',
+                                                        selectedRowKeys: selectedReqs.map(r => r.id),
+                                                        onChange: (_, rows) => setSelectedReqs(rows)
+                                                    }}
+                                                    expandable={{ expandedRowRender, rowExpandable: record => record.items && record.items.length > 0 }}
+                                                />
+                                            )
+                                        };
+                                    })} 
+                                />
+                            </div>
+                        );
+                    })()
                 ) : (activeTab === 'MATERIAL' || activeTab === 'OUTSOURCING') ? (
                     (() => {
                         const supplierGroups: Record<string, any[]> = {};
