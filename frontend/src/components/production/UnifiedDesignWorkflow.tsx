@@ -390,7 +390,7 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
                 name: saveDesignName || `Sơ đồ ${selectedItem.product?.name || selectedItem.material?.name || 'Sản phẩm'}`,
                 type: 'PRINT',
                 product_id: selectedItem.product?.id,
-                customer_id: selectedPo?.plan?.sales_orders?.[0]?.customer_id || selectedPo?.customer_id || null,
+                customer_id: selectedPo?.pfo?.sales_order?.customer_id || selectedPo?.plan?.sales_orders?.[0]?.customer_id || selectedPo?.customer_id || null,
                 tech_pack: {
                     faces,
                     binsByFace,
@@ -958,9 +958,10 @@ const UnifiedDesignWorkflow: React.FC<UnifiedDesignWorkflowProps> = ({ standalon
         const poColumns = [
             { title: 'Mã PO', dataIndex: 'po_code', render: (t: any, r: any) => <b>{t}</b> },
             { title: 'Khách hàng', render: (r: any) => {
-                const customerName = r.plan?.sales_orders?.length > 0 
-                    ? Array.from(new Set(r.plan.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ') 
-                    : '';
+                let customerName = r.pfo?.sales_order?.customer?.name || r.pfo?.sales_order?.customer_name || '';
+                if (!customerName && r.plan?.sales_orders?.length > 0) {
+                    customerName = Array.from(new Set(r.plan.sales_orders.map((so: any) => so?.customer?.name || so?.customer_name).filter(Boolean))).join(', ');
+                }
                 return customerName || '-';
             }},
             { title: 'Nhà GC', dataIndex: ['supplier', 'name'] },
