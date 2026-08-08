@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Tag, Space, Modal, Form, Input, InputNumber, Select, DatePicker, message, Card, Statistic, Row, Col, Divider, Popconfirm, Empty, Tabs, Descriptions, List } from 'antd';
+import { Table, Button, Tag, Space, Modal, Form, Input, InputNumber, Select, DatePicker, message, Card, Statistic, Row, Col, Divider, Popconfirm, Empty, Tabs, Descriptions, Upload, Image } from 'antd';
+import type { UploadProps, UploadFile } from 'antd';
 import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, DeleteOutlined, ExperimentOutlined, BarChartOutlined, BugOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
+import imageCompression from 'browser-image-compression';
 
 const QCPage: React.FC = () => {
     const [inspections, setInspections] = useState<any[]>([]);
     const [summary, setSummary] = useState<any>(null);
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [pos, setPos] = useState<any[]>([]);
+    const [pos, setPos] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -30,6 +34,7 @@ const QCPage: React.FC = () => {
     const [form] = Form.useForm();
     const [defectForm] = Form.useForm();
     const [completeForm] = Form.useForm();
+    const [defectFileList, setDefectFileList] = useState<UploadFile[]>([]);
 
     const handleOpenCreateFromPO = (po: any) => {
         setSelectedPO(po);
@@ -54,16 +59,18 @@ const QCPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [res, sumRes, supRes, poRes] = await Promise.all([
+            const [res, sumRes, supRes, poRes, usersRes] = await Promise.all([
                 axios.get(`${API_URL}/qc`),
                 axios.get(`${API_URL}/qc/summary`),
                 axios.get(`${API_URL}/suppliers`),
-                axios.get(`${API_URL}/purchasing`)
+                axios.get(`${API_URL}/purchasing`),
+                axios.get(`${API_URL}/users`)
             ]);
             setInspections(Array.isArray(res.data) ? res.data : []);
             setSummary(sumRes.data);
             setSuppliers(Array.isArray(supRes.data) ? supRes.data : []);
             setPos(Array.isArray(poRes.data) ? poRes.data : []);
+            setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
         } catch (e) { console.error(e); }
         setLoading(false);
     };

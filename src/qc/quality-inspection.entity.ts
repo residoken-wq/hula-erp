@@ -77,6 +77,9 @@ export class QualityInspection {
   @Column({ type: 'date', nullable: true })
   inspection_date: string;
 
+  @Column({ type: 'timestamp', nullable: true })
+  completed_at: Date;
+
   @Column({ type: 'text', nullable: true })
   note: string;
 

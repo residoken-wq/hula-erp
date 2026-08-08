@@ -115,6 +115,11 @@ export class QCService {
     qc.supplier_score = data.supplier_score || null;
     qc.corrective_action = data.corrective_action || null;
     qc.note = data.note || qc.note;
+    if (data.completed_at) {
+        qc.completed_at = new Date(data.completed_at);
+    } else {
+        qc.completed_at = new Date();
+    }
 
     // Determine result
     if (qc.defect_rate <= 2) {
