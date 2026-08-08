@@ -1768,11 +1768,15 @@ const PurchasingPage: React.FC = () => {
                                                     { title: 'Số lượng SP', dataIndex: 'productQuantity', render: (v: number) => <b>{v || '-'}</b> },
                                                     { title: 'Số lần in / cắt', dataIndex: 'runs', render: (v: number, r: any) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+1 (lượt cuối)</small></span> : v },
                                                     { title: 'Số con/file', dataIndex: 'qtyPerFile', render: (v: number, r: any) => r.remainderQty > 0 ? <span>{v} <br/><small style={{color: '#888'}}>+ {r.remainderQty} (lượt cuối)</small></span> : v },
-                                                    { title: 'Tổng mét vải (m)', dataIndex: 'totalQty', render: (v: number) => v || '-' },
+                                                    { title: 'Tổng mét vải (m)', dataIndex: 'expectedTotalLength', render: (v: number) => <b style={{ color: '#52c41a' }}>{(Number(v || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b> },
                                                     { title: 'Khổ (cm)', dataIndex: 'width' },
                                                     { title: 'Kích thước / file (cm)', dataIndex: 'length', render: (v: number, r: any) => r.remainderQty > 0 ? <span><span style={{ color: '#cf1322' }}>{v?.toFixed(2)}</span> <br/><small style={{color: '#cf1322'}}>+ {r.remainderLength?.toFixed(2)} (lượt cuối)</small></span> : <span style={{ color: '#cf1322' }}>{v?.toFixed(2)}</span> },
-                                                    { title: 'Dự kiến cần (cm)', dataIndex: 'expectedTotalLength', render: (v: number) => <b style={{ color: '#1890ff' }}>{Number(v || 0).toFixed(2)}</b> },
-                                                    { title: 'Diện tích dư cuối (cm²)', dataIndex: 'wasteArea', render: (v: number) => Number(v || 0).toFixed(2) },
+                                                    { title: 'Dự kiến cần (m)', render: (r: any) => {
+                                                        const factor = item.material ? Number(item.material.conversion_factor || 1) : 1;
+                                                        const val = factor > 1 ? Number(((item.quantity || 0) / factor).toFixed(2)) : (item.quantity || 0);
+                                                        return <b style={{ color: '#1890ff' }}>{Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>;
+                                                    }},
+                                                    { title: 'Diện tích dư cuối (m²)', dataIndex: 'wasteArea', render: (v: number) => (Number(v || 0) / 10000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) },
                                                 ]}
                                             />
                                         </Card>
