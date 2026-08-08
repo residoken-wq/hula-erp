@@ -1659,6 +1659,11 @@ const PurchasingPage: React.FC = () => {
                                                     placeholder="Chọn sơ đồ In/Thêu/Rập..."
                                                     style={{ width: '100%', minWidth: 400 }}
                                                     value={r.print_design_id || r.print_design?.id}
+                                                    onDropdownVisibleChange={(open) => {
+                                                        if (open) {
+                                                            api.get(`/designs/print-designs`).then(res => setPrintDesigns(res.data)).catch(console.error);
+                                                        }
+                                                    }}
                                                     onChange={(val) => {
                                                         const newItems = [...editingItems];
                                                         newItems[index].print_design_id = val;
@@ -1690,12 +1695,25 @@ const PurchasingPage: React.FC = () => {
                                                         
                                                         setEditingItems(newItems);
                                                     }}
-                                                    options={printDesigns.map(pd => ({
-                                                        label: `[${pd.code}] ${pd.name} (${pd.type})`,
-                                                        value: pd.id
-                                                    }))}
-                                                    optionFilterProp="label"
-                                                />
+                                                    filterOption={(input, option) => {
+                                                        const text = option?.['data-search'] || '';
+                                                        return typeof text === 'string' && text.toLowerCase().includes(input.toLowerCase());
+                                                    }}
+                                                    popupMatchSelectWidth={false}
+                                                >
+                                                    {printDesigns.map(pd => (
+                                                        <Select.Option key={pd.id} value={pd.id} data-search={`[${pd.code}] ${pd.name} ${pd.type}`}>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                                                <div style={{ fontWeight: 'bold', whiteSpace: 'normal', lineHeight: '1.2' }}>{pd.name}</div>
+                                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                                    <span style={{ fontSize: '12px', color: '#888' }}>{pd.code}</span>
+                                                                    <Tag color={pd.type === 'PRINT' ? 'blue' : 'purple'} style={{ margin: 0, fontSize: 10, lineHeight: '14px' }}>{pd.type}</Tag>
+                                                                    {pd.created_at && <span style={{ fontSize: '11px', color: '#bfbfbf' }}>{new Date(pd.created_at).toLocaleDateString('vi-VN')}</span>}
+                                                                </div>
+                                                            </div>
+                                                        </Select.Option>
+                                                    ))}
+                                                </Select>
                                             )
                                         },
                                         {

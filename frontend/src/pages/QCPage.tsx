@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Table, Button, Tag, Space, Modal, Form, Input, InputNumber, Select, DatePicker, message, Card, Statistic, Row, Col, Divider, Popconfirm, Empty, Tabs, Descriptions, Upload, Image } from 'antd';
 import type { UploadProps, UploadFile } from 'antd';
 import { PlusOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, DeleteOutlined, ExperimentOutlined, BarChartOutlined, BugOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../utils/api';
 import dayjs from 'dayjs';
 import { API_URL } from '../config';
 import imageCompression from 'browser-image-compression';
@@ -59,11 +59,11 @@ const QCPage: React.FC = () => {
         setLoading(true);
         try {
             const [res, sumRes, supRes, poRes, usersRes] = await Promise.all([
-                axios.get(`${API_URL}/qc`),
-                axios.get(`${API_URL}/qc/summary`),
-                axios.get(`${API_URL}/suppliers`),
-                axios.get(`${API_URL}/purchasing`),
-                axios.get(`${API_URL}/users`)
+                api.get(`/qc`),
+                api.get(`/qc/summary`),
+                api.get(`/suppliers`),
+                api.get(`/purchasing`),
+                api.get(`/users`)
             ]);
             setInspections(Array.isArray(res.data) ? res.data : []);
             setSummary(sumRes.data);
@@ -78,7 +78,7 @@ const QCPage: React.FC = () => {
 
     const handleCreate = async (values: any) => {
         try {
-            await axios.post(`${API_URL}/qc`, {
+            await api.post(`/qc`, {
                 ...values,
                 inspection_date: values.inspection_date?.format('YYYY-MM-DD')
             });
@@ -92,7 +92,7 @@ const QCPage: React.FC = () => {
 
     const handleStartInspection = async (id: number) => {
         try {
-            await axios.post(`${API_URL}/qc/${id}/start`);
+            await api.post(`/qc/${id}/start`);
             message.success('Bắt đầu kiểm tra');
             fetchData();
             if (currentQC?.id === id) viewDetail(id);
@@ -107,7 +107,7 @@ const QCPage: React.FC = () => {
                 ...values,
                 image_url: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null
             };
-            await axios.post(`${API_URL}/qc/${currentQC.id}/defects`, payload);
+            await api.post(`/qc/${currentQC.id}/defects`, payload);
             message.success('Đã thêm lỗi');
             setIsDefectModalOpen(false);
             defectForm.resetFields();
@@ -128,7 +128,7 @@ const QCPage: React.FC = () => {
             const formData = new FormData();
             formData.append('file', compressedFile, compressedFile.name);
             
-            const res = await axios.post(`${API_URL}/upload/image`, formData, {
+            const res = await api.post(`/upload/image`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             onSuccess(res.data);
@@ -140,7 +140,7 @@ const QCPage: React.FC = () => {
 
     const handleRemoveDefect = async (defectId: number) => {
         try {
-            await axios.delete(`${API_URL}/qc/defects/${defectId}`);
+            await api.delete(`/qc/defects/${defectId}`);
             message.success('Đã xóa');
             viewDetail(currentQC.id);
         } catch (e) { message.error('Lỗi xóa'); }
@@ -153,7 +153,7 @@ const QCPage: React.FC = () => {
             completed_at: values.completed_at?.format('YYYY-MM-DD HH:mm:ss')
         };
         try {
-            await axios.post(`${API_URL}/qc/${currentQC.id}/complete`, completeData);
+            await api.post(`/qc/${currentQC.id}/complete`, completeData);
             message.success('Hoàn thành kiểm tra');
             setIsCompleteOpen(false);
             completeForm.resetFields();
@@ -164,7 +164,7 @@ const QCPage: React.FC = () => {
 
     const handleDelete = async (id: number) => {
         try {
-            await axios.delete(`${API_URL}/qc/${id}`);
+            await api.delete(`/qc/${id}`);
             message.success('Đã xóa phiếu QC');
             fetchData();
         } catch (e) { message.error('Lỗi xóa'); }
@@ -172,7 +172,7 @@ const QCPage: React.FC = () => {
 
     const viewDetail = async (id: number) => {
         try {
-            const res = await axios.get(`${API_URL}/qc/${id}`);
+            const res = await api.get(`/qc/${id}`);
             setCurrentQC(res.data);
             setIsDetailOpen(true);
         } catch (e) { message.error('Lỗi tải chi tiết'); }
