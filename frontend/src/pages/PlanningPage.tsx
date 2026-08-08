@@ -123,7 +123,7 @@ const PlanningPage: React.FC = () => {
         setUsePfoQtyForBom(usePfoQty);
         setLoading(true);
         try {
-            const previewRes = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}/preview-btp?usePfoQty=${usePfoQty}`);
+            const previewRes = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}/preview-btp?usePfoQty=${usePfoQty}&t=${Date.now()}`);
             if (previewRes.data && previewRes.data.length > 0) {
                 setBtpPreviewData(previewRes.data);
                 

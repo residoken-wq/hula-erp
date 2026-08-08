@@ -9,6 +9,7 @@ interface PfoProcessRoutingProps {
     pfoId: number;
     existingMilestones?: any[];
     salesOrderItems?: any[];
+    customQuantities?: Record<string, number>;
     suppliers: any[];
     loading?: boolean;
     onSaveRouting: (routingData: any[]) => void;
@@ -19,6 +20,7 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
     pfoId,
     existingMilestones = [],
     salesOrderItems = [],
+    customQuantities = {},
     suppliers = [],
     loading,
     onSaveRouting,
@@ -27,8 +29,33 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
     const [routingRows, setRoutingRows] = useState<any[]>([]);
 
     useEffect(() => {
-        setRoutingRows([...existingMilestones]);
-    }, [existingMilestones]);
+        const qtyMap: { [key: number]: number } = {};
+        (salesOrderItems || []).forEach((item: any) => {
+            const product = item.product;
+            if (!product) return;
+            const rootQty = customQuantities[product.id] !== undefined ? Number(customQuantities[product.id]) : Number(item.quantity || 1);
+            
+            if (product.components && product.components.length > 0) {
+                product.components.forEach((comp: any) => {
+                    const child = comp.child_product;
+                    if (child) {
+                        qtyMap[child.id] = customQuantities[child.id] !== undefined ? Number(customQuantities[child.id]) : rootQty * (Number(comp.quantity) || 1);
+                    }
+                });
+            } else {
+                qtyMap[product.id] = rootQty;
+            }
+        });
+
+        const updatedRows = existingMilestones.map(row => {
+            if (row.product_id && qtyMap[row.product_id] !== undefined) {
+                return { ...row, planned_quantity: qtyMap[row.product_id] };
+            }
+            return row;
+        });
+
+        setRoutingRows(updatedRows);
+    }, [existingMilestones, salesOrderItems, customQuantities]);
 
     const handleVendorChange = (id: string | number, vendorId: number) => {
         const vendorObj = suppliers.find(s => s.id === vendorId);
@@ -176,14 +203,17 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
             const product = item.product;
             if (!product) return;
             const qty = Number(item.quantity) || 1;
+            
+            const rootQty = customQuantities[product.id] !== undefined ? Number(customQuantities[product.id]) : qty;
 
             if (product.components && product.components.length > 0) {
                 product.components.forEach((comp: any) => {
                     const child = comp.child_product;
                     if (child) {
+                        const childQty = customQuantities[child.id] !== undefined ? Number(customQuantities[child.id]) : rootQty * (Number(comp.quantity) || 1);
                         groups[child.id] = {
                             productName: child.name || child.sku,
-                            plannedQuantity: qty * (Number(comp.quantity) || 1),
+                            plannedQuantity: childQty,
                             rows: []
                         };
                     }
@@ -191,7 +221,7 @@ const PfoProcessRouting: React.FC<PfoProcessRoutingProps> = ({
             } else {
                 groups[product.id] = {
                     productName: product.name || product.sku,
-                    plannedQuantity: qty,
+                    plannedQuantity: rootQty,
                     rows: []
                 };
             }

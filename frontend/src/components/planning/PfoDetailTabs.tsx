@@ -393,6 +393,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                                 pfoId={selectedPfo.id}
                                 existingMilestones={pfoDetails?.milestones || selectedPfo?.milestones || []}
                                 salesOrderItems={pfoDetails?.sales_order?.items || []}
+                                customQuantities={pfoDetails?.custom_quantities || {}}
                                 suppliers={suppliers}
                                 loading={loading}
                                 onSaveRouting={handleSaveRouting}
