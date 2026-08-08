@@ -12,7 +12,6 @@ const QCPage: React.FC = () => {
     const [summary, setSummary] = useState<any>(null);
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [pos, setPos] = useState<any[]>([]);
-    const [pos, setPos] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
