@@ -489,7 +489,7 @@ export class PfoBomEngineService {
         const previewData = [];
         for (const [productId, data] of btpReqMap.entries()) {
             const stock = await this.pfoRepo.manager.query(
-                `SELECT COALESCE(SUM(quantity), 0) as total FROM inventory_stocks WHERE item_type = 'PRODUCT' AND item_id = ? AND warehouse_code = 'KHO_BTP'`,
+                `SELECT COALESCE(SUM(quantity), 0) as total FROM inventory_stocks WHERE item_type = 'PRODUCT' AND item_id = $1 AND warehouse_code = 'KHO_BTP'`,
                 [productId]
             );
             
