@@ -81,13 +81,17 @@ export class PlanningController {
 
   // --- PFO BOM APIs (Gate 2) ---
   @Get('pfo/:id/preview-btp')
-  previewBtpRequirements(@Param('id') id: string) {
-    return this.bomSvc.previewBtpRequirements(Number(id));
+  previewBtpRequirements(@Param('id') id: string, @Query('usePfoQty') usePfoQty?: string) {
+    return this.bomSvc.previewBtpRequirements(Number(id), usePfoQty === 'true');
   }
 
   @Post('pfo/:id/calculate-bom')
-  calculateBom(@Param('id') id: string, @Body('btpOverrides') btpOverrides?: Record<string, number>) {
-    return this.bomSvc.calculateMaterialRequirements(Number(id), btpOverrides);
+  calculateBom(
+    @Param('id') id: string, 
+    @Body('btpOverrides') btpOverrides?: Record<string, number>,
+    @Body('usePfoQty') usePfoQty?: boolean
+  ) {
+    return this.bomSvc.calculateMaterialRequirements(Number(id), btpOverrides, usePfoQty);
   }
 
   @Post('pfo/:id/save-requirements')

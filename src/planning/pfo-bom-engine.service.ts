@@ -27,7 +27,7 @@ export class PfoBomEngineService {
      * Gate 2: BOM Explosion & Material Requirement Calculation
      * Dựa vào SO Items liên kết với PFO, bóc tách định mức vật tư trực tiếp từ Product BOMs & Combos.
      */
-    async calculateMaterialRequirements(pfoId: number, btpOverrides?: Record<string, number>) {
+    async calculateMaterialRequirements(pfoId: number, btpOverrides?: Record<string, number>, usePfoQty: boolean = false) {
         const id = Number(pfoId);
         let pfo = await this.pfoRepo.findOne({
             where: { id },
@@ -71,9 +71,11 @@ export class PfoBomEngineService {
                 
                 if (!product) continue;
                 
-                const orderQty = Number(item.quantity || pfo.quantity || 1);
+                const orderQty = usePfoQty 
+                    ? Number(pfo.quantity || item.quantity || 1) 
+                    : Number(item.quantity || pfo.quantity || 1);
                 totalOrderQuantity += orderQty;
-                console.log(`[BOM-ENGINE] Processing product ${product.id} - ${product.sku} - ${product.product_type}`);
+                console.log(`[BOM-ENGINE] Processing product ${product.id} - ${product.sku} - ${product.product_type} with qty ${orderQty}`);
 
                 // Queue nổ BOM (hỗ trợ đệ quy Combo và BTP)
                 const queue: { productId: number; multiplier: number }[] = [
@@ -92,8 +94,8 @@ export class PfoBomEngineService {
 
                     let explosionMultiplier = current.multiplier;
 
-                    // 2. Nếu là SEMI_FINISHED -> Ghi nhận nhu cầu Bán Thành Phẩm
-                    if (pType === 'SEMI_FINISHED') {
+                    // 2. Bất kỳ sản phẩm con nào (khác product gốc) cũng được coi là Bán Thành Phẩm để áp dụng BTP overrides
+                    if (current.productId !== product.id) {
                         const overrideQty = btpOverrides && btpOverrides[targetProd.id] !== undefined 
                             ? Number(btpOverrides[targetProd.id]) 
                             : 0;
@@ -390,7 +392,7 @@ export class PfoBomEngineService {
         return { message: 'Đã lưu cấu hình vật tư' };
     }
 
-    async previewBtpRequirements(pfoId: number) {
+    async previewBtpRequirements(pfoId: number, usePfoQty: boolean = false) {
         const id = Number(pfoId);
         let pfo = await this.pfoRepo.findOne({
             where: { id },
@@ -426,7 +428,9 @@ export class PfoBomEngineService {
                 
                 if (!product) continue;
                 
-                const orderQty = Number(item.quantity || pfo.quantity || 1);
+                const orderQty = usePfoQty 
+                    ? Number(pfo.quantity || item.quantity || 1) 
+                    : Number(item.quantity || pfo.quantity || 1);
                 
                 const queue: { productId: number; multiplier: number }[] = [
                     { productId: product.id, multiplier: orderQty }
@@ -440,9 +444,8 @@ export class PfoBomEngineService {
                     const targetProd = await this.productRepo.findOne({ where: { id: current.productId } });
                     if (!targetProd) continue;
 
-                    const pType = targetProd.product_type ? targetProd.product_type.toUpperCase() : 'STANDARD';
-
-                    if (pType === 'SEMI_FINISHED') {
+                    // Bất kỳ sản phẩm con nào nằm trong BOM cũng được coi là BTP (Semi-Finished) cho lệnh này
+                    if (current.productId !== product.id) {
                         const existingProd = btpReqMap.get(targetProd.id);
                         if (existingProd) {
                             existingProd.qty += current.multiplier;
@@ -480,10 +483,31 @@ export class PfoBomEngineService {
                 [productId]
             );
             
+            let btpName = data.product.name;
+            try {
+                const pos = await this.pfoRepo.manager.query(`
+                    SELECT semi_finished_products 
+                    FROM purchase_orders 
+                    WHERE type = 'OUTSOURCING' 
+                    AND semi_finished_products IS NOT NULL
+                    LIMIT 10
+                `);
+                for (const row of pos) {
+                    const list = typeof row.semi_finished_products === 'string' ? JSON.parse(row.semi_finished_products) : row.semi_finished_products;
+                    if (Array.isArray(list)) {
+                        const btp = list.find((b: any) => Number(b.product_id) === Number(productId));
+                        if (btp && btp.btp_name) {
+                            btpName = btp.btp_name;
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {}
+            
             previewData.push({
                 product_id: productId,
                 sku: data.product.sku,
-                name: data.product.name,
+                name: btpName,
                 required_qty: data.qty,
                 available_stock: Number(stock[0].total || 0)
             });

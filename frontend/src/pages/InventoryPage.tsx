@@ -638,7 +638,15 @@ const InventoryPage: React.FC = () => {
             render: (t: string) => t === 'PRODUCT' ? <Tag color="blue">Sản phẩm</Tag> : <Tag color="cyan">Nguyên liệu</Tag>
         },
         { title: 'Mã', dataIndex: 'sku', render: (t: any, r: any) => <b>{t || r.code}</b> },
-        { title: 'Tên hàng', dataIndex: 'name' },
+        { title: 'Tên hàng', dataIndex: 'name', render: (val: string, r: any) => {
+            if (whCode === 'KHO_BTP' && r.item_type === 'PRODUCT') {
+                const btpStock = stocks.find(s => s.item_type === 'PRODUCT' && Number(s.item_id) === Number(r.id) && s.warehouse_code === 'KHO_BTP');
+                if (btpStock && btpStock.btp_name) {
+                    return <span style={{ color: '#1890ff', fontWeight: 500 }}>{btpStock.btp_name}</span>;
+                }
+            }
+            return val;
+        } },
         { title: 'ĐVT', dataIndex: 'unit', align: 'center' as const, width: 80 },
         {
             title: whCode ? `Tồn ${WAREHOUSES.find(w => w.code === whCode)?.name}` : 'Tổng Tồn Hệ Thống',

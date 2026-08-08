@@ -116,11 +116,14 @@ const PlanningPage: React.FC = () => {
         setLoading(false);
     };
 
-    const handleCalculateBom = async () => {
+    const [usePfoQtyForBom, setUsePfoQtyForBom] = useState(false);
+
+    const handleCalculateBom = async (usePfoQty: boolean = false) => {
         if (!selectedPfo) return;
+        setUsePfoQtyForBom(usePfoQty);
         setLoading(true);
         try {
-            const previewRes = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}/preview-btp`);
+            const previewRes = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}/preview-btp?usePfoQty=${usePfoQty}`);
             if (previewRes.data && previewRes.data.length > 0) {
                 setBtpPreviewData(previewRes.data);
                 
@@ -132,7 +135,7 @@ const PlanningPage: React.FC = () => {
                 
                 setIsBtpPreviewModalOpen(true);
             } else {
-                await proceedCalculateBom({});
+                await proceedCalculateBom({}, usePfoQty);
             }
         } catch (e: any) {
             message.error('Lỗi lấy trước thông tin BTP');
@@ -140,11 +143,11 @@ const PlanningPage: React.FC = () => {
         setLoading(false);
     };
 
-    const proceedCalculateBom = async (overrides: Record<string, number>) => {
+    const proceedCalculateBom = async (overrides: Record<string, number>, usePfoQty: boolean = usePfoQtyForBom) => {
         if (!selectedPfo) return;
         setLoading(true);
         try {
-            const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/calculate-bom`, { btpOverrides: overrides });
+            const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/calculate-bom`, { btpOverrides: overrides, usePfoQty });
             message.success(res.data.message || 'Đã bóc tách BOM thành công!');
             
             const newReqs = res.data.requirements || [];
@@ -359,10 +362,19 @@ const PlanningPage: React.FC = () => {
                         <Button 
                             type="primary" 
                             icon={<CalculatorOutlined />}
-                            onClick={handleCalculateBom}
+                            onClick={() => handleCalculateBom(false)}
                             loading={loading}
                         >
-                            Tính Toán Lại BOM
+                            Tính BOM theo SO
+                        </Button>
+                        <Button 
+                            type="primary" 
+                            ghost
+                            icon={<CalculatorOutlined />}
+                            onClick={() => handleCalculateBom(true)}
+                            loading={loading}
+                        >
+                            Tính BOM theo KHSX
                         </Button>
                         <Button 
                             type="primary" 

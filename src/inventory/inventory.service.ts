@@ -65,9 +65,35 @@ export class InventoryService {
     return { success: true, message: 'Đã xóa đơn vị vận chuyển' };
   }
 
-  // Lấy chi tiết tồn kho của tất cả item
   async getAllStocks() {
-    return this.stockRepo.find();
+    const stocks = await this.stockRepo.find();
+    
+    for (const stock of stocks) {
+      if (stock.warehouse_code === 'KHO_BTP' && stock.item_type === 'PRODUCT') {
+        try {
+          const pos = await this.stockRepo.manager.query(`
+            SELECT semi_finished_products 
+            FROM purchase_orders 
+            WHERE type = 'OUTSOURCING' 
+            AND semi_finished_products IS NOT NULL
+            LIMIT 10
+          `);
+          
+          for (const row of pos) {
+            const list = typeof row.semi_finished_products === 'string' ? JSON.parse(row.semi_finished_products) : row.semi_finished_products;
+            if (Array.isArray(list)) {
+              const btp = list.find((b: any) => Number(b.product_id) === Number(stock.item_id));
+              if (btp && btp.btp_name) {
+                (stock as any).btp_name = btp.btp_name;
+                break;
+              }
+            }
+          }
+        } catch (e) {}
+      }
+    }
+    
+    return stocks;
   }
 
   async getHistory() {
