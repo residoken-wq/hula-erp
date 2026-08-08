@@ -25,10 +25,31 @@ const QCPage: React.FC = () => {
     const [currentQC, setCurrentQC] = useState<any>(null);
     const [isDefectModalOpen, setIsDefectModalOpen] = useState(false);
     const [isCompleteOpen, setIsCompleteOpen] = useState(false);
+    const [selectedPO, setSelectedPO] = useState<any>(null);
 
     const [form] = Form.useForm();
     const [defectForm] = Form.useForm();
     const [completeForm] = Form.useForm();
+
+    const handleOpenCreateFromPO = (po: any) => {
+        setSelectedPO(po);
+        const totalQty = (po.items || []).reduce((sum: number, item: any) => sum + (Number(item.quantity) || 0), 0);
+        form.setFieldsValue({
+            type: 'OUTSOURCING',
+            po_id: po.id,
+            supplier_id: po.supplier_id,
+            total_quantity: totalQty,
+            inspection_date: dayjs()
+        });
+        setIsCreateOpen(true);
+    };
+
+    const handleCreateQC = () => {
+        setSelectedPO(null);
+        form.resetFields();
+        form.setFieldsValue({ type: 'OUTSOURCING', inspection_date: dayjs() });
+        setIsCreateOpen(true);
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -57,6 +78,7 @@ const QCPage: React.FC = () => {
             });
             message.success('Đã tạo phiếu kiểm tra chất lượng');
             setIsCreateOpen(false);
+            setSelectedPO(null);
             form.resetFields();
             fetchData();
         } catch (e) { message.error('Lỗi tạo phiếu QC'); }
@@ -143,7 +165,7 @@ const QCPage: React.FC = () => {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h2 style={{ margin: 0 }}>🔬 Kiểm Tra Chất Lượng (QC)</h2>
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsCreateOpen(true)}>Tạo Phiếu QC</Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateQC}>Tạo Phiếu QC</Button>
             </div>
 
             {/* SUMMARY CARDS */}
@@ -158,7 +180,33 @@ const QCPage: React.FC = () => {
                 </Row>
             )}
 
-            <Tabs defaultActiveKey="list" items={[
+            <Tabs defaultActiveKey="po_gc" items={[
+                {
+                    key: 'po_gc', label: '🛒 Danh sách PO GC Cần QC', children: (
+                        <Table
+                            dataSource={pos.filter(p => p.type === 'OUTSOURCING' && p.status !== 'DRAFT')}
+                            rowKey="id"
+                            size="small"
+                            scroll={{ x: 'max-content' }}
+                            columns={[
+                                { title: 'Mã PO', dataIndex: 'po_code', width: 140, render: (t: any) => <b>{t}</b> },
+                                { title: 'NCC/GC', render: (_: any, r: any) => r.supplier?.name || '-' },
+                                { title: 'Trạng thái', dataIndex: 'status', width: 120, align: 'center' as const, render: (t: string) => <Tag color={t === 'DELIVERED' ? 'green' : 'blue'}>{t}</Tag> },
+                                { title: 'Tổng SL', render: (_: any, r: any) => {
+                                    const qty = (r.items || []).reduce((sum: number, i: any) => sum + (Number(i.quantity) || 0), 0);
+                                    return <b>{qty.toLocaleString()}</b>;
+                                }, width: 100, align: 'right' as const },
+                                { title: 'Ngày tạo', dataIndex: 'created_at', width: 100, render: (t: any) => t ? dayjs(t).format('DD/MM/YY') : '-' },
+                                {
+                                    title: '', key: 'act', width: 120, align: 'right' as const,
+                                    render: (r: any) => (
+                                        <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => handleOpenCreateFromPO(r)}>Tạo QC</Button>
+                                    )
+                                }
+                            ]}
+                        />
+                    )
+                },
                 {
                     key: 'list', label: '📋 Danh sách Phiếu QC', children: (
                         <Table
@@ -241,7 +289,7 @@ const QCPage: React.FC = () => {
             ]} />
 
             {/* CREATE MODAL */}
-            <Modal title="Tạo Phiếu Kiểm Tra Chất Lượng" open={isCreateOpen} onCancel={() => setIsCreateOpen(false)} onOk={() => form.submit()} okText="Tạo Phiếu">
+            <Modal title="Tạo Phiếu Kiểm Tra Chất Lượng" open={isCreateOpen} onCancel={() => { setIsCreateOpen(false); setSelectedPO(null); }} onOk={() => form.submit()} okText="Tạo Phiếu">
                 <Form form={form} layout="vertical" onFinish={handleCreate} initialValues={{ type: 'OUTSOURCING' }}>
                     <Row gutter={16}>
                         <Col xs={24} md={12}>
@@ -263,35 +311,38 @@ const QCPage: React.FC = () => {
                     <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.type !== currentValues.type}>
                         {({ getFieldValue }) => {
                             const type = getFieldValue('type');
-                            if (type === 'OUTSOURCING' || type === 'INCOMING') {
-                                return (
-                                    <Form.Item name="po_id" label="Liên kết Đơn Mua / Gia công (PO) - Tự động điền NCC & SL">
-                                        <Select
-                                            showSearch
-                                            optionFilterProp="label"
-                                            placeholder="Chọn PO..."
-                                            allowClear
-                                            onChange={(val) => {
-                                                const po = pos.find(p => p.id === val);
-                                                if (po) {
-                                                    const totalQty = (po.items || []).reduce((sum: number, item: any) => sum + (Number(item.quantity) || 0), 0);
-                                                    form.setFieldsValue({
-                                                        supplier_id: po.supplier_id,
-                                                        total_quantity: totalQty
-                                                    });
-                                                }
-                                            }}
-                                            options={pos
-                                                .filter(p => (type === 'OUTSOURCING' ? p.type === 'OUTSOURCING' : p.type === 'MATERIAL') && p.status !== 'DRAFT')
+                            // Always show PO dropdown so user can link POs for FINAL, OUTSOURCING, and INCOMING QC
+                            return (
+                                <Form.Item name="po_id" label="Liên kết Đơn Mua / Gia công (PO) - Tự động điền NCC & SL">
+                                    <Select
+                                        showSearch
+                                        optionFilterProp="label"
+                                        placeholder="Chọn PO..."
+                                        allowClear
+                                        disabled={!!selectedPO}
+                                        onChange={(val) => {
+                                            const po = pos.find(p => p.id === val);
+                                            if (po) {
+                                                const totalQty = (po.items || []).reduce((sum: number, item: any) => sum + (Number(item.quantity) || 0), 0);
+                                                form.setFieldsValue({
+                                                    supplier_id: po.supplier_id,
+                                                    total_quantity: totalQty
+                                                });
+                                            }
+                                        }}
+                                        options={
+                                            selectedPO 
+                                            ? [{ value: selectedPO.id, label: `${selectedPO.po_code} - ${selectedPO.supplier?.name || 'Không rõ NCC'} - ${selectedPO.status}` }]
+                                            : pos
+                                                .filter(p => (type === 'INCOMING' ? p.type === 'MATERIAL' : p.type === 'OUTSOURCING') && p.status !== 'DRAFT')
                                                 .map(p => ({
                                                     value: p.id,
                                                     label: `${p.po_code} - ${p.supplier?.name || 'Không rõ NCC'} - ${p.status}`
-                                                }))}
-                                        />
-                                    </Form.Item>
-                                );
-                            }
-                            return null;
+                                                }))
+                                        }
+                                    />
+                                </Form.Item>
+                            );
                         }}
                     </Form.Item>
                     <Row gutter={16}>
