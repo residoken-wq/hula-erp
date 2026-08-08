@@ -11,6 +11,13 @@ const QCPage: React.FC = () => {
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [pos, setPos] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Modal states
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -141,13 +148,13 @@ const QCPage: React.FC = () => {
 
             {/* SUMMARY CARDS */}
             {summary && (
-                <Row gutter={16} style={{ marginBottom: 16 }}>
-                    <Col span={4}><Card size="small"><Statistic title="Tổng phiếu" value={summary.total_inspections} /></Card></Col>
-                    <Col span={4}><Card size="small"><Statistic title="Chờ kiểm" value={summary.pending} valueStyle={{ color: '#999' }} /></Card></Col>
-                    <Col span={4}><Card size="small"><Statistic title="Đang kiểm" value={summary.in_progress} valueStyle={{ color: '#1890ff' }} /></Card></Col>
-                    <Col span={4}><Card size="small"><Statistic title="Đạt" value={summary.passed} valueStyle={{ color: '#52c41a' }} /></Card></Col>
-                    <Col span={4}><Card size="small"><Statistic title="Đạt ĐK" value={summary.conditional} valueStyle={{ color: '#fa8c16' }} /></Card></Col>
-                    <Col span={4}><Card size="small"><Statistic title="Không đạt" value={summary.failed} valueStyle={{ color: '#ff4d4f' }} /></Card></Col>
+                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                    <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Tổng phiếu" value={summary.total_inspections} /></Card></Col>
+                    <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Chờ kiểm" value={summary.pending} valueStyle={{ color: '#999' }} /></Card></Col>
+                    <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Đang kiểm" value={summary.in_progress} valueStyle={{ color: '#1890ff' }} /></Card></Col>
+                    <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Đạt" value={summary.passed} valueStyle={{ color: '#52c41a' }} /></Card></Col>
+                    <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Đạt ĐK" value={summary.conditional} valueStyle={{ color: '#fa8c16' }} /></Card></Col>
+                    <Col xs={12} sm={8} md={4}><Card size="small"><Statistic title="Không đạt" value={summary.failed} valueStyle={{ color: '#ff4d4f' }} /></Card></Col>
                 </Row>
             )}
 
@@ -159,6 +166,7 @@ const QCPage: React.FC = () => {
                             rowKey="id"
                             loading={loading}
                             size="small"
+                            scroll={{ x: 'max-content' }}
                             columns={[
                                 { title: 'Mã QC / PO', width: 160, render: (r: any) => (
                                     <div>
@@ -201,6 +209,7 @@ const QCPage: React.FC = () => {
                                     rowKey="supplier_id"
                                     size="small"
                                     pagination={false}
+                                    scroll={{ x: 'max-content' }}
                                     columns={[
                                         { title: 'Nhà cung cấp', dataIndex: 'supplier_name' },
                                         { title: 'Tổng phiếu', dataIndex: 'total', width: 80, align: 'center' as const },
@@ -235,7 +244,7 @@ const QCPage: React.FC = () => {
             <Modal title="Tạo Phiếu Kiểm Tra Chất Lượng" open={isCreateOpen} onCancel={() => setIsCreateOpen(false)} onOk={() => form.submit()} okText="Tạo Phiếu">
                 <Form form={form} layout="vertical" onFinish={handleCreate} initialValues={{ type: 'OUTSOURCING' }}>
                     <Row gutter={16}>
-                        <Col span={12}>
+                        <Col xs={24} md={12}>
                             <Form.Item name="type" label="Loại kiểm tra" rules={[{ required: true }]}>
                                 <Select options={[
                                     { value: 'OUTSOURCING', label: '🏭 Hàng gia công' },
@@ -244,7 +253,7 @@ const QCPage: React.FC = () => {
                                 ]} />
                             </Form.Item>
                         </Col>
-                        <Col span={12}>
+                        <Col xs={24} md={12}>
                             <Form.Item name="supplier_id" label="NCC / Nhà gia công">
                                 <Select showSearch optionFilterProp="label" placeholder="Chọn NCC..." allowClear
                                     options={suppliers.map(s => ({ value: s.id, label: s.name }))} />
@@ -286,17 +295,17 @@ const QCPage: React.FC = () => {
                         }}
                     </Form.Item>
                     <Row gutter={16}>
-                        <Col span={8}>
+                        <Col xs={24} md={8}>
                             <Form.Item name="total_quantity" label="Tổng SL kiểm" rules={[{ required: true }]}>
                                 <InputNumber min={1} style={{ width: '100%' }} />
                             </Form.Item>
                         </Col>
-                        <Col span={8}>
+                        <Col xs={24} md={8}>
                             <Form.Item name="inspector" label="Người kiểm tra">
                                 <Input placeholder="Họ tên người kiểm..." />
                             </Form.Item>
                         </Col>
-                        <Col span={8}>
+                        <Col xs={24} md={8}>
                             <Form.Item name="inspection_date" label="Ngày kiểm">
                                 <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
                             </Form.Item>
@@ -329,7 +338,7 @@ const QCPage: React.FC = () => {
             >
                 {currentQC && (
                     <>
-                        <Descriptions bordered size="small" column={3}>
+                        <Descriptions bordered size="small" column={isMobile ? 1 : 3}>
                             <Descriptions.Item label="Loại"><Tag color="purple">{currentQC.type === 'OUTSOURCING' ? 'Gia công' : currentQC.type === 'INCOMING' ? 'NPL' : 'Thành phẩm'}</Tag></Descriptions.Item>
                             <Descriptions.Item label="Trạng thái"><Tag color={statusColor(currentQC.status)}>{statusLabel(currentQC.status)}</Tag></Descriptions.Item>
                             <Descriptions.Item label="Ngày kiểm">{currentQC.inspection_date ? dayjs(currentQC.inspection_date).format('DD/MM/YYYY') : '-'}</Descriptions.Item>
@@ -338,11 +347,11 @@ const QCPage: React.FC = () => {
                             <Descriptions.Item label="Người kiểm">{currentQC.inspector || '-'}</Descriptions.Item>
                         </Descriptions>
 
-                        <Row gutter={16} style={{ margin: '16px 0' }}>
-                            <Col span={6}><Card size="small"><Statistic title="Tổng SL" value={currentQC.total_quantity} /></Card></Col>
-                            <Col span={6}><Card size="small"><Statistic title="Đã kiểm" value={currentQC.inspected_quantity} /></Card></Col>
-                            <Col span={6}><Card size="small"><Statistic title="Đạt" value={currentQC.passed_quantity} valueStyle={{ color: '#52c41a' }} /></Card></Col>
-                            <Col span={6}><Card size="small"><Statistic title="Lỗi" value={currentQC.defect_quantity} valueStyle={{ color: '#ff4d4f' }} suffix={<small>({Number(currentQC.defect_rate).toFixed(1)}%)</small>} /></Card></Col>
+                        <Row gutter={[16, 16]} style={{ margin: '16px 0' }}>
+                            <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="Tổng SL" value={currentQC.total_quantity} /></Card></Col>
+                            <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="Đã kiểm" value={currentQC.inspected_quantity} /></Card></Col>
+                            <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="Đạt" value={currentQC.passed_quantity} valueStyle={{ color: '#52c41a' }} /></Card></Col>
+                            <Col xs={12} sm={12} md={6}><Card size="small"><Statistic title="Lỗi" value={currentQC.defect_quantity} valueStyle={{ color: '#ff4d4f' }} suffix={<small>({Number(currentQC.defect_rate).toFixed(1)}%)</small>} /></Card></Col>
                         </Row>
 
                         <Divider orientation="left" style={{ fontSize: 13 }}>Danh sách Lỗi phát hiện</Divider>
@@ -352,6 +361,7 @@ const QCPage: React.FC = () => {
                                 rowKey="id"
                                 size="small"
                                 pagination={false}
+                                scroll={{ x: 'max-content' }}
                                 columns={[
                                     { title: 'Loại lỗi', dataIndex: 'defect_type' },
                                     { title: 'Mức độ', dataIndex: 'severity', width: 100, align: 'center' as const, render: (t: string) => <Tag color={t === 'CRITICAL' ? 'red' : t === 'MAJOR' ? 'orange' : 'default'}>{t === 'CRITICAL' ? 'Nghiêm trọng' : t === 'MAJOR' ? 'Nặng' : 'Nhẹ'}</Tag> },
@@ -399,7 +409,7 @@ const QCPage: React.FC = () => {
                         />
                     </Form.Item>
                     <Row gutter={16}>
-                        <Col span={12}>
+                        <Col xs={24} md={12}>
                             <Form.Item name="severity" label="Mức độ" initialValue="MINOR">
                                 <Select options={[
                                     { value: 'MINOR', label: '🟡 Nhẹ' },
@@ -408,7 +418,7 @@ const QCPage: React.FC = () => {
                                 ]} />
                             </Form.Item>
                         </Col>
-                        <Col span={12}>
+                        <Col xs={24} md={12}>
                             <Form.Item name="quantity" label="Số lượng lỗi" rules={[{ required: true }]}>
                                 <InputNumber min={1} style={{ width: '100%' }} />
                             </Form.Item>
@@ -432,12 +442,12 @@ const QCPage: React.FC = () => {
             <Modal title="Hoàn thành Kiểm Tra" open={isCompleteOpen} onCancel={() => setIsCompleteOpen(false)} onOk={() => completeForm.submit()} okText="Xác nhận">
                 <Form form={completeForm} layout="vertical" onFinish={handleComplete}>
                     <Row gutter={16}>
-                        <Col span={12}>
+                        <Col xs={24} md={12}>
                             <Form.Item name="inspected_quantity" label="SL đã kiểm" rules={[{ required: true }]}>
                                 <InputNumber min={0} style={{ width: '100%' }} />
                             </Form.Item>
                         </Col>
-                        <Col span={12}>
+                        <Col xs={24} md={12}>
                             <Form.Item name="passed_quantity" label="SL đạt" rules={[{ required: true }]}>
                                 <InputNumber min={0} style={{ width: '100%' }} />
                             </Form.Item>
