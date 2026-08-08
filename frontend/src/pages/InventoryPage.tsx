@@ -3,7 +3,7 @@ import { Table, Button, message, Card, Modal, Form, Input, Select, InputNumber, 
 import {
     ReloadOutlined, SwapOutlined, HistoryOutlined,
     AppstoreOutlined, ArrowUpOutlined, ArrowDownOutlined,
-    InboxOutlined, ShopOutlined, AlertOutlined, CheckCircleOutlined, CarOutlined, PlusOutlined, EditOutlined, DeleteOutlined
+    InboxOutlined, ShopOutlined, AlertOutlined, CheckCircleOutlined, CarOutlined, PlusOutlined, EditOutlined, DeleteOutlined, InfoCircleOutlined
 } from '@ant-design/icons';
 import api from '../utils/api';
 import dayjs from 'dayjs';
@@ -53,6 +53,11 @@ const InventoryPage: React.FC = () => {
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [transferForm] = Form.useForm();
     const [transferTarget, setTransferTarget] = useState<{ item: any, fromWh: string, toWh: string, title: string } | null>(null);
+
+    // --- CONVERT BTP MODAL STATE ---
+    const [isConvertBtpModalOpen, setIsConvertBtpModalOpen] = useState(false);
+    const [convertBtpForm] = Form.useForm();
+    const [convertBtpTarget, setConvertBtpTarget] = useState<any>(null);
 
     // --- CARRIER MODAL STATE ---
     const [isCarrierModalOpen, setIsCarrierModalOpen] = useState(false);
@@ -200,6 +205,36 @@ const InventoryPage: React.FC = () => {
             fetchData();
         } catch (e) {
             message.error('Lỗi chuyển kho');
+        }
+    };
+
+    // --- CONVERT BTP LOGIC ---
+    const openConvertBtpModal = (record: any) => {
+        setConvertBtpTarget(record);
+        convertBtpForm.setFieldsValue({
+            sourceSku: record.sku,
+            quantity: 1,
+            targetSku: undefined
+        });
+        setIsConvertBtpModalOpen(true);
+    };
+
+    const handleConvertBtp = async () => {
+        try {
+            const values = await convertBtpForm.validateFields();
+            if (!convertBtpTarget) return;
+
+            await api.post('/inventory/convert-btp', {
+                sourceSku: values.sourceSku,
+                targetSku: values.targetSku,
+                quantity: values.quantity
+            });
+
+            message.success('Chuyển đổi BTP thành công');
+            setIsConvertBtpModalOpen(false);
+            fetchData();
+        } catch (e: any) {
+            message.error(e.response?.data?.message || 'Lỗi chuyển đổi BTP');
         }
     };
 
@@ -610,6 +645,11 @@ const InventoryPage: React.FC = () => {
                             <Button size="small" type="primary" ghost icon={<InboxOutlined />} title="Tái nhập kho tốt" onClick={() => openTransferModal(r, 'RE_IMPORT')} />
                             <Button size="small" danger icon={<ShopOutlined />} title="Thanh lý" onClick={() => openTransferModal(r, 'LIQUIDATE')} />
                         </>
+                    )}
+
+                    {/* KHO BTP: NÚT CHUYỂN ĐỔI */}
+                    {whCode === 'KHO_BTP' && r.item_type === 'PRODUCT' && (
+                        <Button size="small" type="primary" ghost icon={<SwapOutlined />} title="Chuyển đổi BTP" onClick={() => openConvertBtpModal(r)} />
                     )}
 
                     {/* KHO THƯỜNG HOẶC ALL: HIỆN NÚT BÁO LỖI (CHỈ CHO PRODUCT) */}
@@ -1411,6 +1451,48 @@ const InventoryPage: React.FC = () => {
 
                     <Form.Item name="note" label="Ghi chú / Lý do">
                         <Input.TextArea rows={2} placeholder="VD: Hàng bị móp méo / Đã sửa xong..." />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* MODAL CHUYỂN ĐỔI BTP */}
+            <Modal
+                title={`Chuyển đổi BTP: ${convertBtpTarget?.name || ''}`}
+                open={isConvertBtpModalOpen}
+                onCancel={() => setIsConvertBtpModalOpen(false)}
+                onOk={handleConvertBtp}
+                okText="Xác nhận Chuyển đổi"
+            >
+                <div style={{ background: '#e6f7ff', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+                    <InfoCircleOutlined style={{ color: '#1890ff', marginRight: 8 }} />
+                    Tính năng này cho phép chuyển đổi tồn kho BTP của biến thể này sang biến thể khác <b>cùng sản phẩm cha</b>.
+                </div>
+                <Form form={convertBtpForm} layout="vertical">
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item name="sourceSku" label="Mã BTP Nguồn (Bị trừ)" rules={[{ required: true }]}>
+                                <Input disabled style={{ fontWeight: 'bold', color: 'red' }} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item name="quantity" label="Số lượng chuyển" rules={[{ required: true, message: 'Nhập số lượng' }]}>
+                                <InputNumber style={{ width: '100%' }} min={1} max={convertBtpTarget ? getStockQty('PRODUCT', convertBtpTarget.id, 'KHO_BTP') : undefined} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Form.Item name="targetSku" label="Chọn Mã BTP Đích (Được cộng)" rules={[{ required: true, message: 'Chọn mã đích' }]}>
+                        <Select
+                            showSearch
+                            optionFilterProp="children"
+                            placeholder="Chọn biến thể đích..."
+                        >
+                            {products
+                                .filter(p => p.name === convertBtpTarget?.name && p.sku !== convertBtpTarget?.sku)
+                                .map(p => (
+                                    <Option key={p.sku} value={p.sku}>{p.sku} - {p.name}</Option>
+                                ))
+                            }
+                        </Select>
                     </Form.Item>
                 </Form>
             </Modal>

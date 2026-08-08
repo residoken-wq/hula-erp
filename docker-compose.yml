@@ -23,12 +23,9 @@ services:
       - default
 
   app:
-    build:
-      context: .
-      target: development # Use Dev Stage (No Build)
+    image: ghcr.io/residoken-wq/hula-erp-app:latest
     container_name: hula_app
     restart: always
-    command: npm run start:dev # Chạy chế độ Dev (Hot Reload)
     ports:
       - "3000:3000" # Expose to Public for Debugging
     expose:
@@ -51,10 +48,7 @@ services:
       - proxy_net
       - nexus-network
     volumes:
-      - ./src:/app/src
       - ./uploads:/app/uploads # Persist uploads
-      - /app/node_modules
-      - ./tsconfig.json:/app/tsconfig.json
 
   frontend:
     build:

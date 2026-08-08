@@ -52,6 +52,15 @@ export class InventoryController {
     );
   }
 
+  // API Chuyển đổi BTP
+  @Post('convert-btp')
+  async convertBtp(@Body() body: { sourceSku: string, targetSku: string, quantity: number }, @Req() req: any) {
+    return this.inventoryService.convertBtp(
+      body.sourceSku, body.targetSku, body.quantity,
+      req.user?.full_name || req.user?.username || 'System'
+    );
+  }
+
   // --- GOODS RECEIPT API ---
   @Post('goods-receipt/draft')
   async createDraft(@Body() body: any) {

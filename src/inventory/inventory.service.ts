@@ -147,6 +147,46 @@ export class InventoryService {
     return this.historyRepo.save(history);
   }
 
+  // --- CHUYỂN ĐỔI BTP (BTP REPURPOSING) ---
+  async convertBtp(sourceSku: string, targetSku: string, quantity: number, updatedBy: string = 'System') {
+    if (quantity <= 0) throw new BadRequestException('Số lượng chuyển đổi phải lớn hơn 0');
+    if (sourceSku === targetSku) throw new BadRequestException('Mã nguồn và đích không được giống nhau');
+
+    const sourceProduct = await this.productRepo.findOne({ where: { sku: sourceSku } });
+    if (!sourceProduct) throw new BadRequestException(`Sản phẩm nguồn ${sourceSku} không tồn tại`);
+
+    const targetProduct = await this.productRepo.findOne({ where: { sku: targetSku } });
+    if (!targetProduct) throw new BadRequestException(`Sản phẩm đích ${targetSku} không tồn tại`);
+
+    if (sourceProduct.name !== targetProduct.name) {
+      throw new BadRequestException('Chỉ được phép chuyển đổi giữa các biến thể của cùng một sản phẩm cha (Cùng Tên)');
+    }
+
+    const warehouse = 'KHO_BTP';
+
+    // Kiểm tra tồn kho KHO_BTP của nguồn
+    const sourceStock = await this.stockRepo.findOne({ where: { item_type: 'PRODUCT', item_id: sourceProduct.id, warehouse_code: warehouse } });
+    if (!sourceStock || Number(sourceStock.quantity) < quantity) {
+      throw new BadRequestException(`Tồn kho BTP của ${sourceSku} không đủ (Hiện có: ${sourceStock?.quantity || 0})`);
+    }
+
+    const refCode = `CVT-${dayjs().format('YYYYMMDDHHmmss')}`;
+
+    // 1. Xuất kho BTP nguồn
+    await this.adjustStock(
+      'EXPORT', 'PRODUCT', sourceProduct.id, quantity, refCode,
+      `Chuyển đổi ${quantity} BTP sang mã ${targetSku}`, warehouse, updatedBy
+    );
+
+    // 2. Nhập kho BTP đích
+    await this.adjustStock(
+      'IMPORT', 'PRODUCT', targetProduct.id, quantity, refCode,
+      `Nhận ${quantity} BTP chuyển đổi từ mã ${sourceSku}`, warehouse, updatedBy
+    );
+
+    return { success: true, message: `Đã chuyển đổi thành công ${quantity} BTP từ ${sourceSku} sang ${targetSku}` };
+  }
+
   // --- HÀM RESET DỮ LIỆU TỒN KHO ---
   async resetAllStocks() {
     // 1. Xóa lịch sử

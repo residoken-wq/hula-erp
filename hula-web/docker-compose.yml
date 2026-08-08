@@ -5,11 +5,7 @@ services:
   # HULA WEBSITE - Website công khai
   # ============================================
   website:
-    build:
-      context: ./website
-      dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=https://erp.nemmamnon.com/api
+    image: ghcr.io/residoken-wq/hula-erp-website:latest
     container_name: hula_website
     restart: always
     expose:
@@ -27,9 +23,7 @@ services:
   # HULA CMS - Quản trị nội dung (Ant Design Pro)
   # ============================================
   cms:
-    build:
-      context: ./cms
-      dockerfile: Dockerfile
+    image: ghcr.io/residoken-wq/hula-erp-cms:latest
     container_name: hula_cms
     restart: always
     expose:

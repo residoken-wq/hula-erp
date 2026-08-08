@@ -27,7 +27,7 @@ export class PfoBomEngineService {
      * Gate 2: BOM Explosion & Material Requirement Calculation
      * Dựa vào SO Items liên kết với PFO, bóc tách định mức vật tư trực tiếp từ Product BOMs & Combos.
      */
-    async calculateMaterialRequirements(pfoId: number) {
+    async calculateMaterialRequirements(pfoId: number, btpOverrides?: Record<string, number>) {
         const id = Number(pfoId);
         let pfo = await this.pfoRepo.findOne({
             where: { id },
@@ -57,7 +57,7 @@ export class PfoBomEngineService {
         }
 
         const materialMap = new Map<number, { qty: number; material?: any; code?: string; name?: string; details?: any[] }>();
-        const productReqMap = new Map<number, { qty: number; product: Product; details: any[] }>();
+        const productReqMap = new Map<number, { qty: number; used_qty?: number; product: Product; details: any[] }>();
 
         let totalOrderQuantity = 0;
 
@@ -90,40 +90,50 @@ export class PfoBomEngineService {
 
                     const pType = targetProd.product_type ? targetProd.product_type.toUpperCase() : 'STANDARD';
 
-                    // 1. Nổ components nếu có (hỗ trợ COMBO, SEMI_FINISHED hoặc sản phẩm bị cấu hình thiếu product_type nhưng có component)
-                    const components = await this.componentRepo.find({
-                        where: { parent_product: { id: targetProd.id } },
-                        relations: ['child_product']
-                    });
-
-                    if (components && components.length > 0) {
-                        for (const comp of components) {
-                            if (comp.child_product) {
-                                queue.push({
-                                    productId: comp.child_product.id,
-                                    multiplier: current.multiplier * (Number(comp.quantity) || 1)
-                                });
-                            }
-                        }
-                    }
+                    let explosionMultiplier = current.multiplier;
 
                     // 2. Nếu là SEMI_FINISHED -> Ghi nhận nhu cầu Bán Thành Phẩm
                     if (pType === 'SEMI_FINISHED') {
+                        const overrideQty = btpOverrides && btpOverrides[targetProd.id] !== undefined 
+                            ? Number(btpOverrides[targetProd.id]) 
+                            : 0;
+
+                        explosionMultiplier = Math.max(0, current.multiplier - overrideQty);
+
                         const existingProd = productReqMap.get(targetProd.id);
                         if (existingProd) {
                             existingProd.qty += current.multiplier;
+                            existingProd.used_qty = (existingProd.used_qty || 0) + overrideQty;
                         } else {
                             productReqMap.set(targetProd.id, {
                                 qty: current.multiplier,
+                                used_qty: overrideQty,
                                 product: targetProd,
                                 details: [{ order_quantity: current.multiplier, total: current.multiplier }]
                             });
                         }
                     }
 
+                    // 1. Nổ components nếu có (hỗ trợ COMBO, SEMI_FINISHED hoặc sản phẩm bị cấu hình thiếu product_type nhưng có component)
+                    const components = await this.componentRepo.find({
+                        where: { parent_product: { id: targetProd.id } },
+                        relations: ['child_product']
+                    });
+
+                    if (components && components.length > 0 && explosionMultiplier > 0) {
+                        for (const comp of components) {
+                            if (comp.child_product) {
+                                queue.push({
+                                    productId: comp.child_product.id,
+                                    multiplier: explosionMultiplier * (Number(comp.quantity) || 1)
+                                });
+                            }
+                        }
+                    }
+
                     // 3. Nếu KHÔNG phải COMBO -> Nổ vật tư NPL
                     // (Lưu ý: Nếu một sản phẩm vừa có component vừa có BOM vật tư riêng thì BOM vật tư vẫn được nổ nếu nó ko phải là 'COMBO' thuần túy)
-                    if (pType !== 'COMBO') {
+                    if (pType !== 'COMBO' && explosionMultiplier > 0) {
                         const boms = await this.bomRepo.find({
                             where: { product_id: targetProd.id },
                             relations: ['material']
@@ -133,7 +143,7 @@ export class PfoBomEngineService {
                             if (!bom.material_id) continue;
 
                             
-                            const rawQty = current.multiplier * Number(bom.quantity || 0);
+                            const rawQty = explosionMultiplier * Number(bom.quantity || 0);
                             const waste = Number(bom.waste_percent || 0);
                             const totalReqQty = rawQty * (1 + waste / 100);
 
@@ -141,7 +151,7 @@ export class PfoBomEngineService {
                                 product_name: targetProd.name || targetProd.sku || `Product ${targetProd.id}`,
                                 original_norm: Number(bom.quantity || 0),
                                 waste: waste,
-                                order_quantity: current.multiplier,
+                                order_quantity: explosionMultiplier,
                                 total: totalReqQty
                             };
 
@@ -340,6 +350,8 @@ export class PfoBomEngineService {
                 supply_method: SupplyMethod.HULA_SUPPLIED,
                 planned_quantity: Math.round(data.qty * 100) / 100,
                 actual_order_quantity: Math.round(data.qty * 100) / 100,
+                use_inventory: data.used_qty ? true : false,
+                inventory_used_quantity: data.used_qty || 0,
                 unit_price: Number(prod.cost_price || prod.base_price || 0),
                 supplier_id: null,
                 issued_quantity: 0,
@@ -376,5 +388,107 @@ export class PfoBomEngineService {
             }
         }
         return { message: 'Đã lưu cấu hình vật tư' };
+    }
+
+    async previewBtpRequirements(pfoId: number) {
+        const id = Number(pfoId);
+        let pfo = await this.pfoRepo.findOne({
+            where: { id },
+            relations: [
+                'sales_order',
+                'sales_order.items',
+                'sales_order.items.product'
+            ]
+        });
+
+        if (!pfo) throw new NotFoundException('Lệnh sản xuất (PFO) không tồn tại');
+
+        if (!pfo.sales_order && pfo.code.startsWith('PFO-')) {
+            const orderCode = pfo.code.replace('PFO-', '');
+            const so = await this.pfoRepo.manager.findOne('SalesOrder', {
+                where: { code: orderCode },
+                relations: ['items', 'items.product']
+            });
+            if (so) {
+                pfo.sales_order = so as any;
+                pfo.sales_order_id = so.id as any;
+            }
+        }
+
+        const btpReqMap = new Map<number, { qty: number; product: Product }>();
+
+        if (pfo.sales_order && pfo.sales_order.items) {
+            for (const item of pfo.sales_order.items) {
+                let product = item.product;
+                if (!product && item.sku) {
+                    product = await this.productRepo.findOne({ where: { sku: item.sku } });
+                }
+                
+                if (!product) continue;
+                
+                const orderQty = Number(item.quantity || pfo.quantity || 1);
+                
+                const queue: { productId: number; multiplier: number }[] = [
+                    { productId: product.id, multiplier: orderQty }
+                ];
+
+                let safetyCounter = 0;
+                while (queue.length > 0 && safetyCounter++ < 500) {
+                    const current = queue.shift();
+                    if (!current) break;
+
+                    const targetProd = await this.productRepo.findOne({ where: { id: current.productId } });
+                    if (!targetProd) continue;
+
+                    const pType = targetProd.product_type ? targetProd.product_type.toUpperCase() : 'STANDARD';
+
+                    if (pType === 'SEMI_FINISHED') {
+                        const existingProd = btpReqMap.get(targetProd.id);
+                        if (existingProd) {
+                            existingProd.qty += current.multiplier;
+                        } else {
+                            btpReqMap.set(targetProd.id, {
+                                qty: current.multiplier,
+                                product: targetProd
+                            });
+                        }
+                    }
+
+                    const components = await this.componentRepo.find({
+                        where: { parent_product: { id: targetProd.id } },
+                        relations: ['child_product']
+                    });
+
+                    if (components && components.length > 0) {
+                        for (const comp of components) {
+                            if (comp.child_product) {
+                                queue.push({
+                                    productId: comp.child_product.id,
+                                    multiplier: current.multiplier * (Number(comp.quantity) || 1)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        const previewData = [];
+        for (const [productId, data] of btpReqMap.entries()) {
+            const stock = await this.pfoRepo.manager.query(
+                `SELECT COALESCE(SUM(quantity), 0) as total FROM inventory_stocks WHERE item_type = 'PRODUCT' AND item_id = ? AND warehouse_code = 'KHO_BTP'`,
+                [productId]
+            );
+            
+            previewData.push({
+                product_id: productId,
+                sku: data.product.sku,
+                name: data.product.name,
+                required_qty: data.qty,
+                available_stock: Number(stock[0].total || 0)
+            });
+        }
+
+        return previewData;
     }
 }

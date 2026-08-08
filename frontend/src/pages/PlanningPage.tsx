@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Card, Modal, Form, Input, DatePicker, Tabs, Button, message, Drawer, Space, Typography, Tag, Divider, Row, Col, Table, Statistic, Descriptions, Tooltip } from 'antd';
+import { Card, Modal, Form, Input, InputNumber, DatePicker, Tabs, Button, message, Drawer, Space, Typography, Tag, Divider, Row, Col, Table, Statistic, Descriptions, Tooltip } from 'antd';
 import { ReloadOutlined, PlusOutlined, SettingOutlined, CalculatorOutlined, ShoppingCartOutlined, FileTextOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -39,6 +39,11 @@ const PlanningPage: React.FC = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [selectedPfo, setSelectedPfo] = useState<any>(null);
     const [pfoDetails, setPfoDetails] = useState<any>(null);
+
+    // BTP Preview Modal State
+    const [isBtpPreviewModalOpen, setIsBtpPreviewModalOpen] = useState(false);
+    const [btpPreviewData, setBtpPreviewData] = useState<any[]>([]);
+    const [btpOverrides, setBtpOverrides] = useState<Record<string, number>>({});
 
     const fetchData = async () => {
         setLoading(true);
@@ -115,11 +120,34 @@ const PlanningPage: React.FC = () => {
         if (!selectedPfo) return;
         setLoading(true);
         try {
-            const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/calculate-bom`);
+            const previewRes = await axios.get(`${API_URL}/planning/pfo/${selectedPfo.id}/preview-btp`);
+            if (previewRes.data && previewRes.data.length > 0) {
+                setBtpPreviewData(previewRes.data);
+                
+                const initialOverrides: Record<string, number> = {};
+                previewRes.data.forEach((btp: any) => {
+                    initialOverrides[btp.product_id] = Math.min(btp.required_qty, btp.available_stock);
+                });
+                setBtpOverrides(initialOverrides);
+                
+                setIsBtpPreviewModalOpen(true);
+            } else {
+                await proceedCalculateBom({});
+            }
+        } catch (e: any) {
+            message.error('Lỗi lấy trước thông tin BTP');
+        }
+        setLoading(false);
+    };
+
+    const proceedCalculateBom = async (overrides: Record<string, number>) => {
+        if (!selectedPfo) return;
+        setLoading(true);
+        try {
+            const res = await axios.post(`${API_URL}/planning/pfo/${selectedPfo.id}/calculate-bom`, { btpOverrides: overrides });
             message.success(res.data.message || 'Đã bóc tách BOM thành công!');
             
             const newReqs = res.data.requirements || [];
-            
             const details = await fetchPfoDetails(selectedPfo.id);
             if (details) {
                 setPfoDetails(details);
@@ -131,6 +159,7 @@ const PlanningPage: React.FC = () => {
             message.error(e.response?.data?.message || 'Lỗi tính toán BOM'); 
         }
         setLoading(false);
+        setIsBtpPreviewModalOpen(false);
     };
 
     const handleSaveRouting = async (routingData: any[]) => {
@@ -369,6 +398,45 @@ const PlanningPage: React.FC = () => {
                     <div style={{ textAlign: 'center', padding: 50 }}>Loading...</div>
                 )}
             </Drawer>
+
+            {/* BTP Preview Modal */}
+            <Modal
+                title="Sử dụng tồn kho Bán Thành Phẩm (BTP)"
+                open={isBtpPreviewModalOpen}
+                onCancel={() => setIsBtpPreviewModalOpen(false)}
+                onOk={() => proceedCalculateBom(btpOverrides)}
+                okText="Xác nhận & Tính toán"
+                cancelText="Hủy"
+                width={700}
+            >
+                <div style={{ marginBottom: 16 }}>
+                    Hệ thống phát hiện có nhu cầu Bán Thành Phẩm trong quy trình sản xuất và có tồn kho hiện có. 
+                    Vui lòng xác nhận số lượng tồn kho BTP muốn sử dụng. Lượng NPL cho phần thiếu sẽ được tự động tính toán.
+                </div>
+                <Table 
+                    dataSource={btpPreviewData}
+                    rowKey="product_id"
+                    pagination={false}
+                    columns={[
+                        { title: 'Tên BTP', dataIndex: 'name', render: (val, r) => `${val} (${r.sku})` },
+                        { title: 'SL Yêu cầu', dataIndex: 'required_qty', align: 'right' },
+                        { title: 'Tồn kho BTP', dataIndex: 'available_stock', align: 'right', render: (val) => <Text type="success">{val}</Text> },
+                        { 
+                            title: 'Dùng tồn kho', 
+                            key: 'override',
+                            align: 'center',
+                            render: (_, record) => (
+                                <InputNumber
+                                    min={0}
+                                    max={Math.min(record.required_qty, record.available_stock)}
+                                    value={btpOverrides[record.product_id] !== undefined ? btpOverrides[record.product_id] : 0}
+                                    onChange={(val) => setBtpOverrides(prev => ({ ...prev, [record.product_id]: val || 0 }))}
+                                />
+                            )
+                        }
+                    ]}
+                />
+            </Modal>
         </div>
     );
 };
