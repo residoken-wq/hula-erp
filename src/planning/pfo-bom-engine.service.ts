@@ -405,8 +405,8 @@ export class PfoBomEngineService {
 
         if (!pfo.sales_order && pfo.code.startsWith('PFO-')) {
             const orderCode = pfo.code.replace('PFO-', '');
-            const so = await this.pfoRepo.manager.findOne('SalesOrder', {
-                where: { code: orderCode },
+            const so: any = await this.pfoRepo.manager.findOne('SalesOrder', {
+                where: { order_code: orderCode },
                 relations: ['items', 'items.product']
             });
             if (so) {
