@@ -9,6 +9,7 @@ const QCPage: React.FC = () => {
     const [inspections, setInspections] = useState<any[]>([]);
     const [summary, setSummary] = useState<any>(null);
     const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [pos, setPos] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     // Modal states
@@ -25,14 +26,16 @@ const QCPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [res, sumRes, supRes] = await Promise.all([
+            const [res, sumRes, supRes, poRes] = await Promise.all([
                 axios.get(`${API_URL}/qc`),
                 axios.get(`${API_URL}/qc/summary`),
-                axios.get(`${API_URL}/suppliers`)
+                axios.get(`${API_URL}/suppliers`),
+                axios.get(`${API_URL}/purchasing`)
             ]);
             setInspections(Array.isArray(res.data) ? res.data : []);
             setSummary(sumRes.data);
             setSuppliers(Array.isArray(supRes.data) ? supRes.data : []);
+            setPos(Array.isArray(poRes.data) ? poRes.data : []);
         } catch (e) { console.error(e); }
         setLoading(false);
     };
@@ -157,7 +160,12 @@ const QCPage: React.FC = () => {
                             loading={loading}
                             size="small"
                             columns={[
-                                { title: 'Mã QC', dataIndex: 'code', width: 140, render: (t: any) => <b>{t}</b> },
+                                { title: 'Mã QC / PO', width: 160, render: (r: any) => (
+                                    <div>
+                                        <b>{r.code}</b>
+                                        {r.purchase_order && <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>PO: {r.purchase_order.po_code}</div>}
+                                    </div>
+                                )},
                                 { title: 'Loại', dataIndex: 'type', width: 120, align: 'center' as const, render: (t: string) => <Tag color={t === 'OUTSOURCING' ? 'purple' : t === 'INCOMING' ? 'blue' : 'cyan'}>{t === 'OUTSOURCING' ? 'Gia công' : t === 'INCOMING' ? 'NPL' : 'Thành phẩm'}</Tag> },
                                 { title: 'NCC/GC', render: (_: any, r: any) => r.supplier?.name || '-' },
                                 { title: 'SL Kiểm', dataIndex: 'total_quantity', width: 80, align: 'right' as const, render: (v: number) => Number(v).toLocaleString() },
@@ -243,6 +251,40 @@ const QCPage: React.FC = () => {
                             </Form.Item>
                         </Col>
                     </Row>
+                    <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.type !== currentValues.type}>
+                        {({ getFieldValue }) => {
+                            const type = getFieldValue('type');
+                            if (type === 'OUTSOURCING' || type === 'INCOMING') {
+                                return (
+                                    <Form.Item name="po_id" label="Liên kết Đơn Mua / Gia công (PO) - Tự động điền NCC & SL">
+                                        <Select
+                                            showSearch
+                                            optionFilterProp="label"
+                                            placeholder="Chọn PO..."
+                                            allowClear
+                                            onChange={(val) => {
+                                                const po = pos.find(p => p.id === val);
+                                                if (po) {
+                                                    const totalQty = (po.items || []).reduce((sum: number, item: any) => sum + (Number(item.quantity) || 0), 0);
+                                                    form.setFieldsValue({
+                                                        supplier_id: po.supplier_id,
+                                                        total_quantity: totalQty
+                                                    });
+                                                }
+                                            }}
+                                            options={pos
+                                                .filter(p => (type === 'OUTSOURCING' ? p.type === 'OUTSOURCING' : p.type === 'MATERIAL') && p.status !== 'DRAFT')
+                                                .map(p => ({
+                                                    value: p.id,
+                                                    label: `${p.po_code} - ${p.supplier?.name || 'Không rõ NCC'} - ${p.status}`
+                                                }))}
+                                        />
+                                    </Form.Item>
+                                );
+                            }
+                            return null;
+                        }}
+                    </Form.Item>
                     <Row gutter={16}>
                         <Col span={8}>
                             <Form.Item name="total_quantity" label="Tổng SL kiểm" rules={[{ required: true }]}>
@@ -292,8 +334,8 @@ const QCPage: React.FC = () => {
                             <Descriptions.Item label="Trạng thái"><Tag color={statusColor(currentQC.status)}>{statusLabel(currentQC.status)}</Tag></Descriptions.Item>
                             <Descriptions.Item label="Ngày kiểm">{currentQC.inspection_date ? dayjs(currentQC.inspection_date).format('DD/MM/YYYY') : '-'}</Descriptions.Item>
                             <Descriptions.Item label="NCC">{currentQC.supplier?.name || '-'}</Descriptions.Item>
+                            <Descriptions.Item label="PO Liên kết">{currentQC.purchase_order ? <Tag color="blue">{currentQC.purchase_order.po_code}</Tag> : '-'}</Descriptions.Item>
                             <Descriptions.Item label="Người kiểm">{currentQC.inspector || '-'}</Descriptions.Item>
-                            <Descriptions.Item label="Điểm NCC">{currentQC.supplier_score ? <b>{Number(currentQC.supplier_score).toFixed(1)}/10</b> : '-'}</Descriptions.Item>
                         </Descriptions>
 
                         <Row gutter={16} style={{ margin: '16px 0' }}>
