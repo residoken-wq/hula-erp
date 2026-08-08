@@ -22,6 +22,5 @@ COPY package*.json ./
 # Only install production deps
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --legacy-peer-deps
 COPY --from=build /app/dist ./dist
-# Copy Firebase credentials (ensure file exists before building)
-COPY --from=build /app/src/firebase/firebase-service-account.json ./dist/firebase/
+# Remove hardcoded Firebase credentials copy for security. Mount via docker-compose instead.
 CMD ["node", "dist/main"]

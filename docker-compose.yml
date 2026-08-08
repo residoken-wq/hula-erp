@@ -49,6 +49,7 @@ services:
       - nexus-network
     volumes:
       - ./uploads:/app/uploads # Persist uploads
+      - ./src/firebase/firebase-service-account.json:/app/dist/firebase/firebase-service-account.json # Mount secret at runtime
 
   frontend:
     build:
