@@ -178,7 +178,41 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
     const columnsBom = [
         { title: 'Tên / Mã', dataIndex: 'name', key: 'name', render: (text: string, record: any) => <b>{text} ({record.sku})</b> },
         { title: 'Loại', dataIndex: 'type', key: 'type' },
-        { title: 'Định mức / SL', dataIndex: 'quantity', key: 'quantity' }
+        { title: 'Định mức / SL (Gốc)', dataIndex: 'quantity', key: 'quantity' },
+        { 
+            title: 'SL KHSX (Tùy chỉnh)', 
+            key: 'custom_quantity', 
+            render: (_: any, record: any) => {
+                if (record.type === 'Thành phẩm' || record.type === 'Sản phẩm con') {
+                    const productId = record.product_id || (record.key && record.key.split('-')[1]);
+                    if (!productId) return null;
+                    
+                    const pfoQuantities = pfoDetails?.custom_quantities || {};
+                    const val = pfoQuantities[productId] !== undefined ? pfoQuantities[productId] : '';
+
+                    return (
+                        <InputNumber 
+                            size="small"
+                            placeholder="Mặc định"
+                            value={val}
+                            min={0}
+                            onChange={async (newVal) => {
+                                try {
+                                    const updatedQs = { ...pfoQuantities, [productId]: newVal === null ? undefined : newVal };
+                                    await api.put(`/planning/pfo/${selectedPfo.id}/custom-quantities`, { custom_quantities: updatedQs });
+                                    message.success('Đã cập nhật số lượng KHSX cho sản phẩm này');
+                                    onRefreshDetails?.();
+                                } catch (e) {
+                                    message.error('Lỗi cập nhật số lượng');
+                                }
+                            }}
+                            style={{ width: 100 }}
+                        />
+                    );
+                }
+                return null;
+            }
+        }
     ];
 
     const columnsPo = [
@@ -384,40 +418,15 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                         key: 'BOM',
                         label: 'Thông tin BOM',
                         children: (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                <Card size="small" style={{ background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 8 }}>
-                                    <Space>
-                                        <Text strong>Số lượng sản xuất (KHSX):</Text>
-                                        <InputNumber 
-                                            min={1} 
-                                            value={pfoDetails?.quantity || 1} 
-                                            onChange={async (val) => {
-                                                if (!val) return;
-                                                try {
-                                                    await api.put(`/planning/pfo/${selectedPfo.id}/quantity`, { quantity: val });
-                                                    message.success('Cập nhật số lượng KHSX thành công!');
-                                                    onRefreshDetails?.();
-                                                } catch (e: any) {
-                                                    message.error('Lỗi cập nhật số lượng KHSX');
-                                                }
-                                            }}
-                                            style={{ width: 100 }}
-                                        />
-                                        <Text type="secondary" style={{ fontSize: 12 }}>
-                                            *(Nhập số lượng thực tế cần sản xuất (bao gồm rủi ro/hao hụt) để tính BOM theo KHSX)
-                                        </Text>
-                                    </Space>
-                                </Card>
-                                <Table 
-                                    columns={columnsBom} 
-                                    dataSource={bomTreeData} 
-                                    size="small" 
-                                    pagination={false}
-                                    expandable={{
-                                        defaultExpandAllRows: true
-                                    }}
-                                />
-                            </div>
+                            <Table 
+                                columns={columnsBom} 
+                                dataSource={bomTreeData} 
+                                size="small" 
+                                pagination={false}
+                                expandable={{
+                                    defaultExpandAllRows: true
+                                }}
+                            />
                         )
                     },
                     {

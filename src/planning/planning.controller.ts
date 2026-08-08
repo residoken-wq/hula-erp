@@ -84,6 +84,11 @@ export class PlanningController {
     return this.planningSvc.updatePfoQuantity(Number(id), quantity);
   }
 
+  @Put('pfo/:id/custom-quantities')
+  updatePfoCustomQuantities(@Param('id') id: string, @Body('custom_quantities') customQuantities: Record<string, number>) {
+    return this.planningSvc.updatePfoCustomQuantities(Number(id), customQuantities);
+  }
+
   // --- PFO BOM APIs (Gate 2) ---
   @Get('pfo/:id/preview-btp')
   previewBtpRequirements(@Param('id') id: string, @Query('usePfoQty') usePfoQty?: string) {

@@ -92,7 +92,12 @@ export class PfoBomEngineService {
 
                     const pType = targetProd.product_type ? targetProd.product_type.toUpperCase() : 'STANDARD';
 
-                    let explosionMultiplier = current.multiplier;
+                    let baseMultiplier = current.multiplier;
+                    if (usePfoQty && pfo.custom_quantities && pfo.custom_quantities[targetProd.id] !== undefined) {
+                        baseMultiplier = Number(pfo.custom_quantities[targetProd.id]);
+                    }
+
+                    let explosionMultiplier = baseMultiplier;
 
                     // 2. Bất kỳ sản phẩm con nào (khác product gốc) cũng được coi là Bán Thành Phẩm để áp dụng BTP overrides
                     if (current.productId !== product.id) {
@@ -100,18 +105,18 @@ export class PfoBomEngineService {
                             ? Number(btpOverrides[targetProd.id]) 
                             : 0;
 
-                        explosionMultiplier = Math.max(0, current.multiplier - overrideQty);
+                        explosionMultiplier = Math.max(0, baseMultiplier - overrideQty);
 
                         const existingProd = productReqMap.get(targetProd.id);
                         if (existingProd) {
-                            existingProd.qty += current.multiplier;
+                            existingProd.qty += baseMultiplier;
                             existingProd.used_qty = (existingProd.used_qty || 0) + overrideQty;
                         } else {
                             productReqMap.set(targetProd.id, {
-                                qty: current.multiplier,
+                                qty: baseMultiplier,
                                 used_qty: overrideQty,
                                 product: targetProd,
-                                details: [{ order_quantity: current.multiplier, total: current.multiplier }]
+                                details: [{ order_quantity: baseMultiplier, total: baseMultiplier }]
                             });
                         }
                     }
@@ -444,14 +449,19 @@ export class PfoBomEngineService {
                     const targetProd = await this.productRepo.findOne({ where: { id: current.productId } });
                     if (!targetProd) continue;
 
+                    let baseMultiplier = current.multiplier;
+                    if (usePfoQty && pfo.custom_quantities && pfo.custom_quantities[targetProd.id] !== undefined) {
+                        baseMultiplier = Number(pfo.custom_quantities[targetProd.id]);
+                    }
+
                     // Bất kỳ sản phẩm con nào nằm trong BOM cũng được coi là BTP (Semi-Finished) cho lệnh này
                     if (current.productId !== product.id) {
                         const existingProd = btpReqMap.get(targetProd.id);
                         if (existingProd) {
-                            existingProd.qty += current.multiplier;
+                            existingProd.qty += baseMultiplier;
                         } else {
                             btpReqMap.set(targetProd.id, {
-                                qty: current.multiplier,
+                                qty: baseMultiplier,
                                 product: targetProd
                             });
                         }
@@ -467,7 +477,7 @@ export class PfoBomEngineService {
                             if (comp.child_product) {
                                 queue.push({
                                     productId: comp.child_product.id,
-                                    multiplier: current.multiplier * (Number(comp.quantity) || 1)
+                                    multiplier: baseMultiplier * (Number(comp.quantity) || 1)
                                 });
                             }
                         }

@@ -49,6 +49,9 @@ export class ProductionFulfillmentOrder {
   @Column({ type: 'int', default: 1 })
   quantity: number;
 
+  @Column({ type: 'json', nullable: true })
+  custom_quantities: Record<string, number>;
+
   @Column({ type: 'date', nullable: true })
   planned_start_date: Date;
 
