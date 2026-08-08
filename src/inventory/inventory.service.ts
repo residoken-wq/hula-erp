@@ -400,6 +400,11 @@ export class InventoryService {
           updated_by
         );
       } else if (item.product_id) {
+        let targetWarehouse = warehouseCode === 'KHO_NPL' ? 'KHO_TP' : warehouseCode;
+        if (receipt.purchase_order?.type === 'OUTSOURCING' && !item.po_item_id) {
+            targetWarehouse = 'KHO_BTP';
+        }
+
         await this.adjustStock(
           'IMPORT',
           'PRODUCT',
@@ -407,7 +412,7 @@ export class InventoryService {
           item.quantity,
           receipt.code,
           `Nhập kho từ PO ${receipt.po_id ? '#' + receipt.po_id : ''}`,
-          warehouseCode === 'KHO_NPL' ? 'KHO_TP' : warehouseCode, // Fallback for product
+          targetWarehouse,
           updated_by
         );
 

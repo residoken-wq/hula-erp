@@ -397,9 +397,35 @@ const InventoryPage: React.FC = () => {
             ? Number(matchedPacking.quantity) 
             : (matchedPoItem?.quantity ? Number(matchedPoItem.quantity) : Number(item.quantity || 0));
 
-        // 2. Số lượng Đặt (Tổng N1..border hoặc theo PO item)
+        // 2. Số lượng Đặt (Tổng N1..border hoặc theo PO item hoặc BTP)
         let orderQty = 0;
-        if (matchedPacking) {
+        
+        // KIỂM TRA BTP GIA CÔNG TRƯỚC
+        let matchedBtp = null;
+        if (po?.type === 'OUTSOURCING' && po?.semi_finished_products) {
+            try {
+                const btpList = typeof po.semi_finished_products === 'string' 
+                    ? JSON.parse(po.semi_finished_products) 
+                    : po.semi_finished_products;
+                
+                if (Array.isArray(btpList)) {
+                    matchedBtp = btpList.find((b: any) => {
+                        const bProdId = b.product_id || b.product?.id;
+                        const iProdId = item.product_id || item.product?.id;
+                        return Number(bProdId) === Number(iProdId);
+                    });
+                    console.log('DEBUG BTP MATCH:', { btpList, itemProductId: item.product_id || item.product?.id, matchedBtp });
+                }
+            } catch (e) {}
+        }
+
+        if (matchedBtp) {
+            orderQty = Number(matchedBtp.output_quantity !== undefined ? matchedBtp.output_quantity : (matchedBtp.quantity || 0));
+        } else if (po?.type === 'OUTSOURCING' && po?.semi_finished_products && !item.po_item_id) {
+            // Đây chắc chắn là BTP item được tạo từ logic mới (không có po_item_id)
+            // Số lượng item.quantity lúc tạo draft PNK chính là output_quantity của BTP
+            orderQty = Number(item.quantity || 0);
+        } else if (matchedPacking) {
             const matrixOrderTotal = 
                 Number(matchedPacking.n1 || 0) + Number(matchedPacking.n2 || 0) +
                 Number(matchedPacking.c1 || 0) + Number(matchedPacking.c2 || 0) +
