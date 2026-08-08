@@ -103,12 +103,40 @@ const QCPage: React.FC = () => {
     const handleAddDefect = async (values: any) => {
         if (!currentQC) return;
         try {
-            await axios.post(`${API_URL}/qc/${currentQC.id}/defects`, values);
+            const imageUrls = defectFileList.map(f => f.response?.url || f.url).filter(Boolean);
+            const payload = {
+                ...values,
+                image_url: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null
+            };
+            await axios.post(`${API_URL}/qc/${currentQC.id}/defects`, payload);
             message.success('Đã thêm lỗi');
             setIsDefectModalOpen(false);
             defectForm.resetFields();
+            setDefectFileList([]);
             viewDetail(currentQC.id);
+            fetchData();
         } catch (e) { message.error('Lỗi thêm defect'); }
+    };
+
+    const handleUploadChange: UploadProps['onChange'] = ({ fileList: newFileList }) => {
+        setDefectFileList(newFileList);
+    };
+
+    const customUploadRequest = async ({ file, onSuccess, onError }: any) => {
+        try {
+            const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
+            const compressedFile = await imageCompression(file as File, options);
+            const formData = new FormData();
+            formData.append('file', compressedFile, compressedFile.name);
+            
+            const res = await axios.post(`${API_URL}/upload/image`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            onSuccess(res.data);
+        } catch (error) {
+            console.error(error);
+            onError(error);
+        }
     };
 
     const handleRemoveDefect = async (defectId: number) => {
@@ -121,8 +149,12 @@ const QCPage: React.FC = () => {
 
     const handleComplete = async (values: any) => {
         if (!currentQC) return;
+        const completeData = {
+            ...values,
+            completed_at: values.completed_at?.format('YYYY-MM-DD HH:mm:ss')
+        };
         try {
-            await axios.post(`${API_URL}/qc/${currentQC.id}/complete`, values);
+            await axios.post(`${API_URL}/qc/${currentQC.id}/complete`, completeData);
             message.success('Hoàn thành kiểm tra');
             setIsCompleteOpen(false);
             completeForm.resetFields();
@@ -360,7 +392,10 @@ const QCPage: React.FC = () => {
                         </Col>
                         <Col xs={24} md={8}>
                             <Form.Item name="inspector" label="Người kiểm tra">
-                                <Input placeholder="Họ tên người kiểm..." />
+                                <Select 
+                                    showSearch optionFilterProp="label" placeholder="Chọn người kiểm tra..." allowClear
+                                    options={users.map(u => ({ value: u.full_name || u.username, label: u.full_name || u.username }))}
+                                />
                             </Form.Item>
                         </Col>
                         <Col xs={24} md={8}>
@@ -425,6 +460,26 @@ const QCPage: React.FC = () => {
                                     { title: 'Mức độ', dataIndex: 'severity', width: 100, align: 'center' as const, render: (t: string) => <Tag color={t === 'CRITICAL' ? 'red' : t === 'MAJOR' ? 'orange' : 'default'}>{t === 'CRITICAL' ? 'Nghiêm trọng' : t === 'MAJOR' ? 'Nặng' : 'Nhẹ'}</Tag> },
                                     { title: 'SL', dataIndex: 'quantity', width: 80, align: 'right' as const },
                                     { title: 'Mô tả', dataIndex: 'description', ellipsis: true },
+                                    { title: 'Minh chứng', key: 'images', render: (r: any) => {
+                                        if (!r.image_url) return null;
+                                        let images: string[] = [];
+                                        try { images = JSON.parse(r.image_url); } catch(e) { images = [r.image_url]; }
+                                        if (!Array.isArray(images) || images.length === 0) return null;
+                                        return (
+                                            <Image.PreviewGroup>
+                                                {images.map((url, i) => (
+                                                    <Image 
+                                                        key={i} 
+                                                        src={`${API_URL.replace('/api', '')}${url}`} 
+                                                        width={40} 
+                                                        height={40}
+                                                        style={{ display: i === 0 ? 'inline-block' : 'none', cursor: 'pointer', borderRadius: 4, border: '1px solid #d9d9d9', objectFit: 'cover' }} 
+                                                    />
+                                                ))}
+                                                {images.length > 1 && <span style={{ marginLeft: 4, color: '#1890ff', fontSize: 12, cursor: 'pointer' }}>+{images.length - 1}</span>}
+                                            </Image.PreviewGroup>
+                                        );
+                                    } },
                                     { title: 'Xử lý', dataIndex: 'action_taken', ellipsis: true },
                                     {
                                         title: '', width: 40, render: (r: any) => currentQC.status === 'IN_PROGRESS' ? (
@@ -485,6 +540,18 @@ const QCPage: React.FC = () => {
                     <Form.Item name="description" label="Mô tả chi tiết">
                         <Input.TextArea rows={2} />
                     </Form.Item>
+                    <Form.Item label="Hình ảnh minh chứng">
+                        <Upload
+                            listType="picture-card"
+                            fileList={defectFileList}
+                            onChange={handleUploadChange}
+                            customRequest={customUploadRequest}
+                            multiple
+                            accept="image/*"
+                        >
+                            {defectFileList.length >= 5 ? null : <div><PlusOutlined /><div style={{ marginTop: 8 }}>Tải ảnh</div></div>}
+                        </Upload>
+                    </Form.Item>
                     <Form.Item name="action_taken" label="Hành động xử lý">
                         <Select placeholder="Chọn..." allowClear options={[
                             { value: 'Sửa lại', label: 'Sửa lại' },
@@ -511,6 +578,9 @@ const QCPage: React.FC = () => {
                             </Form.Item>
                         </Col>
                     </Row>
+                    <Form.Item name="completed_at" label="Thời gian hoàn thành">
+                        <DatePicker showTime style={{ width: '100%' }} format="DD/MM/YYYY HH:mm" />
+                    </Form.Item>
                     <Form.Item name="supplier_score" label="Điểm đánh giá NCC (1-10)">
                         <InputNumber min={1} max={10} step={0.5} style={{ width: '100%' }} />
                     </Form.Item>
