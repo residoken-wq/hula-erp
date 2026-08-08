@@ -10,6 +10,7 @@ export default defineConfig({
   },
   build: {
     minify: false, // Tắt minify để tránh treo RAM trên VPS yếu
-    sourcemap: false
+    sourcemap: false,
+    reportCompressedSize: false // Tắt tính toán gzip size để tăng tốc build
   }
 })
