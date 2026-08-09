@@ -25,7 +25,7 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
     const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
     // --- COPY HANDLERS ---
-    const handleCopy = async (type: 'bom' | 'routings' | 'logistics', targetSku: string, sourceSku: string) => {
+    const handleCopy = async (type: 'bom' | 'routings' | 'logistics' | 'semi-finished', targetSku: string, sourceSku: string) => {
         if (!sourceSku) {
             return message.error("Vui lòng chọn hoặc xác định biến thể nguồn.");
         }
@@ -33,13 +33,15 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
         const endpoints: Record<string, string> = {
             bom: '/products/copy-bom',
             routings: '/products/copy-routings',
-            logistics: '/products/copy-logistics'
+            logistics: '/products/copy-logistics',
+            'semi-finished': '/products/copy-semi-finished'
         };
 
         const labels: Record<string, string> = {
             bom: 'BOM',
             routings: 'Quy trình gia công',
-            logistics: 'Logistics'
+            logistics: 'Logistics',
+            'semi-finished': 'Bán Thành Phẩm'
         };
 
         try {
@@ -98,6 +100,15 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
                     >
                         <Tooltip title={`Copy Logistics từ ${v.sku}`}>
                             <Button icon={<SendOutlined />} size="small">Logistics</Button>
+                        </Tooltip>
+                    </Popconfirm>
+
+                    <Popconfirm
+                        title={`Sao chép Bán thành phẩm từ ${v.sku} sang ${editingItem.sku}?`}
+                        onConfirm={() => handleCopy('semi-finished', editingItem.sku, v.sku)}
+                    >
+                        <Tooltip title={`Copy BTP từ ${v.sku}`}>
+                            <Button icon={<CopyOutlined />} size="small">BTP</Button>
                         </Tooltip>
                     </Popconfirm>
                 </Space>
@@ -159,6 +170,14 @@ const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ editingItem, da
                                 icon={<SendOutlined />}
                             >
                                 Copy Logistics & Khác
+                            </Button>
+                            <Button 
+                                onClick={() => selectedVariant && handleCopy('semi-finished', editingItem.sku, selectedVariant)} 
+                                disabled={!selectedVariant || selectedVariant === editingItem.sku}
+                                block
+                                icon={<CopyOutlined />}
+                            >
+                                Copy Bán Thành Phẩm
                             </Button>
                         </Space>
                     </Form>

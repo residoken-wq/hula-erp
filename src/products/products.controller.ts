@@ -67,6 +67,11 @@ export class ProductsController {
     return this.service.copyLogistics(body.sourceSku, body.targetSku);
   }
 
+  @Post('copy-semi-finished')
+  async copySemiFinished(@Body() body: any) {
+    return this.service.copySemiFinished(body.sourceSku, body.targetSku);
+  }
+
   @Get('calculate-cost/:sku') calculateCost(@Param('sku') sku: string) { return this.service.calculateCostPrice(sku); }
 
   @Post('calculate-all-costs')

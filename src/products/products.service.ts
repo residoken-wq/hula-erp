@@ -523,6 +523,81 @@ export class ProductsService {
         return { message: `Đã sao chép ${newItems.length} mục Logistics từ ${sourceSku} sang ${targetSku}` };
     }
 
+    async copySemiFinished(sourceSku: string, targetSku: string) {
+        const source = await this.productRepo.findOne({ where: { sku: sourceSku } });
+        const target = await this.productRepo.findOne({ where: { sku: targetSku } });
+
+        if (!source || !target) throw new NotFoundException('Không tìm thấy sản phẩm nguồn hoặc đích.');
+
+        const sourceComponents = await this.componentRepo.find({
+            where: { parent_product: { id: source.id } },
+            relations: ['child_product']
+        });
+        const sourceBtps = sourceComponents.filter(c => c.child_product?.product_type === 'SEMI_FINISHED');
+
+        if (!sourceBtps.length) throw new BadRequestException(`Sản phẩm nguồn ${sourceSku} chưa có Bán thành phẩm.`);
+
+        const targetComponents = await this.componentRepo.find({
+            where: { parent_product: { id: target.id } },
+            relations: ['child_product']
+        });
+        const targetBtpIds = targetComponents.filter(c => c.child_product?.product_type === 'SEMI_FINISHED').map(c => c.id);
+
+        if (targetBtpIds.length > 0) {
+            await this.componentRepo.delete(targetBtpIds);
+        }
+
+        let copiedCount = 0;
+        for (const sourceBtpComp of sourceBtps) {
+            const childProd = sourceBtpComp.child_product;
+            if (!childProd) continue;
+
+            let suffix = childProd.sku.replace(sourceSku + '_', '');
+            if (suffix === childProd.sku) {
+                 suffix = `BTP_${Date.now()}`;
+            }
+
+            const newPhantomSku = `${targetSku}_${suffix}_${Math.floor(Math.random() * 1000)}`;
+            const newPhantomName = childProd.name.replace(source.name, target.name);
+
+            const newPhantom = this.productRepo.create({
+                sku: newPhantomSku,
+                name: newPhantomName,
+                unit: childProd.unit,
+                product_type: 'SEMI_FINISHED',
+                is_active: true,
+                base_price: 0,
+                cost_price: childProd.cost_price
+            });
+
+            const savedPhantom = await this.productRepo.save(newPhantom);
+
+            const sourceBom = await this.bomRepo.find({ where: { product_id: childProd.id } });
+            if (sourceBom.length > 0) {
+                const newBoms = sourceBom.map(b => this.bomRepo.create({
+                    product_id: savedPhantom.id,
+                    material_id: b.material_id,
+                    quantity: b.quantity,
+                    waste_percent: b.waste_percent
+                }));
+                await this.bomRepo.save(newBoms as any);
+            }
+
+            await this.componentRepo.save(this.componentRepo.create({
+                parent_product: target,
+                child_product: savedPhantom,
+                quantity: sourceBtpComp.quantity,
+                sort_order: sourceBtpComp.sort_order
+            }));
+            
+            copiedCount++;
+        }
+
+        await this.calculateCostPrice(target.sku);
+
+        return { message: `Đã sao chép ${copiedCount} Bán thành phẩm từ ${sourceSku} sang ${targetSku}` };
+    }
+
     // --- BULK UPDATE PRICE ---
     async calculateAllCosts() {
         const products = await this.productRepo.find();

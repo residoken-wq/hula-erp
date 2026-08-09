@@ -170,6 +170,10 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                 setBtpList(currentPO.semi_finished_products);
             } else {
                 setBtpList([]);
+                // Auto-load from product configurations
+                setTimeout(() => {
+                    handleLoadBtpFromProducts();
+                }, 500);
             }
 
             // Fetch available outsourcing materials for dropdown
@@ -184,6 +188,70 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
             }
         }
     }, [currentPO?.id]);
+
+    const handleLoadBtpFromProducts = async () => {
+        if (!candidateProducts || candidateProducts.length === 0) return;
+        
+        try {
+            const newBtpList: SemiFinishedProduct[] = [];
+            
+            for (const prod of candidateProducts) {
+                if (!prod.sku) continue;
+                
+                // Fetch components of this product
+                const resComp = await api.get(`/products/combo/${encodeURIComponent(prod.sku)}`);
+                const components = resComp.data || [];
+                const btpComponents = components.filter((c: any) => c.child_product?.product_type === 'SEMI_FINISHED');
+                
+                for (const btp of btpComponents) {
+                    const child = btp.child_product;
+                    
+                    // Fetch BOM for this BTP
+                    const resBom = await api.get(`/products/${encodeURIComponent(child.sku)}/boms`);
+                    const boms = resBom.data || [];
+                    
+                    const mappedComponents: BtpComponent[] = boms.map((b: any) => ({
+                        id: `COMP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                        material_id: b.material_id,
+                        material_code: b.material?.code || '',
+                        material_name: b.material?.name || '',
+                        quantity: Number(b.quantity) || 0,
+                        unit: b.material?.unit || 'm',
+                        note: ''
+                    }));
+
+                    const multiplier = Number(currentPO?.items?.[0]?.quantity || 1);
+                    const usageQty = Number(btp.quantity) || 1;
+                    const outputQty = usageQty * multiplier;
+
+                    newBtpList.push({
+                        id: `BTP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                        btp_code: child.sku,
+                        btp_name: child.name,
+                        product_id: prod.id,
+                        product_name: prod.name || prod.product_name,
+                        output_quantity: outputQty,
+                        unit: child.unit || 'cái',
+                        target_po_id: null,
+                        target_po_code: '',
+                        target_vendor_id: null,
+                        target_vendor_name: '',
+                        note: '',
+                        status: 'DRAFT',
+                        components: mappedComponents
+                    });
+                }
+            }
+            
+            if (newBtpList.length > 0) {
+                // If currently empty, just set it
+                setBtpList(prev => prev.length === 0 ? newBtpList : [...prev, ...newBtpList]);
+                message.success(`Đã tự động tải ${newBtpList.length} BTP từ định mức Sản phẩm.`);
+            }
+        } catch (e) {
+            console.error('Error loading BTP from products:', e);
+        }
+    };
 
     const handleAddBtp = () => {
         const firstProduct = candidateProducts?.[0];
@@ -365,6 +433,11 @@ export const POBtpTab: React.FC<POBtpTabProps> = ({ currentPO, suppliers, produc
                     <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddBtp} style={{ borderColor: '#722ed1', color: '#722ed1', fontWeight: 600 }}>
                         + Thêm Bán Thành Phẩm
                     </Button>
+                    {candidateProducts.length > 0 && (
+                        <Button type="dashed" icon={<CheckCircleOutlined />} onClick={handleLoadBtpFromProducts} style={{ color: '#52c41a', borderColor: '#52c41a' }}>
+                            Tải lại BTP mẫu từ SP
+                        </Button>
+                    )}
                 </Space>
                 <Button 
                     type="primary" 
