@@ -31,6 +31,7 @@ interface ProductSemiFinishedTabProps {
     materials: any[];
     fetchDetailData: (id: number) => void;
     components: any[]; 
+    boms?: any[];
 }
 
 const COMMON_UNITS = [
@@ -43,7 +44,7 @@ const COMMON_UNITS = [
     { value: 'con', label: 'Con' }
 ];
 
-const ProductSemiFinishedTab: React.FC<ProductSemiFinishedTabProps> = ({ editingItem, materials, fetchDetailData, components }) => {
+const ProductSemiFinishedTab: React.FC<ProductSemiFinishedTabProps> = ({ editingItem, materials, fetchDetailData, components, boms }) => {
     const [btpList, setBtpList] = useState<SemiFinishedDraft[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -110,6 +111,32 @@ const ProductSemiFinishedTab: React.FC<ProductSemiFinishedTabProps> = ({ editing
             components: []
         };
         setBtpList(prev => [...prev, newBtp]);
+    };
+
+    const handleCopyFromBOM = (btpIndex: number) => {
+        if (!boms || boms.length === 0) {
+            message.warning('Sản phẩm chính chưa có dữ liệu BOM.');
+            return;
+        }
+
+        setBtpList(prev => {
+            const newList = [...prev];
+            if (!newList[btpIndex]) return prev;
+
+            const copiedComponents = boms.map(b => ({
+                id: `COMP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                material_id: b.material_id,
+                material_code: b.material?.code || '',
+                material_name: b.material?.name || b.material?.code || '',
+                quantity: Number(b.quantity) || 1,
+                waste_percent: Number(b.waste_percent || 0),
+                unit: b.material?.unit || 'm'
+            }));
+
+            newList[btpIndex].components = [...(newList[btpIndex].components || []), ...copiedComponents];
+            return newList;
+        });
+        message.success('Đã lấy NPL từ BOM');
     };
 
     const handleCloneBtp = (index: number) => {
@@ -429,6 +456,14 @@ const ProductSemiFinishedTab: React.FC<ProductSemiFinishedTabProps> = ({ editing
                                     📦 Thành phần NPL đầu vào ({btp.components?.length || 0}):
                                 </span>
                                 <Space size={8}>
+                                    <Button 
+                                        size="small" 
+                                        icon={<CheckCircleOutlined />} 
+                                        onClick={() => handleCopyFromBOM(btpIndex)}
+                                        style={{ borderColor: '#52c41a', color: '#52c41a' }}
+                                    >
+                                        Lấy NPL từ BOM
+                                    </Button>
                                     <Button 
                                         size="small" 
                                         icon={<PlusOutlined />} 

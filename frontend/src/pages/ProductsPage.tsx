@@ -340,6 +340,10 @@ const ProductsPage: React.FC = () => {
 
     // Kết quả phát hiện sản phẩm trùng lặp
     const duplicateDetectionResult = useMemo(() => {
+        if (!duplicateFilterActive) {
+            return { duplicateProducts: [], totalDuplicates: 0, totalGroups: 0 };
+        }
+        
         let candidates = data;
         if (viewMode === 'MAIN') {
             candidates = candidates.filter(d => d.product_type !== 'SEMI_FINISHED');
@@ -353,7 +357,7 @@ const ProductsPage: React.FC = () => {
             threshold: duplicateThreshold / 100,
             sameCategoryOnly: duplicateSameCategoryOnly
         });
-    }, [data, viewMode, duplicateThreshold, duplicateSameCategoryOnly]);
+    }, [data, viewMode, duplicateThreshold, duplicateSameCategoryOnly, duplicateFilterActive]);
 
     // Map tra cứu nhanh thông tin trùng cho từng sản phẩm
     const duplicateInfoMap = useMemo(() => {
@@ -1200,6 +1204,7 @@ const ProductsPage: React.FC = () => {
                                 materials={materials}
                                 fetchDetailData={fetchDetailData}
                                 components={components}
+                                boms={boms}
                             />
                         )
                     },
