@@ -480,7 +480,7 @@ const ProductsPage: React.FC = () => {
             }
         },
         {
-            title: 'Mã (SKU)', dataIndex: 'sku', width: 140, render: (t: any, r: any) => (
+            title: 'Mã (SKU)', dataIndex: 'sku', width: 160, render: (t: any, r: any) => (
                 <Space>
                     <Tooltip title={r.is_flagged ? "Bỏ ưu tiên" : "Đánh dấu ưu tiên hiển thị tồn kho"}>
                         {r.is_flagged ? 
@@ -642,7 +642,7 @@ const ProductsPage: React.FC = () => {
             sorter: (a: any, b: any) => (Number(a.quantity_in_stock || 0) - Number(a.display_approved_booking_stock || 0)) - (Number(b.quantity_in_stock || 0) - Number(b.display_approved_booking_stock || 0))
         },
         {
-            title: '', key: 'action', width: 190, align: 'center' as const,
+            title: '', key: 'action', width: 210, fixed: 'right' as const, align: 'center' as const,
             render: (_: any, r: any) => (
                 <Space size="small">
                     <Tooltip title="Tìm sản phẩm có tên tương tự">
@@ -1028,14 +1028,20 @@ const ProductsPage: React.FC = () => {
                 ]}
                 style={{ marginBottom: 16 }}
             />
-
             <Table 
                 dataSource={filteredData} 
                 columns={columns.filter(c => !c.hidden)} 
                 rowKey="id" 
                 loading={loading || statsLoading} 
-                size="small" 
-                scroll={{ x: isMobile ? 800 : undefined }} 
+                size="middle" 
+                bordered
+                scroll={{ x: 'max-content', y: 'calc(100vh - 300px)' }} 
+                pagination={{
+                    showSizeChanger: true,
+                    pageSizeOptions: ['20', '50', '100'],
+                    defaultPageSize: 20,
+                    showTotal: (total) => `Tổng số ${total} sản phẩm`
+                }}
             />
 
             <Modal title={editingItem ? `Cập nhật: ${editingItem.sku}` : "Thêm Sản Phẩm Mới"}

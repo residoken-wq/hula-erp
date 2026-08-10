@@ -99,9 +99,9 @@ export class PfoBomEngineService {
 
                     let explosionMultiplier = baseMultiplier;
 
-                    // 2. Bất kỳ sản phẩm con nào (khác product gốc) cũng được coi là Bán Thành Phẩm để áp dụng BTP overrides
-                    // Ngoại trừ sản phẩm hoàn thiện (STANDARD) và COMBO thì không hiển thị vào danh sách vật tư BTP
-                    if (current.productId !== product.id && pType !== 'STANDARD' && pType !== 'COMBO') {
+                    // 2. Chỉ hiển thị Bán Thành Phẩm (SEMI_FINISHED) vào danh sách vật tư BTP
+                    // Các sản phẩm hoàn thiện (có product_type là rác hoặc STANDARD) sẽ bị bỏ qua
+                    if (current.productId !== product.id && pType === 'SEMI_FINISHED') {
                         const overrideQty = btpOverrides && btpOverrides[targetProd.id] !== undefined 
                             ? Number(btpOverrides[targetProd.id]) 
                             : 0;
@@ -457,9 +457,8 @@ export class PfoBomEngineService {
 
                     const pType = targetProd.product_type ? targetProd.product_type.toUpperCase() : 'STANDARD';
 
-                    // Bất kỳ sản phẩm con nào nằm trong BOM cũng được coi là BTP (Semi-Finished) cho lệnh này
-                    // Ngoại trừ sản phẩm hoàn thiện (STANDARD) và COMBO
-                    if (current.productId !== product.id && pType !== 'STANDARD' && pType !== 'COMBO') {
+                    // Chỉ hiển thị Bán Thành Phẩm (SEMI_FINISHED)
+                    if (current.productId !== product.id && pType === 'SEMI_FINISHED') {
                         const existingProd = btpReqMap.get(targetProd.id);
                         if (existingProd) {
                             existingProd.qty += baseMultiplier;
