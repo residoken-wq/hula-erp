@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
     Card, Tag, Typography, Button, Progress, Tooltip, Badge, Modal, 
-    Spin, Alert, Space, Divider, message 
+    Spin, Alert, Space, Divider, message, Input 
 } from 'antd';
 import { 
     ClockCircleOutlined, 
@@ -42,6 +42,7 @@ const COLUMNS: ColumnConfig[] = [
     { key: 'IN_PRODUCTION', title: 'Đang Sản Xuất', color: '#52c41a', matchingStatuses: ['IN_PRODUCTION', 'QC'] },
     { key: 'RECEIVING', title: 'Chờ Nhập Kho', color: '#722ed1', matchingStatuses: ['RECEIVING', 'READY_TO_SHIP', 'RECONCILIATION'] },
     { key: 'COMPLETED', title: 'Hoàn Thành', color: '#389e0d', matchingStatuses: ['COMPLETED', 'CLOSED'] },
+    { key: 'CANCELLED', title: 'Hủy', color: '#f5222d', matchingStatuses: ['CANCELLED'] },
 ];
 
 const PfoKanbanBoard: React.FC<PfoKanbanBoardProps> = ({ pfos, onPfoClick, onRefresh }) => {
@@ -55,16 +56,40 @@ const PfoKanbanBoard: React.FC<PfoKanbanBoardProps> = ({ pfos, onPfoClick, onRef
     const [validating, setValidating] = useState(false);
     const [validationDetails, setValidationDetails] = useState<any>(null);
     const [confirmLoading, setConfirmLoading] = useState(false);
+    
+    // Search State
+    const [searchTerm, setSearchTerm] = useState('');
 
     const getPfosByColumn = (col: ColumnConfig) => {
-        return pfos.filter(pfo => {
+        let filteredPfos = pfos;
+        
+        if (searchTerm) {
+            const lowerSearch = searchTerm.toLowerCase();
+            filteredPfos = filteredPfos.filter(pfo => {
+                const customerName = pfo.sales_order?.customer?.name || '';
+                const soCode = pfo.sales_order?.order_code || pfo.sales_order_code || '';
+                const pfoCode = pfo.code || '';
+                
+                return customerName.toLowerCase().includes(lowerSearch) || 
+                       soCode.toLowerCase().includes(lowerSearch) ||
+                       pfoCode.toLowerCase().includes(lowerSearch);
+            });
+        }
+        
+        return filteredPfos.filter(pfo => {
+            const isCancelled = pfo.status === 'CANCELLED' || pfo.sales_order?.status === 'CANCELLED';
+            if (col.key === 'CANCELLED') return isCancelled;
+            if (isCancelled) return false;
+
             if (col.matchingStatuses.includes(pfo.status)) return true;
             return pfo.status === col.key;
         });
     };
 
-    const findColumnByStatus = (status: string): ColumnConfig => {
-        return COLUMNS.find(c => c.matchingStatuses.includes(status) || c.key === status) || COLUMNS[0];
+    const findColumnForPfo = (pfo: any): ColumnConfig => {
+        const isCancelled = pfo.status === 'CANCELLED' || pfo.sales_order?.status === 'CANCELLED';
+        if (isCancelled) return COLUMNS.find(c => c.key === 'CANCELLED') || COLUMNS[0];
+        return COLUMNS.find(c => c.matchingStatuses.includes(pfo.status) || c.key === pfo.status) || COLUMNS[0];
     };
 
     // --- Drag & Drop Handlers ---
@@ -97,7 +122,7 @@ const PfoKanbanBoard: React.FC<PfoKanbanBoardProps> = ({ pfos, onPfoClick, onRef
         setDragOverColKey(null);
         if (!draggedPfo) return;
 
-        const fromCol = findColumnByStatus(draggedPfo.status);
+        const fromCol = findColumnForPfo(draggedPfo);
         const toCol = COLUMNS.find(c => c.key === targetColKey) || COLUMNS[0];
 
         if (fromCol.key === toCol.key) {
@@ -455,6 +480,16 @@ const PfoKanbanBoard: React.FC<PfoKanbanBoardProps> = ({ pfos, onPfoClick, onRef
 
     return (
         <>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-start' }}>
+                <Input.Search
+                    placeholder="Tìm kiếm theo mã Lệnh KHSX, mã SO hoặc tên khách hàng..."
+                    allowClear
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onSearch={(value) => setSearchTerm(value)}
+                    style={{ width: 450 }}
+                />
+            </div>
+            
             <div style={{ display: 'flex', overflowX: 'auto', paddingBottom: 16, minHeight: 560, gap: 16 }}>
                 {COLUMNS.map(col => {
                     const colPfos = getPfosByColumn(col);
