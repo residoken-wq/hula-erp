@@ -116,7 +116,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
             // Count unique materials in PO NPLs
             const orderedMaterials = new Set();
             pfoDetails.pos.pos_npl.forEach((po: any) => {
-                if (po.status !== 'CANCELLED' && po.items) {
+                if (po.status !== 'CANCELLED' && po.status !== 'DRAFT' && po.items) {
                     po.items.forEach((item: any) => {
                         if (item.material_id) orderedMaterials.add(item.material_id);
                     });

@@ -230,9 +230,6 @@ export class PfoBomEngineService {
         }
         
         const oldMilestones = await this.milestoneRepo.find({ where: { pfo_id: id } });
-        if (oldMilestones.length > 0) {
-            await this.milestoneRepo.remove(oldMilestones);
-        }
 
         // Tạo danh sách milestones mới từ ProductRouting
         const newMilestones: PfoMilestone[] = [];
@@ -271,42 +268,58 @@ export class PfoBomEngineService {
                                     });
                                 }
                             }
+                        }
+                        
+                        // Add every product to the map, not just STANDARD
+                        const existing = processedProducts.get(tp.id);
+                        if (existing) {
+                            existing.qty += curr.multiplier;
                         } else {
-                            // STANDARD product - Add to map
-                            const existing = processedProducts.get(tp.id);
-                            if (existing) {
-                                existing.qty += curr.multiplier;
-                            } else {
-                                processedProducts.set(tp.id, { product: tp, qty: curr.multiplier });
-                            }
+                            processedProducts.set(tp.id, { product: tp, qty: curr.multiplier });
                         }
                     }
                 }
             }
         }
 
+        const obsoleteMilestones = oldMilestones.filter(m => !processedProducts.has(m.product_id));
+        if (obsoleteMilestones.length > 0) {
+            await this.milestoneRepo.remove(obsoleteMilestones);
+        }
+
         for (const [prodId, data] of processedProducts.entries()) {
             const product = data.product;
-            const routings = await this.routingRepo.find({
-                where: { product_id: product.id },
-                relations: ['supplier'],
-                order: { step_order: 'ASC' }
-            });
-
-            for (const routing of routings) {
-                const milestone = this.milestoneRepo.create({
-                    pfo_id: id,
-                    product_id: product.id,
-                    product_name: product.name || product.sku,
-                    milestone_type: routing.step_name || 'GIA_CONG',
-                    step_name: routing.step_name,
-                    vendor_id: routing.supplier_id,
-                    vendor_name: routing.supplier?.name || '',
-                    unit_price: Number(routing.cost || 0),
-                    planned_quantity: data.qty,
-                    status: 'PENDING'
+            const existingForProd = oldMilestones.filter(m => m.product_id === prodId);
+            
+            if (existingForProd.length > 0) {
+                // Update quantity of existing ones
+                for (const em of existingForProd) {
+                    em.planned_quantity = data.qty;
+                    newMilestones.push(em);
+                }
+            } else {
+                // Generate from routingRepo if no milestones exist yet
+                const routings = await this.routingRepo.find({
+                    where: { product_id: product.id },
+                    relations: ['supplier'],
+                    order: { step_order: 'ASC' }
                 });
-                newMilestones.push(milestone);
+
+                for (const routing of routings) {
+                    const milestone = this.milestoneRepo.create({
+                        pfo_id: id,
+                        product_id: product.id,
+                        product_name: product.name || product.sku,
+                        milestone_type: routing.step_name || 'GIA_CONG',
+                        step_name: routing.step_name,
+                        vendor_id: routing.supplier_id,
+                        vendor_name: routing.supplier?.name || '',
+                        unit_price: Number(routing.cost || 0),
+                        planned_quantity: data.qty,
+                        status: 'PENDING'
+                    });
+                    newMilestones.push(milestone);
+                }
             }
         }
         
