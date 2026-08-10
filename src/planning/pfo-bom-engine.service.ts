@@ -139,9 +139,9 @@ export class PfoBomEngineService {
                         }
                     }
 
-                    // 3. Nếu KHÔNG phải COMBO -> Nổ vật tư NPL
-                    // (Lưu ý: Nếu một sản phẩm vừa có component vừa có BOM vật tư riêng thì BOM vật tư vẫn được nổ nếu nó ko phải là 'COMBO' thuần túy)
-                    if (pType !== 'COMBO' && explosionMultiplier > 0) {
+                    // 3. Nếu KHÔNG phải COMBO và KHÔNG phải Bán Thành Phẩm (BTP) -> Nổ vật tư NPL
+                    // (Lưu ý: NPL của BTP sẽ được cấu hình trực tiếp trên Thành Phẩm gốc để tránh duplicate, nên dừng nổ NPL ở mức BTP)
+                    if (pType !== 'COMBO' && pType !== 'SEMI_FINISHED' && explosionMultiplier > 0) {
                         const boms = await this.bomRepo.find({
                             where: { product_id: targetProd.id },
                             relations: ['material']
