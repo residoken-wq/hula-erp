@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Card, Row, Col, Typography, Tag, Tabs, Table, Statistic, Divider, Button, Popconfirm, message, Space, InputNumber } from 'antd';
+import { Card, Row, Col, Typography, Tag, Tabs, Table, Statistic, Divider, Button, Popconfirm, message, Space, InputNumber, Modal, Checkbox } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../utils/api';
@@ -28,10 +28,21 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
     handleSaveRouting, handleSaveReqs, handleGeneratePo, handleCalculateBom,
     onRefreshDetails
 }) => {
+    // --- PO GC BTP Modal State ---
+    const [isBtpModalOpen, setIsBtpModalOpen] = React.useState(false);
+    const [selectedPoGc, setSelectedPoGc] = React.useState<any>(null);
+    const [selectedBtpIds, setSelectedBtpIds] = React.useState<number[]>([]);
+    
+    // Lấy danh sách BTP của PFO hiện tại
+    const availableBtps = useMemo(() => {
+        return (pfoDetails?.material_requirements || []).filter((r: any) => r.product_id);
+    }, [pfoDetails]);
     // 1. Calculate Estimated Costs
     const estimatedBomCost = useMemo(() => {
         if (!pfoDetails?.material_requirements) return 0;
-        return pfoDetails.material_requirements.reduce((sum: number, req: any) => sum + (Number(req.planned_quantity || 0) * Number(req.unit_price || 0)), 0);
+        return pfoDetails.material_requirements
+            .filter((req: any) => !req.product_id)
+            .reduce((sum: number, req: any) => sum + (Number(req.planned_quantity || 0) * Number(req.unit_price || 0)), 0);
     }, [pfoDetails]);
 
     const estimatedRoutingCost = useMemo(() => {
@@ -83,7 +94,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
     const actualNplInventoryCost = useMemo(() => {
         if (!pfoDetails?.material_requirements) return 0;
         return pfoDetails.material_requirements
-            .filter((req: any) => req.use_inventory)
+            .filter((req: any) => !req.product_id && req.use_inventory)
             .reduce((sum: number, req: any) => sum + (Number(req.inventory_used_quantity || 0) * Number(req.unit_price || 0)), 0);
     }, [pfoDetails]);
 
@@ -94,11 +105,12 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
 
     // 2.5 Calculate Progress
     const progressData = useMemo(() => {
-        // NPL Progress: items ordered vs items required
+        // NPL Progress: items ordered vs items required (only pure NPLs, ignoring BTPs)
         let nplRequired = 0;
         let nplOrdered = 0;
         if (pfoDetails?.material_requirements) {
-            nplRequired = pfoDetails.material_requirements.length;
+            const pureNpls = pfoDetails.material_requirements.filter((req: any) => !req.product_id);
+            nplRequired = pureNpls.length;
         }
         if (pfoDetails?.pos?.pos_npl) {
             // Count unique materials in PO NPLs
@@ -220,6 +232,31 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
         { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (val: string) => <Tag color="blue">{val}</Tag> },
         { title: 'Nhà cung cấp', dataIndex: ['supplier', 'name'], key: 'supplier' },
         { title: 'Tổng tiền', dataIndex: 'total_amount', key: 'total_amount', render: (val: any) => <b>{Number(val).toLocaleString()} ₫</b> }
+    ];
+
+    const columnsPoGc = [
+        ...columnsPo,
+        {
+            title: 'Thao tác',
+            key: 'action',
+            render: (_: any, record: any) => (
+                <Button 
+                    size="small" 
+                    type="primary" 
+                    ghost 
+                    onClick={() => {
+                        setSelectedPoGc(record);
+                        // Lấy các BTP đã được gán sẵn (nếu có)
+                        const existingBtps = record.semi_finished_products || [];
+                        const existingIds = existingBtps.map((b: any) => b.product_id);
+                        setSelectedBtpIds(existingIds);
+                        setIsBtpModalOpen(true);
+                    }}
+                >
+                    Gán BTP
+                </Button>
+            )
+        }
     ];
 
     const columnsPxk = [
@@ -402,11 +439,25 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                         )
                     },
                     {
-                        key: 'MATRIX',
-                        label: 'Ma trận vật tư',
+                        key: 'MATRIX_BTP',
+                        label: 'Nhu cầu BTP',
                         children: (
                             <MaterialMatrix 
-                                requirements={pfoDetails?.material_requirements || []} 
+                                requirements={(pfoDetails?.material_requirements || []).filter((r: any) => r.product_id)} 
+                                suppliers={suppliers}
+                                loading={loading}
+                                onSaveReqs={handleSaveReqs}
+                                onGeneratePo={handleGeneratePo}
+                                onCalculateBom={handleCalculateBom}
+                            />
+                        )
+                    },
+                    {
+                        key: 'MATRIX',
+                        label: 'Nhu cầu NPL',
+                        children: (
+                            <MaterialMatrix 
+                                requirements={(pfoDetails?.material_requirements || []).filter((r: any) => !r.product_id)} 
                                 suppliers={suppliers}
                                 loading={loading}
                                 onSaveReqs={handleSaveReqs}
@@ -477,7 +528,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                         label: 'PO_GC',
                         children: (
                             <Table 
-                                columns={columnsPo} 
+                                columns={columnsPoGc} 
                                 dataSource={pfoDetails?.pos?.pos_gc || []} 
                                 size="small" 
                                 rowKey="id"
@@ -513,6 +564,53 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                     }
                 ]} />
             </Card>
+
+            <Modal
+                title={`Gán Bán Thành Phẩm cho ${selectedPoGc?.po_code || 'PO GC'}`}
+                open={isBtpModalOpen}
+                onCancel={() => setIsBtpModalOpen(false)}
+                onOk={async () => {
+                    if (!selectedPoGc) return;
+                    try {
+                        const selectedBtpObjects = availableBtps.filter((b: any) => selectedBtpIds.includes(b.product_id));
+                        await api.put(`/purchasing/po/${selectedPoGc.id}`, {
+                            semi_finished_products: selectedBtpObjects
+                        });
+                        message.success('Đã cập nhật danh sách Bán Thành Phẩm cho PO GC');
+                        setIsBtpModalOpen(false);
+                        onRefreshDetails?.();
+                    } catch (e: any) {
+                        message.error(e.response?.data?.message || 'Lỗi khi cập nhật BTP');
+                    }
+                }}
+                okText="Lưu"
+                cancelText="Hủy"
+                destroyOnClose
+            >
+                <div style={{ marginBottom: 16 }}>
+                    <Text type="secondary">Chọn các Bán Thành Phẩm cần giao cho xưởng gia công này thực hiện:</Text>
+                </div>
+                {availableBtps.length === 0 ? (
+                    <Text type="danger">Lệnh KHSX này chưa có cấu hình Bán Thành Phẩm nào.</Text>
+                ) : (
+                    <Checkbox.Group 
+                        style={{ width: '100%' }} 
+                        value={selectedBtpIds}
+                        onChange={(checkedValues) => setSelectedBtpIds(checkedValues as number[])}
+                    >
+                        <Row gutter={[0, 8]}>
+                            {availableBtps.map((btp: any) => (
+                                <Col span={24} key={btp.product_id}>
+                                    <Checkbox value={btp.product_id}>
+                                        <Text strong>{btp.product?.sku || `SP-${btp.product_id}`}</Text> - {btp.product?.name || btp.material_name} 
+                                        <Tag color="blue" style={{ marginLeft: 8 }}>SL: {btp.planned_quantity}</Tag>
+                                    </Checkbox>
+                                </Col>
+                            ))}
+                        </Row>
+                    </Checkbox.Group>
+                )}
+            </Modal>
         </div>
     );
 };

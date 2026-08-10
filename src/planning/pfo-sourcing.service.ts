@@ -203,10 +203,10 @@ export class PfoSourcingService {
                 }
             }
 
-            // 3. TẠO PO NGUYÊN PHỤ LIỆU (PO NPL)
-            // Chỉ mua các NPL do HULA cấp phát (supply_method = HULA_SUPPLIED) và số lượng cần mua > 0
+            // Chỉ mua các NPL thuần túy (không có product_id) do HULA cấp phát (supply_method = HULA_SUPPLIED) và số lượng cần mua > 0
             const hulaMaterials = (pfo.material_requirements || []).filter(
-                m => (m.supply_method === SupplyMethod.HULA_SUPPLIED || !m.supply_method) && 
+                m => !m.product_id && 
+                     (m.supply_method === SupplyMethod.HULA_SUPPLIED || !m.supply_method) && 
                      (m.actual_order_quantity !== undefined ? Number(m.actual_order_quantity) : Number(m.planned_quantity || 0)) > 0
             );
 
