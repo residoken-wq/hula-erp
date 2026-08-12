@@ -581,7 +581,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                     if (!selectedPoGc) return;
                     try {
                         const selectedBtpObjects = availableBtps.filter((b: any) => selectedBtpIds.includes(b.product_id));
-                        await api.put(`/purchasing/po/${selectedPoGc.id}`, {
+                        await api.put(`/purchasing/${selectedPoGc.id}`, {
                             semi_finished_products: selectedBtpObjects
                         });
                         message.success('Đã cập nhật danh sách Bán Thành Phẩm cho PO GC');
