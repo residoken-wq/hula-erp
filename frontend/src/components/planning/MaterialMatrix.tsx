@@ -29,10 +29,11 @@ const MaterialMatrix: React.FC<MaterialMatrixProps> = ({
 }) => {
     const [editableData, setEditableData] = useState<any[]>(requirements || []);
 
-    // Sync state if props change
+    // Sync state if props change (only when data actually changes, preventing overwrite of local edits)
     React.useEffect(() => {
         setEditableData(requirements || []);
-    }, [requirements]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [JSON.stringify(requirements)]);
 
     const handleFieldChange = (id: number, field: string, value: any) => {
         const newData = editableData.map(item => {

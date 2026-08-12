@@ -37,6 +37,14 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
     const availableBtps = useMemo(() => {
         return (pfoDetails?.material_requirements || []).filter((r: any) => r.product_id);
     }, [pfoDetails]);
+    
+    const btpRequirements = useMemo(() => {
+        return (pfoDetails?.material_requirements || []).filter((r: any) => r.product_id);
+    }, [pfoDetails?.material_requirements]);
+
+    const nplRequirements = useMemo(() => {
+        return (pfoDetails?.material_requirements || []).filter((r: any) => !r.product_id);
+    }, [pfoDetails?.material_requirements]);
     // 1. Calculate Estimated Costs
     const estimatedBomCost = useMemo(() => {
         if (!pfoDetails?.material_requirements) return 0;
@@ -443,7 +451,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                         label: 'Nhu cầu BTP',
                         children: (
                             <MaterialMatrix 
-                                requirements={(pfoDetails?.material_requirements || []).filter((r: any) => r.product_id)} 
+                                requirements={btpRequirements} 
                                 suppliers={suppliers}
                                 loading={loading}
                                 onSaveReqs={handleSaveReqs}
@@ -457,7 +465,7 @@ const PfoDetailTabs: React.FC<PfoDetailTabsProps> = ({
                         label: 'Nhu cầu NPL',
                         children: (
                             <MaterialMatrix 
-                                requirements={(pfoDetails?.material_requirements || []).filter((r: any) => !r.product_id)} 
+                                requirements={nplRequirements} 
                                 suppliers={suppliers}
                                 loading={loading}
                                 onSaveReqs={handleSaveReqs}
