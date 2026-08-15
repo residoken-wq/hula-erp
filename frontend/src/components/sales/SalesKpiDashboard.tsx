@@ -34,7 +34,7 @@ const NumberCounter = ({ value, suffix = "" }: { value: number, suffix?: string 
     }
   }, [value, suffix]);
 
-  return <span ref={nodeRef} className="font-bold text-xl md:text-2xl text-gray-800 tracking-tight">0</span>;
+  return <span ref={nodeRef} className="text-xl md:text-2xl tracking-tight font-medium">0</span>;
 };
 
 export const SalesKpiDashboard: React.FC<SalesKpiDashboardProps> = ({ metrics, isMobile }) => {
@@ -94,7 +94,7 @@ export const SalesKpiDashboard: React.FC<SalesKpiDashboardProps> = ({ metrics, i
         >
           <div className="flex items-center gap-2 mb-2 opacity-80">
             <span className="text-lg">{card.prefixIcon}</span>
-            <span className="font-heading font-medium text-sm md:text-base text-gray-600">{card.title}</span>
+            <span className="font-heading font-medium text-sm md:text-base">{card.title}</span>
           </div>
           <div className="flex items-baseline gap-1 mt-1">
              <NumberCounter value={card.value} suffix={card.suffix} />
