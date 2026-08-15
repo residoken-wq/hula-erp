@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table, Switch, Dropdown, MenuProps } from 'antd';
+import { Modal, Form, Input, Select, DatePicker, Button, Tabs, Row, Col, InputNumber, Divider, message, Tag, Popconfirm, Tooltip, Checkbox, Table, Switch, Dropdown, MenuProps, Drawer } from 'antd';
 import { PlusOutlined, SaveOutlined, CheckCircleOutlined, InfoCircleOutlined, MoreOutlined } from '@ant-design/icons';
 import { HistoryOutlined, CopyOutlined, DeleteOutlined, LinkOutlined, PrinterOutlined, FileTextOutlined, AppstoreAddOutlined, LockOutlined, MenuOutlined, FileExcelOutlined } from '@ant-design/icons';
 import ExcelJS from 'exceljs';
@@ -698,7 +698,25 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
     };
 
 
-
+    const confirmDelete = (type: 'quote' | 'order', id: number) => {
+        Modal.confirm({
+            title: 'Xác nhận xóa',
+            content: `Bạn có chắc chắn muốn xóa ${type === 'quote' ? 'báo giá' : 'đơn hàng'} này?`,
+            okText: 'Xóa',
+            cancelText: 'Hủy',
+            okButtonProps: { danger: true },
+            onOk: async () => {
+                try {
+                    await api.delete(`/sales/${type === 'quote' ? 'quote/' : ''}${id}`);
+                    message.success('Đã xóa thành công');
+                    onSuccess();
+                    onClose();
+                } catch (e: any) {
+                    message.error(e?.response?.data?.message || 'Lỗi khi xóa');
+                }
+            }
+        });
+    };
 
     return (
         <Drawer

@@ -409,7 +409,7 @@ const SalesPage: React.FC = () => {
                 </div>
 
                 {/* STATS CARDS - GSAP & Glassmorphism */}
-                <SalesKpiDashboard metrics={metrics} isMobile={isMobile} />
+                <SalesKpiDashboard metrics={metrics} isMobile={!!isMobile} />
             </div>
 
             <Card
