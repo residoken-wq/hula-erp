@@ -1,11 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Typography, Card, Table, Button, Tabs, Space, Modal, Form, InputNumber, Input, Select, message, Tag, Popconfirm, Row, Col, Tooltip } from 'antd';
-import { PlusOutlined, HistoryOutlined, CheckCircleOutlined, AppstoreOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { PlusOutlined, HistoryOutlined, CheckCircleOutlined, AppstoreOutlined, DeleteOutlined, EditOutlined, FileImageOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
 const { Option } = Select;
+
+const getGoogleDriveImageUrl = (link: string) => {
+    if (!link) return null;
+    try {
+        if (link.includes('drive.google.com')) {
+            const idMatch = link.match(/\/d\/(.*?)\//) || link.match(/id=(.*?)(&|$)/);
+            if (idMatch && idMatch[1]) return `https://drive.google.com/uc?id=${idMatch[1]}`;
+        }
+        return link;
+    } catch { return link; }
+};
 
 const SampleInventoryPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('stocks');
@@ -304,7 +315,8 @@ const SampleInventoryPage: React.FC = () => {
             width: 80,
             render: (_: any, r: any) => {
                 const p = products.find(x => x.id === r.item_id);
-                return p?.image_url ? <img src={p.image_url} style={{width:40, height:40, objectFit:'cover'}} alt="" /> : '-';
+                const src = getGoogleDriveImageUrl(p?.image_url);
+                return src ? <img src={src} style={{width:40, height:40, objectFit:'cover'}} alt="" /> : '-';
             }
         },
         { title: 'SL Tồn Hàng Mẫu', dataIndex: 'quantity', width: 150, align: 'right' as const, render: (v:any)=> <b>{Number(v).toLocaleString()}</b> },
@@ -477,23 +489,27 @@ const SampleInventoryPage: React.FC = () => {
                     )}
                     
                     {modalType === 'EXPORT' && (
-                        <Row gutter={16}>
-                            <Col span={8}>
-                                <Form.Item name="receiver_name" label="Người nhận (Tên)">
-                                    <Input placeholder="Tên người nhận mẫu" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item name="receiver_phone" label="SĐT Người nhận">
-                                    <Input placeholder="Số điện thoại" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item name="receiver_address" label="Địa chỉ giao mẫu">
-                                    <Input placeholder="Địa chỉ" />
-                                </Form.Item>
-                            </Col>
-                        </Row>
+                        <>
+                            <Row gutter={16}>
+                                <Col span={12}>
+                                    <Form.Item name="receiver_name" label="Người nhận (Tên)">
+                                        <Input placeholder="Tên người nhận mẫu" />
+                                    </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                    <Form.Item name="receiver_phone" label="SĐT Người nhận">
+                                        <Input placeholder="Số điện thoại" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                            <Row gutter={16}>
+                                <Col span={24}>
+                                    <Form.Item name="receiver_address" label="Địa chỉ giao mẫu">
+                                        <Input placeholder="Địa chỉ" />
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </>
                     )}
                     
                     <Form.Item name="note" label="Ghi chú chung">
@@ -575,9 +591,10 @@ const SampleInventoryPage: React.FC = () => {
                                     title: 'Sản phẩm', 
                                     render: (_, r) => {
                                         const p = products.find(prod => prod.id === r.product_id);
+                                        const src = getGoogleDriveImageUrl(p?.image_url);
                                         return (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                {p?.image_url ? <img src={p.image_url} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} alt="" /> : <div style={{ width: 40, height: 40, background: '#f0f0f0', borderRadius: 4 }} />}
+                                                {src ? <img src={src} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} alt="" /> : <div style={{ width: 40, height: 40, background: '#f0f0f0', borderRadius: 4 }} />}
                                                 <div>
                                                     <div style={{ fontWeight: 'bold' }}>{p?.name}</div>
                                                     <div style={{ fontSize: 12, color: '#888' }}>{p?.sku}</div>
