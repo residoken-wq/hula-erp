@@ -26,6 +26,7 @@ const SampleInventoryPage: React.FC = () => {
     const [customers, setCustomers] = useState<any[]>([]);
     const [salesOrders, setSalesOrders] = useState<any[]>([]);
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+    const [searchText, setSearchText] = useState('');
     
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -300,26 +301,62 @@ const SampleInventoryPage: React.FC = () => {
     };
 
     const stockColumns = [
-        { title: 'Item ID', dataIndex: 'item_id', width: 80 },
         { 
-            title: 'Sản phẩm', 
-            key: 'product',
-            render: (_: any, r: any) => {
-                const p = products.find(x => x.id === r.item_id);
-                return p ? `${p.sku} - ${p.name}` : `Loading ID ${r.item_id}`;
-            }
-        },
-        { 
-            title: 'Hình ảnh', 
+            title: 'Ảnh', 
             key: 'image', 
             width: 80,
+            align: 'center' as const,
             render: (_: any, r: any) => {
                 const p = products.find(x => x.id === r.item_id);
                 const src = getGoogleDriveImageUrl(p?.image_url);
-                return src ? <img src={src} style={{width:40, height:40, objectFit:'cover'}} alt="" /> : '-';
+                return src ? <img src={src} style={{width: 48, height: 48, objectFit: 'cover', borderRadius: 4, border: '1px solid #e8e8e8'}} alt="" /> : <FileImageOutlined style={{ fontSize: 24, color: '#d9d9d9' }} />;
             }
         },
-        { title: 'SL Tồn Hàng Mẫu', dataIndex: 'quantity', width: 150, align: 'right' as const, render: (v:any)=> <b>{Number(v).toLocaleString()}</b> },
+        { 
+            title: 'Mã (SKU)', 
+            key: 'sku',
+            width: 160,
+            render: (_: any, r: any) => {
+                const p = products.find(x => x.id === r.item_id);
+                return p ? <b>{p.sku}</b> : `ID ${r.item_id}`;
+            },
+            sorter: (a: any, b: any) => {
+                const pa = products.find(x => x.id === a.item_id);
+                const pb = products.find(x => x.id === b.item_id);
+                return (pa?.sku || '').localeCompare(pb?.sku || '');
+            }
+        },
+        { 
+            title: 'Tên Sản Phẩm', 
+            key: 'name',
+            render: (_: any, r: any) => {
+                const p = products.find(x => x.id === r.item_id);
+                return p ? <span style={{ fontWeight: 500, color: '#262626' }}>{p.name}</span> : '-';
+            },
+            sorter: (a: any, b: any) => {
+                const pa = products.find(x => x.id === a.item_id);
+                const pb = products.find(x => x.id === b.item_id);
+                return (pa?.name || '').localeCompare(pb?.name || '');
+            }
+        },
+        {
+            title: 'Giá bán',
+            key: 'price',
+            width: 120,
+            align: 'right' as const,
+            render: (_: any, r: any) => {
+                const p = products.find(x => x.id === r.item_id);
+                return p?.base_price ? <span style={{ fontWeight: 'bold', color: 'green' }}>{Number(p.base_price).toLocaleString()}</span> : '-';
+            }
+        },
+        { 
+            title: 'Tồn Hàng Mẫu', 
+            dataIndex: 'quantity', 
+            width: 140, 
+            align: 'right' as const, 
+            render: (v:any)=> <span style={{ fontWeight: 'bold', color: '#1890ff', fontSize: 16 }}>{Number(v).toLocaleString()}</span>,
+            sorter: (a: any, b: any) => Number(a.quantity) - Number(b.quantity)
+        },
     ];
 
     const txColumns = [
@@ -396,10 +433,24 @@ const SampleInventoryPage: React.FC = () => {
                             label: <span><AppstoreOutlined /> Tồn Kho Hàng Mẫu</span>,
                             children: (
                                 <div style={{ padding: 24 }}>
+                                    <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                                        <Input.Search 
+                                            placeholder="Tìm kiếm SKU/Tên SP..." 
+                                            allowClear 
+                                            style={{ width: 300 }}
+                                            onChange={(e) => setSearchText(e.target.value)}
+                                        />
+                                    </div>
                                     <Table 
                                         loading={loading}
                                         columns={stockColumns}
-                                        dataSource={stocks}
+                                        dataSource={stocks.filter(st => {
+                                            if (!searchText) return true;
+                                            const p = products.find(x => x.id === st.item_id);
+                                            if (!p) return false;
+                                            const lower = searchText.toLowerCase();
+                                            return (p.name && p.name.toLowerCase().includes(lower)) || (p.sku && p.sku.toLowerCase().includes(lower));
+                                        })}
                                         rowKey="id"
                                         pagination={{ pageSize: 20 }}
                                     />
