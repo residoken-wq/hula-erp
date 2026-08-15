@@ -90,7 +90,7 @@ const SampleInventoryPage: React.FC = () => {
                 note: values.note,
                 items: selectedItems
             });
-            message.success('Tạo phiếu thành công!');
+            message.success('Tạo phiếu thành công! Vui lòng [Duyệt] phiếu để cập nhật tồn kho.');
             setIsModalOpen(false);
             if (activeTab === 'transactions') fetchTransactions();
             else setActiveTab('transactions');
@@ -429,28 +429,49 @@ const SampleInventoryPage: React.FC = () => {
                     </Form.Item>
 
                     <Card size="small" title="Danh sách sản phẩm" style={{ marginTop: 10 }}>
-                        <Form onFinish={(vals) => {
-                            const exists = selectedItems.find(i => i.product_id === vals.prodId);
-                            if (exists) {
-                                message.warning('Sản phẩm đã có trong danh sách!');
-                            } else {
-                                setSelectedItems([...selectedItems, { product_id: vals.prodId, quantity: vals.qty, note: '' }]);
-                            }
-                            form.setFieldsValue({ prodId: undefined, qty: 1 });
-                        }} layout="inline" style={{ marginBottom: 15 }}>
-                            <Form.Item name="prodId" rules={[{required: true, message: 'Vui lòng chọn sản phẩm'}]} style={{ width: '45%' }}>
+                        <div style={{ display: 'flex', gap: 10, marginBottom: 15, alignItems: 'flex-start' }}>
+                            <div style={{ width: '45%' }}>
                                 <Select 
                                     showSearch 
+                                    style={{ width: '100%' }}
+                                    value={form.getFieldValue('prodId')}
+                                    onChange={(val) => form.setFieldsValue({ prodId: val })}
                                     filterOption={(inpt, opt:any) => (opt?.label as string)?.toLowerCase().includes(inpt.toLowerCase())} 
                                     placeholder="Tìm kiếm và chọn sản phẩm..."
-                                    options={products.map(p => ({ value: p.id, label: `${p.sku} - ${p.name}` }))}
+                                    options={products.map((p: any) => ({ value: p.id, label: `${p.sku} - ${p.name}` }))}
                                 />
-                            </Form.Item>
-                            <Form.Item name="qty" rules={[{required: true, message: 'Nhập SL'}]} initialValue={1} style={{ width: '15%' }}>
-                                <InputNumber min={1} placeholder="Số lượng" style={{ width: '100%' }} />
-                            </Form.Item>
-                            <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>Thêm vào danh sách</Button>
-                        </Form>
+                            </div>
+                            <div style={{ width: '15%' }}>
+                                <InputNumber 
+                                    min={1} 
+                                    placeholder="Số lượng" 
+                                    style={{ width: '100%' }} 
+                                    value={form.getFieldValue('qty') || 1}
+                                    onChange={(val) => form.setFieldsValue({ qty: val })}
+                                />
+                            </div>
+                            <Button 
+                                type="primary" 
+                                icon={<PlusOutlined />} 
+                                onClick={() => {
+                                    const prodId = form.getFieldValue('prodId');
+                                    const qty = form.getFieldValue('qty') || 1;
+                                    if (!prodId) {
+                                        message.warning('Vui lòng chọn sản phẩm');
+                                        return;
+                                    }
+                                    const exists = selectedItems.find(i => i.product_id === prodId);
+                                    if (exists) {
+                                        message.warning('Sản phẩm đã có trong danh sách!');
+                                    } else {
+                                        setSelectedItems([...selectedItems, { product_id: prodId, quantity: qty, note: '' }]);
+                                    }
+                                    form.setFieldsValue({ prodId: undefined, qty: 1 });
+                                }}
+                            >
+                                Thêm vào danh sách
+                            </Button>
+                        </div>
 
                         <Table 
                             size="small" 
