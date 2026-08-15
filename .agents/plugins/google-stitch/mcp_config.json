@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "google-stitch": {
+      "serverUrl": "https://stitch.google.com/mcp/sse"
+    }
+  }
+}
