@@ -45,6 +45,15 @@ export class SampleTransaction {
     deposit_amount: number;
 
     @Column({ nullable: true })
+    receiver_name: string;
+
+    @Column({ nullable: true })
+    receiver_phone: string;
+
+    @Column({ nullable: true })
+    receiver_address: string;
+
+    @Column({ nullable: true })
     note: string;
 
     @OneToMany(() => SampleTransactionItem, item => item.transaction, { cascade: true })

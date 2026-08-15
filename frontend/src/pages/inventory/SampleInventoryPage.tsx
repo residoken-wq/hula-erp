@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Typography, Card, Table, Button, Tabs, Space, Modal, Form, InputNumber, Input, Select, message, Tag, Popconfirm, Row, Col } from 'antd';
-import { PlusOutlined, HistoryOutlined, CheckCircleOutlined, AppstoreOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Layout, Typography, Card, Table, Button, Tabs, Space, Modal, Form, InputNumber, Input, Select, message, Tag, Popconfirm, Row, Col, Tooltip } from 'antd';
+import { PlusOutlined, HistoryOutlined, CheckCircleOutlined, AppstoreOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import api from '../../utils/api';
 import dayjs from 'dayjs';
 
@@ -19,6 +19,7 @@ const SampleInventoryPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalType, setModalType] = useState<'IMPORT' | 'EXPORT'>('IMPORT');
+    const [editingTxId, setEditingTxId] = useState<number | null>(null);
     
     const [form] = Form.useForm();
     const [selectedItems, setSelectedItems] = useState<{product_id: number, quantity: number, note: string}[]>([]);
@@ -83,20 +84,58 @@ const SampleInventoryPage: React.FC = () => {
         }
 
         try {
-            await api.post('/inventory/samples/transactions', {
+            const payload = {
                 type: modalType,
                 reference_type: values.reference_type,
-                reference_id: values.reference_id, // can be ID or string for now
+                reference_id: values.reference_id, 
+                customer_id: selectedCustomerId,
+                deposit_amount: values.deposit_amount,
                 note: values.note,
+                receiver_name: values.receiver_name,
+                receiver_phone: values.receiver_phone,
+                receiver_address: values.receiver_address,
                 items: selectedItems
-            });
-            message.success('Tạo phiếu thành công! Vui lòng [Duyệt] phiếu để cập nhật tồn kho.');
+            };
+
+            if (editingTxId) {
+                await api.put(`/inventory/samples/transactions/${editingTxId}`, payload);
+                message.success('Cập nhật phiếu thành công!');
+            } else {
+                await api.post('/inventory/samples/transactions', payload);
+                message.success('Tạo phiếu thành công! Vui lòng [Duyệt] phiếu để cập nhật tồn kho.');
+            }
+            
             setIsModalOpen(false);
             if (activeTab === 'transactions') fetchTransactions();
             else setActiveTab('transactions');
         } catch (e: any) {
             message.error(e.response?.data?.message || 'Có lỗi xảy ra');
         }
+    };
+
+    const handleEditTransaction = (tx: any) => {
+        setEditingTxId(tx.id);
+        setModalType(tx.type);
+        setSelectedCustomerId(tx.customer_id);
+        
+        form.setFieldsValue({
+            customer_id: tx.customer_id,
+            reference_type: tx.reference_type,
+            reference_id: tx.reference_id,
+            deposit_amount: tx.deposit_amount,
+            note: tx.note,
+            receiver_name: tx.receiver_name,
+            receiver_phone: tx.receiver_phone,
+            receiver_address: tx.receiver_address,
+        });
+        
+        setSelectedItems((tx.items || []).map((i: any) => ({
+            product_id: i.product_id,
+            quantity: i.quantity,
+            note: i.note || ''
+        })));
+        
+        setIsModalOpen(true);
     };
 
     const handleConfirmTransaction = async (id: number) => {
@@ -123,9 +162,9 @@ const SampleInventoryPage: React.FC = () => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) return message.error('Vui lòng cho phép popup để in');
 
-        const customerName = tx.customer?.name || '..............................................';
-        const customerAddress = tx.customer?.address || '..............................................';
-        const customerPhone = tx.customer?.phone || '......................';
+        const customerName = tx.receiver_name || tx.customer?.name || '..............................................';
+        const customerAddress = tx.receiver_address || tx.customer?.address || '..............................................';
+        const customerPhone = tx.receiver_phone || tx.customer?.phone || '......................';
         const deposit = tx.deposit_amount ? Number(tx.deposit_amount).toLocaleString('vi-VN') + ' VNĐ' : '0 VNĐ';
         const refOrder = tx.reference_type ? `${tx.reference_type} #${tx.reference_id || ''}` : '';
 
@@ -297,15 +336,18 @@ const SampleInventoryPage: React.FC = () => {
                 <Space>
                     {r.status === 'DRAFT' && (
                         <>
-                            <Popconfirm title="Xác nhận phiếu này kho?" onConfirm={() => handleConfirmTransaction(r.id)}>
+                            <Popconfirm title="Xác nhận phiếu này xuất/nhập kho?" onConfirm={() => handleConfirmTransaction(r.id)}>
                                 <Button size="small" type="primary" icon={<CheckCircleOutlined />}>Duyệt</Button>
                             </Popconfirm>
-                            <Popconfirm title="Xóa phiếu này?" onConfirm={() => handleDeleteTransaction(r.id)}>
+                            <Tooltip title="Sửa">
+                                <Button size="small" onClick={() => handleEditTransaction(r)} icon={<EditOutlined />} />
+                            </Tooltip>
+                            <Popconfirm title="Xóa phiếu nháp này?" onConfirm={() => handleDeleteTransaction(r.id)}>
                                 <Button size="small" danger icon={<DeleteOutlined />} />
                             </Popconfirm>
                         </>
                     )}
-                    {r.type === 'EXPORT' && (
+                    {r.status === 'COMPLETED' && r.type === 'EXPORT' && (
                         <Button size="small" onClick={() => handlePrintExport(r)}>In Phiếu</Button>
                     )}
                 </Space>
@@ -315,6 +357,8 @@ const SampleInventoryPage: React.FC = () => {
 
     const openModal = (type: 'IMPORT' | 'EXPORT') => {
         setModalType(type);
+        setEditingTxId(null);
+        setSelectedCustomerId(null);
         setSelectedItems([]);
         form.resetFields();
         setIsModalOpen(true);
@@ -383,7 +427,15 @@ const SampleInventoryPage: React.FC = () => {
                                 <Form.Item name="customer_id" label="Khách hàng">
                                     <Select showSearch filterOption={(inpt, opt:any) => (opt?.children as string).toLowerCase().includes(inpt.toLowerCase())} placeholder="Chọn khách hàng" onChange={val => {
                                         setSelectedCustomerId(val);
-                                        form.setFieldsValue({ ref_order: undefined, reference_type: undefined, reference_id: undefined });
+                                        const c = customers.find(x => x.id === val);
+                                        form.setFieldsValue({ 
+                                            ref_order: undefined, 
+                                            reference_type: undefined, 
+                                            reference_id: undefined,
+                                            receiver_name: c?.name || '',
+                                            receiver_phone: c?.phone || '',
+                                            receiver_address: c?.address || ''
+                                        });
                                     }}>
                                         {customers.map(c => <Option key={c.id} value={c.id}>{c.name}</Option>)}
                                     </Select>
@@ -424,6 +476,26 @@ const SampleInventoryPage: React.FC = () => {
                         </Row>
                     )}
                     
+                    {modalType === 'EXPORT' && (
+                        <Row gutter={16}>
+                            <Col span={8}>
+                                <Form.Item name="receiver_name" label="Người nhận (Tên)">
+                                    <Input placeholder="Tên người nhận mẫu" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item name="receiver_phone" label="SĐT Người nhận">
+                                    <Input placeholder="Số điện thoại" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={8}>
+                                <Form.Item name="receiver_address" label="Địa chỉ giao mẫu">
+                                    <Input placeholder="Địa chỉ" />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                    )}
+                    
                     <Form.Item name="note" label="Ghi chú chung">
                         <Input.TextArea rows={2} placeholder="Vd: Chuyển hàng mẫu từ kho chính sang kho mẫu..." />
                     </Form.Item>
@@ -438,7 +510,16 @@ const SampleInventoryPage: React.FC = () => {
                                     onChange={(val) => form.setFieldsValue({ prodId: val })}
                                     filterOption={(inpt, opt:any) => (opt?.label as string)?.toLowerCase().includes(inpt.toLowerCase())} 
                                     placeholder="Tìm kiếm và chọn sản phẩm..."
-                                    options={products.map((p: any) => ({ value: p.id, label: `${p.sku} - ${p.name}` }))}
+                                    options={(modalType === 'EXPORT' 
+                                        ? products.filter(p => {
+                                            const st = stocks.find(s => s.item_id === p.id);
+                                            return st && Number(st.quantity) > 0;
+                                        }) 
+                                        : products
+                                    ).map((p: any) => ({ 
+                                        value: p.id, 
+                                        label: `${p.sku} - ${p.name}` + (modalType === 'EXPORT' ? ` (Tồn: ${stocks.find(s => s.item_id === p.id)?.quantity || 0})` : '')
+                                    }))}
                                 />
                             </div>
                             <div style={{ width: '15%' }}>
@@ -460,6 +541,16 @@ const SampleInventoryPage: React.FC = () => {
                                         message.warning('Vui lòng chọn sản phẩm');
                                         return;
                                     }
+                                    
+                                    if (modalType === 'EXPORT') {
+                                        const stockItem = stocks.find(s => s.item_id === prodId);
+                                        const available = Number(stockItem?.quantity || 0);
+                                        if (qty > available) {
+                                            message.warning(`Sản phẩm này chỉ còn tồn ${available} trong kho mẫu`);
+                                            return;
+                                        }
+                                    }
+
                                     const exists = selectedItems.find(i => i.product_id === prodId);
                                     if (exists) {
                                         message.warning('Sản phẩm đã có trong danh sách!');

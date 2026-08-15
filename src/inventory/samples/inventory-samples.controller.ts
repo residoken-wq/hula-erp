@@ -20,9 +20,28 @@ export class InventorySamplesController {
         deposit_amount?: number;
         note?: string;
         created_by?: string;
+        receiver_name?: string;
+        receiver_phone?: string;
+        receiver_address?: string;
         items: { product_id: number; quantity: number; note?: string }[];
     }) {
         return this.samplesService.createTransaction(body);
+    }
+
+    @Put('transactions/:id')
+    async updateTransaction(@Param('id') id: string, @Body() body: {
+        type?: SampleTransactionType;
+        reference_type?: string;
+        reference_id?: number;
+        customer_id?: number;
+        deposit_amount?: number;
+        note?: string;
+        receiver_name?: string;
+        receiver_phone?: string;
+        receiver_address?: string;
+        items?: { product_id: number; quantity: number; note?: string }[];
+    }) {
+        return this.samplesService.updateTransaction(Number(id), body);
     }
 
     @Get('transactions/:id')
