@@ -120,101 +120,131 @@ const SampleInventoryPage: React.FC = () => {
     };
 
     const handlePrintExport = (tx: any) => {
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        const printWindow = window.open('', '_blank');
         if (!printWindow) return message.error('Vui lòng cho phép popup để in');
 
         const customerName = tx.customer?.name || '..............................................';
         const customerAddress = tx.customer?.address || '..............................................';
         const customerPhone = tx.customer?.phone || '......................';
         const deposit = tx.deposit_amount ? Number(tx.deposit_amount).toLocaleString('vi-VN') + ' VNĐ' : '0 VNĐ';
+        const refOrder = tx.reference_type ? `${tx.reference_type} #${tx.reference_id || ''}` : '';
 
-        let html = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Phiếu Xuất Kho Hàng Mẫu - ${tx.code}</title>
-    <style>
-        body { font-family: 'Times New Roman', serif; font-size: 14px; color: #000; padding: 20px; }
-        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
-        .company-info { font-size: 13px; line-height: 1.5; }
-        .title { text-align: center; margin-bottom: 30px; }
-        .title h2 { margin: 0; font-size: 22px; font-weight: bold; text-transform: uppercase; }
-        .title p { margin: 5px 0 0 0; font-style: italic; }
-        .info-group { margin-bottom: 20px; line-height: 1.6; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-        th { font-weight: bold; text-align: center; background-color: #f0f0f0 !important; -webkit-print-color-adjust: exact; }
-        .signatures { display: flex; justify-content: space-around; margin-top: 50px; text-align: center; }
-        .sig-box { width: 30%; }
-        .sig-box strong { display: block; margin-bottom: 70px; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="company-info">
-            <strong>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</strong><br>
-            📍 74/21/24 Nguyễn Khuyến, Phường Bình Thạnh, TP. Hồ Chí Minh<br>
-            📞 0983.882210 - 0983.796654<br>
-            MST: 0311.874.522
-        </div>
-        <div style="text-align: right;">
-            <strong>Mã phiếu:</strong> ${tx.code}<br>
-            <strong>Ngày lập:</strong> ${dayjs(tx.created_at).format('DD/MM/YYYY')}
-        </div>
-    </div>
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>In Phiếu Xuất Kho Hàng Mẫu - ${tx.code}</title>
+                <style>
+                    body { font-family: 'Times New Roman', Times, serif; padding: 20px; font-size: 14px; }
+                    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #0050b3; padding-bottom: 10px; }
+                    .company-info { width: 60%; }
+                    .company-info h1 { margin: 0; color: #0050b3; font-size: 24px; text-transform: uppercase; }
+                    .company-info p { margin: 2px 0; font-size: 13px; }
+                    .header-logo { width: 60%; text-align: left; }
+                    .title-section { text-align: center; width: 40%; }
+                    .title-section h2 { margin: 0 0 5px; font-size: 22px; text-transform: uppercase; }
+                    .info-grid { margin-bottom: 20px; }
+                    .info-row { display: flex; margin-bottom: 8px; }
+                    .info-label { width: 130px; font-weight: bold; }
+                    .info-val { flex: 1; }
 
-    <div class="title">
-        <h2>PHIẾU XUẤT KHO HÀNG MẪU</h2>
-        <p>(Kèm theo đơn: ${tx.reference_type} #${tx.reference_id || '......'})</p>
-    </div>
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                    th, td { border: 1px solid #000; padding: 8px; text-align: center; }
+                    th { background-color: #fce4d6; font-weight: bold; }
 
-    <div class="info-group">
-        Khách hàng nhận mẫu: <b>${customerName}</b><br>
-        Số điện thoại: <b>${customerPhone}</b><br>
-        Địa chỉ: <b>${customerAddress}</b><br>
-        Ghi chú: ${tx.note || '..............................................'}<br>
-        <strong>Tiền cọc mẫu: <span style="font-size: 16px;">${deposit}</span></strong>
-    </div>
+                    .footer { display: flex; justify-content: space-between; text-align: center; margin-top: 50px; }
+                    .footer-col { width: 30%; }
+                    .footer-col .role { font-weight: bold; margin-bottom: 80px; }
+                    .note-bottom { font-style: italic; font-size: 12px; margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="header-logo">
+                        <img src="${window.location.origin}/company_header.png" alt="Company Header" style="max-height: 80px; max-width: 100%;" />
+                    </div>
+                    <div class="title-section">
+                        <h2>PHIẾU XUẤT KHO<br>HÀNG MẪU</h2>
+                        <div style="font-style:italic; font-size: 14px;">Ngày ${dayjs(tx.created_at).format('DD')} tháng ${dayjs(tx.created_at).format('MM')} năm ${dayjs(tx.created_at).format('YYYY')}</div>
+                        <div style="margin-top:5px; font-size:12px; font-style:italic;">Số PXK: <b>${tx.code}</b></div>
+                    </div>
+                </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 50px;">STT</th>
-                <th>Tên Sản Phẩm Mẫu</th>
-                <th style="width: 80px;">Số Lượng</th>
-                <th>Ghi chú</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${(tx.items || []).map((item: any, idx: number) => `
-            <tr>
-                <td style="text-align: center;">${idx + 1}</td>
-                <td>${item.product?.sku} - ${item.product?.name || ''}</td>
-                <td style="text-align: center;">${item.quantity}</td>
-                <td>${item.note || ''}</td>
-            </tr>
-            `).join('')}
-        </tbody>
-    </table>
+                <div class="info-grid">
+                    <div class="info-row">
+                        <div class="info-label">Khách hàng nhận:</div>
+                        <div class="info-val" style="text-transform:uppercase; font-weight:bold;">${customerName}</div>
+                        ${refOrder ? `<div style="font-size:12px;">Kèm đơn: <b>${refOrder}</b></div>` : ''}
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Địa chỉ:</div>
+                        <div class="info-val">${customerAddress}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Điện thoại:</div>
+                        <div class="info-val">${customerPhone}</div>
+                    </div>
+                    ${tx.deposit_amount ? `
+                    <div class="info-row">
+                        <div class="info-label">Tiền cọc mẫu:</div>
+                        <div class="info-val" style="font-weight:bold; color:red;">${deposit}</div>
+                    </div>
+                    ` : ''}
+                    ${tx.note ? `<div class="info-row"><div class="info-label">Ghi chú phiếu:</div><div class="info-val">${tx.note}</div></div>` : ''}
+                </div>
 
-    <div class="signatures">
-        <div class="sig-box">
-            <strong>Người Nhận Mẫu</strong>
-            <i>(Ký, ghi rõ họ tên)</i>
-        </div>
-        <div class="sig-box">
-            <strong>Người Giao</strong>
-            <i>(Ký, ghi rõ họ tên)</i>
-        </div>
-        <div class="sig-box">
-            <strong>Quản Lý Duyệt</strong>
-            <i>(Ký, ghi rõ họ tên)</i>
-        </div>
-    </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">STT</th>
+                            <th>Tên Sản Phẩm Mẫu</th>
+                            <th style="width: 80px;">ĐVT</th>
+                            <th style="width: 80px;">Số lượng</th>
+                            <th style="width: 150px;">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${(tx.items || []).map((item: any, idx: number) => `
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td style="text-align:left;">
+                                <div style="font-weight:bold;">${item.product?.name || ''}</div>
+                                <div style="font-size:12px; font-style:italic; color:#555;">${item.product?.sku || ''}</div>
+                            </td>
+                            <td>${item.product?.unit || 'Cái'}</td>
+                            <td>${item.quantity}</td>
+                            <td style="text-align:left;">${item.note || ''}</td>
+                        </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
 
-    <script>window.onload = function() { window.print(); }</script>
-</body>
-</html>`;
+                <div class="footer">
+                    <div class="footer-col">
+                        <div class="role">Người nhận mẫu</div>
+                        <div>(Ký và ghi rõ họ tên)</div>
+                    </div>
+                    <div class="footer-col">
+                        <div class="role">Người lập phiếu</div>
+                        <div style="margin-top:70px; font-weight:bold;">.........................</div>
+                    </div>
+                    <div class="footer-col">
+                        <div class="role">Quản lý duyệt</div>
+                        <div>(Ký xác nhận)</div>
+                    </div>
+                </div>
+
+                <div class="note-bottom" style="text-align: center; font-weight: bold;">
+                    Quý khách vui lòng bảo quản hàng mẫu cẩn thận. Nếu mất hoặc hư hỏng sẽ bị trừ vào tiền cọc (nếu có).
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); }
+                </script>
+            </body>
+            </html>
+        \`;
+
         printWindow.document.write(html);
         printWindow.document.close();
     };
@@ -400,31 +430,93 @@ const SampleInventoryPage: React.FC = () => {
 
                     <Card size="small" title="Danh sách sản phẩm" style={{ marginTop: 10 }}>
                         <Form onFinish={(vals) => {
-                            setSelectedItems([...selectedItems, { product_id: vals.prodId, quantity: vals.qty, note: '' }]);
-                        }} layout="inline">
-                            <Form.Item name="prodId" rules={[{required: true}]}>
-                                <Select showSearch filterOption={(inpt, opt:any) => (opt?.children as string).toLowerCase().includes(inpt.toLowerCase())} style={{ width: 300 }} placeholder="Chọn sản phẩm">
-                                    {products.map(p => <Option key={p.id} value={p.id}>{p.sku} - {p.name}</Option>)}
-                                </Select>
+                            const exists = selectedItems.find(i => i.product_id === vals.prodId);
+                            if (exists) {
+                                message.warning('Sản phẩm đã có trong danh sách!');
+                            } else {
+                                setSelectedItems([...selectedItems, { product_id: vals.prodId, quantity: vals.qty, note: '' }]);
+                            }
+                            form.setFieldsValue({ prodId: undefined, qty: 1 });
+                        }} layout="inline" style={{ marginBottom: 15 }}>
+                            <Form.Item name="prodId" rules={[{required: true, message: 'Vui lòng chọn sản phẩm'}]} style={{ width: '45%' }}>
+                                <Select 
+                                    showSearch 
+                                    filterOption={(inpt, opt:any) => (opt?.label as string)?.toLowerCase().includes(inpt.toLowerCase())} 
+                                    placeholder="Tìm kiếm và chọn sản phẩm..."
+                                    options={products.map(p => ({ value: p.id, label: `${p.sku} - ${p.name}` }))}
+                                />
                             </Form.Item>
-                            <Form.Item name="qty" rules={[{required: true}]}>
-                                <InputNumber min={1} placeholder="SL" />
+                            <Form.Item name="qty" rules={[{required: true, message: 'Nhập SL'}]} initialValue={1} style={{ width: '15%' }}>
+                                <InputNumber min={1} placeholder="Số lượng" style={{ width: '100%' }} />
                             </Form.Item>
-                            <Button type="dashed" htmlType="submit">Thêm</Button>
+                            <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>Thêm vào danh sách</Button>
                         </Form>
 
                         <Table 
                             size="small" 
-                            style={{ marginTop: 15 }}
+                            bordered
                             dataSource={selectedItems} 
                             rowKey={(r, idx) => idx as number}
                             pagination={false}
                             columns={[
-                                { title: 'Sản phẩm', render: (_, r) => products.find(p => p.id === r.product_id)?.name },
-                                { title: 'SL', dataIndex: 'quantity' },
-                                { title: '', width: 50, render: (_, r, idx) => <Button danger size="small" icon={<DeleteOutlined />} onClick={()=> {
-                                    const n = [...selectedItems]; n.splice(idx, 1); setSelectedItems(n);
-                                }}/> }
+                                { 
+                                    title: 'Sản phẩm', 
+                                    render: (_, r) => {
+                                        const p = products.find(prod => prod.id === r.product_id);
+                                        return (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                {p?.image_url ? <img src={p.image_url} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} alt="" /> : <div style={{ width: 40, height: 40, background: '#f0f0f0', borderRadius: 4 }} />}
+                                                <div>
+                                                    <div style={{ fontWeight: 'bold' }}>{p?.name}</div>
+                                                    <div style={{ fontSize: 12, color: '#888' }}>{p?.sku}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    } 
+                                },
+                                { 
+                                    title: 'Số lượng', 
+                                    dataIndex: 'quantity',
+                                    width: 120,
+                                    render: (val, record, idx) => (
+                                        <InputNumber 
+                                            min={1} 
+                                            value={val} 
+                                            onChange={(newVal) => {
+                                                const newItems = [...selectedItems];
+                                                newItems[idx].quantity = newVal || 1;
+                                                setSelectedItems(newItems);
+                                            }}
+                                            style={{ width: '100%' }}
+                                        />
+                                    )
+                                },
+                                {
+                                    title: 'Ghi chú',
+                                    dataIndex: 'note',
+                                    width: 250,
+                                    render: (val, record, idx) => (
+                                        <Input 
+                                            placeholder="Ghi chú (màu sắc, kích thước...)" 
+                                            value={val}
+                                            onChange={(e) => {
+                                                const newItems = [...selectedItems];
+                                                newItems[idx].note = e.target.value;
+                                                setSelectedItems(newItems);
+                                            }}
+                                        />
+                                    )
+                                },
+                                { 
+                                    title: '', 
+                                    width: 50, 
+                                    align: 'center',
+                                    render: (_, r, idx) => (
+                                        <Button danger size="small" type="text" icon={<DeleteOutlined />} onClick={()=> {
+                                            const n = [...selectedItems]; n.splice(idx, 1); setSelectedItems(n);
+                                        }}/> 
+                                    )
+                                }
                             ]}
                         />
                     </Card>
