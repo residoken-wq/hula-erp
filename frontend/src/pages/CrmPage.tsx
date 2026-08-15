@@ -8,6 +8,7 @@ import isBetween from 'dayjs/plugin/isBetween';
 import QuotationTemplate from '../components/QuotationTemplate';
 import SalesOrderDetail from '../components/SalesOrderDetail';
 import QuickTaskModal from '../components/QuickTaskModal';
+import { LeadKanbanBoard } from '../components/crm/LeadKanbanBoard';
 import useMobile from '../hooks/useMobile';
 import usePermission from '../hooks/usePermission';
 
@@ -682,11 +683,12 @@ const CrmPage: React.FC = () => {
                                             )}
                                         />
                                     ) : (
-                                        <Table
-                                            dataSource={getFilteredData(dateFilteredLeads)}
-                                            columns={leadColumns}
-                                            rowKey="id"
-                                            pagination={{ pageSize: 8, showTotal: (total) => `Tổng ${total} leads` }}
+                                        <LeadKanbanBoard 
+                                           leads={getFilteredData(dateFilteredLeads)}
+                                           statusLabels={statusLabels}
+                                           statusColors={statusColors}
+                                           onEditLead={handleEditLead}
+                                           onFollowLead={(lead) => { setCurrentCustomer(lead); setFollowDrawerOpen(true) }}
                                         />
                                     )}
                                 </>

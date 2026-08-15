@@ -24,17 +24,17 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
     const qrLink = `https://img.vietqr.io/image/ACB-141847859-compact2.jpg?amount=${Math.floor(finalAmount)}&addInfo=${data.order_code}&accountName=CTY TNHH TM DV TUONG LINH`;
 
     return (
-        <div style={{ padding: 40, background: '#fff', fontSize: 14, fontFamily: 'Times New Roman, serif', color: '#000' }}>
+        <div style={{ padding: 40, background: '#fff', fontSize: 14, fontFamily: "'Inter', sans-serif", color: '#1f2937' }}>
 
             {/* HEADER */}
-            <Row gutter={40} align="stretch" style={{ borderBottom: '2px solid #1890ff', paddingBottom: 20, marginBottom: 30 }}>
+            <Row gutter={40} align="stretch" style={{ borderBottom: '2px solid #1e3a8a', paddingBottom: 20, marginBottom: 30 }}>
                 <Col span={12}>
                     <div style={{ textAlign: 'left', height: '100%', display: 'flex', alignItems: 'center' }}>
                         <Image preview={false} src="/company_header.png" alt="Company Header" style={{ width: '100%', objectFit: 'contain', objectPosition: 'left center' }} />
                     </div>
                 </Col>
                 <Col span={12} style={{ textAlign: 'right' }}>
-                    <Title level={2} style={{ margin: 0, color: '#1890ff', textTransform: 'uppercase' }}>{docTitle}</Title>
+                    <Title level={2} style={{ margin: 0, color: '#1e3a8a', textTransform: 'uppercase', fontFamily: "'Outfit', sans-serif", letterSpacing: '1px' }}>{docTitle}</Title>
                     <div>Số: <b>{data.order_code}</b></div>
                     <div>TP. HCM, ngày {dayjs(data.order_date).format('DD')} tháng {dayjs(data.order_date).format('MM')} năm {dayjs(data.order_date).format('YYYY')}</div>
                 </Col>
@@ -43,8 +43,8 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
             {/* THÔNG TIN 2 BÊN */}
             <Row gutter={40} style={{ marginBottom: 30 }}>
                 <Col span={12}>
-                    <div style={{ background: '#f9f9f9', padding: 15, borderRadius: 8, height: '100%', border: '1px solid #eee' }}>
-                        <h4 style={{ marginTop: 0, color: '#1890ff', borderBottom: '1px solid #ddd', paddingBottom: 5, textTransform: 'uppercase' }}>BÊN BÁN</h4>
+                    <div style={{ background: '#f8fafc', padding: 15, borderRadius: 8, height: '100%', border: '1px solid #e2e8f0' }}>
+                        <h4 style={{ marginTop: 0, color: '#1e3a8a', borderBottom: '1px solid #cbd5e1', paddingBottom: 5, textTransform: 'uppercase', fontFamily: "'Outfit', sans-serif" }}>BÊN BÁN</h4>
                         <p style={{ marginBottom: 5 }}><b>CÔNG TY TNHH THƯƠNG MẠI DỊCH VỤ TƯỜNG LINH</b></p>
                         <p style={{ marginBottom: 5 }}>📍 74/21/24 Nguyễn Khuyến, Phường Bình Thạnh, TP. Hồ Chí Minh</p>
                         <p style={{ marginBottom: 5 }}>📞 0983.882210 - 0983.796654</p>
@@ -54,8 +54,8 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                     </div>
                 </Col>
                 <Col span={12}>
-                    <div style={{ background: '#fff', border: '1px solid #1890ff', padding: 15, borderRadius: 8, height: '100%' }}>
-                        <h4 style={{ marginTop: 0, color: '#1890ff', borderBottom: '1px solid #ddd', paddingBottom: 5, textTransform: 'uppercase' }}>BÊN MUA</h4>
+                    <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: 15, borderRadius: 8, height: '100%' }}>
+                        <h4 style={{ marginTop: 0, color: '#1e3a8a', borderBottom: '1px solid #bfdbfe', paddingBottom: 5, textTransform: 'uppercase', fontFamily: "'Outfit', sans-serif" }}>BÊN MUA</h4>
                         <p style={{ marginBottom: 5, fontSize: 15 }}><b>{customerName}</b></p>
                         <p style={{ marginBottom: 5 }}>📍 {data.vat_address || data.shipping_address || '...'}</p>
                         <p style={{ marginBottom: 5 }}>📞 {data.customer?.phone || data.receiver_phone || '...'}</p>
@@ -134,9 +134,9 @@ const QuotationTemplate: React.FC<QuotationProps> = ({ data }) => {
                             <Table.Summary.Cell index={0} colSpan={6} align="right">Phí vận chuyển:</Table.Summary.Cell>
                             <Table.Summary.Cell index={1} align="right">{Number(data.shipping_fee || 0).toLocaleString()}</Table.Summary.Cell>
                         </Table.Summary.Row>
-                        <Table.Summary.Row style={{ background: '#fafafa' }}>
-                            <Table.Summary.Cell index={0} colSpan={6} align="right"><b style={{ fontSize: 16, color: '#1890ff' }}>TỔNG CỘNG:</b></Table.Summary.Cell>
-                            <Table.Summary.Cell index={1} align="right"><b style={{ fontSize: 16, color: '#cf1322' }}>{Number(data.total_amount).toLocaleString()} ₫</b></Table.Summary.Cell>
+                        <Table.Summary.Row style={{ background: '#f1f5f9' }}>
+                            <Table.Summary.Cell index={0} colSpan={6} align="right"><b style={{ fontSize: 16, color: '#1e3a8a', fontFamily: "'Outfit', sans-serif" }}>TỔNG CỘNG:</b></Table.Summary.Cell>
+                            <Table.Summary.Cell index={1} align="right"><b style={{ fontSize: 16, color: '#dc2626' }}>{Number(data.total_amount).toLocaleString()} ₫</b></Table.Summary.Cell>
                         </Table.Summary.Row>
                         {paidAmount > 0 && (
                             <Table.Summary.Row>

@@ -701,7 +701,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
 
 
     return (
-        <Modal
+        <Drawer
             title={
                 <span style={{ fontSize: isMobile ? 14 : 16 }}>
                     {isQuotation ? 'Báo Giá' : 'Đơn Hàng'} #{initialData?.order_code}
@@ -710,10 +710,14 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                 </span>
             }
             open={open}
-            onCancel={onClose}
+            onClose={onClose}
             width={isMobile ? '100%' : 1100}
-            style={{ top: isMobile ? 0 : 20, maxWidth: '100vw' }}
-            bodyStyle={{ padding: isMobile ? 8 : 24, maxHeight: isMobile ? 'calc(100vh - 120px)' : '70vh', overflowY: 'auto' }}
+            placement="right"
+            styles={{ 
+                body: { padding: isMobile ? 8 : 24, background: 'rgba(255, 255, 255, 0.4)' },
+                header: { background: 'rgba(255, 255, 255, 0.6)', backdropFilter: 'blur(10px)' },
+                mask: { backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.2)' }
+            }}
             footer={
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end' }}>
                     <Button size={isMobile ? 'small' : 'middle'} onClick={onClose}>Đóng</Button>
@@ -1280,7 +1284,7 @@ const SalesOrderDetail: React.FC<Props> = ({ open, onClose, onSuccess, initialDa
                     ]}
                 />
             </Modal>
-        </Modal >
+        </Drawer>
     );
 };
 

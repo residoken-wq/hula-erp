@@ -8,6 +8,7 @@ import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import QuickTaskModal from '../components/QuickTaskModal';
 import SalesOrderDetail from '../components/SalesOrderDetail';
+import { SalesKpiDashboard } from '../components/sales/SalesKpiDashboard';
 import useMobile from '../hooks/useMobile';
 import usePermission from '../hooks/usePermission';
 
@@ -407,40 +408,8 @@ const SalesPage: React.FC = () => {
                     />
                 </div>
 
-                {/* STATS CARDS - HORIZONTAL SCROLL ON MOBILE */}
-                <div style={{ overflowX: isMobile ? 'auto' : 'visible', marginBottom: 8 }}>
-                    <Row gutter={[isMobile ? 8 : 16, 8]} wrap={!isMobile} style={{ flexWrap: isMobile ? 'nowrap' : 'wrap', minWidth: isMobile ? 600 : 'auto' }}>
-                        <Col flex={isMobile ? '120px' : 1}>
-                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#f9f0ff', border: '1px solid #d3adf7' }}>
-                                <Statistic title="Tổng GT" value={metrics.totalRevenue} precision={0} suffix="₫" prefix={<DollarOutlined style={{ color: '#722ed1' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18, fontWeight: 'bold' }} />
-                            </Card>
-                        </Col>
-                        <Col flex={isMobile ? '120px' : 1}>
-                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#f6ffed', border: '1px solid #b7eb8f' }}>
-                                <Statistic title="Thực Thu" value={metrics.totalPaid} precision={0} suffix="₫" prefix={<WalletOutlined style={{ color: '#52c41a' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18, fontWeight: 'bold', color: '#389e0d' }} />
-                            </Card>
-                        </Col>
-                        <Col flex={isMobile ? '120px' : 1}>
-                            <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#fff2e8', border: '1px solid #ffbb96' }}>
-                                <Statistic title="Công Nợ" value={metrics.totalRemaining} precision={0} suffix="₫" prefix={<AuditOutlined style={{ color: '#fa541c' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18, fontWeight: 'bold', color: '#cf1322' }} />
-                            </Card>
-                        </Col>
-                        {!isMobile && (
-                            <Col flex={isMobile ? '100px' : 1}>
-                                <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#e6f7ff', border: '1px solid #91d5ff' }}>
-                                    <Statistic title="Số Đơn" value={metrics.count} prefix={<ShoppingCartOutlined style={{ color: '#1890ff' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18 }} />
-                                </Card>
-                            </Col>
-                        )}
-                        {!isMobile && (
-                            <Col flex={isMobile ? '100px' : 1}>
-                                <Card bordered={false} bodyStyle={{ padding: isMobile ? 8 : 12 }} style={{ background: '#fffbe6', border: '1px solid #ffe58f' }}>
-                                    <Statistic title="Đang XL" value={metrics.processingCount} prefix={<FileTextOutlined style={{ color: '#fa8c16' }} />} valueStyle={{ fontSize: isMobile ? 14 : 18 }} />
-                                </Card>
-                            </Col>
-                        )}
-                    </Row>
-                </div>
+                {/* STATS CARDS - GSAP & Glassmorphism */}
+                <SalesKpiDashboard metrics={metrics} isMobile={isMobile} />
             </div>
 
             <Card
