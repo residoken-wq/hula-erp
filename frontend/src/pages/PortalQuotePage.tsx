@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag, Empty, Dropdown, Watermark } from 'antd';
-import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined, FilePdfOutlined, LockOutlined } from '@ant-design/icons';
+import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined, FilePdfOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
 import useMobile from '../hooks/useMobile'; // <--- Import Hook
@@ -890,6 +890,13 @@ const PortalQuotePage: React.FC = () => {
                                             <Tag key={i} color="orange" style={{ margin: 0, fontSize: 12 }}>{pr.quantity} cái: {Number(pr.unit_price).toLocaleString()}đ/cái</Tag>
                                         ))}
                                     </div>
+                                </div>
+                            )}
+
+                            {r.customer_note && (
+                                <div style={{ marginTop: 8, padding: '8px 12px', background: '#e6f7ff', borderLeft: '3px solid #1890ff', borderRadius: '0 4px 4px 0' }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0050b3', marginBottom: 2 }}><FileTextOutlined /> GHI CHÚ:</div>
+                                    <div style={{ fontSize: 13, color: '#0050b3', whiteSpace: 'pre-wrap', fontStyle: 'italic' }}>{r.customer_note}</div>
                                 </div>
                             )}
 
