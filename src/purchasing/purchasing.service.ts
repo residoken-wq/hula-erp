@@ -1082,7 +1082,7 @@ export class PurchasingService {
         const qcLogs = await this.poRepo.manager.find('QualityInspection', {
             where: { supplier_id: supplier.id },
             relations: ['defect_items'],
-            order: { created_at: 'DESC' }
+            order: { created_at: 'DESC' } as any
         });
 
         return {
