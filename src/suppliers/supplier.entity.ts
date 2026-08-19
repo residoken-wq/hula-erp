@@ -17,6 +17,9 @@ export class Supplier {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ generated: 'uuid', nullable: true })
+  uuid: string;
+
   @Column({ unique: true })
   code: string;
 
