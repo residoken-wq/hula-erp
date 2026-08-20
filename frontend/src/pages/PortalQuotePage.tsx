@@ -458,13 +458,13 @@ const PortalQuotePage: React.FC = () => {
             <thead>
                 <tr>
                     <th style="width:30px;">STT</th>
-                    <th style="width:70px;">Hình</th>
+                    <th style="width:95px;">Hình</th>
                     <th style="width:120px;">Tên Sản Phẩm</th>
                     <th>Mô tả Sản Phẩm</th>
                     <th style="width:40px;">ĐVT</th>
                     <th style="width:35px;">SL</th>
-                    <th style="width:75px;">Đơn Giá</th>
-                    <th style="width:75px;">Thành Tiền</th>
+                    <th style="width:70px;">Đơn Giá</th>
+                    <th style="width:55px;">Thành Tiền</th>
                 </tr>
             </thead>
             <tbody>
@@ -504,7 +504,8 @@ const PortalQuotePage: React.FC = () => {
                     return '<div style="padding-left:12px;margin-top:2px;font-size:10px;color:#666;font-style:italic;">. ' + cleanLine.replace(/^[•-]\s*/, '') + '</div>';
                 }).join('');
             }
-            const imgCell = imgSrc ? '<img src="' + imgSrc + '" style="width:65px;height:65px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display=\'none\'" />' : '<span style="color:#ccc;font-size:10px;">-</span>';
+            const customerNoteHTML = item.customer_note ? '<div style="margin-top:6px;font-size:10px;font-style:italic;color:#d46b08;">📌 ' + item.customer_note + '</div>' : '';
+            const imgCell = '<div style="display:flex;flex-direction:column;align-items:center;">' + (imgSrc ? '<img src="' + imgSrc + '" style="width:80px;height:80px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" onerror="this.style.display=\'none\'" />' : '<span style="color:#ccc;font-size:10px;">-</span>') + customerNoteHTML + '</div>';
             const colorLine = item.variant_color ? '<div style="font-size:10px;color:#888;">Màu: ' + item.variant_color + '</div>' : '';
 
             let priceRangesHtml = '';
@@ -777,11 +778,9 @@ const PortalQuotePage: React.FC = () => {
                         )}
                         
                         {r.customer_note && (
-                            <div style={{ width: '100%', padding: '6px', background: '#fffbe6', border: '1px dashed #ffe58f', borderRadius: 4, textAlign: 'left' }}>
-                                <div style={{ fontSize: 10, fontWeight: 700, color: '#d46b08', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <PushpinOutlined /> Ghi chú:
-                                </div>
-                                <div style={{ fontSize: 11, color: '#d46b08', whiteSpace: 'pre-wrap', fontStyle: 'italic' }}>
+                            <div style={{ width: '100%', padding: '6px', background: '#fffbe6', border: '1px dashed #ffe58f', borderRadius: 4, textAlign: 'left', display: 'flex', gap: 4, alignItems: 'flex-start' }}>
+                                <PushpinOutlined style={{ color: '#d46b08', marginTop: 2 }} />
+                                <div style={{ fontSize: 11, color: '#d46b08', whiteSpace: 'pre-wrap', fontStyle: 'italic', flex: 1 }}>
                                     {r.customer_note}
                                 </div>
                             </div>
