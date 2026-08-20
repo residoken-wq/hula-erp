@@ -755,7 +755,7 @@ const PortalQuotePage: React.FC = () => {
 
                 // Force isImage true if we detected Drive link
                 if (rawUrl.includes('drive.google.com')) isImage = true;
-
+                return (
                     <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                         {isImage ? (
                             <Watermark {...getWatermarkProps('rgba(0,0,0,0.15)', 14)}>
