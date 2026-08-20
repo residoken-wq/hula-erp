@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Spin, Result, Button, message, Modal, Steps, Typography, List, Input, Avatar, Row, Col, Card, Descriptions, Divider, Table, Space, Tag, Empty, Dropdown, Watermark } from 'antd';
-import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined, FilePdfOutlined, LockOutlined, FileTextOutlined } from '@ant-design/icons';
+import { LinkOutlined, CheckCircleOutlined, SolutionOutlined, FileDoneOutlined, CarOutlined, DollarOutlined, UserOutlined, SendOutlined, ShopOutlined, PrinterOutlined, InfoCircleOutlined, CreditCardOutlined, EyeOutlined, AppstoreAddOutlined, FilePdfOutlined, LockOutlined, FileTextOutlined, PushpinOutlined } from '@ant-design/icons';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
 import useMobile from '../hooks/useMobile'; // <--- Import Hook
@@ -711,7 +711,7 @@ const PortalQuotePage: React.FC = () => {
         {
             title: 'Hình',
             key: 'image',
-            width: 70,
+            width: 120,
             align: 'center' as const,
             render: (_: any, r: any) => {
                 const rawUrl = r.image_url || r.sample_image || r.product?.image_url;
@@ -756,8 +756,7 @@ const PortalQuotePage: React.FC = () => {
                 // Force isImage true if we detected Drive link
                 if (rawUrl.includes('drive.google.com')) isImage = true;
 
-                return (
-                    <div style={{ textAlign: 'center' }}>
+                    <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                         {isImage ? (
                             <Watermark {...getWatermarkProps('rgba(0,0,0,0.15)', 14)}>
                                 <img
@@ -775,6 +774,17 @@ const PortalQuotePage: React.FC = () => {
                             <a href={finalSrc} target="_blank" rel="noopener noreferrer">
                                 <LinkOutlined style={{ fontSize: 18, color: '#1890ff' }} />
                             </a>
+                        )}
+                        
+                        {r.customer_note && (
+                            <div style={{ width: '100%', padding: '6px', background: '#fffbe6', border: '1px dashed #ffe58f', borderRadius: 4, textAlign: 'left' }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: '#d46b08', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <PushpinOutlined /> Ghi chú:
+                                </div>
+                                <div style={{ fontSize: 11, color: '#d46b08', whiteSpace: 'pre-wrap', fontStyle: 'italic' }}>
+                                    {r.customer_note}
+                                </div>
+                            </div>
                         )}
                     </div>
                 );
@@ -893,12 +903,7 @@ const PortalQuotePage: React.FC = () => {
                                 </div>
                             )}
 
-                            {r.customer_note && (
-                                <div style={{ marginTop: 8, padding: '8px 12px', background: '#e6f7ff', borderLeft: '3px solid #1890ff', borderRadius: '0 4px 4px 0' }}>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0050b3', marginBottom: 2 }}><FileTextOutlined /> GHI CHÚ:</div>
-                                    <div style={{ fontSize: 13, color: '#0050b3', whiteSpace: 'pre-wrap', fontStyle: 'italic' }}>{r.customer_note}</div>
-                                </div>
-                            )}
+
 
                         </div>
                     </div>
