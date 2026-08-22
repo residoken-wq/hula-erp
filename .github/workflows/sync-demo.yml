@@ -1,0 +1,44 @@
+name: Sync to Demo Repository
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Repo (hula-erp)
+        uses: actions/checkout@v4
+        with:
+          path: hula-erp
+
+      - name: Checkout Target Repo (erp4u-demo)
+        uses: actions/checkout@v4
+        with:
+          repository: residoken-wq/erp4u-demo
+          path: erp4u-demo
+          token: ${{ secrets.DEMO_REPO_PAT }} # Yêu cầu cấu hình Secret DEMO_REPO_PAT trong repo này
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Action Auto Sync"
+          git config --global user.email "actions@github.com"
+
+      - name: Run Auto-Sync Script
+        env:
+          ERP4U_DEMO_PATH: ${{ github.workspace }}/erp4u-demo
+        run: |
+          cd hula-erp
+          node scripts/sync_to_demo.js --commit
+
+      - name: Push to Demo Repo
+        run: |
+          cd erp4u-demo
+          git push origin main
