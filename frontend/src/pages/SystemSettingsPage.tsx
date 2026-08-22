@@ -12,7 +12,7 @@ import {
     SafetyCertificateOutlined, EyeOutlined, ProjectOutlined, DollarOutlined,
     GlobalOutlined, BankOutlined, PhoneOutlined, PictureOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+import axios from '../utils/api';
 import { API_URL } from '../config';
 import dayjs from 'dayjs';
 import RichTextEditor from '../components/common/RichTextEditor';
