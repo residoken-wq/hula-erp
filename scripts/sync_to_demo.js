@@ -208,6 +208,28 @@ function sanitizeContent(content, relPath) {
     } catch (e) {
       return updated;
     }
+  } else if (relPath === 'package-lock.json') {
+    try {
+      const lockObj = JSON.parse(content);
+      if (lockObj.name) lockObj.name = 'erp4u';
+      if (lockObj.packages && lockObj.packages['']) {
+        lockObj.packages[''].name = 'erp4u';
+      }
+      return JSON.stringify(lockObj, null, 2) + '\n';
+    } catch (e) {
+      return updated;
+    }
+  } else if (relPath === 'frontend/package-lock.json') {
+    try {
+      const lockObj = JSON.parse(content);
+      if (lockObj.name) lockObj.name = 'erp4u-frontend';
+      if (lockObj.packages && lockObj.packages['']) {
+        lockObj.packages[''].name = 'erp4u-frontend';
+      }
+      return JSON.stringify(lockObj, null, 2) + '\n';
+    } catch (e) {
+      return updated;
+    }
   }
 
   return updated;
@@ -218,6 +240,7 @@ const SYNC_TARGETS = [
   { type: 'dir', src: 'frontend/src', dest: 'frontend/src' },
   { type: 'dir', src: 'frontend/public', dest: 'frontend/public' },
   { type: 'file', src: 'frontend/package.json', dest: 'frontend/package.json' },
+  { type: 'file', src: 'frontend/package-lock.json', dest: 'frontend/package-lock.json' },
   { type: 'file', src: 'frontend/tsconfig.json', dest: 'frontend/tsconfig.json' },
   { type: 'file', src: 'frontend/tsconfig.node.json', dest: 'frontend/tsconfig.node.json' },
   { type: 'file', src: 'frontend/vite.config.ts', dest: 'frontend/vite.config.ts' },
@@ -227,6 +250,7 @@ const SYNC_TARGETS = [
   { type: 'file', src: 'frontend/nginx.conf', dest: 'frontend/nginx.conf' },
   { type: 'file', src: 'frontend/Dockerfile', dest: 'frontend/Dockerfile' },
   { type: 'file', src: 'package.json', dest: 'package.json' },
+  { type: 'file', src: 'package-lock.json', dest: 'package-lock.json' },
   { type: 'file', src: 'tsconfig.json', dest: 'tsconfig.json' },
   { type: 'file', src: 'tsconfig.build.json', dest: 'tsconfig.build.json' },
   { type: 'file', src: 'nest-cli.json', dest: 'nest-cli.json' },
