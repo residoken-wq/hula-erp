@@ -322,6 +322,15 @@ cleanUnwantedTargetFiles();
 
 console.log(`✅ Synced ${syncCount} core files/directories.`);
 
+console.log('\n📦 Regenerating package-lock.json files to sync dynamic dependencies...');
+try {
+  execSync('npm install --package-lock-only --ignore-scripts', { cwd: TARGET_ROOT, stdio: 'inherit' });
+  execSync('npm install --package-lock-only --ignore-scripts', { cwd: path.join(TARGET_ROOT, 'frontend'), stdio: 'inherit' });
+  console.log('✅ Lock files regenerated successfully.');
+} catch (err) {
+  console.warn('⚠️ Warning: Failed to regenerate lock files:', err.message);
+}
+
 // Post-sync Security Audit
 console.log('\n🔍 Running Post-Sync Security & Brand Audit...');
 const suspiciousPatterns = [
