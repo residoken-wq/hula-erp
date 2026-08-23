@@ -7,3 +7,4 @@ postgres_data
 # Firebase credentials (DO NOT COMMIT)
 **/firebase-service-account.json
 **/firebase-credentials.json
+backups/dump-hula_db-202608232001.sql
