@@ -739,7 +739,7 @@ const PurchasingPage: React.FC = () => {
     const handleCreateReceipt = async () => {
         if (!currentPO) return;
         
-        let receiptItems = [];
+        let receiptItems: any[] = [];
 
         // Ưu tiên nhập kho Bán Thành Phẩm nếu PO là loại Gia Công và có cấu hình BTP
         if (currentPO.type === 'OUTSOURCING' && currentPO.semi_finished_products) {
