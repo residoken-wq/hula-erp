@@ -24,6 +24,7 @@ import { SalesTarget } from './sales-target.entity';
 import { Customer } from '../customers/customer.entity';
 import { ProjectsService } from '../projects/projects.service';
 import { Promotion } from './promotion.entity';
+import { EasyInvoiceService } from './easyinvoice.service';
 // --- CHECKLIST TEMPLATES ---
 const CHECKLIST_TEMPLATES: Record<string, Array<{ code: string; name: string; sort: number }>> = {
     QUOTATION: [
