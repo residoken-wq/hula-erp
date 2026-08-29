@@ -159,6 +159,7 @@ function sanitizeContent(content, relPath) {
     updated = updated.replace(/import \{ FirebaseModule \} from '\.\/firebase\/firebase\.module';/g, "import { EncryptionModule } from './common/encryption/encryption.module';");
     updated = updated.replace(/FirebaseModule, \/\/ Firebase real-time notifications/g, "EncryptionModule, // Column-level PII encryption");
     updated = updated.replace(/host: configService\.get<string>\('DB_HOST'\) \|\| 'erp4u_db'/g, "host: configService.get<string>('DB_HOST') || 'localhost'");
+    updated = updated.replace(/synchronize: configService\.get<string>\('NODE_ENV'\) !== 'production',/g, "synchronize: true, // Always sync demo database schema");
   } else if (relPath === 'src/notifications/notifications.service.ts') {
     const targetFile = path.join(TARGET_ROOT, 'src/notifications/notifications.service.ts');
     if (fs.existsSync(targetFile)) {
