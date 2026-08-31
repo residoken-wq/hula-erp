@@ -104,21 +104,38 @@ export default function CheckoutPage() {
                             <p className="text-2xl font-bold text-primary-600 tracking-wider">{orderCode}</p>
                         </div>
 
-                        {formData.payment_method === 'BANK_TRANSFER' && (
-                            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6 text-left">
-                                <h3 className="text-blue-800 font-bold mb-3 flex items-center gap-2">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                                    Hướng dẫn chuyển khoản
-                                </h3>
-                                <div className="space-y-2 text-sm text-gray-700">
-                                    <p><span className="text-gray-500 w-24 inline-block">Ngân hàng:</span> <strong>Vietcombank</strong></p>
-                                    <p><span className="text-gray-500 w-24 inline-block">Số tài khoản:</span> <strong>0123456789</strong></p>
-                                    <p><span className="text-gray-500 w-24 inline-block">Người nhận:</span> <strong>CÔNG TY TNHH HULA</strong></p>
-                                    <p><span className="text-gray-500 w-24 inline-block">Nội dung CK:</span> <strong className="text-primary-600">Thanh toan don {orderCode}</strong></p>
+                        {formData.payment_method === 'BANK_TRANSFER' && (() => {
+                            const sellerBankName = 'ACB - TP.HCM';
+                            const sellerBankAccount = '141847859';
+                            const sellerBankHolder = 'CTY TNHH TM DV TUONG LINH';
+                            
+                            // VietQR short code for ACB is 'acb'
+                            const rawBankCode = 'acb';
+                            const qrAmount = total; 
+                            const qrLink = `https://img.vietqr.io/image/${rawBankCode}-${sellerBankAccount}-compact2.jpg?amount=${qrAmount}&addInfo=${orderCode}&accountName=${encodeURIComponent(sellerBankHolder)}`;
+                            
+                            return (
+                                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6 text-left flex flex-col sm:flex-row gap-6 items-center">
+                                    <div className="flex-1 w-full">
+                                        <h3 className="text-blue-800 font-bold mb-3 flex items-center gap-2">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                            Hướng dẫn chuyển khoản
+                                        </h3>
+                                        <div className="space-y-2 text-sm text-gray-700">
+                                            <p><span className="text-gray-500 w-24 inline-block">Ngân hàng:</span> <strong>{sellerBankName}</strong></p>
+                                            <p><span className="text-gray-500 w-24 inline-block">Số tài khoản:</span> <strong>{sellerBankAccount}</strong></p>
+                                            <p><span className="text-gray-500 w-24 inline-block">Chủ TK:</span> <strong>{sellerBankHolder}</strong></p>
+                                            <p><span className="text-gray-500 w-24 inline-block">Nội dung CK:</span> <strong className="text-primary-600">{orderCode}</strong></p>
+                                        </div>
+                                        <p className="text-xs text-blue-600 mt-4 italic">* Đơn hàng sẽ được lên đơn ngay sau khi chúng tôi nhận được thanh toán.</p>
+                                    </div>
+                                    <div className="flex flex-col items-center bg-white p-2 rounded-xl shadow-sm flex-shrink-0">
+                                        <img src={qrLink} alt="QR Code Thanh Toán" className="w-32 h-32 object-contain" />
+                                        <span className="text-[10px] font-bold text-primary-600 mt-2">HULA PAYMENT</span>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-blue-600 mt-4 italic">* Đơn hàng sẽ được lên đơn ngay sau khi chúng tôi nhận được tiền cọc/thanh toán.</p>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         <Link
                             href="/san-pham"
