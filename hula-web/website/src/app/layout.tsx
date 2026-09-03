@@ -120,6 +120,32 @@ export default function RootLayout({
                         gtag('config', 'G-RZ5Q0E2CEV');
                     `}
                 </Script>
+                {/* Meta Pixel Code */}
+                <Script id="meta-pixel" strategy="afterInteractive">
+                    {`
+                        !function(f,b,e,v,n,t,s)
+                        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                        n.queue=[];t=b.createElement(e);t.async=!0;
+                        t.src=v;s=b.getElementsByTagName(e)[0];
+                        s.parentNode.insertBefore(t,s)}(window, document,'script',
+                        'https://connect.facebook.net/en_US/fbevents.js');
+                        fbq('init', '1519331906616437');
+                        fbq('track', 'PageView');
+                    `}
+                </Script>
+                <noscript>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        height="1"
+                        width="1"
+                        style={{ display: 'none' }}
+                        src="https://www.facebook.com/tr?id=1519331906616437&ev=PageView&noscript=1"
+                        alt=""
+                    />
+                </noscript>
+                {/* End Meta Pixel Code */}
                 <meta name="p:domain_verify" content="9af76ab5f1321904b5e026363318faa3" />
             </head>
             <body className="min-h-screen flex flex-col font-sans antialiased">
