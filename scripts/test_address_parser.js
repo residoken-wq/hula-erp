@@ -1,123 +1,12 @@
-/**
- * Tiện ích bóc tách thông tin giao hàng từ ghi chú đơn hàng Website (hula-website)
- */
-
-export interface ParsedShippingInfo {
-    isWebsiteOrder: boolean;
-    receiverName: string;
-    receiverPhone: string;
-    receiverEmail?: string;
-    shippingAddress: string;
-    paymentMethod: 'COD' | 'BANK_TRANSFER' | 'OTHER';
-    isCod: boolean;
-    suggestedCodAmount: number;
-    deliveryNote: string;
-    // Heuristic địa chỉ cấp 4 sơ bộ
-    addressParts?: {
-        street?: string;
-        ward?: string;
-        district?: string;
-        province?: string;
-    };
-}
-
-/**
- * Trích xuất các trường thông tin giao hàng từ chuỗi text ghi chú đơn hàng
- * Chuẩn định dạng từ hula-website:
- * 📦 ĐƠN HÀNG TỪ WEBSITE
- * ─────────────────────────
- * 👤 Tên người mua: Nguyễn Văn A
- * 📞 Số điện thoại: 0987654321
- * 📧 Email: a@gmail.com
- * 📍 Địa chỉ giao hàng: 123 Lê Lợi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh
- * 💳 Phương thức thanh toán: COD (Thanh toán khi nhận hàng) | Chuyển khoản
- * 📝 Ghi chú: Giao giờ hành chính
- */
-export function parseWebsiteOrderNote(note?: string, order?: any): ParsedShippingInfo {
-    const text = note || '';
-    const isWeb = /ĐƠN HÀNG TỪ WEBSITE|hula-website/i.test(text) || 
-                  order?.order_source === 'WEBSITE' ||
-                  /(?:Tên người mua|Địa chỉ giao hàng)\s*:/i.test(text);
-
-    // 1. Tên người nhận
-    const nameMatch = text.match(/(?:👤\s*)?(?:Tên người mua|Người nhận|Khách hàng)\s*:\s*([^\n\r]+)/i);
-    const receiverName = nameMatch 
-        ? nameMatch[1].trim() 
-        : (order?.receiver_name || (order?.customer_name && order.customer_name !== 'Khách lẻ' ? order.customer_name : ''));
-
-    // 2. Số điện thoại
-    const phoneMatch = text.match(/(?:📞\s*)?(?:Số điện thoại|SĐT|Điện thoại)\s*:\s*([0-9\.\-\s\+]{8,15})/i);
-    const receiverPhone = phoneMatch 
-        ? phoneMatch[1].replace(/[\s\.\-]/g, '').trim() 
-        : (order?.receiver_phone || order?.customer?.phone || '');
-
-    // 3. Email
-    const emailMatch = text.match(/(?:📧\s*)?Email\s*:\s*([^\s\n\r@]+@[^\s\n\r@]+\.[^\s\n\r]+)/i);
-    const receiverEmail = emailMatch 
-        ? emailMatch[1].trim() 
-        : (order?.customer?.email || undefined);
-
-    // 4. Địa chỉ giao hàng
-    const addrMatch = text.match(/(?:📍\s*)?(?:Địa chỉ giao hàng|Địa chỉ nhận hàng|Địa chỉ)\s*:\s*([^\n\r]+)/i);
-    const shippingAddress = addrMatch 
-        ? addrMatch[1].trim() 
-        : (order?.shipping_address || order?.customer?.address || '');
-
-    // 5. Phương thức thanh toán & COD
-    const payMatch = text.match(/(?:💳\s*)?(?:Phương thức thanh toán|Thanh toán)\s*:\s*([^\n\r]+)/i);
-    const payText = payMatch ? payMatch[1].toLowerCase() : '';
-    const isCod = payText.includes('cod') || payText.includes('khi nhận hàng') || payText.includes('tiền mặt');
-    const paymentMethod: 'COD' | 'BANK_TRANSFER' | 'OTHER' = isCod 
-        ? 'COD' 
-        : (payText.includes('chuyển khoản') || payText.includes('bank') ? 'BANK_TRANSFER' : 'OTHER');
-
-    // Tính số tiền COD đề xuất:
-    // Nếu là COD -> lấy Tổng tiền đơn - Tiền đã thanh toán
-    let totalAmount = Number(order?.total_amount) || 0;
-    if (!totalAmount && order?.items && Array.isArray(order.items)) {
-        totalAmount = order.items.reduce((sum: number, item: any) => sum + (Number(item.unit_price || 0) * Number(item.quantity || 0)), 0);
-    }
-    const paidAmount = Number(order?.paid_amount) || 0;
-    const remainingUnpaid = Math.max(0, totalAmount - paidAmount);
-    const suggestedCodAmount = isCod ? (remainingUnpaid > 0 ? remainingUnpaid : totalAmount) : 0;
-
-    // 6. Ghi chú giao hàng của khách
-    const noteMatch = text.match(/(?:📝\s*)?(?:Ghi chú|Lời nhắn|Ghi chú giao hàng)\s*:\s*([\s\S]+?)(?=\n[^\n:]+:|$)/i);
-    let deliveryNote = noteMatch ? noteMatch[1].trim() : '';
-    // Nếu không khớp regex ghi chú riêng nhưng text không có định dạng chuẩn, giữ nguyên ghi chú
-    if (!deliveryNote && text && !text.includes('📦 ĐƠN HÀNG TỪ WEBSITE')) {
-        deliveryNote = text.trim();
-    }
-
-    // 7. Bóc tách địa chỉ cấp 4 thông minh (hỗ trợ cả địa chỉ không có dấu phẩy)
-    const addressParts = smartParseVietnameseAddress(shippingAddress);
-
-    return {
-        isWebsiteOrder: isWeb,
-        receiverName,
-        receiverPhone,
-        receiverEmail,
-        shippingAddress,
-        paymentMethod,
-        isCod,
-        suggestedCodAmount,
-        deliveryNote,
-        addressParts
-    };
-}
-
-/**
- * Danh sách và từ điển chuẩn hóa Tỉnh/Thành Việt Nam
- */
-export const VIETNAM_PROVINCES = [
+const PROVINCES_MAP = [
     { names: ['vũng tàu', 'vung tau', 'bà rịa', 'ba ria', 'bà rịa vũng tàu', 'ba ria vung tau'], standard: 'Bà Rịa - Vũng Tàu', defaultCity: 'TP. Vũng Tàu' },
     { names: ['hồ chí minh', 'ho chi minh', 'hcm', 'tphcm', 'tp hcm', 'sài gòn', 'sai gon'], standard: 'Hồ Chí Minh' },
     { names: ['hà nội', 'ha noi', 'hn'], standard: 'Hà Nội' },
     { names: ['đà nẵng', 'da nang'], standard: 'Đà Nẵng' },
     { names: ['hải phòng', 'hai phong'], standard: 'Hải Phòng' },
     { names: ['cần thơ', 'can tho'], standard: 'Cần Thơ' },
-    { names: ['bình dương', 'binh duong', 'thủ dầu một', 'thu dau mot', 'dĩ an', 'di an', 'thuận an', 'thuan an'], standard: 'Bình Dương' },
-    { names: ['đồng nai', 'dong nai', 'biên hòa', 'bien hoa', 'long khánh'], standard: 'Đồng Nai' },
+    { names: ['bình dương', 'binh duong'], standard: 'Bình Dương' },
+    { names: ['đồng nai', 'dong nai', 'biên hòa', 'bien hoa'], standard: 'Đồng Nai' },
     { names: ['long an', 'tân an', 'tan an'], standard: 'Long An' },
     { names: ['tiền giang', 'mỹ tho', 'my tho'], standard: 'Tiền Giang' },
     { names: ['bến tre', 'ben tre'], standard: 'Bến Tre' },
@@ -175,10 +64,7 @@ export const VIETNAM_PROVINCES = [
     { names: ['hòa bình', 'hoa binh'], standard: 'Hòa Bình' },
 ];
 
-/**
- * Bóc tách địa chỉ Việt Nam thông minh (hỗ trợ cả trường hợp không có dấu phẩy)
- */
-export function smartParseVietnameseAddress(rawAddress: string) {
+function smartParseVietnameseAddress(rawAddress) {
     if (!rawAddress || !rawAddress.trim()) {
         return { province: '', district: '', ward: '', street: '' };
     }
@@ -192,7 +78,7 @@ export function smartParseVietnameseAddress(rawAddress: string) {
 
     // 1. Phân tích Tỉnh/Thành
     const lower = clean.toLowerCase();
-    for (const item of VIETNAM_PROVINCES) {
+    for (const item of PROVINCES_MAP) {
         for (const alias of item.names) {
             const pattern = new RegExp(`(?:tp\\.?|thành phố|tỉnh)?\\s*${alias}(?:\\s*$|[\\,\\.])`, 'i');
             if (pattern.test(lower)) {
@@ -223,22 +109,7 @@ export function smartParseVietnameseAddress(rawAddress: string) {
         }
     }
 
-    // 4. Nếu có dấu phẩy mà chưa tìm thấy đủ, fallback sang cắt dấu phẩy
-    if ((!province || !district) && clean.includes(',')) {
-        const segments = clean.split(',').map(s => s.trim()).filter(Boolean);
-        if (segments.length >= 4) {
-            if (!province) province = segments[segments.length - 1];
-            if (!district) district = segments[segments.length - 2];
-            if (!ward) ward = segments[segments.length - 3];
-        } else if (segments.length === 3) {
-            if (!province) province = segments[2];
-            if (!district) district = segments[1];
-        } else if (segments.length === 2) {
-            if (!province) province = segments[1];
-        }
-    }
-
-    // 5. Bóc tách Tên đường / Số nhà (phần trước phường/xã hoặc quận/huyện)
+    // 4. Bóc tách Tên đường / Số nhà (phần trước phường/xã hoặc quận/huyện)
     const splitIndex = clean.search(/(?:phường|p\.|xã|x\.|thị trấn|tt\.|quận|huyện|thị xã|tx\.|tp\.|thành phố)/i);
     if (splitIndex > 0) {
         street = clean.substring(0, splitIndex).trim().replace(/[\,\-]+$/, '').trim();
@@ -246,7 +117,7 @@ export function smartParseVietnameseAddress(rawAddress: string) {
         street = workText.replace(/[\,\-]+$/, '').trim();
     }
 
-    const capitalize = (str: string) => str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '';
+    const capitalize = (str) => str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : '';
 
     return {
         province: province || '',
@@ -256,6 +127,11 @@ export function smartParseVietnameseAddress(rawAddress: string) {
     };
 }
 
-export function parseAddressHeuristic(fullAddress: string) {
-    return smartParseVietnameseAddress(fullAddress);
-}
+console.log("Input 1:", "88/14 Nguyễn hữu cảnh phường thắng nhất tp Vũng tàu");
+console.log("Result 1:", smartParseVietnameseAddress("88/14 Nguyễn hữu cảnh phường thắng nhất tp Vũng tàu"));
+
+console.log("Input 2:", "123 Lê Lợi, Phường Bến Nghé, Quận 1, TP Hồ Chí Minh");
+console.log("Result 2:", smartParseVietnameseAddress("123 Lê Lợi, Phường Bến Nghé, Quận 1, TP Hồ Chí Minh"));
+
+console.log("Input 3:", "Số 10 Hai Bà Trưng quận Hoàn Kiếm Hà Nội");
+console.log("Result 3:", smartParseVietnameseAddress("Số 10 Hai Bà Trưng quận Hoàn Kiếm Hà Nội"));
