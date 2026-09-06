@@ -40,6 +40,10 @@ interface Settings {
     section_testimonials_text: string;
     section_blog_text: string;
     hidden_pages: string;
+    widget_360_enabled?: boolean | string;
+    widget_360_tooltip?: string;
+    widget_360_badge?: string;
+    widget_360_panorama_url?: string;
 }
 
 interface SettingsContextType {
@@ -83,6 +87,10 @@ const defaultSettings: Settings = {
     section_testimonials_text: '',
     section_blog_text: '',
     hidden_pages: '',
+    widget_360_enabled: true,
+    widget_360_tooltip: 'Khám phá Lớp học 360°',
+    widget_360_badge: '360°',
+    widget_360_panorama_url: '',
 };
 
 const SettingsContext = createContext<SettingsContextType>({
@@ -148,6 +156,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         section_testimonials_text: data.section_testimonials_text || '',
                         section_blog_text: data.section_blog_text || '',
                         hidden_pages: data.hidden_pages || '',
+                        widget_360_enabled: data.widget_360_enabled !== undefined ? (data.widget_360_enabled !== 'false' && data.widget_360_enabled !== false) : true,
+                        widget_360_tooltip: data.widget_360_tooltip || 'Khám phá Lớp học 360°',
+                        widget_360_badge: data.widget_360_badge || '360°',
+                        widget_360_panorama_url: data.widget_360_panorama_url || '',
                     });
                 } else {
                     console.error('Failed to fetch settings:', res.status);

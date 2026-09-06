@@ -47,6 +47,7 @@ const SECTIONS: SectionDef[] = [
     { key: 'partners', label: 'Đối tác', icon: '🤝', defaultBg: '#FFFFFF', defaultText: '#1F2937', settingBgKey: 'section_partners_bg', settingTextKey: 'section_partners_text' },
     { key: 'testimonials', label: 'Feedback Khách hàng', icon: '💬', defaultBg: '#B9E5FB', defaultText: '#1F2937', settingBgKey: 'section_testimonials_bg', settingTextKey: 'section_testimonials_text' },
     { key: 'blog', label: 'Blog Tư vấn', icon: '📰', defaultBg: '#FFFFFF', defaultText: '#1F2937', settingBgKey: 'section_blog_bg', settingTextKey: 'section_blog_text' },
+    { key: 'widget_360', label: 'Nút Widget 360° (Lớp Học)', icon: '🌐', defaultBg: '#23A7D3', defaultText: '#FFFFFF', settingBgKey: '', settingTextKey: '' },
 ];
 
 // ============================================
@@ -250,6 +251,15 @@ export default function AppearancePage() {
                 if (!data.hero_images?.length && data.hero_image) {
                     data.hero_images = [data.hero_image];
                 }
+                if (data.widget_360_enabled === undefined) {
+                    data.widget_360_enabled = true;
+                }
+                if (!data.widget_360_tooltip) {
+                    data.widget_360_tooltip = 'Khám phá Lớp học 360°';
+                }
+                if (!data.widget_360_badge) {
+                    data.widget_360_badge = '360°';
+                }
                 homeForm.setFieldsValue(data);
 
                 // Fetch data for Selects
@@ -335,6 +345,15 @@ export default function AppearancePage() {
             // Save home config
             await homeForm.validateFields();
             const homeValues = homeForm.getFieldsValue(true);
+            if (homeValues.widget_360_enabled !== undefined) {
+                await systemApi.setConfig('widget_360_enabled', String(homeValues.widget_360_enabled), 'Website widget_360_enabled');
+            }
+            if (homeValues.widget_360_tooltip !== undefined) {
+                await systemApi.setConfig('widget_360_tooltip', String(homeValues.widget_360_tooltip), 'Website widget_360_tooltip');
+            }
+            if (homeValues.widget_360_badge !== undefined) {
+                await systemApi.setConfig('widget_360_badge', String(homeValues.widget_360_badge), 'Website widget_360_badge');
+            }
             await systemApi.saveHomeConfig({
                 ...homeValues,
                 features,
@@ -929,6 +948,64 @@ export default function AppearancePage() {
                             </Form.Item>
                         </Form>
                     </>
+                );
+
+            case 'widget_360':
+                return (
+                    <Form form={homeForm} layout="vertical">
+                        <Alert
+                            message="Cấu hình Nút Widget 360° trên Trang Chủ"
+                            description="Nút icon 360° hiển thị ở cụm nút nổi (Floating Action Widgets) góc phải màn hình, cho phép khách hàng khám phá trải nghiệm không gian lớp học mầm non và sản phẩm nệm HULA theo 3 góc nhìn: Giáo viên, Phụ huynh và Học sinh."
+                            type="info"
+                            showIcon
+                            style={{ marginBottom: 16 }}
+                        />
+                        <Form.Item
+                            name="widget_360_enabled"
+                            label="Ẩn / Hiện Nút Widget 360°"
+                            valuePropName="checked"
+                            extra="Bật để hiển thị icon 360° trên thanh nút nổi trang chủ. Tắt để ẩn hoàn toàn nút này trên website."
+                        >
+                            <Switch checkedChildren="Hiện" unCheckedChildren="Ẩn" />
+                        </Form.Item>
+                        <Form.Item
+                            name="widget_360_tooltip"
+                            label="Tiêu đề Tooltip khi rê chuột"
+                            extra="Nhãn hiển thị bên cạnh nút khi khách hàng di chuột vào icon"
+                        >
+                            <Input placeholder="Khám phá Lớp học 360°" />
+                        </Form.Item>
+                        <Form.Item
+                            name="widget_360_badge"
+                            label="Huy hiệu hiển thị trên icon"
+                            extra="Nhãn chữ nhỏ gắn trên icon (ví dụ: 360°, Mới, Hot)"
+                        >
+                            <Input placeholder="360°" />
+                        </Form.Item>
+                        <Form.Item
+                            name="widget_360_panorama_url"
+                            label="Ảnh Panorama 360° lớp học (Tùy chọn)"
+                            extra="Đường dẫn ảnh góc rộng 360 độ hoặc tải ảnh lớp học lên (để trống để dùng không gian mặc định)"
+                        >
+                            <Input placeholder="https://... ảnh 360 độ" />
+                        </Form.Item>
+
+                        <Divider orientation="left">Nội dung 3 Góc Nhìn Trải Nghiệm</Divider>
+                        <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, fontSize: 13, lineHeight: '1.6', border: '1px solid #e2e8f0' }}>
+                            <div style={{ marginBottom: 12 }}>
+                                <div style={{ fontWeight: 600, color: '#0284c7', marginBottom: 2 }}>👩‍🏫 1. Góc nhìn Giáo Viên: "Nhàn tênh vận hành"</div>
+                                <div style={{ color: '#475569' }}>Giải pháp nệm gấp gọn 5 giây, kích thước chuẩn ô tủ cá nhân, thêu tên từng bé tránh thất lạc, vỏ chống thấm tháo giặt dễ dàng.</div>
+                            </div>
+                            <div style={{ marginBottom: 12 }}>
+                                <div style={{ fontWeight: 600, color: '#0d9488', marginBottom: 2 }}>👨‍👩‍👧 2. Góc nhìn Phụ Huynh: "An tâm gửi con"</div>
+                                <div style={{ color: '#475569' }}>Chất liệu 100% Cotton Hàn Quốc / Tencel tự nhiên, mút nâng đỡ cột sống chuẩn y tế, không Formaldehyde, không gây dị ứng da nhạy cảm.</div>
+                            </div>
+                            <div>
+                                <div style={{ fontWeight: 600, color: '#d97706', marginBottom: 2 }}>🧒 3. Góc nhìn Bé Yêu: "Giấc ngủ vui & Tự lập"</div>
+                                <div style={{ color: '#475569' }}>Họa tiết hoa văn tươi sáng, nệm êm ái thoáng mát, khóa kéo an toàn giấu kín, bé tự giác hào hứng trải nệm và gấp nệm cùng bạn.</div>
+                            </div>
+                        </div>
+                    </Form>
                 );
 
             default:

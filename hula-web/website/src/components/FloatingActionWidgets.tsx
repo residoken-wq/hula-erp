@@ -1,20 +1,57 @@
 'use client';
 
+import { useState } from 'react';
 import { useSettings } from '@/contexts/SettingsContext';
+import Classroom360Modal from './Classroom360Modal';
 
 export default function FloatingActionWidgets() {
     const { settings, loading } = useSettings();
+    const [isOpen360, setIsOpen360] = useState(false);
 
     // Do not show anything if loading
     if (loading) {
         return null;
     }
 
-    const PHONE_NUMBER = '0983882210';
+    const PHONE_NUMBER = settings?.contact_phone || '0983882210';
+    const show360Widget = settings?.widget_360_enabled !== false && settings?.widget_360_enabled !== 'false';
 
     return (
-        <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-4 items-center">
-            {/* Phone Widget */}
+        <>
+            <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-4 items-center">
+                {/* 360 Classroom Experience Widget Button */}
+                {show360Widget && (
+                    <div className="relative group">
+                        <button
+                            type="button"
+                            onClick={() => setIsOpen360(true)}
+                            className="w-14 h-14 bg-gradient-to-tr from-[#23a7d3] via-[#0284c7] to-[#0ea5e9] rounded-full flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 text-white relative border-2 border-white/50 group-hover:border-white animate-pulse group-hover:animate-none"
+                            aria-label="Trải nghiệm Lớp học 360 độ"
+                        >
+                            {/* Radar Ping Animation */}
+                            <div className="w-12 h-12 border-2 border-cyan-300 border-opacity-70 rounded-full flex items-center justify-center absolute animate-ping pointer-events-none"></div>
+
+                            {/* 360 Graphic / Icon */}
+                            <div className="flex flex-col items-center justify-center leading-none select-none">
+                                <span className="text-[13px] font-black tracking-tight font-sans drop-shadow-sm">360°</span>
+                                <span className="text-[8px] font-extrabold uppercase tracking-tighter text-cyan-100">LỚP HỌC</span>
+                            </div>
+
+                            {/* Hot Badge */}
+                            <span className="text-[9px] font-black tracking-tighter bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded-full absolute -top-1.5 -right-1 shadow-md uppercase border border-white">
+                                {settings?.widget_360_badge || '360°'}
+                            </span>
+                        </button>
+                        {/* Tooltip */}
+                        <span className="absolute top-1/2 -translate-y-1/2 right-full mr-4 bg-slate-900/95 text-white text-xs font-bold px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-2xl border border-white/20 flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+                            <span>{settings?.widget_360_tooltip || 'Khám phá Lớp học 360°'}</span>
+                            <span className="text-[10px] text-cyan-300 bg-cyan-950 px-1.5 py-0.5 rounded">MỚI</span>
+                        </span>
+                    </div>
+                )}
+
+                {/* Phone Widget */}
             <div className="relative group">
                 <a
                     href={`tel:${PHONE_NUMBER}`}
@@ -71,6 +108,14 @@ export default function FloatingActionWidgets() {
                     </span>
                 </div>
             )}
-        </div>
+            </div>
+
+            {/* Interactive 360 Classroom Experience Modal */}
+            <Classroom360Modal
+                isOpen={isOpen360}
+                onClose={() => setIsOpen360(false)}
+                settings={settings}
+            />
+        </>
     );
 }
