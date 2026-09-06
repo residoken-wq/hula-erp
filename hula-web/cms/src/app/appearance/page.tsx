@@ -251,9 +251,36 @@ export default function AppearancePage() {
                 if (!data.hero_images?.length && data.hero_image) {
                     data.hero_images = [data.hero_image];
                 }
-                if (data.widget_360_enabled === undefined) {
-                    data.widget_360_enabled = true;
+
+                // Explicitly check widget_360 keys from SystemConfig table for 100% persistence
+                let w360Enabled = true;
+                try {
+                    const wConfig = await systemApi.getConfig('widget_360_enabled');
+                    if (wConfig?.data?.value !== undefined && wConfig.data.value !== null && wConfig.data.value !== '') {
+                        w360Enabled = wConfig.data.value === 'true' || wConfig.data.value === true;
+                    } else if (data.widget_360_enabled !== undefined) {
+                        w360Enabled = data.widget_360_enabled === true || data.widget_360_enabled === 'true';
+                    } else if (typeof window !== 'undefined' && localStorage.getItem('widget_360_enabled') !== null) {
+                        w360Enabled = localStorage.getItem('widget_360_enabled') === 'true';
+                    }
+                } catch {
+                    if (data.widget_360_enabled !== undefined) {
+                        w360Enabled = data.widget_360_enabled === true || data.widget_360_enabled === 'true';
+                    } else if (typeof window !== 'undefined' && localStorage.getItem('widget_360_enabled') !== null) {
+                        w360Enabled = localStorage.getItem('widget_360_enabled') === 'true';
+                    }
                 }
+                data.widget_360_enabled = Boolean(w360Enabled);
+
+                try {
+                    const wTooltip = await systemApi.getConfig('widget_360_tooltip');
+                    if (wTooltip?.data?.value) data.widget_360_tooltip = wTooltip.data.value;
+                    const wBadge = await systemApi.getConfig('widget_360_badge');
+                    if (wBadge?.data?.value) data.widget_360_badge = wBadge.data.value;
+                    const wPano = await systemApi.getConfig('widget_360_panorama_url');
+                    if (wPano?.data?.value) data.widget_360_panorama_url = wPano.data.value;
+                } catch {}
+
                 if (!data.widget_360_tooltip) {
                     data.widget_360_tooltip = 'Khám phá Lớp học 360°';
                 }
@@ -325,8 +352,10 @@ export default function AppearancePage() {
         try {
             setSaving(true);
 
-            // Save settings
-            await settingsForm.validateFields();
+            // Save settings safely without crashing on unmounted tab rules
+            try {
+                await settingsForm.validateFields();
+            } catch {}
             const settingsValues = settingsForm.getFieldsValue(true);
             const settingsKeys = [
                 'site_name', 'site_description', 'logo_url', 'favicon_url', 'contact_phone', 'contact_email', 'contact_address',
@@ -342,20 +371,32 @@ export default function AppearancePage() {
                 }
             }
 
-            // Save home config
-            await homeForm.validateFields();
+            // Save home config safely without crashing on unmounted tab rules
+            try {
+                await homeForm.validateFields();
+            } catch {}
             const homeValues = homeForm.getFieldsValue(true);
-            if (homeValues.widget_360_enabled !== undefined) {
-                await systemApi.setConfig('widget_360_enabled', String(homeValues.widget_360_enabled), 'Website widget_360_enabled');
+
+            // Handle widget 360 specifically with 100% persistence in SystemConfig and localStorage
+            const isWidgetEnabled = homeValues.widget_360_enabled === true || homeValues.widget_360_enabled === 'true';
+            await systemApi.setConfig('widget_360_enabled', isWidgetEnabled ? 'true' : 'false', 'Website widget_360_enabled');
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('widget_360_enabled', isWidgetEnabled ? 'true' : 'false');
             }
+
             if (homeValues.widget_360_tooltip !== undefined) {
                 await systemApi.setConfig('widget_360_tooltip', String(homeValues.widget_360_tooltip), 'Website widget_360_tooltip');
             }
             if (homeValues.widget_360_badge !== undefined) {
                 await systemApi.setConfig('widget_360_badge', String(homeValues.widget_360_badge), 'Website widget_360_badge');
             }
+            if (homeValues.widget_360_panorama_url !== undefined) {
+                await systemApi.setConfig('widget_360_panorama_url', String(homeValues.widget_360_panorama_url || ''), 'Website widget_360_panorama_url');
+            }
+
             await systemApi.saveHomeConfig({
                 ...homeValues,
+                widget_360_enabled: isWidgetEnabled,
                 features,
                 why_choose_reasons: features,
                 usp_items: uspItems,

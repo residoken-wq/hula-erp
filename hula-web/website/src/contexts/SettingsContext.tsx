@@ -156,7 +156,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         section_testimonials_text: data.section_testimonials_text || '',
                         section_blog_text: data.section_blog_text || '',
                         hidden_pages: data.hidden_pages || '',
-                        widget_360_enabled: data.widget_360_enabled !== undefined ? (data.widget_360_enabled !== 'false' && data.widget_360_enabled !== false) : true,
+                        widget_360_enabled: (() => {
+                            if (data.widget_360_enabled !== undefined && data.widget_360_enabled !== '') {
+                                return data.widget_360_enabled !== 'false' && data.widget_360_enabled !== false;
+                            }
+                            if (typeof window !== 'undefined') {
+                                const stored = localStorage.getItem('widget_360_enabled');
+                                if (stored !== null) return stored === 'true';
+                            }
+                            return true;
+                        })(),
                         widget_360_tooltip: data.widget_360_tooltip || 'Khám phá Lớp học 360°',
                         widget_360_badge: data.widget_360_badge || '360°',
                         widget_360_panorama_url: data.widget_360_panorama_url || '',
