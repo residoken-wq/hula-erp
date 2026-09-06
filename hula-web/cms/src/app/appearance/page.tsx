@@ -252,8 +252,20 @@ export default function AppearancePage() {
                     data.hero_images = [data.hero_image];
                 }
 
-                // Explicitly check widget_360 keys from SystemConfig table for 100% persistence
+                // Explicitly check widget_360 keys from SystemConfig table and hidden_pages
                 let w360Enabled = true;
+                try {
+                    const hpRes = await systemApi.getConfig('hidden_pages');
+                    if (hpRes?.data?.value) {
+                        try {
+                            const parsed = JSON.parse(hpRes.data.value);
+                            if (Array.isArray(parsed) && (parsed.includes('widget_360') || parsed.includes('/widget_360'))) {
+                                w360Enabled = false;
+                            }
+                        } catch {}
+                    }
+                } catch {}
+
                 try {
                     const wConfig = await systemApi.getConfig('widget_360_enabled');
                     if (wConfig?.data?.value !== undefined && wConfig.data.value !== null && wConfig.data.value !== '') {
@@ -382,6 +394,26 @@ export default function AppearancePage() {
             await systemApi.setConfig('widget_360_enabled', isWidgetEnabled ? 'true' : 'false', 'Website widget_360_enabled');
             if (typeof window !== 'undefined') {
                 localStorage.setItem('widget_360_enabled', isWidgetEnabled ? 'true' : 'false');
+            }
+
+            // Sync with hidden_pages which is ALREADY returned in /public/settings on the live server!
+            try {
+                const hpRes = await systemApi.getConfig('hidden_pages');
+                let currentHp: string[] = [];
+                if (hpRes?.data?.value) {
+                    try {
+                        const parsed = JSON.parse(hpRes.data.value);
+                        if (Array.isArray(parsed)) currentHp = parsed;
+                    } catch {}
+                }
+                if (!isWidgetEnabled) {
+                    if (!currentHp.includes('widget_360')) currentHp.push('widget_360');
+                } else {
+                    currentHp = currentHp.filter((x: string) => x !== 'widget_360' && x !== '/widget_360');
+                }
+                await systemApi.setConfig('hidden_pages', JSON.stringify(currentHp), 'Website Menu Hidden Pages');
+            } catch (e) {
+                console.error('Failed to sync hidden_pages for widget 360', e);
             }
 
             if (homeValues.widget_360_tooltip !== undefined) {

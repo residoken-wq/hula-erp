@@ -14,7 +14,20 @@ export default function FloatingActionWidgets() {
     }
 
     const PHONE_NUMBER = settings?.contact_phone || '0983882210';
-    const show360Widget = settings?.widget_360_enabled !== false && settings?.widget_360_enabled !== 'false';
+
+    const isHiddenByPages = (() => {
+        try {
+            if (settings?.hidden_pages) {
+                const arr = typeof settings.hidden_pages === 'string' ? JSON.parse(settings.hidden_pages) : settings.hidden_pages;
+                if (Array.isArray(arr) && (arr.includes('widget_360') || arr.includes('/widget_360'))) {
+                    return true;
+                }
+            }
+        } catch {}
+        return false;
+    })();
+
+    const show360Widget = !isHiddenByPages && settings?.widget_360_enabled !== false && settings?.widget_360_enabled !== 'false';
 
     return (
         <>

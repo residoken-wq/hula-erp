@@ -157,13 +157,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         section_blog_text: data.section_blog_text || '',
                         hidden_pages: data.hidden_pages || '',
                         widget_360_enabled: (() => {
+                            // 1. Check hidden_pages (always supported on live backend)
+                            try {
+                                if (data.hidden_pages) {
+                                    const arr = typeof data.hidden_pages === 'string' ? JSON.parse(data.hidden_pages) : data.hidden_pages;
+                                    if (Array.isArray(arr) && (arr.includes('widget_360') || arr.includes('/widget_360'))) {
+                                        return false;
+                                    }
+                                }
+                            } catch {}
+
+                            // 2. Check explicit widget_360_enabled key from API
                             if (data.widget_360_enabled !== undefined && data.widget_360_enabled !== '') {
                                 return data.widget_360_enabled !== 'false' && data.widget_360_enabled !== false;
                             }
+
+                            // 3. Fallback to localStorage if present
                             if (typeof window !== 'undefined') {
                                 const stored = localStorage.getItem('widget_360_enabled');
                                 if (stored !== null) return stored === 'true';
                             }
+
                             return true;
                         })(),
                         widget_360_tooltip: data.widget_360_tooltip || 'Khám phá Lớp học 360°',
