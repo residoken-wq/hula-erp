@@ -52,16 +52,16 @@ export function JourneyCard() {
             switch (state.handoverPhase) {
                 case 'ready':
                     return isTeacher
-                        ? 'Túi kem có dấu lá đang trên tay cô An. Bấm "Trao túi" để bàn giao cho mẹ Linh.'
-                        : 'Cô An đang giữ túi kem có dấu lá. Bấm "Nhận túi" để thực hiện bàn giao.';
+                        ? 'Túi quai xách nhãn "Mây — Lớp Mầm" đang trên tay cô An. Bấm "Trao túi" để bàn giao cho mẹ Linh.'
+                        : 'Cô An đang giữ túi quai xách nhãn "Mây — Lớp Mầm". Bấm "Nhận túi" để thực hiện bàn giao.';
                 case 'transferring':
                     return isTeacher
-                        ? 'Đang trao túi nệm sang mẹ Linh... (Kiểm tra đồ cá nhân)'
-                        : 'Đang nhận túi từ cô An... (Hai bên hoàn tất kiểm tra đồ)';
+                        ? 'Đang trao túi nệm sang mẹ Linh... (Kiểm tra nhãn tên "Mây — Lớp Mầm")'
+                        : 'Đang nhận túi từ cô An... (Hai bên hoàn tất kiểm tra đồ cá nhân)';
                 case 'received':
                     return isTeacher
                         ? 'Đã bàn giao túi nệm sang mẹ Linh thành công.'
-                        : 'Đã nhận túi an toàn vào tay mẹ Linh. Đồ dùng cá nhân đầy đủ.';
+                        : 'Đã nhận túi quai xách an toàn vào tay mẹ Linh. Đồ dùng cá nhân đầy đủ.';
             }
         }
         return currentStep.dialogue

@@ -173,19 +173,24 @@ export function TourViewport() {
                             type="button"
                             onClick={() => openInspector({
                                 type: 'product_spec',
-                                title: 'Bộ Nệm Ngủ Mầm Non HULA',
-                                subtitle: `Ký hiệu: Chiếc lá xanh · Người giữ: ${state.productState.holder === 'mother' ? 'Mẹ Linh' : 'Cô An'}`,
-                                badge: 'Sản phẩm cá nhân',
-                                description: 'Bộ sản phẩm cá nhân gồm túi vải kem hình chiếc lá, nệm mint chần bông êm ái và gối nhỏ. Duy nhất 1 bộ đồ xuyên suốt cả 3 góc nhìn.',
+                                title: 'Bộ Nệm Ngủ Cotton Cara (REF-MAT-CARA-STD)',
+                                subtitle: `Nhãn: Mây — Lớp Mầm · Người giữ: ${state.productState.holder === 'mother' ? 'Mẹ Linh' : 'Cô An'}`,
+                                badge: 'Sản phẩm Sale Kit HULA',
+                                imageUrl: '/images/tour360/products/nem-cara-spec.jpg',
+                                description: 'Bộ sản phẩm thực tế từ Sale Kit HULA gồm nệm Cotton Cara chần gòn 120x63cm, gối 40x25cm, chăn 130x70cm và túi bảo quản quai xách size S (48x40cm). Duy nhất 1 bộ đồ đồng bộ xuyên suốt cả 3 góc nhìn.',
                                 specs: [
+                                    { label: 'Mã bộ nệm', value: 'REF-MAT-CARA-STD' },
+                                    { label: 'Quy cách nệm', value: '120 x 63 cm' },
+                                    { label: 'Gối tiêu chuẩn', value: '40 x 25 cm' },
+                                    { label: 'Chăn tiêu chuẩn', value: '130 x 70 cm' },
+                                    { label: 'Túi bảo quản', value: 'REF-BAG-HANDLE Size S (48x40 cm)' },
+                                    { label: 'Nhãn định danh', value: 'Mây — Lớp Mầm' },
                                     { label: 'Người giữ hiện tại', value: state.productState.holder === 'mother' ? 'Mẹ Linh (CHAR-LINH)' : 'Cô An (CHAR-AN)' },
                                     { label: 'Trạng thái', value: state.productState.status },
-                                    { label: 'Vị trí', value: state.productState.location },
-                                    { label: 'Ký hiệu nhận diện', value: 'Hình chiếc lá xanh' },
                                 ]
                             })}
                             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 border border-emerald-400/40 text-emerald-200 text-[10px] sm:text-xs font-bold shadow-lg backdrop-blur-md transition-all active:scale-95 max-w-[170px] sm:max-w-none"
-                            title="Bấm xem thông tin bộ đồ HULA"
+                            title="Bấm xem thông tin bộ đồ Cotton Cara"
                         >
                             <span className="shrink-0">🎒</span>
                             <span className="hidden sm:inline">Bộ đồ:</span>
@@ -307,8 +312,8 @@ export function TourViewport() {
                                                 {npcHoldsBag && (
                                                     <div className="absolute -bottom-2 -right-3 animate-bounce">
                                                         <div className="px-2 py-1 rounded-xl bg-amber-500/90 border border-amber-300 text-slate-950 font-black text-[10px] shadow-lg flex items-center gap-1">
-                                                            <span>🎒🌿</span>
-                                                            <span>Túi kem dấu lá</span>
+                                                            <span>🎒🏷️</span>
+                                                            <span>Túi Mây — Lớp Mầm</span>
                                                         </div>
                                                     </div>
                                                 )}
@@ -322,8 +327,8 @@ export function TourViewport() {
                                 <div className="absolute top-[38%] left-1/2 -translate-x-1/2 pointer-events-auto animate-pulse flex flex-col items-center z-20">
                                     <div className="px-3 py-1.5 rounded-2xl bg-cyan-500 text-slate-950 font-black text-xs shadow-2xl border-2 border-white flex items-center gap-2">
                                         <span className="text-sm animate-spin">⏳</span>
-                                        <span>Đang chuyển giao túi kem dấu lá...</span>
-                                        <span>🎒🌿</span>
+                                        <span>Đang chuyển giao túi Mây — Lớp Mầm...</span>
+                                        <span>🎒🏷️</span>
                                     </div>
                                 </div>
                             )}
@@ -337,11 +342,11 @@ export function TourViewport() {
                                     <div className={`px-3.5 py-1.5 rounded-2xl ${
                                         state.handoverPhase === 'received' ? 'bg-emerald-500' : 'bg-cyan-500'
                                     } text-slate-950 font-black text-xs shadow-2xl border-2 border-white flex items-center gap-2`}>
-                                        <span>🎒🌿</span>
+                                        <span>🎒🏷️</span>
                                         <span>
                                             {state.activeRole === 'CHAR-AN'
                                                 ? 'Túi nệm đang trên tay cô An (Sẵn sàng trao)'
-                                                : 'Mẹ Linh đã nhận túi kem dấu lá an toàn'}
+                                                : 'Mẹ Linh đã nhận túi Mây — Lớp Mầm an toàn'}
                                         </span>
                                     </div>
                                 </div>
