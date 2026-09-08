@@ -98,8 +98,17 @@ export function CharacterSelection({ isOpen, onClose }: CharacterSelectionProps)
                             >
                                 {/* Role Header */}
                                 <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-2xl shadow-inner border border-white/10">
-                                        {char.avatar}
+                                    <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-2xl shadow-inner border border-white/10 overflow-hidden shrink-0">
+                                        {char.avatarUrl ? (
+                                            /* eslint-disable-next-line @next/next/no-img-element */
+                                            <img
+                                                src={char.avatarUrl}
+                                                alt={char.displayName}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            char.avatar
+                                        )}
                                     </div>
                                     <div>
                                         <div className="font-extrabold text-base text-white flex items-center gap-1.5">

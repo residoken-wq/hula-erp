@@ -25,11 +25,14 @@ export interface ProductState {
     location: 'door' | 'table' | 'cubby' | 'rest_area';
 }
 
+export type HandoverPhase = 'ready' | 'transferring' | 'received';
+
 export interface TourCharacter {
     id: RoleId;
     displayName: string;
     roleTitle: string;
-    avatar: string;
+    avatar: string; // Emoji fallback
+    avatarUrl?: string; // High-resolution cropped portrait from official references
     intro: string;
     cameraHeight: number; // 1.55m, 1.60m, 0.95m
     armStyle: {

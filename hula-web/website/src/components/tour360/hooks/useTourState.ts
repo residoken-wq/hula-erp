@@ -20,6 +20,8 @@ export interface TourState {
 
     // 3. Trạng thái vật thể duy nhất
     productState: ProductState;
+    // 3b. Tiến trình bàn giao vật thể mẫu (EV-06 / Instruction 04 §Prompt 03)
+    handoverPhase: HandoverPhase;
 
     // 4. Tiến độ hành trình lưu theo vai
     progressByRole: Record<RoleId, number>;
@@ -54,6 +56,9 @@ export type TourAction =
     | { type: 'NEXT_STEP' }
     | { type: 'PREV_STEP' }
     | { type: 'SELECT_STEP'; index: number }
+    | { type: 'START_HANDOVER' }
+    | { type: 'COMPLETE_HANDOVER' }
+    | { type: 'RESET_HANDOVER' }
     | { type: 'START_USER_DRAG' }
     | { type: 'END_USER_DRAG' }
     | { type: 'UPDATE_CAMERA'; yaw: number; pitch: number; zoom?: number }
@@ -77,6 +82,7 @@ export const initialTourState: TourState = {
     activeRole: 'CHAR-AN',
     currentEvent: 'EV-01',
     productState: initialProductState,
+    handoverPhase: 'ready',
     progressByRole: {
         'CHAR-AN': 0,
         'CHAR-LINH': 0,
@@ -108,6 +114,8 @@ function tourReducer(state: TourState, action: TourAction): TourState {
         case 'SWITCH_ROLE_SAME_MOMENT': {
             const targetRole = action.targetRole;
             if (targetRole === state.activeRole) return state;
+            // Hoãn đổi vai nếu đang trong tiến trình bàn giao (Prompt 05)
+            if (state.handoverPhase === 'transferring') return state;
 
             // Tra cứu xem vai đích có mặt trong sự kiện hiện tại không
             const eventObj = TIMELINE_EVENTS.find(e => e.id === state.currentEvent);
@@ -142,6 +150,8 @@ function tourReducer(state: TourState, action: TourAction): TourState {
 
         // Cơ chế 2: Bắt đầu / Tiếp tục hành trình của vai khác (Replay / Resume)
         case 'START_ROLE_JOURNEY': {
+            // Hoãn đổi vai nếu đang trong tiến trình bàn giao (Prompt 05)
+            if (state.handoverPhase === 'transferring') return state;
             const targetRole = action.targetRole;
             const targetSteps = TOUR_STEPS[targetRole] || [];
             const savedProgress = action.fromBeginning ? 0 : (state.progressByRole[targetRole] || 0);
@@ -251,6 +261,46 @@ function tourReducer(state: TourState, action: TourAction): TourState {
                 },
                 currentAudioText: step.monologue,
                 audioPlayingId: undefined,
+            };
+        }
+
+        case 'START_HANDOVER': {
+            if (state.handoverPhase !== 'ready') return state; // Chống bấm đúp / kích hoạt lặp
+            return {
+                ...state,
+                handoverPhase: 'transferring',
+                transitionLabel: 'Đang bàn giao túi nệm...',
+            };
+        }
+
+        case 'COMPLETE_HANDOVER': {
+            if (state.handoverPhase !== 'transferring') return state;
+            return {
+                ...state,
+                handoverPhase: 'received',
+                transitionLabel: 'Mẹ Linh đã nhận túi an toàn',
+                productState: {
+                    holder: 'mother',
+                    status: 'packed',
+                    location: 'door',
+                },
+                progressByRole: {
+                    ...state.progressByRole,
+                    [state.activeRole]: Math.max(state.progressByRole[state.activeRole], state.currentStepIndex + 1),
+                },
+            };
+        }
+
+        case 'RESET_HANDOVER': {
+            return {
+                ...state,
+                handoverPhase: 'ready',
+                transitionLabel: 'Đã đặt lại vị trí túi',
+                productState: {
+                    holder: 'teacher',
+                    status: 'packed',
+                    location: 'door',
+                },
             };
         }
 
@@ -409,6 +459,18 @@ export function useTourState() {
         dispatch({ type: 'TOGGLE_CHILD_MODE', enabled });
     }, []);
 
+    const startHandover = useCallback(() => {
+        dispatch({ type: 'START_HANDOVER' });
+    }, []);
+
+    const completeHandover = useCallback(() => {
+        dispatch({ type: 'COMPLETE_HANDOVER' });
+    }, []);
+
+    const resetHandover = useCallback(() => {
+        dispatch({ type: 'RESET_HANDOVER' });
+    }, []);
+
     const resetTour = useCallback(() => {
         dispatch({ type: 'RESET_TOUR' });
     }, []);
@@ -427,6 +489,9 @@ export function useTourState() {
         nextStep,
         prevStep,
         selectStep,
+        startHandover,
+        completeHandover,
+        resetHandover,
         startUserDrag,
         endUserDrag,
         updateCamera,

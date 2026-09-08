@@ -162,9 +162,35 @@ export function TourViewport() {
                         transform: `scale(${state.camera.zoom})`,
                     }}
                 >
-                    {/* Renderer Mode Indicator Badge */}
-                    <div className="absolute top-14 sm:top-18 left-3 sm:left-6 z-10 px-2.5 py-1 rounded-full bg-black/60 border border-white/10 text-[10px] text-white/80 backdrop-blur-sm pointer-events-none">
-                        {rendererMode === 'panorama360' ? '🌐 Panorama 360°' : '🖼️ Khung nhìn 2D'}
+                    {/* Top Left Status & Product Prop Bar */}
+                    <div className="absolute top-14 sm:top-18 left-3 sm:left-6 z-10 flex items-center gap-2 pointer-events-auto">
+                        <div className="px-2.5 py-1 rounded-full bg-black/60 border border-white/10 text-[10px] text-white/80 backdrop-blur-sm pointer-events-none">
+                            {rendererMode === 'panorama360' ? '🌐 Panorama 360°' : '🖼️ Khung nhìn 2D'}
+                        </div>
+
+                        {/* Single Product Prop Badge (Responsive & Clean) */}
+                        <button
+                            type="button"
+                            onClick={() => openInspector({
+                                type: 'product_spec',
+                                title: 'Bộ Nệm Ngủ Mầm Non HULA',
+                                subtitle: `Ký hiệu: Chiếc lá xanh · Người giữ: ${state.productState.holder === 'mother' ? 'Mẹ Linh' : 'Cô An'}`,
+                                badge: 'Sản phẩm cá nhân',
+                                description: 'Bộ sản phẩm cá nhân gồm túi vải kem hình chiếc lá, nệm mint chần bông êm ái và gối nhỏ. Duy nhất 1 bộ đồ xuyên suốt cả 3 góc nhìn.',
+                                specs: [
+                                    { label: 'Người giữ hiện tại', value: state.productState.holder === 'mother' ? 'Mẹ Linh (CHAR-LINH)' : 'Cô An (CHAR-AN)' },
+                                    { label: 'Trạng thái', value: state.productState.status },
+                                    { label: 'Vị trí', value: state.productState.location },
+                                    { label: 'Ký hiệu nhận diện', value: 'Hình chiếc lá xanh' },
+                                ]
+                            })}
+                            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 border border-emerald-400/40 text-emerald-200 text-[10px] sm:text-xs font-bold shadow-lg backdrop-blur-md transition-all active:scale-95 max-w-[170px] sm:max-w-none"
+                            title="Bấm xem thông tin bộ đồ HULA"
+                        >
+                            <span className="shrink-0">🎒</span>
+                            <span className="hidden sm:inline">Bộ đồ:</span>
+                            <span className="text-white capitalize truncate">{state.productState.status.replace('_', ' ')}</span>
+                        </button>
                     </div>
                     {/* Hotspot Markers (Optimized min 44px touch target for Mobile & Tablet) */}
                     {activeHotspots.map(h => {
@@ -201,56 +227,129 @@ export function TourViewport() {
 
                     {/* In-Scene NPCs (Anti-Clone Culling: active role never appears as NPC) */}
                     {currentTimelineEvent && (
-                        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 flex items-center gap-4 sm:gap-6 pointer-events-none z-10">
+                        <div className="absolute inset-0 pointer-events-none z-10">
                             {currentTimelineEvent.presentRoles
                                 .filter(r => r !== state.activeRole)
-                                .map(npcRole => {
+                                .map((npcRole) => {
                                     const npc = CHARACTERS[npcRole];
                                     if (!npc) return null;
+                                    const isChild = npcRole === 'CHAR-MAY';
+                                    const isTeacher = npcRole === 'CHAR-AN';
+                                    const isMother = npcRole === 'CHAR-LINH';
+
+                                    const isEv06 = state.currentEvent === 'EV-06';
+                                    const isMavPOV = state.activeRole === 'CHAR-MAY';
+                                    const isAnPOV = state.activeRole === 'CHAR-AN';
+                                    const isLinhPOV = state.activeRole === 'CHAR-LINH';
+
+                                    // Perspective geometry based on who is looking:
+                                    // If Bé Mây (0.95m) is looking: Adults are higher up (18%) and seen from below
+                                    // If Adult (1.55m-1.60m) is looking: Adults at eye level (26%), child at 44%
+                                    let topPos = isChild ? '44%' : isMavPOV ? '18%' : '26%';
+                                    let leftPos = '50%';
+
+                                    if (isLinhPOV) {
+                                        leftPos = isTeacher ? '38%' : isChild ? '58%' : '50%';
+                                    } else if (isAnPOV) {
+                                        leftPos = isMother ? '62%' : isChild ? '38%' : '50%';
+                                    } else if (isMavPOV) {
+                                        leftPos = isTeacher ? '36%' : isMother ? '64%' : '50%';
+                                    }
+
+                                    // Pan adjust
+                                    const adjustedLeft = `calc(${leftPos} - ${state.camera.yaw * 0.18}%)`;
+
+                                    // Check if this NPC is currently holding the bag in EV-06
+                                    const npcHoldsBag = isEv06 && (
+                                        (isTeacher && state.productState.holder === 'teacher' && state.handoverPhase === 'ready') ||
+                                        (isMother && state.productState.holder === 'mother' && state.handoverPhase === 'received')
+                                    );
+
                                     return (
                                         <div
                                             key={npc.id}
-                                            className="flex flex-col items-center animate-fadeIn pointer-events-auto"
+                                            style={{ left: adjustedLeft, top: topPos }}
+                                            className="absolute -translate-x-1/2 flex flex-col items-center animate-fadeIn pointer-events-auto transition-transform duration-100"
                                         >
-                                            <div className="px-2 sm:px-2.5 py-0.5 rounded-full bg-slate-900/80 border border-white/20 text-white text-[9px] sm:text-[10px] font-bold shadow-lg flex items-center gap-1 mb-1 backdrop-blur-sm">
-                                                <span>{npc.avatar}</span>
+                                            {/* NPC Badge Name */}
+                                            <div className="px-2.5 py-0.5 rounded-full bg-slate-900/85 border border-white/20 text-white text-[10px] sm:text-[11px] font-bold shadow-lg flex items-center gap-1.5 mb-1.5 backdrop-blur-md">
                                                 <span>{npc.displayName}</span>
-                                                <span className="text-[9px] text-cyan-300">({npc.cameraHeight}m)</span>
+                                                <span className="text-[10px] text-white/50">{npc.roleTitle}</span>
                                             </div>
-                                            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/15 border-2 border-white/40 flex items-center justify-center text-lg sm:text-xl shadow-xl backdrop-blur-md">
-                                                {npc.avatar}
+
+                                            {/* NPC Real Portrait Token (Prompt 02, 04, 05) */}
+                                            <div className="relative group">
+                                                <div className={`${
+                                                    isChild
+                                                        ? 'w-14 h-14 sm:w-16 sm:h-16'
+                                                        : isMavPOV
+                                                            ? 'w-18 h-18 sm:w-22 sm:h-22' // Appears larger/taller to child
+                                                            : 'w-16 h-16 sm:w-20 sm:h-20'
+                                                } rounded-2xl sm:rounded-3xl bg-slate-900/40 border-2 border-white/40 overflow-hidden shadow-2xl backdrop-blur-sm group-hover:scale-105 group-hover:border-cyan-300 transition-all`}>
+                                                    {npc.avatarUrl ? (
+                                                        /* eslint-disable-next-line @next/next/no-img-element */
+                                                        <img
+                                                            src={npc.avatarUrl}
+                                                            alt={npc.displayName}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl">
+                                                            {npc.avatar}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Grounding Shadow */}
+                                                <div className="w-12 h-2 bg-black/40 rounded-full blur-[2px] mx-auto mt-1" />
+
+                                                {/* Handover Bag Badge when NPC holds bag */}
+                                                {npcHoldsBag && (
+                                                    <div className="absolute -bottom-2 -right-3 animate-bounce">
+                                                        <div className="px-2 py-1 rounded-xl bg-amber-500/90 border border-amber-300 text-slate-950 font-black text-[10px] shadow-lg flex items-center gap-1">
+                                                            <span>🎒🌿</span>
+                                                            <span>Túi kem dấu lá</span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     );
                                 })}
+
+                            {/* Handover Bag in Transferring Phase (Prompt 03 & 05: moving between hands) */}
+                            {state.currentEvent === 'EV-06' && state.handoverPhase === 'transferring' && (
+                                <div className="absolute top-[38%] left-1/2 -translate-x-1/2 pointer-events-auto animate-pulse flex flex-col items-center z-20">
+                                    <div className="px-3 py-1.5 rounded-2xl bg-cyan-500 text-slate-950 font-black text-xs shadow-2xl border-2 border-white flex items-center gap-2">
+                                        <span className="text-sm animate-spin">⏳</span>
+                                        <span>Đang chuyển giao túi kem dấu lá...</span>
+                                        <span>🎒🌿</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Handover Bag when held by active player (Cô An in 'ready' or Mẹ Linh in 'received') */}
+                            {state.currentEvent === 'EV-06' && (
+                                (state.activeRole === 'CHAR-AN' && state.handoverPhase === 'ready') ||
+                                (state.activeRole === 'CHAR-LINH' && state.handoverPhase === 'received')
+                            ) && (
+                                <div className="absolute bottom-28 sm:bottom-32 left-1/2 -translate-x-1/2 pointer-events-auto z-20 animate-fadeIn">
+                                    <div className={`px-3.5 py-1.5 rounded-2xl ${
+                                        state.handoverPhase === 'received' ? 'bg-emerald-500' : 'bg-cyan-500'
+                                    } text-slate-950 font-black text-xs shadow-2xl border-2 border-white flex items-center gap-2`}>
+                                        <span>🎒🌿</span>
+                                        <span>
+                                            {state.activeRole === 'CHAR-AN'
+                                                ? 'Túi nệm đang trên tay cô An (Sẵn sàng trao)'
+                                                : 'Mẹ Linh đã nhận túi kem dấu lá an toàn'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    {/* Single Product Prop Badge (Responsive & Clean on Mobile) */}
-                    <div className="absolute top-14 sm:top-18 right-14 sm:right-20 z-10 pointer-events-auto">
-                        <button
-                            type="button"
-                            onClick={() => openInspector({
-                                type: 'product_spec',
-                                title: 'Bộ Nệm Ngủ Mầm Non HULA',
-                                subtitle: `Ký hiệu: Chiếc lá xanh · Vị trí: ${state.productState.location}`,
-                                badge: 'Sản phẩm minh họa',
-                                description: 'Bộ sản phẩm cá nhân gồm túi vải kem hình chiếc lá, nệm mint chần bông êm ái và gối nhỏ. Duy nhất 1 bộ đồ xuyên suốt cả 3 góc nhìn.',
-                                specs: [
-                                    { label: 'Người giữ hiện tại', value: state.productState.holder },
-                                    { label: 'Trạng thái', value: state.productState.status },
-                                    { label: 'Vị trí', value: state.productState.location },
-                                    { label: 'Ký hiệu nhận diện', value: 'Hình chiếc lá xanh' },
-                                ]
-                            })}
-                            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 border border-emerald-400/40 text-emerald-200 text-[11px] sm:text-xs font-bold shadow-lg backdrop-blur-md transition-all active:scale-95 max-w-[180px] sm:max-w-none"
-                            title="Bấm xem thông tin bộ đồ HULA"
-                        >
-                            <span className="shrink-0">🎒</span>
-                            <span className="hidden md:inline">Bộ Đồ HULA:</span>
-                            <span className="text-white capitalize truncate">{state.productState.status.replace('_', ' ')}</span>
-                        </button>
-                    </div>
+
                 </div>
             )}
 
