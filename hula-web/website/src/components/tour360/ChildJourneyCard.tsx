@@ -103,7 +103,16 @@ export function ChildJourneyCard() {
                             isHintPulsing ? 'ring-4 ring-white shadow-xl scale-[1.01]' : ''
                         }`}>
                             <div className="flex items-start gap-2.5">
-                                <span className="text-2xl sm:text-3xl filter drop-shadow shrink-0">👧</span>
+                                {activeCharacterInfo.avatarUrl ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img
+                                        src={activeCharacterInfo.avatarUrl}
+                                        alt={activeCharacterInfo.displayName}
+                                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-amber-300 shadow-sm shrink-0"
+                                    />
+                                ) : (
+                                    <span className="text-2xl sm:text-3xl filter drop-shadow shrink-0">👧</span>
+                                )}
                                 <div className="flex-1 min-w-0">
                                     <h4 className="text-sm sm:text-base md:text-lg font-black text-slate-900 leading-tight">
                                         {currentStep.title}

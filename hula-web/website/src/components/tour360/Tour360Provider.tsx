@@ -32,6 +32,11 @@ interface TourContextValue {
     toggleChildMode: (enabled?: boolean) => void;
     resetTour: () => void;
 
+    // Handover Actions (EV-06 Prompt 03)
+    startHandover: () => void;
+    completeHandover: () => void;
+    resetHandover: () => void;
+
     // Audio
     playChime: (freq?: number, duration?: number) => void;
     playChildTouchSound: () => void;
@@ -95,6 +100,22 @@ export function Tour360Provider({ children, settings }: Tour360ProviderProps) {
         tourStateHook.resetTour();
     };
 
+    const handleStartHandover = () => {
+        if (tourStateHook.state.handoverPhase !== 'ready') return;
+        tourStateHook.startHandover();
+        audioHook.playChime(520, 0.2);
+        // Kích hoạt mốc chuyển giao vật thể sau 800ms
+        setTimeout(() => {
+            tourStateHook.completeHandover();
+            audioHook.playSuccessSound();
+        }, 800);
+    };
+
+    const handleResetHandover = () => {
+        tourStateHook.resetHandover();
+        audioHook.playChime(350, 0.15);
+    };
+
     const value: TourContextValue = {
         state: tourStateHook.state,
         dispatch: tourStateHook.dispatch,
@@ -107,6 +128,9 @@ export function Tour360Provider({ children, settings }: Tour360ProviderProps) {
         nextStep: handleNextStep,
         prevStep: handlePrevStep,
         selectStep: tourStateHook.selectStep,
+        startHandover: handleStartHandover,
+        completeHandover: tourStateHook.completeHandover,
+        resetHandover: handleResetHandover,
         startUserDrag: tourStateHook.startUserDrag,
         endUserDrag: tourStateHook.endUserDrag,
         updateCamera: tourStateHook.updateCamera,
