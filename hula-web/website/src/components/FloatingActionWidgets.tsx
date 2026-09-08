@@ -1,8 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useSettings } from '@/contexts/SettingsContext';
-import Classroom360Modal from './Classroom360Modal';
+import { computeTourEligibility } from '@/components/tour360/data/tourConfig';
+
+const Tour360Shell = dynamic(() => import('./tour360/Tour360Shell'), {
+    ssr: false,
+    loading: () => null,
+});
 
 export default function FloatingActionWidgets() {
     const { settings, loading } = useSettings();
@@ -15,19 +21,7 @@ export default function FloatingActionWidgets() {
 
     const PHONE_NUMBER = settings?.contact_phone || '0983882210';
 
-    const isHiddenByPages = (() => {
-        try {
-            if (settings?.hidden_pages) {
-                const arr = typeof settings.hidden_pages === 'string' ? JSON.parse(settings.hidden_pages) : settings.hidden_pages;
-                if (Array.isArray(arr) && (arr.includes('widget_360') || arr.includes('/widget_360'))) {
-                    return true;
-                }
-            }
-        } catch {}
-        return false;
-    })();
-
-    const show360Widget = !isHiddenByPages && settings?.widget_360_enabled !== false && settings?.widget_360_enabled !== 'false';
+    const show360Widget = computeTourEligibility(settings);
 
     return (
         <>
@@ -123,12 +117,14 @@ export default function FloatingActionWidgets() {
             )}
             </div>
 
-            {/* Interactive 360 Classroom Experience Modal */}
-            <Classroom360Modal
-                isOpen={isOpen360}
-                onClose={() => setIsOpen360(false)}
-                settings={settings}
-            />
+            {/* Interactive 360 Classroom Experience Modal (Lazy Loaded) */}
+            {isOpen360 && (
+                <Tour360Shell
+                    isOpen={isOpen360}
+                    onClose={() => setIsOpen360(false)}
+                    settings={settings}
+                />
+            )}
         </>
     );
 }
