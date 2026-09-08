@@ -12,9 +12,10 @@ import { CHARACTERS } from './data/tourSeed';
 interface TourHeaderProps {
     onClose: () => void;
     onOpenRoleSelector: () => void;
+    onSwitchToShowroom?: () => void;
 }
 
-export function TourHeader({ onClose, onOpenRoleSelector }: TourHeaderProps) {
+export function TourHeader({ onClose, onOpenRoleSelector, onSwitchToShowroom }: TourHeaderProps) {
     const {
         state,
         currentStep,
@@ -92,6 +93,20 @@ export function TourHeader({ onClose, onOpenRoleSelector }: TourHeaderProps) {
 
             {/* Right: Mode switches, Help, Audio & Close */}
             <div className="flex items-center gap-1.5 sm:gap-2.5">
+                {/* Back to Showroom Button */}
+                {onSwitchToShowroom && (
+                    <button
+                        type="button"
+                        onClick={onSwitchToShowroom}
+                        className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#087F8C] hover:bg-[#066B76] text-white border border-teal-300 shadow-md active:scale-95 transition-all"
+                        title="Quay lại Showroom Phối màu lớp học"
+                        aria-label="Phối màu lớp học"
+                    >
+                        <span>🎨</span>
+                        <span className="hidden sm:inline">Phối màu</span>
+                    </button>
+                )}
+
                 {/* Child Mode Toggle Button */}
                 <button
                     type="button"

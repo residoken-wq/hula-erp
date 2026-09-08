@@ -68,6 +68,7 @@ export interface TourStep {
     };
     nextStepId?: string;
     checkpointLabel?: string; // Nhãn mốc chuyển thời gian (ví dụ "Sau giờ nghỉ", "Cuối tuần — giờ đón trẻ")
+    audioUrl?: string;
 }
 
 export interface TimelineEvent {

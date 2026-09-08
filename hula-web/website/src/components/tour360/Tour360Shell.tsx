@@ -15,14 +15,22 @@ import { JourneyCard } from './JourneyCard';
 import { ChildJourneyCard } from './ChildJourneyCard';
 import { TourInspector } from './TourInspector';
 import { CharacterSelection } from './CharacterSelection';
+import { ProductShowroom } from './ProductShowroom';
 
 interface Tour360ShellProps {
     isOpen: boolean;
     onClose: () => void;
     settings?: any;
+    initialMode?: 'showroom' | 'roleplay';
 }
 
-function TourContent({ onClose }: { onClose: () => void }) {
+function TourContent({
+    onClose,
+    onSwitchToShowroom,
+}: {
+    onClose: () => void;
+    onSwitchToShowroom?: () => void;
+}) {
     const { state, closeInspector } = useTour();
     const [isRoleSelectorOpen, setIsRoleSelectorOpen] = useState(false);
 
@@ -41,14 +49,8 @@ function TourContent({ onClose }: { onClose: () => void }) {
         };
 
         window.addEventListener('keydown', handleKeyDown);
-        // Prevent body scrolling while modal is open & hide external widgets
-        document.body.style.overflow = 'hidden';
-        document.body.classList.add('tour-360-active');
-
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
-            document.body.style.overflow = '';
-            document.body.classList.remove('tour-360-active');
         };
     }, [state.isInspectorOpen, isRoleSelectorOpen, closeInspector, onClose]);
 
@@ -63,6 +65,7 @@ function TourContent({ onClose }: { onClose: () => void }) {
             <TourHeader
                 onClose={onClose}
                 onOpenRoleSelector={() => setIsRoleSelectorOpen(true)}
+                onSwitchToShowroom={onSwitchToShowroom}
             />
 
             {/* Main Interactive Viewport */}
@@ -86,12 +89,46 @@ function TourContent({ onClose }: { onClose: () => void }) {
     );
 }
 
-export default function Tour360Shell({ isOpen, onClose, settings }: Tour360ShellProps) {
+export default function Tour360Shell({
+    isOpen,
+    onClose,
+    settings,
+    initialMode = 'showroom',
+}: Tour360ShellProps) {
+    const [activeMode, setActiveMode] = useState<'showroom' | 'roleplay'>(initialMode);
+
+    // Prevent body scrolling while modal is open & hide external widgets
+    useEffect(() => {
+        if (!isOpen) return;
+
+        document.body.style.overflow = 'hidden';
+        document.body.classList.add('tour-360-active');
+
+        return () => {
+            document.body.style.overflow = '';
+            document.body.classList.remove('tour-360-active');
+        };
+    }, [isOpen]);
+
     if (!isOpen) return null;
+
+    // Showroom mode is the primary default per Instruction 06
+    if (activeMode === 'showroom') {
+        return (
+            <ProductShowroom
+                onClose={onClose}
+                onSwitchToRoleplay={() => setActiveMode('roleplay')}
+            />
+        );
+    }
 
     return (
         <Tour360Provider settings={settings}>
-            <TourContent onClose={onClose} />
+            <TourContent
+                onClose={onClose}
+                onSwitchToShowroom={() => setActiveMode('showroom')}
+            />
         </Tour360Provider>
     );
 }
+

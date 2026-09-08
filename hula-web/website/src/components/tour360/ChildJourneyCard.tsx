@@ -16,6 +16,7 @@ import { TOUR_STEPS } from './data/tourSeed';
 export function ChildJourneyCard() {
     const {
         state,
+        activeCharacterInfo,
         currentStep,
         nextStep,
         prevStep,
@@ -103,11 +104,11 @@ export function ChildJourneyCard() {
                             isHintPulsing ? 'ring-4 ring-white shadow-xl scale-[1.01]' : ''
                         }`}>
                             <div className="flex items-start gap-2.5">
-                                {activeCharacterInfo.avatarUrl ? (
+                                {activeCharacterInfo?.avatarUrl ? (
                                     /* eslint-disable-next-line @next/next/no-img-element */
                                     <img
                                         src={activeCharacterInfo.avatarUrl}
-                                        alt={activeCharacterInfo.displayName}
+                                        alt={activeCharacterInfo.displayName || 'Nhân vật'}
                                         className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-amber-300 shadow-sm shrink-0"
                                     />
                                 ) : (

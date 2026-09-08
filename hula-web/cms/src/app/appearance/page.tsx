@@ -22,6 +22,36 @@ const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
     loading: () => <Spin tip="Đang tải trình soạn thảo..." style={{ padding: 20 }} />
 });
 
+// Helper to safely strip circular structures, DOM elements, and React internals before JSON serialization
+function cleanJsonData<T>(obj: T): T {
+    const seen = new WeakSet();
+    const clean = (val: any): any => {
+        if (val === null || val === undefined) return val;
+        if (typeof val === 'object') {
+            if (typeof HTMLElement !== 'undefined' && val instanceof HTMLElement) return undefined;
+            if (val.nodeType || val.$$typeof || val._owner) return undefined;
+            if (seen.has(val)) return undefined;
+            seen.add(val);
+
+            if (Array.isArray(val)) {
+                return val.map(clean).filter(x => x !== undefined);
+            }
+            const res: Record<string, any> = {};
+            for (const [k, v] of Object.entries(val)) {
+                if (k.startsWith('__react') || k.startsWith('_react')) continue;
+                const cleaned = clean(v);
+                if (cleaned !== undefined) {
+                    res[k] = cleaned;
+                }
+            }
+            return res;
+        }
+        if (typeof val === 'function' || typeof val === 'symbol') return undefined;
+        return val;
+    };
+    return clean(obj);
+}
+
 // ============================================
 // SECTION DEFINITIONS
 // ============================================
@@ -380,7 +410,11 @@ export default function AppearancePage() {
             ];
             for (const key of settingsKeys) {
                 if (settingsValues[key] !== undefined) {
-                    await systemApi.setConfig(key, settingsValues[key] || '', `Website ${key}`);
+                    const rawVal = settingsValues[key];
+                    const strVal = typeof rawVal === 'string'
+                        ? rawVal
+                        : (rawVal?.url || (typeof rawVal === 'object' && rawVal !== null && 'toHexString' in rawVal ? rawVal.toHexString() : String(rawVal ?? '')));
+                    await systemApi.setConfig(key, strVal, `Website ${key}`);
                 }
             }
 
@@ -388,7 +422,7 @@ export default function AppearancePage() {
             try {
                 await homeForm.validateFields();
             } catch {}
-            const homeValues = homeForm.getFieldsValue(true);
+            const homeValues = homeForm.getFieldsValue(true) || {};
 
             // Handle widget 360 specifically with persistence in SystemConfig
             const isWidgetEnabled = homeValues.widget_360_enabled === true || homeValues.widget_360_enabled === 'true';
@@ -401,7 +435,7 @@ export default function AppearancePage() {
                 if (hpRes?.data?.value) {
                     try {
                         const parsed = JSON.parse(hpRes.data.value);
-                        if (Array.isArray(parsed)) currentHp = parsed;
+                        if (Array.isArray(parsed)) currentHp = parsed.map(String);
                     } catch {}
                 }
                 if (!isWidgetEnabled) {
@@ -415,10 +449,10 @@ export default function AppearancePage() {
             }
 
             if (homeValues.widget_360_tooltip !== undefined) {
-                await systemApi.setConfig('widget_360_tooltip', String(homeValues.widget_360_tooltip), 'Website widget_360_tooltip');
+                await systemApi.setConfig('widget_360_tooltip', String(homeValues.widget_360_tooltip || ''), 'Website widget_360_tooltip');
             }
             if (homeValues.widget_360_badge !== undefined) {
-                await systemApi.setConfig('widget_360_badge', String(homeValues.widget_360_badge), 'Website widget_360_badge');
+                await systemApi.setConfig('widget_360_badge', String(homeValues.widget_360_badge || ''), 'Website widget_360_badge');
             }
             if (homeValues.widget_360_panorama_url !== undefined) {
                 await systemApi.setConfig('widget_360_panorama_url', String(homeValues.widget_360_panorama_url || ''), 'Website widget_360_panorama_url');
@@ -427,9 +461,40 @@ export default function AppearancePage() {
                 await systemApi.setConfig('widget_360_renderer_mode', String(homeValues.widget_360_renderer_mode || 'guided2d'), 'Website widget_360_renderer_mode');
             }
 
-            await systemApi.saveHomeConfig({
-                ...homeValues,
+            // Whitelist and clean values for saveHomeConfig to guarantee zero DOM/Fiber circular references
+            const cleanHomePayload: Record<string, any> = cleanJsonData({
+                hero_title_1: typeof homeValues.hero_title_1 === 'string' ? homeValues.hero_title_1 : '',
+                hero_title_2: typeof homeValues.hero_title_2 === 'string' ? homeValues.hero_title_2 : '',
+                hero_description: typeof homeValues.hero_description === 'string' ? homeValues.hero_description : '',
+                hero_button_1: typeof homeValues.hero_button_1 === 'string' ? homeValues.hero_button_1 : '',
+                hero_button_2: typeof homeValues.hero_button_2 === 'string' ? homeValues.hero_button_2 : '',
+                hero_mask_opacity: homeValues.hero_mask_opacity !== undefined ? Number(homeValues.hero_mask_opacity) : 40,
+                hero_images: Array.isArray(homeValues.hero_images)
+                    ? homeValues.hero_images.map((img: any) => typeof img === 'string' ? img : img?.url || '').filter(Boolean)
+                    : [],
+                topbar_enabled: Boolean(homeValues.topbar_enabled),
+                topbar_left_text: typeof homeValues.topbar_left_text === 'string' ? homeValues.topbar_left_text : '',
+                topbar_right_text: typeof homeValues.topbar_right_text === 'string' ? homeValues.topbar_right_text : '',
+                topbar_right_url: typeof homeValues.topbar_right_url === 'string' ? homeValues.topbar_right_url : '',
+                topbar_speed: Number(homeValues.topbar_speed) || 20,
+                about_title: typeof homeValues.about_title === 'string' ? homeValues.about_title : '',
+                about_description: typeof homeValues.about_description === 'string' ? homeValues.about_description : '',
+                video_youtube_url: typeof homeValues.video_youtube_url === 'string' ? homeValues.video_youtube_url : '',
+                projects_banners: Array.isArray(homeValues.projects_banners)
+                    ? homeValues.projects_banners.map((b: any) => typeof b === 'string' ? b : b?.url || '').filter(Boolean)
+                    : [],
+                selected_project_ids: Array.isArray(homeValues.selected_project_ids) ? homeValues.selected_project_ids : [],
+                blog_selection_type: homeValues.blog_selection_type || 'auto',
+                selected_blog_ids: Array.isArray(homeValues.selected_blog_ids) ? homeValues.selected_blog_ids : [],
+                footer_slogan: typeof homeValues.footer_slogan === 'string' ? homeValues.footer_slogan : '',
+                footer_copyright: typeof homeValues.footer_copyright === 'string' ? homeValues.footer_copyright : '',
+                footer_bg: typeof homeValues.footer_bg === 'string' ? homeValues.footer_bg : (homeValues.footer_bg?.toHexString?.() || '#1e293b'),
+                footer_text_color: typeof homeValues.footer_text_color === 'string' ? homeValues.footer_text_color : (homeValues.footer_text_color?.toHexString?.() || '#ffffff'),
                 widget_360_enabled: isWidgetEnabled,
+                widget_360_tooltip: String(homeValues.widget_360_tooltip || 'Khám phá Lớp học 360°'),
+                widget_360_badge: String(homeValues.widget_360_badge || '360°'),
+                widget_360_panorama_url: String(homeValues.widget_360_panorama_url || ''),
+                widget_360_renderer_mode: String(homeValues.widget_360_renderer_mode || 'guided2d'),
                 features,
                 why_choose_reasons: features,
                 usp_items: uspItems,
@@ -442,6 +507,8 @@ export default function AppearancePage() {
                 footer_product_links: footerProductLinks,
                 journey_blocks_order: journeyBlocksOrder,
             });
+
+            await systemApi.saveHomeConfig(cleanHomePayload);
 
             message.success('✅ Đã lưu tất cả thay đổi!');
 
@@ -562,6 +629,7 @@ export default function AppearancePage() {
                                 <Input placeholder="Xem Sản Phẩm" />
                             </Form.Item>
                             <Form.Item name="hero_button_2" label="Nút CTA phụ">
+                                <Input placeholder="Liên Hệ Mua Sỉ" />
                             </Form.Item>
                             <Form.Item name="hero_mask_opacity" label="Độ mờ lớp phủ màu đen (0% - 100%)"
                                 tooltip="Làm tối hình nền để text dễ đọc hơn. 0 là không che, 100 là đen hoàn toàn."

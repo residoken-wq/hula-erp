@@ -70,6 +70,7 @@ export default function FlipbookModal({ isOpen, onClose, images, projects }: Fli
                 {images && images.length > 0 ? (
                     <div className="relative w-full max-w-[1024px] flex items-center justify-center mt-4">
                         <HTMLFlipBook 
+                            {...({} as any)}
                             width={1024} 
                             height={1024} 
                             size="stretch"

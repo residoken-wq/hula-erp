@@ -6,7 +6,7 @@
 
 export interface TourSettingsInput {
     hidden_pages?: string | string[];
-    widget_360_enabled?: boolean | string;
+    widget_360_enabled?: boolean | string | number;
     widget_360_tooltip?: string;
     widget_360_badge?: string;
     widget_360_panorama_url?: string;

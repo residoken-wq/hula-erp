@@ -38,6 +38,32 @@ const api = axios.create({
     timeout: 10000, // 10 second timeout
 });
 
+// Safe JSON stringifier that strips circular references and DOM nodes
+const safeStringify = (data: any) => {
+    const seen = new WeakSet();
+    return JSON.stringify(data, (_key, value) => {
+        if (typeof value === 'object' && value !== null) {
+            if (typeof HTMLElement !== 'undefined' && value instanceof HTMLElement) return undefined;
+            if (value.nodeType || value.$$typeof || value._owner) return undefined;
+            if (seen.has(value)) return undefined;
+            seen.add(value);
+        }
+        return value;
+    });
+};
+
+api.defaults.transformRequest = [
+    (data, headers) => {
+        if (data && typeof data === 'object' && !(data instanceof FormData) && !(data instanceof Blob)) {
+            if (headers) {
+                headers['Content-Type'] = 'application/json';
+            }
+            return safeStringify(data);
+        }
+        return data;
+    }
+];
+
 // Products
 export const getProducts = cache(async (params?: {
     category?: string;

@@ -5,7 +5,7 @@
  */
 
 import { useReducer, useCallback } from 'react';
-import { RoleId, EventId, ProductState, InspectorContent, TourStep } from '../types';
+import { RoleId, EventId, ProductState, HandoverPhase, InspectorContent, TourStep } from '../types';
 import { CHARACTERS, TIMELINE_EVENTS, TOUR_STEPS } from '../data/tourSeed';
 
 export interface TourState {
