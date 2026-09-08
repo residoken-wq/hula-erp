@@ -163,10 +163,10 @@ export function TourViewport() {
                     }}
                 >
                     {/* Renderer Mode Indicator Badge */}
-                    <div className="absolute top-16 left-4 z-10 px-2.5 py-1 rounded-full bg-black/50 border border-white/10 text-[10px] text-white/70 backdrop-blur-sm pointer-events-none">
-                        {rendererMode === 'panorama360' ? '🌐 Panorama 360° Mode' : '🖼️ Guided 2D View'}
+                    <div className="absolute top-14 sm:top-18 left-3 sm:left-6 z-10 px-2.5 py-1 rounded-full bg-black/60 border border-white/10 text-[10px] text-white/80 backdrop-blur-sm pointer-events-none">
+                        {rendererMode === 'panorama360' ? '🌐 Panorama 360°' : '🖼️ Khung nhìn 2D'}
                     </div>
-                    {/* Hotspot Markers */}
+                    {/* Hotspot Markers (Optimized min 44px touch target for Mobile & Tablet) */}
                     {activeHotspots.map(h => {
                         // Position adjusted by pan offset
                         const adjustedX = h.x - (state.camera.yaw * 0.15);
@@ -179,14 +179,14 @@ export function TourViewport() {
                                 type="button"
                                 onClick={e => handleHotspotClick(h, e)}
                                 style={{ left: `${adjustedX}%`, top: `${h.y}%` }}
-                                className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group pointer-events-auto cursor-pointer focus:outline-none"
+                                className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group pointer-events-auto cursor-pointer focus:outline-none p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                 aria-label={`Điểm tương tác: ${h.title}`}
                             >
                                 {/* Pulsing Ring */}
-                                <span className="absolute -inset-2.5 rounded-full bg-cyan-400/40 animate-ping group-hover:bg-cyan-300/60 pointer-events-none"></span>
+                                <span className="absolute inset-0 m-auto w-10 h-10 rounded-full bg-cyan-400/40 animate-ping group-hover:bg-cyan-300/60 pointer-events-none"></span>
                                 
                                 {/* Core Dot */}
-                                <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 border-2 border-white shadow-xl flex items-center justify-center text-white group-hover:scale-125 transition-transform">
+                                <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 border-2 border-white shadow-xl flex items-center justify-center text-white group-hover:scale-125 active:scale-95 transition-transform">
                                     <span className="text-xs font-black">✦</span>
                                 </div>
 
@@ -201,7 +201,7 @@ export function TourViewport() {
 
                     {/* In-Scene NPCs (Anti-Clone Culling: active role never appears as NPC) */}
                     {currentTimelineEvent && (
-                        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 flex items-center gap-6 pointer-events-none z-10">
+                        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 flex items-center gap-4 sm:gap-6 pointer-events-none z-10">
                             {currentTimelineEvent.presentRoles
                                 .filter(r => r !== state.activeRole)
                                 .map(npcRole => {
@@ -212,12 +212,12 @@ export function TourViewport() {
                                             key={npc.id}
                                             className="flex flex-col items-center animate-fadeIn pointer-events-auto"
                                         >
-                                            <div className="px-2.5 py-0.5 rounded-full bg-slate-900/80 border border-white/20 text-white text-[10px] font-bold shadow-lg flex items-center gap-1 mb-1 backdrop-blur-sm">
+                                            <div className="px-2 sm:px-2.5 py-0.5 rounded-full bg-slate-900/80 border border-white/20 text-white text-[9px] sm:text-[10px] font-bold shadow-lg flex items-center gap-1 mb-1 backdrop-blur-sm">
                                                 <span>{npc.avatar}</span>
                                                 <span>{npc.displayName}</span>
                                                 <span className="text-[9px] text-cyan-300">({npc.cameraHeight}m)</span>
                                             </div>
-                                            <div className="w-11 h-11 rounded-full bg-white/15 border-2 border-white/40 flex items-center justify-center text-xl shadow-xl backdrop-blur-md">
+                                            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/15 border-2 border-white/40 flex items-center justify-center text-lg sm:text-xl shadow-xl backdrop-blur-md">
                                                 {npc.avatar}
                                             </div>
                                         </div>
@@ -226,8 +226,8 @@ export function TourViewport() {
                         </div>
                     )}
 
-                    {/* Single Product Prop Badge (Single source of truth) */}
-                    <div className="absolute top-16 right-16 z-10 pointer-events-auto">
+                    {/* Single Product Prop Badge (Responsive & Clean on Mobile) */}
+                    <div className="absolute top-14 sm:top-18 right-14 sm:right-20 z-10 pointer-events-auto">
                         <button
                             type="button"
                             onClick={() => openInspector({
@@ -243,12 +243,12 @@ export function TourViewport() {
                                     { label: 'Ký hiệu nhận diện', value: 'Hình chiếc lá xanh' },
                                 ]
                             })}
-                            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 border border-emerald-400/40 text-emerald-200 text-xs font-bold shadow-lg backdrop-blur-md transition-all active:scale-95"
+                            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full bg-black/60 hover:bg-black/80 border border-emerald-400/40 text-emerald-200 text-[11px] sm:text-xs font-bold shadow-lg backdrop-blur-md transition-all active:scale-95 max-w-[180px] sm:max-w-none"
                             title="Bấm xem thông tin bộ đồ HULA"
                         >
-                            <span>🎒</span>
-                            <span className="hidden sm:inline">Bộ Đồ HULA:</span>
-                            <span className="text-white capitalize">{state.productState.status.replace('_', ' ')}</span>
+                            <span className="shrink-0">🎒</span>
+                            <span className="hidden md:inline">Bộ Đồ HULA:</span>
+                            <span className="text-white capitalize truncate">{state.productState.status.replace('_', ' ')}</span>
                         </button>
                     </div>
                 </div>
@@ -257,44 +257,44 @@ export function TourViewport() {
             {/* First-Person Perspective Hand / Arm Overlay */}
             {status === 'ready' && (
                 <div
-                    className="absolute bottom-0 left-0 right-0 pointer-events-none flex justify-between px-8 sm:px-24 z-10 transition-transform duration-150"
+                    className="absolute bottom-0 left-0 right-0 pointer-events-none flex justify-between px-4 sm:px-24 z-10 transition-transform duration-150"
                     style={{ transform: `translateY(${Math.max(0, -state.camera.pitch * 2)}px)` }}
                 >
                     {/* Left Arm/Hand representation */}
-                    <div className="flex flex-col items-center opacity-90 transition-all">
+                    <div className="flex flex-col items-center opacity-85 sm:opacity-90 transition-all">
                         <div
                             className={`${
                                 activeCharacterInfo.armStyle.isChild
-                                    ? 'w-10 sm:w-14 h-16 sm:h-22 rounded-t-2xl shadow-xl'
-                                    : 'w-14 sm:w-20 h-24 sm:h-32 rounded-t-full shadow-2xl'
-                            } border-t-2 border-white/20 transform -rotate-12 translate-y-6 sm:translate-y-10 overflow-hidden`}
+                                    ? 'w-9 sm:w-14 h-14 sm:h-22 rounded-t-2xl shadow-xl'
+                                    : 'w-11 sm:w-20 h-20 sm:h-32 rounded-t-full shadow-2xl'
+                            } border-t-2 border-white/20 transform -rotate-12 translate-y-8 sm:translate-y-10 overflow-hidden`}
                             style={{
                                 backgroundColor: activeCharacterInfo.armStyle.sleeveColor || '#fed7aa',
                             }}
                         >
                             {/* Hand tone tip */}
-                            <div className={`w-full ${activeCharacterInfo.armStyle.isChild ? 'h-10' : 'h-14'} bg-[#fed7aa] rounded-t-full border-t border-white/30`}></div>
+                            <div className={`w-full ${activeCharacterInfo.armStyle.isChild ? 'h-8 sm:h-10' : 'h-11 sm:h-14'} bg-[#fed7aa] rounded-t-full border-t border-white/30`}></div>
                         </div>
-                        <span className="text-[10px] text-white/70 font-bold mt-1 bg-black/40 px-2 py-0.5 rounded-full">
+                        <span className="text-[9px] sm:text-[10px] text-white/70 font-bold mt-1 bg-black/50 px-2 py-0.5 rounded-full hidden sm:inline-block">
                             {activeCharacterInfo.armStyle.isChild ? 'Tay Bé Mây' : `Tay ${activeCharacterInfo.displayName}`}
                         </span>
                     </div>
 
                     {/* Right Arm/Hand representation */}
-                    <div className="flex flex-col items-center opacity-90 transition-all">
+                    <div className="flex flex-col items-center opacity-85 sm:opacity-90 transition-all">
                         <div
                             className={`${
                                 activeCharacterInfo.armStyle.isChild
-                                    ? 'w-10 sm:w-14 h-16 sm:h-22 rounded-t-2xl shadow-xl'
-                                    : 'w-14 sm:w-20 h-24 sm:h-32 rounded-t-full shadow-2xl'
-                            } border-t-2 border-white/20 transform rotate-12 translate-y-6 sm:translate-y-10 overflow-hidden`}
+                                    ? 'w-9 sm:w-14 h-14 sm:h-22 rounded-t-2xl shadow-xl'
+                                    : 'w-11 sm:w-20 h-20 sm:h-32 rounded-t-full shadow-2xl'
+                            } border-t-2 border-white/20 transform rotate-12 translate-y-8 sm:translate-y-10 overflow-hidden`}
                             style={{
                                 backgroundColor: activeCharacterInfo.armStyle.sleeveColor || '#fed7aa',
                             }}
                         >
-                            <div className={`w-full ${activeCharacterInfo.armStyle.isChild ? 'h-10' : 'h-14'} bg-[#fed7aa] rounded-t-full border-t border-white/30`}></div>
+                            <div className={`w-full ${activeCharacterInfo.armStyle.isChild ? 'h-8 sm:h-10' : 'h-11 sm:h-14'} bg-[#fed7aa] rounded-t-full border-t border-white/30`}></div>
                         </div>
-                        <span className="text-[10px] text-white/70 font-bold mt-1 bg-black/40 px-2 py-0.5 rounded-full">
+                        <span className="text-[9px] sm:text-[10px] text-white/70 font-bold mt-1 bg-black/50 px-2 py-0.5 rounded-full hidden sm:inline-block">
                             Tầm mắt {activeCharacterInfo.cameraHeight}m
                         </span>
                     </div>

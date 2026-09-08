@@ -384,3 +384,16 @@ button {
   color: #6b7280;
   margin-top: 0.85em;
 }
+
+/* Suppress external widgets while 360 tour modal is active */
+body.tour-360-active .zalo-chat-widget,
+body.tour-360-active iframe[src*="zalo"],
+body.tour-360-active #za-chat-widget,
+body.tour-360-active [id*="zalo"],
+body.tour-360-active .za-chat-widget-window,
+body.tour-360-active [class*="zalo-chat"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}

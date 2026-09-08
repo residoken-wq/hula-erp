@@ -51,8 +51,13 @@ export function TourInspector() {
                 aria-modal="true"
                 aria-labelledby="inspector-title"
             >
+                {/* Mobile Drag Indicator */}
+                <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white/5">
+                    <div className="w-12 h-1 rounded-full bg-white/30" />
+                </div>
+
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/10 bg-white/5">
+                <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-white/10 bg-white/5">
                     <div className="flex items-center gap-2">
                         {content.badge && (
                             <span className="text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
@@ -64,7 +69,7 @@ export function TourInspector() {
                     <button
                         type="button"
                         onClick={closeInspector}
-                        className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white flex items-center justify-center"
+                        className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white flex items-center justify-center"
                         aria-label="Đóng bảng thông tin"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,11 +139,11 @@ export function TourInspector() {
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-white/10 bg-white/5">
+                <div className="p-4 border-t border-white/10 bg-white/5 pb-[max(1rem,env(safe-area-inset-bottom))]">
                     <button
                         type="button"
                         onClick={closeInspector}
-                        className="w-full py-2.5 px-4 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+                        className="w-full h-11 px-4 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5"
                     >
                         <span>Quay lại Khám Phá</span>
                     </button>
