@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { computeTourEligibility } from '@/components/tour360/data/tourConfig';
 
 interface Settings {
     site_name: string;
@@ -44,6 +45,7 @@ interface Settings {
     widget_360_tooltip?: string;
     widget_360_badge?: string;
     widget_360_panorama_url?: string;
+    widget_360_renderer_mode?: 'guided2d' | 'panorama360' | 'scene3d';
 }
 
 interface SettingsContextType {
@@ -91,6 +93,7 @@ const defaultSettings: Settings = {
     widget_360_tooltip: 'Khám phá Lớp học 360°',
     widget_360_badge: '360°',
     widget_360_panorama_url: '',
+    widget_360_renderer_mode: 'guided2d',
 };
 
 const SettingsContext = createContext<SettingsContextType>({
@@ -156,33 +159,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                         section_testimonials_text: data.section_testimonials_text || '',
                         section_blog_text: data.section_blog_text || '',
                         hidden_pages: data.hidden_pages || '',
-                        widget_360_enabled: (() => {
-                            // 1. Check hidden_pages (always supported on live backend)
-                            try {
-                                if (data.hidden_pages) {
-                                    const arr = typeof data.hidden_pages === 'string' ? JSON.parse(data.hidden_pages) : data.hidden_pages;
-                                    if (Array.isArray(arr) && (arr.includes('widget_360') || arr.includes('/widget_360'))) {
-                                        return false;
-                                    }
-                                }
-                            } catch {}
-
-                            // 2. Check explicit widget_360_enabled key from API
-                            if (data.widget_360_enabled !== undefined && data.widget_360_enabled !== '') {
-                                return data.widget_360_enabled !== 'false' && data.widget_360_enabled !== false;
-                            }
-
-                            // 3. Fallback to localStorage if present
-                            if (typeof window !== 'undefined') {
-                                const stored = localStorage.getItem('widget_360_enabled');
-                                if (stored !== null) return stored === 'true';
-                            }
-
-                            return true;
-                        })(),
+                        widget_360_enabled: computeTourEligibility(data),
                         widget_360_tooltip: data.widget_360_tooltip || 'Khám phá Lớp học 360°',
                         widget_360_badge: data.widget_360_badge || '360°',
                         widget_360_panorama_url: data.widget_360_panorama_url || '',
+                        widget_360_renderer_mode: data.widget_360_renderer_mode || 'guided2d',
                     });
                 } else {
                     console.error('Failed to fetch settings:', res.status);

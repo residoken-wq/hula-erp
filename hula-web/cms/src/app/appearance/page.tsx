@@ -1,5 +1,4 @@
 'use client';
-'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/AdminLayout';
@@ -272,14 +271,10 @@ export default function AppearancePage() {
                         w360Enabled = wConfig.data.value === 'true' || wConfig.data.value === true;
                     } else if (data.widget_360_enabled !== undefined) {
                         w360Enabled = data.widget_360_enabled === true || data.widget_360_enabled === 'true';
-                    } else if (typeof window !== 'undefined' && localStorage.getItem('widget_360_enabled') !== null) {
-                        w360Enabled = localStorage.getItem('widget_360_enabled') === 'true';
                     }
                 } catch {
                     if (data.widget_360_enabled !== undefined) {
                         w360Enabled = data.widget_360_enabled === true || data.widget_360_enabled === 'true';
-                    } else if (typeof window !== 'undefined' && localStorage.getItem('widget_360_enabled') !== null) {
-                        w360Enabled = localStorage.getItem('widget_360_enabled') === 'true';
                     }
                 }
                 data.widget_360_enabled = Boolean(w360Enabled);
@@ -291,7 +286,13 @@ export default function AppearancePage() {
                     if (wBadge?.data?.value) data.widget_360_badge = wBadge.data.value;
                     const wPano = await systemApi.getConfig('widget_360_panorama_url');
                     if (wPano?.data?.value) data.widget_360_panorama_url = wPano.data.value;
+                    const wMode = await systemApi.getConfig('widget_360_renderer_mode');
+                    if (wMode?.data?.value) data.widget_360_renderer_mode = wMode.data.value;
                 } catch {}
+
+                if (!data.widget_360_renderer_mode) {
+                    data.widget_360_renderer_mode = 'guided2d';
+                }
 
                 if (!data.widget_360_tooltip) {
                     data.widget_360_tooltip = 'Khám phá Lớp học 360°';
@@ -389,12 +390,9 @@ export default function AppearancePage() {
             } catch {}
             const homeValues = homeForm.getFieldsValue(true);
 
-            // Handle widget 360 specifically with 100% persistence in SystemConfig and localStorage
+            // Handle widget 360 specifically with persistence in SystemConfig
             const isWidgetEnabled = homeValues.widget_360_enabled === true || homeValues.widget_360_enabled === 'true';
             await systemApi.setConfig('widget_360_enabled', isWidgetEnabled ? 'true' : 'false', 'Website widget_360_enabled');
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('widget_360_enabled', isWidgetEnabled ? 'true' : 'false');
-            }
 
             // Sync with hidden_pages which is ALREADY returned in /public/settings on the live server!
             try {
@@ -424,6 +422,9 @@ export default function AppearancePage() {
             }
             if (homeValues.widget_360_panorama_url !== undefined) {
                 await systemApi.setConfig('widget_360_panorama_url', String(homeValues.widget_360_panorama_url || ''), 'Website widget_360_panorama_url');
+            }
+            if (homeValues.widget_360_renderer_mode !== undefined) {
+                await systemApi.setConfig('widget_360_renderer_mode', String(homeValues.widget_360_renderer_mode || 'guided2d'), 'Website widget_360_renderer_mode');
             }
 
             await systemApi.saveHomeConfig({
@@ -1056,26 +1057,36 @@ export default function AppearancePage() {
                             <Input placeholder="360°" />
                         </Form.Item>
                         <Form.Item
+                            name="widget_360_renderer_mode"
+                            label="Chế độ Trình diễn (Renderer Mode)"
+                            extra="Chọn phương thức dựng hình phù hợp với loại hình ảnh được cung cấp"
+                        >
+                            <Radio.Group>
+                                <Radio.Button value="guided2d">🖼️ Ảnh Góc Rộng (Guided 2D)</Radio.Button>
+                                <Radio.Button value="panorama360">🌐 Panorama 360° Spherical</Radio.Button>
+                            </Radio.Group>
+                        </Form.Item>
+                        <Form.Item
                             name="widget_360_panorama_url"
                             label="Ảnh Panorama 360° lớp học (Tùy chọn)"
-                            extra="Đường dẫn ảnh góc rộng 360 độ hoặc tải ảnh lớp học lên (để trống để dùng không gian mặc định)"
+                            extra="Đường dẫn ảnh lớp học (để trống để dùng không gian mặc định trong hệ thống)"
                         >
-                            <Input placeholder="https://... ảnh 360 độ" />
+                            <Input placeholder="https://... ảnh 360 độ hoặc ảnh góc rộng" />
                         </Form.Item>
 
-                        <Divider orientation="left">Nội dung 3 Góc Nhìn Trải Nghiệm</Divider>
+                        <Divider orientation="left">3 Nhân Vật & Góc Nhìn Trải Nghiệm (Character Bible)</Divider>
                         <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, fontSize: 13, lineHeight: '1.6', border: '1px solid #e2e8f0' }}>
                             <div style={{ marginBottom: 12 }}>
-                                <div style={{ fontWeight: 600, color: '#0284c7', marginBottom: 2 }}>👩‍🏫 1. Góc nhìn Giáo Viên: "Nhàn tênh vận hành"</div>
-                                <div style={{ color: '#475569' }}>Giải pháp nệm gấp gọn 5 giây, kích thước chuẩn ô tủ cá nhân, thêu tên từng bé tránh thất lạc, vỏ chống thấm tháo giặt dễ dàng.</div>
+                                <div style={{ fontWeight: 600, color: '#0284c7', marginBottom: 2 }}>👩‍🏫 1. Cô An (Tầm mắt 1.55m) — Giáo Viên Mầm Non</div>
+                                <div style={{ color: '#475569' }}>Áo polo xanh ngọc ngắn tay. Hướng dẫn trẻ làm quen, nhận diện ngăn tủ chiếc lá, phối hợp trải nệm êm ái và gấp gọn cất vào tủ sau giờ ngủ trưa.</div>
                             </div>
                             <div style={{ marginBottom: 12 }}>
-                                <div style={{ fontWeight: 600, color: '#0d9488', marginBottom: 2 }}>👨‍👩‍👧 2. Góc nhìn Phụ Huynh: "An tâm gửi con"</div>
-                                <div style={{ color: '#475569' }}>Chất liệu 100% Cotton Hàn Quốc / Tencel tự nhiên, mút nâng đỡ cột sống chuẩn y tế, không Formaldehyde, không gây dị ứng da nhạy cảm.</div>
+                                <div style={{ fontWeight: 600, color: '#0d9488', marginBottom: 2 }}>👩 2. Mẹ Linh (Tầm mắt 1.60m) — Phụ Huynh Học Sinh</div>
+                                <div style={{ color: '#475569' }}>Áo kem ngắn tay. Trực tiếp nâng mép nệm kiểm tra chất liệu cotton thoáng khí, đường may trần viền chắc chắn và an tâm bàn giao đồ dùng cho cô giáo.</div>
                             </div>
                             <div>
-                                <div style={{ fontWeight: 600, color: '#d97706', marginBottom: 2 }}>🧒 3. Góc nhìn Bé Yêu: "Giấc ngủ vui & Tự lập"</div>
-                                <div style={{ color: '#475569' }}>Họa tiết hoa văn tươi sáng, nệm êm ái thoáng mát, khóa kéo an toàn giấu kín, bé tự giác hào hứng trải nệm và gấp nệm cùng bạn.</div>
+                                <div style={{ fontWeight: 600, color: '#d97706', marginBottom: 2 }}>👧 3. Bé Mây (Tầm mắt 0.95m) — Học Sinh Lớp Chồi</div>
+                                <div style={{ color: '#475569' }}>Áo vàng nhạt ngắn tay. Tự tìm ngăn tủ thấp dán hình chiếc lá, tự hào cùng cô trải nệm, đặt gối và rèn luyện thói quen tự lập đầu đời.</div>
                             </div>
                         </div>
                     </Form>
