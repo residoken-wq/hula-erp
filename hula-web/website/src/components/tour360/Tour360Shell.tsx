@@ -41,12 +41,14 @@ function TourContent({ onClose }: { onClose: () => void }) {
         };
 
         window.addEventListener('keydown', handleKeyDown);
-        // Prevent body scrolling while modal is open
+        // Prevent body scrolling while modal is open & hide external widgets
         document.body.style.overflow = 'hidden';
+        document.body.classList.add('tour-360-active');
 
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
             document.body.style.overflow = '';
+            document.body.classList.remove('tour-360-active');
         };
     }, [state.isInspectorOpen, isRoleSelectorOpen, closeInspector, onClose]);
 

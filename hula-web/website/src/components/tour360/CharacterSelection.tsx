@@ -44,22 +44,22 @@ export function CharacterSelection({ isOpen, onClose }: CharacterSelectionProps)
             aria-modal="true"
             aria-labelledby="role-selection-title"
         >
-            <div className="relative w-full max-w-3xl bg-slate-900/95 border border-white/20 rounded-3xl p-5 sm:p-8 shadow-2xl text-white overflow-hidden max-h-[92vh] flex flex-col">
+            <div className="relative w-full max-w-3xl bg-slate-900/95 border border-white/20 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl text-white overflow-hidden max-h-[92vh] flex flex-col pb-[max(1rem,env(safe-area-inset-bottom))]">
                 {/* Header */}
-                <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                    <div>
-                        <h2 id="role-selection-title" className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-white/10 gap-2">
+                    <div className="min-w-0">
+                        <h2 id="role-selection-title" className="text-lg sm:text-2xl font-black tracking-tight text-white flex items-center gap-2 truncate">
                             <span>🎭</span>
                             <span>Chọn Góc Nhìn Trải Nghiệm</span>
                         </h2>
-                        <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
-                            Trải nghiệm lớp học qua mắt Cô giáo, Phụ huynh hoặc chính Bé nhỏ
+                        <p className="text-xs sm:text-sm text-slate-300 mt-0.5 truncate">
+                            Trải nghiệm lớp học qua mắt Cô giáo, Phụ huynh hoặc Bé nhỏ
                         </p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white flex items-center justify-center"
+                        className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-white flex items-center justify-center"
                         aria-label="Đóng bảng chọn vai"
                     >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -136,7 +136,7 @@ export function CharacterSelection({ isOpen, onClose }: CharacterSelectionProps)
                                         <button
                                             type="button"
                                             onClick={() => handleSelectRoleSameMoment(roleId)}
-                                            className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                                            className="w-full h-10 sm:h-11 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
                                         >
                                             <span>👁️ Xem tại mốc này</span>
                                         </button>
@@ -146,7 +146,7 @@ export function CharacterSelection({ isOpen, onClose }: CharacterSelectionProps)
                                     <button
                                         type="button"
                                         onClick={() => handleSelectRoleFromBeginning(roleId)}
-                                        className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+                                        className={`w-full h-10 sm:h-11 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
                                             isCurrentActive
                                                 ? 'bg-white/15 hover:bg-white/25 text-white border border-white/20'
                                                 : isPresentInCurrentEvent

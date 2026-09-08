@@ -24,39 +24,39 @@ export function TourHeader({ onClose, onOpenRoleSelector }: TourHeaderProps) {
     } = useTour();
 
     return (
-        <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-b from-black/80 via-black/50 to-transparent pointer-events-auto backdrop-blur-[2px]">
+        <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 sm:px-6 py-2 sm:py-3 pt-[max(0.5rem,env(safe-area-inset-top))] bg-gradient-to-b from-black/85 via-black/50 to-transparent pointer-events-auto backdrop-blur-[2px] gap-2">
             {/* Left: Role Info & Selector Button */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <button
                     type="button"
                     onClick={onOpenRoleSelector}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 transition-all text-white border border-white/20 shadow-lg group"
+                    className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 transition-all text-white border border-white/20 shadow-lg group max-w-[200px] xs:max-w-xs sm:max-w-none"
                     title="Bấm để đổi góc nhìn nhân vật khác"
                     aria-label="Chọn góc nhìn nhân vật"
                 >
-                    <span className="text-xl sm:text-2xl filter drop-shadow-sm group-hover:scale-110 transition-transform">
+                    <span className="text-xl sm:text-2xl filter drop-shadow-sm group-hover:scale-110 transition-transform shrink-0">
                         {activeCharacterInfo.avatar}
                     </span>
-                    <div className="text-left">
+                    <div className="text-left min-w-0">
                         <div className="text-xs sm:text-sm font-bold flex items-center gap-1.5 leading-tight">
-                            <span>{activeCharacterInfo.displayName}</span>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/30 text-cyan-200 border border-cyan-400/30 font-medium">
+                            <span className="truncate">{activeCharacterInfo.displayName}</span>
+                            <span className="shrink-0 text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/30 text-cyan-200 border border-cyan-400/30 font-medium">
                                 {activeCharacterInfo.cameraHeight}m
                             </span>
                         </div>
-                        <div className="text-[10px] sm:text-[11px] text-white/70 leading-tight">
+                        <div className="text-[10px] sm:text-[11px] text-white/70 leading-tight hidden xs:block truncate">
                             {activeCharacterInfo.roleTitle}
                         </div>
                     </div>
                     {/* Switch icon */}
-                    <svg className="w-4 h-4 text-white/70 group-hover:text-white transition-colors ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70 group-hover:text-white transition-colors ml-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
                     </svg>
                 </button>
 
                 {/* Event milestone pill (Desktop only) */}
                 {currentTimelineEvent && (
-                    <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 border border-white/10 text-white/80 text-xs">
+                    <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 border border-white/10 text-white/80 text-xs shrink-0">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                         <span className="font-medium text-white">{currentTimelineEvent.name}</span>
                         <span className="text-white/50 text-[11px]">({currentTimelineEvent.label})</span>
