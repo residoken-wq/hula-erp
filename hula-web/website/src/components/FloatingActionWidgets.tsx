@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useSettings } from '@/contexts/SettingsContext';
 import { computeTourEligibility } from '@/components/tour360/data/tourConfig';
@@ -13,6 +13,15 @@ const Tour360Shell = dynamic(() => import('./tour360/Tour360Shell'), {
 export default function FloatingActionWidgets() {
     const { settings, loading } = useSettings();
     const [isOpen360, setIsOpen360] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('tour360') === 'true' || window.location.hash === '#tour360') {
+                setIsOpen360(true);
+            }
+        }
+    }, []);
 
     // Do not show anything if loading
     if (loading) {

@@ -16,12 +16,13 @@ import { ChildJourneyCard } from './ChildJourneyCard';
 import { TourInspector } from './TourInspector';
 import { CharacterSelection } from './CharacterSelection';
 import { ProductShowroom } from './ProductShowroom';
+import { CampusSchoolPOV } from './school-pov/CampusSchoolPOV';
 
 interface Tour360ShellProps {
     isOpen: boolean;
     onClose: () => void;
     settings?: any;
-    initialMode?: 'showroom' | 'roleplay';
+    initialMode?: 'school-pov' | 'showroom' | 'roleplay';
 }
 
 function TourContent({
@@ -93,9 +94,9 @@ export default function Tour360Shell({
     isOpen,
     onClose,
     settings,
-    initialMode = 'showroom',
+    initialMode = 'school-pov',
 }: Tour360ShellProps) {
-    const [activeMode, setActiveMode] = useState<'showroom' | 'roleplay'>(initialMode);
+    const [activeMode, setActiveMode] = useState<'school-pov' | 'showroom' | 'roleplay'>(initialMode);
 
     // Prevent body scrolling while modal is open & hide external widgets
     useEffect(() => {
@@ -112,7 +113,16 @@ export default function Tour360Shell({
 
     if (!isOpen) return null;
 
-    // Showroom mode is the primary default per Instruction 06
+    // School POV (Instruction 07) is the primary interactive 3D campus experience
+    if (activeMode === 'school-pov') {
+        return (
+            <CampusSchoolPOV
+                onClose={onClose}
+            />
+        );
+    }
+
+    // Showroom mode (Instruction 06 legacy)
     if (activeMode === 'showroom') {
         return (
             <ProductShowroom
@@ -126,7 +136,7 @@ export default function Tour360Shell({
         <Tour360Provider settings={settings}>
             <TourContent
                 onClose={onClose}
-                onSwitchToShowroom={() => setActiveMode('showroom')}
+                onSwitchToShowroom={() => setActiveMode('school-pov')}
             />
         </Tour360Provider>
     );

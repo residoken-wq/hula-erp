@@ -1,0 +1,54 @@
+{
+  "asset": "hula_bag.glb",
+  "byteLength": 740656,
+  "triangles": 28997,
+  "materials": 9,
+  "nodes": 14,
+  "boundsMinM": [
+    -0.24120000004768372,
+    -0.0012000000569969416,
+    -0.05380000174045563
+  ],
+  "boundsMaxM": [
+    0.24120000004768372,
+    0.5574487447738647,
+    0.045499999076128006
+  ],
+  "anchors": {
+    "Grip_Front": [
+      0,
+      0.546,
+      0.036
+    ],
+    "Grip_Back": [
+      0,
+      0.546,
+      -0.036
+    ],
+    "Label_Focus": [
+      0,
+      0.1,
+      0.046
+    ],
+    "Zipper_Focus": [
+      0.163,
+      0.332,
+      -0.052
+    ]
+  },
+  "animationNames": [
+    "carry_sway_preview"
+  ],
+  "hasHumanoidSkin": false,
+  "checksPassed": [
+    "All accessor bounds, types and finite values checked",
+    "All mesh triangle indices and normals checked",
+    "Animation key times and quaternion normalization checked"
+  ],
+  "limitations": [
+    "Custom structural checks; Khronos validator not available in this environment.",
+    "CPU geometry previews only; not tested in the Hula website renderer.",
+    "Depth and handle geometry are visual approximations; only catalogue 48x40cm is source-backed.",
+    "No character GLB, humanoid rig or handover animation is included."
+  ]
+}
