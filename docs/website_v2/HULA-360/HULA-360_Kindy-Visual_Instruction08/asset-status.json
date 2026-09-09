@@ -1,0 +1,32 @@
+{
+  "status": "visual_handoff_not_deployed",
+  "realReferencePhotoCount": 17,
+  "roomMeshesIncluded": false,
+  "productMeshesIncluded": false,
+  "normalMapsIncluded": false,
+  "roughnessMapsIncluded": false,
+  "textures": [
+    {
+      "path": "assets/materials/wood-light-basecolor-candidate.png",
+      "role": "baseColorCandidate",
+      "origin": "AI_generated",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "seamlessValidatedInRenderer": false,
+      "physicalMaterialScan": false
+    },
+    {
+      "path": "assets/materials/cotton-neutral-basecolor-candidate.png",
+      "role": "baseColorCandidate",
+      "origin": "AI_generated",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "seamlessValidatedInRenderer": false,
+      "physicalMaterialScan": false
+    }
+  ]
+}

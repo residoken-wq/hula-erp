@@ -45,6 +45,18 @@ export class CampusRoomBuilder {
     private shelfWoodMaterial: THREE.MeshStandardMaterial;
     private windowGlassMaterial: THREE.MeshStandardMaterial;
 
+    // Kindy Garden PBR Materials (Instruction 08)
+    private woodFloorTexture: THREE.Texture | null = null;
+    private woodFloorMaterial: THREE.MeshStandardMaterial;
+    private baseboardMaterial: THREE.MeshStandardMaterial;
+    private darkWindowFrameMaterial: THREE.MeshStandardMaterial;
+    private blueBlindMaterial: THREE.MeshStandardMaterial;
+    private birchWoodMaterial: THREE.MeshStandardMaterial;
+    private pastelBlueMaterial: THREE.MeshStandardMaterial;
+    private pastelYellowMaterial: THREE.MeshStandardMaterial;
+    private pastelPinkMaterial: THREE.MeshStandardMaterial;
+    private pastelMintMaterial: THREE.MeshStandardMaterial;
+
     constructor() {
         this.woodMaterial = new THREE.MeshStandardMaterial({
             color: new THREE.Color('#E3D5C5'),
@@ -53,13 +65,13 @@ export class CampusRoomBuilder {
         });
 
         this.wallMaterial = new THREE.MeshStandardMaterial({
-            color: new THREE.Color('#F7F9F6'),
+            color: new THREE.Color('#FDFBF7'),
             roughness: 0.9,
             metalness: 0.0,
         });
 
         this.ceilingMaterial = new THREE.MeshStandardMaterial({
-            color: new THREE.Color('#FFFFFF'),
+            color: new THREE.Color('#FCFCFA'),
             roughness: 0.95,
         });
 
@@ -76,11 +88,85 @@ export class CampusRoomBuilder {
         });
 
         this.windowGlassMaterial = new THREE.MeshStandardMaterial({
-            color: new THREE.Color('#D6EEF8'),
-            roughness: 0.1,
-            metalness: 0.8,
+            color: new THREE.Color('#E6F4FA'),
+            roughness: 0.05,
+            metalness: 0.1,
             transparent: true,
-            opacity: 0.45,
+            opacity: 0.35,
+        });
+
+        // Kindy Garden Light Wood Flooring
+        this.woodFloorMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#F0E4D4'),
+            roughness: 0.55,
+            metalness: 0.02,
+        });
+
+        if (typeof window !== 'undefined') {
+            try {
+                const loader = new THREE.TextureLoader();
+                loader.load(
+                    '/images/tour360/materials/wood-light-basecolor-candidate.png',
+                    (tex) => {
+                        tex.wrapS = THREE.RepeatWrapping;
+                        tex.wrapT = THREE.RepeatWrapping;
+                        tex.colorSpace = THREE.SRGBColorSpace;
+                        this.woodFloorTexture = tex;
+                        this.woodFloorMaterial.map = tex;
+                        this.woodFloorMaterial.needsUpdate = true;
+                    },
+                    undefined,
+                    () => {
+                        // Safe fallback keeps warm color #F0E4D4
+                    }
+                );
+            } catch {
+                // Non-browser or test runner fallback
+            }
+        }
+
+        this.baseboardMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#E5DACB'),
+            roughness: 0.55,
+            metalness: 0.02,
+        });
+
+        this.darkWindowFrameMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#2C3033'),
+            roughness: 0.35,
+            metalness: 0.25,
+        });
+
+        this.blueBlindMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#68A1B5'),
+            roughness: 0.85,
+            metalness: 0.0,
+        });
+
+        this.birchWoodMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#DFC7AA'),
+            roughness: 0.55,
+            metalness: 0.02,
+        });
+
+        this.pastelBlueMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#89C4D4'),
+            roughness: 0.75,
+        });
+
+        this.pastelYellowMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#F9E79F'),
+            roughness: 0.75,
+        });
+
+        this.pastelPinkMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#FADBD8'),
+            roughness: 0.75,
+        });
+
+        this.pastelMintMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color('#A3E4D7'),
+            roughness: 0.75,
         });
     }
 
@@ -98,7 +184,14 @@ export class CampusRoomBuilder {
 
         const floorGeo = new THREE.PlaneGeometry(width, length);
         floorGeo.rotateX(-Math.PI / 2);
-        const floor = new THREE.Mesh(floorGeo, this.woodMaterial);
+        const corridorFloorMat = this.woodFloorMaterial.clone();
+        if (this.woodFloorTexture) {
+            const texClone = this.woodFloorTexture.clone();
+            texClone.repeat.set(width / 1.8, length / 1.8);
+            texClone.needsUpdate = true;
+            corridorFloorMat.map = texClone;
+        }
+        const floor = new THREE.Mesh(floorGeo, corridorFloorMat);
         floor.position.set(0, 0, length / 2);
         floor.receiveShadow = true;
         group.add(floor);
@@ -109,27 +202,27 @@ export class CampusRoomBuilder {
         ceiling.position.set(0, height, length / 2);
         group.add(ceiling);
 
-        for (let z = 3; z <= 22; z += 5) {
+        for (let z = 3; z <= 22; z += 4) {
             const lightMesh = new THREE.Mesh(
-                new THREE.BoxGeometry(0.4, 0.05, 1.2),
-                new THREE.MeshBasicMaterial({ color: 0xffffff })
+                new THREE.BoxGeometry(0.5, 0.03, 1.4),
+                new THREE.MeshBasicMaterial({ color: 0xFFFDF5 })
             );
-            lightMesh.position.set(0, height - 0.03, z);
+            lightMesh.position.set(0, height - 0.02, z);
             group.add(lightMesh);
 
-            const pointLight = new THREE.PointLight(0xfff8ee, 0.7, 8);
-            pointLight.position.set(0, height - 0.3, z);
+            const pointLight = new THREE.PointLight(0xfff8ee, 0.6, 7);
+            pointLight.position.set(0, height - 0.25, z);
             group.add(pointLight);
         }
 
         const doors: Array<[RoomId, number, number, number, string]> = [
-            ['R1', -2, 4, Math.PI / 2, 'R1 · Lớp Lá (Cotton Cara)'],
-            ['R2', 2, 4, -Math.PI / 2, 'R2 · Lớp Nắng (Satin)'],
-            ['R3', -2, 11, Math.PI / 2, 'R3 · Lớp Mầm (Nệm Foam)'],
-            ['R4', 2, 11, -Math.PI / 2, 'R4 · Lớp Mây (Túi Ngủ)'],
-            ['R5', -2, 18, Math.PI / 2, 'R5 · Góc Gọn Gàng (Túi)'],
-            ['R6', 2, 18, -Math.PI / 2, 'R6 · Lớp HULA (Phối Hợp)'],
-            ['R7', 0, 23.5, 0, 'R7 · Phòng Đón Bé (Bàn Giao)'],
+            ['R1', -2, 4, Math.PI / 2, 'R1 · Lớp Lá'],
+            ['R2', 2, 4, -Math.PI / 2, 'R2 · Lớp Nắng'],
+            ['R3', -2, 11, Math.PI / 2, 'R3 · Lớp Mầm'],
+            ['R4', 2, 11, -Math.PI / 2, 'R4 · Lớp Mây'],
+            ['R5', -2, 18, Math.PI / 2, 'R5 · Góc Gọn Gàng'],
+            ['R6', 2, 18, -Math.PI / 2, 'R6 · Lớp HULA'],
+            ['R7', 0, 23.5, 0, 'R7 · Phòng Đón Bé'],
         ];
 
         doors.forEach(([roomId, x, z, rotY, label]) => {
@@ -168,17 +261,27 @@ export class CampusRoomBuilder {
         const centerX = -6;
         const centerZ = 4;
 
-        this.addRoomShell(group, centerX, centerZ, roomW, roomL, height, 'left', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
+        // 1. Kindy Garden Environment Shell (Wood floor, warm walls, baseboards, dark windows, blue blinds, directional sun)
+        this.addKindyRoomShell(group, centerX, centerZ, roomW, roomL, height, 'left', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
 
-        // Classroom signs & furniture
-        const roomSign = this.createTextLabel('LỚP LÁ — COTTON CARA', 0x183b3a, 0xffffff);
-        roomSign.position.set(-2.1, 2.6, 4);
-        roomSign.rotation.y = Math.PI / 2;
+        // Doorway room sign mounted cleanly as architectural plaque
+        const roomSign = this.createTextLabel('LỚP LÁ — NỆM COTTON CARA', 0x183b3a, 0xffffff);
+        roomSign.position.set(-2.03, 2.6, 4);
+        roomSign.rotation.y = -Math.PI / 2;
         group.add(roomSign);
 
-        const cubby = this.createCubbyShelf(4.0, 0.85, 0.4);
-        cubby.position.set(-6, 0, 1.3);
-        group.add(cubby);
+        // 2. Kindy Preschool Furniture Modules
+        const pastelCab = this.createPastelCabinet(1.8, 0.65, 0.38);
+        pastelCab.position.set(-6.5, 0, 1.22);
+        group.add(pastelCab);
+
+        const openCubby = this.createOpenWoodCubby(1.4, 0.75, 0.35);
+        openCubby.position.set(-4.2, 0, 1.22);
+        group.add(openCubby);
+
+        const playShelf = this.createPlayAccentShelf();
+        playShelf.position.set(-8.5, 0, 6.5);
+        group.add(playShelf);
 
         // 6 Cotton Cara instances
         const caraConfigs = [
@@ -230,12 +333,27 @@ export class CampusRoomBuilder {
         const centerX = 6;
         const centerZ = 4;
 
-        this.addRoomShell(group, centerX, centerZ, roomW, roomL, height, 'right', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
+        // 1. Kindy Garden Environment Shell (Wood floor, warm walls, baseboards, dark windows, blue blinds, directional sun)
+        this.addKindyRoomShell(group, centerX, centerZ, roomW, roomL, height, 'right', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
 
+        // Doorway room sign mounted cleanly as architectural plaque
         const roomSign = this.createTextLabel('LỚP NẮNG — NỆM SATIN HÀN QUỐC', 0x183b3a, 0xffffff);
-        roomSign.position.set(2.1, 2.6, 4);
-        roomSign.rotation.y = -Math.PI / 2;
+        roomSign.position.set(2.03, 2.6, 4);
+        roomSign.rotation.y = Math.PI / 2;
         group.add(roomSign);
+
+        // 2. Kindy Preschool Furniture Modules
+        const pastelCab = this.createPastelCabinet(1.8, 0.65, 0.38);
+        pastelCab.position.set(5.5, 0, 1.22);
+        group.add(pastelCab);
+
+        const openCubby = this.createOpenWoodCubby(1.2, 0.75, 0.35);
+        openCubby.position.set(8.5, 0, 1.22);
+        group.add(openCubby);
+
+        const playShelf = this.createPlayAccentShelf();
+        playShelf.position.set(3.5, 0, 6.5);
+        group.add(playShelf);
 
         // 3 Satin bedding sets
         const satinConfigs = [
@@ -293,21 +411,28 @@ export class CampusRoomBuilder {
         const centerX = -6;
         const centerZ = 11;
 
-        this.addRoomShell(group, centerX, centerZ, roomW, roomL, height, 'left', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
+        // 1. Kindy Garden Environment Shell (Wood floor, warm walls, baseboards, dark windows, blue blinds, directional sun)
+        this.addKindyRoomShell(group, centerX, centerZ, roomW, roomL, height, 'left', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
 
-        const roomSign = this.createTextLabel('LỚP MẦM — NỆM FOAM', 0x183b3a, 0xffffff);
-        roomSign.position.set(-2.1, 2.6, 11);
-        roomSign.rotation.y = Math.PI / 2;
+        // Doorway room sign mounted cleanly as architectural plaque
+        const roomSign = this.createTextLabel('LỚP MẦM — NỆM FOAM GẤP 4', 0x183b3a, 0xffffff);
+        roomSign.position.set(-2.03, 2.6, 11);
+        roomSign.rotation.y = -Math.PI / 2;
         group.add(roomSign);
 
-        // 1. Cubby shelf for storage along back wall
-        const cubby = this.createCubbyShelf(4.0, 0.9, 0.45);
+        // 1. Open wood cubby shelf for storage along back wall (Z = 8.3)
+        const cubby = this.createOpenWoodCubby(3.2, 0.88, 0.45);
         cubby.position.set(-6, 0, 8.3);
         group.add(cubby);
 
         const shelfLabel = this.createTextLabel('KỆ CẤT NỆM SAU GIỜ NGỦ TRƯA', 0x183b3a, 0xffffff);
-        shelfLabel.position.set(-6, 1.1, 8.3);
+        shelfLabel.position.set(-6, 1.15, 8.3);
         group.add(shelfLabel);
+
+        // Activity corner: Pastel accent shelf
+        const playShelf = this.createPlayAccentShelf();
+        playShelf.position.set(-8.5, 0, 13.5);
+        group.add(playShelf);
 
         // 2. REF-FOAM-FOLD4 on floor
         const fold4Inst = createFoamFold4Mesh('Foam-Fold4-01', '#56C5ED');
@@ -357,34 +482,47 @@ export class CampusRoomBuilder {
         const centerX = 6;
         const centerZ = 11;
 
-        this.addRoomShell(group, centerX, centerZ, roomW, roomL, height, 'right', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
+        // 1. Kindy Garden Environment Shell (Wood floor, warm walls, baseboards, dark windows, blue blinds, directional sun)
+        this.addKindyRoomShell(group, centerX, centerZ, roomW, roomL, height, 'right', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
 
+        // Doorway room sign mounted cleanly as architectural plaque
         const roomSign = this.createTextLabel('LỚP MÂY — TÚI NGỦ', 0x183b3a, 0xffffff);
-        roomSign.position.set(2.1, 2.6, 11);
-        roomSign.rotation.y = -Math.PI / 2;
+        roomSign.position.set(2.03, 2.6, 11);
+        roomSign.rotation.y = Math.PI / 2;
         group.add(roomSign);
 
-        // Station 1: Standard (Thin blanket)
+        // 2. Kindy Preschool Furniture Modules
+        // Back Wall: Pastel Cabinet & Open Wood Cubby
+        const pastelCab = this.createPastelCabinet(1.8, 0.65, 0.38);
+        pastelCab.position.set(5.5, 0, 8.22);
+        group.add(pastelCab);
+
+        const openCubby = this.createOpenWoodCubby(1.2, 0.75, 0.35);
+        openCubby.position.set(8.5, 0, 8.22);
+        group.add(openCubby);
+
+        // Activity Corner: Table and 2 Chairs
+        const tableChairs = this.createChildTableAndChairs();
+        tableChairs.position.set(3.5, 0, 8.9);
+        group.add(tableChairs);
+
+        // Front Corner: Play Accent Shelf
+        const playShelf = this.createPlayAccentShelf();
+        playShelf.position.set(3.5, 0, 13.5);
+        group.add(playShelf);
+
+        // 3. Sleeping Bag Stations (Station 1: Standard Thin vs Station 2: Plus Quilted)
         const stdBag = createSleepingBagMesh('Sleep-Cara-Std-01', false, '#56C5ED');
-        stdBag.group.position.set(4.8, 0.02, 10.5);
+        stdBag.group.position.set(5.0, 0.02, 10.8);
         if (campusWorldState.selectedInstanceId === 'Sleep-Cara-Std-01') stdBag.setSelected(true);
         group.add(stdBag.group);
         sleepInstances['Sleep-Cara-Std-01'] = stdBag;
 
-        const stdLabel = this.createTextLabel('TIÊU CHUẨN (CHĂN MỎNG)', 0x183b3a, 0xffffff);
-        stdLabel.position.set(4.8, 0.45, 11.2);
-        group.add(stdLabel);
-
-        // Station 2: Plus (Quilted wave blanket)
         const plusBag = createSleepingBagMesh('Sleep-Cara-Plus-01', true, '#FFC076');
-        plusBag.group.position.set(7.2, 0.02, 10.5);
+        plusBag.group.position.set(7.5, 0.02, 10.8);
         if (campusWorldState.selectedInstanceId === 'Sleep-Cara-Plus-01') plusBag.setSelected(true);
         group.add(plusBag.group);
         sleepInstances['Sleep-Cara-Plus-01'] = plusBag;
-
-        const plusLabel = this.createTextLabel('NÂNG CAO (CHĂN CHẦN GÒN)', 0x183b3a, 0xffffff);
-        plusLabel.position.set(7.2, 0.45, 11.2);
-        group.add(plusLabel);
 
         return {
             id: 'R4',
@@ -413,23 +551,31 @@ export class CampusRoomBuilder {
         const centerX = -6;
         const centerZ = 18;
 
-        this.addRoomShell(group, centerX, centerZ, roomW, roomL, height, 'left', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
+        // 1. Kindy Garden Environment Shell (Wood floor, warm walls, baseboards, dark windows, blue blinds, directional sun)
+        this.addKindyRoomShell(group, centerX, centerZ, roomW, roomL, height, 'left', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
 
+        // Doorway room sign mounted cleanly as architectural plaque
         const roomSign = this.createTextLabel('GÓC GỌN GÀNG — TÚI BẢO QUẢN', 0x183b3a, 0xffffff);
-        roomSign.position.set(-2.1, 2.6, 18);
-        roomSign.rotation.y = Math.PI / 2;
+        roomSign.position.set(-2.03, 2.6, 18);
+        roomSign.rotation.y = -Math.PI / 2;
         group.add(roomSign);
 
-        // Display rack / low table
+        // 2. Kindy Furniture Modules
+        // Display rack / low table for 5 bags
         const rackGeo = new THREE.BoxGeometry(4.2, 0.4, 0.8);
         const rack = new THREE.Mesh(rackGeo, this.shelfWoodMaterial);
         rack.position.set(-6, 0.2, 17);
         group.add(rack);
 
-        // Cubby storage unit on wall
-        const cubby = this.createCubbyShelf(4.0, 0.9, 0.4);
+        // Cubby storage unit on wall (Z = 15.3)
+        const cubby = this.createOpenWoodCubby(4.0, 0.9, 0.4);
         cubby.position.set(-6, 0, 15.3);
         group.add(cubby);
+
+        // Play accent shelf in corner
+        const playShelf = this.createPlayAccentShelf();
+        playShelf.position.set(-8.5, 0, 20.5);
+        group.add(playShelf);
 
         // 5 Bags on rack
         const bagConfigs: Array<{ id: string; type: any; x: number; color: string }> = [
@@ -488,13 +634,13 @@ export class CampusRoomBuilder {
         const centerX = 6;
         const centerZ = 18;
 
-        // 1. Room Shell & Corridor Door
-        this.addRoomShell(group, centerX, centerZ, roomW, roomL, height, 'right', 'H0', '← Ra Hành Lang', doorInteractiveMeshes);
+        // 1. Kindy Garden Environment Shell (Wood floor, warm walls, baseboards, dark windows, blue blinds, directional sun)
+        this.addKindyRoomShell(group, centerX, centerZ, roomW, roomL, height, 'right', 'H0', '← Ra Hành Lang', doorInteractiveMeshes, true);
 
-        // Entrance Room Sign
+        // Entrance Room Sign mounted cleanly as architectural plaque
         const roomSign = this.createTextLabel('LỚP HULA — PHỐI HỢP ĐA SẢN PHẨM', 0x183b3a, 0xffffff);
-        roomSign.position.set(2.1, 2.6, 18);
-        roomSign.rotation.y = -Math.PI / 2;
+        roomSign.position.set(2.03, 2.6, 18);
+        roomSign.rotation.y = Math.PI / 2;
         group.add(roomSign);
 
         // 2. Direct Doorway to R7 (Phòng Đón Bé) on Back Wall (Z = 21)
@@ -661,7 +807,14 @@ export class CampusRoomBuilder {
         // 1. Floor & Ceiling
         const floorGeo = new THREE.PlaneGeometry(roomW, roomL);
         floorGeo.rotateX(-Math.PI / 2);
-        const floor = new THREE.Mesh(floorGeo, this.woodMaterial);
+        const r7FloorMat = this.woodFloorMaterial.clone();
+        if (this.woodFloorTexture) {
+            const texClone = this.woodFloorTexture.clone();
+            texClone.repeat.set(roomW / 1.8, roomL / 1.8);
+            texClone.needsUpdate = true;
+            r7FloorMat.map = texClone;
+        }
+        const floor = new THREE.Mesh(floorGeo, r7FloorMat);
         floor.position.set(centerX, 0, centerZ);
         floor.receiveShadow = true;
         group.add(floor);
@@ -670,28 +823,41 @@ export class CampusRoomBuilder {
         ceiling.position.set(centerX, height, centerZ);
         group.add(ceiling);
 
-        // 2. Walls
-        // Left Wall (X = -4)
-        const sideWallGeo = new THREE.BoxGeometry(0.1, height, roomL);
-        const leftWall = new THREE.Mesh(sideWallGeo, this.wallMaterial);
-        leftWall.position.set(-roomW / 2, height / 2, centerZ);
-        group.add(leftWall);
-
-        // Right Wall (X = +4) with daylight windows
-        const rightWall = new THREE.Mesh(sideWallGeo, this.wallMaterial);
-        rightWall.position.set(roomW / 2, height / 2, centerZ);
-        group.add(rightWall);
-
-        for (let wz = centerZ - 2.5; wz <= centerZ + 2.5; wz += 2.5) {
-            const win = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.4, 1.6), this.windowGlassMaterial);
-            win.position.set(roomW / 2, 1.8, wz);
-            group.add(win);
+        // Recessed soft ceiling light diffusers
+        const lightBoxMat = new THREE.MeshBasicMaterial({ color: 0xFFFDF5 });
+        for (let lz = centerZ - 2; lz <= centerZ + 2; lz += 4) {
+            for (let lx = centerX - 2; lx <= centerX + 2; lx += 4) {
+                const diffuser = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.02, 0.35), lightBoxMat);
+                diffuser.position.set(lx, height - 0.01, lz);
+                group.add(diffuser);
+            }
         }
 
+        // 2. Walls
+        // Left Wall (X = -4)
+        const sideWallGeo = new THREE.BoxGeometry(0.15, height, roomL);
+        const leftWall = new THREE.Mesh(sideWallGeo, this.wallMaterial);
+        leftWall.position.set(-roomW / 2, height / 2, centerZ);
+        leftWall.receiveShadow = true;
+        group.add(leftWall);
+
+        // Right Wall (X = +4) with Kindy daylight windows and blue blinds
+        const rightWall = new THREE.Mesh(sideWallGeo, this.wallMaterial);
+        rightWall.position.set(roomW / 2, height / 2, centerZ);
+        rightWall.receiveShadow = true;
+        group.add(rightWall);
+
+        const windows = this.createKindyWindows(roomW / 2, centerZ, 'right');
+        group.add(windows);
+
+        // Natural sunlight streaming in from window
+        this.setupKindyLighting(group, centerX, centerZ, 'right', roomW, roomL);
+
         // Back Wall (Z = 31)
-        const backWallGeo = new THREE.BoxGeometry(roomW, height, 0.1);
+        const backWallGeo = new THREE.BoxGeometry(roomW, height, 0.15);
         const backWall = new THREE.Mesh(backWallGeo, this.wallMaterial);
         backWall.position.set(centerX, height / 2, centerZ + roomL / 2);
+        backWall.receiveShadow = true;
         group.add(backWall);
 
         // Front Wall (Z = 23) with central doorway
@@ -957,7 +1123,7 @@ export class CampusRoomBuilder {
         const ctx = canvas.getContext('2d');
         if (ctx) {
             ctx.fillStyle = '#' + bgColor.toString(16).padStart(6, '0');
-            ctx.roundRect ? ctx.roundRect(10, 10, 492, 108, 16) : ctx.fillRect(10, 10, 492, 108);
+            ctx.roundRect ? ctx.roundRect(8, 8, 496, 112, 14) : ctx.fillRect(8, 8, 496, 112);
             ctx.fill();
 
             ctx.lineWidth = 4;
@@ -972,8 +1138,566 @@ export class CampusRoomBuilder {
         }
 
         const texture = new THREE.CanvasTexture(canvas);
-        const planeGeo = new THREE.PlaneGeometry(0.8, 0.2);
-        const planeMat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
-        return new THREE.Mesh(planeGeo, planeMat);
+        // Physical plaque box geometry with thickness to prevent paper-thin plane sliver artifacts
+        const plaqueGeo = new THREE.BoxGeometry(0.8, 0.2, 0.015);
+        const frontMat = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.5, metalness: 0.05 });
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0xF7F5F0, roughness: 0.6, metalness: 0.1 });
+        // Multi-material: sides/back use frameMat, front face (+Z) uses label texture
+        const materials = [frameMat, frameMat, frameMat, frameMat, frontMat, frameMat];
+        const plaqueMesh = new THREE.Mesh(plaqueGeo, materials);
+        plaqueMesh.castShadow = false;
+        plaqueMesh.receiveShadow = false;
+        return plaqueMesh;
+    }
+
+    // ==================== KINDY GARDEN ENVIRONMENT & FURNITURE MODULES (INSTRUCTION 08) ====================
+
+    /**
+     * Constructs realistic Kindy Garden architectural shell with wood floor, baseboards,
+     * dark window frames, bright outdoor daylight scenery, blue roller blinds, and angled sunlight.
+     */
+    public addKindyRoomShell(
+        group: THREE.Group,
+        centerX: number,
+        centerZ: number,
+        roomW: number,
+        roomL: number,
+        height: number,
+        side: 'left' | 'right',
+        targetExitId: RoomId,
+        exitLabel: string,
+        doorTriggers: THREE.Mesh[],
+        hasR7Door: boolean = false
+    ) {
+        // 1. Light Wood Planks Floor with UV repeat
+        const floorGeo = new THREE.PlaneGeometry(roomW, roomL);
+        floorGeo.rotateX(-Math.PI / 2);
+
+        const roomFloorMat = this.woodFloorMaterial.clone();
+        if (this.woodFloorTexture) {
+            const texClone = this.woodFloorTexture.clone();
+            texClone.repeat.set(roomW / 1.8, roomL / 1.8);
+            texClone.needsUpdate = true;
+            roomFloorMat.map = texClone;
+        }
+        const floor = new THREE.Mesh(floorGeo, roomFloorMat);
+        floor.position.set(centerX, 0, centerZ);
+        floor.receiveShadow = true;
+        group.add(floor);
+
+        // 2. Ceiling with clean recessed light diffusers
+        const ceilingGeo = new THREE.PlaneGeometry(roomW, roomL);
+        ceilingGeo.rotateX(Math.PI / 2);
+        const ceiling = new THREE.Mesh(ceilingGeo, this.ceilingMaterial);
+        ceiling.position.set(centerX, height, centerZ);
+        group.add(ceiling);
+
+        // Recessed soft ceiling light diffusers
+        const lightBoxMat = new THREE.MeshBasicMaterial({ color: 0xFFFDF5 });
+        for (let lz = centerZ - roomL / 4; lz <= centerZ + roomL / 4; lz += roomL / 2) {
+            for (let lx = centerX - roomW / 4; lx <= centerX + roomW / 4; lx += roomW / 2) {
+                const diffuser = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.02, 0.35), lightBoxMat);
+                diffuser.position.set(lx, height - 0.01, lz);
+                group.add(diffuser);
+            }
+        }
+
+        // 3. Perimeter Walls
+        const backWall = new THREE.Mesh(new THREE.BoxGeometry(roomW, height, 0.15), this.wallMaterial);
+        backWall.position.set(centerX, height / 2, centerZ - roomL / 2);
+        backWall.receiveShadow = true;
+        group.add(backWall);
+
+        if (hasR7Door) {
+            const doorGap = 1.6;
+            const segW = (roomW - doorGap) / 2;
+            const frontWallL = new THREE.Mesh(new THREE.BoxGeometry(segW, height, 0.15), this.wallMaterial);
+            frontWallL.position.set(centerX - doorGap / 2 - segW / 2, height / 2, centerZ + roomL / 2);
+            frontWallL.receiveShadow = true;
+            group.add(frontWallL);
+
+            const frontWallR = new THREE.Mesh(new THREE.BoxGeometry(segW, height, 0.15), this.wallMaterial);
+            frontWallR.position.set(centerX + doorGap / 2 + segW / 2, height / 2, centerZ + roomL / 2);
+            frontWallR.receiveShadow = true;
+            group.add(frontWallR);
+
+            const lintel = new THREE.Mesh(new THREE.BoxGeometry(doorGap, height - 2.4, 0.15), this.wallMaterial);
+            lintel.position.set(centerX, 2.4 + (height - 2.4) / 2, centerZ + roomL / 2);
+            lintel.receiveShadow = true;
+            group.add(lintel);
+        } else {
+            const frontWall = new THREE.Mesh(new THREE.BoxGeometry(roomW, height, 0.15), this.wallMaterial);
+            frontWall.position.set(centerX, height / 2, centerZ + roomL / 2);
+            frontWall.receiveShadow = true;
+            group.add(frontWall);
+        }
+
+        // Outer wall with Kindy Windows
+        const outerX = side === 'left' ? centerX - roomW / 2 : centerX + roomW / 2;
+        const outerWall = new THREE.Mesh(new THREE.BoxGeometry(0.15, height, roomL), this.wallMaterial);
+        outerWall.position.set(outerX, height / 2, centerZ);
+        outerWall.receiveShadow = true;
+        group.add(outerWall);
+
+        // Kindy Windows with dark frames, outdoor scenery and blue roller blinds
+        const windows = this.createKindyWindows(outerX, centerZ, side);
+        group.add(windows);
+
+        // Inner wall with exit doorway to corridor
+        const innerX = side === 'left' ? centerX + roomW / 2 : centerX - roomW / 2;
+        const wallSegL = (roomL - 1.6) / 2;
+        const innerWall1 = new THREE.Mesh(new THREE.BoxGeometry(0.15, height, wallSegL), this.wallMaterial);
+        innerWall1.position.set(innerX, height / 2, centerZ - 1.9);
+        innerWall1.receiveShadow = true;
+        group.add(innerWall1);
+
+        const innerWall2 = new THREE.Mesh(new THREE.BoxGeometry(0.15, height, wallSegL), this.wallMaterial);
+        innerWall2.position.set(innerX, height / 2, centerZ + 1.9);
+        innerWall2.receiveShadow = true;
+        group.add(innerWall2);
+
+        // Baseboard Molding running along walls
+        const baseboards = this.createBaseboards(roomW, roomL, centerX, centerZ, innerX, side);
+        group.add(baseboards);
+
+        // Exit doorway to corridor
+        const exitDoor = this.createDoorway(targetExitId, exitLabel);
+        exitDoor.position.set(innerX, 0, centerZ);
+        exitDoor.rotation.y = side === 'left' ? -Math.PI / 2 : Math.PI / 2;
+        group.add(exitDoor);
+
+        const trigger = exitDoor.getObjectByName(`door_trigger_${targetExitId}`) as THREE.Mesh;
+        if (trigger) doorTriggers.push(trigger);
+
+        // 4. Natural Lighting (Directional Sun from Window + Warm Ambient)
+        this.setupKindyLighting(group, centerX, centerZ, side, roomW, roomL);
+    }
+
+    /**
+     * Creates Baseboard Molding (nẹp chân tường) along the floor boundary
+     */
+    private createBaseboards(
+        roomW: number,
+        roomL: number,
+        centerX: number,
+        centerZ: number,
+        innerX: number,
+        side: 'left' | 'right'
+    ): THREE.Group {
+        const group = new THREE.Group();
+        group.name = 'Baseboards';
+        const bH = 0.08;
+        const bD = 0.02;
+        const mat = this.baseboardMaterial;
+
+        // Back wall baseboard
+        const backB = new THREE.Mesh(new THREE.BoxGeometry(roomW - 0.04, bH, bD), mat);
+        backB.position.set(centerX, bH / 2, centerZ - roomL / 2 + bD / 2 + 0.075);
+        group.add(backB);
+
+        // Front wall baseboard
+        const frontB = new THREE.Mesh(new THREE.BoxGeometry(roomW - 0.04, bH, bD), mat);
+        frontB.position.set(centerX, bH / 2, centerZ + roomL / 2 - bD / 2 - 0.075);
+        group.add(frontB);
+
+        // Outer wall baseboard
+        const outerX = side === 'left' ? centerX - roomW / 2 + bD / 2 + 0.075 : centerX + roomW / 2 - bD / 2 - 0.075;
+        const outerB = new THREE.Mesh(new THREE.BoxGeometry(bD, bH, roomL - 0.04), mat);
+        outerB.position.set(outerX, bH / 2, centerZ);
+        group.add(outerB);
+
+        // Inner wall segments around doorway
+        const wallSegL = (roomL - 1.6) / 2;
+        const innerOffsetX = side === 'left' ? innerX - bD / 2 - 0.075 : innerX + bD / 2 + 0.075;
+
+        const innerB1 = new THREE.Mesh(new THREE.BoxGeometry(bD, bH, wallSegL), mat);
+        innerB1.position.set(innerOffsetX, bH / 2, centerZ - 1.9);
+        group.add(innerB1);
+
+        const innerB2 = new THREE.Mesh(new THREE.BoxGeometry(bD, bH, wallSegL), mat);
+        innerB2.position.set(innerOffsetX, bH / 2, centerZ + 1.9);
+        group.add(innerB2);
+
+        return group;
+    }
+
+    /**
+     * Creates Kindy Windows with dark frames, mullions, clear glass, bright exterior scenery, and blue roller blinds
+     */
+    private createKindyWindows(outerX: number, centerZ: number, side: 'left' | 'right'): THREE.Group {
+        const group = new THREE.Group();
+        group.name = 'Kindy_Windows';
+
+        const winWidth = 1.6;
+        const winHeight = 1.7;
+        const winY = 1.75;
+        const frameD = 0.08;
+        const frameThick = 0.05;
+
+        const xOffset = side === 'left' ? 0.075 : -0.075;
+        const facingAngle = side === 'left' ? Math.PI / 2 : -Math.PI / 2;
+
+        const winZPositions = [centerZ - 1.5, centerZ + 1.5];
+
+        winZPositions.forEach(wz => {
+            const winUnit = new THREE.Group();
+            winUnit.position.set(outerX + xOffset, winY, wz);
+            winUnit.rotation.y = facingAngle;
+
+            // 1. Dark Aluminum Frame
+            // Top and Bottom Rails
+            const topRail = new THREE.Mesh(new THREE.BoxGeometry(winWidth, frameThick, frameD), this.darkWindowFrameMaterial);
+            topRail.position.set(0, winHeight / 2 - frameThick / 2, 0);
+            winUnit.add(topRail);
+
+            const btmRail = new THREE.Mesh(new THREE.BoxGeometry(winWidth, frameThick, frameD), this.darkWindowFrameMaterial);
+            btmRail.position.set(0, -winHeight / 2 + frameThick / 2, 0);
+            winUnit.add(btmRail);
+
+            // Left and Right Stiles
+            const lStile = new THREE.Mesh(new THREE.BoxGeometry(frameThick, winHeight, frameD), this.darkWindowFrameMaterial);
+            lStile.position.set(-winWidth / 2 + frameThick / 2, 0, 0);
+            winUnit.add(lStile);
+
+            const rStile = new THREE.Mesh(new THREE.BoxGeometry(frameThick, winHeight, frameD), this.darkWindowFrameMaterial);
+            rStile.position.set(winWidth / 2 - frameThick / 2, 0, 0);
+            winUnit.add(rStile);
+
+            // Vertical Center Mullion
+            const centerMullion = new THREE.Mesh(new THREE.BoxGeometry(frameThick * 0.8, winHeight, frameD * 0.9), this.darkWindowFrameMaterial);
+            centerMullion.position.set(0, 0, 0);
+            winUnit.add(centerMullion);
+
+            // 2. Clear Glass Panes
+            const glass = new THREE.Mesh(new THREE.BoxGeometry(winWidth - frameThick * 2, winHeight - frameThick * 2, 0.01), this.windowGlassMaterial);
+            winUnit.add(glass);
+
+            // 3. Bright Outdoor Daylight Scenery Backdrop Plane
+            const outdoorMat = new THREE.MeshBasicMaterial({ color: 0xEEF8FC });
+            const outdoorPlane = new THREE.Mesh(new THREE.PlaneGeometry(winWidth * 1.3, winHeight * 1.3), outdoorMat);
+            outdoorPlane.position.set(0, 0, -0.2);
+            winUnit.add(outdoorPlane);
+
+            // 4. Blue Roller Blind (Blind_Blue drawn halfway down)
+            const blindCassette = new THREE.Mesh(new THREE.BoxGeometry(winWidth * 1.02, 0.06, 0.06), this.shelfWoodMaterial);
+            blindCassette.position.set(0, winHeight / 2 + 0.03, 0.05);
+            winUnit.add(blindCassette);
+
+            const blindFabricHeight = winHeight * 0.52;
+            const blindFabric = new THREE.Mesh(new THREE.BoxGeometry(winWidth * 0.96, blindFabricHeight, 0.01), this.blueBlindMaterial);
+            blindFabric.position.set(0, winHeight / 2 - blindFabricHeight / 2, 0.05);
+            winUnit.add(blindFabric);
+
+            const blindBar = new THREE.Mesh(new THREE.BoxGeometry(winWidth * 0.96, 0.02, 0.02), this.darkWindowFrameMaterial);
+            blindBar.position.set(0, winHeight / 2 - blindFabricHeight, 0.05);
+            winUnit.add(blindBar);
+
+            group.add(winUnit);
+        });
+
+        return group;
+    }
+
+    /**
+     * Sets up natural directional sunlight streaming from window with soft contact shadows
+     */
+    private setupKindyLighting(
+        group: THREE.Group,
+        centerX: number,
+        centerZ: number,
+        side: 'left' | 'right',
+        roomW: number,
+        roomL: number
+    ) {
+        // Warm ambient light
+        const ambientLight = new THREE.AmbientLight(0xFFF9F0, 0.85);
+        group.add(ambientLight);
+
+        // Natural sunlight streaming in through the window
+        const sunLight = new THREE.DirectionalLight(0xFFF6E8, 1.25);
+        const sunX = side === 'left' ? centerX - roomW / 2 - 3 : centerX + roomW / 2 + 3;
+        sunLight.position.set(sunX, 4.2, centerZ - 1.2);
+        sunLight.target.position.set(centerX, 0, centerZ);
+        sunLight.castShadow = true;
+
+        sunLight.shadow.mapSize.width = 1024;
+        sunLight.shadow.mapSize.height = 1024;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 16;
+        sunLight.shadow.camera.left = -roomL;
+        sunLight.shadow.camera.right = roomL;
+        sunLight.shadow.camera.top = roomW;
+        sunLight.shadow.camera.bottom = -roomW;
+        sunLight.shadow.bias = -0.0005;
+
+        group.add(sunLight);
+        group.add(sunLight.target);
+    }
+
+    /**
+     * Creates Low Preschool Storage Cabinet with Pastel Doors (Cabinet_Pastel)
+     * Inspired by kindy-02 / kindy-05
+     */
+    public createPastelCabinet(width = 1.8, height = 0.65, depth = 0.38): THREE.Group {
+        const cab = new THREE.Group();
+        cab.name = 'Cabinet_Pastel';
+
+        const bodyMat = this.birchWoodMaterial;
+        const panelThick = 0.02;
+
+        // Top counter
+        const top = new THREE.Mesh(new THREE.BoxGeometry(width, panelThick, depth), bodyMat);
+        top.position.set(0, height - panelThick / 2, 0);
+        top.castShadow = true;
+        top.receiveShadow = true;
+        cab.add(top);
+
+        // Bottom panel
+        const bottom = new THREE.Mesh(new THREE.BoxGeometry(width, panelThick, depth), bodyMat);
+        bottom.position.set(0, 0.05 + panelThick / 2, 0);
+        bottom.castShadow = true;
+        bottom.receiveShadow = true;
+        cab.add(bottom);
+
+        // Sides
+        const sideH = height - 0.05 - panelThick * 2;
+        const leftSide = new THREE.Mesh(new THREE.BoxGeometry(panelThick, sideH, depth), bodyMat);
+        leftSide.position.set(-width / 2 + panelThick / 2, 0.05 + panelThick + sideH / 2, 0);
+        leftSide.castShadow = true;
+        cab.add(leftSide);
+
+        const rightSide = new THREE.Mesh(new THREE.BoxGeometry(panelThick, sideH, depth), bodyMat);
+        rightSide.position.set(width / 2 - panelThick / 2, 0.05 + panelThick + sideH / 2, 0);
+        rightSide.castShadow = true;
+        cab.add(rightSide);
+
+        // Recessed kick base
+        const kickBase = new THREE.Mesh(new THREE.BoxGeometry(width * 0.94, 0.05, depth * 0.88), bodyMat);
+        kickBase.position.set(0, 0.025, 0);
+        kickBase.castShadow = true;
+        cab.add(kickBase);
+
+        // Back panel
+        const back = new THREE.Mesh(new THREE.BoxGeometry(width, sideH, 0.01), bodyMat);
+        back.position.set(0, 0.05 + panelThick + sideH / 2, -depth / 2 + 0.01);
+        cab.add(back);
+
+        // 4 Pastel Doors (Blue, Yellow, Pink, Mint)
+        const doorMaterials = [this.pastelBlueMaterial, this.pastelYellowMaterial, this.pastelPinkMaterial, this.pastelMintMaterial];
+        const doorW = (width - panelThick * 2 - 0.015) / 4;
+        const doorH = sideH - 0.01;
+        const knobGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.015, 12);
+        knobGeo.rotateX(Math.PI / 2);
+
+        for (let i = 0; i < 4; i++) {
+            const doorX = -width / 2 + panelThick + doorW / 2 + i * (doorW + 0.004);
+            const doorMat = doorMaterials[i % doorMaterials.length];
+            const door = new THREE.Mesh(new THREE.BoxGeometry(doorW - 0.004, doorH, 0.018), doorMat);
+            door.position.set(doorX, 0.05 + panelThick + sideH / 2, depth / 2 - 0.009);
+            door.castShadow = true;
+            cab.add(door);
+
+            // Wood knob handle
+            const knob = new THREE.Mesh(knobGeo, bodyMat);
+            knob.position.set(doorX + (i % 2 === 0 ? doorW * 0.3 : -doorW * 0.3), 0.05 + panelThick + sideH / 2 + doorH * 0.2, depth / 2 + 0.008);
+            knob.castShadow = true;
+            cab.add(knob);
+        }
+
+        // Small decor plant on cabinet top
+        const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 0.08, 16), new THREE.MeshStandardMaterial({ color: '#D98863', roughness: 0.7 }));
+        pot.position.set(width * 0.35, height + 0.04, 0);
+        pot.castShadow = true;
+        cab.add(pot);
+
+        const plant = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 12), new THREE.MeshStandardMaterial({ color: '#5A9E6B', roughness: 0.9 }));
+        plant.position.set(width * 0.35, height + 0.09, 0);
+        cab.add(plant);
+
+        return cab;
+    }
+
+    /**
+     * Creates Open Wood Cubby Shelf with 6 Compartments (Cubby_OpenWood)
+     * Inspired by kindy-04 / kindy-14
+     */
+    public createOpenWoodCubby(width = 1.2, height = 0.75, depth = 0.35): THREE.Group {
+        const cubby = new THREE.Group();
+        cubby.name = 'Cubby_OpenWood';
+        const woodMat = this.birchWoodMaterial;
+        const t = 0.02;
+
+        // Top, Bottom, Mid Shelf
+        const shelfGeo = new THREE.BoxGeometry(width, t, depth);
+        const top = new THREE.Mesh(shelfGeo, woodMat);
+        top.position.set(0, height - t / 2, 0);
+        top.castShadow = true;
+        cubby.add(top);
+
+        const bottom = new THREE.Mesh(shelfGeo, woodMat);
+        bottom.position.set(0, 0.04 + t / 2, 0);
+        bottom.castShadow = true;
+        cubby.add(bottom);
+
+        const mid = new THREE.Mesh(shelfGeo, woodMat);
+        mid.position.set(0, 0.04 + (height - 0.04) / 2, 0);
+        mid.castShadow = true;
+        cubby.add(mid);
+
+        // Sides
+        const sideH = height - 0.04;
+        const sideGeo = new THREE.BoxGeometry(t, sideH, depth);
+        const leftSide = new THREE.Mesh(sideGeo, woodMat);
+        leftSide.position.set(-width / 2 + t / 2, 0.04 + sideH / 2, 0);
+        leftSide.castShadow = true;
+        cubby.add(leftSide);
+
+        const rightSide = new THREE.Mesh(sideGeo, woodMat);
+        rightSide.position.set(width / 2 - t / 2, 0.04 + sideH / 2, 0);
+        rightSide.castShadow = true;
+        cubby.add(rightSide);
+
+        // 2 Vertical Dividers (dividing into 3 columns)
+        const colW = (width - t * 4) / 3;
+        for (let i = 1; i <= 2; i++) {
+            const divX = -width / 2 + t + i * (colW + t) - t / 2;
+            const div = new THREE.Mesh(sideGeo, woodMat);
+            div.position.set(divX, 0.04 + sideH / 2, 0);
+            div.castShadow = true;
+            cubby.add(div);
+        }
+
+        // Full Backboard for depth & shadow
+        const backGeo = new THREE.BoxGeometry(width, sideH, 0.01);
+        const back = new THREE.Mesh(backGeo, woodMat);
+        back.position.set(0, 0.04 + sideH / 2, -depth / 2 + 0.005);
+        back.receiveShadow = true;
+        cubby.add(back);
+
+        return cubby;
+    }
+
+    /**
+     * Creates Low Preschool Wooden Round Table and 2 Chairs (Table_Chair_Child)
+     * Inspired by kindy-04
+     */
+    public createChildTableAndChairs(): THREE.Group {
+        const set = new THREE.Group();
+        set.name = 'Table_Chair_Child';
+        const woodMat = this.birchWoodMaterial;
+
+        // Round Table
+        const table = new THREE.Group();
+        const top = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.024, 24), woodMat);
+        top.position.set(0, 0.45, 0);
+        top.castShadow = true;
+        top.receiveShadow = true;
+        table.add(top);
+
+        // 4 Angled Legs
+        const legGeo = new THREE.CylinderGeometry(0.016, 0.012, 0.44, 12);
+        for (let i = 0; i < 4; i++) {
+            const angle = (i * Math.PI) / 2 + Math.PI / 4;
+            const leg = new THREE.Mesh(legGeo, woodMat);
+            leg.position.set(Math.cos(angle) * 0.25, 0.22, Math.sin(angle) * 0.25);
+            leg.rotation.z = -Math.cos(angle) * 0.1;
+            leg.rotation.x = Math.sin(angle) * 0.1;
+            leg.castShadow = true;
+            table.add(leg);
+        }
+        set.add(table);
+
+        // 2 Small Wooden Chairs
+        const chairOffsets = [
+            { x: -0.48, z: 0, rotY: Math.PI / 2 },
+            { x: 0.48, z: 0, rotY: -Math.PI / 2 },
+        ];
+
+        chairOffsets.forEach(pos => {
+            const chair = new THREE.Group();
+            chair.position.set(pos.x, 0, pos.z);
+            chair.rotation.y = pos.rotY;
+
+            // Seat
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.02, 0.26), woodMat);
+            seat.position.set(0, 0.25, 0);
+            seat.castShadow = true;
+            chair.add(seat);
+
+            // 4 Legs
+            const chairLegGeo = new THREE.CylinderGeometry(0.012, 0.01, 0.24, 10);
+            for (let lx = -0.1; lx <= 0.1; lx += 0.2) {
+                for (let lz = -0.1; lz <= 0.1; lz += 0.2) {
+                    const cLeg = new THREE.Mesh(chairLegGeo, woodMat);
+                    cLeg.position.set(lx, 0.12, lz);
+                    cLeg.castShadow = true;
+                    chair.add(cLeg);
+                }
+            }
+
+            // Curved backrest
+            const backPostGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.22, 10);
+            const lp = new THREE.Mesh(backPostGeo, woodMat);
+            lp.position.set(-0.1, 0.35, -0.11);
+            chair.add(lp);
+
+            const rp = new THREE.Mesh(backPostGeo, woodMat);
+            rp.position.set(0.1, 0.35, -0.11);
+            chair.add(rp);
+
+            const backRest = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.014), woodMat);
+            backRest.position.set(0, 0.42, -0.11);
+            backRest.castShadow = true;
+            chair.add(backRest);
+
+            set.add(chair);
+        });
+
+        return set;
+    }
+
+    /**
+     * Creates Low Curved Preschool Display Shelf (Shelf_PlayAccent)
+     */
+    public createPlayAccentShelf(): THREE.Group {
+        const shelf = new THREE.Group();
+        shelf.name = 'Shelf_PlayAccent';
+        const woodMat = this.birchWoodMaterial;
+        const w = 0.85;
+        const h = 0.56;
+        const d = 0.3;
+
+        // Shelves
+        const s1 = new THREE.Mesh(new THREE.BoxGeometry(w, 0.02, d), woodMat);
+        s1.position.set(0, h, 0);
+        s1.castShadow = true;
+        shelf.add(s1);
+
+        const s2 = new THREE.Mesh(new THREE.BoxGeometry(w, 0.02, d), woodMat);
+        s2.position.set(0, h / 2, 0);
+        s2.castShadow = true;
+        shelf.add(s2);
+
+        const s3 = new THREE.Mesh(new THREE.BoxGeometry(w, 0.02, d), woodMat);
+        s3.position.set(0, 0.04, 0);
+        s3.castShadow = true;
+        shelf.add(s3);
+
+        // Sides
+        const sideG = new THREE.BoxGeometry(0.02, h, d);
+        const ls = new THREE.Mesh(sideG, woodMat);
+        ls.position.set(-w / 2, h / 2, 0);
+        shelf.add(ls);
+
+        const rs = new THREE.Mesh(sideG, woodMat);
+        rs.position.set(w / 2, h / 2, 0);
+        shelf.add(rs);
+
+        // Warm Yellow Accent Back Panel
+        const accentBack = new THREE.Mesh(new THREE.BoxGeometry(w - 0.02, h - 0.04, 0.01), this.pastelYellowMaterial);
+        accentBack.position.set(0, h / 2, -d / 2 + 0.005);
+        shelf.add(accentBack);
+
+        return shelf;
     }
 }

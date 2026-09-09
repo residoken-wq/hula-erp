@@ -11,6 +11,59 @@
 import * as THREE from 'three';
 import { campusWorldState, ROLES, RoleId, RoomId } from './CampusWorldState';
 
+export interface CameraBookmark {
+    id: string;
+    label: string;
+    position: [number, number, number];
+    target: [number, number, number];
+    fov: number;
+}
+
+export const KINDY_R4_BOOKMARKS: Record<string, CameraBookmark> = {
+    'V01': {
+        id: 'V01',
+        label: 'V01: Room Overview',
+        position: [2.8, 1.8, 13.5],
+        target: [6.2, 0.5, 9.8],
+        fov: 55,
+    },
+    'V02': {
+        id: 'V02',
+        label: 'V02: Window Wall & Sunlight',
+        position: [4.8, 1.4, 9.8],
+        target: [9.8, 1.4, 11.0],
+        fov: 52,
+    },
+    'V03': {
+        id: 'V03',
+        label: 'V03: Product Close-up Standard',
+        position: [4.3, 0.75, 10.3],
+        target: [5.0, 0.15, 10.8],
+        fov: 45,
+    },
+    'V04': {
+        id: 'V04',
+        label: 'V04: Product Close-up Plus Wave',
+        position: [6.8, 0.75, 10.3],
+        target: [7.5, 0.15, 10.8],
+        fov: 45,
+    },
+    'V05': {
+        id: 'V05',
+        label: 'V05: Side Drape & Piping',
+        position: [4.2, 0.35, 11.2],
+        target: [5.0, 0.12, 11.2],
+        fov: 40,
+    },
+    'V06': {
+        id: 'V06',
+        label: 'V06: Standing Height Teacher POV',
+        position: [6.2, 1.52, 12.8],
+        target: [6.25, 0.1, 10.8],
+        fov: 58,
+    },
+};
+
 export interface CameraTransition {
     startPos: THREE.Vector3;
     endPos: THREE.Vector3;
@@ -18,6 +71,8 @@ export interface CameraTransition {
     endTarget: THREE.Vector3;
     startTime: number;
     duration: number; // ms
+    startFov?: number;
+    endFov?: number;
     onComplete?: () => void;
 }
 
@@ -188,6 +243,42 @@ export class CampusCameraController {
         };
     }
 
+    /**
+     * Smoothly navigates to one of the 6 Kindy QA Camera Bookmarks (V01 to V06)
+     */
+    public goToBookmark(bookmarkId: string, duration: number = 700) {
+        const bm = KINDY_R4_BOOKMARKS[bookmarkId];
+        if (!bm) return;
+
+        this.isApproached = true;
+        const startPos = this.camera.position.clone();
+        const endPos = new THREE.Vector3(bm.position[0], bm.position[1], bm.position[2]);
+
+        const startTarget = this.lookTarget.clone();
+        const endTarget = new THREE.Vector3(bm.target[0], bm.target[1], bm.target[2]);
+
+        const startFov = this.camera.fov;
+        const endFov = bm.fov;
+
+        this.activeTransition = {
+            startPos,
+            endPos,
+            startTarget,
+            endTarget,
+            startTime: performance.now(),
+            duration,
+            startFov,
+            endFov,
+            onComplete: () => {
+                this.camera.fov = endFov;
+                this.camera.updateProjectionMatrix();
+                const dir = endTarget.clone().sub(endPos).normalize();
+                this.pitch = Math.asin(Math.max(-1, Math.min(1, dir.y)));
+                this.yaw = Math.atan2(-dir.x, -dir.z);
+            },
+        };
+    }
+
     public update(deltaTime: number) {
         // 1. Handle Active Camera Tween Animation
         if (this.activeTransition) {
@@ -203,6 +294,11 @@ export class CampusCameraController {
             this.camera.position.lerpVectors(this.activeTransition.startPos, this.activeTransition.endPos, t);
             this.lookTarget.lerpVectors(this.activeTransition.startTarget, this.activeTransition.endTarget, t);
             this.camera.lookAt(this.lookTarget);
+
+            if (this.activeTransition.startFov && this.activeTransition.endFov) {
+                this.camera.fov = THREE.MathUtils.lerp(this.activeTransition.startFov, this.activeTransition.endFov, t);
+                this.camera.updateProjectionMatrix();
+            }
 
             if (progress >= 1) {
                 const cb = this.activeTransition.onComplete;

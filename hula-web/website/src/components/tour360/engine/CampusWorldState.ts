@@ -120,7 +120,7 @@ export const ROOMS: Record<RoomId, RoomMeta> = {
     R1: {
         id: 'R1',
         name: 'Lớp Lá',
-        title: 'Lớp Lá · Cotton Cara (REF-MAT-CARA-STD)',
+        title: 'Lớp Lá · Nệm Cotton Cara',
         productReference: 'REF-MAT-CARA-STD',
         doorPos: [-2, 0, 4],
         spawnPos: [-3.5, 0, 4],
@@ -129,7 +129,7 @@ export const ROOMS: Record<RoomId, RoomMeta> = {
     R2: {
         id: 'R2',
         name: 'Lớp Nắng',
-        title: 'Lớp Nắng · Satin (REF-MAT-SATIN-STD)',
+        title: 'Lớp Nắng · Nệm Satin Hàn Quốc',
         productReference: 'REF-MAT-SATIN-STD',
         doorPos: [2, 0, 4],
         spawnPos: [3.5, 0, 4],
@@ -138,7 +138,7 @@ export const ROOMS: Record<RoomId, RoomMeta> = {
     R3: {
         id: 'R3',
         name: 'Lớp Mầm',
-        title: 'Lớp Mầm · Nệm Foam (REF-FOAM-FOLD4)',
+        title: 'Lớp Mầm · Nệm Foam Gấp 4 Khúc',
         productReference: 'REF-FOAM-FOLD4',
         doorPos: [-2, 0, 11],
         spawnPos: [-3.5, 0, 11],
@@ -147,7 +147,7 @@ export const ROOMS: Record<RoomId, RoomMeta> = {
     R4: {
         id: 'R4',
         name: 'Lớp Mây',
-        title: 'Lớp Mây · Túi Ngủ (REF-SLEEP-CARA-STD)',
+        title: 'Lớp Mây · Túi Ngủ Mầm Non',
         productReference: 'REF-SLEEP-CARA-STD',
         doorPos: [2, 0, 11],
         spawnPos: [3.5, 0, 11],
@@ -156,7 +156,7 @@ export const ROOMS: Record<RoomId, RoomMeta> = {
     R5: {
         id: 'R5',
         name: 'Góc Gọn Gàng',
-        title: 'Góc Gọn Gàng · Túi Bảo Quản (REF-BAG-*)',
+        title: 'Góc Gọn Gàng · Túi Bảo Quản Nệm',
         productReference: 'REF-BAG-HANDLE',
         doorPos: [-2, 0, 18],
         spawnPos: [-3.5, 0, 18],
@@ -483,7 +483,7 @@ export class CampusWorldStateStore {
             id: 'R6-Bag-01',
             roomId: 'R6',
             productReference: 'REF-BAG-HANDLE',
-            label: 'Túi Quai Xách (hula_bag.glb)',
+            label: 'Túi Quai Xách Mầm Non',
             colorId: 'teal',
             position: [5.8, 0.4, 20.3],
             approachAnchor: [5.8, 0.7, 19.5],
@@ -503,6 +503,7 @@ export class CampusWorldStateStore {
         },
     };
 
+    public activeBookmarkId: string | null = null;
     private listeners: Set<() => void> = new Set();
 
     public subscribe(listener: () => void) {
@@ -531,6 +532,7 @@ export class CampusWorldStateStore {
         this.currentRoomId = roomId;
         this.visitedRooms.add(roomId);
         this.approachedInstanceId = null;
+        this.activeBookmarkId = null;
 
         // Pick first instance in new room if available
         const roomInstances = Object.values(this.instances).filter(i => i.roomId === roomId);
@@ -540,6 +542,11 @@ export class CampusWorldStateStore {
             this.selectedInstanceId = null;
         }
 
+        this.notify();
+    }
+
+    public setBookmark(bookmarkId: string | null) {
+        this.activeBookmarkId = bookmarkId;
         this.notify();
     }
 

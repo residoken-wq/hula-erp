@@ -21,6 +21,7 @@ import {
     ColorScope,
     CampusInstance,
 } from '../engine/CampusWorldState';
+import { KINDY_R4_BOOKMARKS } from '../engine/CampusCameraController';
 
 interface CampusInspectorProps {
     isOpen: boolean;
@@ -105,7 +106,12 @@ export function CampusInspector({
                         {selectedInstance ? selectedInstance.label : 'Chi tiết sản phẩm'}
                     </h2>
                     <span className="text-[11px] text-[#566967]">
-                        Mã quy chiếu: {ref}
+                        {isCara ? 'Vải Cotton Cara chần gòn thoáng khí' :
+                         isSatin ? 'Vải Satin kháng khuẩn mềm mát' :
+                         isFoamFold4 ? 'Ruột Foam nguyên khối chống thấm' :
+                         isFoamBasic ? 'Nệm Foam êm phẳng cho trẻ' :
+                         isSleepBag ? 'Túi ngủ tích hợp nệm, gối và chăn' :
+                         'Túi vải bảo quản kháng ẩm có khóa kéo'}
                     </span>
                 </div>
                 <button
@@ -254,7 +260,7 @@ export function CampusInspector({
                             </span>
                         </div>
 
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             {colorsList.map(c => {
                                 const isColorActive = !activeColorInfo.isMixed && activeColorInfo.colorId === c.id;
                                 return (
@@ -262,14 +268,14 @@ export function CampusInspector({
                                         key={c.id}
                                         type="button"
                                         onClick={() => handleSelectColor(c.id)}
-                                        className={`relative p-2 rounded-2xl border flex flex-col items-center gap-1.5 transition-all active:scale-95 ${
+                                        className={`relative p-2 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 min-h-[54px] ${
                                             isColorActive
                                                 ? 'bg-white border-[#087F8C] shadow-md ring-2 ring-[#087F8C]/20'
                                                 : 'bg-[#F6F8F5] border-[#DDE5E1] hover:bg-white hover:border-[#B2CBC5]'
                                         }`}
                                     >
                                         <div
-                                            className="w-7 h-7 rounded-full border border-black/10 shadow-xs flex items-center justify-center"
+                                            className="w-7 h-7 rounded-full border border-black/10 shadow-xs flex items-center justify-center shrink-0"
                                             style={{ backgroundColor: c.previewHex }}
                                         >
                                             {isColorActive && (
@@ -278,13 +284,50 @@ export function CampusInspector({
                                                 </svg>
                                             )}
                                         </div>
-                                        <span className="text-[11px] font-semibold text-[#183B3A] truncate w-full text-center">
+                                        <span className="text-[11px] font-semibold text-[#183B3A] text-center leading-tight whitespace-normal break-words px-1">
                                             {c.label}
                                         </span>
                                     </button>
                                 );
                             })}
                         </div>
+                    </div>
+                )}
+
+                {/* QA Camera Bookmarks (Instruction 08: 6 Kindy QA angles in R4) */}
+                {currentRoom === 'R4' && (
+                    <div className="space-y-2.5 p-3.5 rounded-2xl bg-[#EAF4F2] border border-[#B7D9CC]">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-[#183B3A]">
+                                Góc máy đối chiếu thực tế (QA)
+                            </span>
+                            <span className="text-[10px] font-bold text-[#087F8C] uppercase tracking-wider bg-white px-2 py-0.5 rounded-full border border-[#B7D9CC]">
+                                6 Góc Chuẩn
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                            {Object.values(KINDY_R4_BOOKMARKS).map(bm => (
+                                <button
+                                    key={bm.id}
+                                    type="button"
+                                    onClick={() => campusWorldState.setBookmark(bm.id)}
+                                    className="py-2 px-1.5 rounded-xl text-[11px] font-bold transition-all text-center border min-h-[44px] flex flex-col items-center justify-center bg-white text-[#183B3A] border-[#DDE5E1] hover:bg-[#087F8C] hover:text-white active:scale-95 shadow-xs"
+                                    title={bm.label}
+                                >
+                                    <span>{bm.id}</span>
+                                    <span className="text-[9px] font-normal opacity-80 truncate max-w-full">
+                                        {bm.id === 'V01' ? 'Tổng thể' :
+                                         bm.id === 'V02' ? 'Cửa sổ' :
+                                         bm.id === 'V03' ? 'Túi Thường' :
+                                         bm.id === 'V04' ? 'Túi Plus' :
+                                         bm.id === 'V05' ? 'Nếp rủ' : 'Tầm mắt cô'}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                        <p className="text-[10px] text-[#566967] leading-tight">
+                            Đối chiếu nhanh với bộ ảnh thực tế trường Kindy Garden (V01-V06).
+                        </p>
                     </div>
                 )}
 

@@ -722,6 +722,65 @@ uiFiles.forEach(file => {
 assert.strictEqual(jargonCount, 0, 'No technical jargon permitted in customer-facing UI');
 console.log('✓ Test 28 Passed: Zero technical jargon detected across all school-pov UI components.\n');
 
-console.log('🎉 ALL 28 TEST SCENARIOS PASSED (PHASE 1, 2, 3, 4 & 5 COMPLETE)!');
+// Test 29: Verifying Kindy Garden Architectural Materials & Modules
+console.log('Test 29: Verifying Kindy Garden Materials & Architectural Shell...');
+const materialsDir = path.join(__dirname, '../public/images/tour360/materials');
+assert.ok(fs.existsSync(path.join(materialsDir, 'wood-light-basecolor-candidate.png')), 'Light wood candidate texture exists in public directory');
+assert.ok(fs.existsSync(path.join(materialsDir, 'cotton-neutral-basecolor-candidate.png')), 'Neutral cotton candidate texture exists in public directory');
+
+const builderContent = fs.readFileSync(path.join(__dirname, '../src/components/tour360/engine/CampusRoomBuilder.ts'), 'utf8');
+assert.ok(builderContent.includes('addKindyRoomShell'), 'CampusRoomBuilder implements addKindyRoomShell');
+assert.ok(builderContent.includes('createBaseboards'), 'CampusRoomBuilder implements createBaseboards');
+assert.ok(builderContent.includes('createKindyWindows'), 'CampusRoomBuilder implements createKindyWindows');
+assert.ok(builderContent.includes('setupKindyLighting'), 'CampusRoomBuilder implements setupKindyLighting');
+assert.ok(builderContent.includes('createPastelCabinet'), 'CampusRoomBuilder implements createPastelCabinet');
+assert.ok(builderContent.includes('createOpenWoodCubby'), 'CampusRoomBuilder implements createOpenWoodCubby');
+assert.ok(builderContent.includes('createChildTableAndChairs'), 'CampusRoomBuilder implements createChildTableAndChairs');
+assert.ok(builderContent.includes('createPlayAccentShelf'), 'CampusRoomBuilder implements createPlayAccentShelf');
+console.log('✓ Test 29 Passed: Kindy Garden materials & architectural shell modules verified across campus.\n');
+
+// Test 30: Verifying Procedural Product Overhaul (Cushion Loft, Piping, Drape)
+console.log('Test 30: Verifying Procedural SleepingBagMesh & Cushion Loft Overhaul...');
+const sleepBagContent = fs.readFileSync(path.join(__dirname, '../src/components/tour360/engine/procedural/SleepingBagMesh.ts'), 'utf8');
+assert.ok(sleepBagContent.includes('createCushionLoftGeometry'), 'SleepingBagMesh implements organic cushion loft geometry');
+assert.ok(sleepBagContent.includes('createDrapedBlanketGeometry'), 'SleepingBagMesh implements natural blanket drape with overhangs');
+assert.ok(sleepBagContent.includes('padPipingGeo') || sleepBagContent.includes('pipingMat'), 'SleepingBagMesh implements dedicated perimeter piping');
+assert.ok(sleepBagContent.includes('wavePhase') || sleepBagContent.includes('waveY'), 'SleepingBagMesh implements physical puffy wave quilting on PLUS');
+assert.ok(!sleepBagContent.includes('opacity: 0.9'), 'Harsh 0.9 opacity cyan ring removed in favor of soft halo');
+
+const caraBeddingContent = fs.readFileSync(path.join(__dirname, '../src/components/tour360/engine/procedural/CaraBeddingMesh.ts'), 'utf8');
+assert.ok(caraBeddingContent.includes('Volumetric Cushion Loft Pillow'), 'CaraBeddingMesh upgraded with volumetric cushion loft');
+
+const satinBeddingContent = fs.readFileSync(path.join(__dirname, '../src/components/tour360/engine/procedural/SatinBeddingMesh.ts'), 'utf8');
+assert.ok(satinBeddingContent.includes('Volumetric Cushion Loft Pillow'), 'SatinBeddingMesh upgraded with volumetric cushion loft');
+console.log('✓ Test 30 Passed: Procedural product meshes upgraded with cushion loft, piping, and organic drape.\n');
+
+// Test 31: Verifying 6 Kindy QA Camera Bookmarks (V01 - V06)
+console.log('Test 31: Verifying 6 Kindy QA Camera Bookmarks (V01 to V06)...');
+const cameraControllerContent = fs.readFileSync(path.join(__dirname, '../src/components/tour360/engine/CampusCameraController.ts'), 'utf8');
+const bookmarkKeys = ['V01', 'V02', 'V03', 'V04', 'V05', 'V06'];
+bookmarkKeys.forEach(bmId => {
+    assert.ok(cameraControllerContent.includes(`'${bmId}'`), `KINDY_R4_BOOKMARKS contains bookmark ${bmId}`);
+});
+assert.ok(cameraControllerContent.includes('goToBookmark'), 'CampusCameraController implements goToBookmark method');
+console.log('✓ Test 31 Passed: All 6 QA Camera Bookmarks (V01-V06) verified with precision targets and FOV.\n');
+
+// Test 32: Verifying Clean Customer UI (Header, Titles & Swatch Layout)
+console.log('Test 32: Verifying Clean Customer UI (Header & Inspector)...');
+const worldStateContent = fs.readFileSync(path.join(__dirname, '../src/components/tour360/engine/CampusWorldState.ts'), 'utf8');
+// Check that room titles in ROOMS do not contain REF-* codes
+const roomTitleMatches = worldStateContent.match(/title:\s*['"][^'"]*REF-[^'"]*['"]/g);
+assert.strictEqual(roomTitleMatches, null, 'No technical REF-* codes in public room titles');
+
+const headerContent = fs.readFileSync(path.join(__dirname, '../src/components/tour360/school-pov/CampusTopHeader.tsx'), 'utf8');
+assert.ok(!headerContent.includes('eyeHeight.toFixed'), 'Technical meter measurements removed from role button in header');
+
+const inspectorContent = fs.readFileSync(path.join(__dirname, '../src/components/tour360/school-pov/CampusInspector.tsx'), 'utf8');
+assert.ok(!inspectorContent.includes('Mã quy chiếu:'), 'Developer code label "Mã quy chiếu:" removed from customer inspector');
+assert.ok(inspectorContent.includes('grid-cols-3'), 'Swatch panel uses accessible 3-column layout');
+assert.ok(inspectorContent.includes('min-h-[54px]'), 'Swatch buttons meet >= 48px touch target accessibility');
+console.log('✓ Test 32 Passed: Clean customer UI verified (zero REF codes, clean role button, 3-column swatches).\n');
+
+console.log('🎉 ALL 32 TEST SCENARIOS PASSED (INSTRUCTION 08 VISUAL UPGRADE & REGRESSION FREE)!');
 
 

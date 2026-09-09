@@ -122,12 +122,31 @@ export function createSatinBeddingMesh(
     pipingMesh.castShadow = true;
     group.add(pipingMesh);
 
-    // 4. Pillow: 0.40m x 0.25m
-    const pillowGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.38, 24);
-    pillowGeo.rotateZ(Math.PI / 2);
-    pillowGeo.scale(1, 0.35, 1);
+    // 4. Volumetric Cushion Loft Pillow: 0.40m (X) x 0.25m (Z) x 0.065m (Y)
+    const pillowGeo = new THREE.BoxGeometry(0.40, 0.025, 0.25, 24, 6, 18);
+    const pillowPos = pillowGeo.attributes.position;
+    const phw = 0.40 / 2;
+    const phl = 0.25 / 2;
+    for (let i = 0; i < pillowPos.count; i++) {
+        const px = pillowPos.getX(i);
+        const py = pillowPos.getY(i);
+        const pz = pillowPos.getZ(i);
+        const pu = Math.min(1, Math.max(-1, px / phw));
+        const pv = Math.min(1, Math.max(-1, pz / phl));
+        const envelope = Math.max(0, 1 - pu * pu) * Math.max(0, 1 - pv * pv);
+        const loft = Math.pow(envelope, 0.65);
+        if (py > 0) {
+            pillowPos.setY(i, py * 0.25 + 0.065 * loft);
+        } else {
+            pillowPos.setY(i, py * 0.2 - 0.012 * envelope);
+        }
+        pillowPos.setX(i, px * (1 + 0.05 * (1 - pv * pv)));
+        pillowPos.setZ(i, pz * (1 + 0.05 * (1 - pu * pu)));
+    }
+    pillowGeo.computeVertexNormals();
+
     const pillowMesh = new THREE.Mesh(pillowGeo, fabricMaterial);
-    pillowMesh.position.set(0, matThickness + 0.045, -halfL + 0.18);
+    pillowMesh.position.set(0, matThickness + 0.038, -halfL + 0.18);
     pillowMesh.castShadow = true;
     pillowMesh.receiveShadow = true;
     group.add(pillowMesh);

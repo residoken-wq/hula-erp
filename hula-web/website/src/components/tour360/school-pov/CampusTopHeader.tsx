@@ -65,8 +65,8 @@ export function CampusTopHeader({
                 >
                     <span className="w-2.5 h-2.5 rounded-full bg-[#087F8C] shrink-0" />
                     <span className="font-semibold">{roleConfig.name}</span>
-                    <span className="text-[11px] sm:text-xs text-[#566967] hidden sm:inline">
-                        ({roleConfig.eyeHeight.toFixed(2)} m)
+                    <span className="text-[11px] sm:text-xs text-[#566967] hidden md:inline">
+                        ({roleConfig.title})
                     </span>
                     <svg className="w-3.5 h-3.5 text-[#566967]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

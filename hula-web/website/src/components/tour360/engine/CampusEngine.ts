@@ -192,6 +192,13 @@ export class CampusEngine {
                 }
             }
 
+            // Sync QA Camera Bookmarks (V01 to V06)
+            if (campusWorldState.activeBookmarkId) {
+                const bmId = campusWorldState.activeBookmarkId;
+                campusWorldState.activeBookmarkId = null;
+                this.cameraController.goToBookmark(bmId);
+            }
+
             // Sync Foam Fold / Store animations across all rooms (R3, R6)
             if (this.activeRoom?.foamFoldInstances) {
                 Object.entries(this.activeRoom.foamFoldInstances).forEach(([foamId, fold4Mesh]) => {

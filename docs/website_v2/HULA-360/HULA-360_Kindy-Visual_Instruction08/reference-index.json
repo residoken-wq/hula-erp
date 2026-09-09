@@ -1,0 +1,175 @@
+{
+  "pageUrl": "https://nemmamnon.com/du-an/cung-cap-giai-phap-nem-mam-non-cho-he-thong-truong-kindy-garden",
+  "images": [
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-1_1782552948210.jpg",
+      "galleryIndex": 1,
+      "localPath": "references/kindy/kindy-01.jpg",
+      "bytes": 298071,
+      "sha256": "e0932122d6d0ef376535fe12eb962bdfbdc293ae82226712275f3d28d9bc7d4f",
+      "status": "downloaded",
+      "referenceRole": "overview_with_person_evidence_only",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-2_1782552981423.jpg",
+      "galleryIndex": 2,
+      "localPath": "references/kindy/kindy-02.jpg",
+      "bytes": 327973,
+      "sha256": "1ab0ea08e72c57e342bc8895ae9d1fa0d6034c2e225e3e4f857d1374cc5a3e62",
+      "status": "downloaded",
+      "referenceRole": "floor_window_blind_pastel_cabinet",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-3_1782552983395.jpg",
+      "galleryIndex": 3,
+      "localPath": "references/kindy/kindy-03.jpg",
+      "bytes": 337755,
+      "sha256": "8a52adbcc62870505522e09ceddb13f51bf940bf11f10162cf2348f1d8f38020",
+      "status": "downloaded",
+      "referenceRole": "aisle_low_angle",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-4_1782552985427.jpg",
+      "galleryIndex": 4,
+      "localPath": "references/kindy/kindy-04.jpg",
+      "bytes": 317094,
+      "sha256": "65593c276518101fdc6ef62b0e286d75e492608cfc7d94efba017e15483087c3",
+      "status": "downloaded",
+      "referenceRole": "open_wood_cubby",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-5_1782552988136.jpg",
+      "galleryIndex": 5,
+      "localPath": "references/kindy/kindy-05.jpg",
+      "bytes": 319823,
+      "sha256": "55b768768c50638d16a604f329ae88b3f7ec03aaba1467447d915deaea70f761",
+      "status": "downloaded",
+      "referenceRole": "room_layout",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-6_1782552990204.jpg",
+      "galleryIndex": 6,
+      "localPath": "references/kindy/kindy-06.jpg",
+      "bytes": 341098,
+      "sha256": "ba76fc700b6072fc733d53171e253eb01306578d0308495973700b158dfdb338",
+      "status": "downloaded",
+      "referenceRole": "product_folds_and_quilting",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-7_1782552992246.jpg",
+      "galleryIndex": 7,
+      "localPath": "references/kindy/kindy-07.jpg",
+      "bytes": 314258,
+      "sha256": "76bd8f191f1cc775ee0a58ab89923d66eb36ec4c4e54657b3ee5d52cf9d11843",
+      "status": "downloaded",
+      "referenceRole": "product_layout",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-7a_1782552994093.jpg",
+      "galleryIndex": 8,
+      "localPath": "references/kindy/kindy-08.jpg",
+      "bytes": 285951,
+      "sha256": "d1e281125778b77903abf1111c35aa1403fd3e5e461f5c737c28960433e91e23",
+      "status": "downloaded",
+      "referenceRole": "top_product_detail_unmapped_variant",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-8_1782552996201.jpg",
+      "galleryIndex": 9,
+      "localPath": "references/kindy/kindy-09.jpg",
+      "bytes": 248610,
+      "sha256": "df7a038d32f681e0910ecf6f5e1628847144f8bc80dc99800d35300fe5d09e1e",
+      "status": "downloaded",
+      "referenceRole": "low_room_view",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-9_1782552998206.jpg",
+      "galleryIndex": 10,
+      "localPath": "references/kindy/kindy-10.jpg",
+      "bytes": 236378,
+      "sha256": "f5ca214ed25e17b8f7dd46b30f56401e1ec00d4d917afbacf5855ef08620f365",
+      "status": "downloaded",
+      "referenceRole": "wide_room_ceiling",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-10_1782553000293.jpg",
+      "galleryIndex": 11,
+      "localPath": "references/kindy/kindy-11.jpg",
+      "bytes": 251074,
+      "sha256": "634d7420111d5b41efd46d0d3deab159ae654b4c11a4e4692552c9ddb3d9ed6c",
+      "status": "downloaded",
+      "referenceRole": "room_with_person_evidence_only",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-11_1782553002276.jpg",
+      "galleryIndex": 12,
+      "localPath": "references/kindy/kindy-12.jpg",
+      "bytes": 204444,
+      "sha256": "5cf388542f9a94897b224bb6c8906c0ede11fd25b53cc09a8ea0abc4214562aa",
+      "status": "downloaded",
+      "referenceRole": "wide_room_bedding",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-12_1782553005565.jpg",
+      "galleryIndex": 13,
+      "localPath": "references/kindy/kindy-13.jpg",
+      "bytes": 261092,
+      "sha256": "b8b70231ab66cc74f3c6ebe813dc00e25ebc247d440dfa9835af8551d085f228",
+      "status": "downloaded",
+      "referenceRole": "rack_and_folded_mats_oblique",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-13_1782553007588.jpg",
+      "galleryIndex": 14,
+      "localPath": "references/kindy/kindy-14.jpg",
+      "bytes": 259860,
+      "sha256": "94a06ab405e354f28597ff32a4a09acec589dfa487e68564756f342945c73a1a",
+      "status": "downloaded",
+      "referenceRole": "rack_depth_folded_layers",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-14_1782553009773.jpg",
+      "galleryIndex": 15,
+      "localPath": "references/kindy/kindy-15.jpg",
+      "bytes": 228077,
+      "sha256": "8fd7e728257132ce4d178f41240ef84e64291da1865acc5a5060bbde7ab90fff",
+      "status": "downloaded",
+      "referenceRole": "rack_front",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-15_1782553011732.jpg",
+      "galleryIndex": 16,
+      "localPath": "references/kindy/kindy-16.jpg",
+      "bytes": 252435,
+      "sha256": "020fab86b4284f7d3973eef1aefb060dce0f1f510ca3c613467aed7adfe9860c",
+      "status": "downloaded",
+      "referenceRole": "rack_front_close",
+      "useAsSceneTexture": false
+    },
+    {
+      "sourceUrl": "https://erp.nemmamnon.com/api/upload/files/hula-cung-cap-nem-mam-non-cho-he-thong-truong-kindy-garden-16_1782553013627.jpg",
+      "galleryIndex": 17,
+      "localPath": "references/kindy/kindy-17.jpg",
+      "bytes": 176457,
+      "sha256": "2f4bce8b8793511d9f01d37f7f9b2399c30315d4e62fb8555680ed1ed329ffe9",
+      "status": "downloaded",
+      "referenceRole": "hula_bag_next_to_non_hula_personal_bag",
+      "useAsSceneTexture": false
+    }
+  ]
+}
