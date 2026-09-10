@@ -1,0 +1,17 @@
+# Generation prompts
+
+## h0
+
+Create one single landscape 3:2 scene illustration by editing reference. Preserve exact same room architecture, sunny left windows, pastel cupboards right, wood table foreground, exact teacher Co An turquoise polo beige trousers, child May yellow shirt blue pants leaf hairclip, and same blue fabric bag short gray webbing handles and small pale name patch. First person mother Linh POV, never show mother face. No UI, captions, extra people, logos, catalogue panels. H0 greeting BEFORE handover. Camera steps back moderately so teacher entire head is inside frame with margin. Teacher stands behind table smiles greeting with one open hand near shoulder. May stands at her left. Bag rests upright at left side of table, fully visible, nobody holding it. No mother's arms visible. No floating bag.
+
+## h1
+
+Create one single landscape 3:2 scene illustration by editing reference. Preserve exact same room architecture, sunny left windows, pastel cupboards right, wood table foreground, exact teacher Co An turquoise polo beige trousers, child May yellow shirt blue pants leaf hairclip, and same blue fabric bag short gray webbing handles and small pale name patch. First person mother Linh POV, never show mother face. No UI, captions, extra people, logos, catalogue panels. H1 selected bag placed centrally on table. Same camera adult eye level slightly down. Teacher hand rests on table beside bag indicating it, does not lift or hand it over. Bag upright entire body and both gray handles visible centrally on tabletop. May watches at left. No mother hands visible. Teacher face entirely within frame.
+
+## h2
+
+Create one single landscape 3:2 scene illustration by editing reference. Preserve exact same room architecture, sunny left windows, pastel cupboards right, wood table foreground, exact teacher Co An turquoise polo beige trousers, child May yellow shirt blue pants leaf hairclip, and same blue fabric bag short gray webbing handles and small pale name patch. First person mother Linh POV, never show mother face. No UI, captions, extra people, logos, catalogue panels. H2 closeup inspection: camera looks down toward same bag resting on same wooden table. Bag front, short gray handles and small blank name patch occupy center, entire bag inside image with margins. Only teacher turquoise torso at far upper edge, faces can be outside image in this intentional closeup. No mother hands. Do not open bag or invent visible contents. Pale name patch blank, names will be UI outside image. This is a product inspection illustration, no text.
+
+## h3
+
+Create one single landscape 3:2 scene illustration by editing reference. Preserve exact same room architecture, sunny left windows, pastel cupboards right, wood table foreground, exact teacher Co An turquoise polo beige trousers, child May yellow shirt blue pants leaf hairclip, and same blue fabric bag short gray webbing handles and small pale name patch. First person mother Linh POV, never show mother face. No UI, captions, extra people, logos, catalogue panels. H3 ready to give: same adult POV. Teacher alone visibly grips the gray handles of the bag and lifts it above table toward viewer. Mother's cream sleeved open hand waits in lower right with visible air gap, NOT touching bag or teacher. One bag, entire bag and handles visible within frame. Teacher face inside image, May standing left. No contact yet; both teacher hand and mother's open hand anatomically clear.

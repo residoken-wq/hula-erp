@@ -592,6 +592,14 @@ export default function SchoolExperiencePage() {
                                                                         {role.id}
                                                                     </span>
                                                                 </div>
+                                                                <div className="flex items-center gap-1 flex-wrap">
+                                                                    <Tag color={cell.assetReady !== false && hasUrl ? 'blue' : 'default'} className="text-[9px] m-0 leading-normal">
+                                                                        {cell.assetReady !== false && hasUrl ? '✓ Asset' : 'Chờ asset'}
+                                                                    </Tag>
+                                                                    <Tag color={cell.runtimeTested ? 'green' : 'orange'} className="text-[9px] m-0 leading-normal">
+                                                                        {cell.runtimeTested ? '✓ Đã test' : 'Chưa test'}
+                                                                    </Tag>
+                                                                </div>
 
                                                                 {hasUrl && (
                                                                     <div className="w-full h-20 rounded-lg overflow-hidden border border-gray-300 relative bg-black/5">

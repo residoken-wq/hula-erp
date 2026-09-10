@@ -66,98 +66,98 @@ export const HANDOVER_STEPS_META: Record<HandoverState, HandoverStepDialog> = {
         stepCode: 'H0',
         stepTitle: 'Gặp nhau tại bàn đón bé',
         dialogue: {
-            'co-an': '“Chào mẹ Linh, cô đã chuẩn bị túi đồ cuối tuần của Mây rồi nhé.”',
-            'me-linh': '“Em chào cô An, em đến đón bé Mây và nhận túi đồ ạ.”',
-            'be-may': '“Con chào cô An, con chuẩn bị về với mẹ ạ!”',
+            'co-an': '“Chào mẹ Linh, hôm nay mình bàn giao túi của Mây nhé.”',
+            'me-linh': '“Em chào cô An, em đến đón Mây và nhận túi ạ.”',
+            'be-may': '“Mẹ đến đón con rồi!”',
         },
         actionLabel: {
-            'co-an': 'Lấy túi đồ của Mây từ kệ',
-            'me-linh': 'Tiến lại bàn gặp cô An',
-            'be-may': 'Đi cùng mẹ đến bàn cô An',
+            'co-an': 'Chọn túi của Mây',
+            'me-linh': 'Xem túi của Mây',
+            'be-may': 'Xem túi của con',
         },
     },
     bag_selected: {
         stepCode: 'H1',
         stepTitle: 'Tìm và đặt túi lên bàn kiểm',
         dialogue: {
-            'co-an': '“Đây là túi của bé Mây, cô để lên bàn để mẹ con mình cùng kiểm tra nhé.”',
-            'me-linh': '“Em nhìn thấy túi quai xách màu xanh của Mây rồi.”',
-            'be-may': '“Túi của con trên bàn kìa mẹ ơi!”',
+            'co-an': '“Mình đặt túi trên bàn để cùng đối chiếu.”',
+            'me-linh': '“Túi đã được đặt lên bàn để mình kiểm tra.”',
+            'be-may': '“Con thấy túi màu xanh trên bàn.”',
         },
         actionLabel: {
-            'co-an': 'Mở nhãn tên và danh mục đồ',
-            'me-linh': 'Xem nhãn tên và kiểm tra đồ',
-            'be-may': 'Chỉ vào nhãn tên Mây',
+            'co-an': 'Xem thông tin túi',
+            'me-linh': 'Xem nhãn túi',
+            'be-may': 'Nhìn nhãn túi',
         },
     },
     label_verified: {
         stepCode: 'H2',
         stepTitle: 'Xác nhận nhãn và danh mục đồ',
         dialogue: {
-            'co-an': '“Đúng nhãn Mây — Lớp Mầm, gồm bộ nệm Cotton Cara đã gấp gọn gàng.”',
-            'me-linh': '“Đúng tên Mây và lớp Mầm rồi, nệm được xếp rất ngăn nắp.”',
-            'be-may': '“Tên Mây của con đây nè mẹ!”',
+            'co-an': '“Cùng xác nhận thông tin Mây – Lớp Mầm.”',
+            'me-linh': '“Đối chiếu thông tin: Mây – Lớp Mầm.”',
+            'be-may': '“Mẹ cùng con xem tên nhé.”',
         },
         actionLabel: {
-            'co-an': 'Cầm quai túi chuẩn bị trao',
-            'me-linh': 'Sẵn sàng đưa tay nhận túi',
-            'be-may': 'Nhờ cô trao túi cho mẹ',
+            'co-an': 'Xác nhận đúng túi',
+            'me-linh': 'Xác nhận đúng túi',
+            'be-may': 'Cùng mẹ xác nhận',
         },
     },
     ready_to_transfer: {
         stepCode: 'H3',
         stepTitle: 'Chuẩn bị trao nhận túi',
         dialogue: {
-            'co-an': '“Cô gửi mẹ Linh mang túi đồ của con về giặt cuối tuần nhé.”',
-            'me-linh': '“Em cảm ơn cô, em nhận túi đây ạ.”',
-            'be-may': '“Mẹ xách túi giúp con nhé!”',
+            'co-an': '“Mình giữ quai túi và đưa về phía mẹ Linh.”',
+            'me-linh': '“Cô An đã nhấc túi, mình chuẩn bị nhận.”',
+            'be-may': '“Cô An đang đưa túi cho mẹ.”',
         },
         actionLabel: {
-            'co-an': 'Trao quai túi cho mẹ Linh',
-            'me-linh': 'Nắm quai túi từ tay cô An',
-            'be-may': 'Quan sát cô trao cho mẹ',
+            'co-an': 'Đưa túi cho mẹ',
+            'me-linh': 'Đưa tay nhận túi',
+            'be-may': 'Xem mẹ nhận túi',
         },
     },
     transferring: {
         stepCode: 'H4',
         stepTitle: 'Đang chuyển giao quyền sở hữu',
         dialogue: {
-            'co-an': 'Đang chuyển quai túi sang tay mẹ Linh...',
-            'me-linh': 'Đang tiếp nhận quai túi từ cô An...',
-            'be-may': 'Cô đang trao túi cho mẹ...',
+            'co-an': '“Mẹ Linh đã nắm quai, mình chuẩn bị buông tay.”',
+            'me-linh': '“Mình đã nắm quai, chờ cô buông tay.”',
+            'be-may': '“Mẹ đã cầm quai túi rồi.”',
         },
         actionLabel: {
-            'co-an': 'Đang chuyển giao...',
-            'me-linh': 'Đang nhận...',
-            'be-may': 'Đang chuyển giao...',
+            'co-an': 'Buông quai túi',
+            'me-linh': 'Nhận túi',
+            'be-may': 'Xem tiếp',
         },
     },
     received: {
         stepCode: 'H5',
         stepTitle: 'Đã nhận túi hoàn tất',
         dialogue: {
-            'co-an': '“Hẹn gặp lại bé Mây và mẹ vào sáng thứ Hai tuần sau nhé!”',
-            'me-linh': '“Cảm ơn cô An nhiều, hai mẹ con em chào cô em về ạ.”',
-            'be-may': '“Con chào cô An, thứ Hai con lại đi học ạ!”',
+            'co-an': '“Mẹ đã nhận túi. Chào Mây, hẹn gặp con nhé!”',
+            'me-linh': '“Mình đã nhận túi. Cảm ơn cô An!”',
+            'be-may': '“Con chào cô An, con về với mẹ ạ!”',
         },
         actionLabel: {
             'co-an': 'Hoàn tất bàn giao',
-            'me-linh': 'Hoàn tất & Chào tạm biệt',
-            'be-may': 'Chào tạm biệt cô',
+            'me-linh': 'Hoàn tất bàn giao',
+            'be-may': 'Chào cô và hoàn tất',
         },
     },
     completed: {
         stepCode: 'H5',
         stepTitle: 'Bàn giao cuối tuần thành công',
         dialogue: {
-            'co-an': '“Buổi bàn giao cuối tuần đã diễn ra trọn vẹn và an toàn.”',
-            'me-linh': '“Túi đồ của Mây đã được nhận đầy đủ, sẵn sàng cho cuối tuần.”',
-            'be-may': '“Con đã có túi nệm mang về nhà rồi!”',
+            'co-an': '“Mẹ đã nhận túi. Chào Mây, hẹn gặp con nhé!”',
+            'me-linh': '“Mình đã nhận túi. Cảm ơn cô An!”',
+            'be-may': '“Con chào cô An, con về với mẹ ạ!”',
         },
         actionLabel: {
-            'co-an': 'Xem lại cuộc gặp',
-            'me-linh': 'Xem lại cuộc gặp',
-            'be-may': 'Xem lại cuộc gặp',
+            'co-an': 'Hoàn tất bàn giao',
+            'me-linh': 'Hoàn tất bàn giao',
+            'be-may': 'Chào cô và hoàn tất',
         },
     },
 };
@@ -290,6 +290,20 @@ export class HandoverStateMachine {
      * Preserves all product customizations in R1-R6.
      */
     public replay() {
+        this.actionLock = false;
+        this.isTransferring = false;
+        this.transferProgress = 0;
+        this.state = 'waiting';
+        this.holder = 'shelf';
+        this.isLabelModalOpen = false;
+        this.notify();
+    }
+
+    /**
+     * Resets handover sequence when character perspective is switched.
+     * Cancels any in-flight transfer, closes overlays, and restores bag to shelf at H0.
+     */
+    public switchRole(_role: RoleId) {
         this.actionLock = false;
         this.isTransferring = false;
         this.transferProgress = 0;

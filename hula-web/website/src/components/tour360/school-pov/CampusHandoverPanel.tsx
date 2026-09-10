@@ -67,7 +67,7 @@ export function CampusHandoverPanel({ activeRole, onExploreMore }: CampusHandove
         { state: 'completed', code: 'H5' },
     ];
 
-    const currentStepIndex = state === 'received' ? 4 : stepsList.findIndex(s => s.state === state);
+    const currentStepIndex = (state === 'received' || state === 'completed') ? 5 : stepsList.findIndex(s => s.state === state);
 
     const stepNumber = Math.min(6, currentStepIndex + 1);
 

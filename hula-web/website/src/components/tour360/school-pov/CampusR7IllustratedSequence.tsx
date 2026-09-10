@@ -75,6 +75,7 @@ export function CampusR7IllustratedSequence({
     const [loadError, setLoadError] = useState<boolean>(false);
     const [currentImageSrc, setCurrentImageSrc] = useState<string>('');
     const [activeHotspot, setActiveHotspot] = useState<string | null>(null);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     // Subscribe to state machine
     useEffect(() => {
@@ -84,47 +85,63 @@ export function CampusR7IllustratedSequence({
         return unsubscribe;
     }, []);
 
+    // Handle role switch: reset sequence to H0 and notify user
+    useEffect(() => {
+        handoverStateMachine.switchRole(activeRole);
+        const roleName = ROLES[activeRole]?.name || activeRole;
+        setToastMessage(`Bắt đầu lại theo góc nhìn ${roleName}`);
+        const timer = setTimeout(() => setToastMessage(null), 2500);
+        return () => clearTimeout(timer);
+    }, [activeRole]);
+
     const stepInfo = STATE_TO_STEP[handoverState] || STATE_TO_STEP.waiting;
     const roleKey = activeRole; // 'co-an' | 'me-linh' | 'be-may'
     const slotKey = `r7/${roleKey}/${stepInfo.code}`;
 
-    // Determine target media URL
+    // Determine target media URL (custom override, or optimized WebP)
     const targetUrl = customMediaMap?.[slotKey] || `/images/tour360/r7/${roleKey}/${stepInfo.code}.webp`;
 
-    // Preload & crossfade image on step or role change
+    // Preload & decode image with fallback chain: WebP -> PNG -> SVG
     useEffect(() => {
         let isMounted = true;
         setIsLoading(true);
         setLoadError(false);
 
-        const img = new Image();
-        img.src = targetUrl;
-
-        img.onload = () => {
-            if (!isMounted) return;
-            setCurrentImageSrc(targetUrl);
-            setIsLoading(false);
-            setLoadError(false);
-        };
-
-        img.onerror = () => {
-            if (!isMounted) return;
-            // Fallback to SVG if webp has an issue
-            const svgFallback = `/images/tour360/r7/${roleKey}/${stepInfo.code}.svg`;
-            const fallbackImg = new Image();
-            fallbackImg.src = svgFallback;
-            fallbackImg.onload = () => {
+        const tryLoad = (src: string, fallbackFn?: () => void) => {
+            const img = new Image();
+            img.src = src;
+            img.onload = async () => {
                 if (!isMounted) return;
-                setCurrentImageSrc(svgFallback);
+                try {
+                    if (img.decode) {
+                        await img.decode();
+                    }
+                } catch {
+                    // Ignore decode error and continue
+                }
+                if (!isMounted) return;
+                setCurrentImageSrc(src);
                 setIsLoading(false);
                 setLoadError(false);
             };
-            fallbackImg.onerror = () => {
+            img.onerror = () => {
                 if (!isMounted) return;
-                setIsLoading(false);
-                setLoadError(true);
+                if (fallbackFn) fallbackFn();
+                else {
+                    setIsLoading(false);
+                    setLoadError(true);
+                }
             };
         };
+
+        // Attempt WebP first, then high-res PNG, then SVG vector
+        tryLoad(targetUrl, () => {
+            const pngFallback = `/images/tour360/r7/${roleKey}/${stepInfo.code}.png`;
+            tryLoad(pngFallback, () => {
+                const svgFallback = `/images/tour360/r7/${roleKey}/${stepInfo.code}.svg`;
+                tryLoad(svgFallback);
+            });
+        });
 
         return () => {
             isMounted = false;
@@ -147,6 +164,8 @@ export function CampusR7IllustratedSequence({
     };
 
     const roleInfo = ROLES[activeRole] || ROLES['me-linh'];
+    const activeColor = campusWorldState.getActiveColorInfo();
+    const isDifferentColor = activeColor && activeColor.colorId !== 'blue' && activeColor.colorId !== 'teal';
 
     return (
         <div
@@ -236,6 +255,24 @@ export function CampusR7IllustratedSequence({
                                     ✓ Đã khớp
                                 </span>
                             )}
+                        </div>
+                    </div>
+                )}
+                {/* 3. Role Switch Toast Notification */}
+                {toastMessage && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-fadeIn">
+                        <div className="px-4 py-2 rounded-2xl bg-[#183B3A]/90 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-xl flex items-center gap-2">
+                            <span>🔄</span>
+                            <span>{toastMessage}</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* 4. Blue Bag Color Disclaimer Note if Custom Color Selected */}
+                {isDifferentColor && (
+                    <div className="absolute bottom-3 right-3 z-20 pointer-events-none">
+                        <div className="px-2.5 py-1 rounded-xl bg-black/60 backdrop-blur-xs text-white/80 text-[10px] font-medium border border-white/10">
+                            ℹ️ Minh họa tiêu chuẩn túi xanh mầm non
                         </div>
                     </div>
                 )}
